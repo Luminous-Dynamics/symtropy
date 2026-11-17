@@ -13,8 +13,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
     Capsule, CapsuleMotionSpan, ClockUncertaintyCcdResult, ClockUncertaintyDisposition,
-    ClockUncertaintyError, MultiBodyBroadphaseError, MultiBodyBroadphaseReport, TimedCapsuleBody,
-    clock_uncertainty_aware_capsule_query, time_swept_capsule_broadphase,
+    ClockUncertaintyError, HierarchicalMultiBodyBroadphaseReport, MultiBodyBroadphaseError,
+    MultiBodyBroadphaseReport, TimedCapsuleBody, clock_uncertainty_aware_capsule_query,
+    time_swept_capsule_broadphase_hierarchical,
 };
 
 const DRIFT_PPM_DENOMINATOR: u128 = 1_000_000;
@@ -614,7 +615,13 @@ pub struct RelativeTimeBroadphaseReport {
     pub body_count: usize,
     pub reference_pair_count: u64,
     pub valid_outer_envelope_bodies: u64,
+    pub coarse_broadphase_candidate_pairs: u64,
     pub broadphase_candidate_pairs: u64,
+    pub refinement_subdivision_count: u32,
+    pub refinement_tested_pair_slabs: u64,
+    pub refinement_body_slab_bounds_built: u64,
+    pub refinement_cached_bounds_fast_rejects: u64,
+    pub refinement_common_interval_rebuilds: u64,
     pub pairwise_checked_pairs: u64,
     /// Aggregate count for valid-body pairs omitted by the conservative
     /// space-time SAP broad phase (both temporal and spatial pruning).
@@ -731,18 +738,37 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
         })
         .collect();
 
-    let broadphase = if outer_bodies.len() >= 2 {
+    // Coarse SAP is run once across the full horizon. Temporal refinement
+    // then visits only this conservative candidate set, not every body in
+    // every slab.
+    let hierarchical: Option<HierarchicalMultiBodyBroadphaseReport> = if outer_bodies.len() >= 2 {
         Some(
-            time_swept_capsule_broadphase(&outer_bodies, config.subdivision_count)
+            time_swept_capsule_broadphase_hierarchical(&outer_bodies, config.subdivision_count)
                 .map_err(RelativeTimeBroadphaseError::Broadphase)?,
         )
     } else {
         None
     };
-
-    let broadphase_candidate_pairs = broadphase
+    let broadphase = hierarchical.as_ref().map(|report| report.coarse.clone());
+    let refined_pairs = hierarchical
         .as_ref()
-        .map_or(0, |report| report.pairs.len() as u64);
+        .map_or(&[][..], |report| report.refinement.pairs.as_slice());
+    let coarse_broadphase_candidate_pairs = hierarchical
+        .as_ref()
+        .map_or(0, |report| report.refinement.coarse_candidate_pairs);
+    let broadphase_candidate_pairs = refined_pairs.len() as u64;
+    let refinement_tested_pair_slabs = hierarchical
+        .as_ref()
+        .map_or(0, |report| report.refinement.tested_pair_slabs);
+    let refinement_body_slab_bounds_built = hierarchical
+        .as_ref()
+        .map_or(0, |report| report.refinement.body_slab_bounds_built);
+    let refinement_cached_bounds_fast_rejects = hierarchical
+        .as_ref()
+        .map_or(0, |report| report.refinement.cached_bounds_fast_rejects);
+    let refinement_common_interval_rebuilds = hierarchical
+        .as_ref()
+        .map_or(0, |report| report.refinement.common_interval_rebuilds);
     let valid_outer_envelope_bodies = outer_bodies.len() as u64;
     let valid_outer_pair_count = valid_outer_envelope_bodies
         .checked_mul(valid_outer_envelope_bodies.saturating_sub(1))
@@ -765,7 +791,13 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
         body_count: bodies.len(),
         reference_pair_count,
         valid_outer_envelope_bodies,
+        coarse_broadphase_candidate_pairs,
         broadphase_candidate_pairs,
+        refinement_subdivision_count: config.subdivision_count,
+        refinement_tested_pair_slabs,
+        refinement_body_slab_bounds_built,
+        refinement_cached_bounds_fast_rejects,
+        refinement_common_interval_rebuilds,
         pairwise_checked_pairs: 0,
         outer_space_time_pruned_pairs,
         unresolved_pairs: unresolved_body_pairs,
@@ -785,53 +817,50 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
         pairs: Vec::with_capacity(broadphase_candidate_pairs as usize),
     };
 
-    if let Some(report) = output.broadphase.as_ref() {
-        for candidate in &report.pairs {
-            let Some(first) = mapped_by_id.get(candidate.first_body_id.as_str()).copied() else {
-                return Err(RelativeTimeBroadphaseError::CandidateIdentityMismatch);
-            };
-            let Some(second) = mapped_by_id.get(candidate.second_body_id.as_str()).copied() else {
-                return Err(RelativeTimeBroadphaseError::CandidateIdentityMismatch);
-            };
-            let pairwise = evaluate_pair(&first.mapped, &second.mapped);
-            let unresolved_reason =
-                if pairwise.disposition == RelativeTimePairDisposition::Unresolved {
-                    pairwise
-                        .unresolved_reason
-                        .clone()
-                        .map(RelativeTimeBroadphaseUnresolvedReason::PairwiseClockQuery)
-                } else {
-                    None
-                };
-            if unresolved_reason.is_some() {
-                output.unresolved_pairs += 1;
-            }
-            if matches!(
-                pairwise.disposition,
-                RelativeTimePairDisposition::ExactNoContact
-                    | RelativeTimePairDisposition::NoPossibleContact
-                    | RelativeTimePairDisposition::NoPossibleTemporalOverlap
-            ) {
-                output.pairwise_noncontact_candidates += 1;
-            }
-            output.pairwise_checked_pairs += 1;
-            output.pairs.push(RelativeTimeBroadphasePairReceipt {
-                first_body_id: candidate.first_body_id.clone(),
-                second_body_id: candidate.second_body_id.clone(),
-                disposition: if unresolved_reason.is_some() {
-                    RelativeTimeBroadphasePairDisposition::Unresolved
-                } else {
-                    RelativeTimeBroadphasePairDisposition::PairwiseChecked
-                },
-                candidate_slab_indices: candidate
-                    .candidate_slabs
-                    .iter()
-                    .map(|slab| slab.slab_index)
-                    .collect(),
-                pairwise_result: Some(pairwise),
-                unresolved_reason,
-            });
+    for candidate in refined_pairs {
+        let Some(first) = mapped_by_id.get(candidate.first_body_id.as_str()).copied() else {
+            return Err(RelativeTimeBroadphaseError::CandidateIdentityMismatch);
+        };
+        let Some(second) = mapped_by_id.get(candidate.second_body_id.as_str()).copied() else {
+            return Err(RelativeTimeBroadphaseError::CandidateIdentityMismatch);
+        };
+        let pairwise = evaluate_pair(&first.mapped, &second.mapped);
+        let unresolved_reason = if pairwise.disposition == RelativeTimePairDisposition::Unresolved {
+            pairwise
+                .unresolved_reason
+                .clone()
+                .map(RelativeTimeBroadphaseUnresolvedReason::PairwiseClockQuery)
+        } else {
+            None
+        };
+        if unresolved_reason.is_some() {
+            output.unresolved_pairs += 1;
         }
+        if matches!(
+            pairwise.disposition,
+            RelativeTimePairDisposition::ExactNoContact
+                | RelativeTimePairDisposition::NoPossibleContact
+                | RelativeTimePairDisposition::NoPossibleTemporalOverlap
+        ) {
+            output.pairwise_noncontact_candidates += 1;
+        }
+        output.pairwise_checked_pairs += 1;
+        output.pairs.push(RelativeTimeBroadphasePairReceipt {
+            first_body_id: candidate.first_body_id.clone(),
+            second_body_id: candidate.second_body_id.clone(),
+            disposition: if unresolved_reason.is_some() {
+                RelativeTimeBroadphasePairDisposition::Unresolved
+            } else {
+                RelativeTimeBroadphasePairDisposition::PairwiseChecked
+            },
+            candidate_slab_indices: candidate
+                .candidate_slabs
+                .iter()
+                .map(|slab| slab.slab_index)
+                .collect(),
+            pairwise_result: Some(pairwise),
+            unresolved_reason,
+        });
     }
     Ok(output)
 }

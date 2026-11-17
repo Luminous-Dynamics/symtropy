@@ -11,8 +11,9 @@ use construction_motion_oracle::{
     endpoints_only_translating_capsule_collision, evaluate_relative_time_multibody_ccd,
     evaluate_relative_time_multibody_ccd_with_broadphase, moving_sphere_capsule_collision,
     swept_sphere_capsule_aabb_candidate, time_swept_capsule_broadphase,
-    timed_co_translating_capsule_vs_capsule, translating_capsule_aabb_candidate,
-    translating_capsule_capsule_collision, translating_capsule_vs_capsule,
+    time_swept_capsule_broadphase_hierarchical, timed_co_translating_capsule_vs_capsule,
+    translating_capsule_aabb_candidate, translating_capsule_capsule_collision,
+    translating_capsule_vs_capsule,
 };
 
 const BATCH_SIZE: usize = 10_000;
@@ -372,6 +373,7 @@ fn main() {
         );
     });
     run_relative_time_multibody_comparison_benchmarks();
+    run_hierarchical_sap_algorithm_benchmarks();
 }
 
 #[derive(Clone, Copy)]
@@ -792,7 +794,7 @@ fn build_clock_mapped_bodies_with_distribution(
 
 fn run_relative_time_multibody_comparison_benchmarks() {
     println!(
-        "distribution,body_count,subdivisions,reference_pairs,outer_bodies,candidates,pairwise_checks,outer_pruned,reference_unresolved,broadphase_unresolved,noncontact_candidates,ref_p50_us,ref_p95_us,ref_p99_us,bp_p50_us,bp_p95_us,bp_p99_us,p50_speedup"
+        "distribution,body_count,subdivisions,reference_pairs,outer_bodies,coarse_candidates,refined_candidates,refinement_pair_slabs,pairwise_checks,outer_pruned,reference_unresolved,broadphase_unresolved,noncontact_candidates,ref_p50_us,ref_p95_us,ref_p99_us,bp_p50_us,bp_p95_us,bp_p99_us,p50_speedup"
     );
 
     let distributions = [
@@ -943,13 +945,15 @@ fn run_relative_time_multibody_comparison_benchmarks() {
                     reference_p50.as_nanos() as f64 / broadphase_p50.as_nanos().max(1) as f64;
 
                 println!(
-                    "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+                    "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
                     distribution.label(),
                     count,
                     subdivision_count,
                     reference_report.pair_checks,
                     broadphase_report.valid_outer_envelope_bodies,
+                    broadphase_report.coarse_broadphase_candidate_pairs,
                     broadphase_report.broadphase_candidate_pairs,
+                    broadphase_report.refinement_tested_pair_slabs,
                     broadphase_report.pairwise_checked_pairs,
                     broadphase_report.outer_space_time_pruned_pairs,
                     reference_report.unresolved_pairs,
@@ -961,6 +965,145 @@ fn run_relative_time_multibody_comparison_benchmarks() {
                     broadphase_p50.as_micros(),
                     broadphase_p95.as_micros(),
                     broadphase_p99.as_micros(),
+                    speedup,
+                );
+            }
+        }
+    }
+}
+
+fn build_site_time_sap_bodies(bodies: &[ClockDomainCapsuleBody]) -> Vec<TimedCapsuleBody> {
+    bodies
+        .iter()
+        .map(|body| {
+            let mut motion = body.motion.clone();
+            if let Some(mapping) = body.clock_mapping.as_ref() {
+                let midpoint =
+                    (i128::from(mapping.offset_min_ms) + i128::from(mapping.offset_max_ms)) / 2;
+                motion.start_ms = u64::try_from(i128::from(motion.start_ms) + midpoint)
+                    .expect("synthetic benchmark site start is representable");
+                motion.end_ms = u64::try_from(i128::from(motion.end_ms) + midpoint)
+                    .expect("synthetic benchmark site end is representable");
+            }
+            motion.clock_domain_id = "benchmark-site-clock".into();
+            // This lane isolates the broadphase indexing/refinement algorithms.
+            // Clock-map uncertainty expansion is benchmarked by the integrated
+            // relative-time lane above, not hidden in this zero-uncertainty SAP-only comparison.
+            motion.clock_uncertainty_ms = 0;
+            TimedCapsuleBody {
+                body_id: body.body_id.clone(),
+                motion,
+            }
+        })
+        .collect()
+}
+
+fn run_hierarchical_sap_algorithm_benchmarks() {
+    println!(
+        "distribution,body_count,subdivisions,possible_pairs,direct_candidates,hierarchical_coarse_candidates,hierarchical_refined_candidates,refinement_pair_slabs,cached_body_slab_bounds,cache_fast_rejects,common_interval_rebuilds,direct_p50_us,direct_p95_us,direct_p99_us,hierarchical_p50_us,hierarchical_p95_us,hierarchical_p99_us,hierarchical_speedup"
+    );
+    let distributions = [
+        ClockBroadphaseDistribution::Sparse,
+        ClockBroadphaseDistribution::Clustered,
+        ClockBroadphaseDistribution::Dense,
+        ClockBroadphaseDistribution::LongThin,
+        ClockBroadphaseDistribution::TimeStaggered,
+        ClockBroadphaseDistribution::HighDrift,
+    ];
+
+    for distribution in distributions {
+        for count in [32_usize, 64, 128, 256] {
+            let source = build_clock_mapped_bodies_with_distribution(count, distribution);
+            let bodies = build_site_time_sap_bodies(&source);
+            let possible_pairs = (count as u64) * (count.saturating_sub(1) as u64) / 2;
+
+            for subdivisions in [2_u32, 4, 8, 16] {
+                let direct = time_swept_capsule_broadphase(&bodies, subdivisions)
+                    .expect("matched SAP benchmark input must be valid");
+                let hierarchical =
+                    time_swept_capsule_broadphase_hierarchical(&bodies, subdivisions)
+                        .expect("hierarchical SAP benchmark input must be valid");
+                assert_eq!(
+                    hierarchical.refinement.pairs,
+                    direct.pairs,
+                    "hierarchical SAP candidates diverged for {} / {} bodies / {} slabs",
+                    distribution.label(),
+                    count,
+                    subdivisions
+                );
+
+                // One warm-up call per path; then alternate execution order.
+                black_box(
+                    time_swept_capsule_broadphase(&bodies, subdivisions)
+                        .expect("matched SAP warm-up must be valid"),
+                );
+                black_box(
+                    time_swept_capsule_broadphase_hierarchical(&bodies, subdivisions)
+                        .expect("hierarchical SAP warm-up must be valid"),
+                );
+                let mut direct_durations = Vec::with_capacity(9);
+                let mut hierarchical_durations = Vec::with_capacity(9);
+                for sample in 0..9 {
+                    if sample % 2 == 0 {
+                        let start = Instant::now();
+                        black_box(
+                            time_swept_capsule_broadphase(&bodies, subdivisions)
+                                .expect("matched SAP timing input must be valid"),
+                        );
+                        direct_durations.push(start.elapsed());
+
+                        let start = Instant::now();
+                        black_box(
+                            time_swept_capsule_broadphase_hierarchical(&bodies, subdivisions)
+                                .expect("hierarchical SAP timing input must be valid"),
+                        );
+                        hierarchical_durations.push(start.elapsed());
+                    } else {
+                        let start = Instant::now();
+                        black_box(
+                            time_swept_capsule_broadphase_hierarchical(&bodies, subdivisions)
+                                .expect("hierarchical SAP timing input must be valid"),
+                        );
+                        hierarchical_durations.push(start.elapsed());
+
+                        let start = Instant::now();
+                        black_box(
+                            time_swept_capsule_broadphase(&bodies, subdivisions)
+                                .expect("matched SAP timing input must be valid"),
+                        );
+                        direct_durations.push(start.elapsed());
+                    }
+                }
+                direct_durations.sort_unstable();
+                hierarchical_durations.sort_unstable();
+                let direct_p50 = percentile(&direct_durations, 50);
+                let direct_p95 = percentile(&direct_durations, 95);
+                let direct_p99 = percentile(&direct_durations, 99);
+                let hierarchical_p50 = percentile(&hierarchical_durations, 50);
+                let hierarchical_p95 = percentile(&hierarchical_durations, 95);
+                let hierarchical_p99 = percentile(&hierarchical_durations, 99);
+                let speedup =
+                    direct_p50.as_nanos() as f64 / hierarchical_p50.as_nanos().max(1) as f64;
+
+                println!(
+                    "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+                    distribution.label(),
+                    count,
+                    subdivisions,
+                    possible_pairs,
+                    direct.pairs.len(),
+                    hierarchical.coarse.pairs.len(),
+                    hierarchical.refinement.pairs.len(),
+                    hierarchical.refinement.tested_pair_slabs,
+                    hierarchical.refinement.body_slab_bounds_built,
+                    hierarchical.refinement.cached_bounds_fast_rejects,
+                    hierarchical.refinement.common_interval_rebuilds,
+                    direct_p50.as_micros(),
+                    direct_p95.as_micros(),
+                    direct_p99.as_micros(),
+                    hierarchical_p50.as_micros(),
+                    hierarchical_p95.as_micros(),
+                    hierarchical_p99.as_micros(),
                     speedup,
                 );
             }

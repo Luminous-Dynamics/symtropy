@@ -417,6 +417,314 @@ pub fn time_swept_capsule_broadphase(
     })
 }
 
+/// Result of refining a conservative coarse candidate set without rebuilding
+/// the full-body SAP for every temporal slab.
+#[derive(Clone, Debug, PartialEq)]
+pub struct CandidateRefinementReport {
+    /// Number of candidate pairs emitted by the one-slab coarse SAP.
+    pub coarse_candidate_pairs: u64,
+    /// Number of dyadic slabs used for candidate refinement.
+    pub refinement_subdivision_count: u32,
+    /// Total active body/slab outer AABBs built over the streamed slab loop.
+    pub body_slab_bounds_built: u64,
+    /// Candidate-pair/slab intersections with a non-empty common active interval.
+    pub tested_pair_slabs: u64,
+    /// Pair/slab tests rejected by disjoint cached whole-active-slab bounds.
+    pub cached_bounds_fast_rejects: u64,
+    /// Pair/slab tests requiring exact common-interval AABB reconstruction.
+    /// Each rebuild reconstructs both bodies' bounds.
+    pub common_interval_rebuilds: u64,
+    /// Refined candidate records, preserving the direct multi-slab SAP schema.
+    pub pairs: Vec<TimedCapsulePairCandidate>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct HierarchicalMultiBodyBroadphaseReport {
+    pub coarse: MultiBodyBroadphaseReport,
+    pub refinement: CandidateRefinementReport,
+}
+
+/// Build a one-slab conservative coarse SAP, then refine only its candidate
+/// pairs into the requested dyadic temporal subdivision.
+pub fn time_swept_capsule_broadphase_hierarchical(
+    bodies: &[TimedCapsuleBody],
+    refinement_subdivisions: u32,
+) -> Result<HierarchicalMultiBodyBroadphaseReport, MultiBodyBroadphaseError> {
+    let coarse = time_swept_capsule_broadphase(bodies, 1)?;
+    let refinement =
+        refine_time_swept_capsule_candidates(bodies, &coarse, refinement_subdivisions)?;
+    Ok(HierarchicalMultiBodyBroadphaseReport { coarse, refinement })
+}
+
+/// Refine a one-slab conservative candidate report into smaller common-time
+/// intervals using cached per-body/per-slab outer bounds.
+///
+/// Each active body/slab swept AABB is built once. A pair first uses those
+/// whole-active-slab bounds as a conservative rejection filter. If they
+/// overlap, exact common-interval bounds are rebuilt only when either body's
+/// cached active interval is wider than the shared pair interval. When both
+/// cached intervals equal the pair interval, the cached bounds are the exact
+/// direct-SAP common-interval inputs and can be reused.
+///
+/// This keeps the direct SAP candidate semantics while reducing repeated
+/// trajectory rebasing and AABB construction on dense candidate sets. It is
+/// still a software candidate filter, not a collision verdict or formal
+/// directed-rounding certificate.
+///
+/// The caller must retain the coarse report and its claim ceiling. This method
+/// is a candidate optimization, not a collision verdict or formal certificate.
+#[derive(Clone, Copy, Debug)]
+struct CachedBodySlab {
+    active_start_ms: u64,
+    active_end_ms: u64,
+    bounds: CapsuleAabb3,
+}
+
+fn refine_time_swept_capsule_candidates(
+    bodies: &[TimedCapsuleBody],
+    coarse: &MultiBodyBroadphaseReport,
+    subdivision_count: u32,
+) -> Result<CandidateRefinementReport, MultiBodyBroadphaseError> {
+    if subdivision_count == 0
+        || !subdivision_count.is_power_of_two()
+        || subdivision_count > MAX_TIME_SLABS
+    {
+        return Err(MultiBodyBroadphaseError::InvalidSubdivisionCount);
+    }
+    if bodies.is_empty() {
+        return Err(MultiBodyBroadphaseError::NoBodies);
+    }
+    if coarse.subdivision_count != 1
+        || coarse.body_count as usize != bodies.len()
+        || coarse.horizon_start_ms >= coarse.horizon_end_ms
+    {
+        return Err(MultiBodyBroadphaseError::BodyIdLookupFailure);
+    }
+
+    // Retain the direct SAP's computational work cap even though this version
+    // holds only one slab of bounds in memory at a time.
+    let requested_cells = (bodies.len() as u128) * u128::from(subdivision_count);
+    if requested_cells > u128::from(MAX_BODY_SLAB_CELLS) {
+        return Err(MultiBodyBroadphaseError::TooManyBodySlabCells);
+    }
+
+    let mut span_by_id = BTreeMap::<&str, usize>::new();
+    let mut ids = BTreeSet::new();
+    let first = &bodies[0].motion;
+    for (body_index, body) in bodies.iter().enumerate() {
+        if body.body_id.trim().is_empty() {
+            return Err(MultiBodyBroadphaseError::EmptyBodyId);
+        }
+        if !ids.insert(body.body_id.as_str()) {
+            return Err(MultiBodyBroadphaseError::DuplicateBodyId);
+        }
+        validate_capsule_motion_span(&body.motion)?;
+        if body.motion.site_epoch != first.site_epoch {
+            return Err(MultiBodyBroadphaseError::SiteEpochMismatch);
+        }
+        if body.motion.frame_id != first.frame_id {
+            return Err(MultiBodyBroadphaseError::FrameMismatch);
+        }
+        if body.motion.clock_domain_id != first.clock_domain_id {
+            return Err(MultiBodyBroadphaseError::ClockDomainMismatch);
+        }
+        span_by_id.insert(body.body_id.as_str(), body_index);
+    }
+
+    if coarse.pairs.is_empty() {
+        return Ok(CandidateRefinementReport {
+            coarse_candidate_pairs: 0,
+            refinement_subdivision_count: subdivision_count,
+            body_slab_bounds_built: 0,
+            tested_pair_slabs: 0,
+            cached_bounds_fast_rejects: 0,
+            common_interval_rebuilds: 0,
+            pairs: Vec::new(),
+        });
+    }
+
+    let pair_body_indices: Vec<(usize, usize)> = coarse
+        .pairs
+        .iter()
+        .map(|pair| {
+            let first_index = *span_by_id
+                .get(pair.first_body_id.as_str())
+                .ok_or(MultiBodyBroadphaseError::BodyIdLookupFailure)?;
+            let second_index = *span_by_id
+                .get(pair.second_body_id.as_str())
+                .ok_or(MultiBodyBroadphaseError::BodyIdLookupFailure)?;
+            Ok((first_index, second_index))
+        })
+        .collect::<Result<_, MultiBodyBroadphaseError>>()?;
+
+    let horizon_duration = coarse
+        .horizon_end_ms
+        .checked_sub(coarse.horizon_start_ms)
+        .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
+    let mut candidate_slabs_by_pair: Vec<Vec<CandidateSlab>> =
+        (0..coarse.pairs.len()).map(|_| Vec::new()).collect();
+    let mut body_slab_bounds_built = 0_u64;
+    let mut tested_pair_slabs = 0_u64;
+    let mut cached_bounds_fast_rejects = 0_u64;
+    let mut common_interval_rebuilds = 0_u64;
+
+    // Build each body's swept AABB once for this slab, then share it across
+    // every coarse pair containing that body. The slab cache is dropped before
+    // the next slab, keeping live cache memory O(body_count), not O(body_count
+    // × subdivision_count).
+    for slab_index in 0..subdivision_count {
+        let slab_start_ms = slab_boundary(
+            coarse.horizon_start_ms,
+            horizon_duration,
+            slab_index,
+            subdivision_count,
+        )?;
+        let slab_end_ms = slab_boundary(
+            coarse.horizon_start_ms,
+            horizon_duration,
+            slab_index + 1,
+            subdivision_count,
+        )?;
+        if slab_start_ms >= slab_end_ms {
+            continue;
+        }
+
+        let mut cached_by_body = vec![None; bodies.len()];
+        for (body_index, body) in bodies.iter().enumerate() {
+            let active_start_ms = slab_start_ms.max(body.motion.start_ms);
+            let active_end_ms = slab_end_ms.min(body.motion.end_ms);
+            if active_start_ms >= active_end_ms {
+                continue;
+            }
+            let bounds = swept_bounds(&body.motion, active_start_ms, active_end_ms)?;
+            cached_by_body[body_index] = Some(CachedBodySlab {
+                active_start_ms,
+                active_end_ms,
+                bounds,
+            });
+            body_slab_bounds_built = body_slab_bounds_built
+                .checked_add(1)
+                .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
+        }
+
+        for (pair_index, (first_index, second_index)) in pair_body_indices.iter().enumerate() {
+            let Some(first_cached) = cached_by_body[*first_index] else {
+                continue;
+            };
+            let Some(second_cached) = cached_by_body[*second_index] else {
+                continue;
+            };
+
+            let overlap_start_ms = first_cached
+                .active_start_ms
+                .max(second_cached.active_start_ms);
+            let overlap_end_ms = first_cached.active_end_ms.min(second_cached.active_end_ms);
+            if overlap_start_ms >= overlap_end_ms {
+                continue;
+            }
+            tested_pair_slabs = tested_pair_slabs
+                .checked_add(1)
+                .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
+
+            // Whole-active-slab bounds conservatively contain the pair's
+            // common-time subinterval. Disjoint cached boxes are a safe fast
+            // rejection without any per-pair trajectory rebase.
+            if !first_cached.bounds.overlaps(second_cached.bounds) {
+                cached_bounds_fast_rejects = cached_bounds_fast_rejects
+                    .checked_add(1)
+                    .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
+                continue;
+            }
+
+            let both_cached_intervals_are_pair_interval = first_cached.active_start_ms
+                == overlap_start_ms
+                && first_cached.active_end_ms == overlap_end_ms
+                && second_cached.active_start_ms == overlap_start_ms
+                && second_cached.active_end_ms == overlap_end_ms;
+            let common_bounds_overlap = if both_cached_intervals_are_pair_interval {
+                first_cached.bounds.overlaps(second_cached.bounds)
+            } else {
+                common_interval_rebuilds = common_interval_rebuilds
+                    .checked_add(1)
+                    .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
+                let first_common = swept_bounds(
+                    &bodies[*first_index].motion,
+                    overlap_start_ms,
+                    overlap_end_ms,
+                )?;
+                let second_common = swept_bounds(
+                    &bodies[*second_index].motion,
+                    overlap_start_ms,
+                    overlap_end_ms,
+                )?;
+                first_common.overlaps(second_common)
+            };
+
+            if common_bounds_overlap {
+                candidate_slabs_by_pair[pair_index].push(CandidateSlab {
+                    slab_index,
+                    overlap_start_ms,
+                    overlap_end_ms,
+                });
+            }
+        }
+    }
+
+    let mut output_pairs = Vec::with_capacity(coarse.pairs.len());
+    for ((pair, (first_index, second_index)), mut candidate_slabs) in coarse
+        .pairs
+        .iter()
+        .zip(pair_body_indices.iter())
+        .zip(candidate_slabs_by_pair)
+    {
+        if candidate_slabs.is_empty() {
+            continue;
+        }
+        candidate_slabs.sort_by_key(|candidate| candidate.slab_index);
+        let first_span = &bodies[*first_index].motion;
+        let second_span = &bodies[*second_index].motion;
+        let active_overlap_start_ms = first_span.start_ms.max(second_span.start_ms);
+        let active_overlap_end_ms = first_span.end_ms.min(second_span.end_ms);
+        if active_overlap_start_ms >= active_overlap_end_ms {
+            return Err(MultiBodyBroadphaseError::TimeArithmeticOverflow);
+        }
+        let active_duration_ms = active_overlap_end_ms - active_overlap_start_ms;
+        let candidate_duration_u128 = candidate_slabs
+            .iter()
+            .try_fold(0_u128, |total, candidate| {
+                total.checked_add(u128::from(
+                    candidate.overlap_end_ms - candidate.overlap_start_ms,
+                ))
+            })
+            .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
+        let candidate_duration_ms = u64::try_from(candidate_duration_u128)
+            .map_err(|_| MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
+        if candidate_duration_ms > active_duration_ms {
+            return Err(MultiBodyBroadphaseError::TimeArithmeticOverflow);
+        }
+        output_pairs.push(TimedCapsulePairCandidate {
+            first_body_id: pair.first_body_id.clone(),
+            second_body_id: pair.second_body_id.clone(),
+            active_overlap_start_ms,
+            active_overlap_end_ms,
+            active_duration_ms,
+            candidate_duration_ms,
+            candidate_time_fraction: candidate_duration_ms as f64 / active_duration_ms as f64,
+            candidate_slabs,
+        });
+    }
+
+    Ok(CandidateRefinementReport {
+        coarse_candidate_pairs: coarse.pairs.len() as u64,
+        refinement_subdivision_count: subdivision_count,
+        body_slab_bounds_built,
+        tested_pair_slabs,
+        cached_bounds_fast_rejects,
+        common_interval_rebuilds,
+        pairs: output_pairs,
+    })
+}
+
 #[derive(Clone, Copy, Debug)]
 struct SlabEntry {
     body_index: usize,
@@ -890,5 +1198,208 @@ mod tests {
             let report = time_swept_capsule_broadphase(&[moving, obstacle], 16).unwrap();
             assert!(pair_ids(&report).contains(&("moving".into(), "obstacle".into())));
         }
+    }
+
+    #[test]
+    fn hierarchical_refinement_matches_full_multislab_sap_candidates() {
+        for bodies in [
+            vec![
+                body("a", span(-10.0, 0.0, 20.0, 0, 100)),
+                body("b", span(10.0, 0.0, -20.0, 0, 100)),
+                body("c", span(500.0, 0.0, 0.0, 0, 100)),
+            ],
+            vec![
+                body("a", span(0.0, 0.0, 10.0, 0, 100)),
+                body("b", span(2.0, 0.0, -10.0, 0, 100)),
+                body("c", span(4.0, 0.0, 10.0, 0, 100)),
+                body("d", span(6.0, 0.0, -10.0, 0, 100)),
+            ],
+        ] {
+            for subdivisions in [1, 2, 4, 8, 16] {
+                let hierarchical =
+                    time_swept_capsule_broadphase_hierarchical(&bodies, subdivisions).unwrap();
+                let direct = time_swept_capsule_broadphase(&bodies, subdivisions).unwrap();
+                assert_eq!(
+                    hierarchical.refinement.pairs, direct.pairs,
+                    "hierarchical refinement diverged at {subdivisions} slabs"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn generated_hierarchical_refinement_matches_direct_sap_for_all_slab_counts() {
+        let mut bodies = Vec::new();
+        for index in 0..64_usize {
+            let x = ((index * 37) % 113) as f64 * 2.5;
+            let y = ((index * 19) % 71) as f64 * 1.5;
+            let delta_x = ((index * 23) % 41) as f64 - 20.0;
+            let start_ms = (index % 4) as u64 * 25;
+            let end_ms = 1_000 + (index % 4) as u64 * 25;
+            let id = format!("body-{index:03}");
+            bodies.push(body(&id, span(x, y, delta_x, start_ms, end_ms)));
+        }
+
+        for subdivisions in [1, 2, 4, 8, 16] {
+            let hierarchical =
+                time_swept_capsule_broadphase_hierarchical(&bodies, subdivisions).unwrap();
+            let direct = time_swept_capsule_broadphase(&bodies, subdivisions).unwrap();
+            assert_eq!(
+                hierarchical.refinement.pairs, direct.pairs,
+                "generated pair/slab records diverged at {subdivisions} subdivisions"
+            );
+            let direct_pair_ids: BTreeSet<_> = direct
+                .pairs
+                .iter()
+                .map(|pair| (pair.first_body_id.clone(), pair.second_body_id.clone()))
+                .collect();
+            let coarse_pair_ids: BTreeSet<_> = hierarchical
+                .coarse
+                .pairs
+                .iter()
+                .map(|pair| (pair.first_body_id.clone(), pair.second_body_id.clone()))
+                .collect();
+            assert!(
+                direct_pair_ids.is_subset(&coarse_pair_ids),
+                "one-slab coarse SAP omitted a multi-slab direct SAP pair"
+            );
+            assert_eq!(
+                hierarchical.refinement.coarse_candidate_pairs,
+                hierarchical.coarse.pairs.len() as u64
+            );
+            assert!(
+                hierarchical.refinement.tested_pair_slabs
+                    >= hierarchical.refinement.pairs.len() as u64
+            );
+            assert!(
+                hierarchical.refinement.body_slab_bounds_built
+                    <= (bodies.len() * subdivisions as usize) as u64
+            );
+            assert!(
+                hierarchical.refinement.cached_bounds_fast_rejects
+                    + hierarchical.refinement.common_interval_rebuilds
+                    <= hierarchical.refinement.tested_pair_slabs
+            );
+        }
+    }
+
+    #[test]
+    fn randomized_clockless_hierarchical_sap_matches_direct_for_mixed_time_spans() {
+        for initial_seed in 0..12_u64 {
+            let mut seed = 0x5a17_0000_u64.wrapping_add(initial_seed);
+            let mut next = || {
+                seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+                (seed >> 32) as i64
+            };
+            let mut bodies = Vec::new();
+
+            for index in 0..40_usize {
+                let cluster = index % 4;
+                let center_x = if cluster == 0 {
+                    (next().rem_euclid(200)) as f64
+                } else {
+                    (next().rem_euclid(4_000) - 2_000) as f64
+                };
+                let center_y = (next().rem_euclid(2_000) - 1_000) as f64;
+                let center_z = (next().rem_euclid(600) - 300) as f64;
+                let half_length = (next().rem_euclid(80) + 1) as f64;
+                let radius = (next().rem_euclid(20) + 1) as f64 / 4.0;
+                let capsule = Capsule::new(
+                    p(center_x, center_y - half_length, center_z),
+                    p(center_x, center_y + half_length, center_z),
+                    radius,
+                )
+                .unwrap();
+                let start_ms = 10_000 + next().rem_euclid(3_000) as u64;
+                let duration_ms = 1 + next().rem_euclid(2_000) as u64;
+                let motion = CapsuleMotionSpan {
+                    capsule_at_start: capsule,
+                    translation: p(
+                        (next().rem_euclid(400) - 200) as f64,
+                        (next().rem_euclid(400) - 200) as f64,
+                        (next().rem_euclid(200) - 100) as f64,
+                    ),
+                    start_ms,
+                    end_ms: start_ms + duration_ms,
+                    site_epoch: "site-epoch-7".into(),
+                    frame_id: "site-frame".into(),
+                    clock_domain_id: "site-clock".into(),
+                    clock_uncertainty_ms: 0,
+                };
+                bodies.push(body(
+                    &format!("seed-{initial_seed}-body-{index:02}"),
+                    motion,
+                ));
+            }
+
+            for subdivisions in [1, 2, 4, 8, 16] {
+                let hierarchical =
+                    time_swept_capsule_broadphase_hierarchical(&bodies, subdivisions).unwrap();
+                let direct = time_swept_capsule_broadphase(&bodies, subdivisions).unwrap();
+                assert_eq!(
+                    hierarchical.refinement.pairs, direct.pairs,
+                    "randomized complete candidate records diverged for seed {initial_seed} at {subdivisions} slabs"
+                );
+                let coarse_ids: BTreeSet<_> = hierarchical
+                    .coarse
+                    .pairs
+                    .iter()
+                    .map(|pair| (pair.first_body_id.clone(), pair.second_body_id.clone()))
+                    .collect();
+                for direct_pair in &direct.pairs {
+                    assert!(
+                        coarse_ids.contains(&(
+                            direct_pair.first_body_id.clone(),
+                            direct_pair.second_body_id.clone()
+                        )),
+                        "coarse SAP omitted randomized direct candidate for seed {initial_seed}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn cached_slab_bounds_fast_reject_and_reuse_exact_common_intervals() {
+        let bodies = [
+            body("a", span(-10.0, 0.0, 20.0, 0, 1_000)),
+            body("b", span(10.0, 0.0, -20.0, 0, 1_000)),
+        ];
+        let hierarchical = time_swept_capsule_broadphase_hierarchical(&bodies, 8).unwrap();
+        let direct = time_swept_capsule_broadphase(&bodies, 8).unwrap();
+        assert_eq!(hierarchical.refinement.pairs, direct.pairs);
+        assert_eq!(hierarchical.refinement.body_slab_bounds_built, 16);
+        assert_eq!(hierarchical.refinement.tested_pair_slabs, 8);
+        assert!(hierarchical.refinement.cached_bounds_fast_rejects > 0);
+        assert_eq!(hierarchical.refinement.common_interval_rebuilds, 0);
+    }
+
+    #[test]
+    fn cached_refinement_rebuilds_only_when_active_intervals_differ() {
+        let bodies = [
+            body("a", span(0.0, 0.0, 0.0, 0, 1_000)),
+            body("b", span(0.0, 0.0, 0.0, 275, 725)),
+        ];
+        let hierarchical = time_swept_capsule_broadphase_hierarchical(&bodies, 4).unwrap();
+        let direct = time_swept_capsule_broadphase(&bodies, 4).unwrap();
+        assert_eq!(hierarchical.refinement.pairs, direct.pairs);
+        assert_eq!(hierarchical.refinement.coarse_candidate_pairs, 1);
+        assert!(hierarchical.refinement.common_interval_rebuilds > 0);
+        assert_eq!(hierarchical.refinement.body_slab_bounds_built, 2 + 4);
+    }
+
+    #[test]
+    fn empty_coarse_candidate_set_skips_all_refinement_cache_work() {
+        let bodies = [
+            body("a", span(0.0, 0.0, 0.0, 0, 1_000)),
+            body("b", span(10_000.0, 0.0, 0.0, 0, 1_000)),
+        ];
+        let hierarchical = time_swept_capsule_broadphase_hierarchical(&bodies, 16).unwrap();
+        assert!(hierarchical.coarse.pairs.is_empty());
+        assert_eq!(hierarchical.refinement.coarse_candidate_pairs, 0);
+        assert_eq!(hierarchical.refinement.body_slab_bounds_built, 0);
+        assert_eq!(hierarchical.refinement.tested_pair_slabs, 0);
+        assert_eq!(hierarchical.refinement.cached_bounds_fast_rejects, 0);
+        assert_eq!(hierarchical.refinement.common_interval_rebuilds, 0);
     }
 }

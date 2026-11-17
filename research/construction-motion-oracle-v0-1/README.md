@@ -117,6 +117,35 @@ This initial owner is an O(n²) exhaustive reference implementation, capped at 1
 The drift model is a hard relative-rate bound over the complete source interval, not a statistical standard deviation, synchronization protocol or clock-drift estimator. The adapter assumes the input geometry has already been transformed into one common frame; it does not perform frame registration. This is software-level collision reasoning only—not real-time control, physical stopping validation, human-protection logic, motion authorization or site safety qualification. Tracks [#5823](https://github.com/Luminous-Dynamics/symtropy/issues/5823) and [#5649](https://github.com/Luminous-Dynamics/symtropy/issues/5649).
 
 
+
+
+
+
+
+
+### Cached body-slab bound refinement
+
+The cached-refinement implementation builds each active body's swept AABB once per slab and shares that bound across every coarse candidate pair containing the body. It retains only one slab's body bounds at a time, so live cache memory is O(body_count), while the existing MAX_BODY_SLAB_CELLS cap still bounds total build work. During refinement, a pair first uses the two cached whole-active-slab bounds as a conservative rejection filter. If those bounds overlap, exact common-interval bounds are rebuilt only when either cached active interval is wider than the pair's shared active interval. When both cached intervals exactly match the common interval, their bounds are reused. If the coarse candidate set is empty, no slab cache is allocated or built.
+
+The refinement receipt and benchmark report:
+- total body/slab AABBs built across all slabs;
+- pair/slab cached-bound tests;
+- fast rejects using disjoint whole-active-slab bounds;
+- common-interval pair rebuilds.
+
+This is an attempt to reduce repeated rebasing and capsule construction on clustered/long-thin cases, where the first coarse-to-fine prototype paid per candidate pair × slab. It must preserve full direct-SAP candidate records exactly. A deterministic randomized differential test and focused tests for identical/different active intervals and empty coarse sets enforce the candidate-record and cache-accounting contracts.
+### Direct algorithm comparison
+
+The SAP-only benchmark runs the original full multi-slab algorithm and the hierarchical coarse-to-fine algorithm on the same normalized site-clock trajectories. It alternates timing order, performs warm-up calls, and reports direct/hierarchical p50/p95/p99 plus speedup, direct candidate count, coarse candidate count, refined candidate count and refinement pair-slab work. Exact complete candidate-record equality is asserted before timing is reported. This isolates the cost saved by avoiding a full body/index sweep per slab; it does not include clock-map construction or outer-envelope inflation. The integrated multi-clock-vs-exhaustive benchmark remains a separate end-to-end software path.
+### Hierarchical coarse-to-fine refinement
+
+The current multi-clock owner no longer rebuilds a full SAP for every requested time slab. It first performs one full-horizon coarse SAP pass, then refines only the emitted pair candidates by rebuilding both bodies' conservative bounds on their common active subintervals.
+
+The work is therefore proportional to the one coarse body/index pass plus coarse candidates × refinement slabs, rather than rebuilding the body SAP independently for each slab. coarse_broadphase_candidate_pairs, broadphase_candidate_pairs and refinement_tested_pair_slabs distinguish the amount of initial work, retained output and refinement effort.
+
+A parity test compares the complete refined candidate records against the direct full-SAP implementation for 1/2/4/8/16 subdivisions. A deterministic randomized test runs 12 seeds × 40 bodies across mixed start times, durations, 3D translations, radii and clustered/sparse positions, with complete candidate-record equality and coarse-candidate-superset checks at every subdivision. The same generated multi-clock reference candidate-superset tests remain in place. This is the intended optimization: the coarse result is a conservative superset; refinement only removes pairs/time segments whose common-interval outer AABBs are disjoint. It must never create a pair absent from the coarse superset or drop a pair present in the direct full-SAP reference.
+
+The broad phase still relies on the existing outward-expanded floating-point AABBs, not formal directed rounding. Coarse-to-fine refinement does not raise the assurance level of the underlying bound arithmetic.
 ## Clock-aware conservative multi-body broad phase
 
 The relative-time reference in #5849 checks every unordered pair. This extension converts each successfully mapped body into a conservative zero-clock-uncertainty outer span and feeds those spans into the existing dyadic sweep-and-prune broad phase.
@@ -135,3 +164,6 @@ The report keeps detailed pair receipts only for emitted candidates. It reports 
 The existing SAP uses an eight-ULP numeric expansion; this is not a formally directed-rounded proof. Therefore outer_space_time_pruned_pairs is a benchmark/pruning disposition, not a production motion-authorization or formal clearance certificate. Before use in any safety-relevant path, the outer-bound arithmetic must be independently validated with interval/directed-rounding methods and a separately governed reference corpus.
 
 The paired benchmark compares the exhaustive multi-clock reference against the clock-aware broad phase on identical sparse scenes at 8/16/32/64/128/256/512 bodies and identical clustered, dense, long-thin, time-staggered and high-drift scenes at 32/64/128/256 bodies. For each workload it sweeps 1/2/4/8/16 temporal slabs, measures both paths with one warm-up and alternating execution order, and reports reference and broad-phase p50/p95/p99 separately plus p50 speedup. The CSV also reports total possible pairs, outer-envelope bodies, candidates, pairwise checks, pruned pairs, unresolved pairs and non-contact candidate count. At 8–64 bodies it checks that every exhaustive exact/potential/boundary contact pair appears in the candidate set at each slab count. A generated 64-body unit test performs the same candidate-superset check against the exhaustive oracle. These synthetic strata still do not represent field robot trajectories or independently calibrated site clocks. Vendor adapters, blind external geometry families and physical metrology remain separate qualification steps. Tracks #5823 and #5649.
+
+
+The cached-bound lane is a follow-on to #5866 and is benchmarked on the same synthetic distributions. The direct and cached hierarchical implementations must produce identical full candidate/slab records before timing. Counters distinguish total body-slab AABB builds, pair-slab cache checks, fast rejects from disjoint per-body slab bounds, and exact common-interval pair rebuilds. The current implementation streams one slab at a time and pre-resolves coarse pair body indices once, avoiding an all-slabs cache and repeated BTreeMap lookups inside the slab loop. Benchmark timings are still single-host synthetic microbenchmarks and must be rerun on a second host and held-out distributions before adaptive policy decisions.
