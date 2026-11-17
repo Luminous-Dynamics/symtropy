@@ -187,6 +187,32 @@ impl SpectralOracle {
         &self.eigenvalues
     }
 
+    /// Return the exact continuous-time transition matrix for this frozen
+    /// linear graph, evaluated through the independent spectral decomposition.
+    pub fn transition_matrix(&self, time: f64) -> Result<Vec<Vec<f64>>, NetworkError> {
+        if !time.is_finite() || time < 0.0 {
+            return Err(NetworkError::InvalidOracleTime);
+        }
+        let n = self.capacities.len();
+        let mut transition = vec![vec![0.0; n]; n];
+        for (i, row) in transition.iter_mut().enumerate() {
+            for (j, value) in row.iter_mut().enumerate() {
+                let mut modal_sum = 0.0;
+                for mode in 0..n {
+                    modal_sum += self.eigenvectors[i][mode]
+                        * (-self.eigenvalues[mode] * time).exp()
+                        * self.eigenvectors[j][mode];
+                }
+                *value = modal_sum * self.sqrt_capacity[j] / self.sqrt_capacity[i];
+            }
+        }
+        if transition.iter().flatten().all(|value| value.is_finite()) {
+            Ok(transition)
+        } else {
+            Err(NetworkError::NonFiniteOracleState)
+        }
+    }
+
     pub fn state_at(&self, time: f64) -> Result<Vec<f64>, NetworkError> {
         if !time.is_finite() || time < 0.0 {
             return Err(NetworkError::InvalidOracleTime);
