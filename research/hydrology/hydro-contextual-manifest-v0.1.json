@@ -3,7 +3,7 @@
   "evidence_class": "synthetic_only",
   "claim_ceiling": "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification",
   "benchmark_id": "HYDRO-CONTEXTUAL-T0",
-  "case_count": 35,
+  "case_count": 37,
   "required_case_ids": [
     "HC-T0-001-b0-persistence-metrics",
     "HC-T0-002-b0-seasonal-climatology-metrics",
@@ -39,7 +39,9 @@
     "HC-T0-032-ensemble-crps-negative-flow-reject",
     "HC-T0-033-ensemble-crps-skill",
     "HC-T0-034-threshold-event-brier-skill",
-    "HC-T0-035-crps-skill-zero-reference-undefined"
+    "HC-T0-035-crps-skill-zero-reference-undefined",
+    "HC-T0-036-crps-skill-negative-retained",
+    "HC-T0-037-brier-skill-negative-retained"
   ],
   "baseline_families": [
     "B0_data_only",
@@ -88,6 +90,7 @@
     "Every skill score must identify its reference forecast and use exactly the same verifying observation/event population, units, lead time and valid-time semantics as the evaluated forecast.",
     "Positive skill means improvement over the named reference; zero is equal skill; negative is worse. Do not clip negative skill values.",
     "If the reference score is zero or within the predeclared denominator tolerance, the skill score is Undefined while the raw forecast and reference scores remain reported.",
-    "Reference forecasts must be frozen and may not be tuned on the held-out test cases."
+    "Reference forecasts must be frozen and may not be tuned on the held-out test cases.",
+    "Skill scores below zero are retained as worse than the declared reference; no clipping to zero or omission of negative results is allowed."
   ]
 }
