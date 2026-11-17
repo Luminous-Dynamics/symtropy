@@ -30,9 +30,15 @@ pub enum ImpactError {
     EmptyArtifactId,
     InvalidArtifactId,
     DuplicateArtifact(String),
-    UnknownDependencyEndpoint { consumer: String, dependency: String },
+    UnknownDependencyEndpoint {
+        consumer: String,
+        dependency: String,
+    },
     SelfDependency(String),
-    DuplicateDependency { consumer: String, dependency: String },
+    DuplicateDependency {
+        consumer: String,
+        dependency: String,
+    },
     DependencyCycle,
     EmptyChangeSet,
     UnknownChangedArtifact(String),
@@ -46,12 +52,18 @@ impl std::fmt::Display for ImpactError {
                 f.write_str("artifact ID must not contain control characters")
             }
             Self::DuplicateArtifact(id) => write!(f, "duplicate artifact ID: {id}"),
-            Self::UnknownDependencyEndpoint { consumer, dependency } => write!(
+            Self::UnknownDependencyEndpoint {
+                consumer,
+                dependency,
+            } => write!(
                 f,
                 "dependency edge references unknown endpoint: {consumer} -> {dependency}"
             ),
             Self::SelfDependency(id) => write!(f, "artifact cannot depend on itself: {id}"),
-            Self::DuplicateDependency { consumer, dependency } => {
+            Self::DuplicateDependency {
+                consumer,
+                dependency,
+            } => {
                 write!(f, "duplicate dependency edge: {consumer} -> {dependency}")
             }
             Self::DependencyCycle => f.write_str("evidence dependency graph contains a cycle"),
@@ -59,7 +71,10 @@ impl std::fmt::Display for ImpactError {
                 f.write_str("change-impact query requires at least one changed artifact")
             }
             Self::UnknownChangedArtifact(id) => {
-                write!(f, "changed artifact is not present in dependency graph: {id}")
+                write!(
+                    f,
+                    "changed artifact is not present in dependency graph: {id}"
+                )
             }
         }
     }
@@ -116,11 +131,7 @@ impl EvidenceDependencyGraph {
     ///
     /// Endpoints are validated when calculating impact closure, so callers
     /// may ingest artifacts and edges from separate source streams.
-    pub fn add_dependency(
-        &mut self,
-        consumer: impl Into<String>,
-        dependency: impl Into<String>,
-    ) {
+    pub fn add_dependency(&mut self, consumer: impl Into<String>, dependency: impl Into<String>) {
         self.dependencies.push((consumer.into(), dependency.into()));
     }
 
@@ -153,18 +164,12 @@ impl EvidenceDependencyGraph {
             .cloned()
             .map(|id| (id, BTreeSet::new()))
             .collect();
-        let mut indegree: BTreeMap<String, usize> = self
-            .artifacts
-            .keys()
-            .cloned()
-            .map(|id| (id, 0))
-            .collect();
+        let mut indegree: BTreeMap<String, usize> =
+            self.artifacts.keys().cloned().map(|id| (id, 0)).collect();
         let mut seen_edges = BTreeSet::new();
 
         for (consumer, dependency) in &self.dependencies {
-            if !self.artifacts.contains_key(consumer)
-                || !self.artifacts.contains_key(dependency)
-            {
+            if !self.artifacts.contains_key(consumer) || !self.artifacts.contains_key(dependency) {
                 return Err(ImpactError::UnknownDependencyEndpoint {
                     consumer: consumer.clone(),
                     dependency: dependency.clone(),
@@ -221,10 +226,7 @@ impl EvidenceDependencyGraph {
     /// Calculate exact transitive impact. Unknown changed IDs, unknown edge
     /// endpoints and cycles return errors. If dependency completeness has not
     /// been declared, all scoped evidence is marked stale conservatively.
-    pub fn impact_closure(
-        &self,
-        changed_ids: &[String],
-    ) -> Result<ImpactReport, ImpactError> {
+    pub fn impact_closure(&self, changed_ids: &[String]) -> Result<ImpactReport, ImpactError> {
         if changed_ids.is_empty() {
             return Err(ImpactError::EmptyChangeSet);
         }
@@ -447,9 +449,7 @@ mod tests {
     #[test]
     fn cycles_and_self_dependencies_fail_closed() {
         let mut cycle = EvidenceDependencyGraph::new();
-        cycle
-            .add_artifact("a", ArtifactKind::Geometry)
-            .unwrap();
+        cycle.add_artifact("a", ArtifactKind::Geometry).unwrap();
         cycle.add_artifact("b", ArtifactKind::SolverInput).unwrap();
         cycle.add_dependency("a", "b");
         cycle.add_dependency("b", "a");
@@ -460,9 +460,7 @@ mod tests {
         );
 
         let mut self_edge = EvidenceDependencyGraph::new();
-        self_edge
-            .add_artifact("a", ArtifactKind::Geometry)
-            .unwrap();
+        self_edge.add_artifact("a", ArtifactKind::Geometry).unwrap();
         self_edge.add_dependency("a", "a");
         self_edge.declare_complete();
         assert_eq!(
@@ -497,7 +495,10 @@ mod tests {
             }
         }
         assert_eq!(
-            report.affected_artifact_ids.into_iter().collect::<BTreeSet<_>>(),
+            report
+                .affected_artifact_ids
+                .into_iter()
+                .collect::<BTreeSet<_>>(),
             oracle_affected
         );
     }
