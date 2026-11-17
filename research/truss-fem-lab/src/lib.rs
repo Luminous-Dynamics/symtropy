@@ -7,6 +7,7 @@ pub mod benchmark;
 pub mod damage;
 pub mod interfaces;
 pub mod stability;
+pub mod verification;
 
 use std::collections::HashSet;
 use std::error::Error;
