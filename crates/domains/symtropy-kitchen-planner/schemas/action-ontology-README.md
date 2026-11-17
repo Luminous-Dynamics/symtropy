@@ -23,3 +23,13 @@ The 2025 Frontiers Actionable Knowledge Graph study identifies six Action Cores 
 Our benchmark therefore reports core coverage, group precision/recall, unmapped-verb rate, human correction, unsupported mapping rate and downstream task-graph feasibility separately. Compare only on a matched licensed corpus and reproduced preprocessing/matching protocol.
 
 Kitchen-R (2025 publication) provides 500+ language instructions and separates planning-only, low-level control and integrated evaluation in an Isaac Sim digital twin. Symtropy's ontology contributes only to recipe/action grounding. Low-level control, integrated robot success and physical food preparation remain separate qualification tracks.
+
+
+## Executable benchmark evaluator
+
+- `ActionOntologyBenchmarkV1.schema.json` defines labelled benchmark cases with an explicit `gold_group`, an ontology binding and a positive occurrence weight.
+- `fixtures/action-ontology-evaluation-v1.json` is a synthetic weighted fixture consumed by the Rust unit tests.
+- `evaluate_action_ontology_benchmark` validates every prediction before scoring and returns exact integer weighted counts for core coverage, micro group precision/recall, correct abstention, and per-group gold/predicted/true-positive counts. Invalid predictions, duplicate IDs, zero weights and arithmetic overflow fail the evaluation.
+- Macro precision/recall are derived from the per-group counts under a predeclared class-inclusion convention; keep macro and micro values separate.
+
+The published 76.5% verb coverage from the 2025 Actionable Knowledge Graph paper is only a corpus/protocol reference. Reproduce its normalization and split before claiming a direct comparison. Do not use its coverage figure as a precision target.
