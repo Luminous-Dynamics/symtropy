@@ -383,14 +383,23 @@ fn compute_potable(case: &Value) -> Result<Value, String> {
             let mains = number(i, &["measured_mains_displacement_l"])?;
             let quality = boolean(i, &["quality_evidence_current"])?;
             let control = boolean(i, &["matched_control_profile"])?;
-            if [gross, qualified, recovered, mains].iter().any(|value| *value < 0.0) {
+            if [gross, qualified, recovered, mains]
+                .iter()
+                .any(|value| *value < 0.0)
+            {
                 return Err(format!("{id}: negative service-credit quantity"));
             }
             if qualified > gross || recovered > qualified {
-                return Err(format!("{id}: service-credit quantities exceed their upstream boundary"));
+                return Err(format!(
+                    "{id}: service-credit quantities exceed their upstream boundary"
+                ));
             }
             let eligible = quality && control;
-            let credit = if eligible { qualified.min(recovered).min(mains) } else { 0.0 };
+            let credit = if eligible {
+                qualified.min(recovered).min(mains)
+            } else {
+                0.0
+            };
             let disposition = if !quality {
                 "INDETERMINATE_QUALITY_EVIDENCE"
             } else if !control {
@@ -425,7 +434,11 @@ fn compute_potable(case: &Value) -> Result<Value, String> {
             {
                 return Err(format!("{id}: invalid service-credit boundary"));
             }
-            let credit = if quality && control { qualified.min(recovered).min(mains) } else { 0.0 };
+            let credit = if quality && control {
+                qualified.min(recovered).min(mains)
+            } else {
+                0.0
+            };
             Ok(json!({
                 "credited_net_mains_displacement_l": credit,
                 "service_credit_disposition": if !quality {
@@ -515,7 +528,9 @@ fn compute_potable(case: &Value) -> Result<Value, String> {
                 let mains = number(claim, &["measured_mains_displacement_l"])?;
                 let quality = boolean(claim, &["quality_evidence_current"])?;
                 let control = boolean(claim, &["matched_control_profile"])?;
-                if [qualified, recovered, mains].iter().any(|value| *value < 0.0)
+                if [qualified, recovered, mains]
+                    .iter()
+                    .any(|value| *value < 0.0)
                     || recovered > qualified
                 {
                     return Err(format!("{context}: invalid end-use credit boundary"));
