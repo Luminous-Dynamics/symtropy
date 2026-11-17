@@ -9,7 +9,7 @@ use construction_motion_oracle::{
     endpoints_only_translating_capsule_collision, moving_sphere_capsule_collision,
     swept_sphere_capsule_aabb_candidate, timed_co_translating_capsule_vs_capsule,
     translating_capsule_aabb_candidate, translating_capsule_capsule_collision,
-    translating_capsule_vs_capsule,
+    translating_capsule_vs_capsule, TimedCapsuleBody, time_swept_capsule_broadphase,
 };
 
 const BATCH_SIZE: usize = 10_000;
@@ -356,6 +356,9 @@ fn main() {
         "absolute-time-capsules,closest_offset_ms,{}",
         timed_closest.closest_time_offset_ms
     );
+    println!("multibody,time_swept_broadphase");
+    run_multibody_broadphase_benchmarks();
+
     measure("absolute-time-capsule-pair-narrow-phase", || {
         black_box(
             timed_co_translating_capsule_vs_capsule(
@@ -365,4 +368,253 @@ fn main() {
             .expect("valid absolute-time capsule query"),
         );
     });
+    println!("multibody,time_swept_broadphase");
+    run_multibody_broadphase_benchmarks();
+
+}
+
+
+#[derive(Clone, Copy)]
+enum BroadphaseDistribution {
+    Sparse,
+    Clustered,
+    Dense,
+    LongThin,
+}
+
+impl BroadphaseDistribution {
+    fn label(self) -> &'static str {
+        match self {
+            Self::Sparse => "sparse",
+            Self::Clustered => "clustered",
+            Self::Dense => "dense",
+            Self::LongThin => "long-thin",
+        }
+    }
+}
+
+fn build_broadphase_bodies(
+    count: usize,
+    distribution: BroadphaseDistribution,
+) -> Vec<TimedCapsuleBody> {
+    (0..count)
+        .map(|index| {
+            let i = index as f64;
+            let (x, y, z, radius) = match distribution {
+                BroadphaseDistribution::Sparse => {
+                    (i * 40.0, (index % 31) as f64 * 30.0, (index % 7) as f64 * 20.0, 0.5)
+                }
+                BroadphaseDistribution::Clustered => {
+                    (
+                        (index % 32) as f64 * 3.0,
+                        ((index / 32) % 16) as f64 * 3.0,
+                        (index % 5) as f64 * 1.0,
+                        1.0,
+                    )
+                }
+                BroadphaseDistribution::Dense => (0.0, 0.0, 0.0, 1.0),
+                BroadphaseDistribution::LongThin => {
+                    (i * 15.0, (index % 11) as f64 * 5.0, 0.0, 0.5)
+                }
+            };
+            let half_length = if matches!(distribution, BroadphaseDistribution::LongThin) {
+                25.0
+            } else {
+                1.0
+            };
+            let translation = match distribution {
+                BroadphaseDistribution::Sparse => Vec3::new(2.0, 0.0, 0.0),
+                BroadphaseDistribution::Clustered => {
+                    if index % 2 == 0 {
+                        Vec3::new(10.0, 0.0, 0.0)
+                    } else {
+                        Vec3::new(-10.0, 0.0, 0.0)
+                    }
+                }
+                BroadphaseDistribution::Dense => Vec3::new(
+                    if index % 2 == 0 { 1.0 } else { -1.0 },
+                    0.0,
+                    0.0,
+                ),
+                BroadphaseDistribution::LongThin => Vec3::new(0.0, 5.0, 0.0),
+            };
+            TimedCapsuleBody {
+                body_id: format!("body-{index:06}"),
+                motion: CapsuleMotionSpan {
+                    capsule_at_start: Capsule::new(
+                        Vec3::new(x, y, z - half_length),
+                        Vec3::new(x, y, z + half_length),
+                        radius,
+                    )
+                    .expect("benchmark capsule is finite"),
+                    translation,
+                    start_ms: (index % 8) as u64 * 100,
+                    end_ms: 1_000 + (index % 8) as u64 * 100,
+                    site_epoch: "benchmark-epoch".into(),
+                    frame_id: "benchmark-frame".into(),
+                    clock_domain_id: "benchmark-clock".into(),
+                    clock_uncertainty_ms: 0,
+                },
+            }
+        })
+        .collect()
+}
+
+fn measure_multibody(
+    bodies: &[TimedCapsuleBody],
+    subdivisions: u32,
+    samples: usize,
+) -> (Duration, Duration, Duration, usize, u64, u64) {
+    let mut durations = Vec::with_capacity(samples);
+    let mut last = None;
+    for _ in 0..samples {
+        let start = Instant::now();
+        let report = time_swept_capsule_broadphase(black_box(bodies), subdivisions)
+            .expect("benchmark broadphase inputs are valid");
+        durations.push(start.elapsed());
+        last = Some((
+            report.pairs.len(),
+            report.active_body_slab_cells,
+            report.total_coarse_spatial_pairs,
+        ));
+    }
+    durations.sort_unstable();
+    let values = last.expect("sample count is positive");
+    (
+        percentile(&durations, 50),
+        percentile(&durations, 95),
+        percentile(&durations, 99),
+        values.0,
+        values.1,
+        values.2,
+    )
+}
+
+fn whole_horizon_all_pairs_candidate_count(bodies: &[TimedCapsuleBody]) -> u64 {
+    let bounds: Vec<_> = bodies
+        .iter()
+        .map(|body| {
+            let start = body.motion.capsule_at_start;
+            let delta = body.motion.translation;
+            let end = Capsule::new(
+                Vec3::new(
+                    start.start.x + delta.x,
+                    start.start.y + delta.y,
+                    start.start.z + delta.z,
+                ),
+                Vec3::new(
+                    start.end.x + delta.x,
+                    start.end.y + delta.y,
+                    start.end.z + delta.z,
+                ),
+                start.radius_mm,
+            )
+            .expect("benchmark final pose is valid");
+            let first = start.aabb();
+            let last = end.aabb();
+            (
+                Vec3::new(
+                    first.min.x.min(last.min.x),
+                    first.min.y.min(last.min.y),
+                    first.min.z.min(last.min.z),
+                ),
+                Vec3::new(
+                    first.max.x.max(last.max.x),
+                    first.max.y.max(last.max.y),
+                    first.max.z.max(last.max.z),
+                ),
+            )
+        })
+        .collect();
+
+    let mut candidates = 0_u64;
+    for left in 0..bodies.len() {
+        for right in (left + 1)..bodies.len() {
+            let temporal = bodies[left].motion.start_ms.max(bodies[right].motion.start_ms)
+                < bodies[left].motion.end_ms.min(bodies[right].motion.end_ms);
+            if !temporal {
+                continue;
+            }
+            let (left_min, left_max) = bounds[left];
+            let (right_min, right_max) = bounds[right];
+            let overlap = left_min.x <= right_max.x
+                && left_max.x >= right_min.x
+                && left_min.y <= right_max.y
+                && left_max.y >= right_min.y
+                && left_min.z <= right_max.z
+                && left_max.z >= right_min.z;
+            if overlap {
+                candidates += 1;
+            }
+        }
+    }
+    candidates
+}
+
+fn measure_whole_horizon_all_pairs(
+    bodies: &[TimedCapsuleBody],
+    samples: usize,
+) -> (Duration, Duration, Duration, u64) {
+    let mut durations = Vec::with_capacity(samples);
+    let mut last_count = 0;
+    for _ in 0..samples {
+        let start = Instant::now();
+        last_count = whole_horizon_all_pairs_candidate_count(black_box(bodies));
+        durations.push(start.elapsed());
+    }
+    durations.sort_unstable();
+    (
+        percentile(&durations, 50),
+        percentile(&durations, 95),
+        percentile(&durations, 99),
+        last_count,
+    )
+}
+
+fn run_multibody_broadphase_benchmarks() {
+    println!(
+        "distribution,body_count,slabs,method,p50_us,p95_us,p99_us,unique_pairs,active_cells,coarse_spatial_pairs,theoretical_all_pairs"
+    );
+    for count in [16_usize, 64, 256, 1_024, 4_096, 10_000] {
+        let bodies = build_broadphase_bodies(count, BroadphaseDistribution::Sparse);
+        let (p50, p95, p99, pair_count, cells, coarse) =
+            measure_multibody(&bodies, 8, 21);
+        let all_pairs = (count as u64) * ((count - 1) as u64) / 2;
+        println!(
+            "sparse,{count},8,dyadic-sap,{},{},{},{pair_count},{cells},{coarse},{all_pairs}",
+            p50.as_micros(),
+            p95.as_micros(),
+            p99.as_micros()
+        );
+        if count <= 1_024 {
+            let (p50, p95, p99, candidates) =
+                measure_whole_horizon_all_pairs(&bodies, 21);
+            println!(
+                "sparse,{count},1,whole-horizon-all-pairs,{},{},{candidates},0,0,{all_pairs}",
+                p50.as_micros(),
+                p95.as_micros(),
+                p99.as_micros()
+            );
+        }
+    }
+
+    for distribution in [
+        BroadphaseDistribution::Clustered,
+        BroadphaseDistribution::LongThin,
+        BroadphaseDistribution::Dense,
+    ] {
+        for count in [16_usize, 64, 256, 1_024] {
+            let bodies = build_broadphase_bodies(count, distribution);
+            let (p50, p95, p99, pair_count, cells, coarse) =
+                measure_multibody(&bodies, 8, 21);
+            let all_pairs = (count as u64) * ((count - 1) as u64) / 2;
+            println!(
+                "{},{count},8,dyadic-sap,{},{},{},{pair_count},{cells},{coarse},{all_pairs}",
+                distribution.label(),
+                p50.as_micros(),
+                p95.as_micros(),
+                p99.as_micros()
+            );
+        }
+    }
 }
