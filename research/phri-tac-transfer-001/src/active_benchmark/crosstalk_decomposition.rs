@@ -77,6 +77,10 @@ pub struct StageReferenceIndependenceAttestation {
     pub mechanical_reference_ancestry_receipt_id: String,
     pub electrical_reference_ancestry_receipt_id: String,
     pub end_to_end_reference_ancestry_receipt_id: String,
+    pub mechanical_common_cause_analysis_receipt_id: String,
+    pub electrical_common_cause_analysis_receipt_id: String,
+    pub end_to_end_common_cause_analysis_receipt_id: String,
+    /// External analysis covering the complete reference dependency graph.
     pub common_cause_analysis_receipt_id: String,
     /// External verifier receipt. Consumers must resolve and verify it;
     /// identifier presence alone is not proof of reference independence.
@@ -100,6 +104,9 @@ impl StageReferenceIndependenceAttestation {
             ("mechanical_reference_ancestry_receipt_id", self.mechanical_reference_ancestry_receipt_id.as_str()),
             ("electrical_reference_ancestry_receipt_id", self.electrical_reference_ancestry_receipt_id.as_str()),
             ("end_to_end_reference_ancestry_receipt_id", self.end_to_end_reference_ancestry_receipt_id.as_str()),
+            ("mechanical_common_cause_analysis_receipt_id", self.mechanical_common_cause_analysis_receipt_id.as_str()),
+            ("electrical_common_cause_analysis_receipt_id", self.electrical_common_cause_analysis_receipt_id.as_str()),
+            ("end_to_end_common_cause_analysis_receipt_id", self.end_to_end_common_cause_analysis_receipt_id.as_str()),
             ("common_cause_analysis_receipt_id", self.common_cause_analysis_receipt_id.as_str()),
             ("verifier_receipt_id", self.verifier_receipt_id.as_str()),
         ] {
@@ -124,6 +131,21 @@ impl StageReferenceIndependenceAttestation {
         }
         if self.end_to_end_reference_ancestry_receipt_id != end_to_end.reference_ancestry_receipt_id {
             errors.push("independence attestation end-to-end ancestry binding mismatch".to_owned());
+        }
+        if self.mechanical_common_cause_analysis_receipt_id
+            != mechanical.common_cause_analysis_receipt_id
+        {
+            errors.push("independence attestation mechanical common-cause receipt mismatch".to_owned());
+        }
+        if self.electrical_common_cause_analysis_receipt_id
+            != electrical.common_cause_analysis_receipt_id
+        {
+            errors.push("independence attestation electrical common-cause receipt mismatch".to_owned());
+        }
+        if self.end_to_end_common_cause_analysis_receipt_id
+            != end_to_end.common_cause_analysis_receipt_id
+        {
+            errors.push("independence attestation end-to-end common-cause receipt mismatch".to_owned());
         }
         errors
     }
@@ -723,6 +745,9 @@ mod tests {
             mechanical_reference_ancestry_receipt_id: mechanical.reference_ancestry_receipt_id.clone(),
             electrical_reference_ancestry_receipt_id: electrical.reference_ancestry_receipt_id.clone(),
             end_to_end_reference_ancestry_receipt_id: end_to_end.reference_ancestry_receipt_id.clone(),
+            mechanical_common_cause_analysis_receipt_id: mechanical.common_cause_analysis_receipt_id.clone(),
+            electrical_common_cause_analysis_receipt_id: electrical.common_cause_analysis_receipt_id.clone(),
+            end_to_end_common_cause_analysis_receipt_id: end_to_end.common_cause_analysis_receipt_id.clone(),
             common_cause_analysis_receipt_id: "receipt:complete-reference-common-cause-review".to_owned(),
             verifier_receipt_id: "receipt:external-reference-independence-verifier".to_owned(),
             disposition,
