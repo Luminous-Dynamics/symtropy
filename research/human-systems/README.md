@@ -36,6 +36,12 @@ This gives us a non-clinical research target useful for human-centred robotics, 
 - [Human multi-scale systems atlas v0.1](HUMAN_MULTISCALE_SYSTEMS_ATLAS_V0_1.md) — nested biological organization, 20 subsystem status entries, cross-organ coupling priorities, Symtropy/Symthaea ownership, standards and benchmark ladder.
 - [Machine-readable coupling register v0.1](HUMAN_MULTISCALE_COUPLING_REGISTER_V0_1.json) — versioned system/port/coupling inventory for future adapters and review.
 
+## Multiscale physiology and first coupled model
+
+- [Human multi-scale systems atlas v0.1](HUMAN_MULTISCALE_SYSTEMS_ATLAS_V0_1.md) — nested organization, subsystem status, high-value feedback loops and Symtropy/Symthaea ownership.
+- [Machine-readable coupling register v0.1](HUMAN_MULTISCALE_COUPLING_REGISTER_V0_1.json) — 20 subsystem entries and 12 proposed coupling edges; a catalogue, not yet a typed executable port graph.
+- [Thermophysiology model tournament v0.1](HUMAN_THERMOPHYSIOLOGY_MODEL_TOURNAMENT_V0_1.md) — matched Gagge/JOS-3/Stolwijk/Fiala/PHS comparison and the heat–workload–hydration–cardiovascular first integration slice.
+
 ## Architecture and evidence boundaries
 
 - [Human-systems architecture v0.1](HUMAN_SYSTEMS_ARCHITECTURE_V0_1.md) — subsystem responsibilities, coupling contracts and fidelity levels.
