@@ -45,11 +45,11 @@ The default executable evaluates the frozen case/receipt corpus under `fixtures/
 
 ## Frozen fixture corpus
 
-- 30 deterministic synthetic cases.
+- 31 deterministic synthetic cases.
 - 8 required gate types.
-- 237 receipt rows; three cases intentionally omit one required receipt.
+- 245 receipt rows; three cases intentionally omit one required receipt. One adversarial case reuses a receipt ID across manifests and must block both cases.
 - Positive controls for fully accounted synthetic acceptance and no-recovery-in-scope.
-- Negative controls for mass imbalance, impossible interval status, double allocation, unqualified recovered feedstock, impossible utility, inspection rejection, incomplete provenance, physical-claim escalation, mismatched subject/scope/manifest, duplicate receipt identity and malformed digest.
+- Negative controls for mass imbalance, impossible interval status, double allocation, unqualified recovered feedstock, impossible utility, inspection rejection, incomplete provenance, physical-claim escalation, mismatched subject/scope/manifest, duplicate receipt identity within and across cases, and malformed digest.
 - Indeterminate controls for uncertain mass/utility, missing receipts, unresolved grade, unknown route, unknown allocation and missing source digest.
 
 The repeated SHA-256-shaped fixture value is a fixed test token; it is not the digest of the fixture file or external owner evidence. The tool reports `FORMAT_ONLY_NOT_AUTHENTICATED` where all receipt digest fields are syntactically well-formed.
