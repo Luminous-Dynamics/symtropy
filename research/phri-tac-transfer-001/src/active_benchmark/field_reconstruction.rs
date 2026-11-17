@@ -434,11 +434,12 @@ pub fn reconstruct_contact_field(
     // because build_quadratic provides a conservative spectral/Lipschitz
     // upper bound. Sparse Hessian rows keep local tactile kernels efficient.
     for iteration in 0..config.maximum_iterations {
-        let gradient = gradient(&quadratic, &extrapolated);
+        let extrapolated_gradient = gradient(&quadratic, &extrapolated);
         let mut maximum_field = 0.0_f64;
 
         for index in 0..n {
-            let updated = (extrapolated[index] - step_size * gradient[index]).max(0.0);
+            let updated =
+                (extrapolated[index] - step_size * extrapolated_gradient[index]).max(0.0);
             next_field[index] = updated;
             maximum_field = maximum_field.max(updated.abs());
         }
