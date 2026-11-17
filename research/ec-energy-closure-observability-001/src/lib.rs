@@ -107,10 +107,26 @@ pub enum AvailableEnergyFormulation {
     Ae6,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IncludedTermDisposition {
+    Measured,
+    Estimated,
+    NotApplicable,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct IncludedEnergyTerm {
+    pub term_id: TermId,
+    pub disposition: IncludedTermDisposition,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct AvailableEnergyResult {
     pub formulation: AvailableEnergyFormulation,
     pub value_w_m2: f64,
+    /// Term-level evidence is returned with the numeric result; downstream code
+    /// cannot silently forget which components were estimated or not applicable.
+    pub included_terms: Vec<IncludedEnergyTerm>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -123,20 +139,40 @@ pub enum EnergyTermError {
     NonFiniteResult,
 }
 
-fn term_value(term: EnergyTerm, id: TermId) -> Result<f64, EnergyTermError> {
+fn term_value(
+    term: EnergyTerm,
+    id: TermId,
+) -> Result<(f64, IncludedEnergyTerm), EnergyTermError> {
     match term.status {
         ObservationStatus::Measured | ObservationStatus::Estimated => {
             let value = term.value_w_m2.ok_or(EnergyTermError::ValueMissing(id))?;
             if !value.is_finite() {
                 return Err(EnergyTermError::NonFinite(id));
             }
-            Ok(value)
+            let disposition = if term.status == ObservationStatus::Measured {
+                IncludedTermDisposition::Measured
+            } else {
+                IncludedTermDisposition::Estimated
+            };
+            Ok((
+                value,
+                IncludedEnergyTerm {
+                    term_id: id,
+                    disposition,
+                },
+            ))
         }
         ObservationStatus::NotApplicable => {
             if term.value_w_m2.is_some() {
                 return Err(EnergyTermError::ValueUnexpected(id));
             }
-            Ok(0.0)
+            Ok((
+                0.0,
+                IncludedEnergyTerm {
+                    term_id: id,
+                    disposition: IncludedTermDisposition::NotApplicable,
+                },
+            ))
         }
         status @ (ObservationStatus::Missing
         | ObservationStatus::Invalid
@@ -156,28 +192,45 @@ fn term_value(term: EnergyTerm, id: TermId) -> Result<f64, EnergyTermError> {
 /// Every subtractive term is expressed using the positive-sink convention.
 /// Negative signed values are retained: a measured storage release can
 /// increase available energy. There is no clamping or residual allocation.
+/// The result also records the evidence disposition of every included term.
 pub fn available_energy(
     terms: AvailableEnergyTerms,
     formulation: AvailableEnergyFormulation,
 ) -> Result<AvailableEnergyResult, EnergyTermError> {
-    let net = term_value(terms.net_radiation, TermId::NetRadiation)?;
+    let (net, net_evidence) = term_value(terms.net_radiation, TermId::NetRadiation)?;
     let mut result = net;
+    let mut included_terms = vec![net_evidence];
 
     if formulation >= AvailableEnergyFormulation::Ae2 {
-        result -= term_value(terms.soil_heat_flux, TermId::SoilHeatFlux)?;
+        let (value, evidence) = term_value(terms.soil_heat_flux, TermId::SoilHeatFlux)?;
+        result -= value;
+        included_terms.push(evidence);
     }
     if formulation >= AvailableEnergyFormulation::Ae3 {
-        result -= term_value(terms.soil_heat_storage, TermId::SoilHeatStorage)?;
+        let (value, evidence) = term_value(terms.soil_heat_storage, TermId::SoilHeatStorage)?;
+        result -= value;
+        included_terms.push(evidence);
     }
     if formulation >= AvailableEnergyFormulation::Ae4 {
-        result -= term_value(terms.air_sensible_storage, TermId::AirSensibleStorage)?;
-        result -= term_value(terms.air_latent_storage, TermId::AirLatentStorage)?;
+        let (value, evidence) =
+            term_value(terms.air_sensible_storage, TermId::AirSensibleStorage)?;
+        result -= value;
+        included_terms.push(evidence);
+        let (value, evidence) = term_value(terms.air_latent_storage, TermId::AirLatentStorage)?;
+        result -= value;
+        included_terms.push(evidence);
     }
     if formulation >= AvailableEnergyFormulation::Ae5 {
-        result -= term_value(terms.photosynthetic_energy, TermId::PhotosyntheticEnergy)?;
+        let (value, evidence) =
+            term_value(terms.photosynthetic_energy, TermId::PhotosyntheticEnergy)?;
+        result -= value;
+        included_terms.push(evidence);
     }
     if formulation >= AvailableEnergyFormulation::Ae6 {
-        result -= term_value(terms.biomass_heat_storage, TermId::BiomassHeatStorage)?;
+        let (value, evidence) =
+            term_value(terms.biomass_heat_storage, TermId::BiomassHeatStorage)?;
+        result -= value;
+        included_terms.push(evidence);
     }
 
     if !result.is_finite() {
@@ -187,6 +240,7 @@ pub fn available_energy(
     Ok(AvailableEnergyResult {
         formulation,
         value_w_m2: result,
+        included_terms,
     })
 }
 
@@ -719,6 +773,45 @@ mod tests {
             available_energy(terms, AvailableEnergyFormulation::Ae1),
             Err(EnergyTermError::NonFinite(TermId::NetRadiation))
         );
+    }
+
+    #[test]
+    fn ae_result_preserves_disposition_of_every_included_term() {
+        let mut terms = full_terms();
+        terms.soil_heat_flux = EnergyTerm::estimated(40.0);
+        terms.soil_heat_storage = EnergyTerm::not_applicable();
+        let result = available_energy(terms, AvailableEnergyFormulation::Ae3).unwrap();
+        assert_eq!(result.value_w_m2, 460.0);
+        assert_eq!(
+            result.included_terms,
+            vec![
+                IncludedEnergyTerm {
+                    term_id: TermId::NetRadiation,
+                    disposition: IncludedTermDisposition::Measured,
+                },
+                IncludedEnergyTerm {
+                    term_id: TermId::SoilHeatFlux,
+                    disposition: IncludedTermDisposition::Estimated,
+                },
+                IncludedEnergyTerm {
+                    term_id: TermId::SoilHeatStorage,
+                    disposition: IncludedTermDisposition::NotApplicable,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn lower_ae_formulation_does_not_claim_unselected_terms() {
+        let mut terms = full_terms();
+        terms.soil_heat_flux = EnergyTerm::missing();
+        terms.biomass_heat_storage = EnergyTerm {
+            status: ObservationStatus::Unqualified,
+            value_w_m2: None,
+        };
+        let result = available_energy(terms, AvailableEnergyFormulation::Ae1).unwrap();
+        assert_eq!(result.included_terms.len(), 1);
+        assert_eq!(result.included_terms[0].term_id, TermId::NetRadiation);
     }
 
     #[test]
