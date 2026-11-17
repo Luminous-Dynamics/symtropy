@@ -295,3 +295,16 @@ Report schedule-feasibility rate over all submitted plans. Report makespan gap o
 ### Claims boundary
 
 These are benchmark targets and comparison families, not results. No superiority over Recipe2Plan, LREC, CP-SAT, human practitioners or appliance incumbents is established. Freeze dataset rights, split, mapping, protocol and verifier before comparison.
+
+
+### Power-aware scheduling beyond all-or-nothing fallback
+
+The current power-constrained planner explores three stages: (1) existing parallel earliest-gap scheduling; (2) an event-boundary heuristic that delays only the task whose overlap violates the declared envelope; and (3) a serial topological fallback. Candidate starts are drawn from scheduled task/profile boundaries and surge-duration offsets rather than stepping through every millisecond.
+
+A deterministic synthetic case uses two independent 10 ms tasks drawing 700 W and 600 W, a 1,000 W continuous limit, a 1,500 W peak limit and a 5 ms maximum excursion. Fully parallel execution creates 10 ms above the continuous limit and fails. A 5 ms stagger creates exactly 5 ms of allowed overlap and has a 15 ms makespan, versus 20 ms for full serialization. This is a unit-fixture target that now has code and a test; it must be confirmed by exact-head CI before being reported as a pass. It does not prove global optimality.
+
+### Exact-solver and industrial scheduling comparison
+
+Google OR-Tools documents interval variables, no-overlap scheduling and cumulative constraints for resource capacity profiles. The power-envelope problem is naturally a resource-constrained project scheduling problem (RCPSP) with precedence, exclusive equipment and a cumulative real-power resource. For a frozen small-instance subset, implement a CP-SAT reference using intervals plus cumulative limits; record optimal/feasible/unknown status, time budget, hardware and lower bound. Never treat solver timeout or feasible-but-not-proven status as optimality.
+
+Use standard job-shop/flexible-job-shop benchmark infrastructure only as an algorithmic reference; it is not a direct kitchen workload. Compare on the exact same kitchen task graphs, resource profiles and envelope. Track the power-aware heuristic's makespan gap to a *proven* lower bound and savings over the serial baseline. The objective is not merely to beat a solver on toy inputs; it is to remain safe and useful on real kitchen constraints while maintaining predictable compute cost.
