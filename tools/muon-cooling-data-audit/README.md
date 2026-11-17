@@ -70,3 +70,12 @@ Two published studies provide stronger reproduction targets:
 **IPAC'26 MOP1048 (20 July 2026):** a separate 100 m BDSIM cooling study reports approximately 2.3× reduction in 6D emittance and approximately 93% transmission for a 200 MeV/c beam. Muon decays were disabled. The paper reports an amplitude–momentum correlation in the input distribution and identifies input matching and tolerance studies as follow-up work. [IPAC'26 paper](https://www.ipac26.org/prepress/pdf/MOP1048.pdf).
 
 These are distinct evidence identities: the pinned WG4 102-coil skeleton, the 5 m BDSIM component example, the D4.1 80 m simulation, the IPAC'26 100 m simulation, and the separate G4Beamline 60-cell run. The exact identity of the IPAC'26 input distribution with the currently pinned 10,001-row WG4 file has not been verified. Do not claim reproduction or cross-code agreement from the source audit.
+
+
+### Native file header versus BDSIM declaration
+
+The pinned data file's literal first-line header is:
+
+"x [mm]" "px [rad]" "y [mm]" "py [rad]" "z [mm]" "Ek [MeV]" "t [ns]"
+
+The associated BDSIM userfile declaration describes the second and fourth columns as xp[rad] and yp[rad]. The audit records both strings separately: px/py are literal file-header labels, while xp/yp are the BDSIM-declared angular coordinates used by this adapter. The radian units are explicit. These columns are not treated as canonical momenta and no momentum conversion is performed. A parser must not infer physical semantics from the letters in the file header alone.
