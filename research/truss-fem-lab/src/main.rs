@@ -11,6 +11,7 @@ use symtropy_truss_fem_lab::interfaces::{
 use symtropy_truss_fem_lab::stability::{
     screen_member_stability, MemberStabilityProperties,
 };
+use symtropy_truss_fem_lab::verification::audit_equilibrium;
 use symtropy_truss_fem_lab::{BoundaryConditions, TrussMaterial, TrussModel};
 
 fn main() {
@@ -45,6 +46,20 @@ fn main() {
     println!(
         "max_free_dof_equilibrium_residual_n={:.12e}",
         result.max_free_dof_equilibrium_residual_n
+    );
+    let equilibrium = audit_equilibrium(&model, &boundary, &result)
+        .expect("finite model result should pass equilibrium audit input validation");
+    println!(
+        "global_force_residual_n={:.12e}",
+        equilibrium.net_force_residual_norm_n
+    );
+    println!(
+        "global_moment_residual_nm={:.12e}",
+        equilibrium.net_moment_residual_norm_nm
+    );
+    println!(
+        "strain_energy_relative_error={:.12e}",
+        equilibrium.energy_relative_error
     );
     let max_displacement = result
         .node_displacements_m
