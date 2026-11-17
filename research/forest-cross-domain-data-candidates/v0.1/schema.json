@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/forest-cross-domain-data-candidates-v0.1.schema.json",
+  "title": "Forest Cross-Domain Data Candidate Registry v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "registry_id",
+    "claim_ceiling",
+    "sources"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "registry_id": {
+      "const": "FOREST-CROSS-DOMAIN-DATA-CANDIDATES-001/v0.1"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 20
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "provider",
+          "title",
+          "official_url",
+          "release",
+          "reported_coverage",
+          "observed_dimensions",
+          "candidate_use",
+          "support_and_transfer_limits",
+          "rights_and_access",
+          "admission_state",
+          "downloaded",
+          "data_ingested",
+          "next_gate"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "official_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "release": {
+            "type": "string"
+          },
+          "reported_coverage": {
+            "type": "object"
+          },
+          "observed_dimensions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "candidate_use": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "support_and_transfer_limits": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "rights_and_access": {
+            "type": "object",
+            "required": [
+              "status",
+              "license_or_terms",
+              "retrieval_requirements",
+              "review_required"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "METADATA_REVIEWED_TERMS_STILL_REQUIRE_SOURCE_CHECK",
+                  "LICENSE_REPORTED_AT_DATABASE_LEVEL_EXTRACT_CHECK_REQUIRED",
+                  "NOT_VERIFIED",
+                  "LICENSE_REPORTED_AT_SHUTTLE_LEVEL_SITE_REVIEW_REQUIRED",
+                  "LICENSE_REPORTED_AT_RELEASE_LEVEL_PRODUCT_REVIEW_REQUIRED"
+                ]
+              },
+              "license_or_terms": {
+                "type": "string"
+              },
+              "retrieval_requirements": {
+                "type": "string"
+              },
+              "review_required": {
+                "const": true
+              }
+            },
+            "additionalProperties": false
+          },
+          "admission_state": {
+            "const": "METADATA_ONLY_NOT_ADMITTED"
+          },
+          "downloaded": {
+            "const": false
+          },
+          "data_ingested": {
+            "const": false
+          },
+          "next_gate": {
+            "type": "string",
+            "minLength": 20
+          }
+        }
+      }
+    }
+  }
+}
