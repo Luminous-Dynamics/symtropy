@@ -20,15 +20,32 @@ The robot's own "printed", "complete", station-verified, progress, confidence or
 
 The primary outcome is **independently accepted LAUs per total crew-hour**, reported alongside geometric residuals, first-pass yield, rework, elapsed duration, energy, material use and intervention burden. Never use a single composite score that can trade away a false negative, a missing design entity or a safety regression for higher throughput.
 
+## 1.1. Source-model interoperability and pre-deployment correctness
+
+The upstream input is not "a CAD file that the robot happens to understand." Freeze the source model, schema/format version, model revision, unit system, project coordinate reference, site frame, transform, trade-layer scope and information requirements. The compiler emits a vendor-neutral work package with stable design entity IDs, geometry, semantic type, tolerances, dependencies, prerequisites and acceptance predicates.
+
+For IFC-based projects, use the official IFC 4.3.2.0 / ISO 16739-1:2024 exchange schema and IDS 1.0 information requirements as the open source-model contract. Validate IFC schema plus project IDS rules before task compilation. Preserve each IFC GlobalId and source revision in the downstream entity manifest. A valid IFC file can still contain a wrong transform, incorrect units, stale revision, wrong property values or unresolved coordination issue; schema validity is necessary but not sufficient.
+
+Add a **pre-deployment model challenge track** before any physical robot operation:
+- wrong translation, rotation, scale, axis convention, unit conversion and vertical datum;
+- site-vs-model coordinate transform swapped, missing or stale;
+- duplicate/missing/changed entity IDs or source GUIDs;
+- outdated model revision, trade layer or linked model;
+- objects missing required properties or violating IDS requirements;
+- conflicting penetrations, walls, equipment bases and work sequencing;
+- a previously accepted package whose source revision has been superseded.
+
+Measure detection recall, false alarms, diagnosis time and the rate of unsafe packages correctly held before dispatch. The acceptance target is zero dispatch from an unresolved source identity/frame/units/revision contradiction—not merely a warning in a report. This directly addresses a field-study finding that inaccurate source information uploaded to a layout robot can produce inaccurate physical layout, and its recommendation for automatic coordinate-system checks.
+
 ## 2. Published comparator envelope (not a league table)
 
 The preregistration must freeze a dated source snapshot and exact configuration for every vendor run.
 
 | System / study | Public reference | How to compare fairly |
 |---|---|---|
-| HP SitePrint | Current product page: ±2 mm layout accuracy tolerance and ±0.8 mm average floor-level accuracy under the specified high-accuracy setup: SMR prism, High Accuracy Print Mode, named 1-inch total stations and 5–30 m operating distance. Current page separately cites up to 30% productivity improvement over its prior software version from internal CAD-file tests; its stated MEP and interior-wall figures differ. | Reproduce the named prism, total station, mode and distance. Do not apply the high-accuracy footnote to other configurations. Do not treat internal software-version improvements or pilot "up to 10×" case-study statements as independent head-to-head throughput results. |
-| Dusty FieldPrinter 2 | Current technical specification: ±1/16 in (±1.6 mm) print accuracy given accurate surveyed control; 0.75 m/s solid-line print speed; 0.50 m/s text/point speed; 1.0 m/s autonomous navigation with obstacle sensors enabled. Uses a Leica Absolute Laser Tracker and specified station/control-point procedure. | Record tracker model, stationing and control network, range, surface, environment, print mode, geometry type and firmware. Print-head speed is not daily or whole-project production rate. |
-| Dusty November 3, 2026 release | Wall stationing beta; movable/offsettable obstacles; point/line-end improvements accounting for acceleration; distance-sensor firmware tuning intended to reduce false cliff stops. | Test these as new strata: surveyed-control vs wall stationing; static vs moved obstacles; constant speed vs start/stop endpoints; cliff detection false stops and missed edges. Record beta eligibility and exact firmware. |
+| HP SitePrint | The product page states ±2 mm layout tolerance and ±0.8 mm average floor-level tolerance only for its high-accuracy setup: SMR prism, High Accuracy Print Mode, tested 1-inch total stations and 5–30 m range. The March 2026 datasheet also gives a standard 3-inch total-station condition of ±3 mm average layout tolerance and ±2 mm average floor-level tolerance. The page headline advertises "up to 10×" productivity gains, but its footnote quantifies up to 30% versus the previous VP2.0 software using internal CAD-file tests (MEP >30%, interior-wall layouts 8%). | Benchmark standard and high-accuracy configurations separately; record the exact total station, prism, mode and distance. Treat the 10× headline as a marketing claim until its baseline and scope are disclosed. The 30%/MEP/wall figures are software-version internal tests, not independent full-workflow comparisons to manual crews or competing robots. |
+| Dusty FieldPrinter 2 | Current technical specification: ±1/16 in (±1.6 mm) print accuracy given accurate surveyed control; 0.75 m/s solid-line speed; 0.50 m/s text/point speed; 1.0 m/s navigation with obstacle sensors on. Positioning uses a Leica Absolute Laser Tracker and at least 3 non-collinear visible control points per station. The platform is listed as IP51-equivalent (not rain-safe); cliff sensors have a stated trigger threshold and finite field of view. | Reproduce the exact tracker, control network, station range, operating surface, weather, print mode and geometry. Measure line endpoints/points separately from continuous-line speed. Include narrow gaps, openings, slab edges, false stops and missed-edge controls; do not interpret a lower false-stop rate as safer without false-negative measurement. |
+| Dusty November 3, 2026 release | Wall-stationing beta requires at least 2 non-parallel walls and 3 or more well-spaced scans per wall; operators can move/offset custom obstacles and sync edits after reconnecting; station verification adds 1/32 in, 1/16 in and 1/8 in choices; firmware 1.6 tuning reduces false cliff stops; acceleration compensation improves points and line ends. | Treat wall stationing as a separate beta stratum and record scan geometry. Test obstacle edits while connected and offline/reconnected. For cliff tuning, preregister both false-stop and missed-edge rates. For endpoint updates, isolate acceleration/deceleration residuals. A feature release is not an independent accuracy or safety result. |
 | CivDot+ / CivDot | Civ Robotics currently advertises CivDot+ point marking at "3/100 ft (8 mm)" and up to 3 points/minute; CivDot spray marking at 1/10 ft (30 mm) and up to 8 points/minute. The same official page describes GNSS/RTK, IMU and robotic laser-pointer modes. | Outdoor civil, solar, piling and earthworks point-layout track only. The published CivDot+ conversion is internally inconsistent: 3/100 ft equals 9.144 mm, not 8 mm. Preserve the exact vendor wording and obtain clarification before making a numerical comparison. Do not compare point/minute throughput to interior continuous line printing. |
 | CivDot Mini | Civ Robotics advertises sub-inch (25 mm) spray marking and up to 200 ft (60 m) of solid/dashed lines per minute for roads, airports, parking and curb/gutter marking. | Outdoor linear-marking track. Independently measure paint centerline, line width, substrate/surface and geospatial reference. Its nominal linear speed is not directly comparable to an interior layout robot's complete BIM-to-accepted-output rate. |
 | Rugged Robotics Mark1 | Rugged advertises under 1/8 inch accuracy, a 5.5-inch printhead, multi-trade single-pass layout and operation using passive targets without a total station. | Treat as a vendor-published claim until the exact target network, reference method, geometry, coverage and field conditions are disclosed. Compare on the common interior/multi-trade arm and a separate passive-target stationing arm. |
@@ -37,6 +54,7 @@ The preregistration must freeze a dated source snapshot and exact configuration 
 
 Source register (recheck at each preregistration):
 - HP SitePrint: https://www.hp.com/us-en/printers/site-print/layout-robot.html
+- HP SitePrint March 2026 datasheet: https://h20195.www2.hp.com/v2/getpdf.aspx/c08651741.pdf
 - Dusty FieldPrinter specifications: https://support.dustyrobotics.com/hc/en-us/articles/52682349645851-FieldPrinter-Specs
 - Civ Robotics layout robots / CivDot+ / CivDot / CivDot Mini: https://www.civrobotics.com/robots/layout-robots
 - Civ Robotics FAQ on accuracy and RTK behaviour: https://www.civrobotics.com/faq
@@ -178,15 +196,17 @@ Historical accepted output remains historical. Future tasks using stale or contr
 
 ## 10. Standards and applicability
 
-Use these as references for a documented applicability assessment; do not claim conformity merely because the benchmark borrows their concepts:
-- AMRA-201:2026, mobile robot general requirements and test methods for solid travel surfaces: https://amr-alliance.org/amra-201/
-- ISO 10218-1:2025, industrial robots: https://www.iso.org/standard/73933.html
-- ISO 10218-2:2025, industrial robot applications and robot cells: https://www.iso.org/standard/73934.html
-- ISO 12100:2010, machinery risk assessment and risk reduction (confirmed current after its 2022 review): https://www.iso.org/standard/51528.html
-- ASTM F45 building blocks: F3327 configuration recording, F3218 environmental conditions, F3381 stationary obstacles and F3244 defined-area navigation: https://www.astm.org/committee-f45
-- NIST Mobility Performance of Robotic Systems, including metrology, artifacts, tracking, adaptability, task efficiency, quality and assurance: https://www.nist.gov/programs-projects/mobility-performance-robotic-systems
+Use these as a clause-by-clause applicability map, not as a claim that this benchmark or a prototype conforms to them:
 
-A competent safety assessor must determine the actual robot/system/site obligations, applicable national law, risk assessment and required validation. This benchmark does not replace those processes.
+- **AMRA-201:2026** (published 26 July 2026) specifies general requirements and test methods for mobile robots operating on solid travel surfaces, including charging stations. It is a useful mobile-platform test-method baseline, not a construction-layout workflow certification: https://amr-alliance.org/amra-201/
+- **ISO 10218-1:2025** covers industrial robot machinery; **ISO 10218-2:2025** covers industrial robot applications and cells. Determine whether the actual construction layout system, its robot and its integration fall within each part's scope; do not use the industrial-manipulator standards alone to close mobile-base hazards: https://www.iso.org/standard/73933.html and https://www.iso.org/standard/73934.html
+- **ISO 3691-4:2023** is the current published reference for driverless industrial trucks and their systems (including qualifying AGVs/AMRs). Screen the machine definition and operating environment before applying it. ISO/DIS 3691-4, a proposed third edition, is in development and is not yet the published replacement: https://www.iso.org/standard/83545.html and https://www.iso.org/standard/88615.html
+- **ISO 12100:2010** provides machinery risk-assessment and risk-reduction methodology; ISO says it was confirmed current after its 2022 review, while ISO/DIS 12100.3 is now under development. Recheck status at each design freeze: https://www.iso.org/standard/51528.html
+- **ASTM F45** supplies useful A-UGV method components: F3327 configuration recording, F3218 environmental conditions, F3381 stationary obstacles, F3244 defined-area navigation and F3243 communications impairments: https://www.astm.org/committee-f45
+- **NIST Mobility Performance of Robotic Systems (MPRS)** is an ongoing measurement-science programme for mobility-system test methods, artifacts and performance assessment; its current page was updated 24 April 2026: https://www.nist.gov/programs-projects/mobility-performance-robotic-systems
+- **IFC 4.3.2.0 / ISO 16739-1:2024** is the current official IFC schema release for exchanging built-asset information. **buildingSMART IDS 1.0** is an official computer-interpretable standard for specifying and automatically checking IFC information requirements. Use them as the source-model and preflight interchange layer, then compile a frozen robot-neutral manifest rather than sending vendor-specific CAD as the only source of truth: https://www.buildingsmart.org/standards/bsi-standards/industry-foundation--classes/ ; https://www.iso.org/standard/84123.html ; https://www.buildingsmart.org/standards/bsi-standards/information-delivery-specification-ids/
+
+A competent safety assessor must determine the actual robot/platform/system/site obligations, applicable national law, machinery classification, risk assessment and required validation. In particular, a generic mobile-robot standard, a manipulator standard, and a driverless-truck standard have different scopes. This benchmark does not replace those processes.
 
 ## 11. Reporting and claim discipline
 
