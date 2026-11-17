@@ -12,9 +12,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
-    Capsule, CapsuleMotionSpan, ClockUncertaintyCcdResult, ClockUncertaintyDisposition,
-    ClockUncertaintyError, MultiBodyBroadphaseError, MultiBodyBroadphaseReport, TimedCapsuleBody,
-    clock_uncertainty_aware_capsule_query, time_swept_capsule_broadphase,
+    CandidateRefinementReport, Capsule, CapsuleMotionSpan, ClockUncertaintyCcdResult,
+    ClockUncertaintyDisposition, ClockUncertaintyError, MultiBodyBroadphaseError,
+    MultiBodyBroadphaseReport, TimedCapsuleBody, clock_uncertainty_aware_capsule_query,
+    refine_time_swept_capsule_candidates, time_swept_capsule_broadphase,
 };
 
 const DRIFT_PPM_DENOMINATOR: u128 = 1_000_000;
@@ -614,7 +615,10 @@ pub struct RelativeTimeBroadphaseReport {
     pub body_count: usize,
     pub reference_pair_count: u64,
     pub valid_outer_envelope_bodies: u64,
+    pub coarse_broadphase_candidate_pairs: u64,
     pub broadphase_candidate_pairs: u64,
+    pub refinement_subdivision_count: u32,
+    pub refinement_tested_pair_slabs: u64,
     pub pairwise_checked_pairs: u64,
     /// Aggregate count for valid-body pairs omitted by the conservative
     /// space-time SAP broad phase (both temporal and spatial pruning).
@@ -731,18 +735,38 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
         })
         .collect();
 
+    // Coarse SAP is run once across the full horizon. Temporal refinement
+    // then visits only this conservative candidate set, not every body in
+    // every slab.
     let broadphase = if outer_bodies.len() >= 2 {
         Some(
-            time_swept_capsule_broadphase(&outer_bodies, config.subdivision_count)
+            time_swept_capsule_broadphase(&outer_bodies, 1)
                 .map_err(RelativeTimeBroadphaseError::Broadphase)?,
         )
     } else {
         None
     };
-
-    let broadphase_candidate_pairs = broadphase
+    let refinement: Option<CandidateRefinementReport> = match broadphase.as_ref() {
+        Some(coarse) => Some(
+            refine_time_swept_capsule_candidates(
+                &outer_bodies,
+                coarse,
+                config.subdivision_count,
+            )
+            .map_err(RelativeTimeBroadphaseError::Broadphase)?,
+        ),
+        None => None,
+    };
+    let refined_pairs = refinement
+        .as_ref()
+        .map_or(&[][..], |report| report.pairs.as_slice());
+    let coarse_broadphase_candidate_pairs = broadphase
         .as_ref()
         .map_or(0, |report| report.pairs.len() as u64);
+    let broadphase_candidate_pairs = refined_pairs.len() as u64;
+    let refinement_tested_pair_slabs = refinement
+        .as_ref()
+        .map_or(0, |report| report.tested_pair_slabs);
     let valid_outer_envelope_bodies = outer_bodies.len() as u64;
     let valid_outer_pair_count = valid_outer_envelope_bodies
         .checked_mul(valid_outer_envelope_bodies.saturating_sub(1))
@@ -765,7 +789,10 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
         body_count: bodies.len(),
         reference_pair_count,
         valid_outer_envelope_bodies,
+        coarse_broadphase_candidate_pairs,
         broadphase_candidate_pairs,
+        refinement_subdivision_count: config.subdivision_count,
+        refinement_tested_pair_slabs,
         pairwise_checked_pairs: 0,
         outer_space_time_pruned_pairs,
         unresolved_pairs: unresolved_body_pairs,
@@ -785,8 +812,7 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
         pairs: Vec::with_capacity(broadphase_candidate_pairs as usize),
     };
 
-    if let Some(report) = output.broadphase.as_ref() {
-        for candidate in &report.pairs {
+    for candidate in refined_pairs {
             let Some(first) = mapped_by_id.get(candidate.first_body_id.as_str()).copied() else {
                 return Err(RelativeTimeBroadphaseError::CandidateIdentityMismatch);
             };
@@ -831,7 +857,6 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
                 pairwise_result: Some(pairwise),
                 unresolved_reason,
             });
-        }
     }
     Ok(output)
 }
