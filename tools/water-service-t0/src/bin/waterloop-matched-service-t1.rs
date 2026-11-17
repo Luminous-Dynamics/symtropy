@@ -27,8 +27,6 @@ struct Measurement {
     calibration_ref: String,
     method_ref: String,
     raw_record_digest: String,
-    time_window_start_utc: String,
-    time_window_end_utc: String,
 }
 
 fn field<'a>(value: &'a Value, key: &str, context: &str) -> Result<&'a Value, String> {
@@ -159,8 +157,6 @@ fn parse_measurement(
         calibration_ref,
         method_ref,
         raw_record_digest,
-        time_window_start_utc,
-        time_window_end_utc,
     })
 }
 
@@ -972,7 +968,7 @@ mod tests {
     }
 
     #[test]
-    fn canonical_thirteen_case_oracle_matches() {
+    fn canonical_fifteen_case_oracle_matches() {
         let (input, schema, oracle) = fixture();
         let result = evaluate_all(&input, &schema, &oracle).unwrap();
         assert_eq!(result["case_count"], 15);
@@ -990,6 +986,11 @@ mod tests {
         assert_eq!(output["point_credit_l"], 480.0);
         assert_eq!(output["uncertainty_screened_lower_credit_l"], 462.0);
         assert_eq!(output["credited_block_count"], 6);
+        assert_eq!(output["control_energy_kwh"], 0.06);
+        assert_eq!(output["energy_kwh"], 0.15);
+        assert_eq!(output["net_energy_delta_kwh"], 0.09);
+        assert_eq!(output["energy_observed_block_count"], 6);
+        assert_eq!(output["net_energy_observed_block_count"], 6);
     }
 
     #[test]
@@ -1001,6 +1002,8 @@ mod tests {
             output["block_dispositions"][0]["disposition"],
             "zero_credit_no_recovered_fixture_use"
         );
+        assert_eq!(output["block_dispositions"][0]["energy_kwh"], 0.025);
+        assert_eq!(output["energy_observed_block_count"], 6);
     }
 
     #[test]
@@ -1031,6 +1034,7 @@ mod tests {
     fn fallback_mains_reduces_displacement_credit() {
         let (input, _, _) = fixture();
         let output = evaluate_case(&input["cases"][5]).unwrap();
+        assert_eq!(output["block_dispositions"][0]["matched_control_mains_normalized_l"], 100.0);
         assert_eq!(output["block_dispositions"][0]["matched_control_displacement_l"], 60.0);
         assert_eq!(output["block_dispositions"][0]["point_credit_l"], 60.0);
     }
@@ -1113,6 +1117,31 @@ mod tests {
             "zero_credit_uncertainty_dominates_apparent_credit"
         );
         assert!(block["energy_per_1000l_lower_credit"].is_null());
+    }
+
+    #[test]
+    fn control_mains_volume_is_normalized_to_treatment_demand() {
+        let (mut input, _, _) = fixture();
+        input["cases"][0]["blocks"][0]["treatment"]["measured_demand_l"] = json!(101.0);
+        let output = evaluate_case(&input["cases"][0]).unwrap();
+        assert_eq!(
+            output["block_dispositions"][0]["matched_control_mains_normalized_l"],
+            101.0
+        );
+        assert_eq!(
+            output["block_dispositions"][0]["matched_control_displacement_l"],
+            91.0
+        );
+    }
+
+    #[test]
+    fn rejected_water_credit_does_not_erase_valid_energy_observations() {
+        let (input, _, _) = fixture();
+        let output = evaluate_case(&input["cases"][2]).unwrap();
+        assert_eq!(output["block_dispositions"][0]["point_credit_l"], 0.0);
+        assert_eq!(output["block_dispositions"][0]["energy_kwh"], 0.025);
+        assert_eq!(output["block_dispositions"][0]["control_energy_kwh"], 0.01);
+        assert_eq!(output["block_dispositions"][0]["net_energy_delta_kwh"], 0.015);
     }
 
     #[test]
