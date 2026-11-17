@@ -281,6 +281,7 @@ pub fn step_plant_hydraulic_capacitance(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::plant_hydraulic_null::solve_two_resistance_null;
 
     fn reference_inputs() -> PlantHydraulicInputs {
         PlantHydraulicInputs {
