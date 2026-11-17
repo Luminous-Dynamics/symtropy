@@ -368,9 +368,9 @@ pub fn reconstruct_contact_field(
         predicted_response(&problem.coupling_matrix, &field, n);
     let mut residual_sum = 0.0;
     let mut admitted_count = 0;
-    for row in 0..n {
+    for (row, predicted) in predicted_native_response.iter().enumerate() {
         if problem.admitted_native_channels[row] {
-            let residual = predicted_native_response[row] - problem.native_response[row];
+            let residual = predicted - problem.native_response[row];
             residual_sum += residual * residual;
             admitted_count += 1;
         }
