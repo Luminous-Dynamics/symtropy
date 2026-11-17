@@ -81,6 +81,8 @@ pub struct PartialQueryReport {
     pub exact_match_count: usize,
     /// Exact matches returned by the source graph oracle.
     pub verified_results: Vec<SpatialFact>,
+    /// Exact matches returned by the codebook-keyed postings index.
+    pub exact_indexed_results: Vec<SpatialFact>,
     /// True when exact verification finds no results. Approximate suggestions
     /// may still be present in the candidate rankings.
     pub abstained: bool,
@@ -92,6 +94,7 @@ pub struct PartialQueryReport {
     pub slot_ranking_micros: f64,
     pub holistic_ranking_micros: f64,
     pub exact_oracle_micros: f64,
+    pub exact_indexed_micros: f64,
 }
 
 fn candidate_order(
@@ -176,6 +179,7 @@ impl SpatialIndex {
 
         let query_started = Instant::now();
         let mut query_slots: Vec<(FactSlot, BipolarHV)> = Vec::with_capacity(5);
+        let mut query_keys: Vec<(FactSlot, String)> = Vec::with_capacity(5);
         let mut query_bundle = BipolarBundle::new(encoder.spec().dimension);
 
         if let Some(subject) = query.subject.as_deref() {
@@ -189,6 +193,8 @@ impl SpatialIndex {
             query_bundle.add(&scale_vector)?;
             query_slots.push((FactSlot::Subject, subject_vector));
             query_slots.push((FactSlot::SubjectScale, scale_vector));
+            query_keys.push((FactSlot::Subject, subject.to_owned()));
+            query_keys.push((FactSlot::SubjectScale, scale.as_str().to_owned()));
         }
 
         if let Some(relation) = query.relation {
@@ -198,6 +204,7 @@ impl SpatialIndex {
                     .bind_role_value("predicate", "relation", relation.as_str());
             query_bundle.add(&relation_vector)?;
             query_slots.push((FactSlot::Predicate, relation_vector));
+            query_keys.push((FactSlot::Predicate, relation.as_str().to_owned()));
         }
 
         if let Some(object) = query.object.as_deref() {
@@ -211,6 +218,8 @@ impl SpatialIndex {
             query_bundle.add(&scale_vector)?;
             query_slots.push((FactSlot::Object, object_vector));
             query_slots.push((FactSlot::ObjectScale, scale_vector));
+            query_keys.push((FactSlot::Object, object.to_owned()));
+            query_keys.push((FactSlot::ObjectScale, scale.as_str().to_owned()));
         }
 
         let query_vector = query_bundle.finish(&encoder.memory.tie_breaker("spatial-fact-v2"))?;
@@ -226,6 +235,46 @@ impl SpatialIndex {
         verified_results.sort_by_key(SpatialFact::canonical_key);
         let exact_oracle_micros = exact_started.elapsed().as_secs_f64() * 1_000_000.0;
         let exact_match_count = verified_results.len();
+
+        // Exact postings baseline: resolve each known role/value key to its
+        // sorted fact-ID list, then intersect the shortest list with the rest.
+        let indexed_started = Instant::now();
+        let mut posting_lists = Vec::with_capacity(query_keys.len());
+        let mut missing_key = false;
+        for key in &query_keys {
+            let Some(code_index) = self.role_codebook_index.get(key) else {
+                missing_key = true;
+                break;
+            };
+            let posting = self
+                .role_postings
+                .get(*code_index)
+                .ok_or(HoloFracError::MissingCodebookEntry)?;
+            posting_lists.push(posting);
+        }
+        posting_lists.sort_by_key(|posting| posting.len());
+        let mut indexed_fact_ids = if missing_key {
+            Vec::new()
+        } else {
+            posting_lists.first().map_or_else(Vec::new, |posting| (*posting).clone())
+        };
+        for posting in posting_lists.iter().skip(1) {
+            indexed_fact_ids.retain(|fact_id| posting.binary_search(fact_id).is_ok());
+        }
+        let mut exact_indexed_results: Vec<_> = indexed_fact_ids
+            .into_iter()
+            .map(|fact_id| {
+                self.facts
+                    .get(fact_id)
+                    .map(|indexed| indexed.fact.clone())
+                    .ok_or(HoloFracError::MissingCodebookEntry)
+            })
+            .collect::<Result<_, _>>()?;
+        exact_indexed_results.sort_by_key(SpatialFact::canonical_key);
+        let exact_indexed_micros = indexed_started.elapsed().as_secs_f64() * 1_000_000.0;
+        if exact_indexed_results != verified_results {
+            return Err(HoloFracError::IndexOracleMismatch);
+        }
 
         let slot_started = Instant::now();
         let mut slot_ranked = Vec::with_capacity(self.facts.len());
@@ -274,6 +323,7 @@ impl SpatialIndex {
             exact_match_count,
             abstained: verified_results.is_empty(),
             verified_results,
+            exact_indexed_results,
             slot_ranked,
             holistic_ranked,
             slot_metrics,
@@ -282,6 +332,7 @@ impl SpatialIndex {
             slot_ranking_micros,
             holistic_ranking_micros,
             exact_oracle_micros,
+            exact_indexed_micros,
         })
     }
 }
