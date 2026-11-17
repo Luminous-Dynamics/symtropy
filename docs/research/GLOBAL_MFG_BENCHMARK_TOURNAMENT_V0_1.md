@@ -80,6 +80,8 @@ Measures:
 - foreign approval incorrectly treated as recognized;
 - wrong issuer or missing authority;
 - missing effective/application/transition date;
+- wrong hierarchy level (supranational/national/subnational/local authority/customs/data-residency scope);
+- authoritative-language versus working/official translation confusion, missing translation artifact, or translation silently replacing source text;
 - false satisfied/not-applicable disposition;
 - source currency, source digest and review lineage.
 
