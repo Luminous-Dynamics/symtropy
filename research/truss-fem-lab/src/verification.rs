@@ -94,12 +94,12 @@ pub fn audit_equilibrium(
     let mut support_moment = Vec3::new(0.0, 0.0, 0.0);
     let mut external_work = 0.0_f64;
 
-    for node in 0..node_count {
-        let position = model.nodes[node];
+    for (node, position) in model.nodes.iter().copied().enumerate() {
+        let force_components = boundary.nodal_forces_n[node];
         let applied = Vec3::new(
-            boundary.nodal_forces_n[node][0],
-            boundary.nodal_forces_n[node][1],
-            boundary.nodal_forces_n[node][2],
+            force_components[0],
+            force_components[1],
+            force_components[2],
         );
         total_applied_force = total_applied_force + applied;
         applied_moment = applied_moment + position.cross(applied);
@@ -110,17 +110,12 @@ pub fn audit_equilibrium(
             + applied.z * displacement[2];
 
         let reaction = result.support_reactions_n[node];
-        let mut constrained_reaction = Vec3::new(0.0, 0.0, 0.0);
-        for axis in 0..3 {
-            if boundary.fixed_dofs[node][axis] {
-                match axis {
-                    0 => constrained_reaction.x = reaction[0],
-                    1 => constrained_reaction.y = reaction[1],
-                    2 => constrained_reaction.z = reaction[2],
-                    _ => unreachable!("axis iterates only over 0..3"),
-                }
-            }
-        }
+        let fixed = boundary.fixed_dofs[node];
+        let constrained_reaction = Vec3::new(
+            if fixed[0] { reaction[0] } else { 0.0 },
+            if fixed[1] { reaction[1] } else { 0.0 },
+            if fixed[2] { reaction[2] } else { 0.0 },
+        );
         total_support_reaction = total_support_reaction + constrained_reaction;
         support_moment = support_moment + position.cross(constrained_reaction);
     }
