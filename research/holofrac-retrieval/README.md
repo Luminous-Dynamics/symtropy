@@ -31,13 +31,16 @@ The CLI emits a CSV summary for 2K/4K/8K/16K dimensions and per-query raw outcom
 - Encoder-contract fingerprint, full encoder-spec compatibility check, exact canonical source-snapshot check and separate non-security source-graph digest.
 - An f32 materialization of the same bipolar code to compare storage and similarity cost, not a second encoder family.
 - Positive and reversed-edge retrieval metrics at four dimensions.
+- Partial-context query module with role-aligned slot similarity and holistic partial-bundle ranking.
+- Exact-oracle verification, false-suggestion accounting and abstention when no exact facts match.
+- Precision@k, recall@k, reciprocal rank and separate timing measures for both partial-retrieval treatments.
 - Stale-index rejection when the exact canonical source graph changes after index construction; insertion-order changes remain equivalent.
 - Rejection of an index queried with a different encoder schema, seed or dimension.
 - Separate bipolar-only, f32-only and combined dual-view vector-payload estimates.
 
 ## Claim boundaries
 
-This is an initial exact-fact retrieval fixture, not a floor-plan generator, building model, GHRR implementation, partial-context retriever, or proof of fractal geometry. Current bipolar binding is commutative; direction is represented through distinct subject/object role vectors. This is **not** non-commutative matrix binding.
+This is an initial exact-fact and partial-context retrieval fixture, not a floor-plan generator, building model, GHRR implementation, or proof of fractal geometry. Current bipolar binding is commutative; direction is represented through distinct subject/object role vectors. This is **not** non-commutative matrix binding.
 
 The f32 view is a conversion of the same bipolar code. It does not test learned continuous-HV representations. The current fixture is small and synthetic; its results cannot establish generalization to real buildings or superiority over commercial/academic graph retrieval systems.
 
@@ -45,4 +48,4 @@ The reported memory values are vector-payload estimates, not allocator-inclusive
 
 The source-graph digest and encoder fingerprint are non-cryptographic regression identifiers. They are not security hashes, signatures, or provenance attestations.
 
-HDC provides candidate retrieval only. Exact typed-graph lookup remains authoritative. A follow-on benchmark tracks partial-context queries, abstention/calibration, update costs, interference/capacity curves and held-out project/topology families: https://github.com/Luminous-Dynamics/symtropy/issues/5867.
+HDC provides candidate retrieval only. Exact typed-graph lookup remains authoritative. Partial-query abstention in this prototype is determined by the exact source-graph filter; no learned confidence threshold is used. Issue #5867 tracks held-out project/topology splits, threshold calibration and risk-coverage curves, update costs, and interference/capacity sweeps: https://github.com/Luminous-Dynamics/symtropy/issues/5867.
