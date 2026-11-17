@@ -102,3 +102,16 @@ This is an equilibrium/energy consistency audit of the numerical result. It does
 ## Reproducible benchmark input identity
 
 Each mass-normalized receipt includes an FNV-1a digest over the exact model geometry, member connectivity, support flags, nodal force vectors and benchmark specification. The field is explicitly named non-security: it supports same-input regression/replay identity but is not a cryptographic signature or tamper-evident evidence seal. For externally auditable evidence, export the complete input and output files and hash them with a modern cryptographic digest in the evidence pipeline.
+
+## 3D beam element kernel (pre-frame-solver)
+
+The beam_element module now provides a 12-DOF 3D Euler-Bernoulli element with:
+- axial EA/L stiffness;
+- torsional GJ/L stiffness;
+- bending about both local principal axes;
+- right-handed local-frame construction from an orientation hint;
+- local-to-global transformation and a global element stiffness matrix.
+
+Its tests include matrix symmetry/finite checks, a cantilever tip deflection and rotation against the closed-form Euler-Bernoulli solution, local-frame orthonormality, transformation orthogonality/recovery, and rejection of parallel/ill-conditioned orientation hints.
+
+This is only an element kernel. It does not assemble a frame, solve global displacements, include shear deformation, geometric stiffness, global buckling eigenvalues, imperfections, nonlinear behavior or joint rotational springs. Euler-Bernoulli assumptions are inappropriate for sufficiently deep/short members; a Timoshenko element is a later requirement where shear deformation matters.
