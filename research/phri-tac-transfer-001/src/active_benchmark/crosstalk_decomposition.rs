@@ -62,6 +62,74 @@ pub struct EndToEndObservationSet {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+pub enum IndependenceDisposition {
+    IndependentlyCharacterized,
+    SharedCommonCause,
+    Unresolved,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct StageReferenceIndependenceAttestation {
+    pub attestation_id: String,
+    pub mechanical_observation_digest: String,
+    pub electrical_observation_digest: String,
+    pub end_to_end_observation_digest: String,
+    pub mechanical_reference_ancestry_receipt_id: String,
+    pub electrical_reference_ancestry_receipt_id: String,
+    pub end_to_end_reference_ancestry_receipt_id: String,
+    pub common_cause_analysis_receipt_id: String,
+    /// External verifier receipt. Consumers must resolve and verify it;
+    /// identifier presence alone is not proof of reference independence.
+    pub verifier_receipt_id: String,
+    pub disposition: IndependenceDisposition,
+}
+
+impl StageReferenceIndependenceAttestation {
+    fn validate_binding(
+        &self,
+        mechanical: &StageObservationSet,
+        electrical: &StageObservationSet,
+        end_to_end: &EndToEndObservationSet,
+    ) -> Vec<String> {
+        let mut errors = Vec::new();
+        for (name, value) in [
+            ("attestation_id", self.attestation_id.as_str()),
+            ("mechanical_observation_digest", self.mechanical_observation_digest.as_str()),
+            ("electrical_observation_digest", self.electrical_observation_digest.as_str()),
+            ("end_to_end_observation_digest", self.end_to_end_observation_digest.as_str()),
+            ("mechanical_reference_ancestry_receipt_id", self.mechanical_reference_ancestry_receipt_id.as_str()),
+            ("electrical_reference_ancestry_receipt_id", self.electrical_reference_ancestry_receipt_id.as_str()),
+            ("end_to_end_reference_ancestry_receipt_id", self.end_to_end_reference_ancestry_receipt_id.as_str()),
+            ("common_cause_analysis_receipt_id", self.common_cause_analysis_receipt_id.as_str()),
+            ("verifier_receipt_id", self.verifier_receipt_id.as_str()),
+        ] {
+            if value.trim().is_empty() {
+                errors.push(format!("reference-independence attestation field {name} is missing"));
+            }
+        }
+        if self.mechanical_observation_digest != mechanical.observation_digest {
+            errors.push("independence attestation mechanical observation digest mismatch".to_owned());
+        }
+        if self.electrical_observation_digest != electrical.observation_digest {
+            errors.push("independence attestation electrical observation digest mismatch".to_owned());
+        }
+        if self.end_to_end_observation_digest != end_to_end.observation_digest {
+            errors.push("independence attestation end-to-end observation digest mismatch".to_owned());
+        }
+        if self.mechanical_reference_ancestry_receipt_id != mechanical.reference_ancestry_receipt_id {
+            errors.push("independence attestation mechanical ancestry binding mismatch".to_owned());
+        }
+        if self.electrical_reference_ancestry_receipt_id != electrical.reference_ancestry_receipt_id {
+            errors.push("independence attestation electrical ancestry binding mismatch".to_owned());
+        }
+        if self.end_to_end_reference_ancestry_receipt_id != end_to_end.reference_ancestry_receipt_id {
+            errors.push("independence attestation end-to-end ancestry binding mismatch".to_owned());
+        }
+        errors
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
 pub enum DecompositionDisposition {
     StageSeparatedAndValidated,
     CompositionOnlyStagesUnresolved,
@@ -374,6 +442,7 @@ pub fn assess_stage_decomposition(
     mechanical_observations: Option<&StageObservationSet>,
     electrical_observations: Option<&StageObservationSet>,
     end_to_end_observations: &EndToEndObservationSet,
+    reference_independence: Option<&StageReferenceIndependenceAttestation>,
     rank_tolerance: f64,
     residual_tolerance: f64,
 ) -> DecompositionAssessment {
@@ -454,29 +523,49 @@ pub fn assess_stage_decomposition(
         };
     }
 
-    let ancestry_ids = [
-        mechanical_observations
-            .reference_ancestry_receipt_id
-            .as_str(),
-        electrical_observations
-            .reference_ancestry_receipt_id
-            .as_str(),
-        end_to_end_observations
-            .reference_ancestry_receipt_id
-            .as_str(),
-    ];
-    if ancestry_ids[0] == ancestry_ids[1]
-        || ancestry_ids[0] == ancestry_ids[2]
-        || ancestry_ids[1] == ancestry_ids[2]
-    {
+    let Some(reference_independence) = reference_independence else {
         return DecompositionAssessment {
             disposition: DecompositionDisposition::CompositionOnlyStagesUnresolved,
             mechanical_stage_fit: None,
             electrical_stage_fit: None,
             end_to_end_rmse: Some(total_rmse),
             reasons: vec![
-                "mechanical, electrical and end-to-end evidence share reference ancestry; stage independence is unresolved".to_owned(),
+                "no external reference-independence assessment binds the exact three observation sets and common-cause analysis".to_owned(),
             ],
+            claim_class: "synthetic_stage_decomposition_contract_only",
+        };
+    };
+    let independence_binding_errors = reference_independence.validate_binding(
+        mechanical_observations,
+        electrical_observations,
+        end_to_end_observations,
+    );
+    if !independence_binding_errors.is_empty() {
+        return DecompositionAssessment {
+            disposition: DecompositionDisposition::CompositionOnlyStagesUnresolved,
+            mechanical_stage_fit: None,
+            electrical_stage_fit: None,
+            end_to_end_rmse: Some(total_rmse),
+            reasons: independence_binding_errors,
+            claim_class: "synthetic_stage_decomposition_contract_only",
+        };
+    }
+    if reference_independence.disposition != IndependenceDisposition::IndependentlyCharacterized {
+        let reason = match reference_independence.disposition {
+            IndependenceDisposition::SharedCommonCause => {
+                "external common-cause assessment reports shared reference dependencies"
+            }
+            IndependenceDisposition::Unresolved => {
+                "external reference-independence assessment remains unresolved"
+            }
+            IndependenceDisposition::IndependentlyCharacterized => unreachable!(),
+        };
+        return DecompositionAssessment {
+            disposition: DecompositionDisposition::CompositionOnlyStagesUnresolved,
+            mechanical_stage_fit: None,
+            electrical_stage_fit: None,
+            end_to_end_rmse: Some(total_rmse),
+            reasons: vec![reason.to_owned()],
             claim_class: "synthetic_stage_decomposition_contract_only",
         };
     }
