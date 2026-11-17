@@ -49,11 +49,17 @@ Do not create parallel curvature, geodesic, ray-tracing, perturbation, inference
 - Near-horizon geodesic instabilities and scalar QNM behavior: Kouniatalis et al., PRD 112 (2025), [DOI 10.1103/ftvr-pclv](https://doi.org/10.1103/ftvr-pclv). Scalar perturbations are not the fourth-order gravitational spin-2 spectrum.
 - Rotating Weyl black-hole thermodynamics and energy extraction: [EPJC 2026, DOI 10.1140/epjc/s10052-026-16333-4](https://doi.org/10.1140/epjc/s10052-026-16333-4).
 - General stationary-metric shadow inference: [PRD 114 (2026), DOI 10.1103/66x9-zj16](https://doi.org/10.1103/66x9-zj16).
+- Neural-spectral rotating-solution discovery: [Akribeia, PRD accepted 12 November 2026, DOI 10.1103/3kz2-6dvv](https://doi.org/10.1103/3kz2-6dvv).
+- Modified-gravity QNM null tests: [PRD 114, 024077 (2026), DOI 10.1103/w112-1pnj](https://doi.org/10.1103/w112-1pnj).
 - Calibration-robust M87* closure-invariant reconstruction: [Nature 659 (2026), DOI 10.1038/s41586-026-11241-9](https://doi.org/10.1038/s41586-026-11241-9).
 - Kerr ray-tracing comparator: [AART](https://github.com/iAART/aart).
 - Black-hole perturbation reference ecosystem: [BHPT Toolkit](https://bhptoolkit.org/).
 
 These are layer-specific baselines, not evidence that a Weyl model is empirically preferred. Verify exact papers, conventions, data, and publication status before numeric reproduction. In particular, do not mistake metric-affine Weyl-connection gravity for pure Weyl-squared conformal gravity.
+
+## New discovery and certification path
+
+Neural-field discovery plus pseudo-spectral refinement is now a relevant SOTA methodology. [DISCOVERY_CERTIFICATION_v1.md](DISCOVERY_CERTIFICATION_v1.md) defines how candidate rotating branches must be independently refined, checked off-grid, tested for horizon/asymptotic regularity, tracked through parameter space, and reproduced by a second implementation. The [solution certificate schema](solution_certificate_v1.schema.json) defines the evidence record. Akribeia's accepted 2026 demonstration is higher-dimensional Lovelock with equal angular momenta; it is a methodological comparator, not direct evidence for four-dimensional Weyl gravity.
 
 ## Competitive objective
 
