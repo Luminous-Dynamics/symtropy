@@ -623,7 +623,7 @@ pub fn build_power_constrained_schedule(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{KitchenTaskV1, KITCHEN_PLAN_SCHEMA_VERSION};
+    use crate::{KITCHEN_PLAN_SCHEMA_VERSION, KitchenTaskV1};
 
     fn task(id: &str, duration_ms: u64, resource_id: &str) -> KitchenTaskV1 {
         KitchenTaskV1 {
@@ -743,7 +743,7 @@ mod tests {
             vec![TaskPowerProfileV1 {
                 task_id: "heater".to_owned(),
                 source_ref: "fixture:startup-surge".to_owned(),
-                evidence_class: PowerProfileEvidenceClassV1::Measured,
+                evidence_class: PowerProfileEvidenceClassV1::Simulated,
                 segments: vec![
                     PowerSegmentV1 {
                         start_offset_ms: 0,
