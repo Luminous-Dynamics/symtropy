@@ -1,4 +1,9 @@
 use symtropy_freeflow_structure_lab::tetrahedral::{TetrahedralAssembly, TetrahedralConfig};
+use symtropy_freeflow_structure_lab::Vec3;
+use symtropy_truss_fem_lab::beam_element::{BeamMaterial3D, BeamSection3D};
+use symtropy_truss_fem_lab::frame_analysis::{
+    audit_frame_equilibrium, FrameBoundaryConditions, FrameMember3D, FrameModel3D,
+};
 use symtropy_truss_fem_lab::benchmark::{
     evaluate_mass_normalized_candidate, matched_tetrahedron_pair, MassNormalizedBenchmarkSpec,
 };
@@ -278,4 +283,57 @@ fn main() {
         matched_hub.maximum_node_displacement_m / matched_baseline.maximum_node_displacement_m
     );
     println!("claim_ceiling=ideal pin-jointed linear-elastic reference only; member mass only");
+
+    let frame_material = BeamMaterial3D {
+        youngs_modulus_pa: 200.0e9,
+        shear_modulus_pa: 80.0e9,
+    };
+    let frame_section = BeamSection3D {
+        area_m2: 0.01,
+        torsional_constant_m4: 1.0e-5,
+        second_moment_y_m4: 1.0e-5,
+        second_moment_z_m4: 2.0e-5,
+    };
+    let frame_model = FrameModel3D {
+        nodes: vec![Vec3::new(0.0, 0.0, 0.0), Vec3::new(2.0, 0.0, 0.0)],
+        members: vec![FrameMember3D {
+            from: 0,
+            to: 1,
+            orientation_hint_global: Vec3::new(0.0, 1.0, 0.0),
+            material: frame_material,
+            section: frame_section,
+        }],
+    };
+    let mut frame_boundary = FrameBoundaryConditions::new(frame_model.nodes.len());
+    frame_boundary.fix_node(0).expect("cantilever root support");
+    frame_boundary
+        .add_load(1, [0.0, 1_000.0, 0.0, 0.0, 0.0, 0.0])
+        .expect("finite cantilever tip force");
+    let frame_result = frame_model
+        .analyze(&frame_boundary)
+        .expect("supported 3D beam cantilever should solve");
+    let frame_audit = audit_frame_equilibrium(&frame_model, &frame_boundary, &frame_result)
+        .expect("frame equilibrium audit should be finite");
+    println!("frame_element_count={}", frame_result.members.len());
+    println!(
+        "frame_tip_y_displacement_m={:.12e}",
+        frame_result.nodal_displacements[1][1]
+    );
+    println!(
+        "frame_tip_z_rotation_rad={:.12e}",
+        frame_result.nodal_displacements[1][5]
+    );
+    println!(
+        "frame_global_force_residual_n={:.12e}",
+        frame_audit.net_force_residual_norm_n
+    );
+    println!(
+        "frame_global_moment_residual_nm={:.12e}",
+        frame_audit.net_moment_residual_norm_nm
+    );
+    println!(
+        "frame_energy_relative_error={:.12e}",
+        frame_audit.energy_relative_error
+    );
+    println!("frame_claim_ceiling=linear Euler-Bernoulli frame reference; no global buckling qualification");
 }
