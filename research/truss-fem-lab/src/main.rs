@@ -1,4 +1,7 @@
 use symtropy_freeflow_structure_lab::tetrahedral::{TetrahedralAssembly, TetrahedralConfig};
+use symtropy_truss_fem_lab::benchmark::{
+    evaluate_mass_normalized_candidate, MassNormalizedBenchmarkSpec,
+};
 use symtropy_truss_fem_lab::damage::{
     bounded_pair_member_removal_campaign, single_member_removal_campaign,
 };
@@ -100,5 +103,28 @@ fn main() {
     println!("two_member_stable={}", pair_damage.stable_removals);
     println!("two_member_mechanisms={}", pair_damage.mechanism_removals);
     println!("two_member_other_failures={}", pair_damage.other_failures);
-    println!("claim_ceiling=ideal pin-jointed linear-elastic truss reference only");
+
+    let mass_matched = evaluate_mass_normalized_candidate(
+        &model,
+        &boundary,
+        MassNormalizedBenchmarkSpec {
+            member_mass_budget_kg: 10.0,
+            material_density_kg_m3: 2_700.0,
+            youngs_modulus_pa: 69.0e9,
+            yield_strength_pa: 250.0e6,
+            effective_length_factor: 1.0,
+            pair_removal_budget: 8,
+        },
+    )
+    .expect("mass-normalized candidate should produce a bounded benchmark receipt");
+    println!("mass_matched_target_member_mass_kg={:.9}", mass_matched.target_member_mass_kg);
+    println!("mass_matched_computed_member_mass_kg={:.9}", mass_matched.computed_member_mass_kg);
+    println!("mass_matched_uniform_area_m2={:.12e}", mass_matched.uniform_cross_section_area_m2);
+    println!("mass_matched_max_displacement_m={:.12e}", mass_matched.maximum_node_displacement_m);
+    println!("mass_matched_max_yield_utilization={:.12e}", mass_matched.maximum_yield_utilization);
+    println!("mass_matched_max_euler_utilization={:?}", mass_matched.maximum_elastic_euler_utilization);
+    println!("mass_matched_single_removal_solvability={:.6}", mass_matched.single_member_removal_solvability_fraction);
+    println!("mass_matched_pair_removal_tested={}", mass_matched.tested_two_member_pairs);
+    println!("mass_matched_pair_removal_omitted={}", mass_matched.omitted_two_member_pairs);
+    println!("claim_ceiling=ideal pin-jointed linear-elastic reference only; member mass only");
 }
