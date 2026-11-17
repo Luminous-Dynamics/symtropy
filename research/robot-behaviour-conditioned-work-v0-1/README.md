@@ -22,7 +22,7 @@ The package is deliberately read-only:
 3. Four accepted panels plus four accepted seam inspections create a final functional-check package.
 4. Completion requires an upstream accepted reference for that final functional-check package.
 5. Partial WIP emits a reconciliation requirement; rejected WIP emits a review requirement; in-progress and unknown WIP suppress duplicate issuance.
-6. Scoped blocked or unknown access prevents only the affected branch from being marked ready.
+6. Scoped blocked or unknown access prevents only the affected branch from being marked ready. A missing access observation is Unknown, never implicitly Available; nominal fixtures provide explicit scoped Available observations.
 7. Robot-reported completion is deliberately ignored.
 
 The 2×2 article is a benchmark fixture, not a structural design or construction procedure.
