@@ -38,6 +38,24 @@ The suburb history endpoint for Melville returned:
 
 The example showed a Hursthill 2 Reservoir row marked `no_report` on 8 November 2026 and separate `warned` / on-bypass rows on 14–16 November 2026. This demonstrates why missing, warned, on-bypass and no-water must remain separate states. These sample values were read from live API output; the full history and bulk release have not been acquired or hashed.
 
+
+
+## 2A. Versioned example: Hursthill 2 (live API observation)
+
+A second API read captured release `2026-11-15-b7c711ba` for:
+- `/api/v1/supplies/hursthill-2-reservoir/history?from=2026-02-01&to=2026-02-13`
+- `/api/v1/supplies/hursthill-2-reservoir/outages`
+
+The returned daily rows included:
+- 4 February: `no_water`, `on_bypass = true`;
+- 5 and 6 February: `no_report`;
+- 7–9 February: `no_water`, `on_bypass = true`;
+- 10 and 11 February: `no_report`.
+
+The separate outage endpoint reported a 157.25-hour episode starting 4 February 2026 at 19:10 SAST and ending at the last reported status on 11 February 2026 at 08:25 SAST, marked `censored = true`, with two no-board days under its own C41 derivation. It also reported an April–June episode of 1,558 hours with four no-board days.
+
+These are intentionally retained as **derived publisher examples** rather than promoted to ground truth. The history endpoint's per-day gaps and the outage endpoint's C41 bridge/censoring semantics are different views of the same underlying report process; neither establishes what happened at a tap. Full rows, source-board posts/images, immutable bulk files and checksums have not been acquired or archived in this work.
+
 ## 3. Data products and semantics
 
 The documentation describes the following endpoints:
