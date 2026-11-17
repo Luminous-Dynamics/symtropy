@@ -80,6 +80,42 @@ Every candidate links to its exact source snapshot, constraints, solver versions
 - Designers, occupants and qualified professionals retain review and approval authority.
 - Mycelix may later provide provenance/authorization; it must not turn a model's claim into engineering authority.
 
+### 8. From a single spatial graph to an evidence-and-change graph
+
+A geometry graph says what is connected. An engineering change graph must also say why each object exists, which requirements it satisfies, which exact source/version created it, which analyses depend on it, and which evidence becomes stale after a change.
+
+Model dependency edges explicitly:
+- design parameter -> geometry feature -> physical boundary condition;
+- component/interface -> load path or service network;
+- requirement -> constraint -> candidate decision;
+- source snapshot -> analysis input -> solver run -> evidence receipt;
+- maintenance event -> changed component state -> future inspection/analysis.
+
+A change should produce a machine-checkable impact closure. Independent analysis adapters re-evaluate only affected evidence, while unchanged evidence remains current only when its exact dependencies are unchanged. Unknown dependency relationships must invalidate conservatively, not silently remain PASS.
+
+Autodesk Forma's connected AEC work is already moving toward shared project context, drawing search/change analysis and AI-assisted review. HoloFrac must therefore be tested on the stricter claim: exact dependency closure, independently replayable evidence, and zero false-current classifications under seeded cross-tool mutations—not merely the ability to highlight a change.
+
+### 9. From simulation batches to uncertainty-directed experiments
+
+Do not launch every expensive simulation, and do not trust a surrogate point estimate without calibration. Maintain an explicit model of uncertainty and choose the next experiment according to expected information or decision value.
+
+Compare RBF/RBFMOpt, TPE, HypE and adaptive Polynomial Chaos Expansion (PCE) with high-fidelity simulation. The November 2026 BIM-adaptive surrogate study uses sequential sparse PCE and multi-output/multi-timescale sensitivity analysis; the October 2026 design-support study combines RBF surrogates, uncertainty quantification and bipartite clustering. Those are current comparison arms, not details to rediscover.
+
+A new HoloFrac hypothesis is that a typed dependency graph can localize uncertainty and propagate it through the parts of the building that depend on an uncertain parameter. Test that against global surrogate uncertainty and simple sensitivity-based selection. It must improve decision quality or reduce high-fidelity calls at matched feasibility and error—not simply produce attractive uncertainty visualizations.
+
+### 10. From duplicated role vectors to factorized multiscale memory
+
+Repeated room IDs, relation kinds, scales, materials and component families should share typed codebook vectors. Per-fact records hold compact references; exact source identifiers and postings remain available for definitive retrieval.
+
+Use a two-path query contract:
+- exact path: source-keyed postings/graph traversal for exact identifiers and relations;
+- associative path: HDC similarity for incomplete, noisy, analogical or cross-scale cues.
+
+The exact path is expected to win for exact known keys. HDC earns its place only when it improves recall or transfer under incomplete/noisy semantic context without increasing false acceptance. Exact verification remains mandatory before design decisions.
+
+For non-commutative composition, evaluate a separate GHRR implementation and the November 2026 flattened inference treatment. Match both effective dimension D*m^2 and actual bytes; do not report nominal D as if it were comparable to FHRR's D.
+
+
 ## Canonical spatial model
 
 The initial architecture graph should be a typed, attributed, versioned multigraph/hypergraph. A normal graph is adequate for simple adjacency. Explicit interface objects or hyperedges are needed when a connection is shared by more than two members, rooms or systems.
@@ -117,13 +153,16 @@ IFC is an exchange and information model, not the sole internal solver represent
 
 Compare representations on identical graph fixtures and query sets:
 
+- exact source-keyed role-postings and adjacency-list retrieval;
 - HRR;
 - FHRR;
 - MAP;
 - BSC;
 - TPR;
-- GHRR, only when a separately specified implementation is available;
+- matrix-native GHRR and flattened GHRR, only when separately specified and dimension/byte matched;
 - exact typed-graph traversal and canonical serialized lookup as non-HDC controls.
+
+Report exact identifiers, aliases, noisy/corrupted labels, relation masking, incomplete cues and held-out scale/topology families separately. The exact postings baseline is not an optional strawman; HDC is not expected to win on complete exact keys.
 
 Sweep dimensions including 2,048, 4,096, 8,192, 16,384, 32,768 and 65,536 where the representation supports them. Keep seed, item-memory construction, normalization, query corpus, hardware, precision and memory accounting explicit.
 
@@ -147,13 +186,15 @@ A separate floor-plan benchmark should use the Modified Swiss Dwellings (MSD) da
 
 Commercial systems already offer substantial capability:
 
-- Autodesk Fusion Generative Design produces editable alternatives against geometric, performance and manufacturing criteria, including additive, milling, cutting and casting constraints.
-- nTop combines implicit geometry, parametric exploration, structural/thermal/CFD simulation and accelerated evaluation of many variants.
-- Established building-performance workflows use tools such as EnergyPlus, Radiance and Modelica-based emulators; BOPTEST provides a common environment for benchmarking building-control strategies.
+- Autodesk Forma is connecting site, Revit and Civil 3D workflows around shared project context, and is adding AI drawing search, revision change analysis, multifamily layout exploration and drawing compliance review.
+- TestFit targets rapid feasibility and site planning with zoning and unit/parking mix constraints.
+- nTop combines implicit geometry, parametric exploration and structural/thermal/CFD simulation; its 5.23 release brought CFD into the iterative implicit-geometry loop.
+- Autodesk Fusion Generative Design produces editable alternatives against geometric, performance and manufacturing criteria.
+- Established building-performance workflows use EnergyPlus, Radiance, Modelica-based emulators and BOPTEST for building-control benchmarking.
 
-HoloFrac should not claim to beat these products at generic CAD, implicit geometry, CFD, FEA, topology optimization or building control without direct matched tests.
+HoloFrac should not claim to beat these products at generic CAD, implicit geometry, CFD, FEA, topology optimization, drawing revision analysis or building control without direct matched tests. Autodesk's connected data and AI change-analysis work means "preserving project context" alone is no longer a sufficient differentiation claim.
 
-The differentiated research hypothesis is the integrated system: **multiscale typed spatial memory + grammar/interface co-design + counterfactual physical evaluation + occupant-steerable Pareto alternatives + evidence lineage across design, assembly and operation.**
+The differentiated research hypothesis is narrower and testable: **typed source lineage + exact dependency closure + independent evidence invalidation/replay + uncertainty-directed physical evaluation + occupant-steerable Pareto alternatives across design, assembly and operation.** This must be compared against the complete connected product workflows, not isolated tools or a marketing feature checklist.
 
 The strongest first result would be a reproducible case where this integration reduces expensive rework or evaluation cost without losing feasibility, accuracy, diversity or user control—not a visually novel rendering.
 
