@@ -943,7 +943,7 @@ fn run_relative_time_multibody_comparison_benchmarks() {
                     reference_p50.as_nanos() as f64 / broadphase_p50.as_nanos().max(1) as f64;
 
                 println!(
-                    "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+                    "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
                     distribution.label(),
                     count,
                     subdivision_count,
