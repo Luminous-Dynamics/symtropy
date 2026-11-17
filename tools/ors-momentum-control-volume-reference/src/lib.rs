@@ -97,6 +97,9 @@ pub struct CaseEvaluation {
     pub case_id: String,
     pub frame_id: String,
     pub epoch_s: f64,
+    pub momentum_accumulation_n: Vector3,
+    pub other_external_force_n: Vector3,
+    pub port_count: usize,
     pub mass_flow_in_kg_s: f64,
     pub mass_flow_out_kg_s: f64,
     pub mass_balance_residual_kg_s: f64,
@@ -308,11 +311,13 @@ pub fn evaluate_scenario(scenario: &ControlVolumeScenario) -> Result<CaseEvaluat
     }
 
     let mut port_ids = HashSet::new();
+    let mut ordered_ports: Vec<&MassFluxPort> = scenario.ports.iter().collect();
+    ordered_ports.sort_by(|left, right| left.port_id.cmp(&right.port_id));
     let mut mass_flow_in_kg_s = 0.0;
     let mut mass_flow_out_kg_s = 0.0;
     let mut advective_momentum_flux_n = Vector3::ZERO;
 
-    for port in &scenario.ports {
+    for port in ordered_ports {
         if !valid_identifier(&port.port_id) || !port_ids.insert(port.port_id.as_str()) {
             return Err(format!("{}: invalid or duplicate port ID", scenario.case_id));
         }
@@ -380,6 +385,9 @@ pub fn evaluate_scenario(scenario: &ControlVolumeScenario) -> Result<CaseEvaluat
         case_id: scenario.case_id.clone(),
         frame_id: scenario.frame_id.clone(),
         epoch_s: scenario.epoch_s,
+        momentum_accumulation_n: scenario.momentum_accumulation_n,
+        other_external_force_n: scenario.other_external_force_n,
+        port_count: scenario.ports.len(),
         mass_flow_in_kg_s,
         mass_flow_out_kg_s,
         mass_balance_residual_kg_s,
