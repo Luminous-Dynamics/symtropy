@@ -1,0 +1,959 @@
+{
+  "fixture_bundle_id": "kitchen-module-capability-v1",
+  "status": "synthetic_only_not_manufacturer_qualification",
+  "cases": [
+    {
+      "fixture_id": "valid-declared-prep-module",
+      "expected_valid": true,
+      "module": {
+        "schema_version": 1,
+        "module_id": "fixture:prep-drive-01",
+        "module_revision": "rev-a",
+        "module_kind": "prep_drive",
+        "manufacturer": "Synthetic Manufacturer",
+        "model": "Modular Prep Drive",
+        "sku": "FIXTURE-001",
+        "market_region": "ZA",
+        "hardware_revision": "hw-a",
+        "firmware_revision": null,
+        "capabilities": [
+          {
+            "capability_id": "capability:chop",
+            "action_group": "chop",
+            "input_form_refs": [
+              "form:whole-produce"
+            ],
+            "output_form_refs": [
+              "form:chopped-produce"
+            ],
+            "minimum_batch_mass_g": 50,
+            "maximum_batch_mass_g": 1000,
+            "nominal_throughput_g_per_min": 500,
+            "maximum_continuous_run_ms": 120000,
+            "parameter_ranges": [],
+            "claim_status": "declared",
+            "evidence": {
+              "source_ref": "fixture:manufacturer-datasheet",
+              "method_ref": null,
+              "calibration_ref": null,
+              "uncertainty_ref": null,
+              "evidence_class": "declared"
+            }
+          }
+        ],
+        "electrical": {
+          "nominal_voltage_min_mv": 220000,
+          "nominal_voltage_max_mv": 240000,
+          "mains_frequency_min_millihz": 50000,
+          "mains_frequency_max_millihz": 50000,
+          "continuous_real_power_limit_w": 1000,
+          "peak_real_power_limit_w": 1200,
+          "maximum_surge_duration_ms": 100,
+          "power_profile_ref": "fixture:simulated-power-profile",
+          "electrical_evidence": {
+            "source_ref": "fixture:manufacturer-rating",
+            "method_ref": null,
+            "calibration_ref": null,
+            "uncertainty_ref": null,
+            "evidence_class": "declared"
+          }
+        },
+        "interfaces": {
+          "mechanical_interface_ref": "adapter:fixture-mount",
+          "electrical_interface_ref": "adapter:fixture-electrical",
+          "data_protocol_ref": null
+        },
+        "service": {
+          "user_manual_ref": "fixture:user-manual",
+          "service_manual_ref": null,
+          "spare_parts_ref": null,
+          "repair_procedure_ref": null,
+          "warranty_ref": null,
+          "cleaning_sanitation_ref": "fixture:cleaning-protocol",
+          "food_contact_material_refs": [
+            "fixture:food-contact-polymer-datasheet"
+          ]
+        },
+        "local_safety_authority_ref": "controller:appliance-local-safety",
+        "qualification_refs": [],
+        "pressure_safety": null,
+        "source_evidence": {
+          "source_ref": "fixture:module-datasheet",
+          "method_ref": null,
+          "calibration_ref": null,
+          "uncertainty_ref": null,
+          "evidence_class": "declared"
+        },
+        "claim_ceiling": "Descriptive module capability only; not controller authorization, safety certification, food-contact approval, or physical qualification."
+      }
+    },
+    {
+      "fixture_id": "valid-independently-qualified-pressure-module",
+      "expected_valid": true,
+      "module": {
+        "schema_version": 1,
+        "module_id": "fixture:pressure-cooker-01",
+        "module_revision": "pressure-rev-a",
+        "module_kind": "pressure_cooker",
+        "manufacturer": "Synthetic Manufacturer",
+        "model": "Modular Prep Drive",
+        "sku": "FIXTURE-001",
+        "market_region": "ZA",
+        "hardware_revision": "hw-a",
+        "firmware_revision": null,
+        "capabilities": [
+          {
+            "capability_id": "capability:pressure-cook",
+            "action_group": "pressure_cook",
+            "input_form_refs": [
+              "form:ingredients-in-vessel"
+            ],
+            "output_form_refs": [
+              "form:cooked-meal"
+            ],
+            "minimum_batch_mass_g": 200,
+            "maximum_batch_mass_g": 4000,
+            "nominal_throughput_g_per_min": null,
+            "maximum_continuous_run_ms": 3600000,
+            "parameter_ranges": [],
+            "claim_status": "independently_verified",
+            "evidence": {
+              "source_ref": "fixture:independent-capability-test",
+              "method_ref": "method:pressure-cook-protocol-v1",
+              "calibration_ref": null,
+              "uncertainty_ref": null,
+              "evidence_class": "independently_qualified"
+            }
+          }
+        ],
+        "electrical": {
+          "nominal_voltage_min_mv": 220000,
+          "nominal_voltage_max_mv": 240000,
+          "mains_frequency_min_millihz": 50000,
+          "mains_frequency_max_millihz": 50000,
+          "continuous_real_power_limit_w": 1000,
+          "peak_real_power_limit_w": 1200,
+          "maximum_surge_duration_ms": 100,
+          "power_profile_ref": "fixture:simulated-power-profile",
+          "electrical_evidence": {
+            "source_ref": "fixture:manufacturer-rating",
+            "method_ref": null,
+            "calibration_ref": null,
+            "uncertainty_ref": null,
+            "evidence_class": "declared"
+          }
+        },
+        "interfaces": {
+          "mechanical_interface_ref": "adapter:fixture-mount",
+          "electrical_interface_ref": "adapter:fixture-electrical",
+          "data_protocol_ref": null
+        },
+        "service": {
+          "user_manual_ref": "fixture:user-manual",
+          "service_manual_ref": null,
+          "spare_parts_ref": null,
+          "repair_procedure_ref": null,
+          "warranty_ref": null,
+          "cleaning_sanitation_ref": "fixture:cleaning-protocol",
+          "food_contact_material_refs": [
+            "fixture:food-contact-polymer-datasheet"
+          ]
+        },
+        "local_safety_authority_ref": "controller:appliance-local-safety",
+        "qualification_refs": [],
+        "pressure_safety": {
+          "pressure_vessel_qualification_ref": "qualification:vessel-report",
+          "pressure_relief_test_ref": "test:relief-valve-report",
+          "independent_test_report_ref": "report:pressure-module-validation",
+          "qualification_evidence": {
+            "source_ref": "report:pressure-module-validation",
+            "method_ref": "method:pressure-vessel-test-v1",
+            "calibration_ref": null,
+            "uncertainty_ref": null,
+            "evidence_class": "independently_qualified"
+          }
+        },
+        "source_evidence": {
+          "source_ref": "fixture:module-datasheet",
+          "method_ref": null,
+          "calibration_ref": null,
+          "uncertainty_ref": null,
+          "evidence_class": "declared"
+        },
+        "claim_ceiling": "Descriptive module capability only; not controller authorization, safety certification, food-contact approval, or physical qualification."
+      }
+    },
+    {
+      "fixture_id": "reject-pressure-module-with-only-generic-qualification",
+      "expected_valid": false,
+      "module": {
+        "schema_version": 1,
+        "module_id": "fixture:pressure-no-evidence",
+        "module_revision": "rev-a",
+        "module_kind": "pressure_cooker",
+        "manufacturer": "Synthetic Manufacturer",
+        "model": "Modular Prep Drive",
+        "sku": "FIXTURE-001",
+        "market_region": "ZA",
+        "hardware_revision": "hw-a",
+        "firmware_revision": null,
+        "capabilities": [
+          {
+            "capability_id": "capability:chop",
+            "action_group": "chop",
+            "input_form_refs": [
+              "form:whole-produce"
+            ],
+            "output_form_refs": [
+              "form:chopped-produce"
+            ],
+            "minimum_batch_mass_g": 50,
+            "maximum_batch_mass_g": 1000,
+            "nominal_throughput_g_per_min": 500,
+            "maximum_continuous_run_ms": 120000,
+            "parameter_ranges": [],
+            "claim_status": "declared",
+            "evidence": {
+              "source_ref": "fixture:manufacturer-datasheet",
+              "method_ref": null,
+              "calibration_ref": null,
+              "uncertainty_ref": null,
+              "evidence_class": "declared"
+            }
+          }
+        ],
+        "electrical": {
+          "nominal_voltage_min_mv": 220000,
+          "nominal_voltage_max_mv": 240000,
+          "mains_frequency_min_millihz": 50000,
+          "mains_frequency_max_millihz": 50000,
+          "continuous_real_power_limit_w": 1000,
+          "peak_real_power_limit_w": 1200,
+          "maximum_surge_duration_ms": 100,
+          "power_profile_ref": "fixture:simulated-power-profile",
+          "electrical_evidence": {
+            "source_ref": "fixture:manufacturer-rating",
+            "method_ref": null,
+            "calibration_ref": null,
+            "uncertainty_ref": null,
+            "evidence_class": "declared"
+          }
+        },
+        "interfaces": {
+          "mechanical_interface_ref": "adapter:fixture-mount",
+          "electrical_interface_ref": "adapter:fixture-electrical",
+          "data_protocol_ref": null
+        },
+        "service": {
+          "user_manual_ref": "fixture:user-manual",
+          "service_manual_ref": null,
+          "spare_parts_ref": null,
+          "repair_procedure_ref": null,
+          "warranty_ref": null,
+          "cleaning_sanitation_ref": "fixture:cleaning-protocol",
+          "food_contact_material_refs": [
+            "fixture:food-contact-polymer-datasheet"
+          ]
+        },
+        "local_safety_authority_ref": "controller:appliance-local-safety",
+        "qualification_refs": [
+          "fixture:generic-certificate"
+        ],
+        "pressure_safety": null,
+        "source_evidence": {
+          "source_ref": "fixture:module-datasheet",
+          "method_ref": null,
+          "calibration_ref": null,
+          "uncertainty_ref": null,
+          "evidence_class": "declared"
+        },
+        "claim_ceiling": "Descriptive module capability only; not controller authorization, safety certification, food-contact approval, or physical qualification."
+      }
+    },
+    {
+      "fixture_id": "reject-measured-module-without-calibration",
+      "expected_valid": false,
+      "module": {
+        "schema_version": 1,
+        "module_id": "fixture:measured-without-calibration",
+        "module_revision": "rev-a",
+        "module_kind": "prep_drive",
+        "manufacturer": "Synthetic Manufacturer",
+        "model": "Modular Prep Drive",
+        "sku": "FIXTURE-001",
+        "market_region": "ZA",
+        "hardware_revision": "hw-a",
+        "firmware_revision": null,
+        "capabilities": [
+          {
+            "capability_id": "capability:chop",
+            "action_group": "chop",
+            "input_form_refs": [
+              "form:whole-produce"
+            ],
+            "output_form_refs": [
+              "form:chopped-produce"
+            ],
+            "minimum_batch_mass_g": 50,
+            "maximum_batch_mass_g": 1000,
+            "nominal_throughput_g_per_min": 500,
+            "maximum_continuous_run_ms": 120000,
+            "parameter_ranges": [],
+            "claim_status": "declared",
+            "evidence": {
+              "source_ref": "fixture:manufacturer-datasheet",
+              "method_ref": null,
+              "calibration_ref": null,
+              "uncertainty_ref": null,
+              "evidence_class": "declared"
+            }
+          }
+        ],
+        "electrical": {
+          "nominal_voltage_min_mv": 220000,
+          "nominal_voltage_max_mv": 240000,
+          "mains_frequency_min_millihz": 50000,
+          "mains_frequency_max_millihz": 50000,
+          "continuous_real_power_limit_w": 1000,
+          "peak_real_power_limit_w": 1200,
+          "maximum_surge_duration_ms": 100,
+          "power_profile_ref": "fixture:simulated-power-profile",
+          "electrical_evidence": {
+            "source_ref": "fixture:manufacturer-rating",
+            "method_ref": null,
+            "calibration_ref": null,
+            "uncertainty_ref": null,
+            "evidence_class": "declared"
+          }
+        },
+        "interfaces": {
+          "mechanical_interface_ref": "adapter:fixture-mount",
+          "electrical_interface_ref": "adapter:fixture-electrical",
+          "data_protocol_ref": null
+        },
+        "service": {
+          "user_manual_ref": "fixture:user-manual",
+          "service_manual_ref": null,
+          "spare_parts_ref": null,
+          "repair_procedure_ref": null,
+          "warranty_ref": null,
+          "cleaning_sanitation_ref": "fixture:cleaning-protocol",
+          "food_contact_material_refs": [
+            "fixture:food-contact-polymer-datasheet"
+          ]
+        },
+        "local_safety_authority_ref": "controller:appliance-local-safety",
+        "qualification_refs": [],
+        "pressure_safety": null,
+        "source_evidence": {
+          "source_ref": "fixture:module-datasheet",
+          "method_ref": null,
+          "calibration_ref": null,
+          "uncertainty_ref": null,
+          "evidence_class": "measured"
+        },
+        "claim_ceiling": "Descriptive module capability only; not controller authorization, safety certification, food-contact approval, or physical qualification."
+      }
+    },
+    {
+      "fixture_id": "reject-reversed-batch-range",
+      "expected_valid": false,
+      "module": {
+        "schema_version": 1,
+        "module_id": "fixture:invalid-batch-range",
+        "module_revision": "rev-a",
+        "module_kind": "prep_drive",
+        "manufacturer": "Synthetic Manufacturer",
+        "model": "Modular Prep Drive",
+        "sku": "FIXTURE-001",
+        "market_region": "ZA",
+        "hardware_revision": "hw-a",
+        "firmware_revision": null,
+        "capabilities": [
+          {
+            "capability_id": "capability:chop",
+            "action_group": "chop",
+            "input_form_refs": [
+              "form:whole-produce"
+            ],
+            "output_form_refs": [
+              "form:chopped-produce"
+            ],
+            "minimum_batch_mass_g": 2000,
+            "maximum_batch_mass_g": 1000,
+            "nominal_throughput_g_per_min": 500,
+            "maximum_continuous_run_ms": 120000,
+            "parameter_ranges": [],
+            "claim_status": "declared",
+            "evidence": {
+              "source_ref": "fixture:manufacturer-datasheet",
+              "method_ref": null,
+              "calibration_ref": null,
+              "uncertainty_ref": null,
+              "evidence_class": "declared"
+            }
+          }
+        ],
+        "electrical": {
+          "nominal_voltage_min_mv": 220000,
+          "nominal_voltage_max_mv": 240000,
+          "mains_frequency_min_millihz": 50000,
+          "mains_frequency_max_millihz": 50000,
+          "continuous_real_power_limit_w": 1000,
+          "peak_real_power_limit_w": 1200,
+          "maximum_surge_duration_ms": 100,
+          "power_profile_ref": "fixture:simulated-power-profile",
+          "electrical_evidence": {
+            "source_ref": "fixture:manufacturer-rating",
+            "method_ref": null,
+            "calibration_ref": null,
+            "uncertainty_ref": null,
+            "evidence_class": "declared"
+          }
+        },
+        "interfaces": {
+          "mechanical_interface_ref": "adapter:fixture-mount",
+          "electrical_interface_ref": "adapter:fixture-electrical",
+          "data_protocol_ref": null
+        },
+        "service": {
+          "user_manual_ref": "fixture:user-manual",
+          "service_manual_ref": null,
+          "spare_parts_ref": null,
+          "repair_procedure_ref": null,
+          "warranty_ref": null,
+          "cleaning_sanitation_ref": "fixture:cleaning-protocol",
+          "food_contact_material_refs": [
+            "fixture:food-contact-polymer-datasheet"
+          ]
+        },
+        "local_safety_authority_ref": "controller:appliance-local-safety",
+        "qualification_refs": [],
+        "pressure_safety": null,
+        "source_evidence": {
+          "source_ref": "fixture:module-datasheet",
+          "method_ref": null,
+          "calibration_ref": null,
+          "uncertainty_ref": null,
+          "evidence_class": "declared"
+        },
+        "claim_ceiling": "Descriptive module capability only; not controller authorization, safety certification, food-contact approval, or physical qualification."
+      }
+    },
+    {
+      "fixture_id": "reject-incomplete-voltage-range",
+      "expected_valid": false,
+      "module": {
+        "schema_version": 1,
+        "module_id": "fixture:incomplete-voltage-range",
+        "module_revision": "rev-a",
+        "module_kind": "prep_drive",
+        "manufacturer": "Synthetic Manufacturer",
+        "model": "Modular Prep Drive",
+        "sku": "FIXTURE-001",
+        "market_region": "ZA",
+        "hardware_revision": "hw-a",
+        "firmware_revision": null,
+        "capabilities": [
+          {
+            "capability_id": "capability:chop",
+            "action_group": "chop",
+            "input_form_refs": [
+              "form:whole-produce"
+            ],
+            "output_form_refs": [
+              "form:chopped-produce"
+            ],
+            "minimum_batch_mass_g": 50,
+            "maximum_batch_mass_g": 1000,
+            "nominal_throughput_g_per_min": 500,
+            "maximum_continuous_run_ms": 120000,
+            "parameter_ranges": [],
+            "claim_status": "declared",
+            "evidence": {
+              "source_ref": "fixture:manufacturer-datasheet",
+              "method_ref": null,
+              "calibration_ref": null,
+              "uncertainty_ref": null,
+              "evidence_class": "declared"
+            }
+          }
+        ],
+        "electrical": {
+          "nominal_voltage_min_mv": 220000,
+          "nominal_voltage_max_mv": null,
+          "mains_frequency_min_millihz": 50000,
+          "mains_frequency_max_millihz": 50000,
+          "continuous_real_power_limit_w": 1000,
+          "peak_real_power_limit_w": 1200,
+          "maximum_surge_duration_ms": 100,
+          "power_profile_ref": "fixture:simulated-power-profile",
+          "electrical_evidence": {
+            "source_ref": "fixture:manufacturer-rating",
+            "method_ref": null,
+            "calibration_ref": null,
+            "uncertainty_ref": null,
+            "evidence_class": "declared"
+          }
+        },
+        "interfaces": {
+          "mechanical_interface_ref": "adapter:fixture-mount",
+          "electrical_interface_ref": "adapter:fixture-electrical",
+          "data_protocol_ref": null
+        },
+        "service": {
+          "user_manual_ref": "fixture:user-manual",
+          "service_manual_ref": null,
+          "spare_parts_ref": null,
+          "repair_procedure_ref": null,
+          "warranty_ref": null,
+          "cleaning_sanitation_ref": "fixture:cleaning-protocol",
+          "food_contact_material_refs": [
+            "fixture:food-contact-polymer-datasheet"
+          ]
+        },
+        "local_safety_authority_ref": "controller:appliance-local-safety",
+        "qualification_refs": [],
+        "pressure_safety": null,
+        "source_evidence": {
+          "source_ref": "fixture:module-datasheet",
+          "method_ref": null,
+          "calibration_ref": null,
+          "uncertainty_ref": null,
+          "evidence_class": "declared"
+        },
+        "claim_ceiling": "Descriptive module capability only; not controller authorization, safety certification, food-contact approval, or physical qualification."
+      }
+    },
+    {
+      "fixture_id": "reject-claim-status-evidence-promotion",
+      "expected_valid": false,
+      "module": {
+        "schema_version": 1,
+        "module_id": "fixture:claim-promotion",
+        "module_revision": "rev-a",
+        "module_kind": "prep_drive",
+        "manufacturer": "Synthetic Manufacturer",
+        "model": "Modular Prep Drive",
+        "sku": "FIXTURE-001",
+        "market_region": "ZA",
+        "hardware_revision": "hw-a",
+        "firmware_revision": null,
+        "capabilities": [
+          {
+            "capability_id": "capability:chop",
+            "action_group": "chop",
+            "input_form_refs": [
+              "form:whole-produce"
+            ],
+            "output_form_refs": [
+              "form:chopped-produce"
+            ],
+            "minimum_batch_mass_g": 50,
+            "maximum_batch_mass_g": 1000,
+            "nominal_throughput_g_per_min": 500,
+            "maximum_continuous_run_ms": 120000,
+            "parameter_ranges": [],
+            "claim_status": "independently_verified",
+            "evidence": {
+              "source_ref": "fixture:manufacturer-datasheet",
+              "method_ref": null,
+              "calibration_ref": null,
+              "uncertainty_ref": null,
+              "evidence_class": "declared"
+            }
+          }
+        ],
+        "electrical": {
+          "nominal_voltage_min_mv": 220000,
+          "nominal_voltage_max_mv": 240000,
+          "mains_frequency_min_millihz": 50000,
+          "mains_frequency_max_millihz": 50000,
+          "continuous_real_power_limit_w": 1000,
+          "peak_real_power_limit_w": 1200,
+          "maximum_surge_duration_ms": 100,
+          "power_profile_ref": "fixture:simulated-power-profile",
+          "electrical_evidence": {
+            "source_ref": "fixture:manufacturer-rating",
+            "method_ref": null,
+            "calibration_ref": null,
+            "uncertainty_ref": null,
+            "evidence_class": "declared"
+          }
+        },
+        "interfaces": {
+          "mechanical_interface_ref": "adapter:fixture-mount",
+          "electrical_interface_ref": "adapter:fixture-electrical",
+          "data_protocol_ref": null
+        },
+        "service": {
+          "user_manual_ref": "fixture:user-manual",
+          "service_manual_ref": null,
+          "spare_parts_ref": null,
+          "repair_procedure_ref": null,
+          "warranty_ref": null,
+          "cleaning_sanitation_ref": "fixture:cleaning-protocol",
+          "food_contact_material_refs": [
+            "fixture:food-contact-polymer-datasheet"
+          ]
+        },
+        "local_safety_authority_ref": "controller:appliance-local-safety",
+        "qualification_refs": [],
+        "pressure_safety": null,
+        "source_evidence": {
+          "source_ref": "fixture:module-datasheet",
+          "method_ref": null,
+          "calibration_ref": null,
+          "uncertainty_ref": null,
+          "evidence_class": "declared"
+        },
+        "claim_ceiling": "Descriptive module capability only; not controller authorization, safety certification, food-contact approval, or physical qualification."
+      }
+    },
+    {
+      "fixture_id": "reject-pressure-cooker-without-pressure-cook-capability",
+      "expected_valid": false,
+      "module": {
+        "schema_version": 1,
+        "module_id": "fixture:pressure-missing-capability",
+        "module_revision": "pressure-rev-a",
+        "module_kind": "pressure_cooker",
+        "manufacturer": "Synthetic Manufacturer",
+        "model": "Modular Prep Drive",
+        "sku": "FIXTURE-001",
+        "market_region": "ZA",
+        "hardware_revision": "hw-a",
+        "firmware_revision": null,
+        "capabilities": [
+          {
+            "capability_id": "capability:pressure-cook",
+            "action_group": "boil",
+            "input_form_refs": [
+              "form:ingredients-in-vessel"
+            ],
+            "output_form_refs": [
+              "form:cooked-meal"
+            ],
+            "minimum_batch_mass_g": 200,
+            "maximum_batch_mass_g": 4000,
+            "nominal_throughput_g_per_min": null,
+            "maximum_continuous_run_ms": 3600000,
+            "parameter_ranges": [],
+            "claim_status": "independently_verified",
+            "evidence": {
+              "source_ref": "fixture:independent-capability-test",
+              "method_ref": "method:pressure-cook-protocol-v1",
+              "calibration_ref": null,
+              "uncertainty_ref": null,
+              "evidence_class": "independently_qualified"
+            }
+          }
+        ],
+        "electrical": {
+          "nominal_voltage_min_mv": 220000,
+          "nominal_voltage_max_mv": 240000,
+          "mains_frequency_min_millihz": 50000,
+          "mains_frequency_max_millihz": 50000,
+          "continuous_real_power_limit_w": 1000,
+          "peak_real_power_limit_w": 1200,
+          "maximum_surge_duration_ms": 100,
+          "power_profile_ref": "fixture:simulated-power-profile",
+          "electrical_evidence": {
+            "source_ref": "fixture:manufacturer-rating",
+            "method_ref": null,
+            "calibration_ref": null,
+            "uncertainty_ref": null,
+            "evidence_class": "declared"
+          }
+        },
+        "interfaces": {
+          "mechanical_interface_ref": "adapter:fixture-mount",
+          "electrical_interface_ref": "adapter:fixture-electrical",
+          "data_protocol_ref": null
+        },
+        "service": {
+          "user_manual_ref": "fixture:user-manual",
+          "service_manual_ref": null,
+          "spare_parts_ref": null,
+          "repair_procedure_ref": null,
+          "warranty_ref": null,
+          "cleaning_sanitation_ref": "fixture:cleaning-protocol",
+          "food_contact_material_refs": [
+            "fixture:food-contact-polymer-datasheet"
+          ]
+        },
+        "local_safety_authority_ref": "controller:appliance-local-safety",
+        "qualification_refs": [],
+        "pressure_safety": {
+          "pressure_vessel_qualification_ref": "qualification:vessel-report",
+          "pressure_relief_test_ref": "test:relief-valve-report",
+          "independent_test_report_ref": "report:pressure-module-validation",
+          "qualification_evidence": {
+            "source_ref": "report:pressure-module-validation",
+            "method_ref": "method:pressure-vessel-test-v1",
+            "calibration_ref": null,
+            "uncertainty_ref": null,
+            "evidence_class": "independently_qualified"
+          }
+        },
+        "source_evidence": {
+          "source_ref": "fixture:module-datasheet",
+          "method_ref": null,
+          "calibration_ref": null,
+          "uncertainty_ref": null,
+          "evidence_class": "declared"
+        },
+        "claim_ceiling": "Descriptive module capability only; not controller authorization, safety certification, food-contact approval, or physical qualification."
+      }
+    },
+    {
+      "fixture_id": "reject-pressure-cook-capability-on-non-pressure-module",
+      "expected_valid": false,
+      "module": {
+        "schema_version": 1,
+        "module_id": "fixture:non-pressure-module-claims-pressure-cook",
+        "module_revision": "rev-a",
+        "module_kind": "prep_drive",
+        "manufacturer": "Synthetic Manufacturer",
+        "model": "Modular Prep Drive",
+        "sku": "FIXTURE-001",
+        "market_region": "ZA",
+        "hardware_revision": "hw-a",
+        "firmware_revision": null,
+        "capabilities": [
+          {
+            "capability_id": "capability:chop",
+            "action_group": "pressure_cook",
+            "input_form_refs": [
+              "form:whole-produce"
+            ],
+            "output_form_refs": [
+              "form:chopped-produce"
+            ],
+            "minimum_batch_mass_g": 50,
+            "maximum_batch_mass_g": 1000,
+            "nominal_throughput_g_per_min": 500,
+            "maximum_continuous_run_ms": 120000,
+            "parameter_ranges": [],
+            "claim_status": "declared",
+            "evidence": {
+              "source_ref": "fixture:manufacturer-datasheet",
+              "method_ref": null,
+              "calibration_ref": null,
+              "uncertainty_ref": null,
+              "evidence_class": "declared"
+            }
+          }
+        ],
+        "electrical": {
+          "nominal_voltage_min_mv": 220000,
+          "nominal_voltage_max_mv": 240000,
+          "mains_frequency_min_millihz": 50000,
+          "mains_frequency_max_millihz": 50000,
+          "continuous_real_power_limit_w": 1000,
+          "peak_real_power_limit_w": 1200,
+          "maximum_surge_duration_ms": 100,
+          "power_profile_ref": "fixture:simulated-power-profile",
+          "electrical_evidence": {
+            "source_ref": "fixture:manufacturer-rating",
+            "method_ref": null,
+            "calibration_ref": null,
+            "uncertainty_ref": null,
+            "evidence_class": "declared"
+          }
+        },
+        "interfaces": {
+          "mechanical_interface_ref": "adapter:fixture-mount",
+          "electrical_interface_ref": "adapter:fixture-electrical",
+          "data_protocol_ref": null
+        },
+        "service": {
+          "user_manual_ref": "fixture:user-manual",
+          "service_manual_ref": null,
+          "spare_parts_ref": null,
+          "repair_procedure_ref": null,
+          "warranty_ref": null,
+          "cleaning_sanitation_ref": "fixture:cleaning-protocol",
+          "food_contact_material_refs": [
+            "fixture:food-contact-polymer-datasheet"
+          ]
+        },
+        "local_safety_authority_ref": "controller:appliance-local-safety",
+        "qualification_refs": [],
+        "pressure_safety": null,
+        "source_evidence": {
+          "source_ref": "fixture:module-datasheet",
+          "method_ref": null,
+          "calibration_ref": null,
+          "uncertainty_ref": null,
+          "evidence_class": "declared"
+        },
+        "claim_ceiling": "Descriptive module capability only; not controller authorization, safety certification, food-contact approval, or physical qualification."
+      }
+    },
+    {
+      "fixture_id": "reject-zero-operating-limit",
+      "expected_valid": false,
+      "module": {
+        "schema_version": 1,
+        "module_id": "fixture:zero-throughput",
+        "module_revision": "rev-a",
+        "module_kind": "prep_drive",
+        "manufacturer": "Synthetic Manufacturer",
+        "model": "Modular Prep Drive",
+        "sku": "FIXTURE-001",
+        "market_region": "ZA",
+        "hardware_revision": "hw-a",
+        "firmware_revision": null,
+        "capabilities": [
+          {
+            "capability_id": "capability:chop",
+            "action_group": "chop",
+            "input_form_refs": [
+              "form:whole-produce"
+            ],
+            "output_form_refs": [
+              "form:chopped-produce"
+            ],
+            "minimum_batch_mass_g": 50,
+            "maximum_batch_mass_g": 1000,
+            "nominal_throughput_g_per_min": 0,
+            "maximum_continuous_run_ms": 120000,
+            "parameter_ranges": [],
+            "claim_status": "declared",
+            "evidence": {
+              "source_ref": "fixture:manufacturer-datasheet",
+              "method_ref": null,
+              "calibration_ref": null,
+              "uncertainty_ref": null,
+              "evidence_class": "declared"
+            }
+          }
+        ],
+        "electrical": {
+          "nominal_voltage_min_mv": 220000,
+          "nominal_voltage_max_mv": 240000,
+          "mains_frequency_min_millihz": 50000,
+          "mains_frequency_max_millihz": 50000,
+          "continuous_real_power_limit_w": 1000,
+          "peak_real_power_limit_w": 1200,
+          "maximum_surge_duration_ms": 100,
+          "power_profile_ref": "fixture:simulated-power-profile",
+          "electrical_evidence": {
+            "source_ref": "fixture:manufacturer-rating",
+            "method_ref": null,
+            "calibration_ref": null,
+            "uncertainty_ref": null,
+            "evidence_class": "declared"
+          }
+        },
+        "interfaces": {
+          "mechanical_interface_ref": "adapter:fixture-mount",
+          "electrical_interface_ref": "adapter:fixture-electrical",
+          "data_protocol_ref": null
+        },
+        "service": {
+          "user_manual_ref": "fixture:user-manual",
+          "service_manual_ref": null,
+          "spare_parts_ref": null,
+          "repair_procedure_ref": null,
+          "warranty_ref": null,
+          "cleaning_sanitation_ref": "fixture:cleaning-protocol",
+          "food_contact_material_refs": [
+            "fixture:food-contact-polymer-datasheet"
+          ]
+        },
+        "local_safety_authority_ref": "controller:appliance-local-safety",
+        "qualification_refs": [],
+        "pressure_safety": null,
+        "source_evidence": {
+          "source_ref": "fixture:module-datasheet",
+          "method_ref": null,
+          "calibration_ref": null,
+          "uncertainty_ref": null,
+          "evidence_class": "declared"
+        },
+        "claim_ceiling": "Descriptive module capability only; not controller authorization, safety certification, food-contact approval, or physical qualification."
+      }
+    },
+    {
+      "fixture_id": "reject-electrical-ratings-without-evidence",
+      "expected_valid": false,
+      "module": {
+        "schema_version": 1,
+        "module_id": "fixture:ratings-without-evidence",
+        "module_revision": "rev-a",
+        "module_kind": "prep_drive",
+        "manufacturer": "Synthetic Manufacturer",
+        "model": "Modular Prep Drive",
+        "sku": "FIXTURE-001",
+        "market_region": "ZA",
+        "hardware_revision": "hw-a",
+        "firmware_revision": null,
+        "capabilities": [
+          {
+            "capability_id": "capability:chop",
+            "action_group": "chop",
+            "input_form_refs": [
+              "form:whole-produce"
+            ],
+            "output_form_refs": [
+              "form:chopped-produce"
+            ],
+            "minimum_batch_mass_g": 50,
+            "maximum_batch_mass_g": 1000,
+            "nominal_throughput_g_per_min": 500,
+            "maximum_continuous_run_ms": 120000,
+            "parameter_ranges": [],
+            "claim_status": "declared",
+            "evidence": {
+              "source_ref": "fixture:manufacturer-datasheet",
+              "method_ref": null,
+              "calibration_ref": null,
+              "uncertainty_ref": null,
+              "evidence_class": "declared"
+            }
+          }
+        ],
+        "electrical": {
+          "nominal_voltage_min_mv": 220000,
+          "nominal_voltage_max_mv": 240000,
+          "mains_frequency_min_millihz": 50000,
+          "mains_frequency_max_millihz": 50000,
+          "continuous_real_power_limit_w": 1000,
+          "peak_real_power_limit_w": 1200,
+          "maximum_surge_duration_ms": 100,
+          "power_profile_ref": "fixture:simulated-power-profile",
+          "electrical_evidence": null
+        },
+        "interfaces": {
+          "mechanical_interface_ref": "adapter:fixture-mount",
+          "electrical_interface_ref": "adapter:fixture-electrical",
+          "data_protocol_ref": null
+        },
+        "service": {
+          "user_manual_ref": "fixture:user-manual",
+          "service_manual_ref": null,
+          "spare_parts_ref": null,
+          "repair_procedure_ref": null,
+          "warranty_ref": null,
+          "cleaning_sanitation_ref": "fixture:cleaning-protocol",
+          "food_contact_material_refs": [
+            "fixture:food-contact-polymer-datasheet"
+          ]
+        },
+        "local_safety_authority_ref": "controller:appliance-local-safety",
+        "qualification_refs": [],
+        "pressure_safety": null,
+        "source_evidence": {
+          "source_ref": "fixture:module-datasheet",
+          "method_ref": null,
+          "calibration_ref": null,
+          "uncertainty_ref": null,
+          "evidence_class": "declared"
+        },
+        "claim_ceiling": "Descriptive module capability only; not controller authorization, safety certification, food-contact approval, or physical qualification."
+      }
+    }
+  ]
+}

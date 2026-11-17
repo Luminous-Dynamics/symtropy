@@ -14,6 +14,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// Household real-power envelope validation and safe scheduling fallback.
+pub mod module_capability;
+
+/// Household real-power envelope validation and safe scheduling fallback.
 pub mod power;
 
 /// Hierarchical recipe-action ontology and capability bindings.
