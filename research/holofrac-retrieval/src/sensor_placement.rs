@@ -256,10 +256,10 @@ pub fn run_sensor_placement_benchmark(
     time_samples: usize,
     seed: u64,
 ) -> Result<Vec<SensorPlacementReport>, SensorPlacementError> {
-    if candidate_grid_size < 2 {
+    if candidate_grid_size < 2 || candidate_grid_size.checked_mul(candidate_grid_size).is_none() {
         return Err(SensorPlacementError::InvalidCandidateGrid);
     }
-    if query_grid_size < 2 {
+    if query_grid_size < 2 || query_grid_size.checked_mul(query_grid_size).is_none() {
         return Err(SensorPlacementError::InvalidQueryGrid);
     }
     if time_samples == 0 {
@@ -408,6 +408,14 @@ mod tests {
         assert_eq!(
             run_sensor_placement_benchmark(1, 1, 4, 2, 1).unwrap_err(),
             SensorPlacementError::InvalidCandidateGrid
+        );
+        assert_eq!(
+            run_sensor_placement_benchmark(usize::MAX, 1, 4, 2, 1).unwrap_err(),
+            SensorPlacementError::InvalidCandidateGrid
+        );
+        assert_eq!(
+            run_sensor_placement_benchmark(4, 1, usize::MAX, 2, 1).unwrap_err(),
+            SensorPlacementError::InvalidQueryGrid
         );
         assert_eq!(
             run_sensor_placement_benchmark(4, 0, 4, 2, 1).unwrap_err(),
