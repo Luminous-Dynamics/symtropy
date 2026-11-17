@@ -377,6 +377,58 @@ mod tests {
     }
 
     #[test]
+    fn exact_postings_matches_graph_oracle_for_all_partial_query_shapes() {
+        let graph = reference_architecture_graph().unwrap();
+        let encoder = make_encoder(4_096, 29);
+        let (index, _) = SpatialIndex::build(&graph, &encoder).unwrap();
+        let cases = [
+            (
+                PartialSpatialQuery::new(
+                    Some("water-main".into()),
+                    Some(RelationKind::Supplies),
+                    None,
+                ),
+                2,
+            ),
+            (
+                PartialSpatialQuery::new(
+                    None,
+                    Some(RelationKind::Supplies),
+                    Some("kitchen".into()),
+                ),
+                1,
+            ),
+            (
+                PartialSpatialQuery::new(
+                    Some("water-main".into()),
+                    None,
+                    Some("bathroom".into()),
+                ),
+                1,
+            ),
+        ];
+
+        for (query, expected_count) in cases {
+            let report = index.rank_partial_query(&graph, &encoder, &query, 5).unwrap();
+            assert_eq!(report.exact_indexed_results, report.verified_results);
+            assert_eq!(report.exact_indexed_results.len(), expected_count);
+        }
+    }
+
+    #[test]
+    fn exact_postings_abstains_for_entity_absent_from_role_slot_index() {
+        let graph = reference_architecture_graph().unwrap();
+        let encoder = make_encoder(2_048, 30);
+        let (index, _) = SpatialIndex::build(&graph, &encoder).unwrap();
+        let query = PartialSpatialQuery::new(Some("corridor".into()), None, None);
+
+        let report = index.rank_partial_query(&graph, &encoder, &query, 5).unwrap();
+        assert!(report.exact_indexed_results.is_empty());
+        assert!(report.verified_results.is_empty());
+        assert!(report.abstained);
+    }
+
+    #[test]
     fn no_answer_query_abstains_after_exact_verification() {
         let graph = reference_architecture_graph().unwrap();
         let encoder = make_encoder(8_192, 23);
