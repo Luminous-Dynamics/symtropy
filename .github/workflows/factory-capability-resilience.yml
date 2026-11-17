@@ -1,0 +1,40 @@
+name: Factory Capability Resilience
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/factory-capability-resilience/**"
+      - ".github/workflows/factory-capability-resilience.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/factory-capability-resilience/**"
+      - ".github/workflows/factory-capability-resilience.yml"
+
+concurrency:
+  group: factory-capability-resilience-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-route-qualification:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Format
+        run: cargo fmt --manifest-path tools/factory-capability-resilience/Cargo.toml -- --check
+      - name: Clippy
+        run: cargo clippy --manifest-path tools/factory-capability-resilience/Cargo.toml --all-targets -- -D warnings
+      - name: Tests
+        run: cargo test --manifest-path tools/factory-capability-resilience/Cargo.toml --all-targets
+      - name: Deterministic corpus replay
+        run: cargo run --quiet --manifest-path tools/factory-capability-resilience/Cargo.toml --bin factory-capability-resilience > /tmp/factory-capability-resilience.tsv
+      - name: Verify scenario row count and hard-gate cases
+        shell: bash
+        run: |
+          test "$(wc -l < /tmp/factory-capability-resilience.tsv)" -eq 15
+          awk -F '\\t' '$1 == "S00" && $5 == 3 && $6 == 3 { baseline=1 } $1 == "S08" && $3 == "partner_d" && $5 == 3 && $6 == 3 { unknown=1 } $1 == "S13" && $2 != "" && $7 == "false" { rejected=1 } END { exit !(baseline && unknown && rejected) }' /tmp/factory-capability-resilience.tsv
