@@ -547,7 +547,6 @@ mod tests {
     }
 }
 
-
 #[cfg(test)]
 mod missingness_tests {
     use super::*;
