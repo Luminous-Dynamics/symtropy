@@ -200,6 +200,92 @@ fn main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             }
+            match phri_tac_transfer_oracle::active_benchmark::prior_study::run_prior_study(
+                20261117,
+                20261217,
+                50,
+            ) {
+                Ok(study) => {
+                    println!("field_prior_study=disjoint_development_final_v0_1");
+                    println!("prior_development_seed_first={}", study.development_seed_first);
+                    println!("prior_final_seed_first={}", study.final_seed_first);
+                    println!(
+                        "prior_replicates_per_morphology={}",
+                        study.replicate_count_per_morphology
+                    );
+                    println!("prior_selected_l1_penalty={:.6}", study.selected_l1_penalty);
+                    for candidate in &study.development_l1_candidates {
+                        println!(
+                            "prior_development_candidate_l1={:.6} development_mean_rmse={:.8} development_mean_delta_vs_independent={:.8}",
+                            candidate.penalty,
+                            candidate.development_mean_field_rmse,
+                            candidate.development_mean_delta_vs_independent,
+                        );
+                    }
+                    for morphology in &study.development {
+                        println!(
+                            "prior_development_morphology={} seed_first={} replicates={}",
+                            morphology.morphology,
+                            morphology.seed_first,
+                            morphology.replicate_count,
+                        );
+                        for estimator in &morphology.estimators {
+                            println!(
+                                "prior_development_estimator={} morphology={} rmse_mean={:.8} rmse_p95={:.8} rmse_max={:.8} paired_delta_mean={:.8} paired_delta_p95={:.8} support_mean={:.4} support_min={:.4} native_rank_mean={:.2} full_rank_replicates={} kkt_residual_mean={:.3e} kkt_residual_max={:.3e} converged={}/{}",
+                                estimator.estimator_id,
+                                morphology.morphology,
+                                estimator.mean_field_rmse,
+                                estimator.p95_field_rmse,
+                                estimator.maximum_field_rmse,
+                                estimator.paired_rmse_delta_mean_vs_independent,
+                                estimator.paired_rmse_delta_p95_vs_independent,
+                                estimator.mean_support_ratio,
+                                estimator.minimum_support_ratio,
+                                estimator.mean_native_data_rank,
+                                estimator.full_rank_replicates,
+                                estimator.mean_projected_gradient_residual,
+                                estimator.maximum_projected_gradient_residual,
+                                estimator.converged_replicates,
+                                estimator.replicate_count,
+                            );
+                        }
+                    }
+                    for morphology in &study.final_test {
+                        println!(
+                            "prior_final_morphology={} seed_first={} replicates={} frozen_l1={:.6}",
+                            morphology.morphology,
+                            morphology.seed_first,
+                            morphology.replicate_count,
+                            study.selected_l1_penalty,
+                        );
+                        for estimator in &morphology.estimators {
+                            println!(
+                                "prior_final_estimator={} morphology={} rmse_mean={:.8} rmse_p95={:.8} rmse_max={:.8} paired_delta_mean={:.8} paired_delta_p95={:.8} support_mean={:.4} support_min={:.4} native_rank_mean={:.2} full_rank_replicates={} kkt_residual_mean={:.3e} kkt_residual_max={:.3e} converged={}/{}",
+                                estimator.estimator_id,
+                                morphology.morphology,
+                                estimator.mean_field_rmse,
+                                estimator.p95_field_rmse,
+                                estimator.maximum_field_rmse,
+                                estimator.paired_rmse_delta_mean_vs_independent,
+                                estimator.paired_rmse_delta_p95_vs_independent,
+                                estimator.mean_support_ratio,
+                                estimator.minimum_support_ratio,
+                                estimator.mean_native_data_rank,
+                                estimator.full_rank_replicates,
+                                estimator.mean_projected_gradient_residual,
+                                estimator.maximum_projected_gradient_residual,
+                                estimator.converged_replicates,
+                                estimator.replicate_count,
+                            );
+                        }
+                    }
+                    println!("prior_study_claim_class={}", study.claim_class);
+                }
+                Err(error) => {
+                    eprintln!("field_prior_study=invalid: {error}");
+                    return ExitCode::FAILURE;
+                }
+            }
             ExitCode::SUCCESS
         }
         Err(error) => {
