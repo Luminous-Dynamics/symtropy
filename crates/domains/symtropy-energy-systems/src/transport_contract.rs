@@ -636,10 +636,9 @@ fn valid_carrier_mechanism_medium(
         (EnergyCarrier::Electrical, TransportMechanism::Conduction) => {
             matches!(medium, TransportMedium::Conductor | TransportMedium::Soil)
         }
-        (
-            EnergyCarrier::Electrical,
-            TransportMechanism::PlasmaChannelConduction,
-        ) => medium == TransportMedium::IonizedGas,
+        (EnergyCarrier::Electrical, TransportMechanism::PlasmaChannelConduction) => {
+            medium == TransportMedium::IonizedGas
+        }
         (EnergyCarrier::Electrical, TransportMechanism::SuperconductingConduction) => {
             medium == TransportMedium::SuperconductingCable
         }
