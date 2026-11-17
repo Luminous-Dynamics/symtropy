@@ -356,6 +356,16 @@ A complementary 3 July 2026 study benchmarked 47 conceptual rainfall–runoff mo
 
 - *Benchmarking and Selecting Optimal Hydrological Models for Large-Sample Applications Considering Complexity and Uncertainty* (2026), Water Resources Research. https://doi.org/10.1029/2026WR044753
 
+
+
+### What the 2026 SOTA papers actually imply for our tournament
+
+The HESS 2026 study's experimental design is more informative than the headline 1,000-member recommendation: it generated 100,000 HBV parameter sets, compared lower-reference ensemble sizes from 1 to 10,000, repeated sampling 30 times in the sample-size analysis, and found stabilization around 1,000. Its upper reference used ten repeated calibrations, each with an initial 50 parameter sets and 3,500 model runs. These are study-specific reference budgets, not universal requirements. It also found ensemble-mean hydrographs usually gave a stronger lower-reference score than the median score of individual members, so our report must preserve both statistics rather than silently choosing one.
+
+The 2026 MARRMoT study is a useful structural-complexity comparator: 47 conceptual models across 159 Peninsular Indian watersheds; five core models (HBV, GR4J, MODHYDROLOG, SMA and Hillslope) covered reliable streamflow reproduction in more than 85% of watersheds in that study, while five additional models improved flood-prediction coverage. It found intermediate complexity often performed best and key storage/routing processes mattered. These findings are a shortlist hypothesis, not a transferable winner list for Highveld catchments.
+
+**Our competitive test:** first reproduce the benchmark methodology on an admitted South African catchment; then compare the compact conceptual core against (a) a stronger process model, (b) a calibrated regional model, and (c) an ML/sequence model only where the data volume and leakage-safe splits justify it. Add models only when they contribute distinct process coverage or decision value. Symtropy should win by matched evidence, robust transfer and operational usefulness—not by claiming the most model architectures.
+
 ### Proposed next benchmark acceptance gates (targets, not achieved results)
 
 1. **B1 lower reference:** 1,000 random parameter samples per model/catchment as the initial reference target, with 100/250/500/1,000/2,000 convergence curves and a predeclared stability criterion; report parameter-range sensitivity and any prior truncation.
@@ -366,7 +376,7 @@ A complementary 3 July 2026 study benchmarked 47 conceptual rainfall–runoff mo
 6. **Operational relevance:** score threshold exceedance/forecast lead time for flood/low-flow decisions separately from continuous-flow metrics. A high NSE cannot compensate for missed critical events.
 7. **Complexity/uncertainty:** report parameter and structural spread, runtime/energy, memory, data burden and calibration effort alongside each metric; publish Pareto sets, not one weighted score.
 
-The existing 27-case corpus is only a metric/split software contract. It does not yet execute 1,000 model simulations or establish lower/upper catchment benchmarks. That is the next model-run tournament after source data and the B1 prior definitions are qualified.
+The existing 32-case corpus is only a metric/split software contract. It does not yet execute 1,000 model simulations or establish lower/upper catchment benchmarks. That is the next model-run tournament after source data and the B1 prior definitions are qualified.
 
 
 ## 15. Proper probabilistic scoring — implementation cases 028–032
