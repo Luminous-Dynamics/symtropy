@@ -117,6 +117,9 @@
         "reported_status_vector": [
           "no_water",
           "no_report",
+          "no_report",
+          "no_report",
+          "no_report",
           "no_water",
           "fair"
         ],
@@ -140,6 +143,10 @@
         "disposition": "C41_GAP_OVER_CAP_NOT_BRIDGED",
         "reported_status_vector": [
           "no_water",
+          "no_report",
+          "no_report",
+          "no_report",
+          "no_report",
           "no_report",
           "no_water"
         ],
