@@ -1,5 +1,7 @@
 use symtropy_freeflow_structure_lab::tetrahedral::{TetrahedralAssembly, TetrahedralConfig};
-use symtropy_truss_fem_lab::damage::single_member_removal_campaign;
+use symtropy_truss_fem_lab::damage::{
+    bounded_pair_member_removal_campaign, single_member_removal_campaign,
+};
 use symtropy_truss_fem_lab::{BoundaryConditions, TrussMaterial, TrussModel};
 
 fn main() {
@@ -58,5 +60,14 @@ fn main() {
         "single_member_solvability_fraction={:.6}",
         damage.single_removal_solvability_fraction()
     );
+
+    let pair_damage = bounded_pair_member_removal_campaign(&model, material, &boundary, 32)
+        .expect("intact model must solve before pair-removal campaign");
+    println!("two_member_pairs_total={}", pair_damage.total_possible_pairs);
+    println!("two_member_pairs_tested={}", pair_damage.applied_budget);
+    println!("two_member_pairs_omitted={}", pair_damage.omitted_scenarios());
+    println!("two_member_stable={}", pair_damage.stable_removals);
+    println!("two_member_mechanisms={}", pair_damage.mechanism_removals);
+    println!("two_member_other_failures={}", pair_damage.other_failures);
     println!("claim_ceiling=ideal pin-jointed linear-elastic truss reference only");
 }
