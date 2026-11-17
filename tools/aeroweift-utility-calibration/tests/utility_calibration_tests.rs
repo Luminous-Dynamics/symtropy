@@ -561,3 +561,51 @@ fn duplicate_decision_case_or_unknown_selected_candidate_fails_closed() {
         Err(DecisionRegretError::DuplicateCase)
     );
 }
+
+
+#[test]
+fn decision_regret_is_permutation_invariant_with_stable_tie_breaking() {
+    let first = DecisionCase {
+        case_id: "case-b".into(),
+        resource_budget: decision_budget(),
+        selected_candidate_id: Some("candidate-z".into()),
+        alternatives: vec![
+            DecisionAlternativeOutcome {
+                candidate_id: "candidate-z".into(),
+                feasible: true,
+                decision_utility: 0.5,
+                resource_use: decision_use(),
+            },
+            DecisionAlternativeOutcome {
+                candidate_id: "candidate-a".into(),
+                feasible: true,
+                decision_utility: 0.8,
+                resource_use: decision_use(),
+            },
+            DecisionAlternativeOutcome {
+                candidate_id: "candidate-b".into(),
+                feasible: true,
+                decision_utility: 0.8,
+                resource_use: decision_use(),
+            },
+        ],
+    };
+    let second = DecisionCase {
+        case_id: "case-a".into(),
+        resource_budget: decision_budget(),
+        selected_candidate_id: None,
+        alternatives: vec![DecisionAlternativeOutcome {
+            candidate_id: "candidate-c".into(),
+            feasible: true,
+            decision_utility: 0.4,
+            resource_use: decision_use(),
+        }],
+    };
+    let forward = evaluate_decision_regret(&[first.clone(), second.clone()]).unwrap();
+    let reverse = evaluate_decision_regret(&[second, first]).unwrap();
+    assert_eq!(forward, reverse);
+    assert_eq!(
+        forward.cases[1].oracle_candidate_id.as_deref(),
+        Some("candidate-a")
+    );
+}
