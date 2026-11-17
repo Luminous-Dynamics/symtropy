@@ -831,14 +831,20 @@ fn axis_centers(
     let mut centers = Vec::with_capacity(count);
     for index in 0..count {
         let value = (start + index as f64 * spacing).min(end);
-        if centers.last().is_none_or(|previous: &f64| (value - previous).abs() > 1.0e-9) {
+        if centers
+            .last()
+            .is_none_or(|previous: &f64| (value - previous).abs() > 1.0e-9)
+        {
             centers.push(value);
         }
         if value >= end {
             break;
         }
     }
-    if centers.last().is_none_or(|last| (end - last).abs() > 1.0e-9) {
+    if centers
+        .last()
+        .is_none_or(|last| (end - last).abs() > 1.0e-9)
+    {
         centers.push(end);
     }
     Ok(centers)
@@ -881,13 +887,32 @@ pub fn generate_raster_plan(
         || spec.view_angle_rad < -std::f64::consts::PI
         || spec.view_angle_rad > std::f64::consts::PI
     {
-        return Err("raster planning profile contains invalid footprint, overlap, height or view angle".to_owned());
+        return Err(
+            "raster planning profile contains invalid footprint, overlap, height or view angle"
+                .to_owned(),
+        );
     }
 
-    let min_u = profile.modules.iter().map(|module| module.u_min_m).fold(f64::INFINITY, f64::min);
-    let max_u = profile.modules.iter().map(|module| module.u_max_m).fold(f64::NEG_INFINITY, f64::max);
-    let min_v = profile.modules.iter().map(|module| module.v_min_m).fold(f64::INFINITY, f64::min);
-    let max_v = profile.modules.iter().map(|module| module.v_max_m).fold(f64::NEG_INFINITY, f64::max);
+    let min_u = profile
+        .modules
+        .iter()
+        .map(|module| module.u_min_m)
+        .fold(f64::INFINITY, f64::min);
+    let max_u = profile
+        .modules
+        .iter()
+        .map(|module| module.u_max_m)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let min_v = profile
+        .modules
+        .iter()
+        .map(|module| module.v_min_m)
+        .fold(f64::INFINITY, f64::min);
+    let max_v = profile
+        .modules
+        .iter()
+        .map(|module| module.v_max_m)
+        .fold(f64::NEG_INFINITY, f64::max);
 
     let u_centers = axis_centers(
         min_u,
@@ -969,9 +994,7 @@ pub fn generate_raster_plan(
         forward_spacing_m: spec.footprint_half_width_m
             * 2.0
             * (1.0 - spec.forward_overlap_fraction),
-        side_spacing_m: spec.footprint_half_height_m
-            * 2.0
-            * (1.0 - spec.side_overlap_fraction),
+        side_spacing_m: spec.footprint_half_height_m * 2.0 * (1.0 - spec.side_overlap_fraction),
         requested_forward_overlap_fraction: spec.forward_overlap_fraction,
         requested_side_overlap_fraction: spec.side_overlap_fraction,
     })
