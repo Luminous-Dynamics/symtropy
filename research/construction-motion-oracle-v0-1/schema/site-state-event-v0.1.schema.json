@@ -63,6 +63,7 @@
         {
           "$ref": "#/$defs/robot_observation_recorded"
         },
+        "{$ref:\"#/$defs/execution_interrupted\"}",
         {
           "$ref": "#/$defs/referee_assessment_recorded"
         },
@@ -545,6 +546,41 @@
               "$ref": "#/$defs/sha256"
             }
           }
+        }
+      }
+    },
+    "execution_interrupted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "package_sha256",
+        "entity_id",
+        "attempt_id",
+        "reason",
+        "interruption_receipt_sha256"
+      ],
+      "properties": {
+        "kind": {
+          "const": "execution_interrupted"
+        },
+        "package_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "entity_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "attempt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "interruption_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
         }
       }
     }
