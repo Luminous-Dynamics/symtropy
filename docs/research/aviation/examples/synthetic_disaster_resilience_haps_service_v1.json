@@ -36,7 +36,7 @@
       "minimum": 190,
       "maximum": 300
     },
-    "wind_profile_ref": "synthetic.weather.wind-layers.001",
+    "wind_profile_ref": "examples/synthetic_haps_wind_column_case_v1.json",
     "solar_weather_profile_ref": "synthetic.weather.solar-cloud-season.001",
     "seasonal_holdout_refs": [
       "synthetic.seasonal-holdout.low-sun.001",
