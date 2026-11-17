@@ -5371,9 +5371,9 @@
     {
       "layout_id": "SURV-T1-009-stale-channel-excluded",
       "status": "evaluated",
-      "component_count": 35,
-      "channel_component_count": 5,
-      "dependency_domain_component_count": 30,
+      "component_count": 28,
+      "channel_component_count": 4,
+      "dependency_domain_component_count": 24,
       "components": [
         {
           "component_id": "channel:LIVE1",
@@ -5400,12 +5400,6 @@
           "domain_id": "N4"
         },
         {
-          "component_id": "channel:STALE1",
-          "component_kind": "channel",
-          "domain_type": null,
-          "domain_id": "STALE1"
-        },
-        {
           "component_id": "domain:calibration_lineage:DOM-calibration_lineage-LIVE1",
           "component_kind": "dependency_domain",
           "domain_type": "calibration_lineage",
@@ -5428,12 +5422,6 @@
           "component_kind": "dependency_domain",
           "domain_type": "calibration_lineage",
           "domain_id": "DOM-calibration_lineage-N4"
-        },
-        {
-          "component_id": "domain:calibration_lineage:DOM-calibration_lineage-STALE1",
-          "component_kind": "dependency_domain",
-          "domain_type": "calibration_lineage",
-          "domain_id": "DOM-calibration_lineage-STALE1"
         },
         {
           "component_id": "domain:clock_domain:DOM-clock_domain-LIVE1",
@@ -5460,12 +5448,6 @@
           "domain_id": "DOM-clock_domain-N4"
         },
         {
-          "component_id": "domain:clock_domain:DOM-clock_domain-STALE1",
-          "component_kind": "dependency_domain",
-          "domain_type": "clock_domain",
-          "domain_id": "DOM-clock_domain-STALE1"
-        },
-        {
           "component_id": "domain:communications_path:DOM-communications_path-LIVE1",
           "component_kind": "dependency_domain",
           "domain_type": "communications_path",
@@ -5488,12 +5470,6 @@
           "component_kind": "dependency_domain",
           "domain_type": "communications_path",
           "domain_id": "DOM-communications_path-N4"
-        },
-        {
-          "component_id": "domain:communications_path:DOM-communications_path-STALE1",
-          "component_kind": "dependency_domain",
-          "domain_type": "communications_path",
-          "domain_id": "DOM-communications_path-STALE1"
         },
         {
           "component_id": "domain:measurement_principle:DOM-measurement_principle-LIVE1",
@@ -5520,12 +5496,6 @@
           "domain_id": "DOM-measurement_principle-N4"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-STALE1",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-STALE1"
-        },
-        {
           "component_id": "domain:physical_interface:DOM-physical_interface-LIVE1",
           "component_kind": "dependency_domain",
           "domain_type": "physical_interface",
@@ -5550,12 +5520,6 @@
           "domain_id": "DOM-physical_interface-N4"
         },
         {
-          "component_id": "domain:physical_interface:DOM-physical_interface-STALE1",
-          "component_kind": "dependency_domain",
-          "domain_type": "physical_interface",
-          "domain_id": "DOM-physical_interface-STALE1"
-        },
-        {
           "component_id": "domain:power_supply:DOM-power_supply-LIVE1",
           "component_kind": "dependency_domain",
           "domain_type": "power_supply",
@@ -5578,12 +5542,6 @@
           "component_kind": "dependency_domain",
           "domain_type": "power_supply",
           "domain_id": "DOM-power_supply-N4"
-        },
-        {
-          "component_id": "domain:power_supply:DOM-power_supply-STALE1",
-          "component_kind": "dependency_domain",
-          "domain_type": "power_supply",
-          "domain_id": "DOM-power_supply-STALE1"
         }
       ],
       "shared_domain_count": 0,
@@ -5621,14 +5579,6 @@
           "fanout": 1
         },
         {
-          "domain_type": "physical_interface",
-          "domain_id": "DOM-physical_interface-STALE1",
-          "dependent_sensor_ids": [
-            "STALE1"
-          ],
-          "fanout": 1
-        },
-        {
           "domain_type": "calibration_lineage",
           "domain_id": "DOM-calibration_lineage-LIVE1",
           "dependent_sensor_ids": [
@@ -5657,14 +5607,6 @@
           "domain_id": "DOM-calibration_lineage-N4",
           "dependent_sensor_ids": [
             "N4"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "calibration_lineage",
-          "domain_id": "DOM-calibration_lineage-STALE1",
-          "dependent_sensor_ids": [
-            "STALE1"
           ],
           "fanout": 1
         },
@@ -5701,14 +5643,6 @@
           "fanout": 1
         },
         {
-          "domain_type": "power_supply",
-          "domain_id": "DOM-power_supply-STALE1",
-          "dependent_sensor_ids": [
-            "STALE1"
-          ],
-          "fanout": 1
-        },
-        {
           "domain_type": "communications_path",
           "domain_id": "DOM-communications_path-LIVE1",
           "dependent_sensor_ids": [
@@ -5737,14 +5671,6 @@
           "domain_id": "DOM-communications_path-N4",
           "dependent_sensor_ids": [
             "N4"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "communications_path",
-          "domain_id": "DOM-communications_path-STALE1",
-          "dependent_sensor_ids": [
-            "STALE1"
           ],
           "fanout": 1
         },
@@ -5781,14 +5707,6 @@
           "fanout": 1
         },
         {
-          "domain_type": "clock_domain",
-          "domain_id": "DOM-clock_domain-STALE1",
-          "dependent_sensor_ids": [
-            "STALE1"
-          ],
-          "fanout": 1
-        },
-        {
           "domain_type": "measurement_principle",
           "domain_id": "DOM-measurement_principle-LIVE1",
           "dependent_sensor_ids": [
@@ -5817,14 +5735,6 @@
           "domain_id": "DOM-measurement_principle-N4",
           "dependent_sensor_ids": [
             "N4"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-STALE1",
-          "dependent_sensor_ids": [
-            "STALE1"
           ],
           "fanout": 1
         }
@@ -5870,77 +5780,77 @@
         },
         {
           "failure_order": 1,
-          "combination_count": 35,
+          "combination_count": 28,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 28,
+              "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 3,
+              "survival_fraction_denominator": 4
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 28,
+              "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 3,
+              "survival_fraction_denominator": 4
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 28,
+              "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 3,
+              "survival_fraction_denominator": 4
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 28,
+              "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 3,
+              "survival_fraction_denominator": 4
             }
           ]
         },
         {
           "failure_order": 2,
-          "combination_count": 595,
+          "combination_count": 378,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 378,
+              "observable_combinations": 210,
+              "unobservable_combinations": 168,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 9
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 378,
+              "observable_combinations": 210,
+              "unobservable_combinations": 168,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 9
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 378,
+              "observable_combinations": 210,
+              "unobservable_combinations": 168,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 9
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 378,
+              "observable_combinations": 210,
+              "unobservable_combinations": 168,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 9
             }
           ]
         }
@@ -5963,20 +5873,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 28,
+              "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 3,
+              "survival_fraction_denominator": 4
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 378,
+              "observable_combinations": 210,
+              "unobservable_combinations": 168,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 9
             }
           ]
         },
@@ -5997,20 +5907,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 28,
+              "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 3,
+              "survival_fraction_denominator": 4
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 378,
+              "observable_combinations": 210,
+              "unobservable_combinations": 168,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 9
             }
           ]
         },
@@ -6031,20 +5941,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 28,
+              "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 3,
+              "survival_fraction_denominator": 4
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 378,
+              "observable_combinations": 210,
+              "unobservable_combinations": 168,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 9
             }
           ]
         },
@@ -6065,20 +5975,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 28,
+              "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 3,
+              "survival_fraction_denominator": 4
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 378,
+              "observable_combinations": 210,
+              "unobservable_combinations": 168,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 9
             }
           ]
         }
@@ -6090,16 +6000,10 @@
     {
       "layout_id": "SURV-T1-010-invalid-binding-excluded",
       "status": "evaluated",
-      "component_count": 35,
-      "channel_component_count": 5,
-      "dependency_domain_component_count": 30,
+      "component_count": 28,
+      "channel_component_count": 4,
+      "dependency_domain_component_count": 24,
       "components": [
-        {
-          "component_id": "channel:BAD1",
-          "component_kind": "channel",
-          "domain_type": null,
-          "domain_id": "BAD1"
-        },
         {
           "component_id": "channel:GOOD1",
           "component_kind": "channel",
@@ -6123,12 +6027,6 @@
           "component_kind": "channel",
           "domain_type": null,
           "domain_id": "N4"
-        },
-        {
-          "component_id": "domain:calibration_lineage:DOM-calibration_lineage-BAD1",
-          "component_kind": "dependency_domain",
-          "domain_type": "calibration_lineage",
-          "domain_id": "DOM-calibration_lineage-BAD1"
         },
         {
           "component_id": "domain:calibration_lineage:DOM-calibration_lineage-GOOD1",
@@ -6155,12 +6053,6 @@
           "domain_id": "DOM-calibration_lineage-N4"
         },
         {
-          "component_id": "domain:clock_domain:DOM-clock_domain-BAD1",
-          "component_kind": "dependency_domain",
-          "domain_type": "clock_domain",
-          "domain_id": "DOM-clock_domain-BAD1"
-        },
-        {
           "component_id": "domain:clock_domain:DOM-clock_domain-GOOD1",
           "component_kind": "dependency_domain",
           "domain_type": "clock_domain",
@@ -6183,12 +6075,6 @@
           "component_kind": "dependency_domain",
           "domain_type": "clock_domain",
           "domain_id": "DOM-clock_domain-N4"
-        },
-        {
-          "component_id": "domain:communications_path:DOM-communications_path-BAD1",
-          "component_kind": "dependency_domain",
-          "domain_type": "communications_path",
-          "domain_id": "DOM-communications_path-BAD1"
         },
         {
           "component_id": "domain:communications_path:DOM-communications_path-GOOD1",
@@ -6215,12 +6101,6 @@
           "domain_id": "DOM-communications_path-N4"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-BAD1",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-BAD1"
-        },
-        {
           "component_id": "domain:measurement_principle:DOM-measurement_principle-GOOD1",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
@@ -6245,12 +6125,6 @@
           "domain_id": "DOM-measurement_principle-N4"
         },
         {
-          "component_id": "domain:physical_interface:DOM-physical_interface-BAD1",
-          "component_kind": "dependency_domain",
-          "domain_type": "physical_interface",
-          "domain_id": "DOM-physical_interface-BAD1"
-        },
-        {
           "component_id": "domain:physical_interface:DOM-physical_interface-GOOD1",
           "component_kind": "dependency_domain",
           "domain_type": "physical_interface",
@@ -6273,12 +6147,6 @@
           "component_kind": "dependency_domain",
           "domain_type": "physical_interface",
           "domain_id": "DOM-physical_interface-N4"
-        },
-        {
-          "component_id": "domain:power_supply:DOM-power_supply-BAD1",
-          "component_kind": "dependency_domain",
-          "domain_type": "power_supply",
-          "domain_id": "DOM-power_supply-BAD1"
         },
         {
           "component_id": "domain:power_supply:DOM-power_supply-GOOD1",
@@ -6309,14 +6177,6 @@
       "domain_fanout": [
         {
           "domain_type": "physical_interface",
-          "domain_id": "DOM-physical_interface-BAD1",
-          "dependent_sensor_ids": [
-            "BAD1"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "physical_interface",
           "domain_id": "DOM-physical_interface-GOOD1",
           "dependent_sensor_ids": [
             "GOOD1"
@@ -6344,14 +6204,6 @@
           "domain_id": "DOM-physical_interface-N4",
           "dependent_sensor_ids": [
             "N4"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "calibration_lineage",
-          "domain_id": "DOM-calibration_lineage-BAD1",
-          "dependent_sensor_ids": [
-            "BAD1"
           ],
           "fanout": 1
         },
@@ -6389,14 +6241,6 @@
         },
         {
           "domain_type": "power_supply",
-          "domain_id": "DOM-power_supply-BAD1",
-          "dependent_sensor_ids": [
-            "BAD1"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "power_supply",
           "domain_id": "DOM-power_supply-GOOD1",
           "dependent_sensor_ids": [
             "GOOD1"
@@ -6424,14 +6268,6 @@
           "domain_id": "DOM-power_supply-N4",
           "dependent_sensor_ids": [
             "N4"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "communications_path",
-          "domain_id": "DOM-communications_path-BAD1",
-          "dependent_sensor_ids": [
-            "BAD1"
           ],
           "fanout": 1
         },
@@ -6469,14 +6305,6 @@
         },
         {
           "domain_type": "clock_domain",
-          "domain_id": "DOM-clock_domain-BAD1",
-          "dependent_sensor_ids": [
-            "BAD1"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "clock_domain",
           "domain_id": "DOM-clock_domain-GOOD1",
           "dependent_sensor_ids": [
             "GOOD1"
@@ -6504,14 +6332,6 @@
           "domain_id": "DOM-clock_domain-N4",
           "dependent_sensor_ids": [
             "N4"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-BAD1",
-          "dependent_sensor_ids": [
-            "BAD1"
           ],
           "fanout": 1
         },
@@ -6589,77 +6409,77 @@
         },
         {
           "failure_order": 1,
-          "combination_count": 35,
+          "combination_count": 28,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 28,
+              "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 3,
+              "survival_fraction_denominator": 4
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 28,
+              "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 3,
+              "survival_fraction_denominator": 4
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 28,
+              "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 3,
+              "survival_fraction_denominator": 4
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 28,
+              "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 3,
+              "survival_fraction_denominator": 4
             }
           ]
         },
         {
           "failure_order": 2,
-          "combination_count": 595,
+          "combination_count": 378,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 378,
+              "observable_combinations": 210,
+              "unobservable_combinations": 168,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 9
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 378,
+              "observable_combinations": 210,
+              "unobservable_combinations": 168,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 9
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 378,
+              "observable_combinations": 210,
+              "unobservable_combinations": 168,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 9
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 378,
+              "observable_combinations": 210,
+              "unobservable_combinations": 168,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 9
             }
           ]
         }
@@ -6682,20 +6502,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 28,
+              "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 3,
+              "survival_fraction_denominator": 4
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 378,
+              "observable_combinations": 210,
+              "unobservable_combinations": 168,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 9
             }
           ]
         },
@@ -6716,20 +6536,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 28,
+              "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 3,
+              "survival_fraction_denominator": 4
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 378,
+              "observable_combinations": 210,
+              "unobservable_combinations": 168,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 9
             }
           ]
         },
@@ -6750,20 +6570,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 28,
+              "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 3,
+              "survival_fraction_denominator": 4
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 378,
+              "observable_combinations": 210,
+              "unobservable_combinations": 168,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 9
             }
           ]
         },
@@ -6784,20 +6604,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 28,
+              "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 3,
+              "survival_fraction_denominator": 4
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 378,
+              "observable_combinations": 210,
+              "unobservable_combinations": 168,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 9
             }
           ]
         }
