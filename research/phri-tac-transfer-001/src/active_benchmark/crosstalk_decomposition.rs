@@ -709,6 +709,26 @@ mod tests {
         }
     }
 
+    fn independence_attestation(
+        mechanical: &StageObservationSet,
+        electrical: &StageObservationSet,
+        end_to_end: &EndToEndObservationSet,
+        disposition: IndependenceDisposition,
+    ) -> StageReferenceIndependenceAttestation {
+        StageReferenceIndependenceAttestation {
+            attestation_id: "attestation:independence-01".to_owned(),
+            mechanical_observation_digest: mechanical.observation_digest.clone(),
+            electrical_observation_digest: electrical.observation_digest.clone(),
+            end_to_end_observation_digest: end_to_end.observation_digest.clone(),
+            mechanical_reference_ancestry_receipt_id: mechanical.reference_ancestry_receipt_id.clone(),
+            electrical_reference_ancestry_receipt_id: electrical.reference_ancestry_receipt_id.clone(),
+            end_to_end_reference_ancestry_receipt_id: end_to_end.reference_ancestry_receipt_id.clone(),
+            common_cause_analysis_receipt_id: "receipt:complete-reference-common-cause-review".to_owned(),
+            verifier_receipt_id: "receipt:external-reference-independence-verifier".to_owned(),
+            disposition,
+        }
+    }
+
     #[test]
     fn independent_stage_interventions_qualify_a_synthetic_factorization() {
         let mechanical = diagonal_mechanical();
@@ -736,6 +756,12 @@ mod tests {
             Some(&mechanical_observations),
             Some(&electrical_observations),
             &end_to_end,
+            Some(&independence_attestation(
+                &mechanical_observations,
+                &electrical_observations,
+                &end_to_end,
+                IndependenceDisposition::IndependentlyCharacterized,
+            )),
             1.0e-10,
             1.0e-10,
         );
@@ -764,6 +790,7 @@ mod tests {
             None,
             None,
             &observations,
+            None,
             1.0e-10,
             1.0e-10,
         );
@@ -794,6 +821,12 @@ mod tests {
             Some(&mechanical_observations),
             Some(&electrical_observations),
             &end,
+            Some(&independence_attestation(
+                &mechanical_observations,
+                &electrical_observations,
+                &end,
+                IndependenceDisposition::IndependentlyCharacterized,
+            )),
             1.0e-10,
             1.0e-10,
         );
@@ -819,6 +852,45 @@ mod tests {
             Some(&mechanical_observations),
             Some(&electrical_observations),
             &end,
+            Some(&independence_attestation(
+                &mechanical_observations,
+                &electrical_observations,
+                &end,
+                IndependenceDisposition::SharedCommonCause,
+            )),
+            1.0e-10,
+            1.0e-10,
+        );
+        assert_eq!(
+            result.disposition,
+            DecompositionDisposition::CompositionOnlyStagesUnresolved
+        );
+    }
+
+    #[test]
+    fn distinct_ancestry_identifiers_without_external_attestation_do_not_prove_independence() {
+        let mechanical = diagonal_mechanical();
+        let electrical = diagonal_electrical();
+        let mechanical_observations = observations(
+            &mechanical,
+            inputs(),
+            "ancestry:mechanical-unique-id",
+            "mechanical",
+        );
+        let electrical_observations = observations(
+            &electrical,
+            inputs(),
+            "ancestry:electrical-unique-id",
+            "electrical",
+        );
+        let end = end_to_end(&mechanical, &electrical, inputs());
+        let result = assess_stage_decomposition(
+            &mechanical,
+            &electrical,
+            Some(&mechanical_observations),
+            Some(&electrical_observations),
+            &end,
+            None,
             1.0e-10,
             1.0e-10,
         );
@@ -851,6 +923,12 @@ mod tests {
             Some(&mechanical_observations),
             Some(&electrical_observations),
             &end,
+            Some(&independence_attestation(
+                &mechanical_observations,
+                &electrical_observations,
+                &end,
+                IndependenceDisposition::IndependentlyCharacterized,
+            )),
             1.0e-10,
             1.0e-8,
         );
