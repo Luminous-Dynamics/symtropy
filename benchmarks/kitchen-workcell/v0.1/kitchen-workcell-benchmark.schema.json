@@ -453,7 +453,9 @@
               "power_constrained",
               "recipe2plan_external",
               "recipe_grounding_external",
-              "exact_solver_lower_bound"
+              "exact_solver_lower_bound",
+              "action_ontology_external",
+              "kitchen_r_external"
             ]
           },
           "status": {
