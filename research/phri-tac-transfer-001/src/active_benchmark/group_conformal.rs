@@ -128,17 +128,21 @@ pub struct CoverageAuditReport {
     pub calibration_group_count: usize,
     pub validation_group_count: usize,
     pub final_test_group_count: usize,
+    pub eligible_final_test_group_count: usize,
     pub conformal_quantile: Option<f64>,
     pub simultaneous_group_coverage: Option<f64>,
+    pub simultaneous_group_coverage_lower_95: Option<f64>,
+    pub simultaneous_group_coverage_upper_95: Option<f64>,
     pub covered_group_count: usize,
     pub missed_group_count: usize,
     pub abstained_out_of_envelope_group_count: usize,
     pub abstained_reference_unresolved_group_count: usize,
-    pub mean_interval_width: Option<f64>,
+    pub mean_interval_half_width: Option<f64>,
     pub worst_test_group_nonconformity: Option<f64>,
     pub groups: Vec<TestGroupCoverage>,
     pub selective_risk_coverage: Vec<SelectiveRiskCoveragePoint>,
     pub leakage_findings: Vec<String>,
+    pub target_shift_findings: Vec<String>,
     pub reasons: Vec<String>,
     pub claim_class: &'static str,
 }
@@ -280,6 +284,21 @@ fn group_exceeds_physical_tolerance(group: &CoverageGroup, tolerance: f64) -> bo
     })
 }
 
+fn wilson_interval(successes: usize, trials: usize) -> Option<(f64, f64)> {
+    if trials == 0 {
+        return None;
+    }
+    let z = 1.959_963_984_540_054_f64;
+    let n = trials as f64;
+    let observed = successes as f64 / n;
+    let denominator = 1.0 + z * z / n;
+    let center = (observed + z * z / (2.0 * n)) / denominator;
+    let half = z
+        * ((observed * (1.0 - observed) / n + z * z / (4.0 * n * n)).sqrt())
+        / denominator;
+    Some(((center - half).max(0.0), (center + half).min(1.0)))
+}
+
 fn identity_value<'a>(
     group: &'a CoverageGroup,
     dimension: CoverageIdentityDimension,
@@ -298,6 +317,7 @@ pub fn audit_group_conformal_coverage(
 ) -> CoverageAuditReport {
     let mut reasons = Vec::new();
     let mut leakage_findings = Vec::new();
+    let mut target_shift_findings = Vec::new();
     if let Err(error) = validate_config(config) {
         reasons.push(error);
     }
@@ -314,7 +334,7 @@ pub fn audit_group_conformal_coverage(
         }
         reasons.extend(validate_group(group, config));
         if group.target_population_digest != config.target_population_digest {
-            leakage_findings.push(format!(
+            target_shift_findings.push(format!(
                 "group {} target population {} differs from declared population {}",
                 group.group_id, group.target_population_digest, config.target_population_digest
             ));
@@ -352,14 +372,14 @@ pub fn audit_group_conformal_coverage(
             .filter_map(|group| identity_value(group, *dimension))
             .collect();
         if values.len() > 1 {
-            leakage_findings.push(format!(
+            target_shift_findings.push(format!(
                 "required-shared identity dimension {dimension:?} varies across groups: {values:?}"
             ));
         }
     }
 
-    let base_report = |disposition, quantile, group_reports, coverage, covered, missed,
-        out_of_domain, ref_unresolved, mean_width, worst_score, selective| CoverageAuditReport {
+    let base_report = |disposition, quantile, group_reports, coverage, coverage_lower, coverage_upper, covered, missed,
+        eligible, out_of_domain, ref_unresolved, mean_half_width, worst_score, selective| CoverageAuditReport {
         disposition,
         target_population_digest: config.target_population_digest.clone(),
         uncertainty_method_digest: config.uncertainty_method_digest.clone(),
@@ -367,42 +387,56 @@ pub fn audit_group_conformal_coverage(
         calibration_group_count: calibration.len(),
         validation_group_count: validation_count,
         final_test_group_count: test.len(),
+        eligible_final_test_group_count: eligible,
         conformal_quantile: quantile,
         simultaneous_group_coverage: coverage,
+        simultaneous_group_coverage_lower_95: coverage_lower,
+        simultaneous_group_coverage_upper_95: coverage_upper,
         covered_group_count: covered,
         missed_group_count: missed,
         abstained_out_of_envelope_group_count: out_of_domain,
         abstained_reference_unresolved_group_count: ref_unresolved,
-        mean_interval_width: mean_width,
+        mean_interval_half_width: mean_half_width,
         worst_test_group_nonconformity: worst_score,
         groups: group_reports,
         selective_risk_coverage: selective,
         leakage_findings: leakage_findings.clone(),
+        target_shift_findings: target_shift_findings.clone(),
         reasons: reasons.clone(),
         claim_class: "synthetic_group_conformal_coverage_audit_only",
     };
 
     if !reasons.is_empty() {
-        return base_report(CoverageAuditDisposition::InvalidManifest, None, Vec::new(), None, 0, 0, 0, 0, None, None, Vec::new());
+        return base_report(CoverageAuditDisposition::InvalidManifest, None, Vec::new(), None, None, None, 0, 0, 0, 0, 0, None, None, Vec::new());
     }
     if !leakage_findings.is_empty() {
-        return base_report(CoverageAuditDisposition::IdentityLeakageDetected, None, Vec::new(), None, 0, 0, 0, 0, None, None, Vec::new());
+        return base_report(CoverageAuditDisposition::IdentityLeakageDetected, None, Vec::new(), None, None, None, 0, 0, 0, 0, 0, None, None, Vec::new());
+    }
+    if !target_shift_findings.is_empty() {
+        return base_report(CoverageAuditDisposition::TargetPopulationShift, None, Vec::new(), None, None, None, 0, 0, 0, 0, 0, None, None, Vec::new());
     }
     if test.is_empty() {
-        return base_report(CoverageAuditDisposition::NoEligibleFinalTestGroups, None, Vec::new(), None, 0, 0, 0, 0, None, None, Vec::new());
+        return base_report(CoverageAuditDisposition::NoEligibleFinalTestGroups, None, Vec::new(), None, None, None, 0, 0, 0, 0, 0, None, None, Vec::new());
     }
-    if calibration.len() < 1 {
+    if calibration.is_empty() {
         reasons.push("no independent calibration groups are available".to_owned());
-        return base_report(CoverageAuditDisposition::InsufficientCalibrationGroups, None, Vec::new(), None, 0, 0, 0, 0, None, None, Vec::new());
+        return base_report(CoverageAuditDisposition::InsufficientCalibrationGroups, None, Vec::new(), None, None, None, 0, 0, 0, 0, 0, None, None, Vec::new());
     }
 
     let mut calibration_scores = Vec::with_capacity(calibration.len());
     for group in &calibration {
+        if group_is_out_of_envelope(group) || group_has_reference_conflict(group) {
+            reasons.push(format!(
+                "calibration group {} is outside the qualified envelope or has unresolved reference independence",
+                group.group_id
+            ));
+            return base_report(CoverageAuditDisposition::InvalidManifest, None, Vec::new(), None, None, None, 0, 0, 0, 0, 0, None, None, Vec::new());
+        }
         match group_nonconformity(group) {
             Ok(score) => calibration_scores.push(score),
             Err(error) => {
                 reasons.push(error);
-                return base_report(CoverageAuditDisposition::InvalidManifest, None, Vec::new(), None, 0, 0, 0, 0, None, None, Vec::new());
+                return base_report(CoverageAuditDisposition::InvalidManifest, None, Vec::new(), None, None, None, 0, 0, 0, 0, 0, None, None, Vec::new());
             }
         }
     }
@@ -413,7 +447,7 @@ pub fn audit_group_conformal_coverage(
             "{} independent calibration groups cannot support alpha={:.4}; finite-sample quantile rank is {}",
             calibration.len(), config.miscoverage_alpha, one_based_rank
         ));
-        return base_report(CoverageAuditDisposition::InsufficientCalibrationGroups, None, Vec::new(), None, 0, 0, 0, 0, None, None, Vec::new());
+        return base_report(CoverageAuditDisposition::InsufficientCalibrationGroups, None, Vec::new(), None, None, None, 0, 0, 0, 0, 0, None, None, Vec::new());
     }
     let quantile = calibration_scores[one_based_rank - 1];
 
@@ -476,7 +510,9 @@ pub fn audit_group_conformal_coverage(
 
     let eligible_count = covered_count + missed_count;
     let coverage = (eligible_count > 0).then(|| covered_count as f64 / eligible_count as f64);
-    let mean_width = (!widths.is_empty()).then(|| widths.iter().sum::<f64>() / widths.len() as f64);
+    let (coverage_lower, coverage_upper) = wilson_interval(covered_count, eligible_count)
+        .map_or((None, None), |(lower, upper)| (Some(lower), Some(upper)));
+    let mean_half_width = (!widths.is_empty()).then(|| widths.iter().sum::<f64>() / widths.len() as f64);
 
     let mut selective = Vec::new();
     for threshold in &config.maximum_half_width_thresholds {
@@ -503,16 +539,39 @@ pub fn audit_group_conformal_coverage(
         });
     }
 
+    if eligible_count == 0 {
+        reasons.push("all final-test groups were abstained; no eligible group remains for an empirical coverage audit".to_owned());
+        return base_report(
+            CoverageAuditDisposition::NoEligibleFinalTestGroups,
+            Some(quantile),
+            group_reports,
+            None,
+            None,
+            None,
+            covered_count,
+            missed_count,
+            eligible_count,
+            out_of_domain_count,
+            reference_unresolved_count,
+            mean_half_width,
+            worst_score,
+            selective,
+        );
+    }
+
     base_report(
         CoverageAuditDisposition::CoverageAudited,
         Some(quantile),
         group_reports,
         coverage,
+        coverage_lower,
+        coverage_upper,
         covered_count,
         missed_count,
+        eligible_count,
         out_of_domain_count,
         reference_unresolved_count,
-        mean_width,
+        mean_half_width,
         worst_score,
         selective,
     )
@@ -626,12 +685,12 @@ mod tests {
             .find(|identity| identity.dimension == CoverageIdentityDimension::HostMount)
             .unwrap().value = "new-host".to_owned();
         let report = audit_group_conformal_coverage(&[calibration.clone(), test], &config());
-        assert_eq!(report.disposition, CoverageAuditDisposition::IdentityLeakageDetected);
+        assert_eq!(report.disposition, CoverageAuditDisposition::TargetPopulationShift);
 
         let mut shifted = group("test-b", CoveragePartition::FinalTest, 0.1);
         shifted.target_population_digest = "population:new-sensor-family".to_owned();
         let report = audit_group_conformal_coverage(&[calibration, shifted], &config());
-        assert_eq!(report.disposition, CoverageAuditDisposition::InvalidManifest);
+        assert_eq!(report.disposition, CoverageAuditDisposition::TargetPopulationShift);
     }
 
     #[test]
@@ -643,7 +702,7 @@ mod tests {
         shared_reference.observations[0].reference_independence =
             ReferenceIndependenceDisposition::SharedCommonCause;
         let report = audit_group_conformal_coverage(&[calibration, out_of_domain, shared_reference], &config());
-        assert_eq!(report.disposition, CoverageAuditDisposition::CoverageAudited);
+        assert_eq!(report.disposition, CoverageAuditDisposition::NoEligibleFinalTestGroups);
         assert_eq!(report.abstained_out_of_envelope_group_count, 1);
         assert_eq!(report.abstained_reference_unresolved_group_count, 1);
         assert_eq!(report.covered_group_count + report.missed_group_count, 0);
