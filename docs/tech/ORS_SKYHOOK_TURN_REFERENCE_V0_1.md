@@ -10,81 +10,64 @@ The current orbital-ring work already has a T0 fixed-circular-stream resultant, 
 
 Birch's ORS model contains a further, independently reproducible mechanical event: the moving ring stream is turned at a skyhook. The stream is otherwise treated as free-falling. The local turn therefore has a direct momentum-rate reference before any controller, magnetic constitutive model, distributed ring, or flexible-structure solver is admitted.
 
-This reference closes that small gap without promoting the historical design to a validated architecture.
+This reference fills that analytical gap without promoting the historical design to a validated architecture.
 
 ## 2. Source derivation
 
-Birch describes the minimum ORS as an orbital ring with skyhooks. Between skyhooks, the ring is in free fall; at a skyhook, the track changes through an angle (Delta	heta). For a ring stream with line density (m) and speed (V_0):
+Birch describes a minimum ORS as an orbital ring with skyhooks. Between skyhooks, the ring is in free fall; at a skyhook, its track changes through an angle DeltaTheta. For a ring stream with line density m and speed V0:
 
-[
-dot M = mV_0
-	ag{32}
-]
+~~~text
+Eq. 32: mass_flow = m * V0
+Eq. 33: |DeltaV| ~= V0 * DeltaTheta
+Eq. 35: F_T = mass_flow * |DeltaV|
+             = m * V0^2 * DeltaTheta
+~~~
 
-For a small direction change:
+Birch then relates the track-turn angle to the perigee drop DeltaH, the skyhook height H, Earth radius R, and half-angle alpha:
 
-[
-|Deltamathbf V| simeq V_0Delta	heta
-	ag{33}
-]
-
-Therefore the rate of momentum change is:
-
-[
-F_T = dot M |Deltamathbf V|
-    = mV_0^2Delta	heta
-	ag{35}
-]
-
-Birch then relates the track-turn angle to the perigee drop (Delta H), the skyhook height (H), Earth radius (R), and half-angle (alpha). His small-angle expression is:
-
-[
-Delta	heta simeq
-rac{4Delta H}{alpha(R+H)}
-	ag{44}
-]
+~~~text
+Eq. 44: DeltaTheta ~= 4 * DeltaH / (alpha * (R + H))
+~~~
 
 Using the conic/orbit relation in Eq. 53:
 
-[
-V_0^2 simeq
-rac{gR^2}
-{R+H+Delta H(1-2/alpha^2)}
-	ag{53}
-]
+~~~text
+Eq. 53: V0^2 ~= g * R^2 /
+              (R + H + DeltaH * (1 - 2 / alpha^2))
+~~~
 
 Combining Eqs. 35, 44 and 53 gives:
 
-[
-oxed{
-F_T simeq
-rac{4mgR^2Delta H}
-{alpha(R+H)
-left[R+H+Delta H(1-2/alpha^2)ight]}
-}
-	ag{54}
-]
+~~~text
+Eq. 54:
+F_T ~= 4 * m * g * R^2 * DeltaH
+       / (alpha * (R + H)
+          * (R + H + DeltaH * (1 - 2 / alpha^2)))
+~~~
 
-The independent reference evaluates both the momentum-rate path (35 after 44 and 53) and the direct algebraic expression (54). It also checks Birch's stated geometric bound:
+The independent reference evaluates both the momentum-rate path (Eq. 35 after Eqs. 44 and 53) and the direct algebraic expression (Eq. 54). It also checks Birch's stated geometric bound:
 
-[
-Delta	heta leq 2alpha
-	ag{49}
-]
+~~~text
+Eq. 49: DeltaTheta <= 2 * alpha
+~~~
 
 A table dash is classified only as **outside the source model's stated domain**. It is not interpreted as a proof that a physical design is impossible.
 
 ## 3. Frozen source basis and results
 
-Table 4 gives (H=300) and (600) km, (pi/alpha=2,4,8,16,32,64), and (Delta H=3,30,300) km. The paper gives:
+Table 4 covers:
 
-[
-m=2.5pi	imes10^3 mathrm{kg/m},
-qquad
-g=9.81 mathrm{m/s^2}
-]
+- Skyhook height H = 300 km and 600 km
+- pi/alpha = 2, 4, 8, 16, 32 and 64
+- Perigee drop DeltaH = 3 km, 30 km and 300 km
 
-For reproducing this *historical table*, the reference uses the paper's rounded (R=6{,}400) km basis, rather than silently replacing it with a modern geodetic radius. This matters in a source-reproduction exercise: modern WGS-84 constants belong in a separate re-derived model, not in the transcription check.
+The paper gives:
+
+- Ring line density: m = 2.5 * pi * 10^3 kg/m
+- Surface gravity: g = 9.81 m/s^2
+- Rounded Earth radius for this table: R = 6,400 km
+
+For reproducing this *historical table*, the reference uses the paper's rounded R = 6,400 km basis, rather than silently replacing it with a modern geodetic radius. Modern WGS-84 constants belong in a separate re-derived model, not in the transcription check.
 
 The executable corpus contains all 36 cells. Results:
 
@@ -107,7 +90,7 @@ The next model must keep separate:
 4. ring and support/rider momentum and energy boundaries;
 5. local force distribution, flexure, and multi-skyhook/common-cause effects.
 
-The 8 km/s figure used elsewhere in Birch's paper for drag estimates is not inserted as (V_0) in Table 4; the table's (V_0) is geometry-derived by Eq. 53. Likewise, this document does not fold the eddy-current and cryostat power numbers into the turning-force result.
+The 8 km/s figure used elsewhere in Birch's paper for drag estimates is not inserted as V0 in Table 4; the table's V0 is geometry-derived by Eq. 53. Likewise, this document does not fold the eddy-current and cryostat power numbers into the turning-force result.
 
 **Claim ceiling:** arithmetic reproduction of Birch (1982) Eqs. 35/44/53/54 and Table 4. No claim is made about the accuracy of the 1982 model, the feasibility of an orbital ring, or the performance of any magnetic/electromagnetic support system.
 
