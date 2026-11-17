@@ -956,7 +956,7 @@ mod tests {
     }
 
     #[test]
-    fn parallel_overload_uses_serial_fallback() {
+    fn parallel_overload_uses_minimal_power_aware_stagger() {
         let input = input(
             vec![
                 task("processor", 10, "processor"),
