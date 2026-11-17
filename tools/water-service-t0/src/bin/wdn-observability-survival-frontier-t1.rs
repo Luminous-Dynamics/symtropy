@@ -159,7 +159,10 @@ fn parse_sensor(
             "{context}: state '{state_id}' is not in the four required states"
         ));
     }
-    if string(value, "measurement_principle", &context)?.trim().is_empty() {
+    if string(value, "measurement_principle", &context)?
+        .trim()
+        .is_empty()
+    {
         return Err(format!("{context}: measurement_principle is empty"));
     }
     let condition = string(value, "condition", &context)?.to_owned();
@@ -168,7 +171,9 @@ fn parse_sensor(
     }
     let binding_status = string(value, "binding_status", &context)?.to_owned();
     if !["valid", "invalid"].contains(&binding_status.as_str()) {
-        return Err(format!("{context}: unsupported binding status '{binding_status}'"));
+        return Err(format!(
+            "{context}: unsupported binding status '{binding_status}'"
+        ));
     }
     let calibration_status = string(value, "calibration_status", &context)?.to_owned();
     if !["current", "stale", "missing"].contains(&calibration_status.as_str()) {
@@ -178,7 +183,9 @@ fn parse_sensor(
     }
     let time_status = string(value, "time_status", &context)?.to_owned();
     if !["current", "invalid"].contains(&time_status.as_str()) {
-        return Err(format!("{context}: unsupported time status '{time_status}'"));
+        return Err(format!(
+            "{context}: unsupported time status '{time_status}'"
+        ));
     }
 
     let raw_domains = field(value, "failure_domains", &context)?
@@ -197,7 +204,9 @@ fn parse_sensor(
         let domain_type = string(raw, "domain_type", &domain_context)?.to_owned();
         let domain_id = string(raw, "domain_id", &domain_context)?.to_owned();
         if !DOMAIN_TYPES.contains(&domain_type.as_str()) {
-            return Err(format!("{domain_context}: unknown domain type '{domain_type}'"));
+            return Err(format!(
+                "{domain_context}: unknown domain type '{domain_type}'"
+            ));
         }
         if domain_id.trim().is_empty() {
             return Err(format!("{domain_context}: domain_id is empty"));
@@ -212,8 +221,10 @@ fn parse_sensor(
             domain_id,
         });
     }
-    let expected_domains: BTreeSet<String> =
-        DOMAIN_TYPES.iter().map(|value| (*value).to_owned()).collect();
+    let expected_domains: BTreeSet<String> = DOMAIN_TYPES
+        .iter()
+        .map(|value| (*value).to_owned())
+        .collect();
     if seen_types != expected_domains {
         return Err(format!(
             "{context}: each of the six dependency domains must appear exactly once"
@@ -289,7 +300,10 @@ fn evaluate_layout(
         .filter(|sensor| sensor.is_baseline_eligible())
         .collect();
     for state in required_states {
-        if !active_sensors.iter().any(|sensor| &sensor.state_id == state) {
+        if !active_sensors
+            .iter()
+            .any(|sensor| &sensor.state_id == state)
+        {
             return Err(format!(
                 "{layout_id}: critical state '{state}' has no eligible baseline sensor"
             ));
@@ -392,13 +406,11 @@ fn evaluate_layout(
                     let existing_cuts = summaries.get_mut(state).expect("state cuts exist");
                     if !contains_cut_subset(existing_cuts, &failed) {
                         existing_cuts.push(failure_set.clone());
-                        first_unobservable
-                            .entry(state.clone())
-                            .and_modify(|value| {
-                                if value.is_none() {
-                                    *value = Some(order);
-                                }
-                            });
+                        first_unobservable.entry(state.clone()).and_modify(|value| {
+                            if value.is_none() {
+                                *value = Some(order);
+                            }
+                        });
                     }
                 }
             }
@@ -599,7 +611,11 @@ fn evaluate_all(inputs: &Value, input_schema: &Value, oracle: &Value) -> Result<
         .as_u64()
         .ok_or_else(|| "max_combinations_per_layout must be a positive integer".to_owned())?
         as usize;
-    if max_components == 0 || max_components > 64 || max_combinations == 0 || max_combinations > 10_000 {
+    if max_components == 0
+        || max_components > 64
+        || max_combinations == 0
+        || max_combinations > 10_000
+    {
         return Err("enumeration bounds are outside the safe v0.1 limit".to_owned());
     }
 
@@ -608,8 +624,7 @@ fn evaluate_all(inputs: &Value, input_schema: &Value, oracle: &Value) -> Result<
         &["$schema", "schema_version", "benchmark_id", "layouts"],
         "oracle",
     )?;
-    if string(oracle, "$schema", "oracle")?
-        != "https://json-schema.org/draft/2020-12/schema"
+    if string(oracle, "$schema", "oracle")? != "https://json-schema.org/draft/2020-12/schema"
         || string(oracle, "schema_version", "oracle")? != ORACLE_VERSION
         || string(oracle, "benchmark_id", "oracle")? != BENCHMARK_ID
     {
@@ -623,7 +638,9 @@ fn evaluate_all(inputs: &Value, input_schema: &Value, oracle: &Value) -> Result<
         .as_array()
         .ok_or_else(|| "oracle.layouts must be an array".to_owned())?;
     if layouts.len() != LAYOUT_COUNT || expected_layouts.len() != LAYOUT_COUNT {
-        return Err(format!("exactly {LAYOUT_COUNT} input/oracle layouts are required"));
+        return Err(format!(
+            "exactly {LAYOUT_COUNT} input/oracle layouts are required"
+        ));
     }
 
     let mut expected_by_id = BTreeMap::new();
@@ -674,7 +691,8 @@ fn evaluate_all(inputs: &Value, input_schema: &Value, oracle: &Value) -> Result<
 
 fn read_json(path: &str) -> Result<(Vec<u8>, Value), String> {
     let bytes = fs::read(path).map_err(|error| format!("cannot read '{path}': {error}"))?;
-    let value = serde_json::from_slice(&bytes).map_err(|error| format!("invalid JSON '{path}': {error}"))?;
+    let value = serde_json::from_slice(&bytes)
+        .map_err(|error| format!("invalid JSON '{path}': {error}"))?;
     Ok((bytes, value))
 }
 
@@ -700,8 +718,10 @@ fn run(args: &[String]) -> Result<(), String> {
         .filter(|value| valid_revision(value));
     let lock_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Cargo.lock");
     let manifest_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml");
-    let lock_bytes = fs::read(&lock_path).map_err(|error| format!("read {}: {error}", lock_path.display()))?;
-    let manifest_bytes = fs::read(&manifest_path).map_err(|error| format!("read {}: {error}", manifest_path.display()))?;
+    let lock_bytes =
+        fs::read(&lock_path).map_err(|error| format!("read {}: {error}", lock_path.display()))?;
+    let manifest_bytes = fs::read(&manifest_path)
+        .map_err(|error| format!("read {}: {error}", manifest_path.display()))?;
     let implementation = include_bytes!("wdn-observability-survival-frontier-t1.rs");
     let receipt = json!({
         "receipt_schema_version": "wdn-observability-survival-frontier-t1-receipt-v0.1",
@@ -728,10 +748,21 @@ fn run(args: &[String]) -> Result<(), String> {
     {
         fs::create_dir_all(parent).map_err(|error| format!("create receipt directory: {error}"))?;
     }
-    fs::write(output, serde_json::to_vec_pretty(&receipt).map_err(|error| format!("serialize receipt: {error}"))?)
-        .map_err(|error| format!("write receipt '{}': {error}", output.display()))?;
-    println!("{}", serde_json::to_string_pretty(&receipt).unwrap_or_default());
-    if success { Ok(()) } else { Err("observability survival frontier did not match frozen oracle".to_owned()) }
+    fs::write(
+        output,
+        serde_json::to_vec_pretty(&receipt)
+            .map_err(|error| format!("serialize receipt: {error}"))?,
+    )
+    .map_err(|error| format!("write receipt '{}': {error}", output.display()))?;
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&receipt).unwrap_or_default()
+    );
+    if success {
+        Ok(())
+    } else {
+        Err("observability survival frontier did not match frozen oracle".to_owned())
+    }
 }
 
 fn main() {
@@ -773,22 +804,42 @@ mod tests {
     fn shared_power_domain_is_one_common_cause_component() {
         let (input, schema, oracle) = fixture();
         let result = evaluate_all(&input, &schema, &oracle).unwrap();
-        let layout = result["layout_results"].as_array().unwrap().iter()
-            .find(|x| x["layout_id"] == "SURV-T1-002-shared-power-domain").unwrap();
-        assert!(layout["domain_fanout"].as_array().unwrap().iter()
-            .any(|x| x["domain_type"] == "power_supply" && x["domain_id"] == "PWR-N1-SHARED" && x["fanout"] == 2));
+        let layout = result["layout_results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|x| x["layout_id"] == "SURV-T1-002-shared-power-domain")
+            .unwrap();
+        assert!(
+            layout["domain_fanout"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|x| x["domain_type"] == "power_supply"
+                    && x["domain_id"] == "PWR-N1-SHARED"
+                    && x["fanout"] == 2)
+        );
         let state = &layout["state_summaries"][0];
         assert_eq!(state["first_unobservable_order"], 1);
-        assert!(state["minimal_cut_sets"].as_array().unwrap().iter().any(|x|
-            x["components"][0] == "domain:power_supply:PWR-N1-SHARED"));
+        assert!(
+            state["minimal_cut_sets"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|x| x["components"][0] == "domain:power_supply:PWR-N1-SHARED")
+        );
     }
 
     #[test]
     fn independent_two_sensor_backup_requires_two_component_cut() {
         let (input, schema, oracle) = fixture();
         let result = evaluate_all(&input, &schema, &oracle).unwrap();
-        let layout = result["layout_results"].as_array().unwrap().iter()
-            .find(|x| x["layout_id"] == "SURV-T1-003-independent-pressure-acoustic-backup").unwrap();
+        let layout = result["layout_results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|x| x["layout_id"] == "SURV-T1-003-independent-pressure-acoustic-backup")
+            .unwrap();
         assert_eq!(layout["state_summaries"][0]["first_unobservable_order"], 2);
     }
 
@@ -796,13 +847,22 @@ mod tests {
     fn site_wide_clock_domain_is_a_singleton_cut_for_all_states() {
         let (input, schema, oracle) = fixture();
         let result = evaluate_all(&input, &schema, &oracle).unwrap();
-        let layout = result["layout_results"].as_array().unwrap().iter()
-            .find(|x| x["layout_id"] == "SURV-T1-006-common-clock-high-fanout").unwrap();
+        let layout = result["layout_results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|x| x["layout_id"] == "SURV-T1-006-common-clock-high-fanout")
+            .unwrap();
         assert_eq!(layout["state_summaries"].as_array().unwrap().len(), 4);
         for state in layout["state_summaries"].as_array().unwrap() {
             assert_eq!(state["first_unobservable_order"], 1);
-            assert!(state["minimal_cut_sets"].as_array().unwrap().iter()
-                .any(|cut| cut["components"][0] == "domain:clock_domain:CLK-SITE-WIDE"));
+            assert!(
+                state["minimal_cut_sets"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|cut| cut["components"][0] == "domain:clock_domain:CLK-SITE-WIDE")
+            );
         }
     }
 
@@ -810,22 +870,57 @@ mod tests {
     fn invalid_sensor_is_excluded_before_failure_combinations_are_counted() {
         let (input, schema, oracle) = fixture();
         let result = evaluate_all(&input, &schema, &oracle).unwrap();
-        let stale = result["layout_results"].as_array().unwrap().iter()
-            .find(|x| x["layout_id"] == "SURV-T1-009-stale-channel-excluded").unwrap();
-        let base = result["layout_results"].as_array().unwrap().iter()
-            .find(|x| x["layout_id"] == "SURV-T1-001-independent-single-channel").unwrap();
+        let stale = result["layout_results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|x| x["layout_id"] == "SURV-T1-009-stale-channel-excluded")
+            .unwrap();
+        let base = result["layout_results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|x| x["layout_id"] == "SURV-T1-001-independent-single-channel")
+            .unwrap();
         assert_eq!(stale["component_count"], base["component_count"]);
-        assert!(!stale["components"].as_array().unwrap().iter()
-            .any(|x| x["component_id"] == "channel:STALE1"));
+        assert!(
+            !stale["components"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|x| x["component_id"] == "channel:STALE1")
+        );
     }
 
     #[test]
     fn permuting_sensor_input_order_does_not_change_layout_result() {
         let (mut input, schema, oracle) = fixture();
-        let first = evaluate_layout(&input["layouts"][0], &input["required_state_ids"].as_array().unwrap().iter().map(|x| x.as_str().unwrap().to_owned()).collect::<Vec<_>>(), 48, 2000).unwrap();
+        let first = evaluate_layout(
+            &input["layouts"][0],
+            &input["required_state_ids"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|x| x.as_str().unwrap().to_owned())
+                .collect::<Vec<_>>(),
+            48,
+            2000,
+        )
+        .unwrap();
         let sensors = input["layouts"][0]["sensors"].as_array_mut().unwrap();
         sensors.reverse();
-        let second = evaluate_layout(&input["layouts"][0], &input["required_state_ids"].as_array().unwrap().iter().map(|x| x.as_str().unwrap().to_owned()).collect::<Vec<_>>(), 48, 2000).unwrap();
+        let second = evaluate_layout(
+            &input["layouts"][0],
+            &input["required_state_ids"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|x| x.as_str().unwrap().to_owned())
+                .collect::<Vec<_>>(),
+            48,
+            2000,
+        )
+        .unwrap();
         assert_eq!(first, second);
         let _ = (schema, oracle);
     }
@@ -840,9 +935,18 @@ mod tests {
             for state in layout["state_summaries"].as_array().unwrap() {
                 let mut cutsets = Vec::new();
                 for cut in state["minimal_cut_sets"].as_array().unwrap() {
-                    let components = cut["components"].as_array().unwrap().iter().map(|x| x.as_str().unwrap()).collect::<Vec<_>>();
+                    let components = cut["components"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|x| x.as_str().unwrap())
+                        .collect::<Vec<_>>();
                     assert!(components.len() <= 2);
-                    assert!(!cutsets.iter().any(|prior: &Vec<&str>| prior.iter().all(|x| components.contains(x))));
+                    assert!(
+                        !cutsets
+                            .iter()
+                            .any(|prior: &Vec<&str>| prior.iter().all(|x| components.contains(x)))
+                    );
                     cutsets.push(components);
                 }
             }
@@ -853,55 +957,120 @@ mod tests {
     fn duplicate_sensor_id_is_rejected() {
         let (mut input, schema, oracle) = fixture();
         let duplicate = input["layouts"][0]["sensors"][0].clone();
-        input["layouts"][0]["sensors"].as_array_mut().unwrap().push(duplicate);
-        let states = input["required_state_ids"].as_array().unwrap().iter().map(|x| x.as_str().unwrap().to_owned()).collect::<Vec<_>>();
-        assert!(evaluate_layout(&input["layouts"][0], &states, 48, 2000).unwrap_err().contains("duplicate sensor id"));
+        input["layouts"][0]["sensors"]
+            .as_array_mut()
+            .unwrap()
+            .push(duplicate);
+        let states = input["required_state_ids"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|x| x.as_str().unwrap().to_owned())
+            .collect::<Vec<_>>();
+        assert!(
+            evaluate_layout(&input["layouts"][0], &states, 48, 2000)
+                .unwrap_err()
+                .contains("duplicate sensor id")
+        );
         let _ = (schema, oracle);
     }
 
     #[test]
     fn missing_dependency_domain_is_rejected() {
         let (mut input, _, _) = fixture();
-        input["layouts"][0]["sensors"][0]["failure_domains"].as_array_mut().unwrap().pop();
-        let states = input["required_state_ids"].as_array().unwrap().iter().map(|x| x.as_str().unwrap().to_owned()).collect::<Vec<_>>();
-        assert!(evaluate_layout(&input["layouts"][0], &states, 48, 2000).unwrap_err().contains("exactly six"));
+        input["layouts"][0]["sensors"][0]["failure_domains"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
+        let states = input["required_state_ids"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|x| x.as_str().unwrap().to_owned())
+            .collect::<Vec<_>>();
+        assert!(
+            evaluate_layout(&input["layouts"][0], &states, 48, 2000)
+                .unwrap_err()
+                .contains("exactly six")
+        );
     }
 
     #[test]
     fn duplicate_dependency_domain_type_is_rejected() {
         let (mut input, _, _) = fixture();
-        input["layouts"][0]["sensors"][0]["failure_domains"][5]["domain_type"] = json!("clock_domain");
-        let states = input["required_state_ids"].as_array().unwrap().iter().map(|x| x.as_str().unwrap().to_owned()).collect::<Vec<_>>();
-        assert!(evaluate_layout(&input["layouts"][0], &states, 48, 2000).unwrap_err().contains("duplicate dependency domain type"));
+        input["layouts"][0]["sensors"][0]["failure_domains"][5]["domain_type"] =
+            json!("clock_domain");
+        let states = input["required_state_ids"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|x| x.as_str().unwrap().to_owned())
+            .collect::<Vec<_>>();
+        assert!(
+            evaluate_layout(&input["layouts"][0], &states, 48, 2000)
+                .unwrap_err()
+                .contains("duplicate dependency domain type")
+        );
     }
 
     #[test]
     fn state_binding_outside_required_set_is_rejected() {
         let (mut input, _, _) = fixture();
         input["layouts"][0]["sensors"][0]["state_id"] = json!("pressure:unknown");
-        let states = input["required_state_ids"].as_array().unwrap().iter().map(|x| x.as_str().unwrap().to_owned()).collect::<Vec<_>>();
-        assert!(evaluate_layout(&input["layouts"][0], &states, 48, 2000).unwrap_err().contains("not in the four required"));
+        let states = input["required_state_ids"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|x| x.as_str().unwrap().to_owned())
+            .collect::<Vec<_>>();
+        assert!(
+            evaluate_layout(&input["layouts"][0], &states, 48, 2000)
+                .unwrap_err()
+                .contains("not in the four required")
+        );
     }
 
     #[test]
     fn component_budget_is_checked_before_enumeration() {
         let (input, _, _) = fixture();
-        let states = input["required_state_ids"].as_array().unwrap().iter().map(|x| x.as_str().unwrap().to_owned()).collect::<Vec<_>>();
-        assert!(evaluate_layout(&input["layouts"][0], &states, 10, 2000).unwrap_err().contains("exceeds configured cap"));
+        let states = input["required_state_ids"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|x| x.as_str().unwrap().to_owned())
+            .collect::<Vec<_>>();
+        assert!(
+            evaluate_layout(&input["layouts"][0], &states, 10, 2000)
+                .unwrap_err()
+                .contains("exceeds configured cap")
+        );
     }
 
     #[test]
     fn combination_budget_is_checked_before_enumeration() {
         let (input, _, _) = fixture();
-        let states = input["required_state_ids"].as_array().unwrap().iter().map(|x| x.as_str().unwrap().to_owned()).collect::<Vec<_>>();
-        assert!(evaluate_layout(&input["layouts"][0], &states, 48, 100).unwrap_err().contains("failure-combination count"));
+        let states = input["required_state_ids"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|x| x.as_str().unwrap().to_owned())
+            .collect::<Vec<_>>();
+        assert!(
+            evaluate_layout(&input["layouts"][0], &states, 48, 100)
+                .unwrap_err()
+                .contains("failure-combination count")
+        );
     }
 
     #[test]
     fn invalid_failure_order_is_rejected() {
         let (mut input, schema, oracle) = fixture();
         input["max_failure_order"] = json!(3);
-        assert!(evaluate_all(&input, &schema, &oracle).unwrap_err().contains("max_failure_order=2"));
+        assert!(
+            evaluate_all(&input, &schema, &oracle)
+                .unwrap_err()
+                .contains("max_failure_order=2")
+        );
     }
 
     #[test]
