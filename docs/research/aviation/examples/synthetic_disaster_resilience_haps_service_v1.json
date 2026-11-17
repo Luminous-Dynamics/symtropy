@@ -127,9 +127,9 @@
     "platform_crosslink_required": false,
     "terrestrial_gateway_required": true,
     "demand_management": {
-      "traffic_demand_profile_ref": "synthetic.demand.disaster-connectivity.001",
+      "traffic_demand_profile_ref": "examples/synthetic_haps_disaster_traffic_trace_v1.json",
       "network_allocation_case_refs": [
-        "synthetic.haps.cell-demand.beam-budget.001@1"
+        "examples/synthetic_haps_cell_demand_beam_allocation_v1.json"
       ],
       "traffic_data_available_at_decision_time": false,
       "reanalysis_not_used_as_live_forecast": true,
