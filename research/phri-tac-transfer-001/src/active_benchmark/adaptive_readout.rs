@@ -160,9 +160,12 @@ fn validate_problem(problem: &AdaptiveAcquisitionProblem) -> Result<usize, Strin
     }
 
     let mut seen = BTreeSet::new();
-    for candidate in &problem.candidates {
+    for (position, candidate) in problem.candidates.iter().enumerate() {
         if candidate.taxel_index >= taxel_count || !seen.insert(candidate.taxel_index) {
             return Err("candidate taxel indices must be unique and in range".to_owned());
+        }
+        if candidate.taxel_index != position {
+            return Err("candidate list must be in canonical taxel-index order".to_owned());
         }
         let expected_x = candidate.taxel_index % problem.grid_width;
         let expected_y = candidate.taxel_index / problem.grid_width;
@@ -1245,6 +1248,15 @@ mod tests {
             assert!(result.mean_energy_nj > 0.0);
             assert!(result.p95_latency_ns >= result.mean_latency_ns as u64 || result.read_budget == DEFAULT_TAXEL_COUNT);
         }
+    }
+
+    #[test]
+    fn shuffled_candidate_array_fails_closed_instead_of_remapping_taxels() {
+        let mut input = problem(DEFAULT_READOUT_BUDGET);
+        input.candidates.swap(0, 1);
+        assert!(plan_adaptive_readout(&input, AcquisitionPolicy::RiskAdaptive)
+            .expect_err("noncanonical candidate order")
+            .contains("canonical taxel-index order"));
     }
 
     #[test]
