@@ -98,7 +98,7 @@ fn plan_violation(
     });
 }
 
-fn task_index<'a>(plan: &'a KitchenPlanV1) -> BTreeMap<&'a str, &'a KitchenTaskV1> {
+fn task_index(plan: &KitchenPlanV1) -> BTreeMap<&str, &KitchenTaskV1> {
     let mut index = BTreeMap::new();
     for task in &plan.tasks {
         if nonempty(&task.task_id) {
@@ -277,10 +277,10 @@ pub fn validate_plan(plan: &KitchenPlanV1) -> PlanValidationReport {
                     .entry(parent)
                     .or_default()
                     .insert(task.task_id.as_str());
-                if inserted {
-                    if let Some(degree) = indegree.get_mut(task.task_id.as_str()) {
-                        *degree += 1;
-                    }
+                if inserted
+                    && let Some(degree) = indegree.get_mut(task.task_id.as_str())
+                {
+                    *degree += 1;
                 }
             }
         }
