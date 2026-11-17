@@ -125,10 +125,10 @@ fn main() {
 
 
 fn run_site_ledger_append_scaling_benchmarks() {
-    println!("site_ledger_append_scaling,event_count,rounds,total_p50_us,total_p95_us,ns_per_event_p50,ns_per_event_p95");
+    println!("site_ledger_append_scaling,event_count,rounds,total_p50_us,total_p95_us,total_p99_us,ns_per_event_p50,ns_per_event_p95,ns_per_event_p99");
     for event_count in [100_u64, 1_000, 10_000] {
-        let mut round_durations = Vec::with_capacity(7);
-        for _round in 0..7 {
+        let mut round_durations = Vec::with_capacity(31);
+        for _round in 0..31 {
             let mut ledger = SiteStateLedger::new();
             let package_sha256 = "a".repeat(64);
             let package = SiteWorkPackage {
@@ -198,14 +198,17 @@ fn run_site_ledger_append_scaling_benchmarks() {
         round_durations.sort_unstable();
         let p50 = percentile(&round_durations, 50);
         let p95 = percentile(&round_durations, 95);
+        let p99 = percentile(&round_durations, 99);
         println!(
-            "{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{}",
             event_count,
             round_durations.len(),
             p50.as_micros(),
             p95.as_micros(),
+            p99.as_micros(),
             p50.as_nanos() / u128::from(event_count),
             p95.as_nanos() / u128::from(event_count),
+            p99.as_nanos() / u128::from(event_count),
         );
     }
 }
