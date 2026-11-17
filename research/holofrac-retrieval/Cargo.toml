@@ -1,0 +1,13 @@
+[package]
+name = "holofrac-spatial-retrieval"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Standalone benchmark for typed multiscale spatial-graph retrieval using Symtropy HDC primitives."
+
+[dependencies]
+symtropy-hdc-core = { path = "../../crates/core/symtropy-hdc-core" }
+
+[workspace]
+resolver = "3"
+members = ["."]
