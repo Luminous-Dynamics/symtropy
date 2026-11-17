@@ -143,6 +143,121 @@
         "article_license": "CC BY-NC-ND",
         "permission_status": "no_external_code_or_data_ingested; individual code/data rights and reuse permission not yet admitted"
       }
+    },
+    {
+      "id": "kplant-global-hydraulic-conductance-v1-1",
+      "citation": "KPLANT V1.1 global whole-plant hydraulic conductance database",
+      "doi": "10.5281/zenodo.21996370",
+      "published": "2026-08-18",
+      "role": "empirical hydraulic conductance K distribution and normalization benchmark",
+      "coverage": {
+        "observations": 3873,
+        "source_study_datasets": 356,
+        "species": 429,
+        "genera": 245,
+        "families": 100,
+        "continents": 6,
+        "growth_forms": [
+          "tree",
+          "shrub",
+          "liana",
+          "graminoid",
+          "forb",
+          "stem_succulent",
+          "fern"
+        ]
+      },
+      "normalization_bases": [
+        "leaf_area",
+        "sapwood_area",
+        "wood_area",
+        "ground_area",
+        "whole_plant"
+      ],
+      "observables": [
+        "whole_plant_hydraulic_conductance",
+        "water_flux",
+        "water_potential",
+        "site_and_stand_metadata"
+      ],
+      "reported_license": "CC BY 4.0 per NLM Dataset Catalog and KPLANT database repository",
+      "code_license": "MIT for KPLANT database repository code only",
+      "rights_status": "pin V1.1 file manifest and checksums; verify Zenodo file terms before ingestion",
+      "admission_status": "not_downloaded_not_ingested",
+      "reproduction_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5816"
+    },
+    {
+      "id": "anderegg-2018-stomatal-drought-dryad",
+      "citation": "Anderegg et al. (2018), Data from: Plant water potential improves prediction of empirical stomatal models",
+      "doi": "10.5061/dryad.9fp38",
+      "published": "2018-09-15",
+      "role": "stomatal conductance and leaf water-potential drought model comparison",
+      "coverage": {
+        "species": 34,
+        "plant_group": "woody_plants",
+        "scope": "global_forest_biomes",
+        "files": [
+          "AllData_PLoSONE_SI_2017_v1.csv"
+        ]
+      },
+      "source_claim": "compares three major stomatal models and a water-potential-aware model; reports empirical model overprediction under dry conditions",
+      "rights_status": "Dryad site indicates data reuse; verify dataset-specific reuse/license metadata and attribution",
+      "admission_status": "not_downloaded_not_ingested",
+      "reproduction_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5816"
+    },
+    {
+      "id": "liu-2026-deep-soil-water-drought-dryad",
+      "citation": "Liu et al. (2026), Data from: Improved use of deep soil water promotes radial growth during drought",
+      "doi": "10.5061/dryad.h70rxwf13",
+      "published": "2026-09-25",
+      "role": "cross-scale soil water depth, leaf status, gas exchange and subsequent radial-growth stress benchmark",
+      "coverage": {
+        "species": 4,
+        "plots": 3,
+        "gas_exchange_trees_per_species": 15,
+        "leaf_water_potential_trees_per_species_and_period": 9,
+        "half_hourly_records_2024": 17568,
+        "soil_depths_cm": [
+          [
+            0,
+            20
+          ],
+          [
+            20,
+            40
+          ],
+          [
+            40,
+            60
+          ],
+          [
+            60,
+            80
+          ],
+          [
+            80,
+            100
+          ]
+        ]
+      },
+      "observables": [
+        "predawn_leaf_water_potential",
+        "midday_leaf_water_potential",
+        "net_photosynthesis",
+        "stomatal_conductance",
+        "transpiration",
+        "isotope_water_source_by_depth",
+        "soil_water_content",
+        "stem_radial_growth"
+      ],
+      "temporal_structure": {
+        "physiological_and_water_source_measurements_year": 2023,
+        "half_hourly_soil_water_and_radial_growth_year": 2024,
+        "same_individual_join": "not established by the published dataset schema; do not invent per-tree time alignment"
+      },
+      "rights_status": "verify Dryad record and file-specific reuse terms",
+      "admission_status": "not_downloaded_not_ingested",
+      "reproduction_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5816"
     }
   ],
   "process_scales": [
@@ -409,6 +524,54 @@
         "reduced_hydraulic_conductance"
       ],
       "fairness": "same_leaf_area_basis_units_forcing_and_independent_plant_or_leaf_holdouts; never fit s or b_o on held-out leaves"
+    },
+    {
+      "id": "S12",
+      "name": "kplant_conductance_distribution_and_normalization",
+      "forcing": "independent_KPLANT_V1_1_study_rows_grouped_by_study_and_normalization_basis",
+      "purpose": "evaluate hydraulic conductance calibration, normalization sensitivity, study holdout and species/growth-form transfer",
+      "holdout": true,
+      "required_observables": [
+        "kplant_source_value",
+        "kplant_normalized_value",
+        "water_flux",
+        "water_potential",
+        "normalization_basis",
+        "source_study_identity"
+      ],
+      "fairness": "never mix leaf-area, sapwood-area, wood-area, ground-area and whole-plant normalization bases without explicit conversion"
+    },
+    {
+      "id": "S13",
+      "name": "stomatal_drought_model_holdout",
+      "forcing": "admitted_Anderegg_Dryad_34_species_leaf_water_potential_and_stomatal_conductance_observations",
+      "purpose": "compare Buckley_2026_BallBerry_USO_and_internal_null_models_on_drought_response",
+      "holdout": true,
+      "required_observables": [
+        "leaf_water_potential",
+        "stomatal_conductance",
+        "source_species",
+        "study_or_site_group"
+      ],
+      "fairness": "group by species and source study; confirm row-level replicate/aggregation semantics before split; compare only rows with complete supported model inputs"
+    },
+    {
+      "id": "S14",
+      "name": "deep_water_access_and_cross_year_drought_response",
+      "forcing": "admitted_Liu_2026_Dryad_water_source_depth_leaf_status_gas_exchange_and_2024_growth_soil_water_records",
+      "purpose": "test whether root-zone water-source depth and soil moisture history explain leaf status_gas_exchange_and_later_growth_without_false_same_time_or_same_tree_joining",
+      "holdout": true,
+      "required_observables": [
+        "soil_water_content_by_depth",
+        "isotope_water_source_contribution",
+        "predawn_and_midday_leaf_water_potential",
+        "photosynthesis",
+        "stomatal_conductance",
+        "transpiration",
+        "half_hourly_radial_growth"
+      ],
+      "temporal_structure": "2023 physiology and source-water measurements; 2024 half-hourly soil water and radial growth; cross-year relation is not an individual-level synchronized trajectory",
+      "fairness": "retain plot/tree/sampling hierarchy; do not synthesize missing timestamps or individual-tree matches; leave-species-out is impossible with only four species and must not be overclaimed"
     }
   ],
   "observation_channels": [
@@ -653,7 +816,12 @@
     "stomatal_conductance_error_by_soil_potential_and_assimilation_stratum",
     "transpiration_error_under_matched_delta_w_and_hydraulic_conductance",
     "dark_or_low_assimilation_basal_stomatal_response",
-    "parameter_recovery_and_identifiability_for_s_and_b_o"
+    "parameter_recovery_and_identifiability_for_s_and_b_o",
+    "kplant_prediction_error_by_normalization_basis",
+    "study_heldout_kplant_calibration_and_species_transfer",
+    "stomatal_drought_overprediction_bias_by_leaf_water_potential_stratum",
+    "deep_vs_shallow_water_source_response_consistency",
+    "cross_year_stress_recovery_association_with_radial_growth"
   ],
   "fair_comparison_rules": [
     "freeze source release code commit data checksum model configuration and parameter units",
@@ -671,7 +839,11 @@
     "include paired cases with observationally equivalent measured states but different causal inputs; score correct abstention until a discriminating measurement is available",
     "Buckley Eq 3a/3b comparison must use the paper's stated units, compatible leaf-area basis, source-specific A_m derivation and independent-plant/leaf holdouts",
     "do not claim paper reproduction from the clean-room equation implementation; pin and rights-admit the Zenodo release and other source datasets before reproducing fitted values or reported figures",
-    "C3 A_m helper does not authorize use for C4 species; a separate source-faithful C4 profile is required"
+    "C3 A_m helper does not authorize use for C4 species; a separate source-faithful C4 profile is required",
+    "KPLANT calibration must group rows by source study and keep its five area/whole-plant normalization bases distinct",
+    "Dryad 2018 stomatal dataset must preserve source species/study and replicate or aggregate identity; do not use random row splits when repeated/aggregated observations share source groups",
+    "Liu 2026 physiology and 2024 half-hourly soil-water/radial-growth series have different years and sampling structures; never treat them as same-plant synchronized time series without an explicit source linkage",
+    "external data remain unadmitted until exact file version, checksum, rights and units are recorded in the #5816 data-admission workstream"
   ],
   "preregistration_receipt": [
     "model_and_source_revision",
@@ -704,5 +876,6 @@
     "code_and_supplement_rights_verified": false,
     "biological_validation_performed": false,
     "reason": "protocol_definition_only; each code/data/supplement artifact requires separate source, checksum, licence and scientific-scope admission"
-  }
+  },
+  "empirical_data_admission_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5816"
 }
