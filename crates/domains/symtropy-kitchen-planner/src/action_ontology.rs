@@ -70,6 +70,23 @@ pub enum ActionGroupV1 {
     Rest,
 }
 
+/// Canonical action-group universe in stable serialized/evaluation order.
+pub const ACTION_GROUPS_V1: &[ActionGroupV1] = &[
+    ActionGroupV1::Chop, ActionGroupV1::Slice, ActionGroupV1::Dice,
+    ActionGroupV1::Grate, ActionGroupV1::Shred, ActionGroupV1::Halve,
+    ActionGroupV1::Pour, ActionGroupV1::Drain, ActionGroupV1::Sprinkle,
+    ActionGroupV1::Stir, ActionGroupV1::Add, ActionGroupV1::Combine,
+    ActionGroupV1::Whisk, ActionGroupV1::Mix, ActionGroupV1::Knead,
+    ActionGroupV1::Blend, ActionGroupV1::Emulsify, ActionGroupV1::Wash,
+    ActionGroupV1::Peel, ActionGroupV1::Trim, ActionGroupV1::Pick,
+    ActionGroupV1::Place, ActionGroupV1::Move, ActionGroupV1::Serve,
+    ActionGroupV1::Cover, ActionGroupV1::Saute, ActionGroupV1::Cook,
+    ActionGroupV1::Heat, ActionGroupV1::Freeze, ActionGroupV1::Boil,
+    ActionGroupV1::Simmer, ActionGroupV1::Steam, ActionGroupV1::Bake,
+    ActionGroupV1::Roast, ActionGroupV1::PressureCook, ActionGroupV1::Cool,
+    ActionGroupV1::Rest,
+];
+
 impl ActionGroupV1 {
     pub const fn core(self) -> ActionCoreV1 {
         match self {
@@ -432,6 +449,199 @@ pub fn validate_action_ontology_binding(
     ActionOntologyValidationReportV1 { violations }
 }
 
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct ActionOntologyBenchmarkCaseV1 {
+    pub case_id: String,
+    pub action_kind: RecipeActionKindV1,
+    /// None means an ambiguous or out-of-taxonomy gold action.
+    pub gold_group: Option<ActionGroupV1>,
+    pub prediction: ActionOntologyBindingV1,
+    /// Corpus occurrence count or a declared sampling weight.
+    pub occurrence_weight: u64,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ActionOntologyBenchmarkErrorCodeV1 {
+    EmptyCaseSet,
+    EmptyCaseId,
+    DuplicateCaseId,
+    ZeroOccurrenceWeight,
+    InvalidPrediction,
+    AggregateOverflow,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct ActionOntologyBenchmarkErrorV1 {
+    pub code: ActionOntologyBenchmarkErrorCodeV1,
+    pub case_id: Option<String>,
+    pub details: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct ActionGroupEvaluationCountsV1 {
+    pub group: ActionGroupV1,
+    pub gold_occurrences: u64,
+    pub predicted_occurrences: u64,
+    pub true_positive_occurrences: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct ActionOntologyBenchmarkSummaryV1 {
+    pub case_count: u64,
+    pub total_occurrence_weight: u64,
+    pub mapped_occurrence_weight: u64,
+    pub gold_mapped_occurrence_weight: u64,
+    pub correct_mapped_occurrence_weight: u64,
+    pub abstained_occurrence_weight: u64,
+    pub correctly_abstained_occurrence_weight: u64,
+    pub groups: Vec<ActionGroupEvaluationCountsV1>,
+}
+
+impl ActionOntologyBenchmarkSummaryV1 {
+    /// Fraction = mapped_occurrence_weight / total_occurrence_weight.
+    pub fn weighted_core_coverage(&self) -> (u64, u64) {
+        (self.mapped_occurrence_weight, self.total_occurrence_weight)
+    }
+
+    /// Micro precision = correct mappings / all predicted mappings.
+    pub fn micro_group_precision(&self) -> (u64, u64) {
+        (self.correct_mapped_occurrence_weight, self.mapped_occurrence_weight)
+    }
+
+    /// Micro recall = correct mappings / all gold-mapped occurrences.
+    pub fn micro_group_recall(&self) -> (u64, u64) {
+        (self.correct_mapped_occurrence_weight, self.gold_mapped_occurrence_weight)
+    }
+
+    /// Abstention precision = correct abstentions / all predicted abstentions.
+    pub fn abstention_precision(&self) -> (u64, u64) {
+        (
+            self.correctly_abstained_occurrence_weight,
+            self.abstained_occurrence_weight,
+        )
+    }
+}
+
+fn checked_accumulate(
+    target: &mut u64,
+    increment: u64,
+    case_id: &str,
+) -> Result<(), ActionOntologyBenchmarkErrorV1> {
+    let Some(value) = target.checked_add(increment) else {
+        return Err(ActionOntologyBenchmarkErrorV1 {
+            code: ActionOntologyBenchmarkErrorCodeV1::AggregateOverflow,
+            case_id: Some(case_id.to_owned()),
+            details: vec!["weighted benchmark count overflowed u64".to_owned()],
+        });
+    };
+    *target = value;
+    Ok(())
+}
+
+/// Evaluate action-core/group mappings against frozen adjudicated labels.
+///
+/// All metrics retain exact integer numerators/denominators. Ambiguous or
+/// out-of-taxonomy gold labels use None; an unsupported guess is a false
+/// positive. Invalid mappings fail the evaluation instead of being scored.
+pub fn evaluate_action_ontology_benchmark(
+    cases: &[ActionOntologyBenchmarkCaseV1],
+) -> Result<ActionOntologyBenchmarkSummaryV1, ActionOntologyBenchmarkErrorV1> {
+    if cases.is_empty() {
+        return Err(ActionOntologyBenchmarkErrorV1 {
+            code: ActionOntologyBenchmarkErrorCodeV1::EmptyCaseSet,
+            case_id: None,
+            details: vec!["benchmark case set must not be empty".to_owned()],
+        });
+    }
+
+    let mut seen_ids = BTreeSet::new();
+    let mut summary = ActionOntologyBenchmarkSummaryV1 {
+        case_count: 0,
+        total_occurrence_weight: 0,
+        mapped_occurrence_weight: 0,
+        gold_mapped_occurrence_weight: 0,
+        correct_mapped_occurrence_weight: 0,
+        abstained_occurrence_weight: 0,
+        correctly_abstained_occurrence_weight: 0,
+        groups: ACTION_GROUPS_V1.iter().copied().map(|group| {
+            ActionGroupEvaluationCountsV1 {
+                group,
+                gold_occurrences: 0,
+                predicted_occurrences: 0,
+                true_positive_occurrences: 0,
+            }
+        }).collect(),
+    };
+
+    for case in cases {
+        if case.case_id.trim().is_empty() {
+            return Err(ActionOntologyBenchmarkErrorV1 {
+                code: ActionOntologyBenchmarkErrorCodeV1::EmptyCaseId,
+                case_id: Some(case.case_id.clone()),
+                details: vec!["benchmark case_id must be non-empty".to_owned()],
+            });
+        }
+        if !seen_ids.insert(case.case_id.as_str()) {
+            return Err(ActionOntologyBenchmarkErrorV1 {
+                code: ActionOntologyBenchmarkErrorCodeV1::DuplicateCaseId,
+                case_id: Some(case.case_id.clone()),
+                details: vec!["benchmark case_id must be unique".to_owned()],
+            });
+        }
+        if case.occurrence_weight == 0 {
+            return Err(ActionOntologyBenchmarkErrorV1 {
+                code: ActionOntologyBenchmarkErrorCodeV1::ZeroOccurrenceWeight,
+                case_id: Some(case.case_id.clone()),
+                details: vec!["occurrence_weight must be positive".to_owned()],
+            });
+        }
+
+        let validation = validate_action_ontology_binding(case.action_kind, &case.prediction);
+        if !validation.is_valid() {
+            return Err(ActionOntologyBenchmarkErrorV1 {
+                code: ActionOntologyBenchmarkErrorCodeV1::InvalidPrediction,
+                case_id: Some(case.case_id.clone()),
+                details: validation.violations.into_iter()
+                    .map(|entry| format!("{:?}: {}", entry.code, entry.detail))
+                    .collect(),
+            });
+        }
+
+        let predicted_group = case.prediction.mapping.group;
+        checked_accumulate(&mut summary.case_count, 1, &case.case_id)?;
+        checked_accumulate(&mut summary.total_occurrence_weight, case.occurrence_weight, &case.case_id)?;
+
+        if let Some(group) = case.gold_group {
+            checked_accumulate(&mut summary.gold_mapped_occurrence_weight, case.occurrence_weight, &case.case_id)?;
+            let counts = summary.groups.iter_mut().find(|counts| counts.group == group)
+                .expect("every action group has a stable evaluation entry");
+            checked_accumulate(&mut counts.gold_occurrences, case.occurrence_weight, &case.case_id)?;
+        }
+
+        if let Some(group) = predicted_group {
+            checked_accumulate(&mut summary.mapped_occurrence_weight, case.occurrence_weight, &case.case_id)?;
+            let counts = summary.groups.iter_mut().find(|counts| counts.group == group)
+                .expect("every action group has a stable evaluation entry");
+            checked_accumulate(&mut counts.predicted_occurrences, case.occurrence_weight, &case.case_id)?;
+        } else {
+            checked_accumulate(&mut summary.abstained_occurrence_weight, case.occurrence_weight, &case.case_id)?;
+        }
+
+        if predicted_group.is_some() && predicted_group == case.gold_group {
+            checked_accumulate(&mut summary.correct_mapped_occurrence_weight, case.occurrence_weight, &case.case_id)?;
+            let group = predicted_group.expect("checked as Some");
+            let counts = summary.groups.iter_mut().find(|counts| counts.group == group)
+                .expect("every action group has a stable evaluation entry");
+            checked_accumulate(&mut counts.true_positive_occurrences, case.occurrence_weight, &case.case_id)?;
+        } else if predicted_group.is_none() && case.gold_group.is_none() {
+            checked_accumulate(&mut summary.correctly_abstained_occurrence_weight, case.occurrence_weight, &case.case_id)?;
+        }
+    }
+
+    Ok(summary)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -521,6 +731,70 @@ mod tests {
         assert!(report.violations.iter().any(|entry| {
             entry.code == ActionOntologyViolationCodeV1::DuplicateParameter
         }));
+    }
+
+    #[test]
+    fn benchmark_reports_weighted_coverage_precision_recall_and_abstention() {
+        let cases = vec![
+            ActionOntologyBenchmarkCaseV1 {
+                case_id: "chop-correct".to_owned(),
+                action_kind: RecipeActionKindV1::Chop,
+                gold_group: Some(ActionGroupV1::Chop),
+                prediction: rule_based_action_binding(RecipeActionKindV1::Chop, RecipeEvidenceClassV1::Declared),
+                occurrence_weight: 3,
+            },
+            ActionOntologyBenchmarkCaseV1 {
+                case_id: "other-abstained".to_owned(),
+                action_kind: RecipeActionKindV1::Other,
+                gold_group: None,
+                prediction: rule_based_action_binding(RecipeActionKindV1::Other, RecipeEvidenceClassV1::Modelled),
+                occurrence_weight: 2,
+            },
+            ActionOntologyBenchmarkCaseV1 {
+                case_id: "saute-wrong-group".to_owned(),
+                action_kind: RecipeActionKindV1::Saute,
+                gold_group: Some(ActionGroupV1::Boil),
+                prediction: rule_based_action_binding(RecipeActionKindV1::Saute, RecipeEvidenceClassV1::Declared),
+                occurrence_weight: 1,
+            },
+        ];
+        let report = evaluate_action_ontology_benchmark(&cases).unwrap();
+        assert_eq!(report.weighted_core_coverage(), (4, 6));
+        assert_eq!(report.micro_group_precision(), (3, 4));
+        assert_eq!(report.micro_group_recall(), (3, 4));
+        assert_eq!(report.abstention_precision(), (2, 2));
+        assert_eq!(report.case_count, 3);
+    }
+
+    #[test]
+    fn benchmark_rejects_duplicate_case_ids_and_zero_weights() {
+        let mut case = ActionOntologyBenchmarkCaseV1 {
+            case_id: "same".to_owned(),
+            action_kind: RecipeActionKindV1::Chop,
+            gold_group: Some(ActionGroupV1::Chop),
+            prediction: rule_based_action_binding(RecipeActionKindV1::Chop, RecipeEvidenceClassV1::Declared),
+            occurrence_weight: 1,
+        };
+        let duplicate = evaluate_action_ontology_benchmark(&[case.clone(), case.clone()]);
+        assert_eq!(duplicate.unwrap_err().code, ActionOntologyBenchmarkErrorCodeV1::DuplicateCaseId);
+        case.occurrence_weight = 0;
+        let zero = evaluate_action_ontology_benchmark(&[case]);
+        assert_eq!(zero.unwrap_err().code, ActionOntologyBenchmarkErrorCodeV1::ZeroOccurrenceWeight);
+    }
+
+    #[test]
+    fn benchmark_rejects_invalid_ontology_predictions() {
+        let mut prediction = rule_based_action_binding(RecipeActionKindV1::Chop, RecipeEvidenceClassV1::Declared);
+        prediction.mapping.group = Some(ActionGroupV1::Dice);
+        let case = ActionOntologyBenchmarkCaseV1 {
+            case_id: "invalid-prediction".to_owned(),
+            action_kind: RecipeActionKindV1::Chop,
+            gold_group: Some(ActionGroupV1::Chop),
+            prediction,
+            occurrence_weight: 1,
+        };
+        let error = evaluate_action_ontology_benchmark(&[case]).unwrap_err();
+        assert_eq!(error.code, ActionOntologyBenchmarkErrorCodeV1::InvalidPrediction);
     }
 
     #[test]
