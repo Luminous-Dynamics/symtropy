@@ -167,6 +167,8 @@ The accompanying [synthetic disaster-resilience connectivity profile](examples/s
 
 The fixture compares `solar_haps` and `buoyant_haps` on the same service contract and preserves separate candidate references. Energy cases remain separately versioned; service availability cannot be inferred from a daily Wh ledger. Export is disabled in this service profile. A future energy-export service requires a distinct profile and surplus-only admission after each platform's own reserve and service loads.
 
+The service profile references a separate [HAPS wind-navigation case schema](schemas/haps_wind_navigation_case_v1.schema.json) and [synthetic wind-column fixture](examples/synthetic_haps_wind_column_case_v1.json). That fixture carries 36 synthetic wind samples across three ensemble labels, three altitudes and four valid-time offsets; it deliberately has no forecast availability, altitude-control authority, trajectory or energy solution. The contract records data source, coordinate frame, vertical reference, time cadence, forecast initialization/lead-time semantics, ensemble identity and platform-specific control-model references. In particular, ERA5 reanalysis must not be replayed as an operational forecast that was available to a historical controller.
+
 ## 5. Qualification gates
 
 | Gate | Evidence | Permitted claim |
