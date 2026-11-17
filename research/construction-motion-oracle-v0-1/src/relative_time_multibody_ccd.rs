@@ -316,7 +316,7 @@ fn map_body_clock(
         return fail(ClockMappingFailure::InvalidValidityInterval);
     }
     if mapping.reference_source_time_ms < mapping.valid_from_source_ms
-        || mapping.reference_source_time_ms > mapping.valid_until_source_ms
+        || mapping.reference_source_time_ms >= mapping.valid_until_source_ms
     {
         return fail(ClockMappingFailure::ReferenceOutsideValidity);
     }
@@ -547,7 +547,7 @@ mod tests {
             offset_max_ms: offset_max,
             drift_bound_ppm: Some(drift_ppm),
             valid_from_source_ms: 0,
-            valid_until_source_ms: 10_000,
+            valid_until_source_ms: u64::MAX,
         }
     }
 
