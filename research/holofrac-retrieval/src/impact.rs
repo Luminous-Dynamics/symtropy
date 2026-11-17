@@ -470,6 +470,127 @@ mod tests {
     }
 
     #[test]
+    fn shared_common_cause_invalidates_every_dependent_evidence_receipt() {
+        let mut graph = EvidenceDependencyGraph::new();
+        for (id, kind) in [
+            ("weather-input", ArtifactKind::DesignParameter),
+            ("room-a", ArtifactKind::Geometry),
+            ("room-b", ArtifactKind::Geometry),
+            ("solver-a", ArtifactKind::SolverRun),
+            ("solver-b", ArtifactKind::SolverRun),
+            ("evidence-a", ArtifactKind::EvidenceReceipt),
+            ("evidence-b", ArtifactKind::EvidenceReceipt),
+        ] {
+            graph.add_artifact(id, kind).unwrap();
+        }
+        graph.add_dependency("room-a", "weather-input");
+        graph.add_dependency("room-b", "weather-input");
+        graph.add_dependency("solver-a", "room-a");
+        graph.add_dependency("solver-b", "room-b");
+        graph.add_dependency("evidence-a", "solver-a");
+        graph.add_dependency("evidence-b", "solver-b");
+        graph.declare_complete();
+
+        let report = graph
+            .impact_closure(&["weather-input".to_owned()])
+            .unwrap();
+        assert_eq!(
+            report.stale_evidence_ids,
+            vec!["evidence-a".to_owned(), "evidence-b".to_owned()]
+        );
+        assert!(report.unaffected_evidence_ids.is_empty());
+    }
+
+    #[test]
+    fn duplicate_edges_and_empty_change_sets_fail_closed() {
+        let mut graph = fixture(true);
+        graph.add_dependency("geometry-a", "parameter-a");
+        assert!(matches!(
+            graph.impact_closure(&["parameter-a".to_owned()]),
+            Err(ImpactError::DuplicateDependency { .. })
+        ));
+
+        let graph = fixture(true);
+        assert_eq!(
+            graph.impact_closure(&[]).unwrap_err(),
+            ImpactError::EmptyChangeSet
+        );
+    }
+
+    #[test]
+    fn deterministic_generated_dags_match_independent_oracle_across_change_sets() {
+        for seed in 1_u64..=24 {
+            let mut graph = EvidenceDependencyGraph::new();
+            let node_count = 48_usize;
+            for index in 0..node_count {
+                let kind = if index % 7 == 0 {
+                    ArtifactKind::EvidenceReceipt
+                } else if index % 5 == 0 {
+                    ArtifactKind::SolverRun
+                } else {
+                    ArtifactKind::Geometry
+                };
+                graph.add_artifact(format!("node-{index:03}"), kind).unwrap();
+            }
+
+            // Deterministic xorshift schedule. Every edge points from a higher
+            // index to a lower index, guaranteeing a DAG before validation.
+            let mut random = seed;
+            for consumer in 1..node_count {
+                for dependency in 0..consumer {
+                    random ^= random << 13;
+                    random ^= random >> 7;
+                    random ^= random << 17;
+                    if random % 11 == 0 {
+                        graph.add_dependency(
+                            format!("node-{consumer:03}"),
+                            format!("node-{dependency:03}"),
+                        );
+                    }
+                }
+            }
+            graph.declare_complete();
+
+            let changed = vec![
+                format!("node-{:03}", seed as usize % node_count),
+                format!("node-{:03}", (seed as usize * 7) % node_count),
+            ];
+            let report = graph.impact_closure(&changed).unwrap();
+            let changed_set: BTreeSet<_> = changed.iter().cloned().collect();
+
+            // Independent per-candidate backward walk over the original edge
+            // list, not the production reverse-adjacency structure.
+            let mut oracle_affected = BTreeSet::new();
+            for candidate in graph.artifacts.keys() {
+                let mut pending = vec![candidate.clone()];
+                let mut visited = BTreeSet::new();
+                while let Some(current) = pending.pop() {
+                    if !visited.insert(current.clone()) {
+                        continue;
+                    }
+                    if changed_set.contains(&current) {
+                        oracle_affected.insert(candidate.clone());
+                        break;
+                    }
+                    for (consumer, dependency) in &graph.dependencies {
+                        if consumer == &current {
+                            pending.push(dependency.clone());
+                        }
+                    }
+                }
+            }
+            assert_eq!(
+                report
+                    .affected_artifact_ids
+                    .into_iter()
+                    .collect::<BTreeSet<_>>(),
+                oracle_affected,
+                "mismatch for deterministic DAG seed {seed}"
+            );
+        }
+    }
+
+    #[test]
     fn exact_closure_matches_independent_brute_force_oracle() {
         let graph = fixture(true);
         let changed = ["parameter-a".to_owned()];
