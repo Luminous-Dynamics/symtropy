@@ -58,6 +58,9 @@ jobs:
           echo "continuous spatial field:"
           HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin field_sweep > artifacts/continuous-field.csv
           cat artifacts/continuous-field.csv
+          echo "exact evidence impact:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin impact_sweep > artifacts/evidence-impact.csv
+          cat artifacts/evidence-impact.csv
 
       - name: Upload raw benchmark outputs
         if: always()
