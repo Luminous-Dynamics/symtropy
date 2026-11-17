@@ -280,7 +280,8 @@ fn is_target_quantity(quantity: ObservationQuantity) -> bool {
 
 fn run_sampling_reference_lane() -> Result<(), Box<dyn Error>> {
     let expected = [1.0, 1.0, 1.0, 1.0, 25.0 / 34.0, 0.0];
-    for (profile, expected_retention) in canonical_rate_profiles().iter().zip(expected) {
+    let profiles = canonical_rate_profiles();
+    for (profile, expected_retention) in profiles.iter().zip(expected) {
         if (profile.expected_task_band_retention - expected_retention).abs() > 1.0e-12 {
             return Err(invalid_data("sampling-rate retention differs from the known-truth oracle").into());
         }
