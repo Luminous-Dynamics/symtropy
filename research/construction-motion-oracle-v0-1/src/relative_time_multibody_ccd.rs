@@ -838,22 +838,6 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
     Ok(output)
 }
 
-fn unresolved_broadphase_pair(
-    first: &OuterEnvelopeBody,
-    second: &OuterEnvelopeBody,
-    candidate_slab_indices: Vec<u32>,
-    reason: RelativeTimeBroadphaseUnresolvedReason,
-) -> RelativeTimeBroadphasePairReceipt {
-    RelativeTimeBroadphasePairReceipt {
-        first_body_id: first.body_id.clone(),
-        second_body_id: second.body_id.clone(),
-        disposition: RelativeTimeBroadphasePairDisposition::Unresolved,
-        candidate_slab_indices,
-        pairwise_result: None,
-        unresolved_reason: Some(reason),
-    }
-}
-
 /// Build a zero-uncertainty span that encloses the complete clock-offset
 /// uncertainty tube represented by the pairwise oracle:
 /// widened interval [start-epsilon, end+epsilon), linear extrapolation at both
@@ -1363,6 +1347,7 @@ mod tests {
             evaluate_relative_time_multibody_ccd_with_broadphase(&missing, &broadphase_config())
                 .unwrap();
         assert_eq!(missing_report.unresolved_pairs, 1);
+        assert_eq!(missing_report.pairs.len(), 0);
         assert!(matches!(
             missing_report.body_mappings[0].disposition,
             ClockMappingDisposition::Unresolved(ClockMappingFailure::MissingMapping)
