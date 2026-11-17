@@ -798,16 +798,13 @@ pub fn run_factorization_profile(
     })?;
     let (index, index_build_micros) = SpatialIndex::build(&graph, &encoder)?;
 
-    let duplicated_role_slot_payload_bytes =
-        fact_count * 5 * dimension * std::mem::size_of::<i8>();
+    let duplicated_role_slot_payload_bytes = fact_count * 5 * dimension * std::mem::size_of::<i8>();
     let factorized_role_slot_payload_bytes =
         index.role_codebook.len() * dimension * std::mem::size_of::<i8>();
-    let role_slot_reference_bytes =
-        fact_count * 5 * std::mem::size_of::<usize>();
+    let role_slot_reference_bytes = fact_count * 5 * std::mem::size_of::<usize>();
     let holistic_vector_payload_bytes =
         fact_count * dimension * (std::mem::size_of::<i8>() + std::mem::size_of::<f32>());
-    let role_slot_reuse_ratio =
-        1.0 - index.role_codebook.len() as f64 / (fact_count * 5) as f64;
+    let role_slot_reuse_ratio = 1.0 - index.role_codebook.len() as f64 / (fact_count * 5) as f64;
 
     Ok(FactorizationProfile {
         fact_count,
@@ -919,9 +916,7 @@ pub fn run_benchmark(
         role_slot_index_bytes_estimate: index.role_codebook.len()
             * dimension
             * std::mem::size_of::<i8>(),
-        slot_reference_bytes_estimate: graph.facts.len()
-            * 5
-            * std::mem::size_of::<usize>(),
+        slot_reference_bytes_estimate: graph.facts.len() * 5 * std::mem::size_of::<usize>(),
         duplicated_role_slot_payload_bytes_estimate: graph.facts.len()
             * 5
             * dimension
@@ -954,16 +949,22 @@ pub fn factorization_fixture_graph(
     entity_count: usize,
 ) -> Result<SpatialGraph, GraphError> {
     if fact_count == 0 {
-        return Err(GraphError("factorization fixture must contain at least one fact"));
+        return Err(GraphError(
+            "factorization fixture must contain at least one fact",
+        ));
     }
     if entity_count < 2 {
-        return Err(GraphError("factorization fixture requires at least two entities"));
+        return Err(GraphError(
+            "factorization fixture requires at least two entities",
+        ));
     }
     let capacity = entity_count
         .checked_mul(entity_count - 1)
         .ok_or(GraphError("factorization fixture capacity overflow"))?;
     if fact_count > capacity {
-        return Err(GraphError("fact count exceeds unique directed-pair capacity"));
+        return Err(GraphError(
+            "fact count exceeds unique directed-pair capacity",
+        ));
     }
 
     let scales = [
@@ -1347,10 +1348,14 @@ mod tests {
         let high_reuse = run_factorization_profile(256, 17, 512, 71).unwrap();
         let low_reuse = run_factorization_profile(256, 257, 512, 71).unwrap();
         assert!(high_reuse.role_slot_reuse_ratio > low_reuse.role_slot_reuse_ratio);
-        assert!(high_reuse.factorized_role_slot_bytes_saved
-            > low_reuse.factorized_role_slot_bytes_saved);
-        assert!(high_reuse.factorized_role_slot_payload_bytes
-            < high_reuse.duplicated_role_slot_payload_bytes);
+        assert!(
+            high_reuse.factorized_role_slot_bytes_saved
+                > low_reuse.factorized_role_slot_bytes_saved
+        );
+        assert!(
+            high_reuse.factorized_role_slot_payload_bytes
+                < high_reuse.duplicated_role_slot_payload_bytes
+        );
     }
 
     #[test]
