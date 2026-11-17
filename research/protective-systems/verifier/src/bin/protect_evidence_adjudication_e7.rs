@@ -746,7 +746,7 @@ fn evaluate(
 
     let (verified_attestations, verified_independent_evidence, rejected_attestations) =
         verified_independence(corpus, &graph, decision_time, valid_at);
-    let independence_attestation_receipts = corpus
+    let mut independence_attestation_receipts = corpus
         .independence_attestations
         .iter()
         .filter(|item| verified_attestations.contains(&item.attestation_id))
@@ -762,7 +762,6 @@ fn evaluate(
             valid_to: item.valid_to.clone(),
         })
         .collect::<Vec<_>>();
-    let mut independence_attestation_receipts = independence_attestation_receipts;
     independence_attestation_receipts.sort_by(|left, right| {
         left.attestation_id.cmp(&right.attestation_id)
     });
