@@ -25,8 +25,6 @@ struct Measurement {
     value: f64,
     standard_uncertainty: f64,
     calibration_ref: String,
-    calibration_valid_from_utc: String,
-    calibration_valid_until_utc: String,
     method_ref: String,
     raw_record_digest: String,
 }
@@ -226,8 +224,6 @@ fn parse_measurement(
         value: measurement_value,
         standard_uncertainty,
         calibration_ref,
-        calibration_valid_from_utc,
-        calibration_valid_until_utc,
         method_ref,
         raw_record_digest,
     })
