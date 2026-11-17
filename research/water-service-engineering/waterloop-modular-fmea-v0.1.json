@@ -1,0 +1,329 @@
+{
+  "schema_version": "waterloop-modular-fmea-v0.1",
+  "status": "preliminary_hazard_identification_not_a_signed_fmea_or_hazop",
+  "parent_issue": "Luminous-Dynamics/symtropy#5784",
+  "design_reference": "research/water-service-engineering/WATERLOOP_MODULAR_PLATFORM_DESIGN_V0_1.md",
+  "risk_ranking": "Not assigned; requires competent process, plumbing, electrical and water-quality reviewers. No severity/occurrence/detectability score is inferred here.",
+  "failure_modes": [
+    {
+      "id": "F-001",
+      "failure": "incompatible or unknown source enters equalisation",
+      "initiating_causes": [
+        "cross-connection",
+        "incorrect source routing",
+        "user misconnection"
+      ],
+      "hazard": "contamination and process-envelope exceedance",
+      "required_prevention": [
+        "physical source separation",
+        "keyed inlet",
+        "labelled isolation",
+        "feed identity"
+      ],
+      "required_detection": [
+        "source/valve state check",
+        "sample and source trace"
+      ],
+      "safe_state": "isolate source; divert batch to authorized waste; no release",
+      "verification": "misconnection and unknown-source seeded trial"
+    },
+    {
+      "id": "F-002",
+      "failure": "screen or strainer blockage",
+      "initiating_causes": [
+        "hair",
+        "lint",
+        "solids loading"
+      ],
+      "hazard": "overflow, loss of supply, pump starvation",
+      "required_prevention": [
+        "accessible removable basket",
+        "oversized capture area to be engineered",
+        "high-level overflow to safe route"
+      ],
+      "required_detection": [
+        "level trend",
+        "differential head or service indicator"
+      ],
+      "safe_state": "stop feed and pump; isolate; overflow only to authorized waste",
+      "verification": "progressive blockage test and service task timing"
+    },
+    {
+      "id": "F-003",
+      "failure": "raw feed exceeds residence-time limit",
+      "initiating_causes": [
+        "power outage",
+        "demand outage",
+        "stagnation",
+        "temperature rise"
+      ],
+      "hazard": "microbial growth, odour, fouling",
+      "required_prevention": [
+        "source-specific validated age envelope",
+        "opaque sealed drainable tank"
+      ],
+      "required_detection": [
+        "batch timestamp",
+        "temperature",
+        "level/turnover record"
+      ],
+      "safe_state": "expire and divert batch; clean/requalify as required",
+      "verification": "age-by-temperature challenge with independent sampling"
+    },
+    {
+      "id": "F-004",
+      "failure": "equalisation high-high or overflow",
+      "initiating_causes": [
+        "excess source flow",
+        "blocked outlet",
+        "sensor failure"
+      ],
+      "hazard": "flooding and contamination",
+      "required_prevention": [
+        "independent physical overflow",
+        "high-high trip",
+        "bund and drain"
+      ],
+      "required_detection": [
+        "independent level switch",
+        "leak detection"
+      ],
+      "safe_state": "stop inflow/feed; route overflow to authorized waste",
+      "verification": "high-high and sensor-failure trial"
+    },
+    {
+      "id": "F-005",
+      "failure": "feed pump dry-run, loss of prime or dead-head",
+      "initiating_causes": [
+        "low tank level",
+        "blocked line",
+        "valve error"
+      ],
+      "hazard": "heat, equipment damage, loss of treatment",
+      "required_prevention": [
+        "pump selection with process engineer",
+        "physical low-level permissive",
+        "relief/recirculation as appropriate"
+      ],
+      "required_detection": [
+        "flow/pressure/current"
+      ],
+      "safe_state": "de-energize and isolate module",
+      "verification": "dry-run and blocked-discharge test per manufacturer envelope"
+    },
+    {
+      "id": "F-006",
+      "failure": "UF membrane breach or integrity loss",
+      "initiating_causes": [
+        "membrane damage",
+        "seal failure",
+        "chemical incompatibility",
+        "pressure excursion"
+      ],
+      "hazard": "untreated contamination passes to product stream",
+      "required_prevention": [
+        "pressure envelope",
+        "integrity-test protocol",
+        "compatible material and cleaning plan"
+      ],
+      "required_detection": [
+        "validated integrity test",
+        "pressure/flow trending",
+        "independent sample"
+      ],
+      "safe_state": "quarantine outlet and divert; no end-use release",
+      "verification": "deliberately seeded integrity fault and no-release proof"
+    },
+    {
+      "id": "F-007",
+      "failure": "UV barrier unavailable or under-dose",
+      "initiating_causes": [
+        "lamp failure",
+        "low UV transmittance",
+        "high flow",
+        "dirty sleeve",
+        "power loss"
+      ],
+      "hazard": "inadequate microbial barrier",
+      "required_prevention": [
+        "validated reactor and hydraulic envelope",
+        "maintenance and sensor validation"
+      ],
+      "required_detection": [
+        "validated dose/intensity and flow interlocks",
+        "lamp state alone insufficient"
+      ],
+      "safe_state": "close reclaimed outlet; divert or quarantine",
+      "verification": "lamp-off, low-intensity and over-flow tests"
+    },
+    {
+      "id": "F-008",
+      "failure": "GAC biofilm detachment or breakthrough (cassette B)",
+      "initiating_causes": [
+        "media maturation",
+        "biofilm sloughing",
+        "adsorption exhaustion"
+      ],
+      "hazard": "microbial or chemical quality deterioration",
+      "required_prevention": [
+        "media spec and replacement limit",
+        "backwash and maturation protocol"
+      ],
+      "required_detection": [
+        "scheduled samples",
+        "pressure loss/flow and service indicators"
+      ],
+      "safe_state": "quarantine batch; replace/clean media and requalify",
+      "verification": "aged media, restart and biofilm challenge"
+    },
+    {
+      "id": "F-009",
+      "failure": "ozone leak or off-gas control failure (cassette B)",
+      "initiating_causes": [
+        "seal failure",
+        "generator fault",
+        "vent failure"
+      ],
+      "hazard": "worker/user inhalation exposure and material damage",
+      "required_prevention": [
+        "independent safety case",
+        "enclosure, ventilation, off-gas destructor and rated materials"
+      ],
+      "required_detection": [
+        "ozone monitor and ventilation proof"
+      ],
+      "safe_state": "hardware shutdown and safe evacuation/ventilation procedure",
+      "verification": "not in A0; only after signed ozone hazard review"
+    },
+    {
+      "id": "F-010",
+      "failure": "quarantine release occurs without valid evidence",
+      "initiating_causes": [
+        "stale sample",
+        "wrong batch association",
+        "controller/data error"
+      ],
+      "hazard": "unqualified water reaches fixture",
+      "required_prevention": [
+        "batch identity binding",
+        "independent quality decision",
+        "physical output lock"
+      ],
+      "required_detection": [
+        "sample/batch UID and validity checks"
+      ],
+      "safe_state": "remain quarantined; no release",
+      "verification": "stale, mismatched, missing and contradictory evidence challenges"
+    },
+    {
+      "id": "F-011",
+      "failure": "accepted-water tank contaminated or stagnant",
+      "initiating_causes": [
+        "poor turnover",
+        "biofilm",
+        "open access",
+        "backflow"
+      ],
+      "hazard": "microbial regrowth and loss of intended-use quality",
+      "required_prevention": [
+        "opaque sealed cleanable drainable vessel",
+        "turnover limit and access control"
+      ],
+      "required_detection": [
+        "age/temperature/turnover records and scheduled outlet sampling"
+      ],
+      "safe_state": "isolate tank, empty/clean under procedure, requalify",
+      "verification": "stagnation and post-storage quality challenge"
+    },
+    {
+      "id": "F-012",
+      "failure": "potable/non-potable cross-connection",
+      "initiating_causes": [
+        "incorrect pipework",
+        "misconnected hose",
+        "inadequate make-up arrangement"
+      ],
+      "hazard": "drinking-water contamination",
+      "required_prevention": [
+        "physical separation",
+        "approved air gap/break tank if make-up needed",
+        "backflow protection",
+        "colour/labels/keyed ports"
+      ],
+      "required_detection": [
+        "independent plumbing inspection and cross-connection testing"
+      ],
+      "safe_state": "isolate affected supplies; do not rely on software valve",
+      "verification": "qualified plumbing cross-connection inspection/test"
+    },
+    {
+      "id": "F-013",
+      "failure": "power, communication or controller failure",
+      "initiating_causes": [
+        "mains outage",
+        "brownout",
+        "firmware crash",
+        "network loss"
+      ],
+      "hazard": "unsafe restart, uncontrolled release",
+      "required_prevention": [
+        "de-energize-to-safe outputs",
+        "hardware isolation and permissives"
+      ],
+      "required_detection": [
+        "watchdog and independent power status"
+      ],
+      "safe_state": "close reclaimed outlet, stop feed, retain quarantine",
+      "verification": "power interruption, brownout and reboot test"
+    },
+    {
+      "id": "F-014",
+      "failure": "reject/backwash/cleaning discharge misrouted",
+      "initiating_causes": [
+        "assembly error",
+        "blocked waste",
+        "unlabelled port"
+      ],
+      "hazard": "environmental release, backflow or flooding",
+      "required_prevention": [
+        "keyed reject port",
+        "dedicated closed collection",
+        "labelled authorized destination"
+      ],
+      "required_detection": [
+        "reject meter and tank level reconciliation"
+      ],
+      "safe_state": "stop process and hold residuals in containment",
+      "verification": "port-trace and reject mass/volume balance challenge"
+    },
+    {
+      "id": "F-015",
+      "failure": "sensor stale, drifting or common-mode failure",
+      "initiating_causes": [
+        "calibration expiry",
+        " fouling",
+        "shared power/timebase",
+        "communications loss"
+      ],
+      "hazard": "false process permissive or bad evidence",
+      "required_prevention": [
+        "Mycelix instrument capability/calibration admission",
+        "independent critical trips"
+      ],
+      "required_detection": [
+        "freshness/quality/uncertainty states",
+        "cross-checks"
+      ],
+      "safe_state": "abstain and isolate if the channel is safety-critical",
+      "verification": "stale, biased, disconnected and common-mode negative controls"
+    }
+  ],
+  "review_required": [
+    "formal HAZID/HAZOP by competent process engineer",
+    "plumbing cross-connection review by qualified local professional",
+    "electrical risk and protection review by qualified professional",
+    "chemical/ozone safety case before cassette B is constructed",
+    "water-quality hazard analysis and intended-use criteria via Mycelix #6100 and appropriate laboratory/authority",
+    "independent verification of physical barriers and failure response"
+  ]
+}

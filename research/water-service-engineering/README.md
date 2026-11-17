@@ -138,6 +138,17 @@ The full time-resolved service semantics, scenario families, South African regul
 
 [WATER_ECONOMICS_BENCHMARK_V0_1.md](WATER_ECONOMICS_BENCHMARK_V0_1.md) defines the water-specific whole-life and monthly cost boundary, matched industry comparators, tariff/price evidence, fixed-charge handling and resident-authorised burden semantics. It composes with Sol-Atlas #816 and #700 rather than duplicating their whole-household cost or post-occupancy owners.
 
-The initial WaterLoop implementation adds eight synthetic known-answer cases (026–033) to the shared T0 evaluator. It does not calculate tariffs or infer income. The evaluator reports cost arithmetic separately from actual service equivalence and keeps its qualification status NotRun.
+The initial WaterLoop implementation adds nine synthetic known-answer cases (026–034) to the shared T0 evaluator. It does not calculate tariffs or infer income. The evaluator reports cost arithmetic separately from actual service equivalence and keeps its qualification status NotRun.
 
 The T0 household-economics suite now has nine synthetic cases (026–034). It explicitly separates cost/service comparison from resident affordability: missing/unauthorised income abstains only the water-spend burden, while cost-per-useful-volume remains reportable. The tariff bill's billing-period days must match the system-cost period or bill-delta comparisons abstain.
+
+
+## Modular residential reuse design package
+
+The preliminary source-aware / replaceable-cassette design package is now available:
+- [WATERLOOP_MODULAR_PLATFORM_DESIGN_V0_1.md](WATERLOOP_MODULAR_PLATFORM_DESIGN_V0_1.md) — functional process design, source separation, quarantine/release, tagged instrument boundaries, state machine, candidate treatment trains, demonstrator and sizing gates.
+- [waterloop-modular-module-icd-v0.1.json](waterloop-modular-module-icd-v0.1.json) — preliminary mechanical/fluid/electrical/data interface contract.
+- [waterloop-modular-fmea-v0.1.json](waterloop-modular-fmea-v0.1.json) — preliminary hazard/failure-mode register, not a signed FMEA or HAZOP.
+- [waterloop-modular-fat-sat-v0.1.json](waterloop-modular-fat-sat-v0.1.json) — preliminary factory/site acceptance test plan.
+
+The design deliberately does not freeze vessel volumes, pump duty, membrane area, UV dose, pipe sizes, materials or part numbers until measured source/demand traces and qualified process envelopes exist. It is not a construction P&ID or procurement authority. First test-cell feed is shower + hand basin only; laundry remains a separate challenge stream; toilet-flushing test fixture is the initial use; potable use is excluded.
