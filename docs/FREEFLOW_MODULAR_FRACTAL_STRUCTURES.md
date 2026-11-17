@@ -605,3 +605,7 @@ This test is intentionally small. It isolates the effect of added internal conne
 ### Next mechanics work
 
 The next structural solver milestone is tracked in [Symtropy issue #5768](https://github.com/Luminous-Dynamics/symtropy/issues/5768): a verified 3D beam/frame element and global eigenvalue-buckling model. The axial end-spring solver should later evolve into six-degree-of-freedom connector stiffness matrices and be calibrated against physical connector coupons. The current member Euler screen must not be interpreted as global buckling analysis.
+
+### Compute-aware damage-screen budgets
+
+The bounded two-member removal campaign now uses both a hard 1,024-scenario ceiling and an approximate dense-solve work budget proportional to the cube of the number of free degrees of freedom. The applied sample is bounded by the request, available pairs, the hard scenario ceiling and the work budget. Every receipt reports requested, applied and omitted scenarios. This is an execution-budget guard, not a reliability metric; sampled pair ranks remain deterministic and are not a probability distribution.
