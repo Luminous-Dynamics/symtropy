@@ -6,15 +6,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("# source_sha={source_sha}");
     println!("# target_arch={}", std::env::consts::ARCH);
     println!("# target_os={}", std::env::consts::OS);
-    println!("dimension,grid_size,samples,held_out_queries,hdc_mae,hdc_rmse,nearest_mae,nearest_rmse,bilinear_mae,bilinear_rmse,coordinate_encode_us,positional_unbind_us,cleanup_us,query_p50_us,query_p95_us,build_us,retained_vector_payload_bytes,encoder_index_bytes");
+    println!(
+        "dimension,grid_size,samples,held_out_queries,hdc_mae,hdc_rmse,nearest_mae,nearest_rmse,bilinear_mae,bilinear_rmse,coordinate_encode_us,positional_unbind_us,cleanup_us,query_p50_us,query_p95_us,build_us,retained_vector_payload_bytes,encoder_index_bytes"
+    );
 
     for dimension in [2_048_usize, 4_096] {
         for grid_size in [4_usize, 8, 16] {
-            let report = run_regular_grid_field_benchmark(
-                grid_size,
-                dimension,
-                0x484f_4c4f_4649_454c,
-            )?;
+            let report =
+                run_regular_grid_field_benchmark(grid_size, dimension, 0x484f_4c4f_4649_454c)?;
             println!(
                 "{},{},{},{},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{},{}",
                 report.dimension,
