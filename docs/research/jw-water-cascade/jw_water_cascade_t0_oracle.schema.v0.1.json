@@ -55,7 +55,9 @@
               "dependency_conclusion",
               "point_of_use_conclusion",
               "claim_result",
-              "claim_ceiling"
+              "claim_ceiling",
+              "notice_delay_lower_bound_hours",
+              "notice_delay_upper_bound_hours"
             ],
             "properties": {
               "disposition": {
@@ -116,6 +118,20 @@
               },
               "claim_ceiling": {
                 "const": "synthetic_contract_only"
+              },
+              "notice_delay_lower_bound_hours": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "notice_delay_upper_bound_hours": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
               }
             }
           }
