@@ -112,7 +112,7 @@ pub struct FieldReconstructionReport {
 
 #[derive(Clone, Debug, PartialEq)]
 struct QuadraticProblem {
-    hessian: Vec<f64>,
+    hessian_rows: Vec<Vec<(usize, f64)>>,
     rhs: Vec<f64>,
     taxel_count: usize,
     lipschitz_upper_bound: f64,
@@ -211,8 +211,7 @@ fn native_data_rank(
         return 0;
     }
 
-    let tolerance = sensitivity_epsilon.max(f64::EPSILON * n as f64)
-        * maximum_absolute_value;
+    let tolerance = sensitivity_epsilon.max(f64::EPSILON * n as f64) * maximum_absolute_value;
     let mut pivot_row = 0;
     for column in 0..n {
         if pivot_row >= row_count {
@@ -243,8 +242,7 @@ fn native_data_rank(
             }
             matrix[row * n + column] = 0.0;
             for update_column in (column + 1)..n {
-                matrix[row * n + update_column] -=
-                    factor * matrix[pivot_row * n + update_column];
+                matrix[row * n + update_column] -= factor * matrix[pivot_row * n + update_column];
             }
         }
         pivot_row += 1;
@@ -259,6 +257,10 @@ fn build_quadratic(
 ) -> Result<QuadraticProblem, String> {
     // H = Kᵀ M K + λ L; b = Kᵀ M y, where M removes unadmitted rows.
     // The objective is 1/2 xᵀ H x - bᵀ x + constant.
+    //
+    // Construct each outer product only over the nonzero support of a K row.
+    // Realistic tactile coupling kernels are often local/banded; this avoids
+    // paying dense O(n³) work for a sparse mechanical neighborhood.
     let mut hessian = vec![0.0; n * n];
     let mut rhs = vec![0.0; n];
 
@@ -266,11 +268,14 @@ fn build_quadratic(
         if !problem.admitted_native_channels[row] {
             continue;
         }
-        for left in 0..n {
-            let k_left = problem.coupling_matrix[row * n + left];
-            rhs[left] += k_left * problem.native_response[row];
-            for right in 0..n {
-                hessian[left * n + right] += k_left * problem.coupling_matrix[row * n + right];
+        let active: Vec<_> = (0..n)
+            .map(|column| (column, problem.coupling_matrix[row * n + column]))
+            .filter(|(_, coefficient)| *coefficient != 0.0)
+            .collect();
+        for (left, k_left) in &active {
+            rhs[*left] += k_left * problem.native_response[row];
+            for (right, k_right) in &active {
+                hessian[*left * n + *right] += k_left * k_right;
             }
         }
     }
@@ -294,14 +299,19 @@ fn build_quadratic(
     // H is symmetric positive semidefinite. Its maximum absolute row sum is
     // a conservative upper bound on the spectral norm and therefore a safe
     // Lipschitz bound for the quadratic gradient.
-    let lipschitz_upper_bound = (0..n)
-        .map(|row| {
-            hessian[row * n..(row + 1) * n]
-                .iter()
-                .map(|value| value.abs())
-                .sum::<f64>()
-        })
-        .fold(0.0_f64, f64::max);
+    let mut lipschitz_upper_bound = 0.0_f64;
+    let mut hessian_rows = Vec::with_capacity(n);
+    for row in 0..n {
+        let entries: Vec<_> = (0..n)
+            .filter_map(|column| {
+                let value = hessian[row * n + column];
+                (value != 0.0).then_some((column, value))
+            })
+            .collect();
+        let row_sum = entries.iter().map(|(_, value)| value.abs()).sum::<f64>();
+        lipschitz_upper_bound = lipschitz_upper_bound.max(row_sum);
+        hessian_rows.push(entries);
+    }
 
     if !lipschitz_upper_bound.is_finite() || lipschitz_upper_bound <= f64::EPSILON {
         return Err(
@@ -311,7 +321,7 @@ fn build_quadratic(
     }
 
     Ok(QuadraticProblem {
-        hessian,
+        hessian_rows,
         rhs,
         taxel_count: n,
         lipschitz_upper_bound,
@@ -319,16 +329,16 @@ fn build_quadratic(
 }
 
 fn gradient(problem: &QuadraticProblem, field: &[f64]) -> Vec<f64> {
-    let n = problem.taxel_count;
-    (0..n)
-        .map(|row| {
-            let row_start = row * n;
-            problem.hessian[row_start..row_start + n]
-                .iter()
-                .zip(field)
-                .map(|(coefficient, value)| coefficient * value)
+    debug_assert_eq!(problem.taxel_count, field.len());
+    problem
+        .hessian_rows
+        .iter()
+        .zip(&problem.rhs)
+        .map(|(row, rhs)| {
+            row.iter()
+                .map(|(column, coefficient)| coefficient * field[*column])
                 .sum::<f64>()
-                - problem.rhs[row]
+                - rhs
         })
         .collect()
 }
@@ -414,20 +424,35 @@ pub fn reconstruct_contact_field(
     // contact-intensity field. Projection prevents negative pressure-like
     // artifacts from the inverse solver.
     let mut field = vec![0.0; n];
+    let mut extrapolated = vec![0.0; n];
+    let mut next_field = vec![0.0; n];
+    let mut momentum = 1.0_f64;
     let mut converged = false;
     let mut iterations = 0;
 
+    // FISTA-style accelerated projected gradient. The fixed step is safe
+    // because build_quadratic provides a conservative spectral/Lipschitz
+    // upper bound. Sparse Hessian rows keep local tactile kernels efficient.
     for iteration in 0..config.maximum_iterations {
-        let gradient = gradient(&quadratic, &field);
+        let gradient = gradient(&quadratic, &extrapolated);
         let mut maximum_delta = 0.0_f64;
         let mut maximum_field = 0.0_f64;
 
         for index in 0..n {
-            let updated = (field[index] - step_size * gradient[index]).max(0.0);
+            let updated = (extrapolated[index] - step_size * gradient[index]).max(0.0);
+            next_field[index] = updated;
             maximum_delta = maximum_delta.max((updated - field[index]).abs());
             maximum_field = maximum_field.max(updated.abs());
-            field[index] = updated;
         }
+
+        let next_momentum = 0.5 * (1.0 + (1.0 + 4.0 * momentum * momentum).sqrt());
+        let acceleration = (momentum - 1.0) / next_momentum;
+        for index in 0..n {
+            extrapolated[index] =
+                next_field[index] + acceleration * (next_field[index] - field[index]);
+        }
+        std::mem::swap(&mut field, &mut next_field);
+        momentum = next_momentum;
 
         iterations = iteration + 1;
         if maximum_delta <= config.convergence_tolerance * (1.0 + maximum_field) {
@@ -620,11 +645,8 @@ mod tests {
         let mut problem = identity_problem(vec![0.2, 0.4, 0.6]);
         problem.admitted_native_channels[1] = false;
         problem.smoothness_penalty = 1.0;
-        let report = reconstruct_contact_field(
-            &problem,
-            &FieldReconstructionConfig::default(),
-        )
-        .expect("regularized estimate");
+        let report = reconstruct_contact_field(&problem, &FieldReconstructionConfig::default())
+            .expect("regularized estimate");
         assert_eq!(report.native_data_rank, 2);
         assert!(!report.native_data_full_column_rank);
         assert!(report.regularization_enabled);
@@ -633,11 +655,8 @@ mod tests {
     #[test]
     fn complete_identity_observations_have_full_native_data_rank() {
         let problem = identity_problem(vec![0.2, 0.4, 0.6]);
-        let report = reconstruct_contact_field(
-            &problem,
-            &FieldReconstructionConfig::default(),
-        )
-        .expect("fully observed field");
+        let report = reconstruct_contact_field(&problem, &FieldReconstructionConfig::default())
+            .expect("fully observed field");
         assert_eq!(report.native_data_rank, 3);
         assert!(report.native_data_full_column_rank);
         assert!(!report.regularization_enabled);
