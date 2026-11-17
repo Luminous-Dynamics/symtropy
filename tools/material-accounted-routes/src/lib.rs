@@ -461,12 +461,6 @@ pub fn render_report(evaluations: &[CaseEvaluation]) -> String {
     output
 }
 
-impl Disposition {
-    fn as_str(self) -> &'static str {
-        Disposition::as_str(self)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
