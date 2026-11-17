@@ -200,6 +200,39 @@ fn main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             }
+            match phri_tac_transfer_oracle::active_benchmark::field_campaign::run_field_reconstruction_campaign(
+                20261117, 50,
+            ) {
+                Ok(campaign) => {
+                    println!("field_reconstruction_campaign=paired_synthetic_113_taxel_v0_1");
+                    println!("field_taxel_count={}", campaign.taxel_count);
+                    println!("field_module_count={}", campaign.module_count);
+                    println!("field_replicates={}", campaign.replicate_count);
+                    for result in campaign.results {
+                        println!(
+                            "field_estimator={} rmse_mean={:.8} rmse_p95={:.8} rmse_max={:.8} paired_delta_mean_vs_independent={:.8} paired_delta_p95_vs_independent={:.8} sensitivity_support_mean={:.4} sensitivity_support_min={:.4} mean_native_rank={:.2} full_rank_replicates={} projected_gradient_residual_mean={:.3e} projected_gradient_residual_max={:.3e} converged_replicates={}/{}",
+                            result.estimator_id,
+                            result.mean_field_rmse,
+                            result.p95_field_rmse,
+                            result.maximum_field_rmse,
+                            result.paired_rmse_delta_mean_vs_independent,
+                            result.paired_rmse_delta_p95_vs_independent,
+                            result.mean_sensitivity_support_ratio,
+                            result.minimum_sensitivity_support_ratio,
+                            result.mean_native_data_rank,
+                            result.full_rank_replicates,
+                            result.mean_projected_gradient_residual,
+                            result.maximum_projected_gradient_residual,
+                            result.converged_replicates,
+                            result.replicate_count,
+                        );
+                    }
+                }
+                Err(error) => {
+                    eprintln!("field_reconstruction_campaign=invalid: {error}");
+                    return ExitCode::FAILURE;
+                }
+            }
             ExitCode::SUCCESS
         }
         Err(error) => {
