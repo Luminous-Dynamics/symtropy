@@ -500,9 +500,8 @@ pub fn validate_kitchen_module_capability(
             electrical
                 .peak_real_power_limit_w
                 .is_some_and(|peak| peak < continuous)
-        }) || electrical
-        .peak_real_power_limit_w
-        .is_some_and(|peak| {
+        })
+        || electrical.peak_real_power_limit_w.is_some_and(|peak| {
             electrical
                 .continuous_real_power_limit_w
                 .is_some_and(|continuous| peak > continuous)
