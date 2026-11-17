@@ -1643,7 +1643,9 @@ mod tests {
             .get("universal_safe_state")
             .and_then(Value::as_str)
             .unwrap_or("");
-        if !universal_safe_state.contains("NO AUTOMATIC RELEASE") {
+        if !universal_safe_state.contains("NO_AUTOMATIC_RELEASE")
+            && !universal_safe_state.contains("NO AUTOMATIC RELEASE")
+        {
             issues.push("WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.json:universal_safe_state: missing no-automatic-release invariant".to_owned());
         }
         let prohibited = design_string_array(
