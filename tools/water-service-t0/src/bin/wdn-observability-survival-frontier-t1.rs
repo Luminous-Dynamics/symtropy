@@ -435,6 +435,7 @@ fn evaluate_layout(
                 .expect("state survival exists")
                 .push(json!({
                     "failure_order": order,
+                    "state_id": state,
                     "total_combinations": total,
                     "observable_combinations": observed,
                     "unobservable_combinations": unobserved,
