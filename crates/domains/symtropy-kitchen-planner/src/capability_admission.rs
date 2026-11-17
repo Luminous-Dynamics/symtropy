@@ -315,9 +315,7 @@ fn assess_module_power(
                     }
                 }
                 Some(_) => {}
-                None
-                    if segment.real_power_w <= peak_limit_w && !missing_surge_issue_added =>
-                {
+                None if segment.real_power_w <= peak_limit_w && !missing_surge_issue_added => {
                     add_issue(
                         issues,
                         KitchenCapabilityIssueCodeV1::MissingModuleSurgeDuration,
