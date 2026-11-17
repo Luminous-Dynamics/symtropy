@@ -783,7 +783,7 @@ mod tests {
 
     #[test]
     fn parser_rejects_duplicate_case_ids_and_unknown_port_cases() {
-        let duplicate_cases = format!("{CASES}STRAIGHT_THROUGH,0,0,0,0,0,0,0\n");
+        let duplicate_cases = format!("{CASES}STRAIGHT_THROUGH,INERTIAL_SYNTHETIC,0,0,0,0,0,0,0,0\n");
         assert!(parse_corpus(&duplicate_cases, PORTS).is_err());
 
         let unknown_port = format!(
@@ -793,8 +793,23 @@ mod tests {
     }
 
     #[test]
+    fn parser_rejects_invalid_frame_identity_and_non_finite_epoch() {
+        let bad_frame = CASES.replace(
+            "STRAIGHT_THROUGH,INERTIAL_SYNTHETIC,0,0,0,0,0,0,0,0",
+            "STRAIGHT_THROUGH,UNKNOWN-FRAME,0,0,0,0,0,0,0,0",
+        );
+        assert!(parse_corpus(&bad_frame, PORTS).is_err());
+
+        let bad_epoch = CASES.replace(
+            "STRAIGHT_THROUGH,INERTIAL_SYNTHETIC,0,0,0,0,0,0,0,0",
+            "STRAIGHT_THROUGH,INERTIAL_SYNTHETIC,NaN,0,0,0,0,0,0,0",
+        );
+        assert!(parse_corpus(&bad_epoch, PORTS).is_err());
+    }
+
+    #[test]
     fn parser_rejects_non_finite_or_invalid_direction_rows() {
-        let bad_number = CASES.replace("STRAIGHT_THROUGH,0,0,0,0,0,0,0", "STRAIGHT_THROUGH,NaN,0,0,0,0,0,0");
+        let bad_number = CASES.replace("STRAIGHT_THROUGH,INERTIAL_SYNTHETIC,0,0,0,0,0,0,0,0", "STRAIGHT_THROUGH,INERTIAL_SYNTHETIC,NaN,0,0,0,0,0,0,0");
         assert!(parse_corpus(&bad_number, PORTS).is_err());
         let bad_direction = PORTS.replace("Inflow", "Sideways");
         assert!(parse_corpus(CASES, &bad_direction).is_err());
