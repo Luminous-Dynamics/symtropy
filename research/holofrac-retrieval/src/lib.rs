@@ -462,6 +462,11 @@ impl SpatialIndex {
         self.facts.is_empty()
     }
 
+    /// Exposes the non-security encoder fingerprint for run receipts.
+    pub fn encoder_fingerprint_non_security(&self) -> u64 {
+        self.encoder_fingerprint_non_security
+    }
+
     pub fn validate_source(&self, graph: &SpatialGraph) -> Result<(), HoloFracError> {
         graph.validate()?;
         if graph.canonical_snapshot() != self.source_graph_snapshot {
@@ -688,7 +693,7 @@ pub fn run_benchmark(
     Ok(BenchmarkReport {
         dimension,
         graph_digest_non_security,
-        encoder_fingerprint_non_security: encoder.fingerprint(),
+        encoder_fingerprint_non_security: index.encoder_fingerprint_non_security(),
         fact_count: graph.facts.len(),
         positive_queries: positive.len(),
         positive_top1_hits,
