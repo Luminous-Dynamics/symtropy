@@ -277,9 +277,7 @@ pub fn validate_plan(plan: &KitchenPlanV1) -> PlanValidationReport {
                     .entry(parent)
                     .or_default()
                     .insert(task.task_id.as_str());
-                if inserted
-                    && let Some(degree) = indegree.get_mut(task.task_id.as_str())
-                {
+                if inserted && let Some(degree) = indegree.get_mut(task.task_id.as_str()) {
                     *degree += 1;
                 }
             }
