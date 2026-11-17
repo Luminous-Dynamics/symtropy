@@ -60,17 +60,23 @@ pub struct EvaluationReport {
 }
 
 fn parse_number<T: std::str::FromStr>(value: &str, at: &str) -> Result<T, String> {
-    value.parse::<T>().map_err(|_| format!("{at}: invalid numeric value {value:?}"))
+    value
+        .parse::<T>()
+        .map_err(|_| format!("{at}: invalid numeric value {value:?}"))
 }
 
 fn valid_case_id(value: &str) -> bool {
     !value.is_empty()
-        && value.bytes().all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_')
+        && value
+            .bytes()
+            .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_')
 }
 
 pub fn parse_fixtures(input: &str) -> Result<Vec<Fixture>, String> {
     let mut lines = input.lines();
-    let header = lines.next().ok_or_else(|| "empty skyhook corpus".to_owned())?;
+    let header = lines
+        .next()
+        .ok_or_else(|| "empty skyhook corpus".to_owned())?;
     if header != "case_id,height_m,delta_h_m,pi_over_alpha,table_scale_n,table_value,status" {
         return Err("unexpected skyhook corpus header".to_owned());
     }
@@ -81,7 +87,10 @@ pub fn parse_fixtures(input: &str) -> Result<Vec<Fixture>, String> {
 
     for (line_index, line) in lines.enumerate() {
         if line.trim().is_empty() {
-            return Err(format!("line {}: blank rows are not admitted", line_index + 2));
+            return Err(format!(
+                "line {}: blank rows are not admitted",
+                line_index + 2
+            ));
         }
         let fields: Vec<&str> = line.split(',').collect();
         if fields.len() != 7 {
@@ -89,7 +98,10 @@ pub fn parse_fixtures(input: &str) -> Result<Vec<Fixture>, String> {
         }
         let case_id = fields[0].to_owned();
         if !valid_case_id(&case_id) || !ids.insert(case_id.clone()) {
-            return Err(format!("line {}: invalid or duplicate case ID", line_index + 2));
+            return Err(format!(
+                "line {}: invalid or duplicate case ID",
+                line_index + 2
+            ));
         }
         let height_m: u64 = parse_number(fields[1], "height_m")?;
         let delta_h_m: u64 = parse_number(fields[2], "delta_h_m")?;
@@ -124,7 +136,10 @@ pub fn parse_fixtures(input: &str) -> Result<Vec<Fixture>, String> {
         };
 
         if height_m == 0 || delta_h_m == 0 || !table_scale_n.is_finite() || table_scale_n <= 0.0 {
-            return Err(format!("line {}: non-positive or non-finite input", line_index + 2));
+            return Err(format!(
+                "line {}: non-positive or non-finite input",
+                line_index + 2
+            ));
         }
         if ![300_000, 600_000].contains(&height_m)
             || ![3_000, 30_000, 300_000].contains(&delta_h_m)
@@ -185,8 +200,7 @@ pub fn evaluate_fixture(fixture: &Fixture) -> Result<CaseResult, String> {
     let within_turn_limit = turn_angle_rad <= turn_angle_limit_rad * (1.0 + 1.0e-12);
 
     // Eq. 53: orbital speed at the skyhook for the approximated conic.
-    let speed_denominator_m = radius_plus_height_m
-        + delta_h_m * (1.0 - 2.0 / alpha.powi(2));
+    let speed_denominator_m = radius_plus_height_m + delta_h_m * (1.0 - 2.0 / alpha.powi(2));
     let within_speed_domain = speed_denominator_m.is_finite() && speed_denominator_m > 0.0;
 
     if !within_turn_limit || !within_speed_domain {
@@ -208,19 +222,19 @@ pub fn evaluate_fixture(fixture: &Fixture) -> Result<CaseResult, String> {
         });
     }
 
-    let speed_squared_m2_s2 = SOURCE_SURFACE_GRAVITY_M_S2
-        * SOURCE_EARTH_RADIUS_M.powi(2)
-        / speed_denominator_m;
+    let speed_squared_m2_s2 =
+        SOURCE_SURFACE_GRAVITY_M_S2 * SOURCE_EARTH_RADIUS_M.powi(2) / speed_denominator_m;
     if !speed_squared_m2_s2.is_finite() || speed_squared_m2_s2 <= 0.0 {
-        return Err(format!("{}: non-finite or non-positive orbital speed", fixture.case_id));
+        return Err(format!(
+            "{}: non-finite or non-positive orbital speed",
+            fixture.case_id
+        ));
     }
     let orbital_speed_mps = speed_squared_m2_s2.sqrt();
 
     // Eq. 35: mass flow (m V0) multiplied by the velocity-vector change
     // magnitude (V0 Δθ) over the skyhook's idealized turning interval.
-    let force_from_turn_n = SOURCE_RING_LINE_DENSITY_KG_M
-        * speed_squared_m2_s2
-        * turn_angle_rad;
+    let force_from_turn_n = SOURCE_RING_LINE_DENSITY_KG_M * speed_squared_m2_s2 * turn_angle_rad;
 
     // Eq. 54: algebraically equivalent direct expression. Keeping this
     // second path makes accidental unit or transcription changes visible.
@@ -231,10 +245,13 @@ pub fn evaluate_fixture(fixture: &Fixture) -> Result<CaseResult, String> {
         * delta_h_m
         / (alpha * radius_plus_height_m * speed_denominator_m);
 
-    let algebraic_residual = (force_from_turn_n - force_from_eq54_n).abs()
-        / force_from_eq54_n.abs().max(1.0);
+    let algebraic_residual =
+        (force_from_turn_n - force_from_eq54_n).abs() / force_from_eq54_n.abs().max(1.0);
     if !algebraic_residual.is_finite() || algebraic_residual > 1.0e-12 {
-        return Err(format!("{}: Eq. 35 / Eq. 54 algebraic closure failed", fixture.case_id));
+        return Err(format!(
+            "{}: Eq. 35 / Eq. 54 algebraic closure failed",
+            fixture.case_id
+        ));
     }
 
     if fixture.expected_status != FixtureStatus::TableReproduced {
@@ -243,7 +260,9 @@ pub fn evaluate_fixture(fixture: &Fixture) -> Result<CaseResult, String> {
             fixture.case_id
         ));
     }
-    let table_value = fixture.table_value.expect("validated fixture has Table 4 value");
+    let table_value = fixture
+        .table_value
+        .expect("validated fixture has Table 4 value");
     let table_force_n = table_value * fixture.table_scale_n;
     let relative_error = (force_from_turn_n - table_force_n).abs() / table_force_n.abs();
     if !relative_error.is_finite() || relative_error > TABLE_RELATIVE_TOLERANCE {
@@ -289,8 +308,7 @@ pub fn evaluate_corpus(input: &str) -> Result<EvaluationReport, String> {
     if table_reproduced_count != 28 || outside_source_domain_count != 8 {
         return Err(format!(
             "unexpected Table 4 disposition: {} reproduced, {} outside source domain",
-            table_reproduced_count,
-            outside_source_domain_count
+            table_reproduced_count, outside_source_domain_count
         ));
     }
 
