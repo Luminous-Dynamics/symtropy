@@ -321,6 +321,9 @@ fn validate_capture(
     }
     let normalized = field(capture, "headers", "capture")?;
     ensure_keys(normalized, &["content-type", "x-licence", "date"], "capture.headers")?;
+    if string(normalized, "content-type", "capture.headers")? != content_type {
+        return Err("capture.content_type differs from normalized response header".to_owned());
+    }
     for key in ["content-type", "x-licence", "date"] {
         let declared = string(normalized, key, "capture.headers")?;
         let actual = raw_headers
@@ -359,10 +362,6 @@ fn validate_capture(
         return Err("body licence field and X-Licence header differ".to_owned());
     }
     let release = string(&body, "release", "body")?;
-    if string(capture, "expected_release", "capture").is_ok() {
-        // Reserved for future manifest schema; v0.1 does not accept this field.
-        return Err("unexpected release field in capture manifest".to_owned());
-    }
     if mode == "synthetic_fixture" {
         if release != "SYNTHETIC-ONLY"
             || string(normalized, "x-licence", "capture.headers")? != "SYNTHETIC-ONLY"
@@ -370,19 +369,12 @@ fn validate_capture(
             return Err("synthetic fixture must use SYNTHETIC-ONLY release/licence".to_owned());
         }
     } else {
-        if release.len() != 19 {
+        if release.len() != 19 || &release[10..11] != "-" {
             return Err("publisher release id must be YYYY-MM-DD-8hex".to_owned());
         }
-        let (date, suffix) = release
-            .split_once('-')
-            .ok_or_else(|| "invalid publisher release id".to_owned())?;
-        let remainder = &release[date.len() + 1..];
-        let (release_date, hash) = remainder
-            .rsplit_once('-')
-            .ok_or_else(|| "invalid publisher release id".to_owned())?;
-        let full_date = format!("{date}-{release_date}");
-        parse_date(&full_date)?;
-        if hash.len() != 8 || !hash.bytes().all(|b| b.is_ascii_hexdigit()) || suffix.is_empty() {
+        parse_date(&release[..10])?;
+        let hash = &release[11..];
+        if hash.len() != 8 || !hash.bytes().all(|b| b.is_ascii_hexdigit()) {
             return Err("publisher release id hash must be eight hexadecimal characters".to_owned());
         }
         let licence = string(&body, "licence", "body")?;
@@ -556,18 +548,24 @@ fn read_json(path: &str) -> Result<(Vec<u8>, Value), String> {
 }
 
 fn run(args: &[String]) -> Result<Value, String> {
-    if args.len() != 5 {
+    if args.len() != 6 {
         return Err(
-            "usage: jw-water-intake-t1 BODY_JSON RAW_HEADERS CAPTURE_MANIFEST RESPONSE_SCHEMA RECEIPT"
+            "usage: jw-water-intake-t1 BODY_JSON RAW_HEADERS CAPTURE_MANIFEST RESPONSE_SCHEMA CAPTURE_SCHEMA RECEIPT"
                 .to_owned(),
         );
     }
     let body = read_bytes(&args[0])?;
     let headers = read_bytes(&args[1])?;
-    let (manifest_bytes, _) = read_json(&args[2])?;
+    let manifest_bytes = read_bytes(&args[2])?;
     let (schema_bytes, schema) = read_json(&args[3])?;
-    let manifest: Value = serde_json::from_slice(&manifest_bytes)
-        .map_err(|error| format!("capture manifest JSON: {error}"))?;
+    let (capture_schema_bytes, capture_schema) = read_json(&args[4])?;
+    if string(&capture_schema, "$schema", "capture manifest schema")?
+        != "https://json-schema.org/draft/2020-12/schema"
+        || field(&capture_schema, "additionalProperties", "capture manifest schema")?.as_bool()
+            != Some(false)
+    {
+        return Err("capture manifest schema must be closed Draft 2020-12".to_owned());
+    }
     let mut receipt = validate_capture(&body, &headers, &manifest_bytes, &schema)?;
     let revision = env::var("JW_WATER_INTAKE_T1_REVISION")
         .map_err(|_| "JW_WATER_INTAKE_T1_REVISION must be the exact checkout SHA".to_owned())?;
@@ -579,6 +577,10 @@ fn run(args: &[String]) -> Result<Value, String> {
         .ok_or_else(|| "internal receipt is not an object".to_owned())?;
     object.insert("implementation_revision".to_owned(), json!(revision));
     object.insert("response_schema_sha256".to_owned(), json!(sha256(&schema_bytes)));
+    object.insert(
+        "capture_manifest_schema_sha256".to_owned(),
+        json!(sha256(&capture_schema_bytes)),
+    );
     object.insert(
         "cargo_lock_sha256".to_owned(),
         json!(sha256(include_bytes!("../../../../Cargo.lock"))),
@@ -595,7 +597,7 @@ fn run(args: &[String]) -> Result<Value, String> {
         "capture_manifest_sha256".to_owned(),
         json!(sha256(&manifest_bytes)),
     );
-    let output = Path::new(&args[4]);
+    let output = Path::new(&args[5]);
     if let Some(parent) = output.parent()
         && !parent.as_os_str().is_empty()
     {
@@ -696,13 +698,7 @@ mod tests {
     #[test]
     fn x_licence_must_match_the_raw_header_and_body() {
         let (body, headers, manifest_bytes, bundle) = fixture();
-        let changed_headers = headers
-            .iter()
-            .map(|b| *b)
-            .collect::<Vec<_>>()
-            .into_iter()
-            .collect::<Vec<_>>();
-        let changed_headers = String::from_utf8(changed_headers)
+        let changed_headers = String::from_utf8(headers.clone())
             .unwrap()
             .replace("SYNTHETIC-ONLY", "DIFFERENT-LICENCE")
             .into_bytes();
