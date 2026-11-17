@@ -431,6 +431,59 @@ mod tests {
     }
 
     #[test]
+    fn cantilever_axial_extension_matches_closed_form() {
+        let length = 2.0;
+        let force = 1_000.0;
+        let beam = BeamElement3D::new(
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(length, 0.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+            material(),
+            section(),
+        )
+        .unwrap();
+        let stiffness = beam.local_stiffness_matrix();
+        let mut reduced = [[0.0; 6]; 6];
+        for (row, reduced_row) in reduced.iter_mut().enumerate() {
+            for (column, value) in reduced_row.iter_mut().enumerate() {
+                *value = stiffness[row + 6][column + 6];
+            }
+        }
+        let mut rhs = [0.0; 6];
+        rhs[0] = force;
+        let tip = solve_dense_6(reduced, rhs);
+        let expected = force * length / (material().youngs_modulus_pa * section().area_m2);
+        assert!((tip[0] - expected).abs() / expected < 1.0e-10);
+    }
+
+    #[test]
+    fn cantilever_torsional_rotation_matches_closed_form() {
+        let length = 2.0;
+        let torque = 100.0;
+        let beam = BeamElement3D::new(
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(length, 0.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+            material(),
+            section(),
+        )
+        .unwrap();
+        let stiffness = beam.local_stiffness_matrix();
+        let mut reduced = [[0.0; 6]; 6];
+        for (row, reduced_row) in reduced.iter_mut().enumerate() {
+            for (column, value) in reduced_row.iter_mut().enumerate() {
+                *value = stiffness[row + 6][column + 6];
+            }
+        }
+        let mut rhs = [0.0; 6];
+        rhs[3] = torque;
+        let tip = solve_dense_6(reduced, rhs);
+        let expected = torque * length
+            / (material().shear_modulus_pa * section().torsional_constant_m4);
+        assert!((tip[3] - expected).abs() / expected < 1.0e-10);
+    }
+
+    #[test]
     fn local_frame_is_right_handed_and_orientation_hint_is_projected() {
         let beam = BeamElement3D::new(
             Vec3::new(1.0, 2.0, 3.0),
