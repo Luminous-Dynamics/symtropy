@@ -636,7 +636,7 @@ mod tests {
     }
 
     #[test]
-    fn unknown_source_rights_remain_local_only() {
+    fn unknown_source_rights_cannot_be_used_for_model_training() {
         let mut graph = valid_graph();
         graph.source.rights_status = RecipeRightsStatusV1::Unknown;
         graph.evidence_class = RecipeEvidenceClassV1::Modelled;
@@ -650,6 +650,51 @@ mod tests {
         }));
         assert_eq!(graph.source.rights_status, RecipeRightsStatusV1::Unknown);
         assert_eq!(graph.evidence_class, RecipeEvidenceClassV1::Modelled);
+    }
+
+    #[test]
+    fn duplicate_permitted_use_scopes_are_rejected() {
+        let mut graph = valid_graph();
+        graph.source.permitted_uses = vec![
+            RecipeUseScopeV1::LocalProcessing,
+            RecipeUseScopeV1::LocalProcessing,
+        ];
+        let report = validate_recipe_task_graph(&graph);
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == RecipeGraphViolationCodeV1::DuplicateUseScope
+        }));
+    }
+
+    #[test]
+    fn invalid_source_digest_is_rejected() {
+        let mut graph = valid_graph();
+        graph.source.content_sha256 = Some("not-a-sha256-digest".to_owned());
+        let report = validate_recipe_task_graph(&graph);
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == RecipeGraphViolationCodeV1::InvalidSourceDigest
+        }));
+    }
+
+    #[test]
+    fn zero_quantity_and_excessive_scale_are_rejected() {
+        let mut graph = valid_graph();
+        graph.tasks[0].ingredient_inputs[0].quantity.value = 0;
+        graph.tasks[0].ingredient_inputs[0].quantity.decimal_places = 7;
+        let report = validate_recipe_task_graph(&graph);
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == RecipeGraphViolationCodeV1::InvalidQuantity
+        }));
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == RecipeGraphViolationCodeV1::InvalidQuantityScale
+        }));
+    }
+
+    #[test]
+    fn local_processing_with_unknown_source_rights_is_explicitly_local_only() {
+        let mut graph = valid_graph();
+        graph.source.rights_status = RecipeRightsStatusV1::Unknown;
+        graph.source.permitted_uses = vec![RecipeUseScopeV1::LocalProcessing];
+        assert!(validate_recipe_task_graph(&graph).is_valid());
     }
 
     #[test]
