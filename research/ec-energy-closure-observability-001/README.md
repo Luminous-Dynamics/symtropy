@@ -30,6 +30,17 @@ with turbulent energy TE = H + LE.
 
 The paper uses RMA regression for half-hourly EBC because both axes contain measurement error, and a bulk sum(TE)/sum(AE) ratio for longer intervals. It reports an average closure improvement of roughly 16% across its 84 analyzed ICOS/NEON sites when more complete energy terms and quality filtering are included. Some sites worsen, overclosure increases under more complete formulations, and a residual remains. This crate does not attempt to reproduce that empirical study; it encodes a bounded subset of its arithmetic/disposition semantics.
 
+## Diagnostic constraint, not an optimization target
+
+Nicolini et al. (2026) explicitly conclude that energy-balance closure should be treated as a diagnostic constraint, not an objective to optimize. A term set that moves the RMA slope or integrated EBR toward 1 is not automatically more physically correct: additional terms can worsen closure or create overclosure at some sites, and the unresolved residual must remain visible.
+
+Accordingly:
+- never tune or select formulations solely to make EBR or RMA slope approach 1;
+- never distribute residuals among measured terms merely to force closure;
+- preserve negative residuals and overclosure;
+- compare formulations on matched time records and disclose changes in QC, friction-velocity filtering, gap-fill policy, site, PFT and retained window;
+- interpret closure alongside term completeness, measurement uncertainty, spatial/temporal support, process plausibility and independent evidence.
+
 ## Important limitations
 
 - This crate does not ingest or authenticate FLUXNET, ICOS or NEON observations.
