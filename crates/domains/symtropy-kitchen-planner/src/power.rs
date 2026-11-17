@@ -131,6 +131,7 @@ impl PowerValidationReportV1 {
 #[serde(rename_all = "snake_case")]
 pub enum PowerScheduleStrategyV1 {
     ParallelEarliestGap,
+    PowerAwareEarliestGap,
     SerialFallback,
 }
 
@@ -151,6 +152,8 @@ pub enum PowerScheduleErrorV1 {
     NoScheduleFoundByHeuristics {
         parallel_schedule_error: Option<String>,
         parallel_power_violations: Vec<PowerConstraintViolation>,
+        power_aware_schedule_error: Option<String>,
+        power_aware_power_violations: Vec<PowerConstraintViolation>,
         serial_schedule_error: Option<String>,
         serial_power_violations: Vec<PowerConstraintViolation>,
     },
@@ -563,6 +566,285 @@ pub fn validate_power_envelope(
     report
 }
 
+/// Try an event-boundary search that delays only tasks causing a power
+/// violation. Existing task/resource/dependency constraints are preserved.
+/// This is a deterministic heuristic, not a proof of globally earliest or
+/// optimal scheduling.
+fn build_power_aware_earliest_gap(
+    input: &PowerConstrainedPlanV1,
+) -> Result<PowerScheduleReceiptV1, (Option<String>, Vec<PowerConstraintViolation>)> {
+    let plan_report = crate::validate_plan(&input.plan);
+    if !plan_report.is_valid() {
+        return Err((
+            Some(format!(
+                "source plan has {} validation violation(s)",
+                plan_report.violations.len()
+            )),
+            Vec::new(),
+        ));
+    }
+
+    let task_index: BTreeMap<&str, &crate::KitchenTaskV1> = input
+        .plan
+        .tasks
+        .iter()
+        .map(|task| (task.task_id.as_str(), task))
+        .collect();
+    let profile_index: BTreeMap<&str, &TaskPowerProfileV1> = input
+        .task_profiles
+        .iter()
+        .map(|profile| (profile.task_id.as_str(), profile))
+        .collect();
+    let mut scheduled: Vec<crate::ScheduledTaskV1> = Vec::with_capacity(input.plan.tasks.len());
+    let mut last_power_violations = Vec::new();
+
+    for task_id in &plan_report.topological_order {
+        let Some(task) = task_index.get(task_id.as_str()).copied() else {
+            return Err((
+                Some(format!("validated task {task_id} is absent from the task index")),
+                last_power_violations,
+            ));
+        };
+        let Some(task_profile) = profile_index.get(task_id.as_str()).copied() else {
+            return Err((
+                Some(format!("task {task_id} has no power profile")),
+                last_power_violations,
+            ));
+        };
+
+        let mut lower = task.earliest_start_ms.unwrap_or(0);
+        let mut upper = match task.latest_finish_ms {
+            Some(deadline) => Some(deadline.checked_sub(task.duration_ms).ok_or_else(|| {
+                (
+                    Some(format!(
+                        "task {task_id} duration exceeds its latest-finish deadline"
+                    )),
+                    last_power_violations.clone(),
+                )
+            })?),
+            None => None,
+        };
+
+        for dependency in &task.dependencies {
+            let Some(predecessor) = scheduled
+                .iter()
+                .find(|scheduled_task| scheduled_task.task_id == dependency.predecessor_task_id)
+            else {
+                return Err((
+                    Some(format!(
+                        "predecessor {} was not scheduled before task {task_id}",
+                        dependency.predecessor_task_id
+                    )),
+                    last_power_violations,
+                ));
+            };
+            let Some(minimum_start) = predecessor.end_ms.checked_add(dependency.min_lag_ms)
+            else {
+                return Err((
+                    Some(format!("minimum dependency lag overflows for task {task_id}")),
+                    last_power_violations,
+                ));
+            };
+            lower = lower.max(minimum_start);
+
+            if let Some(maximum_lag) = dependency.max_lag_ms {
+                let Some(maximum_start) = predecessor.end_ms.checked_add(maximum_lag) else {
+                    return Err((
+                        Some(format!("maximum dependency lag overflows for task {task_id}")),
+                        last_power_violations,
+                    ));
+                };
+                upper = Some(upper.map_or(maximum_start, |current| current.min(maximum_start)));
+            }
+        }
+
+        let mut candidate_start = lower;
+        let mut accepted = None;
+        loop {
+            if upper.is_some_and(|latest| candidate_start > latest) {
+                return Err((
+                    Some(format!(
+                        "power/resource conflicts exceed the latest permitted start for task {task_id}"
+                    )),
+                    last_power_violations,
+                ));
+            }
+            let Some(candidate_end) = candidate_start.checked_add(task.duration_ms) else {
+                return Err((
+                    Some(format!("task {task_id} end time overflows")),
+                    last_power_violations,
+                ));
+            };
+
+            let mut resource_conflict_end: Option<u64> = None;
+            for existing in &scheduled {
+                let shares_resource = task
+                    .resource_ids
+                    .iter()
+                    .any(|resource| existing.resource_ids.contains(resource));
+                if shares_resource
+                    && candidate_start < existing.end_ms
+                    && existing.start_ms < candidate_end
+                {
+                    resource_conflict_end = Some(
+                        resource_conflict_end
+                            .map_or(existing.end_ms, |old| old.max(existing.end_ms)),
+                    );
+                }
+            }
+            if let Some(next_start) = resource_conflict_end {
+                if next_start <= candidate_start {
+                    return Err((
+                        Some(format!("resource conflict made no progress for task {task_id}")),
+                        last_power_violations,
+                    ));
+                }
+                candidate_start = next_start;
+                continue;
+            }
+
+            let candidate = crate::ScheduledTaskV1 {
+                task_id: task.task_id.clone(),
+                start_ms: candidate_start,
+                end_ms: candidate_end,
+                resource_ids: task.resource_ids.clone(),
+            };
+            let mut partial_schedule = scheduled.clone();
+            partial_schedule.push(candidate.clone());
+            partial_schedule.sort_by(|a, b| {
+                (a.start_ms, a.task_id.as_str()).cmp(&(b.start_ms, b.task_id.as_str()))
+            });
+            let makespan_ms = partial_schedule
+                .iter()
+                .map(|scheduled_task| scheduled_task.end_ms)
+                .max()
+                .unwrap_or(0);
+            let receipt = KitchenScheduleReceiptV1 {
+                schema_version: crate::KITCHEN_SCHEDULE_SCHEMA_VERSION,
+                plan_id: input.plan.plan_id.clone(),
+                scheduler_id: crate::GREEDY_SCHEDULER_ID.to_owned(),
+                tasks: partial_schedule,
+                makespan_ms,
+            };
+
+            let scheduled_ids: BTreeSet<&str> = receipt
+                .tasks
+                .iter()
+                .map(|scheduled_task| scheduled_task.task_id.as_str())
+                .collect();
+            let mut partial_input = input.clone();
+            partial_input
+                .plan
+                .tasks
+                .retain(|scheduled_task| scheduled_ids.contains(scheduled_task.task_id.as_str()));
+            partial_input
+                .task_profiles
+                .retain(|profile| scheduled_ids.contains(profile.task_id.as_str()));
+
+            let report = validate_power_envelope(&partial_input, &receipt);
+            if report.is_valid() {
+                accepted = Some((candidate, report));
+                break;
+            }
+            last_power_violations = report.violations;
+
+            // Generate deterministic next-start candidates from existing task
+            // boundaries, profile transitions and surge-duration boundaries.
+            // This deliberately explores event times rather than incrementing
+            // one millisecond at a time.
+            let mut profile_offsets = BTreeSet::from([0_u64]);
+            for segment in &task_profile.segments {
+                profile_offsets.insert(segment.start_offset_ms);
+                profile_offsets.insert(segment.end_offset_ms);
+            }
+
+            let mut existing_events = BTreeSet::new();
+            for existing in &scheduled {
+                existing_events.insert(existing.start_ms);
+                existing_events.insert(existing.end_ms);
+                if let Some(existing_profile) = profile_index.get(existing.task_id.as_str()) {
+                    for segment in &existing_profile.segments {
+                        if let Some(event_time) = existing.start_ms.checked_add(segment.start_offset_ms) {
+                            existing_events.insert(event_time);
+                        }
+                        if let Some(event_time) = existing.start_ms.checked_add(segment.end_offset_ms) {
+                            existing_events.insert(event_time);
+                        }
+                    }
+                }
+            }
+
+            let mut next_candidates = BTreeSet::new();
+            for event_time in existing_events {
+                for offset in &profile_offsets {
+                    if let Some(aligned_start) = event_time.checked_sub(*offset) {
+                        if aligned_start > candidate_start {
+                            next_candidates.insert(aligned_start);
+                        }
+                        if let Some(before_surge_end) = aligned_start
+                            .checked_sub(input.envelope.max_surge_duration_ms)
+                            && before_surge_end > candidate_start
+                        {
+                            next_candidates.insert(before_surge_end);
+                        }
+                        if let Some(after_surge_end) = aligned_start
+                            .checked_add(input.envelope.max_surge_duration_ms)
+                            && after_surge_end > candidate_start
+                        {
+                            next_candidates.insert(after_surge_end);
+                        }
+                    }
+                }
+            }
+
+            let Some(next_start) = next_candidates.first().copied() else {
+                return Err((
+                    Some(format!(
+                        "no later event-boundary candidate can satisfy the power envelope for task {task_id}"
+                    )),
+                    last_power_violations,
+                ));
+            };
+            candidate_start = next_start;
+        }
+
+        let Some((accepted_task, _accepted_report)) = accepted else {
+            return Err((
+                Some(format!("no power-feasible start found for task {task_id}")),
+                last_power_violations,
+            ));
+        };
+        scheduled.push(accepted_task);
+    }
+
+    scheduled.sort_by(|a, b| {
+        (a.start_ms, a.task_id.as_str()).cmp(&(b.start_ms, b.task_id.as_str()))
+    });
+    let makespan_ms = scheduled
+        .iter()
+        .map(|scheduled_task| scheduled_task.end_ms)
+        .max()
+        .unwrap_or(0);
+    let receipt = KitchenScheduleReceiptV1 {
+        schema_version: crate::KITCHEN_SCHEDULE_SCHEMA_VERSION,
+        plan_id: input.plan.plan_id.clone(),
+        scheduler_id: crate::GREEDY_SCHEDULER_ID.to_owned(),
+        tasks: scheduled,
+        makespan_ms,
+    };
+    let power_report = validate_power_envelope(input, &receipt);
+    if !power_report.is_valid() {
+        return Err((Some("final whole-plan power verification failed".to_owned()), power_report.violations));
+    }
+
+    Ok(PowerScheduleReceiptV1 {
+        schema_version: 1,
+        schedule: receipt,
+        power_validation: power_report,
+        strategy: PowerScheduleStrategyV1::PowerAwareEarliestGap,
+    })
+}
+
 /// Try the normal deterministic parallel schedule first. If its overlapping
 /// loads exceed the declared envelope, try the existing serial topological
 /// baseline. The serial fallback preserves all original dependency/deadline
@@ -593,6 +875,12 @@ pub fn build_power_constrained_schedule(
         Err(error) => parallel_schedule_error = Some(format!("{error:?}")),
     }
 
+    let (power_aware_schedule_error, power_aware_power_violations) =
+        match build_power_aware_earliest_gap(input) {
+            Ok(receipt) => return Ok(receipt),
+            Err((schedule_error, power_violations)) => (schedule_error, power_violations),
+        };
+
     let mut serial_schedule_error = None;
     let mut serial_power_violations = Vec::new();
     match build_serial_baseline(&input.plan) {
@@ -614,6 +902,8 @@ pub fn build_power_constrained_schedule(
     Err(PowerScheduleErrorV1::NoScheduleFoundByHeuristics {
         parallel_schedule_error,
         parallel_power_violations,
+        power_aware_schedule_error,
+        power_aware_power_violations,
         serial_schedule_error,
         serial_power_violations,
     })
@@ -685,10 +975,25 @@ mod tests {
             vec![profile("processor", 10, 700), profile("cooker", 10, 600)],
         );
         let receipt = build_power_constrained_schedule(&input).unwrap();
-        assert_eq!(receipt.strategy, PowerScheduleStrategyV1::SerialFallback);
+        assert_eq!(receipt.strategy, PowerScheduleStrategyV1::PowerAwareEarliestGap);
         assert!(receipt.power_validation.is_valid());
-        assert_eq!(receipt.power_validation.peak_real_power_w, Some(700));
-        assert_eq!(receipt.schedule.makespan_ms, 20);
+        assert_eq!(receipt.power_validation.peak_real_power_w, Some(1_300));
+        assert_eq!(receipt.power_validation.longest_surge_ms, 5);
+        assert_eq!(receipt.schedule.makespan_ms, 15);
+        let processor = receipt
+            .schedule
+            .tasks
+            .iter()
+            .find(|scheduled| scheduled.task_id == "processor")
+            .unwrap();
+        let cooker = receipt
+            .schedule
+            .tasks
+            .iter()
+            .find(|scheduled| scheduled.task_id == "cooker")
+            .unwrap();
+        assert_eq!(processor.start_ms, 0);
+        assert_eq!(cooker.start_ms, 5);
     }
 
     #[test]
