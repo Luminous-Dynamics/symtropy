@@ -13,8 +13,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
     Capsule, CapsuleMotionSpan, ClockUncertaintyCcdResult, ClockUncertaintyDisposition,
-    ClockUncertaintyError, MultiBodyBroadphaseError, MultiBodyBroadphaseReport,
-    TimedCapsuleBody, clock_uncertainty_aware_capsule_query, time_swept_capsule_broadphase,
+    ClockUncertaintyError, MultiBodyBroadphaseError, MultiBodyBroadphaseReport, TimedCapsuleBody,
+    clock_uncertainty_aware_capsule_query, time_swept_capsule_broadphase,
 };
 
 const DRIFT_PPM_DENOMINATOR: u128 = 1_000_000;
@@ -548,7 +548,6 @@ fn unresolved_pair(
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OuterEnvelopeFailure {
     InvalidTimeInterval,
@@ -723,12 +722,10 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
     let outer_bodies: Vec<TimedCapsuleBody> = mapped_bodies
         .iter()
         .filter_map(|body| {
-            body.envelope_span
-                .as_ref()
-                .map(|motion| TimedCapsuleBody {
-                    body_id: body.body_id.clone(),
-                    motion: motion.clone(),
-                })
+            body.envelope_span.as_ref().map(|motion| TimedCapsuleBody {
+                body_id: body.body_id.clone(),
+                motion: motion.clone(),
+            })
         })
         .collect();
 
@@ -752,8 +749,7 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
     if broadphase_candidate_pairs > valid_outer_pair_count {
         return Err(RelativeTimeBroadphaseError::PairBudgetExceeded);
     }
-    let outer_space_time_pruned_pairs =
-        valid_outer_pair_count - broadphase_candidate_pairs;
+    let outer_space_time_pruned_pairs = valid_outer_pair_count - broadphase_candidate_pairs;
     let unresolved_body_pairs = reference_pair_count - valid_outer_pair_count;
 
     let mapped_by_id: BTreeMap<&str, &OuterEnvelopeBody> = mapped_bodies
@@ -796,15 +792,15 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
                 return Err(RelativeTimeBroadphaseError::PairBudgetExceeded);
             };
             let pairwise = evaluate_pair(&first.mapped, &second.mapped);
-            let unresolved_reason = if pairwise.disposition == RelativeTimePairDisposition::Unresolved
-            {
-                pairwise
-                    .unresolved_reason
-                    .clone()
-                    .map(RelativeTimeBroadphaseUnresolvedReason::PairwiseClockQuery)
-            } else {
-                None
-            };
+            let unresolved_reason =
+                if pairwise.disposition == RelativeTimePairDisposition::Unresolved {
+                    pairwise
+                        .unresolved_reason
+                        .clone()
+                        .map(RelativeTimeBroadphaseUnresolvedReason::PairwiseClockQuery)
+                } else {
+                    None
+                };
             if unresolved_reason.is_some() {
                 output.unresolved_pairs += 1;
             }
@@ -1398,10 +1394,9 @@ mod tests {
         assert!((outer.capsule_at_start.radius_mm - 5.5).abs() < 1.0e-9);
 
         for site_time in [950_u64, 1_000, 1_250, 1_500, 1_999, 2_049] {
-            let fraction = (site_time - outer.start_ms) as f64
-                / (outer.end_ms - outer.start_ms) as f64;
-            let outer_center = outer.capsule_at_start.start.x
-                + outer.translation.x * fraction;
+            let fraction =
+                (site_time - outer.start_ms) as f64 / (outer.end_ms - outer.start_ms) as f64;
+            let outer_center = outer.capsule_at_start.start.x + outer.translation.x * fraction;
             for offset in [-50_i64, 0, 50] {
                 let source_time = site_time as i64 - offset;
                 let source_fraction = (source_time - 1_000) as f64 / 1_000.0;
@@ -1415,5 +1410,4 @@ mod tests {
             }
         }
     }
-
 }
