@@ -550,10 +550,7 @@ mod tests {
         assert_eq!(report.windows[0].vibration_sequences, vec![10, 11]);
         assert_eq!(report.windows[1].vibration_sequences, vec![12, 13]);
         assert!(report.windows.iter().all(|window| {
-            window
-                .vibration_sequences
-                .iter()
-                .all(|sequence| *sequence < 14 || window.tactile_sequence != 2)
+            !window.vibration_sequences.contains(&14)
         }));
     }
 
@@ -578,16 +575,23 @@ mod tests {
         );
         let tactile = normalize_stream(&tactile, &tactile_mapping).unwrap();
         let vibration = normalize_stream(&vibration, &vibration_mapping).unwrap();
-        let report = align_causal_multirate(&tactile, &vibration, 100, 20, 2, 5)
-            .expect("alignment report");
+        let gap_report = align_causal_multirate(&tactile, &vibration, 100, 20, 20, 5)
+            .expect("gap alignment report");
         assert_eq!(
-            report.windows[0].disposition,
+            gap_report.windows[0].disposition,
             AlignmentDisposition::ExcessiveVibrationGap
         );
         assert_eq!(
-            report.windows[1].disposition,
+            gap_report.windows[1].disposition,
+            AlignmentDisposition::ExcessiveVibrationGap
+        );
+
+        let uncertainty_report =
+            align_causal_multirate(&tactile, &vibration, 100, 100, 20, 5)
+                .expect("uncertainty alignment report");
+        assert_eq!(
+            uncertainty_report.windows[1].disposition,
             AlignmentDisposition::ExcessiveClockUncertainty
-                .max(AlignmentDisposition::ExcessiveVibrationGap)
         );
     }
 
