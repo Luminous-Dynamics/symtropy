@@ -342,6 +342,30 @@ fn main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             }
+            match phri_tac_transfer_oracle::active_benchmark::geometry_uncertainty::run_synthetic_geometry_uq_monte_carlo_example() {
+                Ok(report) => {
+                    println!("geometry_uq_monte_carlo=synthetic_v0_1");
+                    match serde_json::to_string(&report) {
+                        Ok(scorecard_json) => {
+                            println!("geometry_uq_monte_carlo_scorecard_json={scorecard_json}");
+                        }
+                        Err(error) => {
+                            eprintln!("geometry_uq_monte_carlo_scorecard_json=serialization_error:{error}");
+                            return ExitCode::FAILURE;
+                        }
+                    }
+                    println!(
+                        "geometry_uq_mc=replicates={} relative_covariance_frobenius_error={:.6} mean_bias={:?}",
+                        report.replicate_count,
+                        report.relative_covariance_frobenius_error,
+                        report.empirical_mean_bias_from_nominal,
+                    );
+                }
+                Err(error) => {
+                    eprintln!("geometry_uq_monte_carlo=invalid: {error}");
+                    return ExitCode::FAILURE;
+                }
+            }
             ExitCode::SUCCESS
         }
         Err(error) => {
