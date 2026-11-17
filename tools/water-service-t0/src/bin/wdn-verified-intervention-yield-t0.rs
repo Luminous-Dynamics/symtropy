@@ -207,18 +207,22 @@ fn duplicate_raw_event_ids(input: &Value) -> Result<BTreeSet<String>, String> {
     let cases = field(input, "cases", "input")?
         .as_array()
         .ok_or_else(|| "input.cases must be an array".to_owned())?;
-    let mut digest_owners = BTreeMap::<String, BTreeSet<String>>::new();
+    let mut digest_owners = BTreeMap::<String, Vec<String>>::new();
+    let mut all_event_ids = BTreeSet::new();
     for case in cases {
         let events = field(case, "events", "case")?
             .as_array()
             .ok_or_else(|| "case.events must be an array".to_owned())?;
         for event in events {
             let event_id = string(event, "event_id", "event")?.to_owned();
+            if !all_event_ids.insert(event_id.clone()) {
+                return Err(format!("duplicate event_id '{event_id}' across benchmark input"));
+            }
             for digest in event_raw_digests(event) {
                 digest_owners
                     .entry(digest)
                     .or_default()
-                    .insert(event_id.clone());
+                    .push(event_id.clone());
             }
         }
     }
@@ -298,6 +302,9 @@ fn evaluate_event(
             .and_then(Value::as_str)
             .is_none_or(str::is_empty)
         || !valid_canonical_utc(string(inspection, "inspected_at", "inspection")?)
+        || string(alert, "first_seen_utc", "alert")? > string(inspection, "inspected_at", "inspection")?
+        || string(event, "topology_revision", "event")?.trim().is_empty()
+        || string(event, "dma_id", "event")?.trim().is_empty()
     {
         return base_event_output(event, "indeterminate_inspection_evidence");
     }
@@ -326,7 +333,8 @@ fn evaluate_event(
         return Ok(confirmed);
     }
     let repair = repair_value;
-    if string(repair, "state", "repair")? != "completed"
+    if string(repair, "work_order_id", "repair")?.trim().is_empty()
+        || string(repair, "state", "repair")? != "completed"
         || repair
             .get("completed_at")
             .and_then(Value::as_str)
@@ -342,6 +350,7 @@ fn evaluate_event(
     if string(repair, "event_id", "repair")? != event_id
         || string(repair, "asset_id", "repair")? != confirmed_asset
         || !valid_canonical_utc(string(repair, "completed_at", "repair")?)
+        || string(inspection, "inspected_at", "inspection")? > string(repair, "completed_at", "repair")?
     {
         confirmed["disposition"] = json!("repair_asset_mismatch");
         return Ok(confirmed);
@@ -359,6 +368,7 @@ fn evaluate_event(
         || string(verification, "status", "verification")? != "pass"
         || !boolean(verification, "independent", "verification")?
         || string(verification, "verifier_id", "verification")? == repair_crew
+        || string(verification, "verifier_id", "verification")? == string(inspection, "inspector_id", "inspection")?
         || verification
             .get("verification_ref")
             .and_then(Value::as_str)
@@ -540,6 +550,8 @@ fn evaluate_case(case: &Value, duplicate_events: &BTreeSet<String>) -> Result<Va
         .count();
     let service_floor_count =
         count_disposition("verified_repair_service_floor_violation");
+    let verified_repair_count = count_disposition("confirmed_repair_verified")
+        + service_floor_count;
 
     Ok(json!({
         "case_id": case_id,
@@ -550,7 +562,7 @@ fn evaluate_case(case: &Value, duplicate_events: &BTreeSet<String>) -> Result<Va
         "false_dispatch_count": count_disposition("false_dispatch_confirmed_no_leak"),
         "repair_completed_count": repair_completed_count,
         "independent_post_repair_verification_count": post_repair_verification_count,
-        "verified_repair_count": count_disposition("confirmed_repair_verified"),
+        "verified_repair_count": verified_repair_count,
         "recurrence_count": count_disposition("recurrence_observed"),
         "localization_asset_mismatch_count": localization_mismatch_count,
         "observed_flow_reduction_lps": round_9(sum_number("observed_flow_reduction_lps")),
@@ -917,6 +929,7 @@ mod tests {
             "verified_repair_service_floor_violation"
         );
         assert_eq!(output["service_floor_violation_count"], 1);
+        assert_eq!(output["verified_repair_count"], 1);
         assert_eq!(output["observed_flow_reduction_lps"], 8.0);
     }
 
