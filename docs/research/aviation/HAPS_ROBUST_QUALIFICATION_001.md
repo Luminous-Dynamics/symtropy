@@ -52,6 +52,7 @@ Primary references:
 - [Solar-UAV energy systems review, April 2026](https://doi.org/10.1016/j.nexres.2026.101404)
 - [Near-space motor heat-pipe cooling study, November 2026](https://doi.org/10.1016/j.ast.2026.113202)
 - [Sceye / SoftBank five-year HAPS fleet agreement, 3 November 2026](https://sceye.com/press-releases/sceye-softbank-sign-agreement-for-fleet-of-stratospheric-platforms)
+- [Mbarek et al., demand-aware HAPS congestion relief, 28 September 2026](https://doi.org/10.1016/j.comnet.2026.112795)
 
 The 2026 review identifies PV, hybrid storage, thermal regulation, power electronics and autonomous energy control as coupled design variables. The November 2026 motor-cooling study treats heat rejection as a specific near-space design problem. These motivate explicit coupling; neither establishes one universal cooling solution.
 
@@ -127,6 +128,19 @@ The candidate-specific control problems are different:
 
 The Luminous research gap is a **service-aware, robust wind-field planner** that optimizes time-varying coverage and backhaul quality together with propulsion/altitude-control energy, reserve, solar collection and fleet handover. Forecasts should be distributions or ensembles, not a single deterministic wind vector. When forecast uncertainty, data age or wind regime leaves the candidate outside its validated domain, return `NOT_COVERED` / `INDETERMINATE` rather than extrapolating silently.
 
+### 3.8 Use the network as the mission objective, not a passive payload
+
+A HAPS network is not simply a fleet of aircraft carrying radio payloads. Demand selection, beam allocation, platform positioning, backhaul and edge compute can be jointly optimized. Mbarek et al. (Computer Networks, 28 September 2026) combine context-conditioned cell selection with Lyapunov-based HAPS positioning under a maneuver-energy budget; the paper reports up to 64% critical excess traffic removed and 24% throughput gain over stationary deployment on real operator traffic traces. It also identifies a regime change: cell selection matters more under small beam budgets, while platform geometry dominates as the assisted set expands. These are research results on specific traffic traces, not operational commercial fleet figures. [DOI 10.1016/j.comnet.2026.112795](https://doi.org/10.1016/j.comnet.2026.112795).
+
+Multi-platform literature already addresses parts of the problem:
+- Multi-airship coverage and connectivity control with distributed algebraic-connectivity estimates, position adjustment and CBF safety filters: [DOI 10.1016/j.conengprac.2025.106544](https://doi.org/10.1016/j.conengprac.2025.106544).
+- Dynamic multi-airship communication coverage in time-varying winds reports up to 19.1% reduced wind resistance and 30–76% faster execution than Voronoi methods in its simulations: [DOI 10.1016/j.ast.2025.110514](https://doi.org/10.1016/j.ast.2025.110514).
+- Collaborative multi-agent RL coverage planning with revisit scheduling under wind and energy constraints: [DOI 10.1016/j.ast.2025.110736](https://doi.org/10.1016/j.ast.2025.110736).
+- Energy-aware hierarchical mission scheduling/path planning/station-keeping reports 90% task completion, 74.5% higher task revenue and +6.85% minimum SoC in one 48-hour simulation: [DOI 10.1016/j.asr.2026.03.105](https://doi.org/10.1016/j.asr.2026.03.105).
+- Repairable k-out-of-n reliability using a Semi-Markov model provides a fleet availability/reliability baseline with non-exponential sojourn times: [DOI 10.1016/j.ress.2025.111450](https://doi.org/10.1016/j.ress.2025.111450).
+
+The next integration layer is therefore **demand → cell/beam allocation → platform positioning → topology/backhaul → edge work → service assurance**, with all energy, thermal, reserve, outage and maintenance consequences charged to the same service boundary. The planner should choose not to move an aircraft when beam selection, gateway routing, edge processing or a neighbor node can satisfy demand at lower total system cost. The dedicated workstream is [AERO-HAPS-NET-ORCH-001 #5948](https://github.com/Luminous-Dynamics/symtropy/issues/5948).
+
 ## 4. Benchmark scenario matrix
 
 | ID | Scenario | Essential stressors | Primary question |
@@ -142,6 +156,7 @@ The Luminous research gap is a **service-aware, robust wind-field planner** that
 | H8 | Export admission | Receiver demand, conversion, pointing, interruption and heat rejection | Is there useful export at the receiver meter? |
 | H9 | Fleet/node failure | Node loss, maintenance, recovery, spares, grounding and handover | Does the service survive an unavailable aircraft? |
 | H10 | Lift-class comparison | Fixed-wing versus buoyant free balloon versus propelled airship; payload, solar area, wind field, altitude control and launch/recovery | Which lift class delivers the same coverage service with the lowest robust system burden? |
+| H11 | Demand-aware network orchestration | Cell demand surge, finite beams, traffic forecast uncertainty, positioning/maneuver energy, backhaul and node loss | Does joint demand/beam/position/fleet scheduling increase useful service per total system Wh without service or safety regressions? |
 
 Preserve weather autocorrelation, synoptic regime, altitude correlations and geography. Do not shuffle hourly irradiance and wind independently. Hold out entire weather campaigns, seasons or locations. Monte Carlo seeds are not independent weather campaigns. Wind-layer control must also be evaluated against strong passive-drift, fixed-altitude, rule-based/greedy, A*, SOO/receding-horizon and RL baselines with the same forecast data, horizon, actuation limits and compute budget. Forecast error alone is insufficient: report achieved footprint time, p95 target distance, request/coverage outage, altitude transitions and associated actuator/propulsion Wh. Hold out full seasons, geographies and years; report the energy/coverage regret caused by forecast error.
 
@@ -183,6 +198,10 @@ The service profile references a separate [HAPS wind-navigation case schema](sch
 | Q7 — service campaign | Observed operation, maintenance, downtime, handovers and delivered service | Service-availability result for observed period |
 
 Evidence does not automatically promote between gates. Keep NOT_COVERED, OUT_OF_DOMAIN, INDETERMINATE, FAILED and NOT_RUN distinct.
+
+### Network and beam-allocation metrics
+
+For HAPS providing communications or data relay, separately report critical excess traffic removed, traffic-weighted and geographic coverage, useful throughput, beam occupancy and useful bits per beam-second, demand-selection precision/recall, cell-level SLA satisfaction, gateway/FSO/satellite backhaul reachability, edge-compute throughput, service handover gaps, algebraic connectivity (lambda2), and service delivered per total system Wh. Record whether the bottleneck is demand selection, radio/beam capacity, platform geometry, backhaul, edge compute, energy, or fleet availability. Do not report only aggregate peak throughput.
 
 ## 6. Metrics and definitions
 
