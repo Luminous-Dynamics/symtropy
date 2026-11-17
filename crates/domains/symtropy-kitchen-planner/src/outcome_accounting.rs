@@ -1009,7 +1009,10 @@ pub fn evaluate_kitchen_outcome_accounting(
         && output_mass.is_some()
         && accepted_mass.is_some()
         && residual.is_some()
-        && !issues.iter().any(|issue| is_blocking(issue.code));
+        && !issues.iter().any(|issue| {
+            is_blocking(issue.code)
+                || issue.code == KitchenOutcomeIssueCodeV1::ArithmeticOverflow
+        });
     let claim_eligible = complete
         && claimable
         && request.accepted_servings > 0
