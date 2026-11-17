@@ -234,8 +234,7 @@ fn native_data_estimability(
         return (0, identifiable);
     }
 
-    let tolerance = sensitivity_epsilon.max(f64::EPSILON * n as f64 * 8.0)
-        * maximum_absolute_value;
+    let tolerance = sensitivity_epsilon.max(f64::EPSILON * n as f64 * 8.0) * maximum_absolute_value;
     let mut pivot_columns = Vec::with_capacity(row_count);
     let mut pivot_row = 0;
 
@@ -274,8 +273,7 @@ fn native_data_estimability(
                 continue;
             }
             for update_column in column..n {
-                matrix[row * n + update_column] -=
-                    factor * matrix[pivot_row * n + update_column];
+                matrix[row * n + update_column] -= factor * matrix[pivot_row * n + update_column];
             }
             matrix[row * n + column] = 0.0;
         }
@@ -471,8 +469,10 @@ pub fn reconstruct_contact_field(
     let (native_data_rank, native_data_identifiable) =
         native_data_estimability(problem, n, config.sensitivity_epsilon);
     let native_data_full_column_rank = native_data_rank == n;
-    let native_data_identifiable_cell_count =
-        native_data_identifiable.iter().filter(|identified| **identified).count();
+    let native_data_identifiable_cell_count = native_data_identifiable
+        .iter()
+        .filter(|identified| **identified)
+        .count();
     let regularization_enabled = problem.smoothness_penalty > 0.0;
     let sparsity_prior_enabled = problem.sparsity_penalty > 0.0;
     let quadratic = build_quadratic(problem, n)?;
@@ -754,11 +754,7 @@ mod tests {
         problem.admitted_native_channels = vec![true, false, true];
         // The admitted row at taxel 2 measures field cell 1. The null-space
         // freedom remains only between field cells 0 and 2.
-        problem.coupling_matrix = vec![
-            1.0, 0.0, 1.0,
-            0.0, 0.0, 0.0,
-            0.0, 1.0, 0.0,
-        ];
+        problem.coupling_matrix = vec![1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0];
         let report = reconstruct_contact_field(&problem, &FieldReconstructionConfig::default())
             .expect("mechanically inferred unique component");
         assert_eq!(report.native_data_rank, 2);
