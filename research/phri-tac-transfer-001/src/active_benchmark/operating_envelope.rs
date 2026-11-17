@@ -79,6 +79,7 @@ pub struct OperatingDomainCell {
     pub loading_rate_n_per_s: NumericRange,
     pub contact_velocity_mm_per_s: NumericRange,
     pub contact_radius_mm: NumericRange,
+    pub sensor_identity_digest: String,
     pub sensorized_body_context_digest: String,
     pub readout_chain_digest: String,
     pub material_profile_digest: String,
@@ -107,6 +108,8 @@ impl OperatingDomainCell {
             }
         }
         for (name, value) in [
+            ("sensor_identity_digest", self.sensor_identity_digest.as_str()),
+            ("sensor_identity_digest", self.sensor_identity_digest.as_str()),
             ("sensorized_body_context_digest", self.sensorized_body_context_digest.as_str()),
             ("readout_chain_digest", self.readout_chain_digest.as_str()),
             ("material_profile_digest", self.material_profile_digest.as_str()),
@@ -146,7 +149,8 @@ impl OperatingDomainCell {
     }
 
     fn context_match(&self, point: &OperatingPoint) -> bool {
-        self.sensorized_body_context_digest == point.sensorized_body_context_digest
+        self.sensor_identity_digest == point.sensor_identity_digest
+            && self.sensorized_body_context_digest == point.sensorized_body_context_digest
             && self.readout_chain_digest == point.readout_chain_digest
             && self.material_profile_digest == point.material_profile_digest
             && self.contact_geometry_digest == point.contact_geometry_digest
@@ -154,7 +158,8 @@ impl OperatingDomainCell {
     }
 
     fn overlaps(&self, other: &Self) -> bool {
-        self.sensorized_body_context_digest == other.sensorized_body_context_digest
+        self.sensor_identity_digest == other.sensor_identity_digest
+            && self.sensorized_body_context_digest == other.sensorized_body_context_digest
             && self.readout_chain_digest == other.readout_chain_digest
             && self.material_profile_digest == other.material_profile_digest
             && self.contact_geometry_digest == other.contact_geometry_digest
@@ -239,6 +244,7 @@ pub struct OperatingPoint {
     pub loading_rate_n_per_s: Option<f64>,
     pub contact_velocity_mm_per_s: Option<f64>,
     pub contact_radius_mm: Option<f64>,
+    pub sensor_identity_digest: String,
     pub sensorized_body_context_digest: String,
     pub readout_chain_digest: String,
     pub material_profile_digest: String,
@@ -267,6 +273,7 @@ impl OperatingPoint {
             }
         }
         for (name, value) in [
+            ("sensor_identity_digest", self.sensor_identity_digest.as_str()),
             ("sensorized_body_context_digest", self.sensorized_body_context_digest.as_str()),
             ("readout_chain_digest", self.readout_chain_digest.as_str()),
             ("material_profile_digest", self.material_profile_digest.as_str()),
@@ -315,8 +322,15 @@ pub fn assess_operating_point(
 ) -> OperatingEnvelopeAssessment {
     let invalid_envelope = envelope.validate();
     if !invalid_envelope.is_empty() {
+        let overlap_only = invalid_envelope
+            .iter()
+            .all(|reason| reason.contains("operating-domain cells") && reason.contains("overlap"));
         return OperatingEnvelopeAssessment {
-            disposition: OperatingEnvelopeDisposition::EnvelopeInvalid,
+            disposition: if overlap_only {
+                OperatingEnvelopeDisposition::OverlappingOrAmbiguousCells
+            } else {
+                OperatingEnvelopeDisposition::EnvelopeInvalid
+            },
             matched_cell_id: None,
             reasons: invalid_envelope,
             envelope_id: envelope.envelope_id.clone(),
@@ -460,6 +474,8 @@ mod tests {
             loading_rate_n_per_s: NumericRange { minimum: 0.0, maximum: 20.0 },
             contact_velocity_mm_per_s: NumericRange { minimum: 0.0, maximum: 100.0 },
             contact_radius_mm: NumericRange { minimum: 1.0, maximum: 20.0 },
+            sensor_identity_digest: "sha256:sensor-article".to_owned(),
+            sensor_identity_digest: "sha256:sensor-article".to_owned(),
             sensorized_body_context_digest: "sha256:body".to_owned(),
             readout_chain_digest: "sha256:readout".to_owned(),
             material_profile_digest: "sha256:material".to_owned(),
@@ -570,7 +586,7 @@ mod tests {
             NumericRange { minimum: 25.0, maximum: 35.0 },
         );
         let assessment = assess_operating_point(&envelope(vec![cell_a, cell_b]), &point());
-        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition.EnvelopeInvalid);
+        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition.OverlappingOrAmbiguousCells);
     }
 
     #[test]
