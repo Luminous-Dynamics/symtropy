@@ -429,7 +429,7 @@ pub fn evaluate(cases: &[CaseManifest], receipts: &[Receipt]) -> Result<Vec<Case
             let rows: Vec<Receipt> = grouped
                 .get(case.case_id.as_str())
                 .into_iter()
-                .flat_map(|rows| rows.iter().map(|row| (*row).clone()))
+                .flat_map(|rows| rows.iter().map(|row| (**row).clone()))
                 .collect();
             evaluate_case(case, &rows)
         })
@@ -447,6 +447,16 @@ pub fn render_report(evaluations: &[CaseEvaluation]) -> String {
         "case_id\texpected\tactual\texpectation_match\tdigest_check\tblocked_reasons\tindeterminate_reasons\n",
     );
     for row in evaluations {
+        let blocked = if row.blocked_reasons.is_empty() {
+            "-".to_owned()
+        } else {
+            row.blocked_reasons.join(";")
+        };
+        let indeterminate = if row.indeterminate_reasons.is_empty() {
+            "-".to_owned()
+        } else {
+            row.indeterminate_reasons.join(";")
+        };
         output.push_str(&format!(
             "{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
             row.case_id,
@@ -454,8 +464,8 @@ pub fn render_report(evaluations: &[CaseEvaluation]) -> String {
             row.actual.as_str(),
             row.expected_matches,
             row.digest_check,
-            if row.blocked_reasons.is_empty() { "-" } else { &row.blocked_reasons.join(";") },
-            if row.indeterminate_reasons.is_empty() { "-" } else { &row.indeterminate_reasons.join(";") },
+            blocked,
+            indeterminate,
         ));
     }
     output
