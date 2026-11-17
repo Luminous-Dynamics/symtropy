@@ -11,6 +11,7 @@
     "source_schema_release",
     "ids_spec_sha256",
     "ids_version",
+    "ids_engine_build_sha256",
     "design_revision_sha256",
     "frame_id",
     "frame_sha256",
@@ -134,6 +135,9 @@
           "$ref": "#/$defs/sha256"
         }
       }
+    },
+    "ids_engine_build_sha256": {
+      "$ref": "#/$defs/sha256"
     }
   },
   "$defs": {
@@ -231,6 +235,7 @@
         "geometry_sha256",
         "required_ids_properties",
         "delivered_ids_properties",
+        "ids_applicability_receipt_sha256",
         "applicable_ids_requirement_ids",
         "ids_requirement_evaluations",
         "in_work_scope",
@@ -287,6 +292,9 @@
         },
         "in_work_scope": {
           "type": "boolean"
+        },
+        "ids_applicability_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
         }
       }
     }
