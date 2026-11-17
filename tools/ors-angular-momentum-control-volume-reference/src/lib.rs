@@ -230,11 +230,17 @@ pub fn parse_corpus(
         )?;
         let linear_momentum_accumulation_n = parse_vector(
             &fields[5..8],
-            &format!("scenario line {} linear momentum accumulation", line_index + 2),
+            &format!(
+                "scenario line {} linear momentum accumulation",
+                line_index + 2
+            ),
         )?;
         let angular_momentum_accumulation_n_m = parse_vector(
             &fields[8..11],
-            &format!("scenario line {} angular momentum accumulation", line_index + 2),
+            &format!(
+                "scenario line {} angular momentum accumulation",
+                line_index + 2
+            ),
         )?;
         let other_external_force_n = parse_vector(
             &fields[11..14],
@@ -277,9 +283,7 @@ pub fn parse_corpus(
     let port_header = port_lines
         .next()
         .ok_or_else(|| "empty angular-momentum port corpus".to_owned())?;
-    if port_header
-        != EXPECTED_PORT_HEADER
-    {
+    if port_header != EXPECTED_PORT_HEADER {
         return Err("unexpected angular-momentum port header".to_owned());
     }
 
@@ -290,7 +294,10 @@ pub fn parse_corpus(
         }
         let fields: Vec<&str> = line.split(',').collect();
         if fields.len() != 10 {
-            return Err(format!("port line {}: expected ten columns", line_index + 2));
+            return Err(format!(
+                "port line {}: expected ten columns",
+                line_index + 2
+            ));
         }
         let case_id = fields[0];
         let port_id = fields[1].to_owned();
@@ -374,7 +381,10 @@ pub fn evaluate_scenario(scenario: &AngularMomentumScenario) -> Result<CaseEvalu
         return Err(format!("{}: non-finite evaluation epoch", scenario.case_id));
     }
     if scenario.ports.is_empty() {
-        return Err(format!("{}: at least one mass-flux port is required", scenario.case_id));
+        return Err(format!(
+            "{}: at least one mass-flux port is required",
+            scenario.case_id
+        ));
     }
     if scenario.ports.len() > MAX_PORT_COUNT_PER_CASE {
         return Err(format!("{}: port limit exceeded", scenario.case_id));
@@ -398,13 +408,19 @@ pub fn evaluate_scenario(scenario: &AngularMomentumScenario) -> Result<CaseEvalu
 
     for port in ordered_ports {
         if !valid_identifier(&port.port_id) || !port_ids.insert(port.port_id.as_str()) {
-            return Err(format!("{}: invalid or duplicate port ID", scenario.case_id));
+            return Err(format!(
+                "{}: invalid or duplicate port ID",
+                scenario.case_id
+            ));
         }
         if !port.mass_flow_kg_s.is_finite() || port.mass_flow_kg_s < 0.0 {
             return Err(format!("{}: invalid mass-flow magnitude", scenario.case_id));
         }
         if !port.position_from_origin_m.is_finite() || !port.velocity_inertial_m_s.is_finite() {
-            return Err(format!("{}: non-finite port position or velocity", scenario.case_id));
+            return Err(format!(
+                "{}: non-finite port position or velocity",
+                scenario.case_id
+            ));
         }
 
         let signed_rate = match port.direction {
@@ -419,10 +435,11 @@ pub fn evaluate_scenario(scenario: &AngularMomentumScenario) -> Result<CaseEvalu
         };
         linear_momentum_flux_n =
             linear_momentum_flux_n + port.velocity_inertial_m_s.scale(signed_rate);
-        let specific_angular_momentum =
-            port.position_from_origin_m.cross(port.velocity_inertial_m_s);
-        advective_angular_momentum_flux_n_m = advective_angular_momentum_flux_n_m
-            + specific_angular_momentum.scale(signed_rate);
+        let specific_angular_momentum = port
+            .position_from_origin_m
+            .cross(port.velocity_inertial_m_s);
+        advective_angular_momentum_flux_n_m =
+            advective_angular_momentum_flux_n_m + specific_angular_momentum.scale(signed_rate);
     }
 
     let mass_balance_residual_kg_s =
@@ -474,7 +491,10 @@ pub fn evaluate_scenario(scenario: &AngularMomentumScenario) -> Result<CaseEvalu
         torque_reaction_closure_residual_n_m,
     ];
     if derived.iter().any(|vector| !vector.is_finite()) {
-        return Err(format!("{}: non-finite derived momentum or torque", scenario.case_id));
+        return Err(format!(
+            "{}: non-finite derived momentum or torque",
+            scenario.case_id
+        ));
     }
 
     Ok(CaseEvaluation {
@@ -504,10 +524,7 @@ pub fn evaluate_scenario(scenario: &AngularMomentumScenario) -> Result<CaseEvalu
     })
 }
 
-pub fn evaluate_corpus(
-    cases_csv: &str,
-    ports_csv: &str,
-) -> Result<EvaluationReport, String> {
+pub fn evaluate_corpus(cases_csv: &str, ports_csv: &str) -> Result<EvaluationReport, String> {
     let scenarios = parse_corpus(cases_csv, ports_csv)?;
     let mut cases = Vec::with_capacity(scenarios.len());
     let mut port_count = 0usize;
@@ -596,8 +613,16 @@ mod tests {
     #[test]
     fn radial_through_flow_has_zero_angular_momentum_flux() {
         let result = evaluate_scenario(&scenario("RADIAL_THROUGH")).expect("radial flow");
-        close_vec(result.advective_angular_momentum_flux_n_m, Vector3::ZERO, 0.0);
-        close_vec(result.stream_on_support_reaction_torque_n_m, Vector3::ZERO, 0.0);
+        close_vec(
+            result.advective_angular_momentum_flux_n_m,
+            Vector3::ZERO,
+            0.0,
+        );
+        close_vec(
+            result.stream_on_support_reaction_torque_n_m,
+            Vector3::ZERO,
+            0.0,
+        );
     }
 
     #[test]
@@ -658,7 +683,11 @@ mod tests {
     #[test]
     fn unsteady_control_volume_preserves_linear_and_angular_accumulation() {
         let result = evaluate_scenario(&scenario("UNSTEADY_STORAGE")).expect("unsteady case");
-        close(result.mass_flow_in_kg_s - result.mass_flow_out_kg_s, 1.0, 0.0);
+        close(
+            result.mass_flow_in_kg_s - result.mass_flow_out_kg_s,
+            1.0,
+            0.0,
+        );
         close_vec(
             result.linear_momentum_flux_n,
             Vector3::new(6.0, -8.0, 0.0),
