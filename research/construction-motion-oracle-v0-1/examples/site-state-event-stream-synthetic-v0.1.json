@@ -1,0 +1,145 @@
+[
+  {
+    "event_id": "design-package-v1",
+    "sequence": 1,
+    "previous_event_sha256": null,
+    "event_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "actor_id": "design-authority",
+    "actor_role": "design_authority",
+    "payload": {
+      "kind": "work_package_published",
+      "package": {
+        "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "design_revision_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "frame_id": "site-level-02",
+        "frame_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "transform_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "entity_manifest_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "acceptance_profile_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "entities": [
+          {
+            "design_entity_id": "ifc:2XQ$n5SLP5MBCLz4P3d4W",
+            "entity_type": "line"
+          },
+          {
+            "design_entity_id": "ifc:1jYp8$2Qv5fh4Sgq0sJH4n",
+            "entity_type": "point"
+          }
+        ],
+        "acceptance_profile": {
+          "max_abs_xy_residual_mm": 1,
+          "max_reference_u95_xy_mm": 0.25,
+          "max_abs_endpoint_residual_mm": 1
+        }
+      }
+    }
+  },
+  {
+    "event_id": "station-qualified-v1",
+    "sequence": 2,
+    "previous_event_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "event_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "actor_id": "surveyor-17",
+    "actor_role": "surveyor",
+    "payload": {
+      "kind": "station_qualified",
+      "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "station_id": "tracker-station-A",
+      "frame_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "transform_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "calibration_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+    }
+  },
+  {
+    "event_id": "attempt-start-v1",
+    "sequence": 3,
+    "previous_event_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "event_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "actor_id": "robot-01",
+    "actor_role": "robot",
+    "payload": {
+      "kind": "execution_started",
+      "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "entity_id": "ifc:2XQ$n5SLP5MBCLz4P3d4W",
+      "attempt_id": "robot-01-attempt-0042",
+      "station_qualification_event_id": "station-qualified-v1"
+    }
+  },
+  {
+    "event_id": "robot-observation-v1",
+    "sequence": 4,
+    "previous_event_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "event_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "actor_id": "robot-01",
+    "actor_role": "robot",
+    "payload": {
+      "kind": "robot_observation_recorded",
+      "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "entity_id": "ifc:2XQ$n5SLP5MBCLz4P3d4W",
+      "attempt_id": "robot-01-attempt-0042",
+      "disposition": "printed",
+      "robot_receipt_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+    }
+  },
+  {
+    "event_id": "referee-measurement-v1",
+    "sequence": 5,
+    "previous_event_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "event_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "actor_id": "referee-02",
+    "actor_role": "referee",
+    "payload": {
+      "kind": "referee_assessment_recorded",
+      "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "entity_id": "ifc:2XQ$n5SLP5MBCLz4P3d4W",
+      "attempt_id": "robot-01-attempt-0042",
+      "assessment": {
+        "kind": "measured",
+        "residual_x_mm": 0.2,
+        "residual_y_mm": 0.1,
+        "residual_z_mm": null,
+        "endpoint_start_mm": 0.2,
+        "endpoint_end_mm": 0.3,
+        "reference_u95_x_mm": 0.1,
+        "reference_u95_y_mm": 0.1,
+        "reference_u95_z_mm": null,
+        "measurement_receipt_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+      }
+    }
+  },
+  {
+    "event_id": "design-package-v2",
+    "sequence": 6,
+    "previous_event_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "event_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "actor_id": "design-authority",
+    "actor_role": "design_authority",
+    "payload": {
+      "kind": "work_package_published",
+      "package": {
+        "package_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+        "design_revision_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "frame_id": "site-level-02",
+        "frame_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "transform_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "entity_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "acceptance_profile_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "entities": [
+          {
+            "design_entity_id": "ifc:2XQ$n5SLP5MBCLz4P3d4W",
+            "entity_type": "line"
+          },
+          {
+            "design_entity_id": "ifc:1jYp8$2Qv5fh4Sgq0sJH4n",
+            "entity_type": "point"
+          }
+        ],
+        "acceptance_profile": {
+          "max_abs_xy_residual_mm": 1,
+          "max_reference_u95_xy_mm": 0.25,
+          "max_abs_endpoint_residual_mm": 1
+        }
+      }
+    }
+  }
+]
