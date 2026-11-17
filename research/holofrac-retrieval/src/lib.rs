@@ -187,6 +187,17 @@ impl SpatialGraph {
         Self::default()
     }
 
+    /// Construct a bulk-import graph and validate it in one linear pass.
+    /// Prefer this over repeated add_fact calls for large deterministic benchmark fixtures.
+    pub fn from_parts(
+        entities: Vec<SpatialEntity>,
+        facts: Vec<SpatialFact>,
+    ) -> Result<Self, GraphError> {
+        let graph = Self { entities, facts };
+        graph.validate()?;
+        Ok(graph)
+    }
+
     pub fn add_entity(&mut self, entity: SpatialEntity) -> Result<(), GraphError> {
         if entity.id.trim().is_empty() || entity.id.chars().any(char::is_control) {
             return Err(GraphError(
@@ -752,6 +763,71 @@ pub struct BenchmarkReport {
     pub outcomes: Vec<QueryOutcome>,
 }
 
+/// Storage/build profile for one synthetic graph-reuse regime.
+#[derive(Clone, Debug)]
+pub struct FactorizationProfile {
+    pub fact_count: usize,
+    pub entity_count: usize,
+    pub dimension: usize,
+    pub unique_role_codebook_entries: usize,
+    pub role_slot_reuse_ratio: f64,
+    pub index_build_micros: f64,
+    pub duplicated_role_slot_payload_bytes: usize,
+    pub factorized_role_slot_payload_bytes: usize,
+    pub role_slot_reference_bytes: usize,
+    pub factorized_role_slot_bytes_saved: usize,
+    pub holistic_vector_payload_bytes: usize,
+    /// Includes holistic vectors, codebook vectors and compact slot references.
+    pub retained_payload_bytes_excluding_map_and_key_overhead: usize,
+}
+
+/// Build a synthetic graph and measure codebook factorization without running an
+/// O(E^2) retrieval sweep. Use separate fact/entity ratios to control role reuse.
+pub fn run_factorization_profile(
+    fact_count: usize,
+    entity_count: usize,
+    dimension: usize,
+    seed: u64,
+) -> Result<FactorizationProfile, HoloFracError> {
+    let graph = factorization_fixture_graph(fact_count, entity_count)?;
+    let encoder = HoloFracEncoder::new(EncoderSpec {
+        schema_version: 2,
+        dimension,
+        seed,
+        scalar_levels: 257,
+    })?;
+    let (index, index_build_micros) = SpatialIndex::build(&graph, &encoder)?;
+
+    let duplicated_role_slot_payload_bytes =
+        fact_count * 5 * dimension * std::mem::size_of::<i8>();
+    let factorized_role_slot_payload_bytes =
+        index.role_codebook.len() * dimension * std::mem::size_of::<i8>();
+    let role_slot_reference_bytes =
+        fact_count * 5 * std::mem::size_of::<usize>();
+    let holistic_vector_payload_bytes =
+        fact_count * dimension * (std::mem::size_of::<i8>() + std::mem::size_of::<f32>());
+    let role_slot_reuse_ratio =
+        1.0 - index.role_codebook.len() as f64 / (fact_count * 5) as f64;
+
+    Ok(FactorizationProfile {
+        fact_count,
+        entity_count,
+        dimension,
+        unique_role_codebook_entries: index.role_codebook.len(),
+        role_slot_reuse_ratio,
+        index_build_micros,
+        duplicated_role_slot_payload_bytes,
+        factorized_role_slot_payload_bytes,
+        role_slot_reference_bytes,
+        factorized_role_slot_bytes_saved: duplicated_role_slot_payload_bytes
+            .saturating_sub(factorized_role_slot_payload_bytes),
+        holistic_vector_payload_bytes,
+        retained_payload_bytes_excluding_map_and_key_overhead: holistic_vector_payload_bytes
+            + factorized_role_slot_payload_bytes
+            + role_slot_reference_bytes,
+    })
+}
+
 pub fn run_benchmark(
     graph: &SpatialGraph,
     dimension: usize,
@@ -866,6 +942,72 @@ pub fn run_benchmark(
             + graph.facts.len() * 5 * std::mem::size_of::<usize>(),
         outcomes,
     })
+}
+
+/// Deterministic graph generator for controlled codebook-reuse experiments.
+///
+/// The topology is a directed circulant schedule. For each source vertex, successive
+/// rounds use a different non-zero offset, so every generated directed pair is unique
+/// while node cardinality controls the amount of role/value reuse.
+pub fn factorization_fixture_graph(
+    fact_count: usize,
+    entity_count: usize,
+) -> Result<SpatialGraph, GraphError> {
+    if fact_count == 0 {
+        return Err(GraphError("factorization fixture must contain at least one fact"));
+    }
+    if entity_count < 2 {
+        return Err(GraphError("factorization fixture requires at least two entities"));
+    }
+    let capacity = entity_count
+        .checked_mul(entity_count - 1)
+        .ok_or(GraphError("factorization fixture capacity overflow"))?;
+    if fact_count > capacity {
+        return Err(GraphError("fact count exceeds unique directed-pair capacity"));
+    }
+
+    let scales = [
+        SpatialScale::Site,
+        SpatialScale::Building,
+        SpatialScale::Storey,
+        SpatialScale::Zone,
+        SpatialScale::Room,
+        SpatialScale::Assembly,
+        SpatialScale::Component,
+        SpatialScale::Material,
+    ];
+    let relations = [
+        RelationKind::AdjacentTo,
+        RelationKind::AccessibleFrom,
+        RelationKind::Supports,
+        RelationKind::InterfacesWith,
+        RelationKind::VentilatesTo,
+        RelationKind::Supplies,
+        RelationKind::DrainsTo,
+        RelationKind::RequiresAccessTo,
+    ];
+
+    let entities = (0..entity_count)
+        .map(|index| SpatialEntity {
+            id: format!("entity-{index:08}"),
+            scale: scales[index % scales.len()],
+        })
+        .collect();
+
+    let facts = (0..fact_count)
+        .map(|index| {
+            let subject_index = index % entity_count;
+            let offset = index / entity_count + 1;
+            let object_index = (subject_index + offset) % entity_count;
+            SpatialFact {
+                subject: format!("entity-{subject_index:08}"),
+                relation: relations[index % relations.len()],
+                object: format!("entity-{object_index:08}"),
+            }
+        })
+        .collect();
+
+    SpatialGraph::from_parts(entities, facts)
 }
 
 /// Small deterministic fixture that crosses architectural scales and services.
@@ -1186,6 +1328,29 @@ mod tests {
             .unwrap();
         assert!((score_bipolar - score_continuous).abs() < 1.0e-6);
         assert_eq!(encoded.continuous_f32_view.values.len(), 2_048);
+    }
+
+    #[test]
+    fn factorization_fixture_has_unique_directed_pairs_and_valid_endpoints() {
+        let graph = factorization_fixture_graph(1_000, 40).unwrap();
+        graph.validate().unwrap();
+        assert_eq!(graph.facts().len(), 1_000);
+        assert_eq!(graph.entities().len(), 40);
+        let mut keys = HashSet::new();
+        for fact in graph.facts() {
+            assert!(keys.insert(fact.canonical_key()));
+        }
+    }
+
+    #[test]
+    fn factorized_codebook_saves_more_bytes_when_entity_reuse_increases() {
+        let high_reuse = run_factorization_profile(256, 17, 512, 71).unwrap();
+        let low_reuse = run_factorization_profile(256, 257, 512, 71).unwrap();
+        assert!(high_reuse.role_slot_reuse_ratio > low_reuse.role_slot_reuse_ratio);
+        assert!(high_reuse.factorized_role_slot_bytes_saved
+            > low_reuse.factorized_role_slot_bytes_saved);
+        assert!(high_reuse.factorized_role_slot_payload_bytes
+            < high_reuse.duplicated_role_slot_payload_bytes);
     }
 
     #[test]
