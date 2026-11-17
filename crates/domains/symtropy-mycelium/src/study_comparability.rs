@@ -246,7 +246,7 @@ impl StudyContext {
             missing.push(MissingContextField::HostExposure);
         }
         if matches!(
-            self.carbon_source,
+            &self.carbon_source,
             CarbonSourceProfile::Unknown | CarbonSourceProfile::MixedOrUnresolved
         ) {
             missing.push(MissingContextField::CarbonSource);
