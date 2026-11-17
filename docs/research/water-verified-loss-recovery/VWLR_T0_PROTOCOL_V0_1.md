@@ -9,7 +9,7 @@ The benchmark follows an event from signal to independently observed outcome: di
 
 ## 2. Attribution calculation
 
-Use a matched treated DMA and control DMA:
+Use a matched treated DMA and control DMA with **separate explicit zone IDs and separate physical meter boundaries**. Within each zone, pre- and post-repair readings must retain the same zone, meter boundary and topology binding. The treated and control zones are not required to share one physical boundary.
 
 `point_recovered_l_per_day = max(0, (treated_pre_loss - treated_post_loss) - (control_pre_loss - control_post_loss))`
 
@@ -19,14 +19,14 @@ Then calculate a conservative lower bound:
 
 v0.1 sums standard uncertainties and does not assume independent meter/calibration errors. This is an expanded-uncertainty screen, not a confidence interval or population inference.
 
-Pressure, demand, measurement boundary and topology must be comparable between pre/post measurements. If they are not, the output is `attribution_indeterminate`; no water recovery is credited.
+Pressure and demand must be comparable within each zone's pre/post pair. Pre windows and post windows must be aligned between zones; pre and post windows must not overlap. Each measurement must bind to the event's exact treated or control zone ID, the appropriate zone-specific boundary and the same topology revision/digest. If they are not, the output is `attribution_indeterminate`; no water recovery is credited.
 
 ## 3. Independent outcome requirements
 
 - Inspection and field confirmation are recorded separately from the diagnostic model.
 - A confirmed component must bind to the exact network topology revision.
 - A completed/closed repair work order is not proof of a successful repair.
-- Post-repair measurements must use current calibration/time evidence and the same boundary/topology.
+- Post-repair measurements must use current calibration/time evidence and the same boundary/topology. Method references may be shared across instruments where the same validated method is properly applicable; instrument IDs and raw-record digests must remain distinct.
 - Partial repair may earn only a measured partial lower-bound reduction; unresolved leaks remain visible.
 - Recurrence or a reopened repair defeats a sustained/permanent-repair claim.
 - Duplicate recovery-claim IDs are rejected as a group.
