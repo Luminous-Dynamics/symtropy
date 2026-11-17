@@ -70,3 +70,18 @@ Only compare matched tasks, embodiments, sensors, simulator versions and success
 The manifest now names the minimum measurement roles without implying that any instrument has been acquired or calibrated. All instrument slots currently have `status=not_selected` and `calibration_ref=null`. The shortlist covers true electrical real-power/transient capture, water, precision and platform mass, temperature, ambient conditions, particle-size distribution, sound and cleaning residue. See [KITCHEN-METROLOGY-001](https://github.com/Luminous-Dynamics/symtropy/issues/5894).
 
 Do not mark a metric as measured until the exact instrument/model/serial, range, resolution, uncertainty, calibration evidence, sampling cadence, placement and raw-data digest are recorded. Invalid or missing measurement terms remain unknown; no instrument is implied to exist by its manifest slot.
+
+
+## Safety is a separate eligibility gate, not a success bonus
+
+The benchmark now includes a task-aware simulated safety audit and [SafeVLA-Bench](https://safevla.org/leaderboard) as an external baseline. SafeVLA-Bench evaluates native task success alongside safety-spec compliance, success-but-unsafe (SBU), and violation severity. Its project paper reports that 38–56% of successful RoboCasa-365 rollouts in its evaluated policy set violated at least one active safety clause. The public leaderboard was last updated 2026-09-26; use its exact spec release and evaluation protocol, not a hand-copied subset.
+
+For our kitchen workcell:
+- Report native task success separately from the fraction satisfying every applicable safety spec.
+- Count successful-but-unsafe episodes explicitly; a successful task with a safety violation is not an accepted success.
+- Report worst violation severity and signal coverage; rare severe violations cannot disappear in a mean.
+- Use task-aware applicability, but an absent signal is unknown, not safe or automatically N/A.
+- Freeze Signal Temporal Logic (or equivalent) limits and required telemetry before evaluation.
+- Simulation-only safety results do not qualify physical robots, pressure equipment, blades, heaters, electrical systems or human interaction. Appliance-local safety protections remain independent and authoritative.
+
+The current safety targets are unverified hypotheses; the manifest remains draft, unpreregistered and has zero runs.
