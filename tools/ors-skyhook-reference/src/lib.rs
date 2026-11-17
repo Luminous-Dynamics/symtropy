@@ -95,6 +95,18 @@ pub fn parse_fixtures(input: &str) -> Result<Vec<Fixture>, String> {
         let delta_h_m: u64 = parse_number(fields[2], "delta_h_m")?;
         let pi_over_alpha: u32 = parse_number(fields[3], "pi_over_alpha")?;
         let table_scale_n: f64 = parse_number(fields[4], "table_scale_n")?;
+        let expected_scale_n = match delta_h_m {
+            3_000 => 1.0e9,
+            30_000 => 1.0e10,
+            300_000 => 1.0e11,
+            _ => return Err("unsupported Table 4 DeltaH column".to_owned()),
+        };
+        if table_scale_n != expected_scale_n {
+            return Err(format!(
+                "line {}: Table 4 force scale does not match the DeltaH column",
+                line_index + 2
+            ));
+        }
         let table_value = if fields[5].is_empty() {
             None
         } else {
