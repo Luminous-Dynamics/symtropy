@@ -168,7 +168,10 @@ impl fmt::Display for RootAnatomyEnergyError {
                 write!(f, "unable to reserve per-layer root anatomy result storage")
             }
             Self::NonFiniteDerivedValue => {
-                write!(f, "root anatomy equations produced a non-finite derived value")
+                write!(
+                    f,
+                    "root anatomy equations produced a non-finite derived value"
+                )
             }
         }
     }
