@@ -15,6 +15,7 @@ use symtropy_hdc_core::{
 };
 
 pub mod field;
+pub mod fractal;
 pub mod impact;
 pub mod multichannel;
 pub mod partial;
