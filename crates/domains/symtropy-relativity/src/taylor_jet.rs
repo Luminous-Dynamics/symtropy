@@ -84,11 +84,15 @@ pub enum TaylorJetError {
 impl fmt::Display for TaylorJetError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidOrder(order) => write!(f, "Taylor-jet order {order} exceeds maximum {MAX_ORDER}"),
+            Self::InvalidOrder(order) => {
+                write!(f, "Taylor-jet order {order} exceeds maximum {MAX_ORDER}")
+            }
             Self::CannotIncreaseOrder { current, requested } => {
                 write!(f, "cannot increase Taylor-jet order from {current} to {requested}")
             }
-            Self::CoordinateIndexOutOfRange(index) => write!(f, "coordinate index {index} is outside [0, 3]"),
+            Self::CoordinateIndexOutOfRange(index) => {
+                write!(f, "coordinate index {index} is outside [0, 3]")
+            }
             Self::DerivativeOrderExhausted => write!(f, "Taylor-jet derivative order is exhausted"),
             Self::InvalidMultiIndex(alpha) => write!(f, "unsupported multi-index {alpha:?}"),
             Self::DivisionByZero => write!(f, "Taylor-jet reciprocal has zero base value"),
@@ -471,7 +475,15 @@ mod tests {
     #[test]
     fn repeated_partials_exhaust_the_declared_derivative_order() {
         let x = TaylorJet4Order5::variable(1.0, 0).unwrap();
-        let x5 = x.multiply(x).unwrap().multiply(x).unwrap().multiply(x).unwrap().multiply(x).unwrap();
+        let x5 = x
+            .multiply(x)
+            .unwrap()
+            .multiply(x)
+            .unwrap()
+            .multiply(x)
+            .unwrap()
+            .multiply(x)
+            .unwrap();
         let mut derivative = x5;
         for _ in 0..5 {
             derivative = derivative.partial(0).unwrap();
