@@ -289,7 +289,9 @@ pub fn parse_cases(input: &str) -> Result<Vec<CaseManifest>, String> {
                 return Err(format!("cases:{}: invalid {label}: {value}", index + 2));
             }
         }
-        let declared_units_started = row[6].parse::<usize>().map_err(|_| format!("cases:{}: invalid declared_units_started", index + 2))?;
+        let declared_units_started = row[6].parse::<usize>().map_err(|_| {
+            format!("cases:{}: invalid declared_units_started", index + 2)
+        })?;
         if declared_units_started == 0 {
             return Err(format!("cases:{}: declared_units_started must be positive", index + 2));
         }
@@ -554,7 +556,10 @@ pub fn evaluate(
         }
         let case = cases_by_id[output.case_id.as_str()];
         if output.batch_ref != case.batch_ref {
-            return Err(format!("output {}: batch reference does not match case {}", output.output_id, case.case_id));
+            return Err(format!(
+                "output {}: batch reference does not match case {}",
+                output.output_id, case.case_id
+            ));
         }
         if !output_ids.insert((output.case_id.as_str(), output.output_id.as_str())) {
             return Err(format!("output identity reused within case: {}", output.output_id));
@@ -958,10 +963,12 @@ mod tests {
     #[test]
     fn counterfactual_cases_may_reuse_output_identity() {
         let (cases, costs, mut outputs) = parsed();
-        let mut alternate = outputs[0].clone();
-        alternate.case_id = "out_of_scope_excluded".into();
-        alternate.release_ref = "release:counterfactual-alternate".into();
-        outputs.push(alternate);
+        let mut alternate = outputs
+            .iter_mut()
+            .find(|row| row.case_id == "out_of_scope_excluded")
+            .unwrap();
+        alternate.output_id = outputs[0].output_id.clone();
+        alternate.release_ref = outputs[0].release_ref.clone();
         assert!(evaluate(&cases, &costs, &outputs).is_ok());
     }
 
@@ -1057,8 +1064,11 @@ mod tests {
     #[test]
     fn unreleased_output_cannot_carry_release_reference() {
         let (cases, costs, mut outputs) = parsed();
-        outputs.iter_mut().find(|row| row.final_disposition == FinalDisposition::Scrap).unwrap().release_ref =
-            "release:invalid-scrap-release".into();
+        outputs
+            .iter_mut()
+            .find(|row| row.final_disposition == FinalDisposition::Scrap)
+            .unwrap()
+            .release_ref = "release:invalid-scrap-release".into();
         assert!(evaluate(&cases, &costs, &outputs)
             .unwrap_err()
             .contains("non-released output"));
