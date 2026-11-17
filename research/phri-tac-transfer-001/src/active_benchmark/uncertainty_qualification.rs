@@ -173,6 +173,13 @@ fn validate_error_scale(absolute_error: f64, predicted_scale: f64) -> Result<(),
     Ok(())
 }
 
+fn validate_evaluation_error(absolute_error: f64) -> Result<(), String> {
+    if !absolute_error.is_finite() || absolute_error < 0.0 {
+        return Err("absolute evaluation error must be finite and nonnegative".to_owned());
+    }
+    Ok(())
+}
+
 fn finite_sample_rank(sample_count: usize, nominal_coverage: f64) -> Result<usize, String> {
     let adjusted_count = sample_count
         .checked_add(1)
@@ -329,7 +336,7 @@ pub fn evaluate_groupwise_split_conformal(
             &observation.stratum_id,
             &observation.context_digest,
         )?;
-        validate_error_scale(observation.absolute_error, observation.predicted_scale)?;
+        validate_evaluation_error(observation.absolute_error)?;
         if !evaluation_ids.insert(observation.sample_id.clone()) {
             return Err(format!("duplicate evaluation sample ID {}", observation.sample_id));
         }
@@ -356,6 +363,10 @@ pub fn evaluate_groupwise_split_conformal(
             group.abstained_reference_unresolved_count += 1;
             total_reference_unresolved += 1;
             IntervalEvaluationDisposition::AbstainedReferenceUnresolved
+        } else if !observation.predicted_scale.is_finite() || observation.predicted_scale <= 0.0 {
+            group.invalid_prediction_scale_count += 1;
+            total_invalid_scale += 1;
+            IntervalEvaluationDisposition::InvalidPredictionScale
         } else {
             match model.groups.iter().find(|candidate| {
                 candidate.stratum_id == observation.stratum_id
@@ -686,10 +697,33 @@ mod tests {
         assert_eq!(report.scored_count, 0);
         assert_eq!(report.abstained_out_of_domain_count, 1);
         assert_eq!(report.abstained_reference_unresolved_count, 1);
-        assert_eq!(report.sample_results[0].disposition, IntervalEvaluationDisposition::AbstainedOutOfDomain);
+        assert_eq!(report.sample_results[40].disposition, IntervalEvaluationDisposition::AbstainedOutOfDomain);
+        assert_eq!(report.sample_results[40].interval_width, None);
+        assert_eq!(report.sample_results[41].disposition, IntervalEvaluationDisposition::AbstainedReferenceUnresolved);
+        assert_eq!(report.sample_results[41].interval_width, None);
+    }
+
+    #[test]
+    fn invalid_evaluation_scale_is_reported_as_abstention() {
+        let calibration = (0..30)
+            .map(|index| calibration_sample(
+                &format!("cal-{index}"),
+                "sensor-a",
+                "sha256:context-a",
+                0.5,
+            ))
+            .collect::<Vec<_>>();
+        let model = fit_groupwise_split_conformal(&calibration, 0.9, 20).expect("fit");
+        let mut invalid = evaluation_sample("eval-invalid-scale", "sensor-a", "sha256:context-a", 0.1);
+        invalid.predicted_scale = f64::NAN;
+        let report = evaluate_groupwise_split_conformal(&model, &[invalid]).expect("evaluation");
+        assert_eq!(report.scored_count, 0);
+        assert_eq!(report.invalid_prediction_scale_count, 1);
+        assert_eq!(
+            report.sample_results[0].disposition,
+            IntervalEvaluationDisposition::InvalidPredictionScale
+        );
         assert_eq!(report.sample_results[0].interval_width, None);
-        assert_eq!(report.sample_results[1].disposition, IntervalEvaluationDisposition::AbstainedReferenceUnresolved);
-        assert_eq!(report.sample_results[1].interval_width, None);
     }
 
     #[test]
