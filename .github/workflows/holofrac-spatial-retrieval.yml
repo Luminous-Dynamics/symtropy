@@ -44,12 +44,26 @@ jobs:
       - name: Run Clippy
         run: cargo clippy --manifest-path research/holofrac-retrieval/Cargo.toml --all-targets -- -D warnings
 
-      - name: Smoke-run deterministic benchmark fixture
+      - name: Run deterministic benchmark fixtures
         run: |
+          mkdir -p artifacts
           echo "rustc:"
           rustc --version --verbose
           echo "host:"
           uname -a
           grep -m1 "model name" /proc/cpuinfo || true
-          echo "benchmark:"
-          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml
+          echo "spatial retrieval:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml > artifacts/spatial-retrieval.csv
+          cat artifacts/spatial-retrieval.csv
+          echo "factorization capacity sweep:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin factorization_sweep > artifacts/factorization-sweep.csv
+          cat artifacts/factorization-sweep.csv
+
+      - name: Upload raw benchmark outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: holofrac-benchmarks-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/*.csv
+          if-no-files-found: warn
+          retention-days: 14
