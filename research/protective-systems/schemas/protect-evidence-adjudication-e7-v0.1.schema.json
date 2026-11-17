@@ -282,7 +282,7 @@
           },
           "status": {
             "enum": [
-              "VERIFIED_INDEPENDENT",
+              "ATTESTED_INDEPENDENT",
               "UNVERIFIED",
               "REVOKED"
             ]
