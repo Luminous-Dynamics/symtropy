@@ -716,6 +716,396 @@
           }
         ]
       }
+    },
+    {
+      "case_id": "mast-fault-mode-integrity-failure",
+      "expected_disposition": "COMPLETED",
+      "request": {
+        "schema_version": "luminous.plasma-diagnostic-fault-replay.v0.1",
+        "scenario": {
+          "scenario_id": "synthetic-tokamark-integrity-failure",
+          "shot_id": "synthetic-mast-integrity-failure",
+          "regime_profile_id": "synthetic-mast-task-4-4-150ms-window-v0",
+          "clock_domain": "synthetic-window-relative-ns",
+          "duration_ns": 150000000,
+          "channels": [
+            {
+              "channel_id": "interferometer-ne_line",
+              "diagnostic_system_id": "kinetics-shared-acquisition-trigger"
+            },
+            {
+              "channel_id": "spectrometer-dalpha_voltage",
+              "diagnostic_system_id": "kinetics-shared-acquisition-trigger"
+            },
+            {
+              "channel_id": "magnetics-flux_loop_flux",
+              "diagnostic_system_id": "magnetics"
+            },
+            {
+              "channel_id": "summary-ip",
+              "diagnostic_system_id": "plasma-current"
+            }
+          ]
+        },
+        "schedule": {
+          "schedule_id": "tokamark-mode-integrity-failure",
+          "faults": [
+            {
+              "fault_id": "fault-integrity-failure",
+              "target": {
+                "scope": "channel",
+                "channel_id": "interferometer-ne_line"
+              },
+              "mode": "integrity_failure",
+              "start_time_ns": 25000000,
+              "end_time_ns": 50000000
+            }
+          ]
+        },
+        "points": [
+          {
+            "point_id": "before-fault",
+            "time_ns": 24999999
+          },
+          {
+            "point_id": "at-fault-start",
+            "time_ns": 25000000
+          },
+          {
+            "point_id": "inside-fault",
+            "time_ns": 37500000
+          },
+          {
+            "point_id": "at-fault-end",
+            "time_ns": 50000000
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "mast-fault-mode-delayed-diagnostic",
+      "expected_disposition": "COMPLETED",
+      "request": {
+        "schema_version": "luminous.plasma-diagnostic-fault-replay.v0.1",
+        "scenario": {
+          "scenario_id": "synthetic-tokamark-delayed-diagnostic",
+          "shot_id": "synthetic-mast-delayed-diagnostic",
+          "regime_profile_id": "synthetic-mast-task-4-4-150ms-window-v0",
+          "clock_domain": "synthetic-window-relative-ns",
+          "duration_ns": 150000000,
+          "channels": [
+            {
+              "channel_id": "interferometer-ne_line",
+              "diagnostic_system_id": "kinetics-shared-acquisition-trigger"
+            },
+            {
+              "channel_id": "spectrometer-dalpha_voltage",
+              "diagnostic_system_id": "kinetics-shared-acquisition-trigger"
+            },
+            {
+              "channel_id": "magnetics-flux_loop_flux",
+              "diagnostic_system_id": "magnetics"
+            },
+            {
+              "channel_id": "summary-ip",
+              "diagnostic_system_id": "plasma-current"
+            }
+          ]
+        },
+        "schedule": {
+          "schedule_id": "tokamark-mode-delayed-diagnostic",
+          "faults": [
+            {
+              "fault_id": "fault-delayed-diagnostic",
+              "target": {
+                "scope": "channel",
+                "channel_id": "spectrometer-dalpha_voltage"
+              },
+              "mode": "delay",
+              "start_time_ns": 30000000,
+              "end_time_ns": 60000000
+            }
+          ]
+        },
+        "points": [
+          {
+            "point_id": "before-fault",
+            "time_ns": 29999999
+          },
+          {
+            "point_id": "at-fault-start",
+            "time_ns": 30000000
+          },
+          {
+            "point_id": "inside-fault",
+            "time_ns": 45000000
+          },
+          {
+            "point_id": "at-fault-end",
+            "time_ns": 60000000
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "mast-fault-mode-saturated-diagnostic",
+      "expected_disposition": "COMPLETED",
+      "request": {
+        "schema_version": "luminous.plasma-diagnostic-fault-replay.v0.1",
+        "scenario": {
+          "scenario_id": "synthetic-tokamark-saturated-diagnostic",
+          "shot_id": "synthetic-mast-saturated-diagnostic",
+          "regime_profile_id": "synthetic-mast-task-4-4-150ms-window-v0",
+          "clock_domain": "synthetic-window-relative-ns",
+          "duration_ns": 150000000,
+          "channels": [
+            {
+              "channel_id": "interferometer-ne_line",
+              "diagnostic_system_id": "kinetics-shared-acquisition-trigger"
+            },
+            {
+              "channel_id": "spectrometer-dalpha_voltage",
+              "diagnostic_system_id": "kinetics-shared-acquisition-trigger"
+            },
+            {
+              "channel_id": "magnetics-flux_loop_flux",
+              "diagnostic_system_id": "magnetics"
+            },
+            {
+              "channel_id": "summary-ip",
+              "diagnostic_system_id": "plasma-current"
+            }
+          ]
+        },
+        "schedule": {
+          "schedule_id": "tokamark-mode-saturated-diagnostic",
+          "faults": [
+            {
+              "fault_id": "fault-saturated-diagnostic",
+              "target": {
+                "scope": "channel",
+                "channel_id": "magnetics-flux_loop_flux"
+              },
+              "mode": "saturation",
+              "start_time_ns": 120000000,
+              "end_time_ns": 150000000
+            }
+          ]
+        },
+        "points": [
+          {
+            "point_id": "before-fault",
+            "time_ns": 119999999
+          },
+          {
+            "point_id": "at-fault-start",
+            "time_ns": 120000000
+          },
+          {
+            "point_id": "inside-fault",
+            "time_ns": 135000000
+          },
+          {
+            "point_id": "at-fault-end",
+            "time_ns": 149999999
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "mast-fault-mode-bias-drift",
+      "expected_disposition": "COMPLETED",
+      "request": {
+        "schema_version": "luminous.plasma-diagnostic-fault-replay.v0.1",
+        "scenario": {
+          "scenario_id": "synthetic-tokamark-bias-drift",
+          "shot_id": "synthetic-mast-bias-drift",
+          "regime_profile_id": "synthetic-mast-task-4-4-150ms-window-v0",
+          "clock_domain": "synthetic-window-relative-ns",
+          "duration_ns": 150000000,
+          "channels": [
+            {
+              "channel_id": "interferometer-ne_line",
+              "diagnostic_system_id": "kinetics-shared-acquisition-trigger"
+            },
+            {
+              "channel_id": "spectrometer-dalpha_voltage",
+              "diagnostic_system_id": "kinetics-shared-acquisition-trigger"
+            },
+            {
+              "channel_id": "magnetics-flux_loop_flux",
+              "diagnostic_system_id": "magnetics"
+            },
+            {
+              "channel_id": "summary-ip",
+              "diagnostic_system_id": "plasma-current"
+            }
+          ]
+        },
+        "schedule": {
+          "schedule_id": "tokamark-mode-bias-drift",
+          "faults": [
+            {
+              "fault_id": "fault-bias-drift",
+              "target": {
+                "scope": "channel",
+                "channel_id": "summary-ip"
+              },
+              "mode": "bias",
+              "start_time_ns": 45000000,
+              "end_time_ns": 105000000
+            }
+          ]
+        },
+        "points": [
+          {
+            "point_id": "before-fault",
+            "time_ns": 44999999
+          },
+          {
+            "point_id": "at-fault-start",
+            "time_ns": 45000000
+          },
+          {
+            "point_id": "inside-fault",
+            "time_ns": 75000000
+          },
+          {
+            "point_id": "at-fault-end",
+            "time_ns": 105000000
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "mast-fault-mode-gain-drift",
+      "expected_disposition": "COMPLETED",
+      "request": {
+        "schema_version": "luminous.plasma-diagnostic-fault-replay.v0.1",
+        "scenario": {
+          "scenario_id": "synthetic-tokamark-gain-drift",
+          "shot_id": "synthetic-mast-gain-drift",
+          "regime_profile_id": "synthetic-mast-task-4-4-150ms-window-v0",
+          "clock_domain": "synthetic-window-relative-ns",
+          "duration_ns": 150000000,
+          "channels": [
+            {
+              "channel_id": "interferometer-ne_line",
+              "diagnostic_system_id": "kinetics-shared-acquisition-trigger"
+            },
+            {
+              "channel_id": "spectrometer-dalpha_voltage",
+              "diagnostic_system_id": "kinetics-shared-acquisition-trigger"
+            },
+            {
+              "channel_id": "magnetics-flux_loop_flux",
+              "diagnostic_system_id": "magnetics"
+            },
+            {
+              "channel_id": "summary-ip",
+              "diagnostic_system_id": "plasma-current"
+            }
+          ]
+        },
+        "schedule": {
+          "schedule_id": "tokamark-mode-gain-drift",
+          "faults": [
+            {
+              "fault_id": "fault-gain-drift",
+              "target": {
+                "scope": "channel",
+                "channel_id": "interferometer-ne_line"
+              },
+              "mode": "gain_drift",
+              "start_time_ns": 75000000,
+              "end_time_ns": 135000000
+            }
+          ]
+        },
+        "points": [
+          {
+            "point_id": "before-fault",
+            "time_ns": 74999999
+          },
+          {
+            "point_id": "at-fault-start",
+            "time_ns": 75000000
+          },
+          {
+            "point_id": "inside-fault",
+            "time_ns": 105000000
+          },
+          {
+            "point_id": "at-fault-end",
+            "time_ns": 135000000
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "mast-fault-mode-stale-calibration",
+      "expected_disposition": "COMPLETED",
+      "request": {
+        "schema_version": "luminous.plasma-diagnostic-fault-replay.v0.1",
+        "scenario": {
+          "scenario_id": "synthetic-tokamark-stale-calibration",
+          "shot_id": "synthetic-mast-stale-calibration",
+          "regime_profile_id": "synthetic-mast-task-4-4-150ms-window-v0",
+          "clock_domain": "synthetic-window-relative-ns",
+          "duration_ns": 150000000,
+          "channels": [
+            {
+              "channel_id": "interferometer-ne_line",
+              "diagnostic_system_id": "kinetics-shared-acquisition-trigger"
+            },
+            {
+              "channel_id": "spectrometer-dalpha_voltage",
+              "diagnostic_system_id": "kinetics-shared-acquisition-trigger"
+            },
+            {
+              "channel_id": "magnetics-flux_loop_flux",
+              "diagnostic_system_id": "magnetics"
+            },
+            {
+              "channel_id": "summary-ip",
+              "diagnostic_system_id": "plasma-current"
+            }
+          ]
+        },
+        "schedule": {
+          "schedule_id": "tokamark-mode-stale-calibration",
+          "faults": [
+            {
+              "fault_id": "fault-stale-calibration",
+              "target": {
+                "scope": "channel",
+                "channel_id": "spectrometer-dalpha_voltage"
+              },
+              "mode": "stale_calibration",
+              "start_time_ns": 0,
+              "end_time_ns": 150000000
+            }
+          ]
+        },
+        "points": [
+          {
+            "point_id": "before-fault",
+            "time_ns": 0
+          },
+          {
+            "point_id": "at-fault-start",
+            "time_ns": 0
+          },
+          {
+            "point_id": "inside-fault",
+            "time_ns": 1
+          },
+          {
+            "point_id": "at-fault-end",
+            "time_ns": 149999999
+          }
+        ]
+      }
     }
   ]
 }
