@@ -27,8 +27,14 @@ fn full_runner_executes_candidate_separately_and_scores_observationally_equivale
     assert!(stdout.contains("HIE\tid=HIE-04"));
     assert!(stdout.contains("COMPLETE\tcandidate_processes=12"));
 
-    let scenario_rows = stdout.lines().filter(|line| line.starts_with("HOBS\t")).count();
-    assert_eq!(scenario_rows, 12, "every canonical HOBS scenario must be scored");
+    let scenario_rows = stdout
+        .lines()
+        .filter(|line| line.starts_with("HOBS\t"))
+        .count();
+    assert_eq!(
+        scenario_rows, 12,
+        "every canonical HOBS scenario must be scored"
+    );
 }
 
 #[test]
@@ -52,5 +58,8 @@ fn candidate_process_rejects_an_unknown_wire_version() {
     let output = child
         .wait_with_output()
         .expect("candidate child should exit after malformed input");
-    assert!(!output.status.success(), "unknown wire versions must fail closed");
+    assert!(
+        !output.status.success(),
+        "unknown wire versions must fail closed"
+    );
 }
