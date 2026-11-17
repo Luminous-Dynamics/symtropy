@@ -91,3 +91,8 @@ No dataset files have been acquired, hashed, redistributed or evaluated by this 
 ## Pamplona dark-fibre DAS intake note
 
 The 31 March 2026 Sensors paper's Data Availability Statement says its data are available on reasonable request from the corresponding author. The raw DAS traces, baseline records, event labels and route geometry are not included in this repository and have no SHA-256 digests or split manifest here. Article open access is not treated as raw-data redistribution permission. See [DARK-FIBER-WDN-DIAGNOSTICS-001 #4991](https://github.com/Luminous-Dynamics/symtropy/issues/4991) and DOI https://doi.org/10.3390/s26072152.
+
+
+## Cross-population benchmark protocol — 17 November 2026
+
+The eight source populations now have a dedicated task/split/metric contract in [WDN_CROSS_POPULATION_BENCHMARK_PROTOCOL_V0_1.md](./WDN_CROSS_POPULATION_BENCHMARK_PROTOCOL_V0_1.md) and [wdn-cross-population-protocol.v0.1.json](./wdn-cross-population-protocol.v0.1.json), with a separate [Draft 2020-12 schema](./wdn-cross-population-protocol.schema.v0.1.json). It defines T1 detection, T2 localization and T3 characterization separately; forbids pooled cross-population scores; specifies native cadence and event/network-aware leakage-safe splits; and requires observability/common-cause and sensor-budget reporting. All eight populations remain metadata-only: no archive digests, acquired files, split manifests or model claims were added. The water-service T0 workflow now validates this second schema and executes explicit metadata-only/no-pooled-leaderboard invariants.
