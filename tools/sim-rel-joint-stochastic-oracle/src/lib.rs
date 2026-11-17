@@ -12,6 +12,7 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 pub mod baseline;
+pub mod episode;
 
 const MAX_HYPOTHESES: usize = 32;
 const MAX_PHYSICAL_STATES: usize = 64;
@@ -404,6 +405,33 @@ impl JointKernel {
             }
         }
         Ok(())
+    }
+
+    /// Return the exact joint transition row for a public action and private state tuple.
+    ///
+    /// The caller is responsible for keeping the state tuple evaluator-owned. This
+    /// accessor exposes a row only to the domain adapter; it does not expose or
+    /// serialize the hidden tuple into a policy-visible episode packet.
+    pub fn transition_row(
+        &self,
+        hypothesis: usize,
+        physical_state: usize,
+        sensor_state: usize,
+        action: usize,
+    ) -> Option<&KernelRow> {
+        if hypothesis >= self.hypothesis_ids.len()
+            || physical_state >= self.physical_state_count
+            || sensor_state >= self.sensor_state_count
+            || action >= self.action_ids.len()
+        {
+            return None;
+        }
+        self.rows.get(self.row_index(
+            hypothesis,
+            physical_state,
+            sensor_state,
+            action,
+        ))
     }
 
     fn row_index(
