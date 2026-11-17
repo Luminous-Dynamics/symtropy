@@ -17,6 +17,15 @@ pub const SUPPORTED_IFC_SCHEMA_RELEASE: &str = "IFC4X3_ADD2";
 pub const SUPPORTED_IDS_VERSION: &str = "1.0";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct IdsRequirementEvaluation {
+    pub requirement_id: String,
+    pub passed: bool,
+    /// Digest of the canonical IDS engine result, bound to source model,
+    /// GlobalId, IDS requirement and evaluated values.
+    pub evaluation_receipt_sha256: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct IfcSourceEntity {
     /// The 22-character compressed IFC GlobalId from the source model.
     pub global_id: String,
@@ -27,6 +36,11 @@ pub struct IfcSourceEntity {
     pub required_ids_properties: Vec<String>,
     /// Property/attribute identifiers actually delivered by the IFC reader.
     pub delivered_ids_properties: Vec<String>,
+    /// IDS specification rule identifiers applicable to this entity.
+    pub applicable_ids_requirement_ids: Vec<String>,
+    /// Full IDS engine evaluations. A property name being present does not
+    /// prove that its type/value/cardinality/constraint facets passed.
+    pub ids_requirement_evaluations: Vec<IdsRequirementEvaluation>,
     pub in_work_scope: bool,
 }
 
@@ -57,6 +71,7 @@ pub struct SourceEntityBinding {
     pub ifc_global_id: String,
     pub geometry_sha256: String,
     pub required_ids_properties: Vec<String>,
+    pub ids_requirement_evaluations: Vec<IdsRequirementEvaluation>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -89,6 +104,13 @@ pub enum IfcIdsPreflightError {
     DuplicateDeliveredIdsProperty { global_id: String, property: String },
     EmptyIdsPropertyIdentifier { global_id: String },
     MissingRequiredIdsProperty { global_id: String, property: String },
+    EmptyIdsRequirementId { global_id: String },
+    DuplicateApplicableIdsRequirement { global_id: String, requirement_id: String },
+    DuplicateIdsRequirementEvaluation { global_id: String, requirement_id: String },
+    MissingIdsRequirementEvaluation { global_id: String, requirement_id: String },
+    FailedIdsRequirement { global_id: String, requirement_id: String },
+    UnexpectedIdsRequirementEvaluation { global_id: String, requirement_id: String },
+    InvalidIdsRequirementEvaluationReceipt { global_id: String, requirement_id: String },
     NoEntitiesInWorkScope,
     InvalidAcceptanceProfile,
 }
@@ -206,6 +228,58 @@ pub fn preflight_ifc_ids_work_package(
             }
         }
 
+        let mut applicable_requirements = BTreeSet::new();
+        for requirement_id in &source_entity.applicable_ids_requirement_ids {
+            if requirement_id.trim().is_empty() {
+                errors.push(IfcIdsPreflightError::EmptyIdsRequirementId {
+                    global_id: source_entity.global_id.clone(),
+                });
+            } else if !applicable_requirements.insert(requirement_id.as_str()) {
+                errors.push(IfcIdsPreflightError::DuplicateApplicableIdsRequirement {
+                    global_id: source_entity.global_id.clone(),
+                    requirement_id: requirement_id.clone(),
+                });
+            }
+        }
+
+        let mut evaluated_requirements = BTreeSet::new();
+        for evaluation in &source_entity.ids_requirement_evaluations {
+            if !evaluated_requirements.insert(evaluation.requirement_id.as_str()) {
+                errors.push(IfcIdsPreflightError::DuplicateIdsRequirementEvaluation {
+                    global_id: source_entity.global_id.clone(),
+                    requirement_id: evaluation.requirement_id.clone(),
+                });
+                continue;
+            }
+            if !applicable_requirements.contains(evaluation.requirement_id.as_str()) {
+                errors.push(IfcIdsPreflightError::UnexpectedIdsRequirementEvaluation {
+                    global_id: source_entity.global_id.clone(),
+                    requirement_id: evaluation.requirement_id.clone(),
+                });
+            }
+            if !is_sha256(&evaluation.evaluation_receipt_sha256) {
+                errors.push(IfcIdsPreflightError::InvalidIdsRequirementEvaluationReceipt {
+                    global_id: source_entity.global_id.clone(),
+                    requirement_id: evaluation.requirement_id.clone(),
+                });
+            }
+            if !evaluation.passed {
+                errors.push(IfcIdsPreflightError::FailedIdsRequirement {
+                    global_id: source_entity.global_id.clone(),
+                    requirement_id: evaluation.requirement_id.clone(),
+                });
+            }
+        }
+
+        for requirement_id in applicable_requirements {
+            if !evaluated_requirements.contains(requirement_id) {
+                errors.push(IfcIdsPreflightError::MissingIdsRequirementEvaluation {
+                    global_id: source_entity.global_id.clone(),
+                    requirement_id: requirement_id.to_owned(),
+                });
+            }
+        }
+
         let design_entity_id = format!("ifc4x3:{}", source_entity.global_id);
         design_entities.push(DesignIntentEntity {
             design_entity_id: design_entity_id.clone(),
@@ -216,6 +290,7 @@ pub fn preflight_ifc_ids_work_package(
             ifc_global_id: source_entity.global_id.clone(),
             geometry_sha256: source_entity.geometry_sha256.clone(),
             required_ids_properties: source_entity.required_ids_properties.clone(),
+            ids_requirement_evaluations: source_entity.ids_requirement_evaluations.clone(),
         });
     }
 
@@ -331,6 +406,22 @@ mod tests {
                         "Pset_WallCommon.IsExternal".into(),
                         "Pset_Layout.MarkingClass".into(),
                     ],
+                    applicable_ids_requirement_ids: vec![
+                        "layout-marking-class".into(),
+                        "wall-external-classification".into(),
+                    ],
+                    ids_requirement_evaluations: vec![
+                        IdsRequirementEvaluation {
+                            requirement_id: "layout-marking-class".into(),
+                            passed: true,
+                            evaluation_receipt_sha256: digest('c'),
+                        },
+                        IdsRequirementEvaluation {
+                            requirement_id: "wall-external-classification".into(),
+                            passed: true,
+                            evaluation_receipt_sha256: digest('d'),
+                        },
+                    ],
                     in_work_scope: true,
                 },
                 IfcSourceEntity {
@@ -339,6 +430,12 @@ mod tests {
                     geometry_sha256: digest('a'),
                     required_ids_properties: vec!["Pset_Layout.MarkingClass".into()],
                     delivered_ids_properties: vec!["Pset_Layout.MarkingClass".into()],
+                    applicable_ids_requirement_ids: vec!["layout-marking-class".into()],
+                    ids_requirement_evaluations: vec![IdsRequirementEvaluation {
+                        requirement_id: "layout-marking-class".into(),
+                        passed: true,
+                        evaluation_receipt_sha256: digest('e'),
+                    }],
                     in_work_scope: true,
                 },
             ],
@@ -412,6 +509,8 @@ mod tests {
             geometry_sha256: digest('b'),
             required_ids_properties: Vec::new(),
             delivered_ids_properties: Vec::new(),
+            applicable_ids_requirement_ids: Vec::new(),
+            ids_requirement_evaluations: Vec::new(),
             in_work_scope: false,
         });
         let report = preflight_ifc_ids_work_package(input).unwrap();
@@ -419,4 +518,58 @@ mod tests {
         assert_eq!(report.in_scope_entity_count, 2);
         assert_eq!(report.work_package.entities.len(), 2);
     }
+
+    #[test]
+    fn missing_or_failed_ids_rule_evaluation_holds_package_compilation() {
+        let mut missing = valid_input();
+        missing.entities[0].ids_requirement_evaluations.pop();
+        assert!(
+            preflight_ifc_ids_work_package(missing)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::MissingIdsRequirementEvaluation {
+                    global_id: global_id('A'),
+                    requirement_id: "wall-external-classification".into(),
+                })
+        );
+
+        let mut failed = valid_input();
+        failed.entities[0].ids_requirement_evaluations[0].passed = false;
+        assert!(
+            preflight_ifc_ids_work_package(failed)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::FailedIdsRequirement {
+                    global_id: global_id('A'),
+                    requirement_id: "layout-marking-class".into(),
+                })
+        );
+    }
+
+    #[test]
+    fn duplicate_and_unexpected_ids_evaluation_receipts_are_rejected() {
+        let mut duplicate = valid_input();
+        duplicate.entities[0]
+            .ids_requirement_evaluations
+            .push(duplicate.entities[0].ids_requirement_evaluations[0].clone());
+        assert!(
+            preflight_ifc_ids_work_package(duplicate)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::DuplicateIdsRequirementEvaluation {
+                    global_id: global_id('A'),
+                    requirement_id: "layout-marking-class".into(),
+                })
+        );
+
+        let mut unexpected = valid_input();
+        unexpected.entities[0].ids_requirement_evaluations[0].requirement_id =
+            "not-in-the-applicability-set".into();
+        assert!(
+            preflight_ifc_ids_work_package(unexpected)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::UnexpectedIdsRequirementEvaluation {
+                    global_id: global_id('A'),
+                    requirement_id: "not-in-the-applicability-set".into(),
+                })
+        );
+    }
+
 }
