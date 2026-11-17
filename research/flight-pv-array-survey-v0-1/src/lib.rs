@@ -1546,6 +1546,135 @@ mod tests {
         ]
     }
 
+    fn raster_spec() -> RasterPlanSpec {
+        RasterPlanSpec {
+            footprint_half_width_m: 0.6,
+            footprint_half_height_m: 0.3,
+            forward_overlap_fraction: 0.20,
+            side_overlap_fraction: 0.25,
+            camera_height_m: 20.0,
+            view_angle_rad: 0.0,
+        }
+    }
+
+    #[test]
+    fn raster_plan_covers_all_modules_in_two_boustrophedon_lanes() {
+        let mut survey_profile = profile();
+        survey_profile.modules.extend([
+            ModuleBounds {
+                module_id: "module-03".to_owned(),
+                row: 1,
+                column: 0,
+                u_min_m: 0.0,
+                u_max_m: 1.0,
+                v_min_m: 1.0,
+                v_max_m: 2.0,
+            },
+            ModuleBounds {
+                module_id: "module-04".to_owned(),
+                row: 1,
+                column: 1,
+                u_min_m: 1.0,
+                u_max_m: 2.0,
+                v_min_m: 1.0,
+                v_max_m: 2.0,
+            },
+        ]);
+        let plan = generate_raster_plan(&survey_profile, &raster_spec()).unwrap();
+        assert_eq!(plan.waypoints.len(), 4);
+        let covered: BTreeSet<&str> = plan
+            .waypoints
+            .iter()
+            .flat_map(|waypoint| waypoint.covered_module_ids.iter().map(String::as_str))
+            .collect();
+        assert_eq!(
+            covered,
+            BTreeSet::from(["module-01", "module-02", "module-03", "module-04"])
+        );
+        assert_eq!(plan.waypoints[0].lane_index, 0);
+        assert_eq!(plan.waypoints[1].lane_index, 0);
+        assert_eq!(plan.waypoints[2].lane_index, 1);
+        assert_eq!(plan.waypoints[2].kind, WaypointKind::LaneTransition);
+        assert!(plan.route_length_lower_bound_m > 0.0);
+    }
+
+    #[test]
+    fn raster_plan_alternates_direction_to_reduce_lane_transition() {
+        let mut survey_profile = profile();
+        survey_profile.modules.extend([
+            ModuleBounds {
+                module_id: "module-03".to_owned(),
+                row: 1,
+                column: 0,
+                u_min_m: 0.0,
+                u_max_m: 1.0,
+                v_min_m: 1.0,
+                v_max_m: 2.0,
+            },
+            ModuleBounds {
+                module_id: "module-04".to_owned(),
+                row: 1,
+                column: 1,
+                u_min_m: 1.0,
+                u_max_m: 2.0,
+                v_min_m: 1.0,
+                v_max_m: 2.0,
+            },
+        ]);
+        let plan = generate_raster_plan(&survey_profile, &raster_spec()).unwrap();
+        assert!(plan.waypoints[1].center_u_m > plan.waypoints[0].center_u_m);
+        assert!(plan.waypoints[3].center_u_m < plan.waypoints[2].center_u_m);
+        assert_eq!(plan.waypoints[1].center_u_m, plan.waypoints[2].center_u_m);
+    }
+
+    #[test]
+    fn raster_spacing_respects_declared_overlap() {
+        let plan = generate_raster_plan(&profile(), &raster_spec()).unwrap();
+        assert!((plan.forward_spacing_m - 0.96).abs() < 1e-12);
+        assert!((plan.side_spacing_m - 0.45).abs() < 1e-12);
+        assert_eq!(plan.requested_forward_overlap_fraction, 0.20);
+        assert_eq!(plan.requested_side_overlap_fraction, 0.25);
+    }
+
+    #[test]
+    fn invalid_full_overlap_or_nonfinite_footprint_is_rejected() {
+        let mut spec = raster_spec();
+        spec.side_overlap_fraction = 1.0;
+        assert!(generate_raster_plan(&profile(), &spec).is_err());
+        spec = raster_spec();
+        spec.footprint_half_width_m = f64::NAN;
+        assert!(generate_raster_plan(&profile(), &spec).is_err());
+    }
+
+    #[test]
+    fn raster_plan_is_deterministic_and_module_order_invariant() {
+        let mut survey_profile = profile();
+        survey_profile.modules.extend([
+            ModuleBounds {
+                module_id: "module-03".to_owned(),
+                row: 1,
+                column: 0,
+                u_min_m: 0.0,
+                u_max_m: 1.0,
+                v_min_m: 1.0,
+                v_max_m: 2.0,
+            },
+            ModuleBounds {
+                module_id: "module-04".to_owned(),
+                row: 1,
+                column: 1,
+                u_min_m: 1.0,
+                u_max_m: 2.0,
+                v_min_m: 1.0,
+                v_max_m: 2.0,
+            },
+        ]);
+        let first = generate_raster_plan(&survey_profile, &raster_spec()).unwrap();
+        survey_profile.modules.reverse();
+        let second = generate_raster_plan(&survey_profile, &raster_spec()).unwrap();
+        assert_eq!(first, second);
+    }
+
     fn energy() -> MissionEnergyEnvelope {
         MissionEnergyEnvelope {
             mission_id: "mission:pv-001".to_owned(),
