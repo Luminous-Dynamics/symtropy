@@ -107,6 +107,26 @@ Solar geometry, latitude, season, altitude, wind layers, coverage footprints and
 
 HAPS-to-UAV transfer adds transmitter/receiver mass, alignment, acquisition, interruption, cooling, drag and safety constraints. It must be compared against ground-direct power beaming, battery-only and docking on a matched mission.
 
+### 3.7 Treat the atmosphere as a controllable resource — with platform-specific physics
+
+Wind-layer selection is not a new discovery; it is an established stratospheric-balloon research field. The opportunity is to move beyond minimizing distance from a fixed target and instead co-optimize **service footprint, energy, forecast uncertainty, altitude/position authority and reserve** for each lift class.
+
+Relevant published baselines:
+
+- Liu et al. (2022) modelled time-varying achievable altitude ranges and used real wind fields, thermal/altitude effects and 366-day datasets across locations between 48°N and 48°S to improve super-pressure-balloon station-keeping. [Aerospace Science and Technology, DOI 10.1016/j.ast.2022.107399](https://doi.org/10.1016/j.ast.2022.107399).
+- A 2024 seasonal/geographic viability study used ERA5 wind fields and a trajectory search to maximize time within 50 km of a target; it found large regional and seasonal variation, with mid-latitude station-keeping more challenging than lower latitudes. [Scientific Reports, DOI 10.1038/s41598-024-71445-9](https://doi.org/10.1038/s41598-024-71445-9).
+- Fan et al. (2024) compared wind forecasts and receding-horizon station-keeping for stratospheric balloons. In that paper's data, 1-hour median wind-speed error was 4.8% for PredRNN, 6.1% for ResNet and 10.0% for persistence; at 4 hours, average errors rose to 25.3%, 26.2% and 33.0%. Their SOO planning comparison beat greedy and A* in their own simulated cases. Those values are paper-specific, not a universal forecast benchmark. [Electronics, DOI 10.3390/electronics13204032](https://doi.org/10.3390/electronics13204032).
+- Delgado et al. (2024) formulated a 24-hour sprint-and-drift trajectory for stratospheric airship station-keeping to reduce energy while tolerating a bounded displacement from a ground reference. [Aerospace Science and Technology, DOI 10.1016/j.ast.2024.109365](https://doi.org/10.1016/j.ast.2024.109365).
+- A 2025 analysis of 338 altitude bands using more than 250 million wind profiles from 2020–2024 shows that navigational potential depends on the vertical diversity of the wind column and on the accessible altitude envelope; the result argues against treating one fixed stratospheric layer as universally favorable. [Communications Earth & Environment, DOI 10.1038/s43247-025-02526-4](https://doi.org/10.1038/s43247-025-02526-4).
+
+The candidate-specific control problems are different:
+
+- **Buoyant free balloon:** horizontal motion is primarily wind-driven. Its controller may choose when/where to change altitude to exploit wind-layer differences, subject to actual altitude-control actuator, thermal, gas/ballast, envelope, solar and altitude limits. Do not assign an aircraft propulsion-power model to a free balloon without evidence.
+- **Buoyant airship:** may have lateral propulsion plus altitude control. Compare powered station-keeping, wind-aware drift, and sprint/drift policies using the same coverage tolerance and payload.
+- **Solar fixed wing:** has aerodynamic lateral control and propulsion; it can trade heading, airspeed, altitude and loiter geometry against solar incidence, drag, wind-relative ground track and propulsion energy. It must not inherit the free-balloon altitude-only steering abstraction.
+
+The Luminous research gap is a **service-aware, robust wind-field planner** that optimizes time-varying coverage and backhaul quality together with propulsion/altitude-control energy, reserve, solar collection and fleet handover. Forecasts should be distributions or ensembles, not a single deterministic wind vector. When forecast uncertainty, data age or wind regime leaves the candidate outside its validated domain, return `NOT_COVERED` / `INDETERMINATE` rather than extrapolating silently.
+
 ## 4. Benchmark scenario matrix
 
 | ID | Scenario | Essential stressors | Primary question |
@@ -114,7 +134,7 @@ HAPS-to-UAV transfer adds transmitter/receiver mass, alignment, acquisition, int
 | H0 | Reference diurnal closure | Declared 24-hour sun, loads, battery, power limits and reserve | Does the ledger close? |
 | H1 | Consecutive-day sequence | Multi-day changing solar and loads | Does SoC recover after each night? |
 | H2 | Seasonal/geographic holdout | Solstice/equinox, low solar elevation, altitude and latitude | What is the valid operating envelope? |
-| H3 | Wind-layer station-keeping | Adverse winds, track error, loiter and coverage | What is the true propulsion energy? |
+| H3 | Wind-aware station-keeping / sprint-drift | Time-varying vertical wind shear, thermal/altitude control limits, forecast ensembles, station-keeping radius, service footprint, propulsion/actuator energy | What coverage can each lift class sustain at what total energy and forecast-regret? |
 | H4 | Battery end-of-life | Usable capacity loss, impedance, power fade, imbalance and cold | Does reserve still hold? |
 | H5 | Thermal extremes | Solar heating, battery and motor heat, rarefied-air cooling, payload peaks | Can thermal limits be maintained? |
 | H6 | Payload duty cycles | Continuous low power and burst communications/imaging/compute | Can payload service be delivered without eroding flight reserve? |
@@ -123,7 +143,7 @@ HAPS-to-UAV transfer adds transmitter/receiver mass, alignment, acquisition, int
 | H9 | Fleet/node failure | Node loss, maintenance, recovery, spares, grounding and handover | Does the service survive an unavailable aircraft? |
 | H10 | Lift-class comparison | Fixed-wing versus buoyant free balloon versus propelled airship; payload, solar area, wind field, altitude control and launch/recovery | Which lift class delivers the same coverage service with the lowest robust system burden? |
 
-Preserve weather autocorrelation, synoptic regime, altitude correlations and geography. Do not shuffle hourly irradiance and wind independently. Hold out entire weather campaigns, seasons or locations. Monte Carlo seeds are not independent weather campaigns.
+Preserve weather autocorrelation, synoptic regime, altitude correlations and geography. Do not shuffle hourly irradiance and wind independently. Hold out entire weather campaigns, seasons or locations. Monte Carlo seeds are not independent weather campaigns. Wind-layer control must also be evaluated against strong passive-drift, fixed-altitude, rule-based/greedy, A*, SOO/receding-horizon and RL baselines with the same forecast data, horizon, actuation limits and compute budget. Forecast error alone is insufficient: report achieved footprint time, p95 target distance, request/coverage outage, altitude transitions and associated actuator/propulsion Wh. Hold out full seasons, geographies and years; report the energy/coverage regret caused by forecast error.
 
 Use model-specific time scales and demonstrate numerical time-step convergence for solar/battery dispatch, battery/motor thermal transients, wind-relative station-keeping, beam acquisition/reacquisition and fleet handover. Do not force one sample rate across all physics.
 
