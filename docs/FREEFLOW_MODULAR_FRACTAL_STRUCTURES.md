@@ -632,3 +632,27 @@ The first matched-mass tetrahedron vs. interior-hub scratch calculation is recor
 Opened [issue #5813](https://github.com/Luminous-Dynamics/symtropy/issues/5813) for load, material, connector, tolerance and process uncertainty propagation. The research objective is to optimize robust lifecycle performance, not nominal stiffness alone. The plan separates deterministic interval screening from calibrated probabilistic analysis, then adds robust Pareto search and active selection of simulations/coupons based on value of information. No probability of failure will be inferred from the current deterministic member-removal scenarios.
 
 The isolated beam kernel now also has fixtures for both principal bending planes and all six zero-energy rigid-body modes, in addition to the first cantilever and transformation checks. These are authored numerical verification tests; exact-head CI has not yet executed them.
+
+## Competitive capability refresh — 2026-11-17
+
+The current vendor landscape shows why FFMFE must compete on lifecycle integration, not only generative geometry:
+
+- nTop lists graph, TPMS, custom-unit-cell and stochastic lattices; multi-objective/multi-constraint topology optimization; embedded structural and thermal FEA; and CAE export to tools such as Abaqus, ANSYS and Nastran. Its current simulation pages also describe automated evaluation of hundreds of parametrically updated designs. Sources: https://www.ntop.com/software/capabilities/integrations/ and https://www.ntop.com/software/capabilities/simulation/
+- Autodesk Fusion's generative design lets users set objectives such as mass/stiffness and limits such as safety factor/displacement, and includes manufacturing methods for additive, milling, 2-axis cutting and casting. Sources: https://help.autodesk.com/cloudhelp/ENU/Fusion-GenerativeDesign/files/GD-DESIGN-CRITERIA.htm and https://help.autodesk.com/cloudhelp/ENU/Fusion-GenerativeDesign/files/GD-MFG-METHODS.htm
+- Altair's Inspire supports structural optimization, FEA, motion and additive-manufacturing analysis. Altair's broader optimization stack lists reliability-based design optimization, failsafe topology optimization, multiple-material topology optimization and topology/lattice optimization. Sources: https://2025.help.altair.com/2025/inspire/en_us/topics/shared/get_started/get_started_st_c.htm and https://help.altair.com/hwsolvers/os/topics/getting_started/features_os_c.htm
+- Materialise 3-matic supports mesh-level modification of topology-optimized/scanned data, lattice and conformal structures, and automated ranges of validation samples. Magics Lattice provides functional lattice generation. Sources: https://www.materialise.com/en/industrial/software/3-matic and https://www.materialise.com/en/industrial/software/lattice
+- NASA ARMADAS is developing builder robots and reusable voxels for autonomous assembly of habitats, antenna arrays and other functional structures. NASA's current ISAM programme collects related in-space assembly technologies. Sources: https://www.nasa.gov/automated-reconfigurable-mission-adaptive-digital-assembly-systems-armadas/ and https://www.nasa.gov/isam/
+
+### Differentiation and benchmark implication
+
+Do not compete by claiming general-purpose lattice generation, manufacturing-aware generative design, topology optimization or robotic assembly as novel. These are established capabilities.
+
+The FFMFE research hypothesis should instead test an open, typed, evidence-bearing structural grammar with:
+1. explicit, versioned connector and module contracts;
+2. joint-compliant mechanics linked to measured connector coupons;
+3. assembly, inspection, disassembly and replacement plans;
+4. damage and uncertainty-aware lifecycle optimization;
+5. traceability from design through as-built metrology and inspection;
+6. occupant-controlled expressive and sensory layers, isolated from qualified primary structure.
+
+Any advantage must be shown under the frozen FFMFE protocol against strong baselines, including vendor tools where comparable access is available.
