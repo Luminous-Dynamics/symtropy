@@ -311,13 +311,30 @@ fn validate_structure(corpus: &Corpus) -> Result<(), String> {
         corpus.lifecycle_events.iter().map(|item| item.event_id.as_str()),
         "lifecycle event",
     )?;
-    let dependency_keys = corpus.dependencies.iter().map(|edge| {
-        format!(
+    let mut dependency_keys = BTreeSet::new();
+    for edge in &corpus.dependencies {
+        let key = format!(
             "{}|{}|{}",
             edge.dependent_evidence_id, edge.upstream_evidence_id, edge.relation
-        )
-    });
-    unique_ids(dependency_keys.map(|item| Box::leak(item.into_boxed_str()) as &str), "dependency edge")?;
+        );
+        if !dependency_keys.insert(key) {
+            return Err("duplicate dependency edge".to_owned());
+        }
+        if ![
+            "DERIVED_FROM",
+            "COPIED_FROM",
+            "SAME_UPSTREAM_OBSERVATION",
+            "SHARED_SENSOR",
+            "SHARED_CALIBRATION",
+            "COMMON_OPERATOR",
+            "COMMON_MODEL",
+            "UNKNOWN_DEPENDENCE",
+        ]
+        .contains(&edge.relation.as_str())
+        {
+            return Err(format!("unsupported dependency relation: {}", edge.relation));
+        }
+    }
     let evidence_by_id: BTreeMap<&str, &EvidenceArtifact> = corpus
         .evidence_artifacts
         .iter()
@@ -791,7 +808,7 @@ mod tests {
         assert_eq!(report.verified_independence_attestation_ids, vec!["ind-flow-001"]);
         assert_eq!(
             report.verified_independent_evidence_ids,
-            vec!["ev-independent-e", "ev-sensor-a"]
+            vec!["ev-independent-e".to_owned(), "ev-sensor-a".to_owned()]
         );
         assert!(report.verified_independent_evidence_ids.contains(&"ev-sensor-a".to_owned()));
         assert!(!report.verified_independent_evidence_ids.contains(&"ev-copy-a".to_owned()));
@@ -989,7 +1006,7 @@ mod tests {
             "2026-11-16T12:00:00Z",
             "2026-11-16T11:30:00Z",
         );
-        assert_eq!(accepted, vec!["ind-flow-001"]);
+        assert_eq!(accepted, vec!["ind-flow-001".to_owned()]);
     }
 
     #[test]
