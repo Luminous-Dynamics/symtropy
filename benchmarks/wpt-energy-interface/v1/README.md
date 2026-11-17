@@ -84,3 +84,16 @@ See standards-coverage.md. This profile is a proposal and does not claim IEC, IS
 ## Claim ceiling
 
 Software, schema, protocol and synthetic-conformance work only. No live energy transfer, energized public-road testing, human exposure campaign, cybersecurity certification, measured performance or standards compliance is claimed.
+
+
+## Transport-session binding sidecar conformance
+
+The transport-session binding sidecar joins one already-validated WPT event to an independently resolved service profile and registered transport-path revision. It is evidence-only and does not create a second session state machine.
+
+Run the positive fixture with:
+
+    cargo run --locked -p wpt-energy-interface-validator -- validate-binding benchmarks/wpt-energy-interface/v1/transport-session-binding.example.json benchmarks/wpt-energy-interface/v1/transport-session-binding-context.example.json
+
+The trusted-context file is a synthetic fixture. In an integration, the caller must assemble that context independently from the accepted session event and the authoritative service/path registries; passing the sidecar back as its own context is not a valid trust model. The validator checks exact session and asset digests, service/profile and meter boundaries, transport-path revision/regime, continuous primitive ports, conversion stages, evidence references and the non-authority invariant. It does not duplicate carrier/mechanism/medium enums: path primitives are treated as registered contract data and compared exactly.
+
+All ten frozen controls in transport-session-binding-negative-controls.v0.1.jsonl run as Rust unit tests. The result METADATA_BOUND means metadata agrees with the caller-supplied trusted context only. It is not physical path proof, credential verification, measured performance, safety qualification, permission to energize or standards compliance. The WPT validator remains the sole session-state-machine owner; local protection remains independent.

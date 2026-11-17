@@ -8,6 +8,9 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 
+pub mod transport_binding;
+pub use transport_binding::evaluate_transport_session_binding;
+
 #[derive(Debug, Clone)]
 struct SessionState {
     sequence: u64,

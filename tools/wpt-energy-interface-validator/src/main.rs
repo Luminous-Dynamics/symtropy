@@ -1,18 +1,63 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use std::collections::HashSet;
 use std::env;
-use std::fs::File;
+use std::ffi::OsString;
+use std::fs;
 use std::io::{BufRead, BufReader};
 use std::process::ExitCode;
 
 use serde_json::Value;
-use wpt_energy_interface_validator::{SessionValidator, evaluate_record};
+use wpt_energy_interface_validator::{
+    SessionValidator, evaluate_record, evaluate_transport_session_binding,
+};
+
+fn read_json(path: &OsString) -> Result<Value, String> {
+    let content = fs::read_to_string(path)
+        .map_err(|error| format!("cannot read {}: {error}", path.to_string_lossy()))?;
+    serde_json::from_str(&content)
+        .map_err(|error| format!("invalid JSON in {}: {error}", path.to_string_lossy()))
+}
+
+fn run_binding(binding_path: OsString, context_path: OsString) -> Result<(), String> {
+    let binding = read_json(&binding_path)?;
+    let context = read_json(&context_path)?;
+    let report = evaluate_transport_session_binding(&binding, &context);
+    println!("{report}");
+    match report.get("disposition").and_then(Value::as_str) {
+        Some("METADATA_BOUND") => Ok(()),
+        Some(disposition) => Err(format!("transport-session binding disposition: {disposition}")),
+        None => Err("validator returned no binding disposition".into()),
+    }
+}
 
 fn run() -> Result<(), String> {
-    let path = env::args_os()
-        .nth(1)
-        .ok_or_else(|| "usage: wpt-energy-interface-validator <known-truth.jsonl>".to_owned())?;
-    let file = File::open(&path).map_err(|error| format!("cannot open input: {error}"))?;
+    let mut args = env::args_os().skip(1);
+    let first = args.next().ok_or_else(|| {
+        "usage: wpt-energy-interface-validator <known-truth.jsonl> | validate-binding <binding.json> <trusted-context.json>"
+            .to_owned()
+    })?;
+    if first.to_string_lossy() == "validate-binding" {
+        let binding_path = args.next().ok_or_else(|| {
+            "usage: wpt-energy-interface-validator validate-binding <binding.json> <trusted-context.json>"
+                .to_owned()
+        })?;
+        let context_path = args.next().ok_or_else(|| {
+            "usage: wpt-energy-interface-validator validate-binding <binding.json> <trusted-context.json>"
+                .to_owned()
+        })?;
+        if args.next().is_some() {
+            return Err("too many arguments for validate-binding".into());
+        }
+        return run_binding(binding_path, context_path);
+    }
+    if args.next().is_some() {
+        return Err(
+            "usage: wpt-energy-interface-validator <known-truth.jsonl> | validate-binding <binding.json> <trusted-context.json>"
+                .into(),
+        );
+    }
+
+    let file = fs::File::open(&first).map_err(|error| format!("cannot open input: {error}"))?;
     let reader = BufReader::new(file);
     let mut sessions = SessionValidator::default();
     let mut event_ids = HashSet::new();
