@@ -1,0 +1,33 @@
+name: EV battery process-window audit v0.1
+
+on:
+  pull_request:
+    paths:
+      - "docs/transport/EV_BATTERY_PROCESS_WINDOW_V0_1.md"
+      - "schemas/transport/ev_battery_process_window_v0_1.schema.json"
+      - "fixtures/ev_battery/ev_battery_process_window_v0_1.json"
+      - "tools/ev-battery-process-window-audit/**"
+      - ".github/workflows/ev-battery-process-window-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact pull request head
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Check locked package metadata
+        run: cargo metadata --manifest-path tools/ev-battery-process-window-audit/Cargo.toml --locked --no-deps
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/ev-battery-process-window-audit/Cargo.toml -- --check
+      - name: Run lot/line and evidence-tier tests
+        run: cargo test --manifest-path tools/ev-battery-process-window-audit/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path tools/ev-battery-process-window-audit/Cargo.toml --all-targets --locked -- -D warnings

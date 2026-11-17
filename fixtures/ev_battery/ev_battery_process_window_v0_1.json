@@ -1,0 +1,275 @@
+{
+  "schema_version": "0.1.0",
+  "manifest_id": "SYNTH-EV-BATTERY-PROCESS-WINDOW-001",
+  "recipe_ref": "EV-RECIPE-LFP-R1",
+  "recipe_revision": "r1",
+  "cell_configuration_ref": "CELL-CONFIG-LFP-4AH-R1",
+  "process_parameters": [
+    {
+      "parameter_id": "coating_loading",
+      "unit": "mg/cm2",
+      "lower_bound": 18,
+      "upper_bound": 22
+    },
+    {
+      "parameter_id": "calender_density",
+      "unit": "g/cm3",
+      "lower_bound": 2.2,
+      "upper_bound": 2.6
+    }
+  ],
+  "quality_specs": [
+    {
+      "metric_id": "capacity",
+      "unit": "Ah",
+      "boundary": "complete_cell",
+      "lower_limit": 4.8,
+      "upper_limit": null
+    },
+    {
+      "metric_id": "dcir",
+      "unit": "mOhm",
+      "boundary": "complete_cell_at_50_soc",
+      "lower_limit": null,
+      "upper_limit": 30
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "PROC-SYNTH",
+      "evidence_class": "synthetic_fixture",
+      "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "claim_scope": "synthetic process parameter observations",
+      "validity_domain": "fixture only",
+      "admission": "admitted_for_evaluation"
+    },
+    {
+      "evidence_id": "QUALITY-SYNTH",
+      "evidence_class": "synthetic_fixture",
+      "source_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "claim_scope": "synthetic cell quality observations",
+      "validity_domain": "fixture only",
+      "admission": "admitted_for_evaluation"
+    },
+    {
+      "evidence_id": "QUALITY-PHYSICAL-PLACEHOLDER",
+      "evidence_class": "physical_measurement",
+      "source_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "claim_scope": "placeholder; not a real physical record",
+      "validity_domain": "no physical admission",
+      "admission": "candidate"
+    }
+  ],
+  "production_runs": [
+    {
+      "run_id": "RUN-001",
+      "cell_id": "CELL-001",
+      "lot_id": "LOT-A",
+      "production_line_id": "LINE-1",
+      "equipment_id": "EQUIP-LINE-1",
+      "recipe_ref": "EV-RECIPE-LFP-R1",
+      "recipe_revision": "r1",
+      "cell_configuration_ref": "CELL-CONFIG-LFP-4AH-R1",
+      "process_parameters": [
+        {
+          "parameter_id": "coating_loading",
+          "unit": "mg/cm2",
+          "value": 20,
+          "evidence_id": "PROC-SYNTH"
+        },
+        {
+          "parameter_id": "calender_density",
+          "unit": "g/cm3",
+          "value": 2.4,
+          "evidence_id": "PROC-SYNTH"
+        }
+      ],
+      "quality_observations": [
+        {
+          "metric_id": "capacity",
+          "unit": "Ah",
+          "boundary": "complete_cell",
+          "status": "observed",
+          "value": 4.9,
+          "evidence_id": "QUALITY-SYNTH"
+        },
+        {
+          "metric_id": "dcir",
+          "unit": "mOhm",
+          "boundary": "complete_cell_at_50_soc",
+          "status": "observed",
+          "value": 28,
+          "evidence_id": "QUALITY-SYNTH"
+        }
+      ]
+    },
+    {
+      "run_id": "RUN-002",
+      "cell_id": "CELL-002",
+      "lot_id": "LOT-A",
+      "production_line_id": "LINE-1",
+      "equipment_id": "EQUIP-LINE-1",
+      "recipe_ref": "EV-RECIPE-LFP-R1",
+      "recipe_revision": "r1",
+      "cell_configuration_ref": "CELL-CONFIG-LFP-4AH-R1",
+      "process_parameters": [
+        {
+          "parameter_id": "coating_loading",
+          "unit": "mg/cm2",
+          "value": 19.5,
+          "evidence_id": "PROC-SYNTH"
+        },
+        {
+          "parameter_id": "calender_density",
+          "unit": "g/cm3",
+          "value": 2.4,
+          "evidence_id": "PROC-SYNTH"
+        }
+      ],
+      "quality_observations": [
+        {
+          "metric_id": "capacity",
+          "unit": "Ah",
+          "boundary": "complete_cell",
+          "status": "observed",
+          "value": 4.7,
+          "evidence_id": "QUALITY-SYNTH"
+        },
+        {
+          "metric_id": "dcir",
+          "unit": "mOhm",
+          "boundary": "complete_cell_at_50_soc",
+          "status": "observed",
+          "value": 28,
+          "evidence_id": "QUALITY-SYNTH"
+        }
+      ]
+    },
+    {
+      "run_id": "RUN-003",
+      "cell_id": "CELL-003",
+      "lot_id": "LOT-B",
+      "production_line_id": "LINE-1",
+      "equipment_id": "EQUIP-LINE-1",
+      "recipe_ref": "EV-RECIPE-LFP-R1",
+      "recipe_revision": "r1",
+      "cell_configuration_ref": "CELL-CONFIG-LFP-4AH-R1",
+      "process_parameters": [
+        {
+          "parameter_id": "coating_loading",
+          "unit": "mg/cm2",
+          "value": 20.2,
+          "evidence_id": "PROC-SYNTH"
+        },
+        {
+          "parameter_id": "calender_density",
+          "unit": "g/cm3",
+          "value": 2.4,
+          "evidence_id": "PROC-SYNTH"
+        }
+      ],
+      "quality_observations": [
+        {
+          "metric_id": "capacity",
+          "unit": "Ah",
+          "boundary": "complete_cell",
+          "status": "observed",
+          "value": 5,
+          "evidence_id": "QUALITY-SYNTH"
+        },
+        {
+          "metric_id": "dcir",
+          "unit": "mOhm",
+          "boundary": "complete_cell_at_50_soc",
+          "status": "observed",
+          "value": 25,
+          "evidence_id": "QUALITY-SYNTH"
+        }
+      ]
+    },
+    {
+      "run_id": "RUN-004",
+      "cell_id": "CELL-004",
+      "lot_id": "LOT-C",
+      "production_line_id": "LINE-2",
+      "equipment_id": "EQUIP-LINE-2",
+      "recipe_ref": "EV-RECIPE-LFP-R1",
+      "recipe_revision": "r1",
+      "cell_configuration_ref": "CELL-CONFIG-LFP-4AH-R1",
+      "process_parameters": [
+        {
+          "parameter_id": "coating_loading",
+          "unit": "mg/cm2",
+          "value": 30,
+          "evidence_id": "PROC-SYNTH"
+        },
+        {
+          "parameter_id": "calender_density",
+          "unit": "g/cm3",
+          "value": 2.4,
+          "evidence_id": "PROC-SYNTH"
+        }
+      ],
+      "quality_observations": [
+        {
+          "metric_id": "capacity",
+          "unit": "Ah",
+          "boundary": "complete_cell",
+          "status": "observed",
+          "value": 4.9,
+          "evidence_id": "QUALITY-SYNTH"
+        },
+        {
+          "metric_id": "dcir",
+          "unit": "mOhm",
+          "boundary": "complete_cell_at_50_soc",
+          "status": "observed",
+          "value": 27,
+          "evidence_id": "QUALITY-SYNTH"
+        }
+      ]
+    },
+    {
+      "run_id": "RUN-005",
+      "cell_id": "CELL-005",
+      "lot_id": "LOT-C",
+      "production_line_id": "LINE-2",
+      "equipment_id": "EQUIP-LINE-2",
+      "recipe_ref": "EV-RECIPE-LFP-R1",
+      "recipe_revision": "r1",
+      "cell_configuration_ref": "CELL-CONFIG-LFP-4AH-R1",
+      "process_parameters": [
+        {
+          "parameter_id": "coating_loading",
+          "unit": "mg/cm2",
+          "value": 20,
+          "evidence_id": "PROC-SYNTH"
+        },
+        {
+          "parameter_id": "calender_density",
+          "unit": "g/cm3",
+          "value": 2.4,
+          "evidence_id": "PROC-SYNTH"
+        }
+      ],
+      "quality_observations": [
+        {
+          "metric_id": "capacity",
+          "unit": "Ah",
+          "boundary": "complete_cell",
+          "status": "observed",
+          "value": 4.9,
+          "evidence_id": "QUALITY-SYNTH"
+        },
+        {
+          "metric_id": "dcir",
+          "unit": "mOhm",
+          "boundary": "complete_cell_at_50_soc",
+          "status": "not_measured",
+          "value": null,
+          "evidence_id": "QUALITY-SYNTH"
+        }
+      ]
+    }
+  ]
+}
