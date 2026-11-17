@@ -464,6 +464,7 @@ pub fn verify_waveform_receipt(receipt: &WaveformReceipt) -> Result<(), ReplayEr
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde::Deserialize;
 
     fn request() -> WaveformRequest {
         WaveformRequest {
@@ -647,6 +648,96 @@ mod tests {
         non_finite.faults.clear();
         non_finite.input_values[0] = f64::NAN;
         assert!(run_waveform_replay(&non_finite).is_err());
+    }
+
+    #[derive(Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct WaveformBenchmarkManifest {
+        schema_version: String,
+        benchmark_id: String,
+        evidence_class: String,
+        physical_measurements: bool,
+        claim_ceiling: String,
+        cases: Vec<WaveformBenchmarkCase>,
+    }
+
+    #[derive(Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct WaveformBenchmarkCase {
+        case_id: String,
+        expected_disposition: String,
+        request: WaveformRequest,
+        expected_states: Vec<WaveformSampleState>,
+        expected_values: Vec<Option<f64>>,
+        expected_source_sample_indices: Vec<Option<usize>>,
+        expected_active_fault_ids: Vec<Option<String>>,
+    }
+
+    #[test]
+    fn repository_waveform_fixture_matches_every_sample_and_claim_boundary() {
+        let source =
+            include_str!("../../../../benchmarks/plasma/waveform-fault-replay-v0.json");
+        let manifest: WaveformBenchmarkManifest =
+            serde_json::from_str(source).expect("waveform fixture should deserialize");
+        assert_eq!(
+            manifest.schema_version,
+            "luminous.plasma-synthetic-waveform-benchmark.v0.1"
+        );
+        assert_eq!(manifest.benchmark_id, "PLASMA-WAVEFORM-FAULT-001");
+        assert_eq!(manifest.evidence_class, WAVEFORM_EVIDENCE_CLASS);
+        assert!(!manifest.physical_measurements);
+        assert_eq!(manifest.claim_ceiling, WAVEFORM_CLAIM_CEILING);
+        assert_eq!(manifest.cases.len(), 8);
+
+        let mut case_ids = BTreeSet::new();
+        for case in manifest.cases {
+            assert!(!case.case_id.trim().is_empty());
+            assert!(case_ids.insert(case.case_id.clone()), "duplicate case ID");
+            assert_eq!(case.expected_disposition, "COMPLETED");
+
+            let receipt =
+                run_waveform_replay(&case.request).expect("fixture replay should complete");
+            verify_waveform_receipt(&receipt).expect("fixture receipt should verify");
+            assert_eq!(receipt.body.evidence_class, WAVEFORM_EVIDENCE_CLASS);
+            assert!(!receipt.body.physical_measurements);
+            assert_eq!(receipt.body.claim_ceiling, WAVEFORM_CLAIM_CEILING);
+
+            let sample_count = case.request.input_values.len();
+            assert_eq!(receipt.body.samples.len(), sample_count);
+            assert_eq!(case.expected_states.len(), sample_count);
+            assert_eq!(case.expected_values.len(), sample_count);
+            assert_eq!(case.expected_source_sample_indices.len(), sample_count);
+            assert_eq!(case.expected_active_fault_ids.len(), sample_count);
+
+            for index in 0..sample_count {
+                let actual = &receipt.body.samples[index];
+                assert_eq!(actual.state, case.expected_states[index], "{}", case.case_id);
+                assert_eq!(
+                    actual.source_sample_index,
+                    case.expected_source_sample_indices[index],
+                    "{} sample {index}",
+                    case.case_id
+                );
+                assert_eq!(
+                    actual.active_fault_id,
+                    case.expected_active_fault_ids[index],
+                    "{} sample {index}",
+                    case.case_id
+                );
+                match (actual.value, case.expected_values[index]) {
+                    (Some(actual), Some(expected)) => assert!(
+                        (actual - expected).abs() <= 1e-12,
+                        "{} sample {index}: expected {expected}, got {actual}",
+                        case.case_id
+                    ),
+                    (None, None) => {}
+                    (actual, expected) => panic!(
+                        "{} sample {index}: value disposition mismatch: expected {expected:?}, got {actual:?}",
+                        case.case_id
+                    ),
+                }
+            }
+        }
     }
 
     #[test]
