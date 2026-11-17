@@ -66,6 +66,70 @@ impl EnergyTerm {
     }
 }
 
+/// Raw unit declared by a source adapter before normalization to W m^-2.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EnergyMeasurementUnit {
+    WattPerSquareMetre,
+    JoulePerSquareMetre,
+    Unsupported,
+}
+
+/// Whether the source sign matches the term-specific reference direction
+/// documented by AvailableEnergyTerms or must be inverted.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EnergySourcePolarity {
+    MatchesReferenceDirection,
+    InvertedFromReferenceDirection,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EnergyNormalizationError {
+    NonFiniteValue,
+    UnsupportedUnit,
+    MissingDuration,
+    ZeroDuration,
+    NonFiniteResult,
+}
+
+/// Normalize a source energy measurement to W m^-2.
+///
+/// The caller must map the source's sign convention to the term-specific
+/// reference direction before calling this function. Interval energy density
+/// (J m^-2) is divided by the exact positive averaging duration in seconds.
+/// Flux density (W m^-2) is passed through unchanged. No implicit sign or unit
+/// guesses are made.
+pub fn normalize_energy_measurement(
+    value: f64,
+    unit: EnergyMeasurementUnit,
+    duration_seconds: Option<u64>,
+    polarity: EnergySourcePolarity,
+) -> Result<f64, EnergyNormalizationError> {
+    if !value.is_finite() {
+        return Err(EnergyNormalizationError::NonFiniteValue);
+    }
+    let normalized = match unit {
+        EnergyMeasurementUnit::WattPerSquareMetre => value,
+        EnergyMeasurementUnit::JoulePerSquareMetre => {
+            let duration = duration_seconds.ok_or(EnergyNormalizationError::MissingDuration)?;
+            if duration == 0 {
+                return Err(EnergyNormalizationError::ZeroDuration);
+            }
+            value / duration as f64
+        }
+        EnergyMeasurementUnit::Unsupported => {
+            return Err(EnergyNormalizationError::UnsupportedUnit);
+        }
+    };
+    let normalized = match polarity {
+        EnergySourcePolarity::MatchesReferenceDirection => normalized,
+        EnergySourcePolarity::InvertedFromReferenceDirection => -normalized,
+    };
+    if !normalized.is_finite() {
+        return Err(EnergyNormalizationError::NonFiniteResult);
+    }
+    Ok(normalized)
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TermId {
     NetRadiation,
@@ -662,6 +726,98 @@ mod tests {
             available_energy_w_m2: ae,
             turbulent_energy_w_m2: te,
         }
+    }
+
+    #[test]
+    fn normalize_flux_density_passes_watts_per_square_metre_through() {
+        assert_eq!(
+            normalize_energy_measurement(
+                125.0,
+                EnergyMeasurementUnit::WattPerSquareMetre,
+                None,
+                EnergySourcePolarity::MatchesReferenceDirection
+            ),
+            Ok(125.0)
+        );
+    }
+
+    #[test]
+    fn normalize_interval_energy_divides_by_exact_duration() {
+        assert_eq!(
+            normalize_energy_measurement(
+                180_000.0,
+                EnergyMeasurementUnit::JoulePerSquareMetre,
+                Some(1800),
+                EnergySourcePolarity::MatchesReferenceDirection
+            ),
+            Ok(100.0)
+        );
+    }
+
+    #[test]
+    fn normalize_source_polarity_is_explicit_and_reversible() {
+        assert_eq!(
+            normalize_energy_measurement(
+                100.0,
+                EnergyMeasurementUnit::WattPerSquareMetre,
+                None,
+                EnergySourcePolarity::InvertedFromReferenceDirection
+            ),
+            Ok(-100.0)
+        );
+    }
+
+    #[test]
+    fn normalize_interval_energy_requires_positive_duration() {
+        assert_eq!(
+            normalize_energy_measurement(
+                1.0,
+                EnergyMeasurementUnit::JoulePerSquareMetre,
+                None,
+                EnergySourcePolarity::MatchesReferenceDirection
+            ),
+            Err(EnergyNormalizationError::MissingDuration)
+        );
+        assert_eq!(
+            normalize_energy_measurement(
+                1.0,
+                EnergyMeasurementUnit::JoulePerSquareMetre,
+                Some(0),
+                EnergySourcePolarity::MatchesReferenceDirection
+            ),
+            Err(EnergyNormalizationError::ZeroDuration)
+        );
+    }
+
+    #[test]
+    fn normalize_unknown_units_and_non_finite_inputs_fail_closed() {
+        assert_eq!(
+            normalize_energy_measurement(
+                1.0,
+                EnergyMeasurementUnit::Unsupported,
+                None,
+                EnergySourcePolarity::MatchesReferenceDirection
+            ),
+            Err(EnergyNormalizationError::UnsupportedUnit)
+        );
+        assert_eq!(
+            normalize_energy_measurement(
+                f64::NAN,
+                EnergyMeasurementUnit::WattPerSquareMetre,
+                None,
+                EnergySourcePolarity::MatchesReferenceDirection
+            ),
+            Err(EnergyNormalizationError::NonFiniteValue)
+        );
+        assert_eq!(
+            normalize_energy_measurement(
+                f64::MAX,
+                EnergyMeasurementUnit::JoulePerSquareMetre,
+                Some(1),
+                EnergySourcePolarity::InvertedFromReferenceDirection
+            ),
+            Ok(-f64::MAX)
+        );
     }
 
     #[test]
