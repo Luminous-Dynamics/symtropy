@@ -34,10 +34,33 @@ For q = S y, the fixture binds:
 
 The expected transformed state, force, constraint Jacobian, momentum covector, condition values and SO(3) metric-skew defects are recorded in the JSON fixture.
 
+## Dense-coordinate RATTLE step-map increment (v0.2)
+
+The implementation now includes a separate force-free SHAKE/RATTLE step executed directly in the dense generalized coordinates. It forms the transformed mass metric and relative-constraint maps, solves the coupled position multipliers through the dense metric, then performs the endpoint momentum projection with the dense metric again. It never calls the Cartesian step function from the transformed solver.
+
+The independent comparison test uses the same masses, initial physical positions/velocities, two link lengths and timestep in:
+- the existing Cartesian `CartesianRattleChain::step`;
+- the new dense-coordinate implementation using (M_y=S^T M_qS) and (J_y(y)=J_q(Sy)S).
+
+It compares lifted positions/velocities, both multiplier vectors, squared-link residuals and endpoint tangency for both dense bases. The nonzero force covector in v0.1 remains a separate covector/work-duality control; the current Cartesian RATTLE baseline has no force port, so the v0.2 step case explicitly freezes zero applied force. Forced RATTLE and the pHDAE comparison remain future increments.
+
+The new machine-readable step vector is `fixtures/dense_coupled_chain_rattle_step_case_v0.2.json`, with its own Draft 2020-12 schema. It pins the solver profile and per-observable tolerances.
+
+**Qualification status:** the code and regression are authored, but only an exact-head Rust 1.96 run can establish whether the direct dense solve compiles and passes. The prior exact-head run passed the rank-diagnostics target but stopped at formatting before the new RATTLE tests; the formatter corrections were applied. No dense step-map pass is claimed until the latest run completes.
+
+## Competitive benchmark ladder
+
+1. Exact one-step covariance against the independent Cartesian SHAKE/RATTLE solver on fixed, moderate and severe dense-coordinate conditioning.
+2. Timestep refinement and long-horizon invariant drift, while reporting conditioning and solver failures separately.
+3. Coupled pHDAE agreement on the same frozen physical case, with independent solver formulations.
+4. Only then compare matched models against MuJoCo, Chrono, Pinocchio and Ceres; align integrator, constraints, mass matrix, contact assumptions, frame conventions and tolerances before comparing performance.
+
+The useful differentiator is not raw throughput. It is the fraction of admissible re-representations for which the complete physical step, multipliers and constraints remain independently qualified, with solver cost and certificate overhead reported.
+
 ## Algebraic preflight scope
 
 The warning-denied Rust tests verify exact inverse identities, the transformed mass metric, state/force/Jacobian/momentum laws, power duality, the canonical momentum one-form, multiplier virtual-work duality, SO(3) metric-skew generators and deliberately incorrect transformation laws.
 
-**This is not a dense-coordinate pHDAE or RATTLE step-map qualification.** The next step must run the actual coupled discrete equations directly in the dense basis, lift the result, and compare the physical step, multipliers and per-edge residuals with both existing independent solver references. A dense path that reconstructs Cartesian state and calls the original solver is not acceptable.
+The v0.1 tests qualified algebraic transformation identities. The v0.2 direct dense-coordinate RATTLE implementation and its independent Cartesian comparison extend that scope, but remain unqualified until the exact-head Rust 1.96 workflow passes. A dense path that reconstructs Cartesian state and calls the original solver is not acceptable.
 
 No physical calibration, production readiness, performance improvement or SOTA claim is made.
