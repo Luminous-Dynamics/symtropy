@@ -126,6 +126,10 @@ pub fn plan_acquisition(
 ) -> Result<AcquisitionPlan, String> {
     validate_budget(budget)?;
 
+    if targets.is_empty() {
+        return Err("acquisition plan requires at least one evidence target".to_owned());
+    }
+
     let mut target_map = BTreeMap::new();
     for target in targets {
         if target.target_id.trim().is_empty()
@@ -549,6 +553,11 @@ mod tests {
         let second = plan_acquisition(&targets, &[], &candidates, &budget()).unwrap();
         assert_eq!(first, second);
         assert_eq!(first.steps[0].candidate_id, "alpha");
+    }
+
+    #[test]
+    fn empty_target_set_is_rejected() {
+        assert!(plan_acquisition(&[], &[], &[], &budget()).is_err());
     }
 
     #[test]
