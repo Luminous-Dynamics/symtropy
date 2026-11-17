@@ -1,0 +1,516 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "wdn-observability-t0-oracle-v0.1",
+  "benchmark_id": "WATER-OBSERVABILITY-T0-EXECUTOR-001",
+  "cases": [
+    {
+      "case_id": "OBS-T0-001-nominal-independent-direct",
+      "topology_certificate_disposition": "usable",
+      "structural_reuse_allowed": true,
+      "overall_disposition": "directly_observed_current",
+      "surviving_sensor_ids": [
+        "S1",
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "state_dispositions": [
+        {
+          "state_id": "pressure:JHB-N1",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S1"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N2",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S2"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N3",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S3"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N4",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S4"
+          ],
+          "clock_evidence_invalid": false
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-T0-002-single-channel-dropout-with-independent-backup",
+      "topology_certificate_disposition": "usable",
+      "structural_reuse_allowed": true,
+      "overall_disposition": "directly_observed_current",
+      "surviving_sensor_ids": [
+        "S1-ALT",
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "state_dispositions": [
+        {
+          "state_id": "pressure:JHB-N1",
+          "disposition": "unobservable_under_declared_faults",
+          "surviving_sensor_ids": [
+            "S1-ALT"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N2",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S2"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N3",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S3"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N4",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S4"
+          ],
+          "clock_evidence_invalid": false
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-T0-003-common-calibration-dependency",
+      "topology_certificate_disposition": "usable",
+      "structural_reuse_allowed": true,
+      "overall_disposition": "unobservable_under_declared_faults",
+      "surviving_sensor_ids": [
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "state_dispositions": [
+        {
+          "state_id": "pressure:JHB-N1",
+          "disposition": "unobservable_under_declared_faults",
+          "surviving_sensor_ids": [],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N2",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S2"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N3",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S3"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N4",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S4"
+          ],
+          "clock_evidence_invalid": false
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-T0-004-common-power-dependency",
+      "topology_certificate_disposition": "usable",
+      "structural_reuse_allowed": true,
+      "overall_disposition": "unobservable_under_declared_faults",
+      "surviving_sensor_ids": [
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "state_dispositions": [
+        {
+          "state_id": "pressure:JHB-N1",
+          "disposition": "unobservable_under_declared_faults",
+          "surviving_sensor_ids": [],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N2",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S2"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N3",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S3"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N4",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S4"
+          ],
+          "clock_evidence_invalid": false
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-T0-005-common-communications-dependency",
+      "topology_certificate_disposition": "usable",
+      "structural_reuse_allowed": true,
+      "overall_disposition": "unobservable_under_declared_faults",
+      "surviving_sensor_ids": [
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "state_dispositions": [
+        {
+          "state_id": "pressure:JHB-N1",
+          "disposition": "unobservable_under_declared_faults",
+          "surviving_sensor_ids": [],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N2",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S2"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N3",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S3"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N4",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S4"
+          ],
+          "clock_evidence_invalid": false
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-T0-006-common-clock-failure",
+      "topology_certificate_disposition": "no_surviving_sensor_channels",
+      "structural_reuse_allowed": false,
+      "overall_disposition": "indeterminate_evidence",
+      "surviving_sensor_ids": [],
+      "state_dispositions": [
+        {
+          "state_id": "pressure:JHB-N1",
+          "disposition": "indeterminate_evidence",
+          "surviving_sensor_ids": [],
+          "clock_evidence_invalid": true
+        },
+        {
+          "state_id": "pressure:JHB-N2",
+          "disposition": "indeterminate_evidence",
+          "surviving_sensor_ids": [],
+          "clock_evidence_invalid": true
+        },
+        {
+          "state_id": "pressure:JHB-N3",
+          "disposition": "indeterminate_evidence",
+          "surviving_sensor_ids": [],
+          "clock_evidence_invalid": true
+        },
+        {
+          "state_id": "pressure:JHB-N4",
+          "disposition": "indeterminate_evidence",
+          "surviving_sensor_ids": [],
+          "clock_evidence_invalid": true
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-T0-007-stale-topology-certificate-direct-readings-preserved",
+      "topology_certificate_disposition": "topology_invalidates_certificate",
+      "structural_reuse_allowed": false,
+      "overall_disposition": "topology_invalidates_certificate",
+      "surviving_sensor_ids": [
+        "S1",
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "state_dispositions": [
+        {
+          "state_id": "pressure:JHB-N1",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S1"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N2",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S2"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N3",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S3"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N4",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S4"
+          ],
+          "clock_evidence_invalid": false
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-T0-008-ill-conditioned-estimator-not-qualified",
+      "topology_certificate_disposition": "usable",
+      "structural_reuse_allowed": true,
+      "overall_disposition": "structurally_observable_only",
+      "surviving_sensor_ids": [
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "state_dispositions": [
+        {
+          "state_id": "pressure:JHB-N1",
+          "disposition": "structurally_observable_only",
+          "surviving_sensor_ids": [],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N2",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S2"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N3",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S3"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N4",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S4"
+          ],
+          "clock_evidence_invalid": false
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-T0-009-incomplete-critical-state-mapping",
+      "topology_certificate_disposition": "topology_invalidates_certificate",
+      "structural_reuse_allowed": false,
+      "overall_disposition": "topology_invalidates_certificate",
+      "surviving_sensor_ids": [
+        "S1",
+        "S2",
+        "S3"
+      ],
+      "state_dispositions": [
+        {
+          "state_id": "pressure:JHB-N1",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S1"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N2",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S2"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N3",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S3"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N4",
+          "disposition": "topology_invalidates_certificate",
+          "surviving_sensor_ids": [],
+          "clock_evidence_invalid": false
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-T0-010-alternate-measurement-principle-survives",
+      "topology_certificate_disposition": "usable",
+      "structural_reuse_allowed": true,
+      "overall_disposition": "directly_observed_current",
+      "surviving_sensor_ids": [
+        "S1-ACOUSTIC"
+      ],
+      "state_dispositions": [
+        {
+          "state_id": "pressure:JHB-N1",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S1-ACOUSTIC"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N2",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N3",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N4",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [],
+          "clock_evidence_invalid": false
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-T0-011-missing-structural-proof",
+      "topology_certificate_disposition": "missing_structural_proof",
+      "structural_reuse_allowed": false,
+      "overall_disposition": "unobservable_under_declared_faults",
+      "surviving_sensor_ids": [
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "state_dispositions": [
+        {
+          "state_id": "pressure:JHB-N1",
+          "disposition": "unobservable_under_declared_faults",
+          "surviving_sensor_ids": [],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N2",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S2"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N3",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S3"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N4",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S4"
+          ],
+          "clock_evidence_invalid": false
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-T0-012-evidence-qualified-estimator-with-claim-disabled",
+      "topology_certificate_disposition": "usable",
+      "structural_reuse_allowed": true,
+      "overall_disposition": "estimator_qualified_for_declared_scope",
+      "surviving_sensor_ids": [
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "state_dispositions": [
+        {
+          "state_id": "pressure:JHB-N1",
+          "disposition": "estimator_qualified_for_declared_scope",
+          "surviving_sensor_ids": [],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N2",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S2"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N3",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S3"
+          ],
+          "clock_evidence_invalid": false
+        },
+        {
+          "state_id": "pressure:JHB-N4",
+          "disposition": "directly_observed_current",
+          "surviving_sensor_ids": [
+            "S4"
+          ],
+          "clock_evidence_invalid": false
+        }
+      ]
+    }
+  ]
+}
