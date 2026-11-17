@@ -141,7 +141,7 @@ fn nearest_unselected_candidate(
 
 fn regular_grid_selection(candidates: &[SensorPoint], sensor_count: usize) -> Vec<usize> {
     let rows = (sensor_count as f64).sqrt().floor().max(1.0) as usize;
-    let columns = (sensor_count + rows - 1) / rows;
+    let columns = sensor_count.div_ceil(rows);
     let mut selected = Vec::with_capacity(sensor_count);
 
     for index in 0..sensor_count {
