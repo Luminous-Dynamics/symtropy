@@ -231,11 +231,11 @@
         {
           "profile_id": "aggregate_consequence",
           "premise_id": "declared_output_floor",
-          "status": "supported",
+          "status": "undetermined",
           "evidence_refs": [
             "e1"
           ],
-          "rationale": "The narrow local-persistence/output premise is supported; this says nothing about moral worth or total-system health.",
+          "rationale": "Persistence and reproduction are observed, but the declared aggregate output/service threshold is not measured; local viability cannot stand in for that separate premise.",
           "action_option_ids": []
         },
         {
@@ -342,11 +342,11 @@
         {
           "profile_id": "rights_constrained",
           "premise_id": "consent_or_authority",
-          "status": "contradicted",
+          "status": "undetermined",
           "evidence_refs": [
             "e3"
           ],
-          "rationale": "The required authorization is absent from the recorded evidence; stable operation cannot substitute for it.",
+          "rationale": "The consent/authority record is not recorded. The burden evidence remains important, but missing authorization evidence does not establish either grant or refusal.",
           "action_option_ids": [
             "continue-current-regime"
           ]
@@ -354,11 +354,11 @@
         {
           "profile_id": "intergenerational_stewardship",
           "premise_id": "preserve_future_options_and_floors",
-          "status": "contradicted",
+          "status": "undetermined",
           "evidence_refs": [
             "e2"
           ],
-          "rationale": "The declared burden/future-options floor is breached in the synthetic case.",
+          "rationale": "The case shows a present downstream burden, but contains no qualified future ecological or essential-service floor measurement; the intergenerational finding remains undetermined.",
           "action_option_ids": [
             "continue-current-regime"
           ]
@@ -398,6 +398,14 @@
           "dimension": "thermodynamic_observables",
           "status": "unqualified",
           "claim": "System boundaries, heat reservoirs and full energy closure are absent; entropy production and exergy destruction are not measured."
+        },
+        {
+          "evidence_id": "e4",
+          "dimension": "physical_feasibility",
+          "status": "observed",
+          "claim": "The high-throughput arm produces 18 declared output units versus 13 in the comparator and meets the frozen synthetic output threshold.",
+          "unit": "output units",
+          "source_ref": "synthetic fixture truth"
         }
       ],
       "affected_parties": [
@@ -447,9 +455,9 @@
           "premise_id": "declared_output_floor",
           "status": "supported",
           "evidence_refs": [
-            "e1"
+            "e4"
           ],
-          "rationale": "The declared throughput/output premise is supported only as an input-energy/output observation.",
+          "rationale": "The synthetic declared output threshold is met by the measured output comparison; this narrow output result does not establish welfare, entropy production or exergy destruction.",
           "action_option_ids": [
             "high-throughput"
           ]
@@ -457,11 +465,11 @@
         {
           "profile_id": "individual_welfare_precaution",
           "premise_id": "avoid_preventable_severe_harm",
-          "status": "contradicted",
+          "status": "undetermined",
           "evidence_refs": [
             "e2"
           ],
-          "rationale": "The modelled welfare indicators contradict the declared precaution premise; field validation remains absent.",
+          "rationale": "Welfare indicators worsen in the modelled arm, but this fixture does not establish that they cross a declared severe-harm threshold; field validation is also absent.",
           "action_option_ids": [
             "high-throughput"
           ]
@@ -474,7 +482,7 @@
             "e2",
             "e3"
           ],
-          "rationale": "The modelled harm signal warrants review, but the physical and welfare model remains unqualified.",
+          "rationale": "The welfare signal is modelled and the thermodynamic boundary is unqualified; this supports review but does not establish a complete proportionality finding.",
           "action_option_ids": [
             "high-throughput"
           ]
@@ -506,7 +514,7 @@
           "evidence_id": "e2",
           "dimension": "individual_welfare",
           "status": "observed",
-          "claim": "Prey injury and stress indicators increase under the selected intervention."
+          "claim": "Prey injury and stress indicators exceed the declared synthetic severe-harm threshold under the selected intervention."
         },
         {
           "evidence_id": "e3",
@@ -588,7 +596,7 @@
           "evidence_refs": [
             "e2"
           ],
-          "rationale": "Observed injury/stress indicators contradict the declared no-severe-harm premise.",
+          "rationale": "Observed prey injury/stress indicators cross the declared synthetic severe-harm threshold and contradict this explicit no-severe-harm premise.",
           "action_option_ids": [
             "maintain-current-predation"
           ]
@@ -619,7 +627,7 @@
           "evidence_id": "e2",
           "dimension": "individual_welfare",
           "status": "modelled",
-          "claim": "The culling option is predicted to cause individual injury and mortality."
+          "claim": "The culling option is predicted to cause severe individual injury and mortality."
         },
         {
           "evidence_id": "e3",
@@ -710,7 +718,7 @@
           "evidence_refs": [
             "e2"
           ],
-          "rationale": "The culling option is predicted to cause individual harm under this premise.",
+          "rationale": "The culling option is predicted to cause severe injury and mortality, contradicting the declared no-severe-harm premise; this remains a modelled synthetic outcome.",
           "action_option_ids": [
             "cull"
           ]
@@ -750,7 +758,7 @@
           "evidence_id": "e1",
           "dimension": "ecological_integrity",
           "status": "modelled",
-          "claim": "Biomass and primary productivity increase in the simulation; these are not sufficient measures of integrity."
+          "claim": "Biomass and primary productivity increase to meet the frozen synthetic aggregate-output threshold in the simulation; these measures are not sufficient measures of ecological integrity."
         },
         {
           "evidence_id": "e2",
@@ -1567,12 +1575,12 @@
         {
           "profile_id": "rights_constrained",
           "premise_id": "consent_or_authority",
-          "status": "contradicted",
+          "status": "undetermined",
           "evidence_refs": [
             "e2",
             "e3"
           ],
-          "rationale": "The burden and missing consent contradict the declared rights-constrained premises.",
+          "rationale": "The affected recipient's consent is not recorded. The observed burden-cap breach is a separate fact; the consent state itself remains undetermined.",
           "action_option_ids": [
             "preserve-aggregate-only"
           ]
