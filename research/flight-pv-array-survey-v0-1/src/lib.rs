@@ -1768,6 +1768,83 @@ mod tests {
         ]
     }
 
+    fn camera_flight_spec() -> CameraFlightEnvelopeSpec {
+        CameraFlightEnvelopeSpec {
+            rgb: CameraSensorModel {
+                horizontal_fov_rad: 0.80,
+                vertical_fov_rad: 0.60,
+                horizontal_pixels: 4000,
+                vertical_pixels: 3000,
+                maximum_gsd_m_per_pixel: 0.010,
+                gsd_uncertainty_m_per_pixel: 0.001,
+                integration_time_s: 0.002,
+            },
+            ir: CameraSensorModel {
+                horizontal_fov_rad: 0.60,
+                vertical_fov_rad: 0.50,
+                horizontal_pixels: 640,
+                vertical_pixels: 512,
+                maximum_gsd_m_per_pixel: 0.030,
+                gsd_uncertainty_m_per_pixel: 0.002,
+                integration_time_s: 0.004,
+            },
+            requested_height_m: 30.0,
+            minimum_height_m: 5.0,
+            maximum_height_m: 30.0,
+            maximum_motion_blur_pixels: 1.0,
+            requested_maximum_ground_speed_m_per_s: 3.0,
+            ground_speed_uncertainty_m_per_s: 0.10,
+        }
+    }
+
+    #[test]
+    fn camera_flight_envelope_is_limited_by_ir_gsd_at_high_altitude() {
+        let envelope = compute_camera_flight_envelope(&camera_flight_spec()).unwrap();
+        assert!(envelope.selected_height_m < 30.0);
+        assert!(
+            envelope.ir_gsd_vertical_m_per_pixel + 0.002 <= 0.030 + 1.0e-12
+        );
+        assert!(
+            envelope.rgb_gsd_horizontal_m_per_pixel + 0.001 <= 0.010 + 1.0e-12
+        );
+    }
+
+    #[test]
+    fn camera_flight_envelope_applies_detector_time_motion_blur_speed_limit() {
+        let envelope = compute_camera_flight_envelope(&camera_flight_spec()).unwrap();
+        assert!(envelope.maximum_commanded_speed_m_per_s < 3.0);
+        assert!(
+            envelope.maximum_commanded_speed_m_per_s + 0.10
+                <= envelope
+                    .rgb_motion_blur_speed_limit_m_per_s
+                    .min(envelope.ir_motion_blur_speed_limit_m_per_s)
+                    + 1.0e-12
+        );
+    }
+
+    #[test]
+    fn camera_flight_envelope_returns_shared_rgb_ir_footprint() {
+        let envelope = compute_camera_flight_envelope(&camera_flight_spec()).unwrap();
+        assert!(envelope.common_footprint_half_width_m > 0.0);
+        assert!(envelope.common_footprint_half_height_m > 0.0);
+        assert!(envelope.common_footprint_half_width_m < 12.0);
+        assert!(envelope.common_footprint_half_height_m < 8.0);
+    }
+
+    #[test]
+    fn camera_flight_envelope_rejects_infeasible_minimum_altitude() {
+        let mut spec = camera_flight_spec();
+        spec.minimum_height_m = 29.0;
+        assert!(compute_camera_flight_envelope(&spec).is_err());
+    }
+
+    #[test]
+    fn camera_flight_envelope_rejects_invalid_field_of_view() {
+        let mut spec = camera_flight_spec();
+        spec.rgb.horizontal_fov_rad = std::f64::consts::PI;
+        assert!(compute_camera_flight_envelope(&spec).is_err());
+    }
+
     fn raster_spec() -> RasterPlanSpec {
         RasterPlanSpec {
             footprint_half_width_m: 0.6,
