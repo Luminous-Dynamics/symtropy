@@ -14,10 +14,7 @@
 //! is a positive contact witness. Budget exhaustion or uncertain arithmetic
 //! is UNRESOLVED, never clear.
 
-use crate::co_translation_ccd::{
-    AdaptiveCertificateError, AdaptiveCollisionCertificate, AdaptiveCollisionStatus,
-    verify_adaptive_collision_certificate,
-};
+use crate::co_translation_ccd::{AdaptiveCollisionCertificate, AdaptiveCollisionStatus};
 use crate::{Capsule, NormalizedTimeWindow, Vec3};
 
 const CONTACT_EPSILON_MM: f64 = 1.0e-9;
@@ -111,8 +108,8 @@ pub struct IndependentAdaptiveNoContactReceipt {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum IndependentAdaptiveVerificationError {
-    CertificateReplay(AdaptiveCertificateError),
     CertificateNotNoContact,
+    InvalidCertificatePartition,
     Interval(IntervalVerifierError),
     IndependentContactWitness { leaf_index: usize },
     IndependentUnresolved { leaf_index: usize },
@@ -129,11 +126,10 @@ pub fn verify_adaptive_no_contact_independently(
     certificate: &AdaptiveCollisionCertificate,
     config: IntervalVerifierConfig,
 ) -> Result<IndependentAdaptiveNoContactReceipt, IndependentAdaptiveVerificationError> {
-    verify_adaptive_collision_certificate(certificate)
-        .map_err(IndependentAdaptiveVerificationError::CertificateReplay)?;
     if certificate.report.status != AdaptiveCollisionStatus::NoContact {
         return Err(IndependentAdaptiveVerificationError::CertificateNotNoContact);
     }
+    validate_certificate_partition_independently(certificate)?;
 
     let mut leaf_receipts = Vec::with_capacity(certificate.leaves.len());
     let mut parameter_boxes_visited = 0_u64;
@@ -181,6 +177,40 @@ pub fn verify_adaptive_no_contact_independently(
         parameter_boxes_pruned,
         maximum_depth_reached,
     })
+}
+
+/// Independently check the producer's terminal time windows without
+/// calling the producer certificate verifier or trusting leaf dispositions.
+/// Exact adjacency is intentional: the producer emits dyadic binary fractions,
+/// so a gap or overlap is a malformed certificate, not a rounding tolerance.
+fn validate_certificate_partition_independently(
+    certificate: &AdaptiveCollisionCertificate,
+) -> Result<(), IndependentAdaptiveVerificationError> {
+    if certificate.leaves.is_empty() || certificate.leaves.len() > 65_536 {
+        return Err(IndependentAdaptiveVerificationError::InvalidCertificatePartition);
+    }
+
+    let mut cursor = 0.0_f64;
+    for leaf in &certificate.leaves {
+        let start = leaf.window.start_parameter;
+        let end = leaf.window.end_parameter;
+        if !start.is_finite()
+            || !end.is_finite()
+            || start < 0.0
+            || end > 1.0
+            || start >= end
+            || start != cursor
+            || leaf.depth > certificate.config.maximum_depth
+        {
+            return Err(IndependentAdaptiveVerificationError::InvalidCertificatePartition);
+        }
+        cursor = end;
+    }
+
+    if cursor != 1.0 {
+        return Err(IndependentAdaptiveVerificationError::InvalidCertificatePartition);
+    }
+    Ok(())
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -711,6 +741,116 @@ mod tests {
                 .all(|receipt| receipt.status == IntervalVerificationStatus::Clear)
         );
         assert!(independent.parameter_boxes_visited > 0);
+    }
+
+    #[test]
+    fn independent_verifier_rejects_a_gap_without_calling_producer_geometry_replay() {
+        use crate::co_translation_ccd::{
+            AdaptiveSubdivisionConfig, co_translating_capsule_adaptive_query_with_certificate,
+        };
+
+        let mut certificate = co_translating_capsule_adaptive_query_with_certificate(
+            point_capsule(0.0, 0.0, 0.0, 0.5),
+            p(0.0, 0.0, 0.0),
+            point_capsule(10.0, 0.0, 0.0, 0.5),
+            p(0.0, 0.0, 0.0),
+            AdaptiveSubdivisionConfig {
+                maximum_depth: 0,
+                minimum_window_width: 1.0,
+            },
+        )
+        .unwrap();
+        assert_eq!(certificate.report.status, AdaptiveCollisionStatus::NoContact);
+        certificate.leaves[0].window.start_parameter = 0.125;
+
+        assert_eq!(
+            verify_adaptive_no_contact_independently(
+                &certificate,
+                IntervalVerifierConfig::default(),
+            ),
+            Err(IndependentAdaptiveVerificationError::InvalidCertificatePartition)
+        );
+    }
+
+    #[test]
+    fn independent_verifier_rejects_overlapping_and_reordered_windows() {
+        use crate::co_translation_ccd::{
+            AdaptiveSubdivisionConfig, co_translating_capsule_adaptive_query_with_certificate,
+        };
+
+        let mut certificate = co_translating_capsule_adaptive_query_with_certificate(
+            point_capsule(0.0, 0.0, 0.0, 0.5),
+            p(0.0, 0.0, 0.0),
+            point_capsule(10.0, 0.0, 0.0, 0.5),
+            p(0.0, 0.0, 0.0),
+            AdaptiveSubdivisionConfig {
+                maximum_depth: 2,
+                minimum_window_width: 0.25,
+            },
+        )
+        .unwrap();
+        assert!(certificate.leaves.len() > 1);
+        certificate.leaves[1].window.start_parameter = 0.0;
+        assert_eq!(
+            verify_adaptive_no_contact_independently(
+                &certificate,
+                IntervalVerifierConfig::default(),
+            ),
+            Err(IndependentAdaptiveVerificationError::InvalidCertificatePartition)
+        );
+
+        certificate = co_translating_capsule_adaptive_query_with_certificate(
+            point_capsule(0.0, 0.0, 0.0, 0.5),
+            p(0.0, 0.0, 0.0),
+            point_capsule(10.0, 0.0, 0.0, 0.5),
+            p(0.0, 0.0, 0.0),
+            AdaptiveSubdivisionConfig {
+                maximum_depth: 2,
+                minimum_window_width: 0.25,
+            },
+        )
+        .unwrap();
+        certificate.leaves.swap(0, 1);
+        assert_eq!(
+            verify_adaptive_no_contact_independently(
+                &certificate,
+                IntervalVerifierConfig::default(),
+            ),
+            Err(IndependentAdaptiveVerificationError::InvalidCertificatePartition)
+        );
+    }
+
+    #[test]
+    fn independent_verifier_ignores_producer_leaf_dispositions() {
+        use crate::co_translation_ccd::{
+            AdaptiveProofLeafDisposition, AdaptiveSubdivisionConfig,
+            co_translating_capsule_adaptive_query_with_certificate,
+        };
+
+        let mut certificate = co_translating_capsule_adaptive_query_with_certificate(
+            point_capsule(0.0, 0.0, 0.0, 0.5),
+            p(0.0, 0.0, 0.0),
+            point_capsule(10.0, 0.0, 0.0, 0.5),
+            p(0.0, 0.0, 0.0),
+            AdaptiveSubdivisionConfig {
+                maximum_depth: 0,
+                minimum_window_width: 1.0,
+            },
+        )
+        .unwrap();
+        assert_eq!(certificate.report.status, AdaptiveCollisionStatus::NoContact);
+        certificate.leaves[0].disposition =
+            AdaptiveProofLeafDisposition::Unresolved {
+                error: crate::TranslationCcdError::NumericallyUnresolved,
+            };
+
+        let independently_verified = verify_adaptive_no_contact_independently(
+            &certificate,
+            IntervalVerifierConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(independently_verified.leaf_receipts.len(), 1);
+        assert!(independently_verified.leaf_receipts[0].no_contact_proven());
     }
 
     #[test]
