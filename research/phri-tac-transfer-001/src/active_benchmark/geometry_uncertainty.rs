@@ -30,7 +30,8 @@
 #![forbid(unsafe_code)]
 
 use super::wrench_consistency::{
-    TaxelGeometrySet, Vec3, WrenchVector, build_wrench_operator, integrate_tactile_field,
+    TaxelGeometry, TaxelGeometrySet, Vec3, WrenchVector, build_wrench_operator,
+    integrate_tactile_field,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
@@ -281,9 +282,12 @@ pub fn propagate_geometry_wrench_uncertainty(
     let nominal = integrate_tactile_field(&operator, local_traction_pa)?;
 
     let mut local_covariance = [[0.0; 6]; 6];
-    for (taxel, uncertainty) in geometry.taxels.iter().zip(&model.local_taxels) {
-        let parameter = geometry.taxels.iter().position(|candidate| candidate.taxel_id == taxel.taxel_id)
-            .ok_or_else(|| "taxel identity could not be resolved".to_owned())?;
+    for (parameter, (taxel, uncertainty)) in geometry
+        .taxels
+        .iter()
+        .zip(&model.local_taxels)
+        .enumerate()
+    {
         let offset = parameter * 3;
         let normal_pressure = local_traction_pa[offset];
         let tangent_u = local_traction_pa[offset + 1];
@@ -440,6 +444,75 @@ pub fn propagate_geometry_wrench_uncertainty(
         reasons,
         claim_class: "synthetic_geometry_uncertainty_propagation_only",
     })
+}
+
+/// Deterministic small synthetic CLI example for the geometry uncertainty
+/// path. This is a contract smoke-test, not physical sensor evidence.
+pub fn run_synthetic_geometry_uncertainty_example(
+) -> Result<GeometryWrenchUncertaintyReport, String> {
+    let tangent_u = Vec3 { x: 1.0, y: 0.0, z: 0.0 };
+    let tangent_v = Vec3 { x: 0.0, y: 1.0, z: 0.0 };
+    let normal = Vec3 { x: 0.0, y: 0.0, z: 1.0 };
+    let geometry = TaxelGeometrySet {
+        geometry_digest: "sha256:synthetic-geometry-uq-grid".to_owned(),
+        reference_frame_digest: "sha256:synthetic-geometry-uq-frame".to_owned(),
+        contact_boundary_digest: "sha256:synthetic-geometry-uq-boundary".to_owned(),
+        wrench_origin_m: Vec3::default(),
+        taxels: vec![
+            TaxelGeometry {
+                taxel_id: "taxel-0".to_owned(),
+                area_m2: 1.0e-4,
+                application_point_m: Vec3 { x: 0.02, y: 0.0, z: 0.0 },
+                normal,
+                tangent_u,
+                tangent_v,
+            },
+            TaxelGeometry {
+                taxel_id: "taxel-1".to_owned(),
+                area_m2: 1.0e-4,
+                application_point_m: Vec3 { x: -0.02, y: 0.0, z: 0.0 },
+                normal,
+                tangent_u,
+                tangent_v,
+            },
+        ],
+    };
+    let mut pose_covariance = vec![0.0; 36];
+    for axis in 0..6 {
+        pose_covariance[axis * 6 + axis] = if axis < 3 { 1.0e-8 } else { 1.0e-6 };
+    }
+    let model = GeometryUncertaintyModel {
+        geometry_digest: geometry.geometry_digest.clone(),
+        reference_frame_digest: geometry.reference_frame_digest.clone(),
+        contact_boundary_digest: geometry.contact_boundary_digest.clone(),
+        transform_digest: "sha256:synthetic-geometry-uq-transform".to_owned(),
+        sample_identity: "sample:synthetic-geometry-uq".to_owned(),
+        field_estimate_digest: "sha256:synthetic-geometry-uq-field".to_owned(),
+        uncertainty_method_digest: "sha256:synthetic-geometry-uq-method".to_owned(),
+        reference_ancestry_receipt_id: "receipt:geometry-ancestry".to_owned(),
+        common_cause_analysis_receipt_id: "receipt:geometry-cca".to_owned(),
+        local_taxels: geometry
+            .taxels
+            .iter()
+            .map(|taxel| TaxelGeometryStandardUncertainty {
+                taxel_id: taxel.taxel_id.clone(),
+                area_m2: 1.0e-6,
+                application_point_m: Vec3 { x: 1.0e-3, y: 1.0e-3, z: 1.0e-3 },
+                orientation_rad: Vec3 { x: 1.0e-3, y: 1.0e-3, z: 1.0e-3 },
+            })
+            .collect(),
+        local_taxel_relationship: GeometrySourceRelationship::IndependentlyCharacterized,
+        common_rigid_pose_covariance_row_major: pose_covariance,
+        local_to_global_relationship: GeometrySourceRelationship::IndependentlyCharacterized,
+        geometry_to_field_relationship: GeometrySourceRelationship::IndependentlyCharacterized,
+        geometry_to_wrench_reference_relationship: GeometrySourceRelationship::IndependentlyCharacterized,
+        wrench_origin_attachment: WrenchOriginAttachment::FixedInReferenceFrame,
+    };
+    propagate_geometry_wrench_uncertainty(
+        &geometry,
+        &[10_000.0, 1_000.0, 500.0, 8_000.0, 500.0, 250.0],
+        &model,
+    )
 }
 
 #[cfg(test)]
