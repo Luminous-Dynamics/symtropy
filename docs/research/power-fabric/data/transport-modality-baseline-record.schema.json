@@ -96,7 +96,8 @@
             "exact",
             "approximate",
             "greater_than",
-            "range"
+            "range",
+            "less_than"
           ]
         },
         "measurement_plane": {
