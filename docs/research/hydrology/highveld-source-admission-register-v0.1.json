@@ -309,7 +309,8 @@
       "sha256": null,
       "provider_release_examples": [
         "2026-11-16-892a6573 (GET /api/v1/supplies, supply register)",
-        "2026-11-17-ee99662f (GET /api/v1/suburbs/melville/history, daily suburb-supply history)"
+        "2026-11-17-ee99662f (GET /api/v1/suburbs/melville/history, daily suburb-supply history)",
+        "2026-11-15-b7c711ba (GET /api/v1/supplies/hursthill-2-reservoir/history?from=2026-02-01&to=2026-02-13 and /outages)"
       ],
       "evidence_ceiling": "publisher-reported utility asset status and notices; useful for reported service-interruption context, event labels and outage/recovery chronology only. It is not direct customer-tap pressure/flow, household interruption, pipe-failure ground truth, actual water quantity, water-quality evidence or verified restoration at the dwelling.",
       "known_limitations": [
@@ -322,9 +323,51 @@
         "Scheduled overnight closures are identified separately and should not be treated as unplanned outages.",
         "Outage episodes may be censored; duration is a minimum when no end is reported. The publisher's outage algorithm may bridge up to four no-board days between two outage reports; preserve this derived-rule version and do not treat it as physical restoration evidence.",
         "The publisher exposes dated release IDs and bulk CSV/JSONL releases with row counts and SHA-256 checksums; exact bulk row counts and checksum files remain not acquired.",
-        "Daily release snapshots may change as notices/board parsing or corrections change; retain immutable release id, retrieval timestamp and byte hash."
+        "Daily release snapshots may change as notices/board parsing or corrections change; retain immutable release id, retrieval timestamp and byte hash.",
+        "A live sample of Hursthill 2 history/outages was observed in release 2026-11-15-b7c711ba. The daily history and derived outage endpoint can summarize missing-board days differently; preserve both products and their rule metadata rather than treating the outage duration as a simple count of bad daily rows."
       ],
-      "next_action": "Acquire one dated bulk release and its manifest/checksums after licence status is confirmed; preserve source-board URLs, publisher release id, SAST semantics, no_report gaps, bypass, scheduled closure, censored outage and rule revision. Build an explicitly reported-service dataset separate from DWS observed flow and household tap measurements; cross-check selected episodes against original JW notices/boards before using as event labels."
+      "next_action": "Acquire one dated bulk release and its manifest/checksums after licence status is confirmed; preserve source-board URLs, publisher release id, SAST semantics, no_report gaps, bypass, scheduled closure, censored outage and rule revision. Build an explicitly reported-service dataset separate from DWS observed flow and household tap measurements; cross-check selected episodes against original JW notices/boards before using as event labels.",
+      "verified_live_api_sample_observations": [
+        {
+          "endpoint": "/api/v1/supplies/hursthill-2-reservoir/history?from=2026-02-01&to=2026-02-13",
+          "release_id": "2026-11-15-b7c711ba",
+          "observed_fields": [
+            "day",
+            "level",
+            "bad",
+            "on_bypass",
+            "boards",
+            "rows",
+            "overnight_rows",
+            "printed",
+            "wording"
+          ],
+          "observed_semantics": "2026-02-04 was reported as no_water on_bypass; 2026-02-05 and 2026-02-06 were explicit no_report gaps; 2026-02-07 to 2026-02-09 were reported no_water on_bypass; 2026-02-10 and 2026-02-11 were no_report gaps in the returned daily history sample.",
+          "acquisition_status": "live_api_response_observed_not_archived_or_hashed",
+          "interpretation": "Reported asset status only. Daily worst-status summary; not actual pressure/flow at a dwelling."
+        },
+        {
+          "endpoint": "/api/v1/supplies/hursthill-2-reservoir/outages",
+          "release_id": "2026-11-15-b7c711ba",
+          "example_episodes": [
+            {
+              "start_at": "2026-02-04T19:10:00+02:00",
+              "end_at": "2026-02-11T08:25:00+02:00",
+              "hours": 157.25,
+              "censored": true,
+              "no_board_days": 2
+            },
+            {
+              "start_at": "2026-04-05T10:30:00+02:00",
+              "end_at": "2026-06-09T08:30:00+02:00",
+              "hours": 1558,
+              "censored": false,
+              "no_board_days": 4
+            }
+          ],
+          "interpretation": "Publisher-derived outage episodes with explicit censoring and no-board-day counts under its documented C41 convention; neither episode is an independently observed tap outage."
+        }
+      ]
     }
   ],
   "candidate_station_records": [
