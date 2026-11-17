@@ -1113,6 +1113,13 @@ mod tests {
         assert_eq!(receipt.attestation_id, "ind-flow-001");
         assert_eq!(receipt.attested_by, "synthetic-independent-metrology-reviewer");
         assert!(receipt.basis.contains("separate sensor hardware"));
+        let report = default_report().expect("report");
+        assert!(report
+            .independence_validation_scope
+            .contains("signer identity"));
+        assert!(report
+            .independence_validation_scope
+            .contains("not authenticated"));
     }
 
     #[test]
