@@ -80,6 +80,17 @@ jobs:
             docs/research/jw-water-intake-t1/watersearch_suburb_history_response.schema.v0.1.json \
             docs/research/jw-water-intake-t1/capture_manifest.schema.v0.1.json \
             artifacts/water-service-t0/jw-water-intake-t1-receipt.json
+      - name: Evaluate failure-domain observability T0
+        id: evaluate_observability
+        env:
+          WATER_OBSERVABILITY_T0_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin wdn-observability-t0 -- \
+            docs/research/water-observability/wdn_observability_t0_input.v0.1.json \
+            docs/research/water-observability/wdn_observability_t0_input.schema.v0.1.json \
+            docs/research/water-observability/wdn_observability_t0_oracle.v0.1.json \
+            artifacts/water-service-t0/wdn-observability-t0-receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -105,14 +116,70 @@ jobs:
             docs/research/jw-water-intake-t1/watersearch_suburb_history_response.schema.v0.1.json
             docs/research/jw-water-intake-t1/capture_manifest.schema.v0.1.json
             artifacts/water-service-t0/jw-water-intake-t1-receipt.json
+            docs/research/water-observability/WDN_FAILURE_DOMAIN_OBSERVABILITY_T0_PROTOCOL_V0_1.md
+            docs/research/water-observability/wdn_observability_t0_input.v0.1.json
+            docs/research/water-observability/wdn_observability_t0_input.schema.v0.1.json
+            docs/research/water-observability/wdn_observability_t0_oracle.v0.1.json
+            docs/research/water-observability/wdn_observability_t0_oracle.schema.v0.1.json
+            artifacts/water-service-t0/wdn-observability-t0-receipt.json
           if-no-files-found: warn
+      - name: Set up Python for observability schema validation
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate WDN observability input and oracle schemas
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --no-input jsonschema==4.26.0
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("docs/research/water-observability")
+          input_schema = json.loads((root / "wdn_observability_t0_input.schema.v0.1.json").read_text())
+          inputs = json.loads((root / "wdn_observability_t0_input.v0.1.json").read_text())
+          oracle_schema = json.loads((root / "wdn_observability_t0_oracle.schema.v0.1.json").read_text())
+          oracle = json.loads((root / "wdn_observability_t0_oracle.v0.1.json").read_text())
+          for name, schema in [("input", input_schema), ("oracle", oracle_schema)]:
+              Draft202012Validator.check_schema(schema)
+          for name, schema, document in [
+              ("input", input_schema, inputs),
+              ("oracle", oracle_schema, oracle),
+          ]:
+              errors = sorted(
+                  Draft202012Validator(schema).iter_errors(document),
+                  key=lambda error: (list(map(str, error.absolute_path)), error.message),
+              )
+              if errors:
+                  for error in errors:
+                      pointer = "/" + "/".join(map(str, error.absolute_path))
+                      print(f"WDN_OBSERVABILITY_{name.upper()}_SCHEMA_FAIL: {pointer}: {error.message}")
+                  raise SystemExit(1)
+          states = inputs["required_state_ids"]
+          scenarios = inputs["scenarios"]
+          cases = oracle["cases"]
+          if len(states) != 4 or len(scenarios) != 12 or len(cases) != 12:
+              raise SystemExit("WDN_OBSERVABILITY_CASE_OR_STATE_COUNT_FAIL")
+          if len({case["case_id"] for case in scenarios}) != 12:
+              raise SystemExit("WDN_OBSERVABILITY_INPUT_CASE_IDS_NOT_UNIQUE")
+          if {case["case_id"] for case in scenarios} != {case["case_id"] for case in cases}:
+              raise SystemExit("WDN_OBSERVABILITY_ORACLE_CASE_SET_MISMATCH")
+          if sum(len(case["state_dispositions"]) for case in cases) != 48:
+              raise SystemExit("WDN_OBSERVABILITY_ORACLE_MUST_COVER_48_STATES")
+          if any(case.get("qualification_status") not in (None, "NotRun") for case in cases):
+              raise SystemExit("WDN_OBSERVABILITY_NO_QUALIFICATION_CLAIM_ALLOWED")
+          print("WDN_OBSERVABILITY_SCHEMA_PASS: 12 scenarios, 48 state expectations, synthetic-only")
+          PY
       - name: Require an exact successful evaluator receipt
         if: always()
         env:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
           CASCADE_OUTCOME: ${{ steps.evaluate_cascade.outcome }}
           INTAKE_OUTCOME: ${{ steps.verify_intake_t1.outcome }}
+          OBSERVABILITY_OUTCOME: ${{ steps.evaluate_observability.outcome }}
         run: |
           test "$EVALUATE_OUTCOME" = "success"
           test "$CASCADE_OUTCOME" = "success"
           test "$INTAKE_OUTCOME" = "success"
+          test "$OBSERVABILITY_OUTCOME" = "success"
