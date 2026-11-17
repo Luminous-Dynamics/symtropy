@@ -44,6 +44,7 @@ fn main() {
                 mandatory: false,
                 common_anchor: false,
                 safety_critical: false,
+                contributes_to_capability_estimate: true,
             },
         ],
     };
