@@ -36,9 +36,15 @@ pub struct FieldEstimatorSummary {
     pub mean_field_rmse: f64,
     pub p95_field_rmse: f64,
     pub maximum_field_rmse: f64,
-    pub mean_coverage_ratio: f64,
-    pub minimum_coverage_ratio: f64,
+    /// Fraction of field cells with some admitted native-channel sensitivity.
+    /// This is not a unique-identifiability or measurement-coverage claim.
+    pub mean_sensitivity_support_ratio: f64,
+    pub minimum_sensitivity_support_ratio: f64,
     pub mean_unsupported_cells: f64,
+    /// Mean numerical rank of the native data matrix before any graph prior.
+    pub mean_native_data_rank: f64,
+    /// Replicates whose native data matrix identifies every latent field cell.
+    pub full_rank_replicates: usize,
     pub converged_replicates: usize,
     pub replicate_count: usize,
 }
@@ -66,6 +72,8 @@ struct ReplicateScore {
     field_rmse: f64,
     coverage_ratio: f64,
     unsupported_cells: usize,
+    native_data_rank: usize,
+    native_data_full_column_rank: bool,
     converged: bool,
 }
 
@@ -250,6 +258,8 @@ fn score_report(
         field_rmse: (squared_error / supported_count as f64).sqrt(),
         coverage_ratio: supported_count as f64 / evaluator_truth.len() as f64,
         unsupported_cells: report.unsupported_cell_count,
+        native_data_rank: report.native_data_rank,
+        native_data_full_column_rank: report.native_data_full_column_rank,
         converged: report.converged,
     })
 }
@@ -268,12 +278,12 @@ fn summarize_scores(
     let p95_index = ((errors.len() - 1) as f64 * 0.95).ceil() as usize;
     let maximum_field_rmse = errors.last().copied().unwrap_or(f64::NAN);
 
-    let mean_coverage_ratio = scores
+    let mean_sensitivity_support_ratio = scores
         .iter()
         .map(|score| score.coverage_ratio)
         .sum::<f64>()
         / scores.len() as f64;
-    let minimum_coverage_ratio = scores
+    let minimum_sensitivity_support_ratio = scores
         .iter()
         .map(|score| score.coverage_ratio)
         .fold(f64::INFINITY, f64::min);
@@ -282,6 +292,15 @@ fn summarize_scores(
         .map(|score| score.unsupported_cells as f64)
         .sum::<f64>()
         / scores.len() as f64;
+    let mean_native_data_rank = scores
+        .iter()
+        .map(|score| score.native_data_rank as f64)
+        .sum::<f64>()
+        / scores.len() as f64;
+    let full_rank_replicates = scores
+        .iter()
+        .filter(|score| score.native_data_full_column_rank)
+        .count();
     let converged_replicates = scores.iter().filter(|score| score.converged).count();
 
     Ok(FieldEstimatorSummary {
@@ -289,9 +308,11 @@ fn summarize_scores(
         mean_field_rmse,
         p95_field_rmse: errors[p95_index],
         maximum_field_rmse,
-        mean_coverage_ratio,
-        minimum_coverage_ratio,
+        mean_sensitivity_support_ratio,
+        minimum_sensitivity_support_ratio,
         mean_unsupported_cells,
+        mean_native_data_rank,
+        full_rank_replicates,
         converged_replicates,
         replicate_count: scores.len(),
     })
@@ -411,8 +432,9 @@ mod tests {
             assert_eq!(result.replicate_count, 50);
             assert_eq!(result.converged_replicates, 50);
             assert!(result.mean_field_rmse.is_finite());
-            assert!(result.mean_coverage_ratio > 0.0);
-            assert!(result.mean_coverage_ratio <= 1.0);
+            assert!(result.mean_sensitivity_support_ratio > 0.0);
+            assert!(result.mean_sensitivity_support_ratio <= 1.0);
+            assert!(result.mean_native_data_rank <= 113.0);
         }
         let independent = &first.results[0];
         let mechanics = &first.results[1];
@@ -421,8 +443,15 @@ mod tests {
             "mechanics inversion should improve on the deliberately misspecified independent-taxel arm"
         );
         assert!(
-            mechanics.mean_coverage_ratio > independent.mean_coverage_ratio,
-            "mechanics coupling should infer some dropped cells that the identity model cannot observe"
+            mechanics.mean_sensitivity_support_ratio
+                > independent.mean_sensitivity_support_ratio,
+            "mechanics coupling should provide sensitivity support to some dropped cells"
+        );
+        assert_eq!(mechanics.full_rank_replicates, 0);
+        assert_eq!(independent.full_rank_replicates, 0);
+        assert!(
+            mechanics.mean_native_data_rank < 113.0,
+            "dropped native channels must remain visible as rank deficiency"
         );
     }
 }
