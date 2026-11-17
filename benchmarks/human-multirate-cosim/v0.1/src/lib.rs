@@ -195,7 +195,7 @@ pub fn simulate(
     if !raw_steps.is_finite() || (raw_steps - rounded_steps).abs() > tolerance {
         return Err(SimError::StepDoesNotDivideHorizon);
     }
-    if rounded_steps < 1.0 || rounded_steps > 10_000_000.0 {
+    if !(1.0..=10_000_000.0).contains(&rounded_steps) {
         return Err(SimError::ExcessiveStepCount);
     }
 
