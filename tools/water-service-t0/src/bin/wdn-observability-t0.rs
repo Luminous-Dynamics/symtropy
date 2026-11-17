@@ -629,7 +629,7 @@ fn evaluate_all(inputs: &Value, schema: &Value, oracle: &Value) -> Result<Value,
             mismatches.push(json!({
                 "case_id": id,
                 "expected": expected,
-                "actual": actual
+                "actual": actual.clone()
             }));
         }
         results.push(actual);
