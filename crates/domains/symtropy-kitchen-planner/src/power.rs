@@ -116,7 +116,7 @@ pub struct PowerValidationReportV1 {
     pub plan_id: String,
     pub peak_real_power_w: Option<u64>,
     pub longest_surge_ms: u64,
-    pub all_profiles_measured: bool,
+    pub all_profiles_labelled_measured: bool,
     pub evidence_classes: Vec<PowerProfileEvidenceClassV1>,
     pub violations: Vec<PowerConstraintViolation>,
 }
@@ -360,7 +360,7 @@ pub fn validate_power_envelope(
         .collect();
     evidence_classes.sort();
     evidence_classes.dedup();
-    let all_profiles_measured = !input.task_profiles.is_empty()
+    let all_profiles_labelled_measured = !input.task_profiles.is_empty()
         && input.task_profiles.iter().all(|profile| profile.evidence_class == PowerProfileEvidenceClassV1::Measured);
 
     let mut report = PowerValidationReportV1 {
@@ -368,7 +368,7 @@ pub fn validate_power_envelope(
         plan_id: input.plan.plan_id.clone(),
         peak_real_power_w: None,
         longest_surge_ms: 0,
-        all_profiles_measured,
+        all_profiles_labelled_measured,
         evidence_classes,
         violations,
     };
@@ -609,7 +609,7 @@ mod tests {
         TaskPowerProfileV1 {
             task_id: id.to_owned(),
             source_ref: format!("fixture:power:{id}"),
-            evidence_class: PowerProfileEvidenceClassV1::Measured,
+            evidence_class: PowerProfileEvidenceClassV1::Simulated,
             segments: vec![PowerSegmentV1 {
                 start_offset_ms: 0,
                 end_offset_ms: duration_ms,
@@ -764,7 +764,7 @@ mod tests {
         let schedule = build_schedule(&input.plan).unwrap();
         let report = validate_power_envelope(&input, &schedule);
         assert!(report.is_valid());
-        assert!(!report.all_profiles_measured);
+        assert!(!report.all_profiles_labelled_measured);
         assert_eq!(report.evidence_classes, vec![PowerProfileEvidenceClassV1::Declared]);
     }
 }
