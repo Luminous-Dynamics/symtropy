@@ -584,7 +584,7 @@ fn gate_receipt_matches_scope(
     policy: &ExperimentDesignPolicy,
 ) -> bool {
     !receipt.receipt_id.trim().is_empty()
-        && receipt.issuer_id == policy.expected_utility_estimator_issuer_id
+        && !receipt.issuer_id.trim().is_empty()
         && is_sha256(&receipt.payload_sha256)
         && receipt.campaign_sha256 == candidate.campaign_sha256
         && receipt.model_scope_sha256 == candidate.model_scope_sha256
@@ -703,7 +703,7 @@ fn validate_utility_estimate_receipt(
     };
 
     let scope_matches = !receipt.receipt_id.trim().is_empty()
-        && !receipt.issuer_id.trim().is_empty()
+        && receipt.issuer_id == policy.expected_utility_estimator_issuer_id
         && is_sha256(&receipt.payload_sha256)
         && receipt.candidate_id == candidate.candidate_id
         && receipt.campaign_sha256 == candidate.campaign_sha256
