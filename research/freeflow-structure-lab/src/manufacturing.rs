@@ -171,7 +171,7 @@ impl fmt::Display for ManufacturingError {
                 allowed_mm,
             } => write!(
                 f,
-                "maximum radial clearance {maximum_radial_clearance_mm} mm exceeds allowed {allowed_mm} mm"
+                "maximum radial clearance {maximum_radial_clearance_mm} mm exceeds {allowed_mm} mm"
             ),
             Self::EmptyToleranceStack => {
                 write!(f, "tolerance stack must contain at least one interface")
