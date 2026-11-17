@@ -767,6 +767,50 @@ mod tests {
     }
 
     #[test]
+    fn unknown_module_and_unknown_capability_are_blocked() {
+        let mut request = fixture_request();
+        request.bindings[0].module_id = "module:not-in-inventory".to_owned();
+        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+
+        let mut request = fixture_request();
+        request.bindings[0].capability_id = "capability:not-on-module".to_owned();
+        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+    }
+
+    #[test]
+    fn duplicate_module_revision_and_unknown_task_binding_block_request() {
+        let mut request = fixture_request();
+        request.modules.push(request.modules[0].clone());
+        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+
+        let mut request = fixture_request();
+        let mut extra = request.bindings[0].clone();
+        extra.task_id = "task:not-in-recipe".to_owned();
+        request.bindings.push(extra);
+        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+    }
+
+    #[test]
+    fn missing_form_or_batch_quantity_remains_indeterminate() {
+        let mut request = fixture_request();
+        request.bindings[0].input_form_ref.clear();
+        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Indeterminate);
+
+        let mut request = fixture_request();
+        request.recipe.tasks[0].ingredient_inputs.clear();
+        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Indeterminate);
+    }
+
+    #[test]
+    fn measured_capability_evidence_requires_calibration() {
+        let mut request = fixture_request();
+        request.modules[0].capabilities[0].evidence.evidence_class =
+            ModuleEvidenceClassV1::Measured;
+        request.modules[0].capabilities[0].evidence.calibration_ref = None;
+        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+    }
+
+    #[test]
     fn missing_or_exceeded_run_time_is_not_admitted() {
         let mut request = fixture_request();
         request.modules[0].capabilities[0].maximum_continuous_run_ms = None;
