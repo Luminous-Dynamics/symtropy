@@ -173,8 +173,8 @@ impl SpatialGraph {
     }
 
     pub fn add_entity(&mut self, entity: SpatialEntity) -> Result<(), GraphError> {
-        if entity.id.trim().is_empty() {
-            return Err(GraphError("entity ID must not be empty"));
+        if entity.id.trim().is_empty() || entity.id.chars().any(char::is_control) {
+            return Err(GraphError("entity ID must be non-empty and contain no control characters"));
         }
         if self.entities.iter().any(|existing| existing.id == entity.id) {
             return Err(GraphError("duplicate entity ID"));
@@ -200,8 +200,11 @@ impl SpatialGraph {
     pub fn validate(&self) -> Result<(), GraphError> {
         let mut ids = HashSet::with_capacity(self.entities.len());
         for entity in &self.entities {
-            if entity.id.trim().is_empty() || !ids.insert(entity.id.as_str()) {
-                return Err(GraphError("empty or duplicate entity ID"));
+            if entity.id.trim().is_empty()
+                || entity.id.chars().any(char::is_control)
+                || !ids.insert(entity.id.as_str())
+            {
+                return Err(GraphError("empty, control-containing or duplicate entity ID"));
             }
         }
 
@@ -752,6 +755,17 @@ mod tests {
             })
             .unwrap();
         assert!(graph.validate().is_err());
+    }
+
+    #[test]
+    fn control_characters_in_entity_ids_are_rejected() {
+        let mut graph = SpatialGraph::new();
+        assert!(graph
+            .add_entity(SpatialEntity {
+                id: "room\\u{1f}ambiguous".into(),
+                scale: SpatialScale::Room,
+            })
+            .is_err());
     }
 
     #[test]
