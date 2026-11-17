@@ -1,4 +1,5 @@
 mod luminosity;
+mod local_ring_screen;
 mod muon_scaling;
 mod plasma_screen;
 mod rcs_emittance_budget;
@@ -132,6 +133,7 @@ fn render_reference_report() -> Result<String, String> {
     let muon_scaling = muon_scaling::render_muon_scaling_report_json()?;
     let plasma_screen = plasma_screen::render_report_json()?;
     let rcs_emittance_budget = rcs_emittance_budget::render_report_json()?;
+    let local_ring_screen = local_ring_screen::render_report_json()?;
 
     Ok(format!(
         concat!(
@@ -156,6 +158,7 @@ fn render_reference_report() -> Result<String, String> {
             "  \"muon_scaling\": {},\n",
             "  \"plasma_screen\": {},\n",
             "  \"rcs_emittance_budget\": {},\n",
+            "  \"local_ring_screen\": {},\n",
             "  \"paper_claim_review\": \"A 140x Lorentz-factor ratio is inconsistent with 1 PeV as centre-of-mass energy and 14 TeV LHC centre-of-mass energy; it corresponds to 1 PeV per beam. Clarify convention before using the compensation factor.\",\n",
             "  \"claim_ceiling\": \"analytical energy-convention, rigidity, revolution-frequency, luminosity and beam-operating-budget arithmetic only; no beam optics or dynamics, tune-shift validation, detector qualification, magnet, RF, orbit-control, thermal or flight qualification\"\n",
             "}}"
@@ -177,6 +180,7 @@ fn render_reference_report() -> Result<String, String> {
         muon_scaling,
         plasma_screen,
         rcs_emittance_budget,
+        local_ring_screen,
     ))
 }
 
