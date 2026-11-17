@@ -41,8 +41,18 @@ fn write_vector(output: &mut String, key: &str, value: Vector3) {
 fn write_case(output: &mut String, case: &CaseEvaluation, is_last: bool) {
     writeln!(output, "    {{").unwrap();
     writeln!(output, "      \"case_id\": {},", json_string(&case.case_id)).unwrap();
-    writeln!(output, "      \"frame_id\": {},", json_string(&case.frame_id)).unwrap();
-    writeln!(output, "      \"origin_id\": {},", json_string(&case.origin_id)).unwrap();
+    writeln!(
+        output,
+        "      \"frame_id\": {},",
+        json_string(&case.frame_id)
+    )
+    .unwrap();
+    writeln!(
+        output,
+        "      \"origin_id\": {},",
+        json_string(&case.origin_id)
+    )
+    .unwrap();
     writeln!(output, "      \"epoch_s\": {:.15e},", case.epoch_s).unwrap();
     writeln!(output, "      \"port_count\": {},", case.port_count).unwrap();
     writeln!(
