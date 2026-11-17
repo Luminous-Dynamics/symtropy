@@ -24,7 +24,8 @@
     "body_bytes": 1363,
     "body_sha256": "2cbf66c548960c97919ea2eb7693383c4f3bba61506a1b414d62f775047cc465",
     "headers_bytes": 115,
-    "headers_sha256": "efa8f3d688203c1a4b7b79a60887c5848578bda70360efd3fb5626f1f252513a"
+    "headers_sha256": "efa8f3d688203c1a4b7b79a60887c5848578bda70360efd3fb5626f1f252513a",
+    "expected_release": "SYNTHETIC-ONLY"
   },
   "rights_review": {
     "status": "not_applicable_synthetic",
