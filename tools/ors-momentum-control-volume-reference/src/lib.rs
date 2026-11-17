@@ -650,7 +650,7 @@ mod tests {
         let speed = 12_000.0;
         let line_density = 0.75;
         let mass_flow = line_density * speed;
-        let angles = [0.1, 1.0e-2, 1.0e-4, 1.0e-6];
+        let angles: [f64; 4] = [0.1, 1.0e-2, 1.0e-4, 1.0e-6];
         let mut previous_error = f64::INFINITY;
 
         for angle in angles {
