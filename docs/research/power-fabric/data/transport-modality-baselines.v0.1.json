@@ -798,6 +798,62 @@
         "The stated 100-trial-style ML split/cross-validation settings do not by themselves establish zero false accepts, fault coverage or safety certification; raw independent fault datasets and confusion matrices require review."
       ],
       "reproduction_status": "not_independently_reproduced_by_luminous"
+    },
+    {
+      "id": "li-2026-underwater-acoustic-cavitation-limit",
+      "modality": "acoustic_ultrasonic_wpt",
+      "study_type": "paper_reported_model",
+      "comparison_group": "underwater-ultrasonic-40khz-cavitation-model-ceiling",
+      "source": {
+        "title": "Multiphysics-constrained upper bound of transmit acoustic power for underwater ultrasonic wireless power transfer systems",
+        "publisher": "Applied Ocean Research",
+        "url": "https://doi.org/10.1016/j.apor.2026.105249",
+        "publication_date": "2026-10",
+        "doi": "10.1016/j.apor.2026.105249"
+      },
+      "service": {
+        "service_kind": "acoustic_power_transfer_feasibility",
+        "application": "modeled cavitation-constrained transmit-power envelope for underwater ultrasonic WPT",
+        "medium": "seawater acoustic path"
+      },
+      "measurements": [
+        {
+          "name": "cavitation_constrained_transmit_acoustic_power_ceiling",
+          "value": 6.76,
+          "unit": "watt",
+          "relation": "exact",
+          "evidence_kind": "source_reported_simulation",
+          "measurement_plane": "modeled acoustic transmit power in the paper's multiphysics-coupled seawater model",
+          "boundary": "model-derived acoustic power ceiling at the transducer side; not transmitter electrical input, receiver power or delivered load energy",
+          "source_reported": true,
+          "conditions": [
+            "40 kHz operating frequency",
+            "seawater cavitation limit governs the modeled ceiling",
+            "study models acoustic-flow-thermal coupling"
+          ]
+        },
+        {
+          "name": "model_operating_frequency",
+          "value": 40,
+          "unit": "kilohertz",
+          "relation": "exact",
+          "evidence_kind": "source_declared_parameter",
+          "measurement_plane": "frequency parameter for the modeled UWPT case",
+          "boundary": "model condition, not an experimentally validated universal optimum",
+          "source_reported": true,
+          "conditions": [
+            "seawater cavitation-limited transmit-power model"
+          ]
+        }
+      ],
+      "known_unknowns": [
+        "The 6.76 W value is model-derived, not a measured transmit or receiver power result.",
+        "The value is not a universal seawater or ocean acoustic-power limit; it depends on the modeled conditions and assumptions.",
+        "No receiver-side electrical output, useful load energy, end-to-end efficiency or range is established by the abstract-level result.",
+        "The model's uncertainty, validation dataset and full operating envelope require primary-paper extraction before engineering use.",
+        "The paper does not independently establish environmental acceptability for all marine species, habitats, depths or acoustic duty cycles."
+      ],
+      "reproduction_status": "not_independently_reproduced_by_luminous"
     }
   ]
 }
