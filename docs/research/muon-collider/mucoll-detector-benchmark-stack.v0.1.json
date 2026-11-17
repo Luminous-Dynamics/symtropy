@@ -1,0 +1,70 @@
+{
+  "schema_version": "0.1.0",
+  "registry_id": "mucoll-detector-benchmark-stack",
+  "inspected_utc": "2026-11-17",
+  "evidence_class": "public_source_identity_and_metric_contract",
+  "repositories": {
+    "benchmarks": {
+      "repository": "MuonColliderSoft/mucoll-benchmarks",
+      "ref": "main",
+      "commit": "f1d1cddc412fa037dd21449af90c97ce4d16f293",
+      "files": {
+        "README.md": "8acec4d650a03e2e70e21896805a1880188e23f6",
+        "analysis/benchmarks/README.md": "2b0b8cabbfe29df2c24c94d440b360720ab99971",
+        "analysis/benchmarks/aggregate_metrics.py": "8d9b01bbc9eb9ada7247aea1a623b420b3d12df2",
+        "analysis/python/edm4hep/benchmark_metrics.py": "06425a9f7292f5e67726ac042b17bd04a353f8bc",
+        "workflows/README.md": "48bf28eee40d28cdf99c3958d88f70e7b0b4fd0c",
+        "simulation/README.md": "df445c6b59fdc9e547a7d0c16424c5bc7054fb5b"
+      },
+      "pipeline": [
+        "generation",
+        "Geant4_simulation",
+        "digitisation",
+        "reconstruction",
+        "analysis",
+        "plotting"
+      ],
+      "metric_families": [
+        "tracking_efficiency_fake_rate_track_quality_resolution",
+        "seed_matching_multiplicity_resolution",
+        "tracker_hit_occupancy",
+        "photon_matching_PFO_multiplicity_response_resolution",
+        "optional_trackless_diagnostics"
+      ],
+      "current_physics_threshold_status": "upstream documentation says no pass/fail physics tolerances are applied yet"
+    },
+    "spack": {
+      "repository": "MuonColliderSoft/mucoll-spack",
+      "ref": "main",
+      "commit": "553debf49dd25628054e95f3a24d1d067d5ef1ed",
+      "files": {
+        "README.md": "235ec5aecd29f8321af7fd467123bace73917642",
+        "doc/ReleaseNotes.md": "5ee5157424986c80b361c4ba6aa9e5ee7924aa36",
+        "packages/mucoll-stack/package.py": "14bf60b869da15dc4fd5af16ec00ddbbfc279cae",
+        "validation/README.md": "83dff5ff19cf147d6dbed45ed907414d0c0778ee",
+        "validation/run_chain.sh": "7c5e8ea825274c61e2c854cd0fec1537b70d336e",
+        "validation/write_provenance.py": "769f9427f37ce5092cb6aec62f92442e67b3830b"
+      },
+      "recipe_declared_version": "3.2",
+      "latest_tagged_release_in_release_notes": "3.1",
+      "release_notes_date": "2026-08-13",
+      "stack_capabilities": [
+        "Key4hep",
+        "DD4hep",
+        "Geant4",
+        "EDM4hep",
+        "k4Reco",
+        "Pandora",
+        "ACTS_GNN_tracking",
+        "PyTorch_ONNX"
+      ]
+    }
+  },
+  "claim_limits": {
+    "mucoll_benchmarks_execution_by_symtropy": "not_performed",
+    "detector_metric_reproduction": "not_performed",
+    "physics_tolerance_gate": "not_yet_admitted",
+    "cooling_to_reconstruction_equivalence": "not_established"
+  },
+  "claim_ceiling": "Public source identity and metric-contract alignment only; no detector-stack execution or physics improvement claim."
+}
