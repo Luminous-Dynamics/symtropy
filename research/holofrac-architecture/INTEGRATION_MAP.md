@@ -54,8 +54,10 @@ Map a frozen subset of the Symthaea intent object, FFMFS module graph and Symtro
 ### I3 — IFC/IDS exchange experiment
 Use IFC 4.3 and IDS as external exchange/requirements formats. Test identity, property, relation, units and geometry round-trip loss. IDS checking is not geometry verification or physical qualification.
 
-### I4 — counterfactual dependency retrieval
-Mutate one source relation or requirement, identify affected candidate analyses, and verify selective invalidation against an independent exact dependency oracle. Test that unrelated evidence remains current and affected evidence becomes stale/unknown.
+### I4 — counterfactual dependency retrieval and evidence invalidation
+[Symtropy #5934](https://github.com/Luminous-Dynamics/symtropy/issues/5934) now tracks the executable exact dependency-DAG slice in [impact.rs](../holofrac-retrieval/src/impact.rs). It models consumer -> dependency edges across requirements, parameters, geometry, interfaces, solver inputs/runs and evidence receipts. It validates acyclicity, computes reverse transitive closure, and uses a separate brute-force reachability oracle in tests. An incomplete dependency inventory conservatively invalidates all scoped evidence; it never preserves an unproven current result.
+
+The first capacity executable sweeps 100/1,000/10,000/100,000 artifacts with one or more changed project roots. Next qualification must add shared/common-cause DAGs, randomized topology families, incremental source-revision updates, raw evidence-currentness receipts and allocator-inclusive RSS. HDC may suggest analogous or missing dependency edges, but exact source-bound closure remains the only invalidation authority.
 
 ### I5 — architectural and structural applications
 Run the existing #1766, #1848, #1790 and FFMFS scenarios with HoloFrac enabled/disabled under identical candidate sets, solver-call budgets, source revisions and hardware. Measure whether retrieval reduces work or improves context selection without reducing correctness, uncertainty calibration or hard-gate preservation.
