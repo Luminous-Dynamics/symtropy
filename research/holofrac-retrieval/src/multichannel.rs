@@ -29,6 +29,7 @@ pub enum MultiChannelError {
     DuplicateEncodedPosition,
     UnknownChannel(String),
     InvalidGrid,
+    Field(crate::field::FieldError),
     Hdc(HdcError),
 }
 
@@ -42,12 +43,19 @@ impl std::fmt::Display for MultiChannelError {
             Self::DuplicateEncodedPosition => f.write_str("two samples for one channel quantize to the same encoded spatial position"),
             Self::UnknownChannel(channel) => write!(f, "unknown field channel: {channel}"),
             Self::InvalidGrid => f.write_str("multi-channel field grid requires at least two samples per axis"),
+            Self::Field(error) => write!(f, "independent field baseline error: {error}"),
             Self::Hdc(error) => write!(f, "multi-channel spatial VSA error: {error}"),
         }
     }
 }
 
 impl std::error::Error for MultiChannelError {}
+
+impl From<crate::field::FieldError> for MultiChannelError {
+    fn from(value: crate::field::FieldError) -> Self {
+        Self::Field(value)
+    }
+}
 
 impl From<HdcError> for MultiChannelError {
     fn from(value: HdcError) -> Self {
