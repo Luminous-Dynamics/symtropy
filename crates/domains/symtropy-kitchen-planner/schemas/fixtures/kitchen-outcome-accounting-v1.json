@@ -66,6 +66,11 @@
       "case_id": "mass-ratio-overflow",
       "expected_disposition": "indeterminate",
       "description": "An overflow while computing mass-balance parts per million is reported; no wrapped ratio is emitted."
+    },
+    {
+      "case_id": "evidence-refs-are-replayable",
+      "expected_disposition": "complete_claim_eligible",
+      "description": "Accounting report includes sorted and deduplicated evidence source, method and calibration references used by its observed terms."
     }
   ]
 }
