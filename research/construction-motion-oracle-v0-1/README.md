@@ -102,3 +102,22 @@ Bounds are widened by eight representable floating-point steps on every face to 
 The Rust benchmark measures sparse scaling at 16/64/256/1,024/4,096/10,000 bodies, plus clustered, dense and long-thin strata through 1,024 bodies. A whole-horizon all-pairs AABB reference is measured for sparse cases through 1,024 bodies. Report all density strata: dense candidate generation is inherently quadratic when nearly every pair overlaps.
 
 The owner is broad phase only. Every emitted pair still needs the existing timed narrow-phase oracle; no emitted pair means only that this supported conservative AABB method did not identify a candidate under the supplied geometry/time model. Rotation, articulated trajectories, non-zero clock uncertainty and dynamic-human safety remain out of scope. See [#5482](https://github.com/Luminous-Dynamics/symtropy/issues/5482).
+
+
+## Independent verification of absolute-time CCD results
+
+The timed-result verifier is a separate implementation from the active-set CCD producer. It reconstructs both capsule centerline points directly from the original source spans, the common positive-duration interval, the reported normalized time and both axis parameters.
+
+It returns distinct dispositions:
+
+- CONTACT_WITNESS: a reconstructed point pair is within the declared summed radii at an attained common time.
+- TERMINAL_BOUNDARY_CANDIDATE: the only reported contact occurs at the excluded end limit of a half-open interval; treat conservatively, but do not describe it as an attained collision.
+- SEPARATED_KKT_CHECKED: the independently reconstructed result is separated and passes the box-constrained KKT sign checks for the convex squared-distance objective over (time, moving-axis, obstacle-axis) in [0,1]^3.
+- NO_TEMPORAL_OVERLAP: source intervals have no positive-duration intersection. This is not a geometric-clearance verdict.
+- UNRESOLVED: source identity, clock assumptions, reported values, feasibility or KKT residuals do not support a stronger disposition.
+
+The verifier does not call the producer's active-set minimizer. Contact is checked with a concrete same-time world-space witness. Separation uses numerical KKT residual checks; it is not directed-rounding interval proof, exact-rational proof or formal verification. Non-zero clock uncertainty remains unsupported by the current timed-span contract and therefore abstains.
+
+The receipt retains canonical source-query bytes, the reported result, verifier tolerances, overlap interval, point/distance/time residuals and KKT residual. Replay reruns the verifier against the exact source spans and rejects any receipt mismatch. The canonical bytes are evidence input, not a digest or authenticated attestation; hashing and identity authentication remain with the established evidence owner.
+
+The benchmark adds separate measurements for timed-result verification and receipt replay. These must be compared with the timed CCD solve as distinct costs. This remains a software-level reference for fixed-orientation capsules under affine translation and an exactly shared clock domain. It does not qualify physical stopping, site safety, articulated robot motion, or external calibration evidence. Tracks https://github.com/Luminous-Dynamics/symtropy/issues/5797.
