@@ -32,3 +32,6 @@ The literature registry is source metadata only. Source-reported process points 
 ## Customer-boundary response trace qualification
 
 A response timestamp is no longer accepted from a declared final-event timestamp alone. The evaluator requires a synchronized customer-boundary H2 flow trace, a target accepted flow, an allowed settling band, a dwell interval, clock-sync uncertainty and expanded flow-measurement uncertainty. The trace-derived time is the first time the flow and purity enter the declared acceptance band and remain within it through the required dwell. The submitted settling timestamp must agree within the clock uncertainty. These are synthetic checks, not a metrology certificate or measured plant response.
+
+
+The dynamic accepted-flow target is also reconciled against accepted H2 mass divided by the contractual delivery interval. A trace that is internally stable around a target inconsistent with the accepted product contract is rejected.
