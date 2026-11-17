@@ -110,6 +110,10 @@ pub struct UtilityOutcome {
     pub independent_unit_id: String,
     /// Exact required environment/configuration stratum.
     pub stratum_id: String,
+    /// Exact Track V utility-estimate receipt payload being evaluated.
+    pub utility_receipt_payload_sha256: String,
+    /// Independent measurement/reference evidence receipt digest; custody is external.
+    pub measurement_evidence_receipt_sha256: String,
     /// Exact evaluation dataset manifest.
     pub dataset_manifest_sha256: String,
     /// Dataset role; must match the frozen evaluation manifest.
@@ -286,8 +290,10 @@ pub struct CandidateStratumCalibration {
     pub metric_coverage: Vec<MetricCoverage>,
     /// Coverage test for the submitted upper probability of an uninformative result.
     pub uninformative_rate: ProportionInterval,
-    /// Mean submitted conservative lower utility bound; higher is sharper.
+    /// Mean submitted conservative lower utility bound; descriptive only, not an aggregate gate.
     pub mean_lower_bound_sharpness: f64,
+    /// Smallest of the four submitted lower bounds; each dimension is gated independently.
+    pub minimum_metric_lower_bound: f64,
     /// Submitted upper bound on the uninformative probability.
     pub submitted_uninformative_upper_bound: f64,
 }
@@ -472,8 +478,8 @@ fn validate_policy(policy: &CalibrationPolicy) -> Result<f64, CalibrationError> 
         || policy.minimum_lower_bound_coverage == 0.0
         || !bounded_unit(policy.minimum_selection_propensity)
         || policy.minimum_selection_propensity == 0.0
-        || !bounded_unit(policy.minimum_mean_lower_bound_sharpness)
-        || !bounded_unit(policy.maximum_mean_uninformative_upper_bound)
+        || !bounded_unit(policy.minimum_per_metric_lower_bound)
+        || !bounded_unit(policy.maximum_uninformative_probability_upper_bound)
         || !bounded_unit(policy.maximum_primary_mean_regret)
         || !bounded_unit(policy.minimum_regret_improvement_vs_random)
         || !supported_confidence_level(policy.confidence_level)
@@ -683,9 +689,9 @@ pub fn evaluate_calibration(
     let mut by_candidate_stratum: BTreeMap<(&str, &str), Vec<&UtilityOutcome>> = BTreeMap::new();
     let mut by_unit: BTreeMap<&str, BTreeMap<&str, &UtilityOutcome>> = BTreeMap::new();
     for outcome in outcomes {
-        if !forecast_map.contains_key(outcome.candidate_id.as_str()) {
+        let Some(forecast) = forecast_map.get(outcome.candidate_id.as_str()) else {
             return Err(CalibrationError::UnknownCandidate);
-        }
+        };
         if outcome.candidate_id.trim().is_empty()
             || outcome.independent_unit_id.trim().is_empty()
             || !policy
@@ -812,11 +818,15 @@ pub fn evaluate_calibration(
                 .map(|metric| forecast_lower(forecast, *metric))
                 .sum::<f64>()
                 / metrics.len() as f64;
-            if mean_lower_bound_sharpness < policy.minimum_mean_lower_bound_sharpness {
+            let minimum_metric_lower_bound = metrics
+                .iter()
+                .map(|metric| forecast_lower(forecast, *metric))
+                .fold(f64::INFINITY, f64::min);
+            if minimum_metric_lower_bound < policy.minimum_per_metric_lower_bound {
                 failures.insert(CalibrationFailure::BoundsTooVacuous);
             }
             if forecast.probability_uninformative
-                > policy.maximum_mean_uninformative_upper_bound
+                > policy.maximum_uninformative_probability_upper_bound
             {
                 failures.insert(CalibrationFailure::UninformativeUpperBoundTooWide);
             }
@@ -828,6 +838,7 @@ pub fn evaluate_calibration(
                 metric_coverage,
                 uninformative_rate,
                 mean_lower_bound_sharpness,
+                minimum_metric_lower_bound,
                 submitted_uninformative_upper_bound: forecast.probability_uninformative,
             });
         }
