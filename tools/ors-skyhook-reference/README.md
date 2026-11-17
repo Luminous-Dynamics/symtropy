@@ -66,4 +66,4 @@ This proves only that the equations and rounded table in the 1982 paper are arit
 
 The 8 km/s velocity used elsewhere in Birch's drag discussion is not substituted for the geometry-derived V0 in Table 4. The separate power-budget audit remains separate.
 
-The T0 inertial circular-stream equation q_n = m * V0^2 / R gives a net normal resultant for a fixed circular stream; this skyhook reference instead reproduces the local direction-change impulse. Neither is a full ORS model. The next physics gate remains an independently reviewed force and momentum balance for the actual chosen ring/skyhook/control-volume geometry.
+The T0 inertial circular-stream equation q_n = m * V0^2 / R gives a net normal resultant for a fixed circular stream; this skyhook reference instead reproduces the local momentum-rate force at the turn. Neither is a full ORS model. The next physics gate remains an independently reviewed force and momentum balance for the actual chosen ring/skyhook/control-volume geometry.
