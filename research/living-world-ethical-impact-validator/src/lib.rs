@@ -868,25 +868,36 @@ mod tests {
             .iter()
             .find(|fixture| fixture.fixture_id == "LW-01-tumour-parasite")
             .unwrap();
-        assert_eq!(
-            tumour.expected_findings.iter().find(|finding| finding.premise_id == "declared_output_floor").unwrap().status,
-            FindingStatus::Undetermined
-        );
+        let persistence_finding = tumour
+            .expected_findings
+            .iter()
+            .find(|finding| finding.premise_id == "declared_output_floor")
+            .unwrap();
+        assert_eq!(persistence_finding.status, FindingStatus::Undetermined);
 
         let throughput = corpus
             .fixtures
             .iter()
             .find(|fixture| fixture.fixture_id == "LW-03-throughput-welfare")
             .unwrap();
-        let output_finding = throughput.expected_findings.iter()
-            .find(|finding| finding.premise_id == "declared_output_floor").unwrap();
+        let output_finding = throughput
+            .expected_findings
+            .iter()
+            .find(|finding| finding.premise_id == "declared_output_floor")
+            .unwrap();
         assert_eq!(output_finding.status, FindingStatus::Supported);
-        assert_eq!(output_finding.evidence_refs, vec!["e4"]);
         assert_eq!(
-            throughput.expected_findings.iter()
-                .find(|finding| finding.premise_id == "avoid_preventable_severe_harm").unwrap().status,
-            FindingStatus::Undetermined
+            output_finding.evidence_refs,
+            vec![String::from("e4")]
         );
+
+        let welfare_finding = throughput
+            .expected_findings
+            .iter()
+            .find(|finding| finding.premise_id == "avoid_preventable_severe_harm")
+            .unwrap();
+        assert_eq!(welfare_finding.status, FindingStatus::Undetermined);
+
         assert!(throughput.evidence.iter().any(|evidence| {
             evidence.evidence_id == "e1"
                 && evidence.dimension == EvidenceDimension::PhysicalFeasibility
