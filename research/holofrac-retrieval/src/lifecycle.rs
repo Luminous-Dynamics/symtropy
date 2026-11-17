@@ -358,7 +358,7 @@ impl ComponentLifecycleLedger {
                     return Err(LifecycleError::InvalidMass);
                 }
             }
-            if !event.use_class_after.trim().is_empty() == false {
+            if event.use_class_after.trim().is_empty() {
                 return Err(LifecycleError::InvalidEventRecord(event.event_id));
             }
             if event.state_before != state
@@ -467,48 +467,49 @@ impl ComponentLifecycleLedger {
     }
 }
 
+fn feed_u64(hash: &mut u64, value: u64) {
+    for byte in value.to_le_bytes() {
+        *hash ^= u64::from(byte);
+        *hash = hash.wrapping_mul(0x100_0000_01b3);
+    }
+}
+
+fn feed_text(hash: &mut u64, value: &str) {
+    for byte in value.as_bytes() {
+        *hash ^= u64::from(*byte);
+        *hash = hash.wrapping_mul(0x100_0000_01b3);
+    }
+}
+
 fn stable_digest(config: &LifecycleFixtureConfig, ledger: &ComponentLifecycleLedger) -> u64 {
     let mut hash = 0xcbf2_9ce4_8422_2325_u64;
-    let mut feed = |value: u64| {
-        for byte in value.to_le_bytes() {
-            hash ^= u64::from(byte);
-            hash = hash.wrapping_mul(0x100_0000_01b3);
-        }
-    };
-    let mut feed_text = |value: &str| {
-        for byte in value.as_bytes() {
-            hash ^= u64::from(*byte);
-            hash = hash.wrapping_mul(0x100_0000_01b3);
-        }
-    };
-
-    feed(LIFECYCLE_SCHEMA_VERSION as u64);
-    feed(config.seed);
-    feed(config.initial_mass_kg.to_bits());
-    feed(config.first_recovery_loss_fraction.to_bits());
-    feed(config.second_recovery_loss_fraction.to_bits());
-    feed(config.late_final_recording_delay_years as u64);
-    feed_text(&ledger.passport.component_id);
-    feed_text(&ledger.passport.material_id);
-    feed_text(&ledger.passport.passport_id);
-    feed_text(&ledger.passport.source_geometry_id);
-    feed_text(&ledger.passport.connection_type);
-    feed_text(&ledger.passport.initial_use_class);
-    feed(ledger.passport.initial_mass_kg.to_bits());
+    feed_u64(&mut hash, LIFECYCLE_SCHEMA_VERSION as u64);
+    feed_u64(&mut hash, config.seed);
+    feed_u64(&mut hash, config.initial_mass_kg.to_bits());
+    feed_u64(&mut hash, config.first_recovery_loss_fraction.to_bits());
+    feed_u64(&mut hash, config.second_recovery_loss_fraction.to_bits());
+    feed_u64(&mut hash, config.late_final_recording_delay_years as u64);
+    feed_text(&mut hash, &ledger.passport.component_id);
+    feed_text(&mut hash, &ledger.passport.material_id);
+    feed_text(&mut hash, &ledger.passport.passport_id);
+    feed_text(&mut hash, &ledger.passport.source_geometry_id);
+    feed_text(&mut hash, &ledger.passport.connection_type);
+    feed_text(&mut hash, &ledger.passport.initial_use_class);
+    feed_u64(&mut hash, ledger.passport.initial_mass_kg.to_bits());
 
     for event in &ledger.events {
-        feed(event.event_id);
-        feed(event.revision as u64);
-        feed(event.prior_event_id.unwrap_or(u64::MAX));
-        feed(event.effective_at_micros as u64);
-        feed(event.recorded_at_micros as u64);
-        feed(event.mass_before_kg.to_bits());
-        feed(event.mass_after_kg.to_bits());
-        feed(event.mass_loss_kg.to_bits());
-        feed(event.recycled_mass_kg.to_bits());
-        feed(event.disposed_mass_kg.to_bits());
-        feed_text(&event.supporting_record_id);
-        feed_text(&event.use_class_after);
+        feed_u64(&mut hash, event.event_id);
+        feed_u64(&mut hash, event.revision as u64);
+        feed_u64(&mut hash, event.prior_event_id.unwrap_or(u64::MAX));
+        feed_u64(&mut hash, event.effective_at_micros as u64);
+        feed_u64(&mut hash, event.recorded_at_micros as u64);
+        feed_u64(&mut hash, event.mass_before_kg.to_bits());
+        feed_u64(&mut hash, event.mass_after_kg.to_bits());
+        feed_u64(&mut hash, event.mass_loss_kg.to_bits());
+        feed_u64(&mut hash, event.recycled_mass_kg.to_bits());
+        feed_u64(&mut hash, event.disposed_mass_kg.to_bits());
+        feed_text(&mut hash, &event.supporting_record_id);
+        feed_text(&mut hash, &event.use_class_after);
     }
 
     hash
@@ -526,7 +527,9 @@ impl LifecycleFixture {
         {
             return Err(LifecycleError::InvalidLossFraction);
         }
-        if config.late_final_recording_delay_years < 0 {
+        if config.late_final_recording_delay_years < 0
+            || config.late_final_recording_delay_years > i64::MAX / YEAR_MICROS - 30
+        {
             return Err(LifecycleError::InvalidRecordingDelay);
         }
 
@@ -544,10 +547,8 @@ impl LifecycleFixture {
         let mut events = Vec::new();
         let mut state = LifecycleState::Designed;
         let mut condition = ComponentCondition::Good;
-        let mut use_class = passport.initial_use_class.clone();
-        let mut mass = passport.initial_mass_kg;
         let mut previous_event_id = None;
-        let mut previous_recorded_at = 0_i64;
+        let mass = passport.initial_mass_kg;
 
         let first_recovered = mass * (1.0 - config.first_recovery_loss_fraction);
         let second_recovered =
@@ -752,14 +753,7 @@ impl LifecycleFixture {
             next_event_id += 1;
             state = next_state;
             condition = next_condition;
-            use_class = next_use_class.to_owned();
-            mass = mass_after;
-            previous_recorded_at = recorded_at;
         }
-
-        // Keep this explicit so a future fixture edit cannot accidentally leave
-        // an unused or out-of-order final event when changing the schedule.
-        let _ = (use_class, mass, previous_recorded_at);
 
         let ledger = ComponentLifecycleLedger { passport, events };
         ledger.validate()?;
