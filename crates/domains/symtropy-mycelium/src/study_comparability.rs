@@ -28,7 +28,7 @@ pub enum HostExposure {
 #[derive(Debug, Clone, PartialEq)]
 pub enum CarbonSourceProfile {
     NoExogenousSupplement,
-    MyristicAcid { concentration_milli_mM: u32 },
+    MyristicAcid { concentration_milli_molar: u32 },
     OtherDefined { source_code: String },
     MixedOrUnresolved,
     Unknown,
@@ -455,7 +455,7 @@ mod tests {
         let left = context(1);
         let mut right = context(1);
         right.carbon_source = CarbonSourceProfile::MyristicAcid {
-            concentration_milli_mM: 500,
+            concentration_milli_molar: 500,
         };
         assert_eq!(
             assess_study_comparability(&left, &right, Some(ContextFactor::CarbonSource)),
@@ -540,7 +540,7 @@ mod tests {
         let left = context(1);
         let mut right = context(1);
         right.carbon_source = CarbonSourceProfile::MyristicAcid {
-            concentration_milli_mM: 500,
+            concentration_milli_molar: 500,
         };
         right.plate_geometry_fingerprint = Some("rectangular-plate".to_owned());
         assert_eq!(
@@ -558,7 +558,7 @@ mod tests {
         left.allocation = AllocationMethod::NotReported;
         right.allocation = AllocationMethod::NotReported;
         right.carbon_source = CarbonSourceProfile::MyristicAcid {
-            concentration_milli_mM: 500,
+            concentration_milli_molar: 500,
         };
         assert_eq!(
             assess_study_comparability(&left, &right, Some(ContextFactor::CarbonSource)),
