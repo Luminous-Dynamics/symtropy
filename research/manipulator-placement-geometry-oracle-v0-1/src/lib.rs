@@ -633,7 +633,7 @@ mod tests {
     #[test]
     fn small_rotation_inside_tolerance_passes() {
         let mut observations = nominal_observations();
-        let angle = 0.008;
+        let angle: f64 = 0.008;
         observations[0].measured_orientation_xyzw =
             [0.0, 0.0, (angle / 2.0).sin(), (angle / 2.0).cos()];
         observations[0].orientation_uncertainty_rad = 0.001;
@@ -647,7 +647,7 @@ mod tests {
     #[test]
     fn rotation_outside_tolerance_rejects_geometry() {
         let mut observations = nominal_observations();
-        let angle = 0.011;
+        let angle: f64 = 0.011;
         observations[0].measured_orientation_xyzw =
             [0.0, 0.0, (angle / 2.0).sin(), (angle / 2.0).cos()];
         observations[0].orientation_uncertainty_rad = 0.0;
