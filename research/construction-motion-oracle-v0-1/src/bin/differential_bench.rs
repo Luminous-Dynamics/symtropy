@@ -137,6 +137,7 @@ fn run_site_ledger_append_scaling_benchmarks() {
                 source_schema_release: "IFC4X3_ADD2".into(),
                 ids_spec_sha256: "c".repeat(64),
                 ids_version: "1.0".into(),
+                ids_engine_build_sha256: "5".repeat(64),
                 design_revision_sha256: "d".repeat(64),
                 frame_id: "benchmark-site-frame".into(),
                 frame_sha256: "e".repeat(64),
