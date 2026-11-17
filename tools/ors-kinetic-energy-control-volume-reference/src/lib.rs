@@ -210,7 +210,10 @@ pub fn parse_corpus(
         )?;
         let kinetic_energy_accumulation_w = parse_number(
             fields[5],
-            &format!("scenario line {} kinetic-energy accumulation", line_index + 2),
+            &format!(
+                "scenario line {} kinetic-energy accumulation",
+                line_index + 2
+            ),
         )?;
         let nonport_external_power_on_cv_w = parse_number(
             fields[6],
@@ -389,16 +392,10 @@ pub fn evaluate_scenario(scenario: &KineticEnergyScenario) -> Result<CaseEvaluat
             ));
         }
         if !port.mass_flow_kg_s.is_finite() || port.mass_flow_kg_s < 0.0 {
-            return Err(format!(
-                "{}: invalid mass-flow magnitude",
-                scenario.case_id
-            ));
+            return Err(format!("{}: invalid mass-flow magnitude", scenario.case_id));
         }
         if !port.velocity_inertial_m_s.is_finite() {
-            return Err(format!(
-                "{}: non-finite port velocity",
-                scenario.case_id
-            ));
+            return Err(format!("{}: non-finite port velocity", scenario.case_id));
         }
 
         let velocity_squared = port.velocity_inertial_m_s.norm_squared();
@@ -518,10 +515,7 @@ pub fn evaluate_scenario(scenario: &KineticEnergyScenario) -> Result<CaseEvaluat
     })
 }
 
-pub fn evaluate_corpus(
-    cases_csv: &str,
-    ports_csv: &str,
-) -> Result<EvaluationReport, String> {
+pub fn evaluate_corpus(cases_csv: &str, ports_csv: &str) -> Result<EvaluationReport, String> {
     let scenarios = parse_corpus(cases_csv, ports_csv)?;
     let mut cases = Vec::with_capacity(scenarios.len());
     let mut port_count = 0usize;
@@ -599,7 +593,11 @@ mod tests {
     #[test]
     fn unsteady_storage_includes_mass_and_kinetic_energy_accumulation() {
         let result = evaluate_scenario(&scenario("UNSTEADY_STORAGE")).expect("unsteady");
-        close(result.mass_flow_in_kg_s - result.mass_flow_out_kg_s, 1.0, 0.0);
+        close(
+            result.mass_flow_in_kg_s - result.mass_flow_out_kg_s,
+            1.0,
+            0.0,
+        );
         close(result.port_kinetic_energy_flow_in_w, 8.0, 0.0);
         close(result.port_kinetic_energy_flow_out_w, 13.5, 0.0);
         close(result.net_advective_kinetic_energy_flux_w, 5.5, 0.0);
@@ -618,7 +616,8 @@ mod tests {
 
     #[test]
     fn negative_external_power_is_preserved_without_recovery_inference() {
-        let result = evaluate_scenario(&scenario("NEGATIVE_EXTERNAL_POWER")).expect("negative power");
+        let result =
+            evaluate_scenario(&scenario("NEGATIVE_EXTERNAL_POWER")).expect("negative power");
         close(result.nonport_external_power_on_cv_w, -6.0, 0.0);
         close(result.boundary_work_on_cv_w, 2.0, 0.0);
         close(result.mechanical_dissipation_rate_w, 1.0, 0.0);
