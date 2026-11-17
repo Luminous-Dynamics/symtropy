@@ -552,6 +552,34 @@
         "reference_crps": 0,
         "crps_skill_score": null
       }
+    },
+    {
+      "case_id": "HC-T0-036-crps-skill-negative-retained",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "CRPS_SKILL_AGAINST_DECLARED_REFERENCE",
+        "reference_forecast_id": "persistence-ensemble-v1",
+        "forecast_member_count": 3,
+        "reference_member_count": 3,
+        "forecast_crps": 1.5555555555555556,
+        "reference_crps": 0.6666666666666666,
+        "crps_skill_score": -1.3333333333333333
+      }
+    },
+    {
+      "case_id": "HC-T0-037-brier-skill-negative-retained",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "BRIER_SKILL_AGAINST_DECLARED_REFERENCE",
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "reference_forecast_id": "constant_climatology_0_5",
+        "sample_count": 3,
+        "forecast_brier_score": 0.7533333333333333,
+        "reference_brier_score": 0.25,
+        "brier_skill_score": -2.013333333333333
+      }
     }
   ]
 }
