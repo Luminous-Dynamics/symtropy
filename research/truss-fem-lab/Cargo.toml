@@ -1,0 +1,19 @@
+[workspace]
+
+[package]
+name = "symtropy-truss-fem-lab"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Small reference linear-elastic 3D pin-jointed truss solver for geometry research"
+
+[dependencies]
+symtropy-freeflow-structure-lab = { path = "../freeflow-structure-lab" }
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "truss-fem"
+path = "src/main.rs"

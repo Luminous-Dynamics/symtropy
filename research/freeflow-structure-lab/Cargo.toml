@@ -1,0 +1,16 @@
+[workspace]
+
+[package]
+name = "symtropy-freeflow-structure-lab"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Bounded CPU-only recursive truss geometry and topology research scaffold"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "freeflow-structure"
+path = "src/main.rs"
