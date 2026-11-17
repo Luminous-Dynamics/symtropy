@@ -15,6 +15,7 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "research/water-service-engineering/**"
+      - "docs/research/jw-water-cascade/**"
       - ".github/workflows/water-service-t0.yml"
   workflow_dispatch:
 
