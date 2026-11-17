@@ -157,7 +157,10 @@ fn validate_sample_identity(
     stratum_id: &str,
     context_digest: &str,
 ) -> Result<(), String> {
-    if sample_id.trim().is_empty() || stratum_id.trim().is_empty() || context_digest.trim().is_empty() {
+    if sample_id.trim().is_empty()
+        || stratum_id.trim().is_empty()
+        || context_digest.trim().is_empty()
+    {
         return Err("sample, stratum and context identities must be nonempty".to_owned());
     }
     Ok(())
@@ -165,7 +168,9 @@ fn validate_sample_identity(
 
 fn validate_error_scale(absolute_error: f64, predicted_scale: f64) -> Result<(), String> {
     if !absolute_error.is_finite() || absolute_error < 0.0 {
-        return Err("absolute calibration/evaluation error must be finite and nonnegative".to_owned());
+        return Err(
+            "absolute calibration/evaluation error must be finite and nonnegative".to_owned(),
+        );
     }
     if !predicted_scale.is_finite() || predicted_scale <= 0.0 {
         return Err("predicted scale must be finite and strictly positive".to_owned());
@@ -220,7 +225,10 @@ pub fn fit_groupwise_split_conformal(
         )?;
         validate_error_scale(observation.absolute_error, observation.predicted_scale)?;
         if !seen_ids.insert(observation.sample_id.clone()) {
-            return Err(format!("duplicate calibration sample ID {}", observation.sample_id));
+            return Err(format!(
+                "duplicate calibration sample ID {}",
+                observation.sample_id
+            ));
         }
         let key = (
             observation.stratum_id.clone(),
@@ -251,7 +259,10 @@ pub fn fit_groupwise_split_conformal(
             .unwrap_or_default();
         let calibration_sample_count = group_scores.len();
         let rank = if calibration_sample_count >= minimum_calibration_samples {
-            Some(finite_sample_rank(calibration_sample_count, nominal_coverage)?)
+            Some(finite_sample_rank(
+                calibration_sample_count,
+                nominal_coverage,
+            )?)
         } else {
             None
         };
@@ -301,9 +312,7 @@ fn wilson_interval(successes: usize, trials: usize) -> (Option<f64>, Option<f64>
     let z_squared = z * z;
     let denominator = 1.0 + z_squared / n;
     let center = p + z_squared / (2.0 * n);
-    let half_width = z
-        * (p * (1.0 - p) / n + z_squared / (4.0 * n * n))
-            .sqrt();
+    let half_width = z * (p * (1.0 - p) / n + z_squared / (4.0 * n * n)).sqrt();
     (
         Some(((center - half_width) / denominator).max(0.0)),
         Some(((center + half_width) / denominator).min(1.0)),
@@ -338,7 +347,10 @@ pub fn evaluate_groupwise_split_conformal(
         )?;
         validate_evaluation_error(observation.absolute_error)?;
         if !evaluation_ids.insert(observation.sample_id.clone()) {
-            return Err(format!("duplicate evaluation sample ID {}", observation.sample_id));
+            return Err(format!(
+                "duplicate evaluation sample ID {}",
+                observation.sample_id
+            ));
         }
         if calibration_ids.contains(&observation.sample_id) {
             return Err(format!(
@@ -386,7 +398,9 @@ pub fn evaluate_groupwise_split_conformal(
                     IntervalEvaluationDisposition::InsufficientStratumCalibration
                 }
                 Some(threshold) => {
-                    let quantile = threshold.score_quantile.expect("fitted threshold has quantile");
+                    let quantile = threshold
+                        .score_quantile
+                        .expect("fitted threshold has quantile");
                     let radius = quantile * observation.predicted_scale;
                     let normalized_error = observation.absolute_error / observation.predicted_scale;
                     if !radius.is_finite() || !normalized_error.is_finite() {
@@ -428,8 +442,8 @@ pub fn evaluate_groupwise_split_conformal(
         } else {
             None
         };
-        let normalized_absolute_error = interval_width
-            .map(|_| observation.absolute_error / observation.predicted_scale);
+        let normalized_absolute_error =
+            interval_width.map(|_| observation.absolute_error / observation.predicted_scale);
 
         sample_results.push(SampleIntervalResult {
             sample_id: observation.sample_id.clone(),
@@ -451,14 +465,12 @@ pub fn evaluate_groupwise_split_conformal(
                 nominal_coverage: model.nominal_coverage,
                 evaluated_count: report.evaluated_count,
                 covered_count: report.covered_count,
-                empirical_coverage: (report.evaluated_count > 0).then(|| {
-                    report.covered_count as f64 / report.evaluated_count as f64
-                }),
+                empirical_coverage: (report.evaluated_count > 0)
+                    .then(|| report.covered_count as f64 / report.evaluated_count as f64),
                 wilson_95_lower,
                 wilson_95_upper,
-                mean_interval_width: (report.evaluated_count > 0).then(|| {
-                    report.interval_width_sum / report.evaluated_count as f64
-                }),
+                mean_interval_width: (report.evaluated_count > 0)
+                    .then(|| report.interval_width_sum / report.evaluated_count as f64),
                 abstained_out_of_domain_count: report.abstained_out_of_domain_count,
                 abstained_reference_unresolved_count: report.abstained_reference_unresolved_count,
                 no_calibrator_count: report.no_calibrator_count,
@@ -476,9 +488,8 @@ pub fn evaluate_groupwise_split_conformal(
         scored_count: total_scored,
         covered_count: total_covered,
         missed_count: total_missed,
-        overall_empirical_coverage: (total_scored > 0).then(|| {
-            total_covered as f64 / total_scored as f64
-        }),
+        overall_empirical_coverage: (total_scored > 0)
+            .then(|| total_covered as f64 / total_scored as f64),
         overall_wilson_95_lower,
         overall_wilson_95_upper,
         abstained_out_of_domain_count: total_out_of_domain,
@@ -616,32 +627,47 @@ mod tests {
         let model = fit_groupwise_split_conformal(&calibration, 0.9, 30).expect("conformal fit");
         assert_eq!(model.groups.len(), 2);
         assert!(model.groups.iter().all(|group| {
-            group.disposition == ConformalFitDisposition::Fitted
-                && group.score_quantile.is_some()
+            group.disposition == ConformalFitDisposition::Fitted && group.score_quantile.is_some()
         }));
-        let a = model.groups.iter().find(|group| group.stratum_id == "sensor-a").unwrap();
-        let b = model.groups.iter().find(|group| group.stratum_id == "sensor-b").unwrap();
+        let a = model
+            .groups
+            .iter()
+            .find(|group| group.stratum_id == "sensor-a")
+            .unwrap();
+        let b = model
+            .groups
+            .iter()
+            .find(|group| group.stratum_id == "sensor-b")
+            .unwrap();
         assert!(b.score_quantile.unwrap() > a.score_quantile.unwrap());
     }
 
     #[test]
     fn under_sampled_stratum_does_not_borrow_the_global_threshold() {
         let calibration = (0..40)
-            .map(|index| calibration_sample(
-                &format!("cal-a-{index}"),
-                "sensor-a",
-                "sha256:context-a",
-                0.5,
-            ))
-            .chain((0..5).map(|index| calibration_sample(
-                &format!("cal-b-{index}"),
-                "sensor-b",
-                "sha256:context-b",
-                0.2,
-            )))
+            .map(|index| {
+                calibration_sample(
+                    &format!("cal-a-{index}"),
+                    "sensor-a",
+                    "sha256:context-a",
+                    0.5,
+                )
+            })
+            .chain((0..5).map(|index| {
+                calibration_sample(
+                    &format!("cal-b-{index}"),
+                    "sensor-b",
+                    "sha256:context-b",
+                    0.2,
+                )
+            }))
             .collect::<Vec<_>>();
         let model = fit_groupwise_split_conformal(&calibration, 0.9, 30).expect("fit");
-        let b = model.groups.iter().find(|group| group.stratum_id == "sensor-b").unwrap();
+        let b = model
+            .groups
+            .iter()
+            .find(|group| group.stratum_id == "sensor-b")
+            .unwrap();
         assert_eq!(
             b.disposition,
             ConformalFitDisposition::InsufficientCalibrationSamples
@@ -650,7 +676,12 @@ mod tests {
 
         let report = evaluate_groupwise_split_conformal(
             &model,
-            &[evaluation_sample("eval-b-1", "sensor-b", "sha256:context-b", 0.1)],
+            &[evaluation_sample(
+                "eval-b-1",
+                "sensor-b",
+                "sha256:context-b",
+                0.1,
+            )],
         )
         .expect("evaluation");
         assert_eq!(report.insufficient_calibration_count, 1);
@@ -660,33 +691,36 @@ mod tests {
     #[test]
     fn evaluation_rejects_reused_calibration_ids_and_duplicate_holdout_ids() {
         let calibration = (0..30)
-            .map(|index| calibration_sample(
-                &format!("cal-{index}"),
-                "sensor-a",
-                "sha256:context-a",
-                0.5,
-            ))
+            .map(|index| {
+                calibration_sample(&format!("cal-{index}"), "sensor-a", "sha256:context-a", 0.5)
+            })
             .collect::<Vec<_>>();
         let model = fit_groupwise_split_conformal(&calibration, 0.9, 20).expect("fit");
-        assert!(evaluate_groupwise_split_conformal(
-            &model,
-            &[evaluation_sample("cal-0", "sensor-a", "sha256:context-a", 0.2)],
-        )
-        .is_err());
+        assert!(
+            evaluate_groupwise_split_conformal(
+                &model,
+                &[evaluation_sample(
+                    "cal-0",
+                    "sensor-a",
+                    "sha256:context-a",
+                    0.2
+                )],
+            )
+            .is_err()
+        );
 
         let duplicate = evaluation_sample("eval-dup", "sensor-a", "sha256:context-a", 0.2);
-        assert!(evaluate_groupwise_split_conformal(&model, &[duplicate.clone(), duplicate]).is_err());
+        assert!(
+            evaluate_groupwise_split_conformal(&model, &[duplicate.clone(), duplicate]).is_err()
+        );
     }
 
     #[test]
     fn ood_and_shared_reference_samples_are_abstentions_not_coverage() {
         let calibration = (0..30)
-            .map(|index| calibration_sample(
-                &format!("cal-{index}"),
-                "sensor-a",
-                "sha256:context-a",
-                0.5,
-            ))
+            .map(|index| {
+                calibration_sample(&format!("cal-{index}"), "sensor-a", "sha256:context-a", 0.5)
+            })
             .collect::<Vec<_>>();
         let model = fit_groupwise_split_conformal(&calibration, 0.9, 20).expect("fit");
         let mut ood = evaluation_sample("eval-ood", "sensor-a", "sha256:context-a", 0.1);
@@ -697,24 +731,28 @@ mod tests {
         assert_eq!(report.scored_count, 0);
         assert_eq!(report.abstained_out_of_domain_count, 1);
         assert_eq!(report.abstained_reference_unresolved_count, 1);
-        assert_eq!(report.sample_results[0].disposition, IntervalEvaluationDisposition::AbstainedOutOfDomain);
+        assert_eq!(
+            report.sample_results[0].disposition,
+            IntervalEvaluationDisposition::AbstainedOutOfDomain
+        );
         assert_eq!(report.sample_results[0].interval_width, None);
-        assert_eq!(report.sample_results[1].disposition, IntervalEvaluationDisposition::AbstainedReferenceUnresolved);
+        assert_eq!(
+            report.sample_results[1].disposition,
+            IntervalEvaluationDisposition::AbstainedReferenceUnresolved
+        );
         assert_eq!(report.sample_results[1].interval_width, None);
     }
 
     #[test]
     fn invalid_evaluation_scale_is_reported_as_abstention() {
         let calibration = (0..30)
-            .map(|index| calibration_sample(
-                &format!("cal-{index}"),
-                "sensor-a",
-                "sha256:context-a",
-                0.5,
-            ))
+            .map(|index| {
+                calibration_sample(&format!("cal-{index}"), "sensor-a", "sha256:context-a", 0.5)
+            })
             .collect::<Vec<_>>();
         let model = fit_groupwise_split_conformal(&calibration, 0.9, 20).expect("fit");
-        let mut invalid = evaluation_sample("eval-invalid-scale", "sensor-a", "sha256:context-a", 0.1);
+        let mut invalid =
+            evaluation_sample("eval-invalid-scale", "sensor-a", "sha256:context-a", 0.1);
         invalid.predicted_scale = f64::NAN;
         let report = evaluate_groupwise_split_conformal(&model, &[invalid]).expect("evaluation");
         assert_eq!(report.scored_count, 0);
@@ -729,21 +767,20 @@ mod tests {
     #[test]
     fn shifted_holdout_is_reported_as_undercoverage_not_hidden_by_calibration_fit() {
         let calibration = (0..40)
-            .map(|index| calibration_sample(
-                &format!("cal-{index}"),
-                "sensor-a",
-                "sha256:context-a",
-                0.5,
-            ))
+            .map(|index| {
+                calibration_sample(&format!("cal-{index}"), "sensor-a", "sha256:context-a", 0.5)
+            })
             .collect::<Vec<_>>();
         let model = fit_groupwise_split_conformal(&calibration, 0.9, 30).expect("fit");
         let shifted = (0..20)
-            .map(|index| evaluation_sample(
-                &format!("shifted-{index}"),
-                "sensor-a",
-                "sha256:context-a",
-                3.0 + index as f64 * 0.1,
-            ))
+            .map(|index| {
+                evaluation_sample(
+                    &format!("shifted-{index}"),
+                    "sensor-a",
+                    "sha256:context-a",
+                    3.0 + index as f64 * 0.1,
+                )
+            })
             .collect::<Vec<_>>();
         let report = evaluate_groupwise_split_conformal(&model, &shifted).expect("evaluate");
         assert_eq!(report.scored_count, 20);
@@ -761,12 +798,7 @@ mod tests {
         assert!(fit_groupwise_split_conformal(&[invalid], 0.9, 1).is_err());
 
         let duplicate = calibration_sample("cal-dup", "sensor-a", "sha256:ctx", 0.5);
-        assert!(fit_groupwise_split_conformal(
-            &[duplicate.clone(), duplicate],
-            0.9,
-            1
-        )
-        .is_err());
+        assert!(fit_groupwise_split_conformal(&[duplicate.clone(), duplicate], 0.9, 1).is_err());
     }
 
     #[test]
@@ -787,6 +819,9 @@ mod tests {
         );
         assert_eq!(example.evaluation.sample_results[40].interval_width, None);
         assert_eq!(example.evaluation.sample_results[41].interval_width, None);
-        assert_eq!(example.claim_class, "synthetic_groupwise_conformal_example_only");
+        assert_eq!(
+            example.claim_class,
+            "synthetic_groupwise_conformal_example_only"
+        );
     }
 }
