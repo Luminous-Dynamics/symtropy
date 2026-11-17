@@ -439,8 +439,12 @@ pub fn evaluate(
     cases: &[CaseManifest],
     receipts: &[Receipt],
 ) -> Result<Vec<CaseEvaluation>, String> {
-    let cases_by_id: BTreeMap<&str, &CaseManifest> =
-        cases.iter().map(|case| (case.case_id.as_str(), case)).collect();
+    let mut cases_by_id: BTreeMap<&str, &CaseManifest> = BTreeMap::new();
+    for case in cases {
+        if cases_by_id.insert(case.case_id.as_str(), case).is_some() {
+            return Err(format!("duplicate case_id in evaluator input: {}", case.case_id));
+        }
+    }
     for receipt in receipts {
         if !cases_by_id.contains_key(receipt.case_id.as_str()) {
             return Err(format!("orphan receipt for unknown case: {}", receipt.case_id));
@@ -633,6 +637,17 @@ mod tests {
             evaluate_case(case, &own, &BTreeSet::new()).actual,
             Disposition::Indeterminate
         );
+    }
+
+
+    #[test]
+    fn duplicate_case_identity_is_rejected_by_public_evaluator() {
+        let mut cases = parse_cases(CASES).unwrap();
+        cases.push(cases[0].clone());
+        let receipts = parse_receipts(RECEIPTS).unwrap();
+        assert!(evaluate(&cases, &receipts)
+            .unwrap_err()
+            .contains("duplicate case_id"));
     }
 
     #[test]
