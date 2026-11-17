@@ -84,5 +84,9 @@ jobs:
       if: ${{ hashFiles('tools/airborne-energy-observability-validator/Cargo.toml') != '' }}
       run: cargo test --locked -p airborne-energy-observability-validator
 
+    - name: Test OLI M0 Semantic Validator
+      if: ${{ hashFiles('tools/oli-m0-validator/Cargo.toml') != '' }}
+      run: cargo test --locked -p oli-m0-validator
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets

@@ -6880,6 +6880,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "oli-m0-validator"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "once_cell"
 version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"

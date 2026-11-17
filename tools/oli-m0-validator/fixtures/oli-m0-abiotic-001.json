@@ -1,0 +1,61 @@
+{
+  "schema_version": "oli-m0-fixture-v0.1",
+  "fixture_id": "OLI-M0-ABIOTIC-001",
+  "scenario_family": "ABIOTIC_SELF_ORGANIZING_CONTROL",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "physical_substrate": "abiotic_reaction_diffusion_and_convection",
+  "system_boundary": {
+    "status": "DECLARED",
+    "description": "Synthetic driven physical domain with fixed boundary conditions and no organism lineage or autonomous reproduction mechanism."
+  },
+  "measurement": {
+    "modality": "synthetic_spatiotemporal_field",
+    "units": ["s", "m", "kelvin", "arbitrary_concentration_unit"],
+    "unit_status": "DECLARED",
+    "calibration_status": "QUALIFIED_SYNTHETIC_REFERENCE",
+    "temporal": {
+      "window_seconds": 600.0,
+      "sampling_interval_seconds": 0.5,
+      "target_process_timescale_seconds": 2.0,
+      "coverage_fraction": 1.0
+    },
+    "spatial": {
+      "coordinate_frame": "synthetic_2d_cartesian",
+      "footprint_fraction": 1.0,
+      "resolution_m": 0.001
+    }
+  },
+  "property_assessments": {
+    "organization": "SUPPORTED_WITHIN_SCOPE",
+    "boundary": "SUPPORTED_WITHIN_SCOPE",
+    "energy_matter_throughput": "SUPPORTED_WITHIN_SCOPE",
+    "persistence": "SUPPORTED_WITHIN_SCOPE",
+    "homeostasis_regulation": "NOT_TESTED",
+    "self_maintenance": "CONTRADICTED_WITHIN_SCOPE",
+    "information_retention": "INSUFFICIENT_EVIDENCE",
+    "information_transfer": "NOT_TESTED",
+    "reproduction": "CONTRADICTED_WITHIN_SCOPE",
+    "heredity": "NOT_TESTED",
+    "adaptation": "NOT_TESTED",
+    "learning": "NOT_TESTED",
+    "agency": "NOT_TESTED",
+    "intelligence": "NOT_TESTED",
+    "collective_intelligence": "NOT_TESTED",
+    "sentience_consciousness": "NOT_TESTED"
+  },
+  "expected_result": {
+    "disposition": "ABIOTIC_CONTROL_REFERENCE",
+    "absence_inference_allowed": false,
+    "reason": "Known synthetic abiotic generator exhibits structured dissipative patterns. Organization, persistence and resource flow alone must not be promoted to life or intelligence."
+  },
+  "source": {
+    "reference": "synthetic://oli-m0/abiotic-reaction-diffusion-v1",
+    "data_status": "SYNTHETIC_FIXTURE_ONLY",
+    "note": "Ground truth is encoded by the synthetic generator, not inferred from visual appearance."
+  },
+  "limitations": [
+    "This fixture represents one abiotic generator family, not all abiotic alternatives.",
+    "The contradiction labels apply only within the declared synthetic generator and observation scope.",
+    "A pass does not establish universal specificity."
+  ]
+}
