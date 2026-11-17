@@ -47,7 +47,8 @@
     },
     "accepted_servings": {
       "type": "integer",
-      "minimum": 0
+      "minimum": 0,
+      "maximum": 9007199254740991
     },
     "disposition": {
       "enum": [
@@ -68,28 +69,32 @@
         "integer",
         "null"
       ],
-      "minimum": 0
+      "minimum": 0,
+      "maximum": 9007199254740991
     },
     "output_mass_nanograms": {
       "type": [
         "integer",
         "null"
       ],
-      "minimum": 0
+      "minimum": 0,
+      "maximum": 9007199254740991
     },
     "accepted_edible_mass_nanograms": {
       "type": [
         "integer",
         "null"
       ],
-      "minimum": 0
+      "minimum": 0,
+      "maximum": 9007199254740991
     },
     "unaccounted_mass_nanograms": {
       "type": [
         "integer",
         "null"
       ],
-      "minimum": 0
+      "minimum": 0,
+      "maximum": 9007199254740991
     },
     "unaccounted_mass_fraction_ppm": {
       "type": [
@@ -97,14 +102,15 @@
         "null"
       ],
       "minimum": 0,
-      "maximum": 1000000
+      "maximum": 9007199254740991
     },
     "water_nanolitres": {
       "type": [
         "integer",
         "null"
       ],
-      "minimum": 0
+      "minimum": 0,
+      "maximum": 9007199254740991
     },
     "water_nanolitres_per_accepted_serving": {
       "$ref": "#/$defs/perServing"
@@ -114,7 +120,8 @@
         "integer",
         "null"
       ],
-      "minimum": 0
+      "minimum": 0,
+      "maximum": 9007199254740991
     },
     "electricity_microwatt_hours_per_accepted_serving": {
       "$ref": "#/$defs/perServing"
@@ -165,11 +172,13 @@
       "properties": {
         "numerator": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 9007199254740991
         },
         "denominator_servings": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "maximum": 9007199254740991
         }
       }
     },
