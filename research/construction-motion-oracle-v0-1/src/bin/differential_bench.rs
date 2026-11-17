@@ -373,7 +373,6 @@ fn main() {
     run_relative_time_multibody_benchmarks();
 }
 
-
 #[derive(Clone, Copy)]
 enum BroadphaseDistribution {
     Sparse,
@@ -401,21 +400,20 @@ fn build_broadphase_bodies(
         .map(|index| {
             let i = index as f64;
             let (x, y, z, radius) = match distribution {
-                BroadphaseDistribution::Sparse => {
-                    (i * 40.0, (index % 31) as f64 * 30.0, (index % 7) as f64 * 20.0, 0.5)
-                }
-                BroadphaseDistribution::Clustered => {
-                    (
-                        (index % 32) as f64 * 3.0,
-                        ((index / 32) % 16) as f64 * 3.0,
-                        (index % 5) as f64 * 1.0,
-                        1.0,
-                    )
-                }
+                BroadphaseDistribution::Sparse => (
+                    i * 40.0,
+                    (index % 31) as f64 * 30.0,
+                    (index % 7) as f64 * 20.0,
+                    0.5,
+                ),
+                BroadphaseDistribution::Clustered => (
+                    (index % 32) as f64 * 3.0,
+                    ((index / 32) % 16) as f64 * 3.0,
+                    (index % 5) as f64 * 1.0,
+                    1.0,
+                ),
                 BroadphaseDistribution::Dense => (0.0, 0.0, 0.0, 1.0),
-                BroadphaseDistribution::LongThin => {
-                    (i * 15.0, (index % 11) as f64 * 5.0, 0.0, 0.5)
-                }
+                BroadphaseDistribution::LongThin => (i * 15.0, (index % 11) as f64 * 5.0, 0.0, 0.5),
             };
             let half_length = if matches!(distribution, BroadphaseDistribution::LongThin) {
                 25.0
@@ -602,13 +600,13 @@ fn run_multibody_broadphase_benchmarks() {
     ] {
         for count in [16_usize, 64, 256, 1_024] {
             let bodies = build_broadphase_bodies(count, distribution);
-            let samples = if matches!(distribution, BroadphaseDistribution::Dense) && count == 1_024 {
+            let samples = if matches!(distribution, BroadphaseDistribution::Dense) && count == 1_024
+            {
                 3
             } else {
                 21
             };
-            let (p50, p95, p99, pair_count, cells, coarse) =
-                measure_multibody(&bodies, 8, samples);
+            let (p50, p95, p99, pair_count, cells, coarse) = measure_multibody(&bodies, 8, samples);
             let all_pairs = (count as u64) * ((count - 1) as u64) / 2;
             println!(
                 "{},{count},8,dyadic-sap,{},{},{},{pair_count},{cells},{coarse},{all_pairs}",
@@ -621,7 +619,6 @@ fn run_multibody_broadphase_benchmarks() {
     }
 }
 
-
 fn build_clock_mapped_bodies(count: usize) -> Vec<ClockDomainCapsuleBody> {
     let base_ms = 1_000_000_u64;
     (0..count)
@@ -630,12 +627,8 @@ fn build_clock_mapped_bodies(count: usize) -> Vec<ClockDomainCapsuleBody> {
             let x = i * 40.0;
             let y = (index % 17) as f64 * 20.0;
             let clock = format!("robot-clock-{index:05}");
-            let capsule = Capsule::new(
-                Vec3::new(x, y - 5.0, 0.0),
-                Vec3::new(x, y + 5.0, 0.0),
-                0.5,
-            )
-            .expect("benchmark capsule is finite");
+            let capsule = Capsule::new(Vec3::new(x, y - 5.0, 0.0), Vec3::new(x, y + 5.0, 0.0), 0.5)
+                .expect("benchmark capsule is finite");
             let motion = CapsuleMotionSpan {
                 capsule_at_start: capsule,
                 translation: Vec3::new(if index % 2 == 0 { 4.0 } else { -4.0 }, 0.0, 0.0),
