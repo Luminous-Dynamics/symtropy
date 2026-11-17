@@ -205,6 +205,58 @@
         "repair_disposition": "NOT_VERIFIED",
         "saved_water_claim_allowed": false
       }
+    },
+    {
+      "case_id": "PW-T0-009-gross-treatment-throughput-not-service-credit",
+      "family": "potable_treatment_cases",
+      "expected": {
+        "gross_treatment_output_l": 120,
+        "qualified_delivered_l": 40,
+        "measured_recovered_use_l": 30,
+        "measured_mains_displacement_l": 25,
+        "credited_net_mains_displacement_l": 25,
+        "service_credit_disposition": "CREDIT_CAPPED_BY_EVIDENCED_SERVICE",
+        "gross_output_is_not_credit": true
+      }
+    },
+    {
+      "case_id": "PW-T0-010-quality-not-qualified-no-credit",
+      "family": "potable_treatment_cases",
+      "expected": {
+        "credited_net_mains_displacement_l": 0,
+        "service_credit_disposition": "INDETERMINATE_QUALITY_EVIDENCE",
+        "release_allowed": false
+      }
+    },
+    {
+      "case_id": "PW-T0-011-no-reuse-control-no-credit",
+      "family": "potable_treatment_cases",
+      "expected": {
+        "credited_net_mains_displacement_l": 0,
+        "service_credit_disposition": "INDETERMINATE_CONTROL_PROFILE",
+        "release_allowed": false
+      }
+    },
+    {
+      "case_id": "PW-T0-012-recovered-output-unused-no-credit",
+      "family": "potable_treatment_cases",
+      "expected": {
+        "gross_treatment_output_l": 120,
+        "measured_recovered_use_l": 0,
+        "credited_net_mains_displacement_l": 0,
+        "service_credit_disposition": "NO_RECOVERED_USE"
+      }
+    },
+    {
+      "case_id": "PW-T0-013-double-counted-shared-stream-rejected",
+      "family": "potable_treatment_cases",
+      "expected": {
+        "shared_source_available_l": 30,
+        "claimed_credit_l": 40,
+        "duplicate_meter_identity": true,
+        "credited_net_mains_displacement_l": 0,
+        "service_credit_disposition": "DOUBLE_COUNT_OR_SOURCE_OVERCLAIM_REJECTED"
+      }
     }
   ]
 }
