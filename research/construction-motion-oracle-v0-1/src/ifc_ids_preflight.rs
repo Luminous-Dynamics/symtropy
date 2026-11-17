@@ -16,6 +16,46 @@ use crate::site_state_ledger::SiteWorkPackage;
 
 pub const SUPPORTED_IFC_SCHEMA_RELEASE: &str = "IFC4X3_ADD2";
 pub const SUPPORTED_IDS_VERSION: &str = "1.0";
+const COORDINATE_ORTHOGONALITY_TOLERANCE: f64 = 1.0e-9;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum IfcLengthUnit {
+    Millimetre,
+    Centimetre,
+    Metre,
+    Inch,
+    Foot,
+    Unsupported(String),
+}
+
+impl IfcLengthUnit {
+    pub fn to_millimetres_ratio(&self) -> Option<(u64, u64)> {
+        match self {
+            Self::Millimetre => Some((1, 1)),
+            Self::Centimetre => Some((10, 1)),
+            Self::Metre => Some((1_000, 1)),
+            Self::Inch => Some((254, 10)),
+            Self::Foot => Some((3_048, 10)),
+            Self::Unsupported(_) => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct IfcCoordinateContext {
+    pub model_frame_id: String,
+    pub project_crs_identifier: String,
+    pub vertical_datum_identifier: String,
+    pub length_unit: IfcLengthUnit,
+    /// Proper rotation from model axes to the declared local site axes.
+    pub model_to_site_rotation: [[f64; 3]; 3],
+    /// Translation is expressed in millimetres in the target site frame.
+    pub model_to_site_translation_mm: [f64; 3],
+    /// Uniform map-conversion scale, separate from IFC length-unit conversion.
+    pub map_conversion_scale: f64,
+    pub frame_sha256: String,
+    pub transform_sha256: String,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct IdsRequirementEvaluation {
@@ -58,6 +98,7 @@ pub struct IfcIdsWorkPackageInput {
     pub frame_id: String,
     pub frame_sha256: String,
     pub transform_sha256: String,
+    pub coordinate_context: IfcCoordinateContext,
     /// Digest of the complete sorted source entity binding manifest, including
     /// GlobalIds, geometry digests, semantic types, IDS property bindings and
     /// per-entity requirement evaluation receipt digests.
@@ -84,6 +125,8 @@ pub struct IfcIdsPreflightReport {
     pub in_scope_entity_count: u64,
     pub ifc_schema_release: String,
     pub ids_version: String,
+    pub length_to_mm_numerator: u64,
+    pub length_to_mm_denominator: u64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -97,6 +140,14 @@ pub enum IfcIdsPreflightError {
     InvalidFrameIdentity,
     InvalidFrameDigest,
     InvalidTransformDigest,
+    CoordinateFrameIdentityMismatch,
+    CoordinateFrameDigestMismatch,
+    MissingProjectCrsIdentifier,
+    MissingVerticalDatumIdentifier,
+    UnsupportedLengthUnit(String),
+    InvalidMapConversionScale,
+    NonFiniteCoordinateTranslation,
+    InvalidRotationMatrix,
     InvalidEntityManifestDigest,
     InvalidAcceptanceProfileDigest,
     InvalidGlobalId(String),
@@ -158,6 +209,49 @@ pub fn preflight_ifc_ids_work_package(
     }
     if !is_sha256(&input.transform_sha256) {
         errors.push(IfcIdsPreflightError::InvalidTransformDigest);
+    }
+    if input.coordinate_context.model_frame_id != input.frame_id {
+        errors.push(IfcIdsPreflightError::CoordinateFrameIdentityMismatch);
+    }
+    if input.coordinate_context.frame_sha256 != input.frame_sha256
+        || input.coordinate_context.transform_sha256 != input.transform_sha256
+        || !is_sha256(&input.coordinate_context.frame_sha256)
+        || !is_sha256(&input.coordinate_context.transform_sha256)
+    {
+        errors.push(IfcIdsPreflightError::CoordinateFrameDigestMismatch);
+    }
+    if input.coordinate_context.project_crs_identifier.trim().is_empty() {
+        errors.push(IfcIdsPreflightError::MissingProjectCrsIdentifier);
+    }
+    if input.coordinate_context.vertical_datum_identifier.trim().is_empty() {
+        errors.push(IfcIdsPreflightError::MissingVerticalDatumIdentifier);
+    }
+    let unit_ratio = input.coordinate_context.length_unit.to_millimetres_ratio();
+    if unit_ratio.is_none() {
+        let label = match &input.coordinate_context.length_unit {
+            IfcLengthUnit::Unsupported(value) => value.clone(),
+            _ => "unsupported".into(),
+        };
+        errors.push(IfcIdsPreflightError::UnsupportedLengthUnit(label));
+    }
+    if !input.coordinate_context.map_conversion_scale.is_finite()
+        || input.coordinate_context.map_conversion_scale <= 0.0
+    {
+        errors.push(IfcIdsPreflightError::InvalidMapConversionScale);
+    }
+    if !input
+        .coordinate_context
+        .model_to_site_translation_mm
+        .into_iter()
+        .all(f64::is_finite)
+    {
+        errors.push(IfcIdsPreflightError::NonFiniteCoordinateTranslation);
+    }
+    if !is_proper_rotation(
+        input.coordinate_context.model_to_site_rotation,
+        COORDINATE_ORTHOGONALITY_TOLERANCE,
+    ) {
+        errors.push(IfcIdsPreflightError::InvalidRotationMatrix);
     }
     if !is_sha256(&input.entity_manifest_sha256) {
         errors.push(IfcIdsPreflightError::InvalidEntityManifestDigest);
@@ -346,7 +440,36 @@ pub fn preflight_ifc_ids_work_package(
         in_scope_entity_count: source_entity_bindings.len() as u64,
         ifc_schema_release: input.source_schema_release,
         ids_version: input.ids_version,
+        length_to_mm_numerator: unit_ratio.map_or(0, |ratio| ratio.0),
+        length_to_mm_denominator: unit_ratio.map_or(0, |ratio| ratio.1),
     })
+}
+
+fn is_proper_rotation(
+    matrix: [[f64; 3]; 3],
+    tolerance: f64,
+) -> bool {
+    if !matrix.into_iter().flatten().all(f64::is_finite) {
+        return false;
+    }
+    for row in 0..3 {
+        for other_row in 0..3 {
+            let dot = (0..3)
+                .map(|column| matrix[row][column] * matrix[other_row][column])
+                .sum::<f64>();
+            let expected = if row == other_row { 1.0 } else { 0.0 };
+            if (dot - expected).abs() > tolerance {
+                return false;
+            }
+        }
+    }
+    let determinant = matrix[0][0]
+        * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1])
+        - matrix[0][1]
+            * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0])
+        + matrix[0][2]
+            * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0]);
+    (determinant - 1.0).abs() <= tolerance
 }
 
 fn is_ifc_global_id(value: &str) -> bool {
@@ -386,6 +509,21 @@ mod tests {
             frame_id: "site-level-02".into(),
             frame_sha256: digest('5'),
             transform_sha256: digest('6'),
+            coordinate_context: IfcCoordinateContext {
+                model_frame_id: "site-level-02".into(),
+                project_crs_identifier: "EPSG:32735".into(),
+                vertical_datum_identifier: "local-project-benchmark-datum".into(),
+                length_unit: IfcLengthUnit::Millimetre,
+                model_to_site_rotation: [
+                    [1.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0],
+                    [0.0, 0.0, 1.0],
+                ],
+                model_to_site_translation_mm: [10_000.0, 20_000.0, 0.0],
+                map_conversion_scale: 1.0,
+                frame_sha256: digest('5'),
+                transform_sha256: digest('6'),
+            },
             entity_manifest_sha256: digest('7'),
             acceptance_profile_sha256: digest('8'),
             acceptance_profile: FieldAcceptanceProfile {
@@ -456,6 +594,8 @@ mod tests {
         );
         assert_eq!(report.work_package.source_schema_release, SUPPORTED_IFC_SCHEMA_RELEASE);
         assert_eq!(report.work_package.ids_version, SUPPORTED_IDS_VERSION);
+        assert_eq!(report.length_to_mm_numerator, 1);
+        assert_eq!(report.length_to_mm_denominator, 1);
     }
 
     #[test]
@@ -590,6 +730,86 @@ mod tests {
                     requirement_id: "layout-marking-class".into(),
                 })
         );
+    }
+
+
+    #[test]
+    fn supported_length_units_have_exact_millimetre_ratios() {
+        assert_eq!(IfcLengthUnit::Millimetre.to_millimetres_ratio(), Some((1, 1)));
+        assert_eq!(IfcLengthUnit::Centimetre.to_millimetres_ratio(), Some((10, 1)));
+        assert_eq!(IfcLengthUnit::Metre.to_millimetres_ratio(), Some((1_000, 1)));
+        assert_eq!(IfcLengthUnit::Inch.to_millimetres_ratio(), Some((254, 10)));
+        assert_eq!(IfcLengthUnit::Foot.to_millimetres_ratio(), Some((3_048, 10)));
+        assert_eq!(
+            IfcLengthUnit::Unsupported("yard".into()).to_millimetres_ratio(),
+            None
+        );
+    }
+
+    #[test]
+    fn coordinate_frame_identity_rotation_and_map_scale_fail_closed() {
+        let mut bad_frame = valid_input();
+        bad_frame.coordinate_context.model_frame_id = "different-frame".into();
+        assert!(
+            preflight_ifc_ids_work_package(bad_frame)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::CoordinateFrameIdentityMismatch)
+        );
+
+        let mut reflection = valid_input();
+        reflection.coordinate_context.model_to_site_rotation[0][0] = -1.0;
+        assert!(
+            preflight_ifc_ids_work_package(reflection)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::InvalidRotationMatrix)
+        );
+
+        let mut scaled = valid_input();
+        scaled.coordinate_context.map_conversion_scale = 0.0;
+        assert!(
+            preflight_ifc_ids_work_package(scaled)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::InvalidMapConversionScale)
+        );
+    }
+
+    #[test]
+    fn improper_scaled_and_nonfinite_coordinate_matrices_are_rejected() {
+        let mut skew = valid_input();
+        skew.coordinate_context.model_to_site_rotation[0][1] = 0.1;
+        assert!(
+            preflight_ifc_ids_work_package(skew)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::InvalidRotationMatrix)
+        );
+
+        let mut nonfinite = valid_input();
+        nonfinite.coordinate_context.model_to_site_translation_mm[1] = f64::INFINITY;
+        assert!(
+            preflight_ifc_ids_work_package(nonfinite)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::NonFiniteCoordinateTranslation)
+        );
+    }
+
+    #[test]
+    fn frame_transform_hashes_must_match_the_site_package_identity() {
+        let mut mismatch = valid_input();
+        mismatch.coordinate_context.transform_sha256 = digest('0');
+        assert!(
+            preflight_ifc_ids_work_package(mismatch)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::CoordinateFrameDigestMismatch)
+        );
+    }
+
+    #[test]
+    fn foot_units_are_reported_as_exact_rational_millimetre_conversion() {
+        let mut foot = valid_input();
+        foot.coordinate_context.length_unit = IfcLengthUnit::Foot;
+        let report = preflight_ifc_ids_work_package(foot).unwrap();
+        assert_eq!(report.length_to_mm_numerator, 3_048);
+        assert_eq!(report.length_to_mm_denominator, 10);
     }
 
 }
