@@ -78,7 +78,8 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible"
+      "claim_eligibility": "NotEligible",
+      "energy_observed_block_count": 6
     },
     {
       "case_id": "MS-T1-002-high-gross-zero-fixture-use",
@@ -156,7 +157,8 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible"
+      "claim_eligibility": "NotEligible",
+      "energy_observed_block_count": 6
     },
     {
       "case_id": "MS-T1-003-quality-profile-mismatch",
@@ -234,7 +236,8 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible"
+      "claim_eligibility": "NotEligible",
+      "energy_observed_block_count": 5
     },
     {
       "case_id": "MS-T1-004-stale-quality-release",
@@ -312,7 +315,8 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible"
+      "claim_eligibility": "NotEligible",
+      "energy_observed_block_count": 5
     },
     {
       "case_id": "MS-T1-005-missing-matched-control",
@@ -390,7 +394,8 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible"
+      "claim_eligibility": "NotEligible",
+      "energy_observed_block_count": 5
     },
     {
       "case_id": "MS-T1-006-fallback-mains-reduces-credit",
@@ -467,7 +472,8 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible"
+      "claim_eligibility": "NotEligible",
+      "energy_observed_block_count": 6
     },
     {
       "case_id": "MS-T1-007-duplicate-meter-identities",
@@ -545,7 +551,8 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible"
+      "claim_eligibility": "NotEligible",
+      "energy_observed_block_count": 5
     },
     {
       "case_id": "MS-T1-008-duplicate-recovered-allocation",
@@ -623,7 +630,8 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible"
+      "claim_eligibility": "NotEligible",
+      "energy_observed_block_count": 4
     },
     {
       "case_id": "MS-T1-009-reject-stream-reused-as-fixture-use",
@@ -701,7 +709,8 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible"
+      "claim_eligibility": "NotEligible",
+      "energy_observed_block_count": 5
     },
     {
       "case_id": "MS-T1-010-service-envelope-violation",
@@ -779,7 +788,8 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible"
+      "claim_eligibility": "NotEligible",
+      "energy_observed_block_count": 5
     },
     {
       "case_id": "MS-T1-011-overlapping-measurement-windows",
@@ -857,7 +867,8 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible"
+      "claim_eligibility": "NotEligible",
+      "energy_observed_block_count": 5
     },
     {
       "case_id": "MS-T1-012-demand-trace-or-volume-mismatch",
@@ -935,7 +946,8 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible"
+      "claim_eligibility": "NotEligible",
+      "energy_observed_block_count": 5
     },
     {
       "case_id": "MS-T1-013-uncertainty-consumes-credit-margin",
@@ -1013,7 +1025,8 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible"
+      "claim_eligibility": "NotEligible",
+      "energy_observed_block_count": 6
     }
   ]
 }
