@@ -164,18 +164,58 @@ fn generate_episode(
     AcquisitionBudget,
 ) {
     let mut rng = DeterministicRng(seed);
-    let targets: Vec<EvidenceTarget> = (0..TARGET_COUNT)
-        .map(|index| EvidenceTarget {
-            target_id: format!("target-{index:02}"),
+    let layout_family = (seed % 4) as usize;
+    let layout_scale = match layout_family {
+        0 => 1.0,  // regular rectangular array
+        1 => 1.15, // wider array
+        2 => 0.92, // compact array
+        _ => 1.08, // elongated, staggered rows
+    };
+    let target_columns = 4;
+    let target_rows = 3;
+    let row_spacing = if layout_family == 3 { 5.0 } else { 6.0 };
+    let column_spacing = if layout_family == 3 { 6.5 } else { 6.0 };
+
+    let target_geometry: Vec<(String, f64, f64)> = (0..TARGET_COUNT)
+        .map(|index| {
+            let row = index / target_columns;
+            let column = index % target_columns;
+            let stagger = if layout_family == 3 && row % 2 == 1 {
+                column_spacing * 0.35
+            } else {
+                0.0
+            };
+            let u = 1.0
+                + column as f64 * column_spacing * layout_scale
+                + stagger * layout_scale
+                + rng.range(-0.35, 0.35) * layout_scale;
+            let v = 1.0
+                + row as f64 * row_spacing * layout_scale
+                + rng.range(-0.30, 0.30) * layout_scale;
+            (format!("target-{index:02}"), u, v)
+        })
+        .collect();
+
+    let targets: Vec<EvidenceTarget> = target_geometry
+        .iter()
+        .map(|(target_id, _, _)| EvidenceTarget {
+            target_id: target_id.clone(),
             required_independent_passes: 2,
             minimum_view_angle_separation_rad: 0.45,
             weight: rng.range(0.5, 2.5),
         })
         .collect();
 
+    // Six spatial acquisition passes cross the work area. Candidate order is
+    // serpentine so InputOrder reproduces a fixed-raster comparator. All
+    // candidates on one lane share a pass identity; a target cannot accrue
+    // repeated independent observations from consecutive frames on that lane.
+    let pass_angles = [-1.40, -0.85, -0.30, 0.30, 0.85, 1.40];
+    let footprint_half_width_m = 4.7 * layout_scale;
+    let footprint_half_height_m = 3.8 * layout_scale;
     let mut candidates = Vec::with_capacity(CANDIDATE_COUNT);
+
     for index in 0..CANDIDATE_COUNT {
-        // The supplied order is a serpentine/raster-style baseline route.
         let lane = index / 12;
         let lane_column = index % 12;
         let column = if lane % 2 == 0 {
@@ -183,12 +223,32 @@ fn generate_episode(
         } else {
             11 - lane_column
         };
-        let primary_target = (index * 7 + seed as usize) % TARGET_COUNT;
-        let mut covered_target_ids = vec![format!("target-{primary_target:02}")];
-        if index % 4 == 0 {
-            covered_target_ids.push(format!("target-{:02}", (primary_target + 3) % TARGET_COUNT));
+        let u_m = column as f64 * 2.0 * layout_scale + rng.range(-0.12, 0.12);
+        let v_m = lane as f64 * 2.0 * layout_scale + rng.range(-0.10, 0.10);
+        let view_angle_rad = pass_angles[lane];
+
+        // Compute candidate coverage from an oriented rectangular footprint.
+        // This is an analytic synthetic geometry oracle, not a sensor/vision
+        // pipeline. Each target is credited only when fully inside the modelled
+        // footprint in the candidate's local frame.
+        let cosine = view_angle_rad.cos();
+        let sine = view_angle_rad.sin();
+        let mut covered_target_ids = Vec::new();
+        for (target_id, target_u_m, target_v_m) in &target_geometry {
+            let delta_u = target_u_m - u_m;
+            let delta_v = target_v_m - v_m;
+            let local_u = delta_u * cosine + delta_v * sine;
+            let local_v = -delta_u * sine + delta_v * cosine;
+            if local_u.abs() <= footprint_half_width_m
+                && local_v.abs() <= footprint_half_height_m
+            {
+                covered_target_ids.push(target_id.clone());
+            }
         }
 
+        // Upstream sensor/evidence preflight is represented by a deterministic
+        // fail-closed disposition distribution for benchmark stress, not by a
+        // simulated controller or a learned detector.
         let quality_roll = rng.next_unit();
         let quality = if quality_roll < 0.82 {
             CandidateQuality::Qualified
@@ -202,10 +262,10 @@ fn generate_episode(
 
         candidates.push(AcquisitionCandidate {
             candidate_id: format!("candidate-{index:03}"),
-            pass_id: format!("pass-{index:03}"),
-            u_m: column as f64 * 1.8 + rng.range(0.0, 0.4),
-            v_m: lane as f64 * 2.2 + rng.range(0.0, 0.4),
-            view_angle_rad: rng.range(-std::f64::consts::PI, std::f64::consts::PI),
+            pass_id: format!("pass-lane-{lane:02}"),
+            u_m,
+            v_m,
+            view_angle_rad,
             covered_target_ids,
             quality,
             acquisition_time_s: rng.range(1.5, 4.5),
@@ -214,11 +274,19 @@ fn generate_episode(
         });
     }
 
+    let maximum_extent_u = target_geometry
+        .iter()
+        .map(|(_, u, _)| *u)
+        .fold(0.0, f64::max);
+    let maximum_extent_v = target_geometry
+        .iter()
+        .map(|(_, _, v)| *v)
+        .fold(0.0, f64::max);
     let budget = AcquisitionBudget {
         start_u_m: 0.0,
         start_v_m: 0.0,
         travel_speed_m_per_s: 1.8,
-        maximum_elapsed_time_s: 160.0,
+        maximum_elapsed_time_s: 180.0 + maximum_extent_u * 1.5 + maximum_extent_v,
         maximum_energy_wh: 28.0,
         energy_penalty_s_per_wh: 2.0,
     };
