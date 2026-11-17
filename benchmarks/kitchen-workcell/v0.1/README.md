@@ -85,3 +85,9 @@ For our kitchen workcell:
 - Simulation-only safety results do not qualify physical robots, pressure equipment, blades, heaters, electrical systems or human interaction. Appliance-local safety protections remain independent and authoritative.
 
 The current safety targets are unverified hypotheses; the manifest remains draft, unpreregistered and has zero runs.
+
+## External robotics benchmark extensions — 17 November 2026
+
+- **RoboCasa365:** current public leaderboard (updated 16 Nov 2026) reports 0.856 overall, 0.911 Atomic-Seen (18 tasks), 0.850 Composite-Seen (16 tasks) and 0.800 Composite-Unseen (16 tasks). The target is 0.907 overall with split floors above the current leader, under the exact official 50-task protocol. The leaderboard allows agentic submissions but requires policy-observation-only operation, no privileged state/success signal, base-policy attribution and disclosure of memory/tooling. See https://robocasa.ai/leaderboard.
+- **BEHAVIOR-1K 2026:** the official challenge evaluates 100 long-horizon household tasks across seven scenes with RGB, depth and proprioception; the ranking uses average BDDL task score with partial credit. A published ninth-place paper reports 0.446 Q and 0.273 full-task success for its public submission. These are not the winning scores. The research target is 0.500 Q and 0.320 full completion on the same official protocol. See https://behavior.stanford.edu/challenge/index.html and https://arxiv.org/abs/2611.14432.
+- These are separate simulated robotics tracks. RoboCasa365 is kitchen-task manipulation; BEHAVIOR is broad household mobile manipulation. Do not aggregate them or compare either to physical appliance outcomes. Current manifest still has zero physical runs and remains unpreregistered.
