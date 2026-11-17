@@ -795,6 +795,49 @@ mod tests {
         assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
     }
 
+    fn pressure_fixture_request() -> KitchenCapabilityAdmissionRequestV1 {
+        let mut request = fixture_request();
+        let module_bundle: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/fixtures/kitchen-module-capability-v1.json"
+        ))
+        .expect("module fixture bundle must parse");
+        let pressure_module: KitchenModuleCapabilityV1 = serde_json::from_value(
+            module_bundle["cases"][1]["module"].clone(),
+        )
+        .expect("independently qualified pressure fixture must deserialize");
+
+        request.modules = vec![pressure_module];
+        request.recipe.tasks[0].action_kind = RecipeActionKindV1::PressureCook;
+        request.recipe.tasks[0].ontology_binding = Some(rule_based_action_binding(
+            RecipeActionKindV1::PressureCook,
+            RecipeEvidenceClassV1::Declared,
+        ));
+        request.bindings[0] = KitchenTaskModuleBindingV1 {
+            task_id: "chop-onion".to_owned(),
+            module_id: "fixture:pressure-cooker-01".to_owned(),
+            module_revision: "pressure-rev-a".to_owned(),
+            capability_id: "capability:pressure-cook".to_owned(),
+            input_form_ref: "form:ingredients-in-vessel".to_owned(),
+            output_form_ref: "form:cooked-meal".to_owned(),
+            scheduled_resource_id: "processor".to_owned(),
+        };
+        request.request_id = "fixture:pressure-cook-admission".to_owned();
+        request
+    }
+
+    #[test]
+    fn pressure_module_requires_independent_vessel_and_relief_qualification() {
+        let request = pressure_fixture_request();
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::WithinDeclaredEnvelope
+        );
+
+        let mut request = pressure_fixture_request();
+        request.modules[0].pressure_safety = None;
+        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+    }
+
     #[test]
     fn admission_case_manifest_is_versioned_and_synthetic() {
         #[derive(Deserialize)]
