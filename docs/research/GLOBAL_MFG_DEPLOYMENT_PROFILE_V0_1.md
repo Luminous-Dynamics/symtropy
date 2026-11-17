@@ -265,6 +265,25 @@ Brazil is a useful example of why customs routes need their own time and eligibi
 
 GMDP fields to bind: NCM/EX tariff line, product form (CBU/CKD/SKD), origin, importer/company allocation, current underlying resolution, current portaria and all amendments, allocated amount, quota balance, application and utilisation window, customs value, rate outside the quota, and each official source's last-updated/retrieval date. The tariff schedule and quota are not vehicle type approval and must not be blended into a single compliance score.
 
+### Cross-market vehicle software and cybersecurity obligations
+
+For connected or updateable EVs, product conformity must also preserve cybersecurity and software-update management as distinct obligation families. Do not merge them into a generic "cyber compliant" field or infer applicability from the fact that a vehicle has an OTA feature.
+
+- **UN Regulation No. 155 (R155)** addresses vehicle cybersecurity and the Cyber Security Management System (CSMS). Its scope covers vehicle categories L, M, N and O when fitted with at least one electronic control unit, subject to the applicable series, approval route and national/contracting-party application. The regulation requires lifecycle-oriented risk management across development, production and post-production, including monitoring and response to threats and vulnerabilities. Official consolidated EU text: https://eur-lex.europa.eu/eli/reg/2025/5/oj/eng
+- **UN Regulation No. 156 (R156)** addresses vehicle software updates and the Software Update Management System (SUMS), including update identity, compatibility, integrity and safe/update-management processes. Bind the applicable vehicle category and whether software updates are within the vehicle's approved configuration. Official UNECE resource: https://unece.org/transport/documents/2021/03/standards/un-regulation-no-156-software-update-and-software-update
+- The VCA's 22 May 2026 guidance distinguishes the categories and explains audit-based CSMS/SUMS assessments. It lists M/N/O and some other categories for R156 where software updates are permitted; exact applicability must be reconciled against the legal instrument and target market, not copied wholesale from a summary page: https://www.vehicle-certification-agency.gov.uk/connected-and-automated-vehicles/cyber-security-and-software-updating/
+
+GMDP should represent these as separate, actor- and market-scoped obligations binding:
+- vehicle category, electronic architecture / update capability and exact vehicle type/revision;
+- applicable UN Regulation, amendment series/supplement, destination-market adoption and transition dates;
+- manufacturer's CSMS/SUMS authority and relevant certificates/assessment scope;
+- suppliers and software-component provenance, vulnerability intake, response and patch dependencies;
+- software identity, version, integrity data, compatibility, update authorization, installation outcome and rollback/recovery evidence;
+- production conformity and post-production monitoring responsibilities;
+- data access, privacy, consent and cross-border telemetry processing jurisdictions.
+
+A CSMS certificate is not a vehicle type approval; SUMS process evidence is not proof that a specific update is compatible or safely installed; software-update capability does not establish that a destination market applies R156 to every vehicle category. The responsible manufacturer remains accountable for the applicable approval and lifecycle obligations. These are separate evidence joins, not a single tick-box.
+
 ### Cross-market implications
 
 These examples establish a useful initial market-route benchmark:
