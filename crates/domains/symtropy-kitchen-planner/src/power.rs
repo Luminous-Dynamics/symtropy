@@ -186,7 +186,10 @@ fn validate_inputs(input: &PowerConstrainedPlanV1) -> Vec<PowerConstraintViolati
             &mut violations,
             PowerConstraintViolationCode::UnsupportedSchemaVersion,
             None,
-            format!("unsupported power-plan schema version {}", input.schema_version),
+            format!(
+                "unsupported power-plan schema version {}",
+                input.schema_version
+            ),
         );
     }
 
@@ -209,7 +212,10 @@ fn validate_inputs(input: &PowerConstrainedPlanV1) -> Vec<PowerConstraintViolati
             &mut violations,
             PowerConstraintViolationCode::SourcePlanInvalid,
             None,
-            format!("source plan has {} validation violation(s)", plan_report.violations.len()),
+            format!(
+                "source plan has {} validation violation(s)",
+                plan_report.violations.len()
+            ),
         );
     }
 
@@ -275,14 +281,20 @@ fn validate_inputs(input: &PowerConstrainedPlanV1) -> Vec<PowerConstraintViolati
                     &mut violations,
                     PowerConstraintViolationCode::SegmentOverlap,
                     Some(&profile.task_id),
-                    format!("segment starts at {} before previous end {}", segment.start_offset_ms, expected_start),
+                    format!(
+                        "segment starts at {} before previous end {}",
+                        segment.start_offset_ms, expected_start
+                    ),
                 );
             } else if segment.start_offset_ms > expected_start {
                 violation(
                     &mut violations,
                     PowerConstraintViolationCode::SegmentGap,
                     Some(&profile.task_id),
-                    format!("segment starts at {} after previous end {}", segment.start_offset_ms, expected_start),
+                    format!(
+                        "segment starts at {} after previous end {}",
+                        segment.start_offset_ms, expected_start
+                    ),
                 );
             }
             if segment.end_offset_ms > duration_ms {
@@ -290,7 +302,10 @@ fn validate_inputs(input: &PowerConstrainedPlanV1) -> Vec<PowerConstraintViolati
                     &mut violations,
                     PowerConstraintViolationCode::SegmentBeyondTaskDuration,
                     Some(&profile.task_id),
-                    format!("segment end {} exceeds task duration {}", segment.end_offset_ms, duration_ms),
+                    format!(
+                        "segment end {} exceeds task duration {}",
+                        segment.end_offset_ms, duration_ms
+                    ),
                 );
             }
             expected_start = expected_start.max(segment.end_offset_ms);
@@ -308,7 +323,10 @@ fn validate_inputs(input: &PowerConstrainedPlanV1) -> Vec<PowerConstraintViolati
                 &mut violations,
                 PowerConstraintViolationCode::SegmentDoesNotCoverTask,
                 Some(&profile.task_id),
-                format!("profile ends at {} but task duration is {}", expected_start, duration_ms),
+                format!(
+                    "profile ends at {} but task duration is {}",
+                    expected_start, duration_ms
+                ),
             );
         }
     }
@@ -349,7 +367,10 @@ pub fn validate_power_envelope(
             &mut violations,
             PowerConstraintViolationCode::ScheduleInvalid,
             None,
-            format!("schedule has {} independent validation violation(s)", schedule_report.violations.len()),
+            format!(
+                "schedule has {} independent validation violation(s)",
+                schedule_report.violations.len()
+            ),
         );
     }
 
@@ -361,7 +382,10 @@ pub fn validate_power_envelope(
     evidence_classes.sort();
     evidence_classes.dedup();
     let all_profiles_labelled_measured = !input.task_profiles.is_empty()
-        && input.task_profiles.iter().all(|profile| profile.evidence_class == PowerProfileEvidenceClassV1::Measured);
+        && input
+            .task_profiles
+            .iter()
+            .all(|profile| profile.evidence_class == PowerProfileEvidenceClassV1::Measured);
 
     let mut report = PowerValidationReportV1 {
         schema_version: 1,
@@ -481,7 +505,9 @@ pub fn validate_power_envelope(
                 if power_w > input.envelope.continuous_real_power_limit_w {
                     surge_run_ms = surge_run_ms.saturating_add(interval_ms);
                     report.longest_surge_ms = report.longest_surge_ms.max(surge_run_ms);
-                    if surge_run_ms > input.envelope.max_surge_duration_ms && !duration_exceeded_reported {
+                    if surge_run_ms > input.envelope.max_surge_duration_ms
+                        && !duration_exceeded_reported
+                    {
                         violation(
                             &mut report.violations,
                             PowerConstraintViolationCode::SurgeDurationExceedsLimit,
@@ -647,7 +673,10 @@ mod tests {
     #[test]
     fn parallel_overload_uses_serial_fallback() {
         let input = input(
-            vec![task("processor", 10, "processor"), task("cooker", 10, "cooker")],
+            vec![
+                task("processor", 10, "processor"),
+                task("cooker", 10, "cooker"),
+            ],
             standard_envelope(),
             vec![profile("processor", 10, 700), profile("cooker", 10, 600)],
         );
@@ -725,7 +754,10 @@ mod tests {
             }],
         );
         let receipt = build_power_constrained_schedule(&input).unwrap();
-        assert_eq!(receipt.strategy, PowerScheduleStrategyV1::ParallelEarliestGap);
+        assert_eq!(
+            receipt.strategy,
+            PowerScheduleStrategyV1::ParallelEarliestGap
+        );
         assert_eq!(receipt.power_validation.peak_real_power_w, Some(1_200));
         assert_eq!(receipt.power_validation.longest_surge_ms, 5);
     }
@@ -740,8 +772,16 @@ mod tests {
                 source_ref: "fixture:gap".to_owned(),
                 evidence_class: PowerProfileEvidenceClassV1::Measured,
                 segments: vec![
-                    PowerSegmentV1 { start_offset_ms: 0, end_offset_ms: 4, real_power_w: 500 },
-                    PowerSegmentV1 { start_offset_ms: 5, end_offset_ms: 10, real_power_w: 500 },
+                    PowerSegmentV1 {
+                        start_offset_ms: 0,
+                        end_offset_ms: 4,
+                        real_power_w: 500,
+                    },
+                    PowerSegmentV1 {
+                        start_offset_ms: 5,
+                        end_offset_ms: 10,
+                        real_power_w: 500,
+                    },
                 ],
             }],
         );
@@ -765,6 +805,9 @@ mod tests {
         let report = validate_power_envelope(&input, &schedule);
         assert!(report.is_valid());
         assert!(!report.all_profiles_labelled_measured);
-        assert_eq!(report.evidence_classes, vec![PowerProfileEvidenceClassV1::Declared]);
+        assert_eq!(
+            report.evidence_classes,
+            vec![PowerProfileEvidenceClassV1::Declared]
+        );
     }
 }
