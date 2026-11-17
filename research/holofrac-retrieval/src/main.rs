@@ -1,4 +1,89 @@
-use holofrac_spatial_retrieval::{reference_architecture_graph, run_benchmark};
+use holofrac_spatial_retrieval::partial::PartialSpatialQuery;
+use holofrac_spatial_retrieval::{
+    reference_architecture_graph, run_benchmark, EncoderSpec, HoloFracEncoder, RelationKind,
+    SpatialIndex,
+};
+
+fn metric(value: Option<f64>) -> String {
+    value
+        .map(|number| format!("{number:.3}"))
+        .unwrap_or_else(|| "NA".to_owned())
+}
+
+fn run_partial_queries(
+    graph: &holofrac_spatial_retrieval::SpatialGraph,
+    dimension: usize,
+    seed: u64,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let encoder = HoloFracEncoder::new(EncoderSpec {
+        schema_version: 2,
+        dimension,
+        seed,
+        scalar_levels: 257,
+    })?;
+    let (index, index_build_micros) = SpatialIndex::build(graph, &encoder)?;
+    println!("# partial_index_build_us={index_build_micros:.3}");
+
+    let queries = [
+        (
+            "subject_relation",
+            PartialSpatialQuery::new(
+                Some("water-main".into()),
+                Some(RelationKind::Supplies),
+                None,
+            ),
+        ),
+        (
+            "relation_object",
+            PartialSpatialQuery::new(
+                None,
+                Some(RelationKind::Supplies),
+                Some("kitchen".into()),
+            ),
+        ),
+        (
+            "subject_object",
+            PartialSpatialQuery::new(
+                Some("water-main".into()),
+                None,
+                Some("bathroom".into()),
+            ),
+        ),
+        (
+            "no_answer_control",
+            PartialSpatialQuery::new(
+                Some("water-main".into()),
+                Some(RelationKind::DrainsTo),
+                None,
+            ),
+        ),
+    ];
+
+    println!("# partial_query,labelled_fields,exact_matches,abstained,slot_precision_at_5,slot_recall_at_5,slot_mrr_at_5,slot_false_suggestions,holistic_precision_at_5,holistic_recall_at_5,holistic_mrr_at_5,holistic_false_suggestions,encoding_us,slot_rank_us,holistic_rank_us,exact_oracle_us");
+    for (label, query) in queries {
+        let report = index.rank_partial_query(graph, &encoder, &query, 5)?;
+        println!(
+            "# partial_query={},{},{},{},{:.3},{},{},{},{:.3},{},{},{},{:.3},{:.3},{:.3},{:.3}",
+            label,
+            report.query_slot_count,
+            report.exact_match_count,
+            report.abstained,
+            report.slot_metrics.precision_at_k,
+            metric(report.slot_metrics.recall_at_k),
+            metric(report.slot_metrics.reciprocal_rank),
+            report.slot_metrics.false_suggestions_at_k,
+            report.holistic_metrics.precision_at_k,
+            metric(report.holistic_metrics.recall_at_k),
+            metric(report.holistic_metrics.reciprocal_rank),
+            report.holistic_metrics.false_suggestions_at_k,
+            report.query_encoding_micros,
+            report.slot_ranking_micros,
+            report.holistic_ranking_micros,
+            report.exact_oracle_micros
+        );
+    }
+    Ok(())
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let graph = reference_architecture_graph()?;
@@ -67,6 +152,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 row.f32_exact_accept
             );
         }
+
+        run_partial_queries(&graph, dimension, 0x5041_5254_4941_4c)?;
     }
     Ok(())
 }
