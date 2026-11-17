@@ -246,6 +246,42 @@ fn main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             }
+            match phri_tac_transfer_oracle::active_benchmark::coupling_campaign::run_coupling_design_campaign(
+                20261117, 50,
+            ) {
+                Ok(campaign) => {
+                    println!("coupling_design_campaign=paired_synthetic_v0_1");
+                    match serde_json::to_string(&campaign) {
+                        Ok(scorecard_json) => {
+                            println!("coupling_design_scorecard_json={scorecard_json}");
+                        }
+                        Err(error) => {
+                            eprintln!("coupling_design_scorecard_json=serialization_error:{error}");
+                            return ExitCode::FAILURE;
+                        }
+                    }
+                    for result in campaign.results {
+                        println!(
+                            "coupling_design={:?} patterns={} active_site_excitations_mean={:.2} identified_rows_mean={:.2} underidentified_rows_mean={:.2} coefficient_rmse_mean={:?} heldout_rmse_mean={:?} heldout_rmse_max={:?} paired_heldout_delta_mean_vs_isolated={:?} evaluated_replicates={}/{}",
+                            result.design,
+                            result.training_pattern_count,
+                            result.mean_active_taxel_site_excitations,
+                            result.mean_identified_output_rows,
+                            result.mean_underidentified_output_rows,
+                            result.mean_coefficient_rmse,
+                            result.mean_heldout_response_rmse,
+                            result.maximum_heldout_response_rmse,
+                            result.paired_heldout_rmse_delta_mean_vs_isolated,
+                            result.evaluated_replicates,
+                            result.replicate_count,
+                        );
+                    }
+                }
+                Err(error) => {
+                    eprintln!("coupling_design_campaign=invalid: {error}");
+                    return ExitCode::FAILURE;
+                }
+            }
             ExitCode::SUCCESS
         }
         Err(error) => {
