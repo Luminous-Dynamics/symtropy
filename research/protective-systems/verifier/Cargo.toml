@@ -48,3 +48,7 @@ path = "src/bin/protective_multiprovider_e3.rs"
 [[bin]]
 name = "protect-evidence-semantic-projection-e4"
 path = "src/bin/protect_evidence_semantic_projection_e4.rs"
+
+[[bin]]
+name = "protect-capability-assurance-e5"
+path = "src/bin/protect_capability_assurance_e5.rs"

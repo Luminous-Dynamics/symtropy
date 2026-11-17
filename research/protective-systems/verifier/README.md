@@ -372,3 +372,30 @@ The OpenLineage E3 facet must match its embedded E1 analysis ID and
 The E4 prototype has 32 unit tests written. Hosted formatting, Clippy,
 compilation, test and executable evidence remain pending exact-head CI.
 The executable returns `ABSTAIN_SYNTHETIC_METADATA_ONLY`.
+
+
+## E5 capability assurance and change-triggered requalification gate
+
+The `protect-capability-assurance-e5` binary evaluates the synthetic asset,
+capability, evidence, dependency, change-event and requalification-action
+fixture under exact configuration digests and typed change dependencies.
+
+From the repository root:
+
+```sh
+cargo fmt --manifest-path research/protective-systems/verifier/Cargo.toml --all -- --check
+cargo clippy --manifest-path research/protective-systems/verifier/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path research/protective-systems/verifier/Cargo.toml --bin protect-capability-assurance-e5
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protect-capability-assurance-e5
+```
+
+A configuration change invalidates only claims in its explicit typed
+dependency closure. The verifier distinguishes requalification need from
+physical failure, and checks that a finite action set covers every affected
+claim while respecting mandatory safety and independence constraints. Unknown,
+expired, conflicted, revoked or NOT_EXECUTED evidence cannot promote a claim.
+A successful plan is not a physical qualification or authorization to modify
+a live facility.
+
+The E5 fixture has 24 unit tests written. Exact-head hosted formatting,
+Clippy, compilation, tests and executable evidence are pending.

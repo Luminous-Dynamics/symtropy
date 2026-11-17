@@ -1,0 +1,254 @@
+{
+  "schema_version": "protect-capability-assurance-e5/0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "CAPABILITY_ASSURANCE_AND_REQUALIFICATION_PLAN_ONLY",
+  "as_of": "2026-11-16",
+  "assets": [
+    {
+      "id": "asset:ups",
+      "revision": "rev-B",
+      "configuration_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "id": "asset:filter",
+      "revision": "rev-A",
+      "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "id": "asset:radio",
+      "revision": "rev-C",
+      "configuration_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    }
+  ],
+  "claims": [
+    {
+      "id": "claim:power",
+      "previous_status": "QUALIFIED",
+      "depends_on_assets": [
+        "asset:ups"
+      ],
+      "depends_on_claims": [],
+      "evidence_ids": [
+        "evidence:ups-load-rev-a"
+      ],
+      "required_methods": [
+        "POWER_LOAD"
+      ],
+      "minimum_independence": "INDEPENDENT",
+      "mandatory_safety_floor": true
+    },
+    {
+      "id": "claim:air",
+      "previous_status": "QUALIFIED",
+      "depends_on_assets": [
+        "asset:filter"
+      ],
+      "depends_on_claims": [],
+      "evidence_ids": [
+        "evidence:filter-flow"
+      ],
+      "required_methods": [
+        "AIR_FLOW"
+      ],
+      "minimum_independence": "INDEPENDENT",
+      "mandatory_safety_floor": true
+    },
+    {
+      "id": "claim:comms",
+      "previous_status": "QUALIFIED",
+      "depends_on_assets": [
+        "asset:radio"
+      ],
+      "depends_on_claims": [],
+      "evidence_ids": [
+        "evidence:radio-failover"
+      ],
+      "required_methods": [
+        "COMMS_FAILOVER"
+      ],
+      "minimum_independence": "INDEPENDENT",
+      "mandatory_safety_floor": true
+    },
+    {
+      "id": "claim:shelter",
+      "previous_status": "QUALIFIED",
+      "depends_on_assets": [],
+      "depends_on_claims": [
+        "claim:power",
+        "claim:air"
+      ],
+      "evidence_ids": [
+        "evidence:shelter-drill"
+      ],
+      "required_methods": [
+        "INTEGRATED_DRILL"
+      ],
+      "minimum_independence": "INDEPENDENT",
+      "mandatory_safety_floor": true
+    }
+  ],
+  "evidence": [
+    {
+      "id": "evidence:ups-load-rev-a",
+      "status": "VALID",
+      "asset_id": "asset:ups",
+      "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "valid_from": "2026-01-01",
+      "valid_until": "2027-01-01",
+      "valid_until_exclusive": true,
+      "source_class": "INDEPENDENT_TEST_REPORT",
+      "claim_ceiling": "COMPONENT_TEST_RESULT_ONLY"
+    },
+    {
+      "id": "evidence:filter-flow",
+      "status": "VALID",
+      "asset_id": "asset:filter",
+      "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "valid_from": "2026-01-01",
+      "valid_until": "2026-11-16",
+      "valid_until_exclusive": true,
+      "source_class": "INDEPENDENT_CALIBRATION",
+      "claim_ceiling": "CALIBRATION_RESULT_ONLY"
+    },
+    {
+      "id": "evidence:radio-failover",
+      "status": "VALID",
+      "asset_id": "asset:radio",
+      "configuration_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "valid_from": "2026-03-01",
+      "valid_until": "2027-03-01",
+      "valid_until_exclusive": true,
+      "source_class": "INDEPENDENT_TEST_REPORT",
+      "claim_ceiling": "COMPONENT_TEST_RESULT_ONLY"
+    },
+    {
+      "id": "evidence:shelter-drill",
+      "status": "VALID",
+      "asset_id": null,
+      "configuration_digest": null,
+      "valid_from": "2026-05-01",
+      "valid_until": "2027-05-01",
+      "valid_until_exclusive": true,
+      "source_class": "INDEPENDENT_EXERCISE_REPORT",
+      "claim_ceiling": "EXERCISE_OBSERVATION_ONLY"
+    }
+  ],
+  "changes": [
+    {
+      "id": "change:ups-configuration-rev-b",
+      "event_type": "ASSET_CONFIGURATION_CHANGED",
+      "occurred_at": "2026-11-15T09:00:00Z",
+      "asset_id": "asset:ups",
+      "evidence_id": null,
+      "from_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "to_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "id": "change:filter-validity-boundary",
+      "event_type": "EVIDENCE_VALIDITY_BOUNDARY_REACHED",
+      "occurred_at": "2026-11-16T00:00:00Z",
+      "asset_id": null,
+      "evidence_id": "evidence:filter-flow",
+      "from_digest": null,
+      "to_digest": null
+    }
+  ],
+  "actions": [
+    {
+      "id": "action:ups-load",
+      "covers_claim_ids": [
+        "claim:power"
+      ],
+      "methods": [
+        "POWER_LOAD"
+      ],
+      "independence": "INDEPENDENT",
+      "cost_cents": 120000
+    },
+    {
+      "id": "action:filter-flow",
+      "covers_claim_ids": [
+        "claim:air"
+      ],
+      "methods": [
+        "AIR_FLOW"
+      ],
+      "independence": "INDEPENDENT",
+      "cost_cents": 80000
+    },
+    {
+      "id": "action:shelter-drill",
+      "covers_claim_ids": [
+        "claim:shelter"
+      ],
+      "methods": [
+        "INTEGRATED_DRILL"
+      ],
+      "independence": "INDEPENDENT",
+      "cost_cents": 150000
+    },
+    {
+      "id": "action:integrated-refuge-requalification",
+      "covers_claim_ids": [
+        "claim:power",
+        "claim:air",
+        "claim:shelter"
+      ],
+      "methods": [
+        "POWER_LOAD",
+        "AIR_FLOW",
+        "INTEGRATED_DRILL"
+      ],
+      "independence": "INDEPENDENT",
+      "cost_cents": 280000
+    },
+    {
+      "id": "action:self-certified-suite",
+      "covers_claim_ids": [
+        "claim:power",
+        "claim:air",
+        "claim:shelter"
+      ],
+      "methods": [
+        "POWER_LOAD",
+        "AIR_FLOW",
+        "INTEGRATED_DRILL"
+      ],
+      "independence": "SELF_REPORTED",
+      "cost_cents": 50000
+    },
+    {
+      "id": "action:visual-walkthrough",
+      "covers_claim_ids": [
+        "claim:power",
+        "claim:air",
+        "claim:shelter"
+      ],
+      "methods": [
+        "VISUAL"
+      ],
+      "independence": "INDEPENDENT",
+      "cost_cents": 10000
+    }
+  ],
+  "oracle_expected": {
+    "affected_claim_ids": [
+      "claim:air",
+      "claim:power",
+      "claim:shelter"
+    ],
+    "qualified_claim_ids": [
+      "claim:comms"
+    ],
+    "evidence_states": {
+      "evidence:ups-load-rev-a": "SUPERSEDED",
+      "evidence:filter-flow": "EXPIRED",
+      "evidence:radio-failover": "VALID",
+      "evidence:shelter-drill": "VALID"
+    },
+    "selected_action_ids": [
+      "action:integrated-refuge-requalification"
+    ],
+    "selected_cost_cents": 280000
+  }
+}
