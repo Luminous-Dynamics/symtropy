@@ -572,12 +572,7 @@ pub enum RelativeTimeBroadphasePairDisposition {
     /// The conservative SAP broad phase emitted this pair and the independent
     /// pairwise clock-uncertainty oracle was run.
     PairwiseChecked,
-    /// The widened time windows are disjoint.
-    NoPossibleTemporalOverlap,
-    /// No outer-AABB candidate was emitted for this pair. This is a numeric
-    /// broad-phase disposition, not a formal directed-rounding certificate.
-    OuterAabbPruned,
-    /// Mapping, envelope construction or pairwise checking was unresolved.
+    /// The emitted candidate could not be classified by the pairwise oracle.
     Unresolved,
 }
 
@@ -617,11 +612,16 @@ pub struct RelativeTimeBroadphaseReport {
     pub site_clock_domain_id: String,
     pub body_count: usize,
     pub reference_pair_count: u64,
+    pub valid_outer_envelope_bodies: u64,
     pub broadphase_candidate_pairs: u64,
     pub pairwise_checked_pairs: u64,
-    pub outer_aabb_pruned_pairs: u64,
-    pub no_possible_temporal_overlap_pairs: u64,
+    /// Aggregate count for valid-body pairs omitted by the conservative
+    /// space-time SAP broad phase (both temporal and spatial pruning).
+    pub outer_space_time_pruned_pairs: u64,
+    /// Pairs touching at least one mapping/envelope-unresolved body, plus
+    /// candidates for which pairwise checking abstained.
     pub unresolved_pairs: u64,
+    pub pairwise_noncontact_candidates: u64,
     pub body_mappings: Vec<BodyClockMappingReceipt>,
     pub body_envelope_failures: Vec<(String, OuterEnvelopeFailure)>,
     pub broadphase: Option<MultiBodyBroadphaseReport>,
@@ -636,7 +636,9 @@ struct OuterEnvelopeBody {
 }
 
 /// Generate candidate pairs after mapping independent robot clocks into a
-/// common site clock. Every input body pair receives a receipt.
+/// common site clock. Per-pair receipts are retained for candidates; pruned and
+/// unresolved pair totals are aggregated so output size follows candidate count,
+/// not the quadratic total possible-pair count.
 ///
 /// For each body, the pairwise clock-uncertainty outer model is converted into
 /// a zero-clock-uncertainty capsule span: its half-open interval is widened,
@@ -645,11 +647,11 @@ struct OuterEnvelopeBody {
 /// clock multi-body sweep-and-prune then operates on those outer spans.
 ///
 /// Emitted pairs are checked with the independent pairwise clock-uncertainty
-/// oracle. A pair omitted by the numeric SAP broad phase is reported only as
-/// OuterAabbPruned; the existing eight-ULP bounds expansion is a numerical
-/// guard, not a formally directed-rounded proof. Invalid clock mappings or
-/// unrepresentable outer envelopes never participate in pruning and keep all
-/// touching body pairs Unresolved.
+/// oracle. Pairs omitted by SAP are represented by an aggregate count, not
+/// individual CLEAR receipts. The existing eight-ULP bounds expansion is a
+/// numerical guard, not a formally directed-rounded proof. Invalid clock
+/// mappings or unrepresentable outer envelopes never participate in pruning;
+/// every pair touching such a body is counted as Unresolved.
 pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
     bodies: &[ClockDomainCapsuleBody],
     config: &RelativeTimeBroadphaseConfig,
@@ -660,7 +662,10 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
     if bodies.len() > MAX_RELATIVE_TIME_BODIES {
         return Err(RelativeTimeBroadphaseError::TooManyBodies);
     }
-    if config.subdivision_count == 0 || !config.subdivision_count.is_power_of_two() {
+    if config.subdivision_count == 0
+        || !config.subdivision_count.is_power_of_two()
+        || config.subdivision_count > crate::MAX_TIME_SLABS
+    {
         return Err(RelativeTimeBroadphaseError::InvalidSubdivisionCount);
     }
     for value in [
@@ -678,7 +683,8 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
         .checked_mul(body_count.saturating_sub(1))
         .and_then(|value| value.checked_div(2))
         .ok_or(RelativeTimeBroadphaseError::PairCountOverflow)?;
-    if config.clock_mapping.max_pair_checks > MAX_RELATIVE_TIME_PAIR_CHECKS
+    if config.clock_mapping.max_pair_checks == 0
+        || config.clock_mapping.max_pair_checks > MAX_RELATIVE_TIME_PAIR_CHECKS
         || reference_pair_count > config.clock_mapping.max_pair_checks
     {
         return Err(RelativeTimeBroadphaseError::PairBudgetExceeded);
@@ -735,34 +741,37 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
         None
     };
 
-    let mut candidate_slabs = BTreeMap::<(String, String), Vec<u32>>::new();
-    if let Some(report) = broadphase.as_ref() {
-        for candidate in &report.pairs {
-            candidate_slabs.insert(
-                (
-                    candidate.first_body_id.clone(),
-                    candidate.second_body_id.clone(),
-                ),
-                candidate
-                    .candidate_slabs
-                    .iter()
-                    .map(|slab| slab.slab_index)
-                    .collect(),
-            );
-        }
+    let broadphase_candidate_pairs = broadphase
+        .as_ref()
+        .map_or(0, |report| report.pairs.len() as u64);
+    let valid_outer_envelope_bodies = outer_bodies.len() as u64;
+    let valid_outer_pair_count = valid_outer_envelope_bodies
+        .checked_mul(valid_outer_envelope_bodies.saturating_sub(1))
+        .and_then(|value| value.checked_div(2))
+        .ok_or(RelativeTimeBroadphaseError::PairCountOverflow)?;
+    if broadphase_candidate_pairs > valid_outer_pair_count {
+        return Err(RelativeTimeBroadphaseError::PairBudgetExceeded);
     }
+    let outer_space_time_pruned_pairs =
+        valid_outer_pair_count - broadphase_candidate_pairs;
+    let unresolved_body_pairs = reference_pair_count - valid_outer_pair_count;
 
+    let mapped_by_id: BTreeMap<&str, &OuterEnvelopeBody> = mapped_bodies
+        .iter()
+        .map(|body| (body.body_id.as_str(), body))
+        .collect();
     let mut output = RelativeTimeBroadphaseReport {
         site_epoch: config.clock_mapping.site_epoch.clone(),
         frame_id: config.clock_mapping.frame_id.clone(),
         site_clock_domain_id: config.clock_mapping.site_clock_domain_id.clone(),
         body_count: bodies.len(),
         reference_pair_count,
-        broadphase_candidate_pairs: candidate_slabs.len() as u64,
+        valid_outer_envelope_bodies,
+        broadphase_candidate_pairs,
         pairwise_checked_pairs: 0,
-        outer_aabb_pruned_pairs: 0,
-        no_possible_temporal_overlap_pairs: 0,
-        unresolved_pairs: 0,
+        outer_space_time_pruned_pairs,
+        unresolved_pairs: unresolved_body_pairs,
+        pairwise_noncontact_candidates: 0,
         body_mappings: mapped_bodies
             .iter()
             .map(|body| body.mapped.receipt.clone())
@@ -775,123 +784,55 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
             })
             .collect(),
         broadphase,
-        pairs: Vec::with_capacity(reference_pair_count as usize),
+        pairs: Vec::with_capacity(broadphase_candidate_pairs as usize),
     };
 
-    for first_index in 0..mapped_bodies.len() {
-        for second_index in (first_index + 1)..mapped_bodies.len() {
-            let first = &mapped_bodies[first_index];
-            let second = &mapped_bodies[second_index];
-            let key = (first.body_id.clone(), second.body_id.clone());
-
-            let receipt = if let Some(failure) = first.mapped.failure.as_ref() {
-                unresolved_broadphase_pair(
-                    first,
-                    second,
-                    Vec::new(),
-                    RelativeTimeBroadphaseUnresolvedReason::FirstBodyMapping(failure.clone()),
-                )
-            } else if let Some(failure) = second.mapped.failure.as_ref() {
-                unresolved_broadphase_pair(
-                    first,
-                    second,
-                    Vec::new(),
-                    RelativeTimeBroadphaseUnresolvedReason::SecondBodyMapping(failure.clone()),
-                )
-            } else if let Some(failure) = first.envelope_failure {
-                unresolved_broadphase_pair(
-                    first,
-                    second,
-                    Vec::new(),
-                    RelativeTimeBroadphaseUnresolvedReason::FirstOuterEnvelope(failure),
-                )
-            } else if let Some(failure) = second.envelope_failure {
-                unresolved_broadphase_pair(
-                    first,
-                    second,
-                    Vec::new(),
-                    RelativeTimeBroadphaseUnresolvedReason::SecondOuterEnvelope(failure),
-                )
-            } else {
-                let Some(first_envelope) = first.envelope_span.as_ref() else {
-                    output.unresolved_pairs += 1;
-                    output.pairs.push(unresolved_broadphase_pair(
-                        first,
-                        second,
-                        Vec::new(),
-                        RelativeTimeBroadphaseUnresolvedReason::FirstOuterEnvelope(
-                            OuterEnvelopeFailure::InvalidTimeInterval,
-                        ),
-                    ));
-                    continue;
-                };
-                let Some(second_envelope) = second.envelope_span.as_ref() else {
-                    output.unresolved_pairs += 1;
-                    output.pairs.push(unresolved_broadphase_pair(
-                        first,
-                        second,
-                        Vec::new(),
-                        RelativeTimeBroadphaseUnresolvedReason::SecondOuterEnvelope(
-                            OuterEnvelopeFailure::InvalidTimeInterval,
-                        ),
-                    ));
-                    continue;
-                };
-
-                if first_envelope.start_ms.max(second_envelope.start_ms)
-                    >= first_envelope.end_ms.min(second_envelope.end_ms)
-                {
-                    output.no_possible_temporal_overlap_pairs += 1;
-                    RelativeTimeBroadphasePairReceipt {
-                        first_body_id: first.body_id.clone(),
-                        second_body_id: second.body_id.clone(),
-                        disposition: RelativeTimeBroadphasePairDisposition::NoPossibleTemporalOverlap,
-                        candidate_slab_indices: Vec::new(),
-                        pairwise_result: None,
-                        unresolved_reason: None,
-                    }
-                } else if let Some(slabs) = candidate_slabs.get(&key) {
-                    output.pairwise_checked_pairs += 1;
-                    let pairwise = evaluate_pair(&first.mapped, &second.mapped);
-                    let unresolved_reason = if pairwise.disposition
-                        == RelativeTimePairDisposition::Unresolved
-                    {
-                        pairwise
-                            .unresolved_reason
-                            .clone()
-                            .map(RelativeTimeBroadphaseUnresolvedReason::PairwiseClockQuery)
-                    } else {
-                        None
-                    };
-                    RelativeTimeBroadphasePairReceipt {
-                        first_body_id: first.body_id.clone(),
-                        second_body_id: second.body_id.clone(),
-                        disposition: if unresolved_reason.is_some() {
-                            RelativeTimeBroadphasePairDisposition::Unresolved
-                        } else {
-                            RelativeTimeBroadphasePairDisposition::PairwiseChecked
-                        },
-                        candidate_slab_indices: slabs.clone(),
-                        pairwise_result: Some(pairwise),
-                        unresolved_reason,
-                    }
-                } else {
-                    output.outer_aabb_pruned_pairs += 1;
-                    RelativeTimeBroadphasePairReceipt {
-                        first_body_id: first.body_id.clone(),
-                        second_body_id: second.body_id.clone(),
-                        disposition: RelativeTimeBroadphasePairDisposition::OuterAabbPruned,
-                        candidate_slab_indices: Vec::new(),
-                        pairwise_result: None,
-                        unresolved_reason: None,
-                    }
-                }
+    if let Some(report) = output.broadphase.as_ref() {
+        for candidate in &report.pairs {
+            let Some(first) = mapped_by_id.get(candidate.first_body_id.as_str()).copied() else {
+                return Err(RelativeTimeBroadphaseError::PairBudgetExceeded);
             };
-
-            if receipt.disposition == RelativeTimeBroadphasePairDisposition::Unresolved {
+            let Some(second) = mapped_by_id.get(candidate.second_body_id.as_str()).copied() else {
+                return Err(RelativeTimeBroadphaseError::PairBudgetExceeded);
+            };
+            let pairwise = evaluate_pair(&first.mapped, &second.mapped);
+            let unresolved_reason = if pairwise.disposition == RelativeTimePairDisposition::Unresolved
+            {
+                pairwise
+                    .unresolved_reason
+                    .clone()
+                    .map(RelativeTimeBroadphaseUnresolvedReason::PairwiseClockQuery)
+            } else {
+                None
+            };
+            if unresolved_reason.is_some() {
                 output.unresolved_pairs += 1;
             }
-            output.pairs.push(receipt);
+            if matches!(
+                pairwise.disposition,
+                RelativeTimePairDisposition::ExactNoContact
+                    | RelativeTimePairDisposition::NoPossibleContact
+                    | RelativeTimePairDisposition::NoPossibleTemporalOverlap
+            ) {
+                output.pairwise_noncontact_candidates += 1;
+            }
+            output.pairwise_checked_pairs += 1;
+            output.pairs.push(RelativeTimeBroadphasePairReceipt {
+                first_body_id: candidate.first_body_id.clone(),
+                second_body_id: candidate.second_body_id.clone(),
+                disposition: if unresolved_reason.is_some() {
+                    RelativeTimeBroadphasePairDisposition::Unresolved
+                } else {
+                    RelativeTimeBroadphasePairDisposition::PairwiseChecked
+                },
+                candidate_slab_indices: candidate
+                    .candidate_slabs
+                    .iter()
+                    .map(|slab| slab.slab_index)
+                    .collect(),
+                pairwise_result: Some(pairwise),
+                unresolved_reason,
+            });
         }
     }
     Ok(output)
