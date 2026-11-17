@@ -401,7 +401,6 @@ pub fn evaluate_corpus(cases_csv: &str, ports_csv: &str) -> Result<EvaluationRep
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::f64::consts::PI;
 
     const CASES: &str = include_str!("../cases-v0.1.csv");
     const PORTS: &str = include_str!("../ports-v0.1.csv");
@@ -567,7 +566,7 @@ mod tests {
         let speed = 12_000.0;
         let line_density = 0.75;
         let mass_flow = line_density * speed;
-        let angles = [1.0e-6, 1.0e-4, 1.0e-2, 0.1];
+        let angles = [0.1, 1.0e-2, 1.0e-4, 1.0e-6];
         let mut previous_error = f64::INFINITY;
 
         for angle in angles {
@@ -777,8 +776,4 @@ mod tests {
         assert!(parse_corpus(CASES, &bad_direction).is_err());
     }
 
-    #[test]
-    fn imports_pi_only_for_small_angle_precision_checks() {
-        assert!(PI.is_finite());
-    }
 }
