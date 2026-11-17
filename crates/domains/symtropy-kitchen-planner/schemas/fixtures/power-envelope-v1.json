@@ -228,6 +228,154 @@
           }
         ]
       }
+    },
+    {
+      "fixture_id": "single-task-over-surge-limit-not-schedulable",
+      "expected_input_valid": true,
+      "expected_strategy": "none",
+      "expected_schedule_valid": false,
+      "rationale": "One task exceeds the declared peak surge limit; shifting cannot make its own profile feasible.",
+      "input": {
+        "schema_version": 1,
+        "plan": {
+          "schema_version": 1,
+          "plan_id": "fixture-over-peak",
+          "tasks": [
+            {
+              "task_id": "heater",
+              "duration_ms": 100,
+              "resource_ids": [
+                "heater"
+              ],
+              "dependencies": [],
+              "earliest_start_ms": null,
+              "latest_finish_ms": null
+            }
+          ]
+        },
+        "envelope": {
+          "continuous_real_power_limit_w": 1000,
+          "surge_real_power_limit_w": 1500,
+          "max_surge_duration_ms": 5,
+          "background_real_power_w": 0
+        },
+        "task_profiles": [
+          {
+            "task_id": "heater",
+            "source_ref": "fixture:synthetic:over-peak",
+            "evidence_class": "simulated",
+            "segments": [
+              {
+                "start_offset_ms": 0,
+                "end_offset_ms": 100,
+                "real_power_w": 1600
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "fixture_id": "overlong-surge-below-peak-limit-not-schedulable",
+      "expected_input_valid": true,
+      "expected_strategy": "none",
+      "expected_schedule_valid": false,
+      "rationale": "Peak is below the surge ceiling but the continuous-limit excursion lasts 6 ms, exceeding the 5 ms duration allowance.",
+      "input": {
+        "schema_version": 1,
+        "plan": {
+          "schema_version": 1,
+          "plan_id": "fixture-over-duration",
+          "tasks": [
+            {
+              "task_id": "heater",
+              "duration_ms": 100,
+              "resource_ids": [
+                "heater"
+              ],
+              "dependencies": [],
+              "earliest_start_ms": null,
+              "latest_finish_ms": null
+            }
+          ]
+        },
+        "envelope": {
+          "continuous_real_power_limit_w": 1000,
+          "surge_real_power_limit_w": 1500,
+          "max_surge_duration_ms": 5,
+          "background_real_power_w": 0
+        },
+        "task_profiles": [
+          {
+            "task_id": "heater",
+            "source_ref": "fixture:synthetic:over-duration",
+            "evidence_class": "simulated",
+            "segments": [
+              {
+                "start_offset_ms": 0,
+                "end_offset_ms": 6,
+                "real_power_w": 1200
+              },
+              {
+                "start_offset_ms": 6,
+                "end_offset_ms": 100,
+                "real_power_w": 700
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "fixture_id": "profile-gap-rejected-by-runtime",
+      "expected_input_valid": false,
+      "expected_strategy": "none",
+      "expected_schedule_valid": false,
+      "rationale": "A task power profile must cover the full task duration without temporal gaps.",
+      "input": {
+        "schema_version": 1,
+        "plan": {
+          "schema_version": 1,
+          "plan_id": "fixture-profile-gap",
+          "tasks": [
+            {
+              "task_id": "heater",
+              "duration_ms": 100,
+              "resource_ids": [
+                "heater"
+              ],
+              "dependencies": [],
+              "earliest_start_ms": null,
+              "latest_finish_ms": null
+            }
+          ]
+        },
+        "envelope": {
+          "continuous_real_power_limit_w": 1000,
+          "surge_real_power_limit_w": 1500,
+          "max_surge_duration_ms": 5,
+          "background_real_power_w": 0
+        },
+        "task_profiles": [
+          {
+            "task_id": "heater",
+            "source_ref": "fixture:synthetic:heater-startup",
+            "evidence_class": "simulated",
+            "segments": [
+              {
+                "start_offset_ms": 0,
+                "end_offset_ms": 40,
+                "real_power_w": 500
+              },
+              {
+                "start_offset_ms": 50,
+                "end_offset_ms": 100,
+                "real_power_w": 500
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }
