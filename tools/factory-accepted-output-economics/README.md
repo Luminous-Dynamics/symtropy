@@ -10,7 +10,7 @@
 The evaluator composes three distinct inputs:
 
 1. Route admissibility: ELIGIBLE, INELIGIBLE or UNKNOWN.
-2. Cost-item account: bounded integer minor-unit amount, currency, price date, amount unit, evidence class, explicit scope and source reference.
+2. Cost-item account: exact batch reference, bounded integer minor-unit amount, currency, price date, amount unit, evidence class, explicit scope and source reference.
 3. Final disposition of each unique output identity: first-pass release, release after rework, scrap, WIP, awaiting inspection or indeterminate.
 
 It reports cost per **unique released output**, never per process completion or rework event. Rework remains a cost and a disposition-history effect; it does not create another output identity. Only RELEASED_FIRST_PASS and RELEASED_AFTER_REWORK count toward the release denominator.
@@ -25,14 +25,14 @@ It reports cost per **unique released output**, never per process completion or 
 - Zero released outputs produce ZERO_RELEASED and no finite unit-cost ratio.
 - Output identities, release references and cost-item identities cannot be reused.
 - The component report preserves both cost category and evidence class; estimated, quoted, paid, public, measured and synthetic evidence are not conflated.
-- The evaluator does not authenticate sources or release products.
+- Amounts are already attributed to the exact batch; the prototype does not calculate depreciation, NRE amortization, asset life, utilization or repeated-run allocation. Those must be evidenced and supplied by an upstream accounting policy.\n- The evaluator does not authenticate sources or release products.
 
 ## Frozen corpus
 
 - 20 synthetic cases.
 - 50 cost-item rows.
 - 46 final output-disposition rows.
-- 26 Rust unit tests.
+- 27 Rust unit tests.
 - Known-answer dispositions include 15 computed cases, 2 zero-release cases, 1 ineligible route, 1 unknown route and 1 incomplete cost account.
 
 The hand-calculated expected-results file is separate from candidate output. Tests also attack duplicate output/release/cost identities, mixed currency/date/unit, missing release evidence, incomplete or reversed cost intervals, total overflow, negative or omitted cost items, component-total reconciliation and output-order dependence.
