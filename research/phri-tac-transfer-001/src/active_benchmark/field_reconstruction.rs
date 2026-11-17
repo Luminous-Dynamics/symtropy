@@ -96,6 +96,14 @@ pub struct FieldReconstructionReport {
     pub predicted_native_response: Vec<f64>,
     pub residual_rms_native_units: f64,
     pub regularized_objective: f64,
+    /// Numerical rank of the admitted native observation matrix, before
+    /// adding graph regularization. A deficient rank means the physical data
+    /// do not uniquely identify every latent field cell under this K.
+    pub native_data_rank: usize,
+    pub native_data_full_column_rank: bool,
+    /// A graph prior can select one solution from an ambiguous set but does
+    /// not increase native-data rank or create a new physical measurement.
+    pub regularization_enabled: bool,
     pub iterations: usize,
     pub converged: bool,
     pub forward_model_digest: String,
@@ -178,6 +186,71 @@ fn validate_problem(
     }
 
     Ok(n)
+}
+
+fn native_data_rank(
+    problem: &FieldReconstructionProblem,
+    n: usize,
+    sensitivity_epsilon: f64,
+) -> usize {
+    let admitted_rows: Vec<_> = (0..n)
+        .filter(|row| problem.admitted_native_channels[*row])
+        .collect();
+    let row_count = admitted_rows.len();
+    let mut matrix = Vec::with_capacity(row_count * n);
+    let mut maximum_absolute_value = 0.0_f64;
+    for row in admitted_rows {
+        for column in 0..n {
+            let value = problem.coupling_matrix[row * n + column];
+            maximum_absolute_value = maximum_absolute_value.max(value.abs());
+            matrix.push(value);
+        }
+    }
+
+    if row_count == 0 || maximum_absolute_value == 0.0 {
+        return 0;
+    }
+
+    let tolerance = sensitivity_epsilon.max(f64::EPSILON * n as f64)
+        * maximum_absolute_value;
+    let mut pivot_row = 0;
+    for column in 0..n {
+        if pivot_row >= row_count {
+            break;
+        }
+        let pivot = (pivot_row..row_count).max_by(|left, right| {
+            matrix[*left * n + column]
+                .abs()
+                .total_cmp(&matrix[*right * n + column].abs())
+        });
+        let Some(pivot) = pivot else {
+            break;
+        };
+        if matrix[pivot * n + column].abs() <= tolerance {
+            continue;
+        }
+        if pivot != pivot_row {
+            for swap_column in 0..n {
+                matrix.swap(pivot * n + swap_column, pivot_row * n + swap_column);
+            }
+        }
+
+        let pivot_value = matrix[pivot_row * n + column];
+        for row in (pivot_row + 1)..row_count {
+            let factor = matrix[row * n + column] / pivot_value;
+            if factor.abs() <= tolerance {
+                continue;
+            }
+            matrix[row * n + column] = 0.0;
+            for update_column in (column + 1)..n {
+                matrix[row * n + update_column] -=
+                    factor * matrix[pivot_row * n + update_column];
+            }
+        }
+        pivot_row += 1;
+    }
+
+    pivot_row
 }
 
 fn build_quadratic(
@@ -331,6 +404,9 @@ pub fn reconstruct_contact_field(
     config: &FieldReconstructionConfig,
 ) -> Result<FieldReconstructionReport, String> {
     let n = validate_problem(problem, config)?;
+    let native_data_rank = native_data_rank(problem, n, config.sensitivity_epsilon);
+    let native_data_full_column_rank = native_data_rank == n;
+    let regularization_enabled = problem.smoothness_penalty > 0.0;
     let quadratic = build_quadratic(problem, n)?;
     let step_size = 1.0 / quadratic.lipschitz_upper_bound;
 
@@ -408,6 +484,9 @@ pub fn reconstruct_contact_field(
         predicted_native_response,
         residual_rms_native_units: (residual_sum / admitted_count as f64).sqrt(),
         regularized_objective: objective(problem, &field, n),
+        native_data_rank,
+        native_data_full_column_rank,
+        regularization_enabled,
         iterations,
         converged,
         forward_model_digest: problem.forward_model_digest.clone(),
@@ -534,6 +613,34 @@ mod tests {
         );
         assert_eq!(report.estimates[1].latent_contact_intensity, None);
         assert_eq!(report.estimates[2].latent_contact_intensity, None);
+    }
+
+    #[test]
+    fn graph_regularization_does_not_promote_a_rank_deficient_data_model() {
+        let mut problem = identity_problem(vec![0.2, 0.4, 0.6]);
+        problem.admitted_native_channels[1] = false;
+        problem.smoothness_penalty = 1.0;
+        let report = reconstruct_contact_field(
+            &problem,
+            &FieldReconstructionConfig::default(),
+        )
+        .expect("regularized estimate");
+        assert_eq!(report.native_data_rank, 2);
+        assert!(!report.native_data_full_column_rank);
+        assert!(report.regularization_enabled);
+    }
+
+    #[test]
+    fn complete_identity_observations_have_full_native_data_rank() {
+        let problem = identity_problem(vec![0.2, 0.4, 0.6]);
+        let report = reconstruct_contact_field(
+            &problem,
+            &FieldReconstructionConfig::default(),
+        )
+        .expect("fully observed field");
+        assert_eq!(report.native_data_rank, 3);
+        assert!(report.native_data_full_column_rank);
+        assert!(!report.regularization_enabled);
     }
 
     #[test]
