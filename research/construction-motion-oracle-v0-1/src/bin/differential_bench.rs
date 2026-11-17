@@ -3,11 +3,12 @@ use std::time::{Duration, Instant};
 
 use construction_motion_oracle::{
     AnalyticPath, Capsule, CapsuleMotionSpan, ClockDomainCapsuleBody, QualifiedClockMapping,
-    RelativeTimeMultiBodyConfig, TimedCapsuleBody, Vec3, chord_collision,
-    co_translating_capsule_capsule_collision, co_translating_capsule_swept_aabb_candidate,
-    co_translating_capsule_time_sliced_aabb_candidates, co_translating_capsule_vs_capsule,
-    endpoints_only_co_translating_capsule_collision, endpoints_only_collision,
-    endpoints_only_translating_capsule_collision, evaluate_relative_time_multibody_ccd,
+    RelativeTimeBroadphaseConfig, RelativeTimeMultiBodyConfig, TimedCapsuleBody, Vec3,
+    chord_collision, co_translating_capsule_capsule_collision,
+    co_translating_capsule_swept_aabb_candidate, co_translating_capsule_time_sliced_aabb_candidates,
+    co_translating_capsule_vs_capsule, endpoints_only_co_translating_capsule_collision,
+    endpoints_only_collision, endpoints_only_translating_capsule_collision,
+    evaluate_relative_time_multibody_ccd, evaluate_relative_time_multibody_ccd_with_broadphase,
     moving_sphere_capsule_collision, swept_sphere_capsule_aabb_candidate,
     time_swept_capsule_broadphase, timed_co_translating_capsule_vs_capsule,
     translating_capsule_aabb_candidate, translating_capsule_capsule_collision,
@@ -371,6 +372,7 @@ fn main() {
         );
     });
     run_relative_time_multibody_benchmarks();
+    run_relative_time_multibody_broadphase_benchmarks();
 }
 
 #[derive(Clone, Copy)]
@@ -691,6 +693,74 @@ fn run_relative_time_multibody_benchmarks() {
             report.unresolved_pairs,
             report.potential_contact_unresolved_pairs,
             report.no_possible_contact_pairs + report.no_possible_temporal_overlap_pairs,
+            percentile(&durations, 50).as_micros(),
+            percentile(&durations, 95).as_micros(),
+            percentile(&durations, 99).as_micros(),
+        );
+    }
+}
+
+
+fn run_relative_time_multibody_broadphase_benchmarks() {
+    println!(
+        "relative_time_multibody_broadphase,body_count,reference_pairs,outer_bodies,candidates,pairwise_checks,outer_pruned,unresolved,p50_us,p95_us,p99_us"
+    );
+    for count in [8_usize, 16, 32, 64, 128, 256, 512] {
+        let bodies = build_clock_mapped_bodies(count);
+        let config = RelativeTimeBroadphaseConfig {
+            clock_mapping: RelativeTimeMultiBodyConfig {
+                site_epoch: "benchmark-site-epoch".into(),
+                frame_id: "benchmark-site-world".into(),
+                site_clock_domain_id: "benchmark-site-clock".into(),
+                max_pair_checks: 524_288,
+            },
+            subdivision_count: 8,
+        };
+        let mut durations = Vec::with_capacity(21);
+        for _ in 0..21 {
+            let start = Instant::now();
+            black_box(
+                evaluate_relative_time_multibody_ccd_with_broadphase(
+                    black_box(&bodies),
+                    black_box(&config),
+                )
+                .expect("bounded multi-clock broadphase inputs are valid"),
+            );
+            durations.push(start.elapsed());
+        }
+        durations.sort_unstable();
+        let report = evaluate_relative_time_multibody_ccd_with_broadphase(&bodies, &config)
+            .expect("bounded multi-clock broadphase inputs are valid");
+
+        if count <= 64 {
+            let reference = evaluate_relative_time_multibody_ccd(&bodies, &config.clock_mapping)
+                .expect("bounded exhaustive reference inputs are valid");
+            for pair in reference.pairs.iter().filter(|pair| {
+                matches!(
+                    pair.disposition,
+                    construction_motion_oracle::RelativeTimePairDisposition::ExactContact
+                        | construction_motion_oracle::RelativeTimePairDisposition::BoundaryCandidateUnresolved
+                        | construction_motion_oracle::RelativeTimePairDisposition::PotentialContactUnresolved
+                )
+            }) {
+                assert!(
+                    report.pairs.iter().any(|candidate| {
+                        candidate.first_body_id == pair.first_body_id
+                            && candidate.second_body_id == pair.second_body_id
+                    }),
+                    "clock-aware broad phase pruned a reference potential pair"
+                );
+            }
+        }
+
+        println!(
+            "sparse,{count},{},{},{},{},{},{},{},{},{}",
+            report.reference_pair_count,
+            report.valid_outer_envelope_bodies,
+            report.broadphase_candidate_pairs,
+            report.pairwise_checked_pairs,
+            report.outer_space_time_pruned_pairs,
+            report.unresolved_pairs,
             percentile(&durations, 50).as_micros(),
             percentile(&durations, 95).as_micros(),
             percentile(&durations, 99).as_micros(),
