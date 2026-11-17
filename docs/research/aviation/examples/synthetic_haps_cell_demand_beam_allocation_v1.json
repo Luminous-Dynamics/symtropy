@@ -143,9 +143,9 @@
           "cell-north",
           "cell-south"
         ],
-        "critical_excess_offered_mbps": 27,
+        "critical_excess_offered_mbps": 30,
         "critical_excess_served_mbps": 19,
-        "critical_excess_unserved_mbps": 8
+        "critical_excess_unserved_mbps": 11
       },
       {
         "offset_s": 900,
@@ -163,15 +163,15 @@
           "cell-east",
           "cell-west"
         ],
-        "critical_excess_offered_mbps": 28,
+        "critical_excess_offered_mbps": 30,
         "critical_excess_served_mbps": 19,
-        "critical_excess_unserved_mbps": 9
+        "critical_excess_unserved_mbps": 11
       }
     ],
-    "total_critical_excess_offered_mbps_intervals": 84,
+    "total_critical_excess_offered_mbps_intervals": 89,
     "total_critical_excess_served_mbps_intervals": 56,
-    "total_critical_excess_unserved_mbps_intervals": 28,
-    "critical_excess_offload_fraction": 0.6666666666666666,
+    "total_critical_excess_unserved_mbps_intervals": 33,
+    "critical_excess_offload_fraction": 0.6292134831460674,
     "beam_utilization_fraction": 0.9333333333333333,
     "deterministic_allocation": true
   },
