@@ -297,5 +297,12 @@
     "residual_route",
     "maintenance_operator_model",
     "current_standard_and_municipal_approval_path"
-  ]
+  ],
+  "platform_contract": {
+    "symtropy": "Owns water balance, process/hydraulic models, treatment train comparisons, design envelopes and physical qualification; cannot self-authorize water quality release.",
+    "mycelix": "Owns provenance, instrument/calibration, measurand/timebase/uncertainty and raw water observations/intended-use assessment; proxy sensors do not establish microbial safety.",
+    "sol_atlas": "Owns site/catchment/parcel/soil/flood/groundwater/land-rights and household service context; site suitability is not a permit.",
+    "symthaea": "May propose forecasts, anomalies, causal diagnoses and optimization hypotheses; cannot override interlocks or release quarantined water.",
+    "luminous_platform": "Owns versioned design/evidence integration and lifecycle service/cost interfaces; cannot collapse evidence classes or replace competent authority."
+  }
 }
