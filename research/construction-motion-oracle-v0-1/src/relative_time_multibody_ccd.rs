@@ -810,15 +810,14 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
             return Err(RelativeTimeBroadphaseError::CandidateIdentityMismatch);
         };
         let pairwise = evaluate_pair(&first.mapped, &second.mapped);
-        let unresolved_reason =
-            if pairwise.disposition == RelativeTimePairDisposition::Unresolved {
-                pairwise
-                    .unresolved_reason
-                    .clone()
-                    .map(RelativeTimeBroadphaseUnresolvedReason::PairwiseClockQuery)
-            } else {
-                None
-            };
+        let unresolved_reason = if pairwise.disposition == RelativeTimePairDisposition::Unresolved {
+            pairwise
+                .unresolved_reason
+                .clone()
+                .map(RelativeTimeBroadphaseUnresolvedReason::PairwiseClockQuery)
+        } else {
+            None
+        };
         if unresolved_reason.is_some() {
             output.unresolved_pairs += 1;
         }
