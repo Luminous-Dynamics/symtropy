@@ -149,6 +149,7 @@ pub fn audit_bytes(manifest: &Value, input_bytes: &[u8]) -> Result<Value, Vec<St
             "energy": manifest["bdsim_declaration"]["energy"],
             "distribution_type": manifest["bdsim_declaration"]["distr_type"],
             "native_format": manifest["bdsim_declaration"]["distr_file_format"],
+            "source_header_labels": manifest["input"]["columns"],
             "header_lines_ignored": manifest["bdsim_declaration"]["nlines_ignore"]
         },
         "native_distribution_summary": stats_value,
@@ -221,7 +222,7 @@ fn validate_manifest(manifest: &Value) -> Result<(), Vec<String>> {
         .pointer("/input/expected_header")
         .and_then(Value::as_str)
         != Some(
-            "\"x [mm]\" \"xp [rad]\" \"y [mm]\" \"yp [rad]\" \"z [mm]\" \"Ek [MeV]\" \"t [ns]\"",
+            "\"x [mm]\" \"px [rad]\" \"y [mm]\" \"py [rad]\" \"z [mm]\" \"Ek [MeV]\" \"t [ns]\"",
         )
     {
         errors.push(
@@ -279,9 +280,11 @@ fn validate_manifest(manifest: &Value) -> Result<(), Vec<String>> {
     let columns = manifest.pointer("/input/columns").and_then(Value::as_array);
     match columns {
         Some(columns) if columns.len() == COLUMN_COUNT => {
+            let expected_header_labels = ["x", "px", "y", "py", "z", "Ek", "t"];
             for (index, column) in columns.iter().enumerate() {
                 let name = column.get("name").and_then(Value::as_str);
                 let unit = column.get("unit").and_then(Value::as_str);
+                let header_label = column.get("header_label").and_then(Value::as_str);
                 if name != Some(MOMENT_NAMES[index]) {
                     errors.push(format!(
                         "column {index} must be {} in the pinned BDSIM coordinate order",
@@ -292,6 +295,13 @@ fn validate_manifest(manifest: &Value) -> Result<(), Vec<String>> {
                     errors.push(format!(
                         "column {} must use native unit {}",
                         MOMENT_NAMES[index], MOMENT_UNITS[index]
+                    ));
+                }
+                if header_label != Some(expected_header_labels[index]) {
+                    errors.push(format!(
+                        "column {} must retain source header label {}",
+                        MOMENT_NAMES[index],
+                        expected_header_labels[index]
                     ));
                 }
             }
@@ -726,15 +736,15 @@ mod tests {
                 "byte_length": 0,
                 "ignored_header_lines": 1,
                 "expected_record_count": 4,
-                "expected_header": "\"x [mm]\" \"xp [rad]\" \"y [mm]\" \"yp [rad]\" \"z [mm]\" \"Ek [MeV]\" \"t [ns]\"",
+                "expected_header": "\"x [mm]\" \"px [rad]\" \"y [mm]\" \"py [rad]\" \"z [mm]\" \"Ek [MeV]\" \"t [ns]\"",
                 "columns": [
-                    {"name":"x","unit":"mm"},
-                    {"name":"xp","unit":"rad"},
-                    {"name":"y","unit":"mm"},
-                    {"name":"yp","unit":"rad"},
-                    {"name":"z","unit":"mm"},
-                    {"name":"Ek","unit":"MeV"},
-                    {"name":"t","unit":"ns"}
+                    {"name":"x","unit":"mm","header_label":"x"},
+                    {"name":"xp","unit":"rad","header_label":"px"},
+                    {"name":"y","unit":"mm","header_label":"y"},
+                    {"name":"yp","unit":"rad","header_label":"py"},
+                    {"name":"z","unit":"mm","header_label":"z"},
+                    {"name":"Ek","unit":"MeV","header_label":"Ek"},
+                    {"name":"t","unit":"ns","header_label":"t"}
                 ],
                 "explicit_particle_ids": false,
                 "explicit_weights": false
@@ -818,7 +828,7 @@ mod tests {
     }
 
     fn fixture() -> Vec<u8> {
-        b"\"x [mm]\" \"xp [rad]\" \"y [mm]\" \"yp [rad]\" \"z [mm]\" \"Ek [MeV]\" \"t [ns]\"\n\
+        b"\"x [mm]\" \"px [rad]\" \"y [mm]\" \"py [rad]\" \"z [mm]\" \"Ek [MeV]\" \"t [ns]\"\n\
           -1.0 -0.1 -2.0 -0.2 0.0 200.0 -1.0\n\
           1.0 -0.1 -2.0 0.2 0.0 200.0 -0.5\n\
           -1.0 0.1 2.0 -0.2 0.0 200.0 0.5\n\
