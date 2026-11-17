@@ -104,6 +104,9 @@ pub struct FieldReconstructionReport {
     /// A graph prior can select one solution from an ambiguous set but does
     /// not increase native-data rank or create a new physical measurement.
     pub regularization_enabled: bool,
+    /// Infinity-norm projected-gradient fixed-point residual at the final iterate.
+    /// This is a numerical optimality diagnostic, not a physical uncertainty.
+    pub projected_gradient_residual: f64,
     pub iterations: usize,
     pub converged: bool,
     pub forward_model_digest: String,
@@ -428,6 +431,7 @@ pub fn reconstruct_contact_field(
     let mut next_field = vec![0.0; n];
     let mut momentum = 1.0_f64;
     let mut converged = false;
+    let mut projected_gradient_residual = f64::INFINITY;
     let mut iterations = 0;
 
     // FISTA-style accelerated projected gradient. The fixed step is safe
@@ -438,8 +442,7 @@ pub fn reconstruct_contact_field(
         let mut maximum_field = 0.0_f64;
 
         for index in 0..n {
-            let updated =
-                (extrapolated[index] - step_size * extrapolated_gradient[index]).max(0.0);
+            let updated = (extrapolated[index] - step_size * extrapolated_gradient[index]).max(0.0);
             next_field[index] = updated;
             maximum_field = maximum_field.max(updated.abs());
         }
@@ -459,19 +462,18 @@ pub fn reconstruct_contact_field(
         // stationary. Test the projected-gradient fixed-point residual at
         // the actual iterate, not the extrapolated step delta.
         let current_gradient = gradient(&quadratic, &field);
-        let projected_residual = current_gradient
+        projected_gradient_residual = current_gradient
             .iter()
             .zip(&field)
-            .map(|(value, estimate)| {
-                ((estimate - step_size * value).max(0.0) - estimate).abs()
-            })
+            .map(|(value, estimate)| ((estimate - step_size * value).max(0.0) - estimate).abs())
             .fold(0.0_f64, f64::max);
 
-        if projected_residual <= config.convergence_tolerance * (1.0 + maximum_field) {
+        if projected_gradient_residual
+            <= config.convergence_tolerance * (1.0 + maximum_field)
+        {
             converged = true;
             break;
         }
-
     }
 
     if field.iter().any(|value| !value.is_finite() || *value < 0.0) {
@@ -525,6 +527,7 @@ pub fn reconstruct_contact_field(
         native_data_rank,
         native_data_full_column_rank,
         regularization_enabled,
+        projected_gradient_residual,
         iterations,
         converged,
         forward_model_digest: problem.forward_model_digest.clone(),
