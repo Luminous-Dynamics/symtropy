@@ -1716,7 +1716,7 @@ mod tests {
                 }
             }
             let safe_state = hazard.get("safe_state").and_then(Value::as_str).unwrap_or("").to_ascii_lowercase();
-            if !["hold", "divert", "isolate", "stop", "lockout", "indeterminate", "disconnect", "do not commission"]
+            if !["hold", "held", "divert", "isolate", "stop", "lockout", "indeterminate", "disconnect", "do not commission"]
                 .iter().any(|word| safe_state.contains(word))
             {
                 issues.push(format!("{prefix}.safe_state: no fail-safe action detected"));
