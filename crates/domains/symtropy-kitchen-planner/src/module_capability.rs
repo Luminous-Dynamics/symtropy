@@ -549,14 +549,13 @@ pub fn validate_kitchen_module_capability(
     }
     for capability in &module.capabilities {
         let evidence_class = capability.evidence.evidence_class;
-        let claim_mismatch =
-            (capability.claim_status == ModuleCapabilityClaimStatusV1::Evaluated
-                && !matches!(
-                    evidence_class,
-                    ModuleEvidenceClassV1::Measured
-                        | ModuleEvidenceClassV1::IndependentlyAssayed
-                        | ModuleEvidenceClassV1::IndependentlyQualified
-                ))
+        let claim_mismatch = (capability.claim_status == ModuleCapabilityClaimStatusV1::Evaluated
+            && !matches!(
+                evidence_class,
+                ModuleEvidenceClassV1::Measured
+                    | ModuleEvidenceClassV1::IndependentlyAssayed
+                    | ModuleEvidenceClassV1::IndependentlyQualified
+            ))
             || (capability.claim_status == ModuleCapabilityClaimStatusV1::IndependentlyVerified
                 && evidence_class != ModuleEvidenceClassV1::IndependentlyQualified);
         if claim_mismatch {
