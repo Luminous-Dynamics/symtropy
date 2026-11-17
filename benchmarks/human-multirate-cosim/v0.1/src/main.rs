@@ -1,4 +1,4 @@
-use human_multirate_cosim::{Method, Scenario, simulate};
+use human_multirate_cosim::{AdaptiveConfig, Method, Scenario, simulate, simulate_adaptive_conservative_flux};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let scenarios = [
@@ -63,6 +63,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 );
             }
         }
+
+        let adaptive_config = AdaptiveConfig {
+            initial_step: scenario.horizon,
+            min_step: 1.0e-8,
+            max_step: scenario.horizon,
+            absolute_tolerance: 1.0e-7,
+            relative_tolerance: 1.0e-6,
+            max_attempts: 100_000,
+        };
+        let adaptive = simulate_adaptive_conservative_flux(scenario, adaptive_config)?;
+        println!(
+            "{},adaptive_conservative_shared_flux,{:.10},{},{:.10},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{},{:.12e},{:.12e}",
+            scenario.name,
+            adaptive_config.initial_step,
+            adaptive.accepted_steps,
+            scenario.coupling_rate() * adaptive_config.initial_step,
+            adaptive.max_abs_state_error,
+            adaptive.rms_state_error,
+            adaptive.max_abs_balance_residual,
+            adaptive.min_state,
+            adaptive.max_state,
+            adaptive.positive_states,
+            adaptive.min_state,
+            adaptive.max_state,
+        );
     }
 
     Ok(())
