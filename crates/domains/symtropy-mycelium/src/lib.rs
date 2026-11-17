@@ -9,6 +9,7 @@
 
 pub mod plant_hydraulic_dynamics;
 pub mod plant_hydraulic_null;
+pub mod plant_stomatal_buckley_2026;
 
 use std::collections::{HashMap, VecDeque};
 
