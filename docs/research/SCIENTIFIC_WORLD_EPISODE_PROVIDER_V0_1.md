@@ -180,7 +180,28 @@ Relevant, non-interchangeable references:
 
 Do not compare raw scores across different task sets, splits, rubrics, runners, time budgets or model versions. Publish a parity matrix before any leaderboard claim.
 
-## 12. Implementation sequence
+## 12. Existing Symtropy discovery evidence and the next bottleneck
+
+The provider must extend—not relabel—the current SIM-REL results. The following are reported in open PRs and have bounded claim ceilings:
+
+| Existing work | Reported evidence | What it does not establish |
+|---|---|---|
+| [SIM-REL-002 PR #2904](https://github.com/Luminous-Dynamics/symtropy/pull/2904) | 18 hand-designed Boolean pilot cases; mean intervention count 7.833 for maximum-disagreement, 7.778 for fixed ascending, and 7.748 across seeded-random repetitions. | The active max-disagreement selector did not beat these simple baselines on this pilot; it is not physical-system discovery or cross-domain transfer. |
+| [SIM-REL-003 PR #2916](https://github.com/Luminous-Dynamics/symtropy/pull/2916) | Exhaustive census of all 256 three-input Boolean functions. MDL-EIG/cost beta 1 reduced mean cost from 21.648 to 21.355 (about 1.35%), but out-of-grammar detection fell from 81.6% to 74.8%; held-out OOD detection fell from 73.3% to 66.7%. | A small finite-domain efficiency/robustness trade-off, not a general scientific-research win or physical-world result. |
+| [SIM-REL-014 #3021](https://github.com/Luminous-Dynamics/symtropy/issues/3021) | Already specifies stateful stochastic experiment design with physical/sensor persistence, confounding controls, risk-cost-abstention frontiers, exact tiny-world oracles and matched baselines. | Its broader target suite is not a reason to create a second optimizer or oracle here. Consume it where the model and estimand match. |
+
+These results identify the highest-value next bottleneck: **a method that lowers cost without purchasing that gain through worse misspecification detection, false certainty, or transfer failure**.
+
+Therefore:
+- retain misspecification detection, false-unique claims, and calibration as hard, separately reported outcomes;
+- compare selectors on a cost–risk–abstention–transfer Pareto frontier, not mean intervention count alone;
+- include adversarial but scientifically valid worlds whose mechanisms, sensor maps, delays or topology differ from development;
+- test whether a mechanism transfers, partially transfers, or must be rejected; and
+- choose the first Symtropy model adapter based on an existing model's explicit domain and observable intervention semantics, not on ease of generating a visually rich world.
+
+The open PRs are not merged mainline results. Their stated exact-head checks belong to those PRs and do not qualify this provider branch.
+
+## 13. Implementation sequence
 
 1. **Contract:** freeze public packet, world profile and trace schemas; add development known-answer examples.
 2. **Leakage/conformance:** validate closed schemas, opaque IDs, observation availability, legal intervention/costs, branch identity and denominator conservation.
@@ -190,6 +211,6 @@ Do not compare raw scores across different task sets, splits, rubrics, runners, 
 6. **Confirmation:** preregister a held-out family, total budgets, primary metrics and stopping rules; use the existing sealed evaluator and statistical owners.
 7. **Transfer:** test fresh mechanisms/domains; promote claims only under the existing Symthaea #10497 process where relevant.
 
-## Claim ceiling
+## 14. Claim ceiling
 
 This v0.1 document and schema establish only a proposed policy-visible interchange contract. They do not implement or qualify a world provider, demonstrate agent performance, validate a physical model, prove a scientific discovery, establish autonomous laboratory operation, or support SOTA / superintelligence / production-safety claims.
