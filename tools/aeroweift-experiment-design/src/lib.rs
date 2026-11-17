@@ -219,12 +219,48 @@ pub struct ExperimentCandidate {
     pub estimate_confidence_level: f64,
     /// Frozen estimation-method digest.
     pub estimate_method_sha256: String,
+    /// Required provenance for the conservative utility estimates.
+    pub utility_estimate_evidence: Option<UtilityEstimateEvidence>,
     /// Exact utility-estimator build digest.
     pub estimator_build_sha256: String,
     /// Wall-clock elapsed minutes in the declared planning environment.
     pub cost_units: u64,
     /// Non-aggregated resource costs; units remain separate.
     pub resource_cost: ResourceCost,
+}
+
+/// Provenance receipt for the conservative utility estimates used during selection.
+///
+/// The selector validates exact structural bindings only. It does not authenticate the
+/// issuer, recompute estimates, inspect dataset bytes or prove the declared uncertainty set.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UtilityEstimateEvidence {
+    /// Stable receipt identity.
+    pub receipt_id: String,
+    /// Digest of the exact receipt payload.
+    pub payload_sha256: String,
+    /// Owner namespace for the estimator evidence; not authenticated here.
+    pub issuer_id: String,
+    /// Exact candidate whose utility vector is being estimated.
+    pub candidate_id: String,
+    /// Exact campaign identity.
+    pub campaign_sha256: String,
+    /// Exact model/sensor/control scope.
+    pub model_scope_sha256: String,
+    /// Exact frozen policy identity.
+    pub policy_sha256: String,
+    /// Exact estimator implementation build.
+    pub estimator_build_sha256: String,
+    /// Exact estimator method.
+    pub estimate_method_sha256: String,
+    /// Manifest of the development-only observations used to estimate utility.
+    pub development_data_manifest_sha256: String,
+    /// Frozen prior/initial hypothesis distribution manifest.
+    pub prior_manifest_sha256: String,
+    /// Frozen robust uncertainty-set manifest.
+    pub uncertainty_set_manifest_sha256: String,
+    /// Digest of the complete conservative utility vector and confidence statement.
+    pub utility_vector_sha256: String,
 }
 
 /// Independent resource dimensions. Values are not added or exchanged.
@@ -305,6 +341,8 @@ pub struct ExperimentDesignPolicy {
     pub minimum_estimate_confidence_level: f64,
     /// Exact estimator build required by the frozen policy.
     pub required_estimator_build_sha256: String,
+    /// Exact owner namespace required for utility-estimate provenance.
+    pub expected_utility_estimator_issuer_id: String,
     /// Exact estimate method required by the frozen policy.
     pub required_estimate_method_sha256: String,
     /// Exact owner namespace expected for each structured evidence gate role.
@@ -341,7 +379,7 @@ pub enum RejectionReason {
     InsufficientQualifiedHypothesisContrasts,
     /// Candidate utility estimate is malformed or non-finite.
     InvalidUtilityVector,
-    /// A positive gate is missing its owner evidence receipt.
+    /// A positive gate or utility estimate is missing its owner evidence receipt.
     MissingEvidenceReceipt,
     /// Scope/design/manifest identity is malformed or mismatched.
     InvalidEvidenceBinding,
@@ -438,6 +476,7 @@ fn validate_policy(policy: &ExperimentDesignPolicy) -> Result<(), DesignError> {
         || !is_sha256(&policy.intended_use_profile_sha256)
         || !is_sha256(&policy.required_estimator_build_sha256)
         || !is_sha256(&policy.required_estimate_method_sha256)
+        || policy.expected_utility_estimator_issuer_id.trim().is_empty()
         || !bounded_unit_interval(policy.minimum_estimate_confidence_level)
         || policy.minimum_estimate_confidence_level == 0.0
         || policy.minimum_estimate_confidence_level == 1.0
@@ -562,6 +601,30 @@ fn validate_gate_evidence_receipts(
             reasons.insert(RejectionReason::MissingEvidenceReceipt);
         }
     }
+}
+
+fn utility_estimate_evidence_matches(
+    candidate: &ExperimentCandidate,
+    policy: &ExperimentDesignPolicy,
+) -> bool {
+    let Some(receipt) = candidate.utility_estimate_evidence.as_ref() else {
+        return false;
+    };
+    !receipt.receipt_id.trim().is_empty()
+        && receipt.issuer_id == policy.expected_utility_estimator_issuer_id
+        && receipt.candidate_id == candidate.candidate_id
+        && receipt.campaign_sha256 == candidate.campaign_sha256
+        && receipt.model_scope_sha256 == candidate.model_scope_sha256
+        && receipt.policy_sha256 == policy.policy_sha256
+        && receipt.estimator_build_sha256 == candidate.estimator_build_sha256
+        && receipt.estimator_build_sha256 == policy.required_estimator_build_sha256
+        && receipt.estimate_method_sha256 == candidate.estimate_method_sha256
+        && receipt.estimate_method_sha256 == policy.required_estimate_method_sha256
+        && is_sha256(&receipt.payload_sha256)
+        && is_sha256(&receipt.development_data_manifest_sha256)
+        && is_sha256(&receipt.prior_manifest_sha256)
+        && is_sha256(&receipt.uncertainty_set_manifest_sha256)
+        && is_sha256(&receipt.utility_vector_sha256)
 }
 
 fn independent_group_count(candidate: &ExperimentCandidate) -> usize {
@@ -744,6 +807,9 @@ fn candidate_rejection_reasons(
         reasons.insert(RejectionReason::MissingEvidenceReceipt);
     }
     validate_gate_evidence_receipts(candidate, policy, &mut reasons);
+    if !utility_estimate_evidence_matches(candidate, policy) {
+        reasons.insert(RejectionReason::MissingEvidenceReceipt);
+    }
     if candidate.modality == ExperimentModality::CrossImplementation
         && candidate.semantic_equivalence != SemanticEquivalence::Established
     {
