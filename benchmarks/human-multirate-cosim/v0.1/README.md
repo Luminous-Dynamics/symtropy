@@ -130,3 +130,15 @@ The `sensor_design` module composes the graph spectral oracle with a small exact
 The exact selector compares E-optimal, D-optimal and A-optimal objectives over all budget-feasible subsets (up to 16 candidate sensors). A separate robust lane enumerates every single declared common-cause group loss and scores the remaining observable subspace. Unknown groups and independent sensor failures are not inferred.
 
 This is a tiny known-truth mathematical reference, not a scalable sensor-placement solver and not a physical sensor-performance result. It is designed to export candidate-visible layouts and event histories to Symthaea #12728 while keeping evaluator truth sealed. The work is tracked in [HUMAN-NESTED-SENSOR-CO-DESIGN-001 / #5977](https://github.com/Luminous-Dynamics/symtropy/issues/5977).
+
+## Active input design and model discrimination
+
+The `network::SpectralOracle` now evaluates exact constant-forcing response for a frozen linear graph. It solves `C * dx/dt = -L*x + forcing` through the symmetric spectral basis, including zero modes without division by zero. Piecewise-constant forcing profiles are composed by carrying the exact state from one segment into the next.
+
+The `experiment_design` module compares candidate graph structures under a shared bounded input and selected sensors. Its first reference score is covariance-aware pairwise Gaussian T-optimal separation:
+
+`0.5 * sum_time[(mu_i - mu_j)^T * R^(-1) * (mu_i - mu_j)]`.
+
+The tournament maximizes the minimum pairwise separation across candidate model pairs, with deterministic ties resolved by lower integrated squared input, lower peak amplitude and profile ID. It compares a passive zero-input profile with a bounded pulse on a three-node chain versus a chain with a bypass edge.
+
+This is a deterministic known-covariance, fixed-candidate-parameter reference. It does not yet solve a continuous optimal-control problem, profile nuisance parameters, infer model probabilities, account for temporal noise correlation or claim that the candidate set contains the true system. It is not a physiological model. Work is tracked in [HUMAN-NESTED-EXCITATION-DESIGN-001 / #5982](https://github.com/Luminous-Dynamics/symtropy/issues/5982).
