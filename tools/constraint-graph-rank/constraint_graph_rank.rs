@@ -136,6 +136,7 @@ pub struct SmallMatrixCondition {
     pub squared_singular_values: [f64; MAX_EDGES],
 }
 
+#[cfg(test)]
 fn add(a: Vec3, b: Vec3) -> Vec3 {
     [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
 }
@@ -164,6 +165,7 @@ fn norm(a: Vec3) -> f64 {
     dot(a, a).sqrt()
 }
 
+#[cfg(test)]
 #[cfg(test)]
 fn rotate(value: Vec3, rotation_vector: Vec3) -> Vec3 {
     let angle = norm(rotation_vector);
