@@ -319,7 +319,7 @@
       "notice": {
         "supply_id": "SYN-SUP-10B",
         "announced_completion_at": "2026-02-04T18:00:00+02:00",
-        "first_return_at": "2026-02-06T06:00:00+02:00"
+        "first_return_valid_date": "2026-02-06"
       },
       "hydrometric": null,
       "point_of_use": null,
