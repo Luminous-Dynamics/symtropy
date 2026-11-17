@@ -14,8 +14,8 @@ use symtropy_hdc_core::{
     BipolarBundle, BipolarHV, ContinuousHV, EncoderSpec, HdcError, ItemMemory, StableHash64,
 };
 
-pub mod partial;
 pub mod field;
+pub mod partial;
 
 pub const GRAPH_SCHEMA_VERSION: u32 = 1;
 pub const ENCODER_RECIPE: &str = "holofrac-directed-typed-triple-v2:subject+subject-scale+predicate+object+object-scale:majority-bundle";
