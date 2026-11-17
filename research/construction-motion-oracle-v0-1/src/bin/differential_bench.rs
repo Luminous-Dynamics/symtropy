@@ -7,7 +7,8 @@ use construction_motion_oracle::{
     co_translating_capsule_time_sliced_aabb_candidates, co_translating_capsule_vs_capsule,
     endpoints_only_co_translating_capsule_collision, endpoints_only_collision,
     endpoints_only_translating_capsule_collision, moving_sphere_capsule_collision,
-    swept_sphere_capsule_aabb_candidate, timed_co_translating_capsule_vs_capsule,
+    swept_sphere_capsule_aabb_candidate, timed_co_translating_capsule_vs_capsule, replay_timed_ccd_verification_receipt,
+    verify_timed_co_translating_result, TimedCcdVerifierConfig,
     translating_capsule_aabb_candidate, translating_capsule_capsule_collision,
     translating_capsule_vs_capsule, TimedCapsuleBody, time_swept_capsule_broadphase,
 };
@@ -356,6 +357,37 @@ fn main() {
         "absolute-time-capsules,closest_offset_ms,{}",
         timed_closest.closest_time_offset_ms
     );
+    let timed_verification = verify_timed_co_translating_result(
+        &timed_moving,
+        &timed_obstacle,
+        Some(&timed_closest),
+        TimedCcdVerifierConfig::default(),
+    )
+    .expect("valid timed CCD result verification");
+    println!(
+        "absolute-time-capsules,independent_verification,{:?}",
+        timed_verification.disposition
+    );
+    measure("absolute-time-capsule-independent-verification", || {
+        black_box(
+            verify_timed_co_translating_result(
+                black_box(&timed_moving),
+                black_box(&timed_obstacle),
+                Some(black_box(&timed_closest)),
+                TimedCcdVerifierConfig::default(),
+            )
+            .expect("valid timed CCD result verification"),
+        );
+    });
+    measure("absolute-time-capsule-verification-replay", || {
+        replay_timed_ccd_verification_receipt(
+            black_box(&timed_moving),
+            black_box(&timed_obstacle),
+            black_box(&timed_verification),
+        )
+        .expect("timed CCD verification receipt replays");
+    });
+
     println!("multibody,time_swept_broadphase");
     run_multibody_broadphase_benchmarks();
 
