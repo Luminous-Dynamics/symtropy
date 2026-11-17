@@ -1,0 +1,583 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/human-systems/HUMAN_SUBSYSTEM_PORT_SCHEMA_V0_1.schema.json",
+  "title": "Human subsystem port and coupling contract v0.1",
+  "description": "Structural schema only. Referential integrity, dimensional compatibility, temporal admission and conservation closure require semantic validation beyond JSON Schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "models",
+    "subsystems",
+    "ports",
+    "edges"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "human-subsystem-port-contract/0.1"
+    },
+    "claim_ceiling": {
+      "type": "string"
+    },
+    "models": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/model"
+      },
+      "minItems": 1
+    },
+    "subsystems": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/subsystem"
+      },
+      "minItems": 1
+    },
+    "ports": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/port"
+      },
+      "minItems": 1
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/edge"
+      }
+    },
+    "semantic_invariants": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]*$"
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "version",
+        "source_revision",
+        "source_url",
+        "license",
+        "maturity"
+      ],
+      "properties": {
+        "model_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_revision": {
+          "type": "string",
+          "minLength": 7
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1
+        },
+        "maturity": {
+          "enum": [
+            "reference_only",
+            "mechanistic_reference",
+            "synthetic_qualified",
+            "public_data_calibrated",
+            "externally_evaluated",
+            "intervention_qualified",
+            "personalized_twin"
+          ]
+        },
+        "implementation_language": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "subsystem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subsystem_id",
+        "name",
+        "level",
+        "owner",
+        "status"
+      ],
+      "properties": {
+        "subsystem_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "level": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "L0",
+              "L1",
+              "L2",
+              "L3",
+              "L4",
+              "L5",
+              "L6",
+              "L7"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "owner": {
+          "enum": [
+            "symtropy_plant",
+            "symthaea_inference",
+            "external_reference",
+            "neutral_observation_contract"
+          ]
+        },
+        "status": {
+          "enum": [
+            "implemented_bounded",
+            "reference_research",
+            "absent_unqualified"
+          ]
+        },
+        "model_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "validity_domain": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unsupported_conditions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "unit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "symbol",
+        "quantity_kind",
+        "dimension_exponents",
+        "scale_to_si",
+        "offset_to_si"
+      ],
+      "properties": {
+        "symbol": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quantity_kind": {
+          "enum": [
+            "linear",
+            "absolute_temperature",
+            "temperature_difference",
+            "dimensionless",
+            "symbolic"
+          ]
+        },
+        "dimension_exponents": {
+          "type": "array",
+          "minItems": 7,
+          "maxItems": 7,
+          "items": {
+            "type": "integer",
+            "minimum": -12,
+            "maximum": 12
+          },
+          "description": "SI base-dimension exponents in order [kg,m,s,A,K,mol,cd]."
+        },
+        "scale_to_si": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "offset_to_si": {
+          "type": "number"
+        },
+        "semantic_note": {
+          "type": "string"
+        }
+      }
+    },
+    "time_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_time_unit",
+        "clock_domain",
+        "min_step_seconds",
+        "max_step_seconds",
+        "default_step_seconds",
+        "interpolation",
+        "late_event_policy",
+        "duplicate_event_policy"
+      ],
+      "properties": {
+        "event_time_unit": {
+          "const": "s"
+        },
+        "clock_domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "min_step_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "max_step_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "default_step_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "interpolation": {
+          "enum": [
+            "none",
+            "zero_order_hold",
+            "linear",
+            "model_native"
+          ]
+        },
+        "late_event_policy": {
+          "enum": [
+            "reject",
+            "buffer_then_replay",
+            "bounded_replay",
+            "model_native"
+          ]
+        },
+        "duplicate_event_policy": {
+          "enum": [
+            "reject",
+            "deduplicate_by_identity",
+            "idempotent_replay",
+            "model_native"
+          ]
+        },
+        "receive_time_required": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "uncertainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "representation",
+        "calibration_status"
+      ],
+      "properties": {
+        "representation": {
+          "enum": [
+            "none_declared",
+            "standard_deviation",
+            "variance",
+            "interval",
+            "distribution",
+            "ensemble",
+            "set_valued"
+          ]
+        },
+        "calibration_status": {
+          "enum": [
+            "not_calibrated",
+            "source_reported",
+            "externally_calibrated",
+            "synthetic_only"
+          ]
+        },
+        "source": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "balance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "balance_group",
+        "law",
+        "sign_convention",
+        "residual_unit",
+        "closure_definition"
+      ],
+      "properties": {
+        "balance_group": {
+          "$ref": "#/$defs/identifier"
+        },
+        "law": {
+          "enum": [
+            "mass",
+            "volume",
+            "energy",
+            "heat",
+            "charge",
+            "species",
+            "momentum",
+            "signal_kinetics",
+            "none"
+          ]
+        },
+        "sign_convention": {
+          "type": "string",
+          "minLength": 1
+        },
+        "residual_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "closure_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "absolute_tolerance": {
+          "type": "number",
+          "minimum": 0
+        },
+        "relative_tolerance": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "port": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "port_id",
+        "subsystem_id",
+        "model_id",
+        "variable_name",
+        "semantic_name",
+        "quantity_class",
+        "direction",
+        "unit",
+        "time_contract",
+        "uncertainty",
+        "validity_status"
+      ],
+      "properties": {
+        "port_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "subsystem_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "model_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "variable_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "semantic_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quantity_class": {
+          "enum": [
+            "state",
+            "conserved_flux",
+            "rate",
+            "control_signal",
+            "mechanical",
+            "boundary_condition",
+            "observation",
+            "configuration"
+          ]
+        },
+        "direction": {
+          "enum": [
+            "input",
+            "output",
+            "bidirectional"
+          ]
+        },
+        "unit": {
+          "$ref": "#/$defs/unit"
+        },
+        "valid_range": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "minimum": {
+              "type": "number"
+            },
+            "maximum": {
+              "type": "number"
+            }
+          }
+        },
+        "time_contract": {
+          "$ref": "#/$defs/time_contract"
+        },
+        "uncertainty": {
+          "$ref": "#/$defs/uncertainty"
+        },
+        "balance": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/balance"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "validity_status": {
+          "enum": [
+            "source_verified",
+            "proposed_unverified",
+            "unsupported"
+          ]
+        },
+        "source_locator": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "provenance"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "identity",
+            "affine",
+            "explicit_formula",
+            "model_adapter"
+          ]
+        },
+        "scale": {
+          "type": "number"
+        },
+        "offset": {
+          "type": "number"
+        },
+        "expression": {
+          "type": "string"
+        },
+        "provenance": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_status": {
+          "enum": [
+            "source_verified",
+            "review_required",
+            "not_admitted"
+          ]
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "edge_id",
+        "from_port",
+        "to_port",
+        "mapping",
+        "delay_seconds",
+        "admission_policy"
+      ],
+      "properties": {
+        "edge_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "from_port": {
+          "$ref": "#/$defs/identifier"
+        },
+        "to_port": {
+          "$ref": "#/$defs/identifier"
+        },
+        "mapping": {
+          "$ref": "#/$defs/mapping"
+        },
+        "delay_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "balance_group": {
+          "$ref": "#/$defs/identifier"
+        },
+        "admission_policy": {
+          "enum": [
+            "fail_closed",
+            "bounded_hold",
+            "model_native"
+          ]
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "x-semantic-validation-required": [
+    "All model_id, subsystem_id, port_id and edge identifiers are unique in their own namespaces.",
+    "Every port references an existing subsystem and model.",
+    "Every edge references existing ports; source direction is output or bidirectional and destination direction is input or bidirectional.",
+    "Source and destination physical dimensions must match after the declared mapping; symbolic ports may only connect to semantically compatible symbolic ports.",
+    "Absolute temperatures and temperature differences are different quantity kinds; offset conversions must not be applied to temperature differences.",
+    "A conservation edge requires an explicit balance group, sign convention, residual unit and closure definition.",
+    "Signal/control ports may not be counted as conserved material or energy fluxes.",
+    "The edge time contract must not admit data unavailable at the receiving decision cutoff.",
+    "A failed admission must not mutate plant, estimator or observation state."
+  ]
+}
