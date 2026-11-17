@@ -87,6 +87,8 @@ jobs:
     # These research crates intentionally remain outside the production workspace.
     # Test each present crate explicitly so workspace CI cannot appear green while
     # silently skipping a standalone research manifest.
+    # Research manifests are deliberately excluded from the production workspace;
+    # keep formatting, Clippy and test coverage explicit for every standalone lab.
     - name: Check Formatting (Standalone Research Crates)
       shell: bash
       run: |
