@@ -340,6 +340,243 @@ pub struct CalibrationReport {
     pub interval_method_sha256: String,
 }
 
+/// Independent resource-use dimensions for one realized decision alternative.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct DecisionResourceUse {
+    /// Setup/preparation minutes.
+    pub setup_minutes: u64,
+    /// Facility/operator minutes.
+    pub facility_minutes: u64,
+    /// CPU compute seconds.
+    pub cpu_seconds: u64,
+    /// Accelerator compute seconds.
+    pub accelerator_seconds: u64,
+    /// Energy joules.
+    pub energy_joules: u64,
+    /// Adjudication/review person-minutes.
+    pub adjudication_person_minutes: u64,
+}
+
+/// Non-substitutable resource budget for one held-out decision case.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct DecisionResourceBudget {
+    /// Maximum setup/preparation minutes.
+    pub setup_minutes: u64,
+    /// Maximum facility/operator minutes.
+    pub facility_minutes: u64,
+    /// Maximum CPU compute seconds.
+    pub cpu_seconds: u64,
+    /// Maximum accelerator compute seconds.
+    pub accelerator_seconds: u64,
+    /// Maximum energy joules.
+    pub energy_joules: u64,
+    /// Maximum adjudication/review person-minutes.
+    pub adjudication_person_minutes: u64,
+}
+
+impl DecisionResourceUse {
+    fn within(self, budget: DecisionResourceBudget) -> bool {
+        self.setup_minutes <= budget.setup_minutes
+            && self.facility_minutes <= budget.facility_minutes
+            && self.cpu_seconds <= budget.cpu_seconds
+            && self.accelerator_seconds <= budget.accelerator_seconds
+            && self.energy_joules <= budget.energy_joules
+            && self.adjudication_person_minutes <= budget.adjudication_person_minutes
+    }
+}
+
+/// Realized held-out outcome for one alternative in a decision case.
+#[derive(Clone, Debug, PartialEq)]
+pub struct DecisionAlternativeOutcome {
+    /// Exact candidate identity.
+    pub candidate_id: String,
+    /// Whether the alternative satisfies the frozen engineering feasibility predicate.
+    pub feasible: bool,
+    /// Realized decision utility in [0, 1]; the no-action baseline is zero.
+    pub decision_utility: f64,
+    /// Realized, non-substitutable resource consumption.
+    pub resource_use: DecisionResourceUse,
+}
+
+/// One independently adjudicated held-out decision case.
+#[derive(Clone, Debug, PartialEq)]
+pub struct DecisionCase {
+    /// Stable independent case identity.
+    pub case_id: String,
+    /// Frozen non-substitutable resource budget.
+    pub resource_budget: DecisionResourceBudget,
+    /// Candidate selected by the evaluated policy; None means abstention/no action.
+    pub selected_candidate_id: Option<String>,
+    /// All alternatives evaluated against the same case and budget.
+    pub alternatives: Vec<DecisionAlternativeOutcome>,
+}
+
+/// Per-case decision regret against the feasible, budget-admissible oracle.
+#[derive(Clone, Debug, PartialEq)]
+pub struct DecisionCaseResult {
+    /// Independent case identity.
+    pub case_id: String,
+    /// Best feasible candidate under the same resource budget, if any.
+    pub oracle_candidate_id: Option<String>,
+    /// Candidate selected by the evaluated policy.
+    pub selected_candidate_id: Option<String>,
+    /// Best realized utility available under the frozen budget.
+    pub oracle_utility: f64,
+    /// Realized utility credited to the selected candidate; zero for abstention or invalid selection.
+    pub selected_utility: f64,
+    /// Non-negative regret relative to the feasible oracle.
+    pub regret: f64,
+    /// Whether the selected alternative was infeasible or over budget.
+    pub false_feasible_selection: bool,
+}
+
+/// Aggregate held-out decision-regret report; no cross-case safety averaging is implied.
+#[derive(Clone, Debug, PartialEq)]
+pub struct DecisionRegretReport {
+    /// Number of independent decision cases.
+    pub case_count: u64,
+    /// Number of cases where the policy abstained.
+    pub abstention_count: u64,
+    /// Number of selected alternatives that were infeasible or over budget.
+    pub false_feasible_selection_count: u64,
+    /// Mean regret across independent cases.
+    pub mean_regret: f64,
+    /// Maximum regret across independent cases.
+    pub maximum_regret: f64,
+    /// Mean utility of the feasible oracle.
+    pub mean_oracle_utility: f64,
+    /// Mean utility actually achieved by the evaluated policy.
+    pub mean_selected_utility: f64,
+    /// Per-case adjudication.
+    pub cases: Vec<DecisionCaseResult>,
+}
+
+/// Structural errors in held-out decision-regret evaluation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DecisionRegretError {
+    /// No cases were supplied or a case identity is empty.
+    InvalidCase,
+    /// A case identity is duplicated.
+    DuplicateCase,
+    /// A case has no alternatives or duplicate/empty candidate identities.
+    InvalidAlternatives,
+    /// A selected candidate is not present in the case's alternative set.
+    SelectedCandidateMissing,
+    /// A realized utility is non-finite or outside [0, 1].
+    InvalidUtility,
+}
+
+/// Evaluate held-out decision regret against the best feasible alternative under the same
+/// case-specific resource budget. Infeasible or over-budget selections receive zero utility
+/// and are counted as false-feasible selections; they cannot be hidden by good average regret.
+pub fn evaluate_decision_regret(
+    cases: &[DecisionCase],
+) -> Result<DecisionRegretReport, DecisionRegretError> {
+    if cases.is_empty() {
+        return Err(DecisionRegretError::InvalidCase);
+    }
+    let mut seen_cases = BTreeSet::new();
+    let mut results = Vec::with_capacity(cases.len());
+    let mut abstention_count = 0_u64;
+    let mut false_feasible_selection_count = 0_u64;
+    let mut regret_sum = 0.0;
+    let mut oracle_sum = 0.0;
+    let mut selected_sum = 0.0;
+    let mut maximum_regret: f64 = 0.0;
+    let mut ordered_cases: Vec<&DecisionCase> = cases.iter().collect();
+    ordered_cases.sort_by(|left, right| left.case_id.cmp(&right.case_id));
+
+    for case in ordered_cases {
+        if case.case_id.trim().is_empty() {
+            return Err(DecisionRegretError::InvalidCase);
+        }
+        if !seen_cases.insert(case.case_id.as_str()) {
+            return Err(DecisionRegretError::DuplicateCase);
+        }
+        if case.alternatives.is_empty() {
+            return Err(DecisionRegretError::InvalidAlternatives);
+        }
+        let mut candidate_ids = BTreeSet::new();
+        for alternative in &case.alternatives {
+            if alternative.candidate_id.trim().is_empty()
+                || !candidate_ids.insert(alternative.candidate_id.as_str())
+            {
+                return Err(DecisionRegretError::InvalidAlternatives);
+            }
+            if !bounded(alternative.decision_utility) {
+                return Err(DecisionRegretError::InvalidUtility);
+            }
+        }
+        if case
+            .selected_candidate_id
+            .as_deref()
+            .is_some_and(|selected| !candidate_ids.contains(selected))
+        {
+            return Err(DecisionRegretError::SelectedCandidateMissing);
+        }
+
+        let oracle = case
+            .alternatives
+            .iter()
+            .filter(|alternative| {
+                alternative.feasible && alternative.resource_use.within(case.resource_budget)
+            })
+            .max_by(|left, right| {
+                left.decision_utility
+                    .total_cmp(&right.decision_utility)
+                    .then_with(|| right.candidate_id.cmp(&left.candidate_id))
+            });
+        let oracle_utility = oracle.map_or(0.0, |alternative| alternative.decision_utility);
+        let oracle_candidate_id = oracle.map(|alternative| alternative.candidate_id.clone());
+
+        let selected = case.selected_candidate_id.as_deref().and_then(|selected_id| {
+            case.alternatives
+                .iter()
+                .find(|alternative| alternative.candidate_id == selected_id)
+        });
+        if selected.is_none() {
+            abstention_count = abstention_count.saturating_add(1);
+        }
+        let false_feasible = selected.is_some_and(|alternative| {
+            !alternative.feasible || !alternative.resource_use.within(case.resource_budget)
+        });
+        if false_feasible {
+            false_feasible_selection_count = false_feasible_selection_count.saturating_add(1);
+        }
+        let selected_utility = selected
+            .filter(|alternative| {
+                alternative.feasible && alternative.resource_use.within(case.resource_budget)
+            })
+            .map_or(0.0, |alternative| alternative.decision_utility);
+        let regret = (oracle_utility - selected_utility).max(0.0);
+        regret_sum += regret;
+        oracle_sum += oracle_utility;
+        selected_sum += selected_utility;
+        maximum_regret = maximum_regret.max(regret);
+        results.push(DecisionCaseResult {
+            case_id: case.case_id.clone(),
+            oracle_candidate_id,
+            selected_candidate_id: case.selected_candidate_id.clone(),
+            oracle_utility,
+            selected_utility,
+            regret,
+            false_feasible_selection: false_feasible,
+        });
+    }
+
+    let count = cases.len() as f64;
+    Ok(DecisionRegretReport {
+        case_count: cases.len() as u64,
+        abstention_count,
+        false_feasible_selection_count,
+        mean_regret: regret_sum / count,
+        maximum_regret,
+        mean_oracle_utility: oracle_sum / count,
+        mean_selected_utility: selected_sum / count,
+        cases: results,
+    })
+}
+
 /// Wilson score interval one-sided critical value for supported confidence levels.
 fn one_sided_z(confidence_level: f64) -> Option<f64> {
     match confidence_level {
