@@ -73,8 +73,6 @@ pub struct CandidateBinding {
     pub cost_model_id: String,
     pub cost_model_revision: String,
     pub cost_model_sha256: String,
-    pub estimated_travel_distance_m: f64,
-    pub estimated_travel_time_s: f64,
     pub estimated_acquisition_time_s: f64,
     pub estimated_energy_wh: f64,
     pub risk_penalty_s: f64,
@@ -159,8 +157,6 @@ pub struct QualifiedCandidateProjection {
     pub u_m: f64,
     pub v_m: f64,
     pub view_angle_rad: f64,
-    pub estimated_travel_distance_m: f64,
-    pub estimated_travel_time_s: f64,
     pub acquisition_time_s: f64,
     pub energy_wh: f64,
     pub risk_penalty_s: f64,
@@ -255,8 +251,6 @@ impl CandidateBinding {
         push_str(&mut output, &self.cost_model_id);
         push_str(&mut output, &self.cost_model_revision);
         push_str(&mut output, &self.cost_model_sha256);
-        push_f64(&mut output, self.estimated_travel_distance_m);
-        push_f64(&mut output, self.estimated_travel_time_s);
         push_f64(&mut output, self.estimated_acquisition_time_s);
         push_f64(&mut output, self.estimated_energy_wh);
         push_f64(&mut output, self.risk_penalty_s);
@@ -501,11 +495,6 @@ fn validate_binding(binding: &CandidateBinding, errors: &mut Vec<EnvelopeError>)
         (binding.position_v_m, "position_v_m"),
         (binding.view_angle_rad, "view_angle_rad"),
         (
-            binding.estimated_travel_distance_m,
-            "estimated_travel_distance_m",
-        ),
-        (binding.estimated_travel_time_s, "estimated_travel_time_s"),
-        (
             binding.estimated_acquisition_time_s,
             "estimated_acquisition_time_s",
         ),
@@ -524,19 +513,6 @@ fn validate_binding(binding: &CandidateBinding, errors: &mut Vec<EnvelopeError>)
     }
     if !(-std::f64::consts::PI..=std::f64::consts::PI).contains(&binding.view_angle_rad) {
         errors.push(EnvelopeError::InvalidNumericValue("view_angle_rad"));
-    }
-    if binding.estimated_travel_distance_m < 0.0
-        || binding.estimated_travel_distance_m > MAX_RESOURCE_VALUE
-    {
-        errors.push(EnvelopeError::InvalidNumericValue(
-            "estimated_travel_distance_m",
-        ));
-    }
-    if binding.estimated_travel_time_s < 0.0 || binding.estimated_travel_time_s > MAX_RESOURCE_VALUE
-    {
-        errors.push(EnvelopeError::InvalidNumericValue(
-            "estimated_travel_time_s",
-        ));
     }
     if binding.estimated_acquisition_time_s < 0.0
         || binding.estimated_acquisition_time_s > MAX_RESOURCE_VALUE
@@ -669,8 +645,6 @@ mod tests {
             cost_model_id: "survey-cost-model".to_owned(),
             cost_model_revision: "cost-r1".to_owned(),
             cost_model_sha256: A.to_owned(),
-            estimated_travel_distance_m: 20.0,
-            estimated_travel_time_s: 10.0,
             estimated_acquisition_time_s: 4.0,
             estimated_energy_wh: 2.5,
             risk_penalty_s: 0.5,
