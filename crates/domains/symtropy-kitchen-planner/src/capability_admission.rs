@@ -21,8 +21,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const KITCHEN_CAPABILITY_ADMISSION_SCHEMA_VERSION: u32 = 1;
-pub const KITCHEN_CAPABILITY_ADMISSION_CLAIM_CEILING: &str =
-    "Task-to-module declaration consistency only; not physical interoperability, safety certification, food-contact approval, measured performance, or actuator authorization.";
+pub const KITCHEN_CAPABILITY_ADMISSION_CLAIM_CEILING: &str = "Task-to-module declaration consistency only; not physical interoperability, safety certification, food-contact approval, measured performance, or actuator authorization.";
 
 const NANOGRAMS_PER_MILLIGRAM: u128 = 1_000_000;
 const NANOGRAMS_PER_GRAM: u128 = 1_000_000_000;
@@ -149,9 +148,7 @@ fn sort_issues(issues: &mut [KitchenCapabilityIssueV1]) {
     });
 }
 
-fn disposition_from_issues(
-    issues: &[KitchenCapabilityIssueV1],
-) -> KitchenCapabilityDispositionV1 {
+fn disposition_from_issues(issues: &[KitchenCapabilityIssueV1]) -> KitchenCapabilityDispositionV1 {
     if issues.iter().any(|issue| {
         matches!(
             issue.code,
@@ -191,9 +188,7 @@ enum BatchMassError {
 /// Convert one explicit mass quantity into integer nanograms. The input
 /// quantity is an integer coefficient plus a decimal scale; no floating-point
 /// conversion or density assumption is used.
-fn quantity_mass_nanograms(
-    quantity: &ExactRecipeQuantityV1,
-) -> Result<u128, BatchMassError> {
+fn quantity_mass_nanograms(quantity: &ExactRecipeQuantityV1) -> Result<u128, BatchMassError> {
     if quantity.decimal_places > 6 {
         return Err(BatchMassError::InvalidScale);
     }
@@ -226,10 +221,12 @@ fn task_batch_mass_nanograms(task: &RecipeTaskNodeV1) -> Result<u128, BatchMassE
     if task.ingredient_inputs.is_empty() {
         return Err(BatchMassError::Missing);
     }
-    task.ingredient_inputs.iter().try_fold(0_u128, |total, usage| {
-        let amount = quantity_mass_nanograms(&usage.quantity)?;
-        total.checked_add(amount).ok_or(BatchMassError::Overflow)
-    })
+    task.ingredient_inputs
+        .iter()
+        .try_fold(0_u128, |total, usage| {
+            let amount = quantity_mass_nanograms(&usage.quantity)?;
+            total.checked_add(amount).ok_or(BatchMassError::Overflow)
+        })
 }
 
 fn task_assessment(
@@ -260,7 +257,14 @@ fn task_assessment(
             "task has no explicit action-ontology binding; action-group inference is not performed",
         );
         sort_issues(&mut issues);
-        return assessment_from(task, binding, action_group, claim_status, evidence_class, issues);
+        return assessment_from(
+            task,
+            binding,
+            action_group,
+            claim_status,
+            evidence_class,
+            issues,
+        );
     };
 
     let ontology_report = validate_action_ontology_binding(task.action_kind, ontology);
@@ -279,19 +283,38 @@ fn task_assessment(
             "task action is explicitly unmapped; no capability match is inferred",
         );
         sort_issues(&mut issues);
-        return assessment_from(task, binding, action_group, claim_status, evidence_class, issues);
+        return assessment_from(
+            task,
+            binding,
+            action_group,
+            claim_status,
+            evidence_class,
+            issues,
+        );
     }
 
-    if issues.iter().any(|issue| issue.code == KitchenCapabilityIssueCodeV1::InvalidActionOntology) {
+    if issues
+        .iter()
+        .any(|issue| issue.code == KitchenCapabilityIssueCodeV1::InvalidActionOntology)
+    {
         sort_issues(&mut issues);
-        return assessment_from(task, binding, action_group, claim_status, evidence_class, issues);
+        return assessment_from(
+            task,
+            binding,
+            action_group,
+            claim_status,
+            evidence_class,
+            issues,
+        );
     }
 
     let exact_module = modules.iter().find(|module| {
         module.module_id == binding.module_id && module.module_revision == binding.module_revision
     });
     let Some(module) = exact_module else {
-        let same_id_exists = modules.iter().any(|module| module.module_id == binding.module_id);
+        let same_id_exists = modules
+            .iter()
+            .any(|module| module.module_id == binding.module_id);
         if same_id_exists {
             add_issue(
                 &mut issues,
@@ -306,7 +329,14 @@ fn task_assessment(
             );
         }
         sort_issues(&mut issues);
-        return assessment_from(task, binding, action_group, claim_status, evidence_class, issues);
+        return assessment_from(
+            task,
+            binding,
+            action_group,
+            claim_status,
+            evidence_class,
+            issues,
+        );
     };
 
     let module_report = validate_kitchen_module_capability(module);
@@ -317,7 +347,14 @@ fn task_assessment(
             "selected module record failed the existing module-capability validator",
         );
         sort_issues(&mut issues);
-        return assessment_from(task, binding, action_group, claim_status, evidence_class, issues);
+        return assessment_from(
+            task,
+            binding,
+            action_group,
+            claim_status,
+            evidence_class,
+            issues,
+        );
     }
 
     let capability = module
@@ -331,7 +368,14 @@ fn task_assessment(
             "capability ID does not exist on the exact selected module revision",
         );
         sort_issues(&mut issues);
-        return assessment_from(task, binding, action_group, claim_status, evidence_class, issues);
+        return assessment_from(
+            task,
+            binding,
+            action_group,
+            claim_status,
+            evidence_class,
+            issues,
+        );
     };
 
     claim_status = Some(capability.claim_status);
@@ -351,7 +395,11 @@ fn task_assessment(
             KitchenCapabilityIssueCodeV1::MissingInputForm,
             "binding input_form_ref must be explicit and non-empty",
         );
-    } else if !capability.input_form_refs.iter().any(|form| form == &binding.input_form_ref) {
+    } else if !capability
+        .input_form_refs
+        .iter()
+        .any(|form| form == &binding.input_form_ref)
+    {
         add_issue(
             &mut issues,
             KitchenCapabilityIssueCodeV1::UnsupportedInputForm,
@@ -365,7 +413,11 @@ fn task_assessment(
             KitchenCapabilityIssueCodeV1::MissingOutputForm,
             "binding output_form_ref must be explicit and non-empty",
         );
-    } else if !capability.output_form_refs.iter().any(|form| form == &binding.output_form_ref) {
+    } else if !capability
+        .output_form_refs
+        .iter()
+        .any(|form| form == &binding.output_form_ref)
+    {
         add_issue(
             &mut issues,
             KitchenCapabilityIssueCodeV1::UnsupportedOutputForm,
@@ -379,7 +431,12 @@ fn task_assessment(
             KitchenCapabilityIssueCodeV1::MissingScheduledResource,
             "scheduled_resource_id must be explicit and non-empty",
         );
-    } else if !task.schedule.resource_ids.iter().any(|resource| resource == &binding.scheduled_resource_id) {
+    } else if !task
+        .schedule
+        .resource_ids
+        .iter()
+        .any(|resource| resource == &binding.scheduled_resource_id)
+    {
         add_issue(
             &mut issues,
             KitchenCapabilityIssueCodeV1::ScheduledResourceMismatch,
@@ -449,7 +506,14 @@ fn task_assessment(
     }
 
     sort_issues(&mut issues);
-    assessment_from(task, binding, action_group, claim_status, evidence_class, issues)
+    assessment_from(
+        task,
+        binding,
+        action_group,
+        claim_status,
+        evidence_class,
+        issues,
+    )
 }
 
 fn assessment_from(
@@ -537,7 +601,10 @@ pub fn evaluate_kitchen_capability_admission(
                 "binding references a task ID absent from the recipe graph",
             );
         }
-        bindings_by_task.entry(binding.task_id.as_str()).or_default().push(binding);
+        bindings_by_task
+            .entry(binding.task_id.as_str())
+            .or_default()
+            .push(binding);
     }
 
     let mut task_assessments = Vec::new();
@@ -556,7 +623,10 @@ pub fn evaluate_kitchen_capability_admission(
                     module_id: None,
                     module_revision: None,
                     capability_id: None,
-                    action_group: task.ontology_binding.as_ref().and_then(|binding| binding.mapping.group),
+                    action_group: task
+                        .ontology_binding
+                        .as_ref()
+                        .and_then(|binding| binding.mapping.group),
                     claim_status: None,
                     evidence_class: None,
                     issues,
@@ -575,30 +645,33 @@ pub fn evaluate_kitchen_capability_admission(
                     module_id: None,
                     module_revision: None,
                     capability_id: None,
-                    action_group: task.ontology_binding.as_ref().and_then(|binding| binding.mapping.group),
+                    action_group: task
+                        .ontology_binding
+                        .as_ref()
+                        .and_then(|binding| binding.mapping.group),
                     claim_status: None,
                     evidence_class: None,
                     issues,
                 });
             }
-            Some(bindings) => task_assessments.push(task_assessment(
-                task,
-                bindings[0],
-                &request.modules,
-            )),
+            Some(bindings) => {
+                task_assessments.push(task_assessment(task, bindings[0], &request.modules))
+            }
         }
     }
 
     sort_issues(&mut request_issues);
     task_assessments.sort_by(|left, right| left.task_id.cmp(&right.task_id));
 
-    let task_disposition = if task_assessments.iter().any(|assessment| {
-        assessment.disposition == KitchenCapabilityDispositionV1::Blocked
-    }) {
+    let task_disposition = if task_assessments
+        .iter()
+        .any(|assessment| assessment.disposition == KitchenCapabilityDispositionV1::Blocked)
+    {
         KitchenCapabilityDispositionV1::Blocked
-    } else if task_assessments.iter().any(|assessment| {
-        assessment.disposition == KitchenCapabilityDispositionV1::Indeterminate
-    }) {
+    } else if task_assessments
+        .iter()
+        .any(|assessment| assessment.disposition == KitchenCapabilityDispositionV1::Indeterminate)
+    {
         KitchenCapabilityDispositionV1::Indeterminate
     } else {
         KitchenCapabilityDispositionV1::WithinDeclaredEnvelope
@@ -640,14 +713,12 @@ mod tests {
         ))
         .expect("recipe fixture bundle must parse");
 
-        let module: KitchenModuleCapabilityV1 = serde_json::from_value(
-            module_bundle["cases"][0]["module"].clone(),
-        )
-        .expect("positive synthetic module fixture must deserialize");
-        let mut recipe: RecipeTaskGraphV1 = serde_json::from_value(
-            recipe_bundle["cases"][0]["payload"].clone(),
-        )
-        .expect("positive synthetic recipe fixture must deserialize");
+        let module: KitchenModuleCapabilityV1 =
+            serde_json::from_value(module_bundle["cases"][0]["module"].clone())
+                .expect("positive synthetic module fixture must deserialize");
+        let mut recipe: RecipeTaskGraphV1 =
+            serde_json::from_value(recipe_bundle["cases"][0]["payload"].clone())
+                .expect("positive synthetic recipe fixture must deserialize");
 
         recipe.tasks.truncate(1);
         recipe.tasks[0].ontology_binding = Some(rule_based_action_binding(
@@ -673,7 +744,9 @@ mod tests {
         }
     }
 
-    fn disposition(request: &KitchenCapabilityAdmissionRequestV1) -> KitchenCapabilityDispositionV1 {
+    fn disposition(
+        request: &KitchenCapabilityAdmissionRequestV1,
+    ) -> KitchenCapabilityDispositionV1 {
         evaluate_kitchen_capability_admission(request).disposition
     }
 
@@ -697,32 +770,47 @@ mod tests {
     fn stale_module_revision_is_blocked() {
         let mut request = fixture_request();
         request.bindings[0].module_revision = "rev-b".to_owned();
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Blocked
+        );
     }
 
     #[test]
     fn action_group_mismatch_is_blocked() {
         let mut request = fixture_request();
         request.modules[0].capabilities[0].action_group = ActionGroupV1::Slice;
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Blocked
+        );
     }
 
     #[test]
     fn unsupported_form_or_resource_is_blocked() {
         let mut request = fixture_request();
         request.bindings[0].input_form_ref = "form:unknown".to_owned();
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Blocked
+        );
 
         let mut request = fixture_request();
         request.bindings[0].scheduled_resource_id = "unallocated-device".to_owned();
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Blocked
+        );
     }
 
     #[test]
     fn missing_or_unmapped_action_ontology_is_indeterminate() {
         let mut request = fixture_request();
         request.recipe.tasks[0].ontology_binding = None;
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Indeterminate);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Indeterminate
+        );
 
         let mut request = fixture_request();
         request.recipe.tasks[0].ontology_binding = Some(rule_based_action_binding(
@@ -731,23 +819,35 @@ mod tests {
         ));
         request.recipe.tasks[0].action_kind = RecipeActionKindV1::Other;
         request.recipe.tasks[0].action_label = Some("unmapped manual action".to_owned());
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Indeterminate);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Indeterminate
+        );
     }
 
     #[test]
     fn batch_mass_limits_are_checked_without_volume_or_count_inference() {
         let mut request = fixture_request();
         request.recipe.tasks[0].ingredient_inputs[0].quantity.value = 2_000;
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Blocked
+        );
 
         let mut request = fixture_request();
         request.recipe.tasks[0].ingredient_inputs[0].quantity.value = 20;
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Blocked
+        );
 
         let mut request = fixture_request();
         request.recipe.tasks[0].ingredient_inputs[0].quantity.unit =
             RecipeQuantityUnitV1::Millilitre;
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Indeterminate);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Indeterminate
+        );
     }
 
     #[test]
@@ -756,49 +856,74 @@ mod tests {
         request.recipe.tasks[0].ingredient_inputs[0].quantity.value = 250_000;
         request.recipe.tasks[0].ingredient_inputs[0].quantity.unit =
             RecipeQuantityUnitV1::Milligram;
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::WithinDeclaredEnvelope);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::WithinDeclaredEnvelope
+        );
 
         let mut request = fixture_request();
         request.recipe.tasks[0].ingredient_inputs[0].quantity.value = 25;
-        request.recipe.tasks[0].ingredient_inputs[0].quantity.decimal_places = 2;
-        request.recipe.tasks[0].ingredient_inputs[0].quantity.unit =
-            RecipeQuantityUnitV1::Kilogram;
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::WithinDeclaredEnvelope);
+        request.recipe.tasks[0].ingredient_inputs[0]
+            .quantity
+            .decimal_places = 2;
+        request.recipe.tasks[0].ingredient_inputs[0].quantity.unit = RecipeQuantityUnitV1::Kilogram;
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::WithinDeclaredEnvelope
+        );
     }
 
     #[test]
     fn unknown_module_and_unknown_capability_are_blocked() {
         let mut request = fixture_request();
         request.bindings[0].module_id = "module:not-in-inventory".to_owned();
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Blocked
+        );
 
         let mut request = fixture_request();
         request.bindings[0].capability_id = "capability:not-on-module".to_owned();
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Blocked
+        );
     }
 
     #[test]
     fn duplicate_module_revision_and_unknown_task_binding_block_request() {
         let mut request = fixture_request();
         request.modules.push(request.modules[0].clone());
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Blocked
+        );
 
         let mut request = fixture_request();
         let mut extra = request.bindings[0].clone();
         extra.task_id = "task:not-in-recipe".to_owned();
         request.bindings.push(extra);
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Blocked
+        );
     }
 
     #[test]
     fn missing_form_or_batch_quantity_remains_indeterminate() {
         let mut request = fixture_request();
         request.bindings[0].input_form_ref.clear();
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Indeterminate);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Indeterminate
+        );
 
         let mut request = fixture_request();
         request.recipe.tasks[0].ingredient_inputs.clear();
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Indeterminate);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Indeterminate
+        );
     }
 
     #[test]
@@ -807,36 +932,54 @@ mod tests {
         request.modules[0].capabilities[0].evidence.evidence_class =
             ModuleEvidenceClassV1::Measured;
         request.modules[0].capabilities[0].evidence.calibration_ref = None;
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Blocked
+        );
     }
 
     #[test]
     fn missing_or_exceeded_run_time_is_not_admitted() {
         let mut request = fixture_request();
         request.modules[0].capabilities[0].maximum_continuous_run_ms = None;
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Indeterminate);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Indeterminate
+        );
 
         let mut request = fixture_request();
         request.modules[0].capabilities[0].maximum_continuous_run_ms = Some(10_000);
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Blocked
+        );
     }
 
     #[test]
     fn missing_and_duplicate_bindings_are_not_admitted() {
         let mut request = fixture_request();
         request.bindings.clear();
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Indeterminate);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Indeterminate
+        );
 
         let mut request = fixture_request();
         request.bindings.push(request.bindings[0].clone());
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Blocked
+        );
     }
 
     #[test]
     fn invalid_module_evidence_blocks_the_binding() {
         let mut request = fixture_request();
         request.modules[0].claim_ceiling = "a more ambitious claim".to_owned();
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Blocked
+        );
     }
 
     fn pressure_fixture_request() -> KitchenCapabilityAdmissionRequestV1 {
@@ -845,10 +988,9 @@ mod tests {
             "../schemas/fixtures/kitchen-module-capability-v1.json"
         ))
         .expect("module fixture bundle must parse");
-        let pressure_module: KitchenModuleCapabilityV1 = serde_json::from_value(
-            module_bundle["cases"][1]["module"].clone(),
-        )
-        .expect("independently qualified pressure fixture must deserialize");
+        let pressure_module: KitchenModuleCapabilityV1 =
+            serde_json::from_value(module_bundle["cases"][1]["module"].clone())
+                .expect("independently qualified pressure fixture must deserialize");
 
         request.modules = vec![pressure_module];
         request.recipe.tasks[0].action_kind = RecipeActionKindV1::PressureCook;
@@ -879,7 +1021,10 @@ mod tests {
 
         let mut request = pressure_fixture_request();
         request.modules[0].pressure_safety = None;
-        assert_eq!(disposition(&request), KitchenCapabilityDispositionV1::Blocked);
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Blocked
+        );
     }
 
     #[test]
