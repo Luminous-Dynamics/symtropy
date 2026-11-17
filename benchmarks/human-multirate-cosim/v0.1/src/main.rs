@@ -1,4 +1,6 @@
-use human_multirate_cosim::{AdaptiveConfig, Method, Scenario, simulate, simulate_adaptive_conservative_flux};
+use human_multirate_cosim::{
+    AdaptiveConfig, Method, Scenario, simulate, simulate_adaptive_conservative_flux,
+};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let scenarios = [
