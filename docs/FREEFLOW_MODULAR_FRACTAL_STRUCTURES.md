@@ -673,3 +673,5 @@ Two new work programmes turn spatial expression and lifecycle assembly into test
 - [Issue #5818](https://github.com/Luminous-Dynamics/symtropy/issues/5818) defines grasp/approach/align/insert/lock/verify/inspect/release contracts, assembly task graphs, bounded pose-error negative controls and repair/replacement benchmarks. NASA ARMADAS is an existing baseline, so the novelty hypothesis is a richer interface/lifecycle grammar, not robotic assembly by itself.
 
 Both are research plans. No occupant studies, physical mockups or robotic assembly trials have yet been performed.
+
+The beam-element test suite has been expanded to axial extension and torsional rotation, completing the four basic elementary response fixtures (axial, torsion, both principal bending planes). The assembled frame suite checks a shared six-DOF elbow joint and force/moment/energy balance. All remain authored tests, not current-head passes.
