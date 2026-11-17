@@ -17,7 +17,7 @@ const REQUIRED_DIMENSIONS: [&str; 7] = [
     "service_jurisdictions",
 ];
 
-const REQUIRED_CONTROLS: [&str; 18] = [
+const REQUIRED_CONTROLS: [&str; 20] = [
     "proposal_as_law",
     "wrong_destination_market",
     "wrong_product_category",
@@ -36,6 +36,8 @@ const REQUIRED_CONTROLS: [&str; 18] = [
     "obligation_dimension_mismatch",
     "supplier_site_jurisdiction_omitted",
     "transformation_jurisdiction_missing",
+    "jurisdiction_level_mismatch",
+    "translation_status_without_artifact",
 ];
 
 fn object<'a>(value: &'a Value, path: &str) -> Result<&'a serde_json::Map<String, Value>, String> {
@@ -495,6 +497,7 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, CoreIdenti
             jurisdiction,
             &format!("{path}.deployment_context"),
         )?;
+        require_string(obligation, "jurisdiction_level", &opath, "synthetic")?;
         require_string(obligation, "source_status", &opath, "synthetic_fixture")?;
         require_string(obligation, "disposition", &opath, "unknown")?;
         require_string(obligation, "reviewer_status", &opath, "not_reviewed")?;
@@ -531,6 +534,23 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, CoreIdenti
             &format!("{opath}.source"),
             "undetermined",
         )?;
+        require_string(
+            source,
+            "translation_status",
+            &format!("{opath}.source"),
+            "unknown",
+        )?;
+        require_string(
+            source,
+            "translation_language",
+            &format!("{opath}.source"),
+            "undetermined",
+        )?;
+        if !field(source, "translation_artifact_ref", &format!("{opath}.source"))?.is_null() {
+            return Err(format!(
+                "{opath}.source.translation_artifact_ref: synthetic fixture cannot claim a real translation artifact"
+            ));
+        }
         for date_key in [
             "publication_date",
             "entry_into_force_date",
@@ -884,6 +904,26 @@ mod tests {
     }
 
     #[test]
+    fn rejects_jurisdiction_level_promotion_in_synthetic_corpus() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][0]["obligations"][0]["jurisdiction_level"] =
+            Value::String("national".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_translation_claim_without_translation_artifact() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][0]["obligations"][0]["source"]["translation_status"] =
+            Value::String("official_translation".to_owned());
+        fixture["profiles"][0]["obligations"][0]["source"]["translation_language"] =
+            Value::String("en".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
     fn rejects_duplicate_jurisdiction_in_one_dimension() {
         let mut fixture = fixture_value();
         let first =
@@ -940,7 +980,7 @@ mod tests {
     fn accepts_frozen_synthetic_corpus() {
         let report = audit_corpus(FIXTURE).expect("synthetic corpus is structurally valid");
         assert_eq!(report["profile_count"], 4);
-        assert_eq!(report["negative_control_count"], 18);
+        assert_eq!(report["negative_control_count"], 20);
         assert_eq!(report["production_authorization"], false);
         assert_eq!(report["legal_or_market_approval"], false);
     }
