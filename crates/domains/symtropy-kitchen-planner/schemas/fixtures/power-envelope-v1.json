@@ -177,6 +177,52 @@
           }
         ]
       }
+    },
+    {
+      "fixture_id": "background-load-above-continuous-limit-rejected",
+      "expected_input_valid": false,
+      "expected_strategy": "none",
+      "expected_schedule_valid": false,
+      "rationale": "Background load is continuous, so it cannot consume the short-duration surge allowance. The runtime must reject it if it exceeds the continuous limit, even when it remains below the surge peak limit.",
+      "input": {
+        "schema_version": 1,
+        "plan": {
+          "schema_version": 1,
+          "plan_id": "fixture-background-over-continuous",
+          "tasks": [
+            {
+              "task_id": "manual",
+              "duration_ms": 10,
+              "resource_ids": [
+                "counter"
+              ],
+              "dependencies": [],
+              "earliest_start_ms": null,
+              "latest_finish_ms": null
+            }
+          ]
+        },
+        "envelope": {
+          "continuous_real_power_limit_w": 1000,
+          "surge_real_power_limit_w": 1500,
+          "max_surge_duration_ms": 500,
+          "background_real_power_w": 1100
+        },
+        "task_profiles": [
+          {
+            "task_id": "manual",
+            "source_ref": "fixture:synthetic:manual-zero",
+            "evidence_class": "simulated",
+            "segments": [
+              {
+                "start_offset_ms": 0,
+                "end_offset_ms": 10,
+                "real_power_w": 0
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }
