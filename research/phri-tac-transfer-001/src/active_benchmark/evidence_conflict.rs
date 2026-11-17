@@ -495,6 +495,190 @@ pub fn assess_evidence_fusion(request: &EvidenceFusionRequest) -> EvidenceFusion
     report
 }
 
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct EvidenceConflictCampaignReport {
+    pub first_seed: u64,
+    pub replicate_count: usize,
+    pub total_scenarios: usize,
+    pub independent_agreement_safe_count: usize,
+    pub high_conflict_abstention_count: usize,
+    pub high_conflict_dempster_comparator_count: usize,
+    pub shared_common_cause_rejection_count: usize,
+    pub asynchronous_pair_rejection_count: usize,
+    pub mean_high_conflict_k: f64,
+    pub claim_class: &'static str,
+}
+
+fn campaign_random(state: &mut u64) -> f64 {
+    let mut value = *state;
+    value ^= value << 13;
+    value ^= value >> 7;
+    value ^= value << 17;
+    *state = value;
+    (value >> 11) as f64 / ((1_u64 << 53) as f64)
+}
+
+fn campaign_source(
+    source_id: &str,
+    modality: &str,
+    state_index: usize,
+    confidence: f64,
+    timestamp_ns: u64,
+    causal_group_id: &str,
+) -> ModalityEvidence {
+    let mut singleton = [0.0; CONTACT_STATE_COUNT];
+    singleton[state_index] = confidence;
+    ModalityEvidence {
+        source_id: source_id.to_owned(),
+        modality: modality.to_owned(),
+        interaction_event_id: "event:conflict-campaign".to_owned(),
+        raw_observation_digest: format!("sha256:campaign-raw-{source_id}"),
+        sample_identity: format!("sample-{source_id}"),
+        clock_domain: format!("clock-{source_id}"),
+        event_timestamp_ns: timestamp_ns,
+        timestamp_uncertainty_ns: 100,
+        sensor_article_digest: format!("sha256:campaign-article-{source_id}"),
+        readout_chain_digest: format!("sha256:campaign-readout-{source_id}"),
+        body_context_digest: "sha256:campaign-body".to_owned(),
+        operating_envelope_cell_id: format!("cell-{source_id}"),
+        causal_group_id: causal_group_id.to_owned(),
+        reference_ancestry_receipt_id: format!("receipt:campaign-ancestry-{source_id}"),
+        channel_qualified: true,
+        observable: true,
+        saturated: false,
+        mass: MassAssignment {
+            singleton,
+            ignorance: 1.0 - confidence,
+        },
+    }
+}
+
+fn campaign_attestation(
+    left: &ModalityEvidence,
+    right: &ModalityEvidence,
+) -> PairIndependenceAttestation {
+    let (left, right) = ordered_pair(left, right);
+    PairIndependenceAttestation {
+        attestation_id: "attestation:campaign-pair".to_owned(),
+        interaction_event_id: "event:conflict-campaign".to_owned(),
+        left_source_id: left.source_id.clone(),
+        right_source_id: right.source_id.clone(),
+        left_observation_digest: left.raw_observation_digest.clone(),
+        right_observation_digest: right.raw_observation_digest.clone(),
+        left_ancestry_receipt_id: left.reference_ancestry_receipt_id.clone(),
+        right_ancestry_receipt_id: right.reference_ancestry_receipt_id.clone(),
+        common_cause_analysis_receipt_id: "receipt:campaign-cca".to_owned(),
+        verifier_receipt_id: "receipt:campaign-verifier".to_owned(),
+        disposition: EvidenceIndependenceDisposition::IndependentlyVerified,
+    }
+}
+
+fn campaign_request(
+    left: ModalityEvidence,
+    right: ModalityEvidence,
+    maximum_pairwise_time_skew_ns: u64,
+) -> EvidenceFusionRequest {
+    let proof = campaign_attestation(&left, &right);
+    EvidenceFusionRequest {
+        interaction_event_id: "event:conflict-campaign".to_owned(),
+        body_context_digest: "sha256:campaign-body".to_owned(),
+        modalities: vec![left, right],
+        pairwise_independence: vec![proof],
+        maximum_pairwise_time_skew_ns,
+        maximum_conflict: 0.25,
+        normalization_epsilon: 1.0e-9,
+    }
+}
+
+/// Four paired 50-seed scenario families: independent agreement, high conflict,
+/// shared common cause and event-time misalignment. This is a software oracle,
+/// not a physical classification-accuracy benchmark.
+pub fn run_evidence_conflict_campaign(
+    first_seed: u64,
+    replicate_count: usize,
+) -> Result<EvidenceConflictCampaignReport, String> {
+    if first_seed == 0 {
+        return Err("evidence conflict campaign seed must be nonzero".to_owned());
+    }
+    if replicate_count < 50 {
+        return Err("evidence conflict campaign requires at least fifty paired replicates".to_owned());
+    }
+    let last_offset = u64::try_from(replicate_count - 1)
+        .map_err(|_| "evidence conflict replicate count exceeds u64".to_owned())?;
+    first_seed
+        .checked_add(last_offset)
+        .ok_or_else(|| "evidence conflict seed range overflows u64".to_owned())?;
+
+    let mut independent_agreement_safe_count = 0;
+    let mut high_conflict_abstention_count = 0;
+    let mut high_conflict_dempster_comparator_count = 0;
+    let mut shared_common_cause_rejection_count = 0;
+    let mut asynchronous_pair_rejection_count = 0;
+    let mut high_conflict_sum = 0.0;
+
+    for replicate in 0..replicate_count {
+        let seed = first_seed + replicate as u64;
+        let mut random = seed.max(1);
+        let confidence_a = 0.80 + 0.15 * campaign_random(&mut random);
+        let confidence_b = 0.80 + 0.15 * campaign_random(&mut random);
+        let event_time = 1_000_000_000 + (replicate as u64 * 10_000);
+
+        let agreement = campaign_request(
+            campaign_source("pressure-a", "pressure", 1, confidence_a, event_time, "pressure-path"),
+            campaign_source("vibration-a", "vibration", 1, confidence_b, event_time + 100, "vibration-path"),
+            1_000_000,
+        );
+        if assess_evidence_fusion(&agreement).disposition == EvidenceFusionDisposition::SafelyCombined {
+            independent_agreement_safe_count += 1;
+        }
+
+        let disagreement = campaign_request(
+            campaign_source("pressure-b", "pressure", 1, confidence_a, event_time, "pressure-path"),
+            campaign_source("vibration-b", "vibration", 3, confidence_b, event_time + 100, "vibration-path"),
+            1_000_000,
+        );
+        let conflict_report = assess_evidence_fusion(&disagreement);
+        if conflict_report.disposition == EvidenceFusionDisposition::ConflictTriggeredAbstention {
+            high_conflict_abstention_count += 1;
+        }
+        if conflict_report.unconditional_dempster_comparator.is_some() {
+            high_conflict_dempster_comparator_count += 1;
+        }
+        high_conflict_sum += conflict_report.maximum_pairwise_conflict.unwrap_or(0.0);
+
+        let shared = campaign_request(
+            campaign_source("pressure-c", "pressure", 1, confidence_a, event_time, "shared-controller-path"),
+            campaign_source("vibration-c", "vibration", 1, confidence_b, event_time + 100, "shared-controller-path"),
+            1_000_000,
+        );
+        if assess_evidence_fusion(&shared).disposition == EvidenceFusionDisposition::DependenceUnresolved {
+            shared_common_cause_rejection_count += 1;
+        }
+
+        let asynchronous = campaign_request(
+            campaign_source("pressure-d", "pressure", 1, confidence_a, event_time, "pressure-path"),
+            campaign_source("vibration-d", "vibration", 1, confidence_b, event_time + 20_000_000, "vibration-path"),
+            1_000_000,
+        );
+        if assess_evidence_fusion(&asynchronous).disposition == EvidenceFusionDisposition::TemporallyUnresolved {
+            asynchronous_pair_rejection_count += 1;
+        }
+    }
+
+    Ok(EvidenceConflictCampaignReport {
+        first_seed,
+        replicate_count,
+        total_scenarios: replicate_count * 4,
+        independent_agreement_safe_count,
+        high_conflict_abstention_count,
+        high_conflict_dempster_comparator_count,
+        shared_common_cause_rejection_count,
+        asynchronous_pair_rejection_count,
+        mean_high_conflict_k: high_conflict_sum / replicate_count as f64,
+        claim_class: "paired_synthetic_evidence_conflict_campaign_only",
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -769,6 +953,26 @@ mod tests {
             report.disposition,
             EvidenceFusionDisposition::InvalidEvidence
         );
+    }
+
+    #[test]
+    fn paired_fifty_seed_campaign_measures_conflict_abstention_and_fault_gates() {
+        let report = run_evidence_conflict_campaign(20261117, 50).expect("campaign");
+        assert_eq!(report.replicate_count, 50);
+        assert_eq!(report.total_scenarios, 200);
+        assert_eq!(report.independent_agreement_safe_count, 50);
+        assert_eq!(report.high_conflict_abstention_count, 50);
+        assert_eq!(report.high_conflict_dempster_comparator_count, 50);
+        assert_eq!(report.shared_common_cause_rejection_count, 50);
+        assert_eq!(report.asynchronous_pair_rejection_count, 50);
+        assert!(report.mean_high_conflict_k > 0.6);
+    }
+
+    #[test]
+    fn conflict_campaign_rejects_weak_or_overflowing_seed_manifests() {
+        assert!(run_evidence_conflict_campaign(1, 49).is_err());
+        assert!(run_evidence_conflict_campaign(0, 50).is_err());
+        assert!(run_evidence_conflict_campaign(u64::MAX, 50).is_err());
     }
 
     #[test]
