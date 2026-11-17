@@ -31,6 +31,7 @@ pub enum DomainError {
     NoPositivePhotonSphere,
     InvalidObserverDomain,
     UnphysicalShadowAngle,
+    OutsideStaticRegion,
 }
 
 fn finite(x: f64) -> bool {
@@ -178,6 +179,54 @@ mod tests {
         let roots = photon_sphere_radii(p).unwrap();
         assert_eq!(roots.len(), 1);
         assert!((roots[0] - 3.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn bach_residuals_vanish_for_mannheim_kazanas_family() {
+        let p = MkParameters { beta: 1.0, gamma: 0.01, kappa: 1e-5 };
+        let coefficients = StaticSphericalCoefficients::from_mk(p);
+        for r in [2.0, 3.0, 8.0, 20.0] {
+            let residual = coefficients.bach_scalar_residuals(r).unwrap();
+            assert!(residual.max_abs() < 2e-13, "r={r}, residual={residual:?}");
+        }
+    }
+
+    #[test]
+    fn bach_residual_negative_control_detects_off_shell_coefficients() {
+        // Perturb c0 away from the vacuum constraint. The residual must not
+        // be silently projected back onto the Mannheim–Kazanas family.
+        let off_shell = StaticSphericalCoefficients {
+            inverse_r: -2.0,
+            constant: 1.1,
+            linear: 0.0,
+            quadratic: 0.0,
+        };
+        let residual = off_shell.bach_scalar_residuals(3.0).unwrap();
+        let expected = 4.0 * (1.1_f64.powi(2) - 1.0) / (3.0 * 3.0_f64.powi(4));
+        assert!(residual.b1_plus_b2.abs() < 1e-14);
+        assert!((residual.b1_minus_b2 - expected).abs() < 1e-14);
+        assert!(residual.max_abs() > 1e-4);
+    }
+
+    #[test]
+    fn bach_off_shell_residual_has_expected_inverse_fourth_power_scaling() {
+        let off_shell = StaticSphericalCoefficients {
+            inverse_r: -2.0,
+            constant: 1.1,
+            linear: 0.0,
+            quadratic: 0.0,
+        };
+        let r1 = off_shell.bach_scalar_residuals(3.0).unwrap().b1_minus_b2;
+        let r2 = off_shell.bach_scalar_residuals(6.0).unwrap().b1_minus_b2;
+        assert!((r1 / r2 - 16.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn bach_residual_requires_static_chart_domain() {
+        let coefficients = StaticSphericalCoefficients {
+            inverse_r: -2.0, constant: 1.0, linear: 0.0, quadratic: 0.0,
+        };
+        assert_eq!(coefficients.bach_scalar_residuals(1.0), Err(DomainError::OutsideStaticRegion));
     }
 
     #[test]
