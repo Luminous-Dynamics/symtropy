@@ -30,8 +30,8 @@
 #![forbid(unsafe_code)]
 
 use super::wrench_consistency::{
-    TaxelGeometry, TaxelGeometrySet, Vec3, WrenchVector, build_wrench_operator,
-    integrate_tactile_field,
+    FieldWrenchReferenceRelationship, TaxelGeometry, TaxelGeometrySet, TractionFieldEstimate,
+    Vec3, WrenchVector, build_wrench_operator, integrate_tactile_field,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
@@ -68,6 +68,7 @@ pub struct GeometryUncertaintyModel {
     pub contact_boundary_digest: String,
     pub transform_digest: String,
     pub sample_identity: String,
+    pub native_observation_set_digest: String,
     pub field_estimate_digest: String,
     pub uncertainty_method_digest: String,
     pub reference_ancestry_receipt_id: String,
@@ -114,7 +115,7 @@ pub struct GeometryWrenchUncertaintyReport {
     pub reference_frame_digest: String,
     pub transform_digest: String,
     pub sample_identity: String,
-    pub field_estimate_digest: String,
+    pub native_observation_set_digest: String,
     pub reasons: Vec<String>,
     pub claim_class: &'static str,
 }
@@ -231,6 +232,7 @@ fn validate_model(
         ("contact_boundary_digest", model.contact_boundary_digest.as_str()),
         ("transform_digest", model.transform_digest.as_str()),
         ("sample_identity", model.sample_identity.as_str()),
+        ("native_observation_set_digest", model.native_observation_set_digest.as_str()),
         ("field_estimate_digest", model.field_estimate_digest.as_str()),
         ("uncertainty_method_digest", model.uncertainty_method_digest.as_str()),
         ("reference_ancestry_receipt_id", model.reference_ancestry_receipt_id.as_str()),
@@ -274,12 +276,18 @@ fn validate_model(
 /// to the integrated wrench. Field and geometry means are unchanged.
 pub fn propagate_geometry_wrench_uncertainty(
     geometry: &TaxelGeometrySet,
-    local_traction_pa: &[f64],
+    field: &TractionFieldEstimate,
     model: &GeometryUncertaintyModel,
 ) -> Result<GeometryWrenchUncertaintyReport, String> {
     let pose_covariance = validate_model(geometry, model)?;
+    if field.estimate_digest != model.field_estimate_digest
+        || field.sample_identity != model.sample_identity
+        || field.native_observation_set_digest != model.native_observation_set_digest
+    {
+        return Err("geometry uncertainty model does not bind the exact field estimate, sample and native observation set".to_owned());
+    }
     let operator = build_wrench_operator(geometry)?;
-    let nominal = integrate_tactile_field(&operator, local_traction_pa)?;
+    let nominal = integrate_tactile_field(&operator, &field.local_traction_pa)?;
 
     let mut local_covariance = [[0.0; 6]; 6];
     for (parameter, (taxel, uncertainty)) in geometry
@@ -400,7 +408,9 @@ pub fn propagate_geometry_wrench_uncertainty(
         .then(|| matrix_add(&local_covariance, &global_covariance));
     let combined_independence = total_geometry_covariance_available
         && model.geometry_to_field_relationship == GeometrySourceRelationship::IndependentlyCharacterized
-        && model.geometry_to_wrench_reference_relationship == GeometrySourceRelationship::IndependentlyCharacterized;
+        && model.geometry_to_wrench_reference_relationship == GeometrySourceRelationship::IndependentlyCharacterized
+        && field.relationship_to_wrench_reference
+            == FieldWrenchReferenceRelationship::IndependentFromWrenchReference;
 
     let mut reasons = Vec::new();
     if !local_covariance_available {
@@ -414,6 +424,11 @@ pub fn propagate_geometry_wrench_uncertainty(
     }
     if model.geometry_to_wrench_reference_relationship != GeometrySourceRelationship::IndependentlyCharacterized {
         reasons.push("geometry and wrench-reference uncertainty share or may share evidence ancestry".to_owned());
+    }
+    if field.relationship_to_wrench_reference
+        != FieldWrenchReferenceRelationship::IndependentFromWrenchReference
+    {
+        reasons.push("the exact traction-field estimate shares or may share wrench-reference/calibration ancestry".to_owned());
     }
 
     let disposition = if combined_independence {
@@ -441,6 +456,7 @@ pub fn propagate_geometry_wrench_uncertainty(
         transform_digest: model.transform_digest.clone(),
         sample_identity: model.sample_identity.clone(),
         field_estimate_digest: model.field_estimate_digest.clone(),
+        native_observation_set_digest: model.native_observation_set_digest.clone(),
         reasons,
         claim_class: "synthetic_geometry_uncertainty_propagation_only",
     })
@@ -539,6 +555,21 @@ mod tests {
         }
     }
 
+    fn field_estimate(local_traction_pa: Vec<f64>) -> TractionFieldEstimate {
+        TractionFieldEstimate {
+            estimate_digest: "sha256:field-estimate".to_owned(),
+            sample_identity: "sample:1".to_owned(),
+            native_observation_set_digest: "sha256:native-observations".to_owned(),
+            standard_uncertainties_pa: vec![1.0; local_traction_pa.len()],
+            local_traction_pa,
+            uncertainty_method_digest: "sha256:field-method".to_owned(),
+            uncertainty_reference_ancestry_receipt_id: "receipt:field-ancestry".to_owned(),
+            uncertainty_common_cause_analysis_receipt_id: "receipt:field-cca".to_owned(),
+            covariance_structure: super::super::wrench_consistency::FieldCovarianceStructure::IndependentDiagonalComponents,
+            relationship_to_wrench_reference: FieldWrenchReferenceRelationship::IndependentFromWrenchReference,
+        }
+    }
+
     fn model(geometry: &TaxelGeometrySet) -> GeometryUncertaintyModel {
         let mut pose_covariance = vec![0.0; 36];
         for axis in 0..6 {
@@ -572,7 +603,7 @@ mod tests {
     #[test]
     fn geometry_uncertainty_produces_local_and_common_pose_covariance() {
         let geometry = geometry();
-        let field = [10_000.0, 1_000.0, 500.0];
+        let field = field_estimate(vec![10_000.0, 1_000.0, 500.0]);
         let report = propagate_geometry_wrench_uncertainty(&geometry, &field, &model(&geometry))
             .expect("geometry uncertainty propagation");
         assert_eq!(report.disposition, GeometryUqDisposition::IndependentGeometryCovarianceAvailable);
@@ -587,7 +618,7 @@ mod tests {
     #[test]
     fn common_translation_affects_fixed_reference_moment_but_not_body_attached_moment() {
         let geometry = geometry();
-        let field = [10_000.0, 0.0, 0.0];
+        let field = field_estimate(vec![10_000.0, 0.0, 0.0]);
         let mut fixed = model(&geometry);
         let mut attached = fixed.clone();
         attached.wrench_origin_attachment = WrenchOriginAttachment::SensorBodyAttached;
@@ -617,7 +648,7 @@ mod tests {
     #[test]
     fn unresolved_cross_source_relationships_do_not_admit_combined_covariance() {
         let geometry = geometry();
-        let field = [10_000.0, 1_000.0, 500.0];
+        let field = field_estimate(vec![10_000.0, 1_000.0, 500.0]);
         let mut evidence = model(&geometry);
         evidence.geometry_to_field_relationship = GeometrySourceRelationship::SharedOrUnknown;
         evidence.geometry_to_wrench_reference_relationship = GeometrySourceRelationship::SharedOrUnknown;
@@ -784,7 +815,7 @@ mod tests {
     #[test]
     fn geometry_context_and_parameter_validation_fail_closed() {
         let geometry = geometry();
-        let field = [10_000.0, 1_000.0, 500.0];
+        let field = field_estimate(vec![10_000.0, 1_000.0, 500.0]);
         let mut wrong_digest = model(&geometry);
         wrong_digest.geometry_digest = "sha256:stale-geometry".to_owned();
         assert!(propagate_geometry_wrench_uncertainty(&geometry, &field, &wrong_digest).is_err());
