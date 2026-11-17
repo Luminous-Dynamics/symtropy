@@ -219,13 +219,28 @@ fn verify_followups(
     } else {
         Some(parse_measurement(baseline_value, &format!("{context}.baseline"))?)
     };
+    let repair = field(scenario, "repair", context)?;
+    let repair_minute = field(repair, "repair_minute", context)?
+        .as_u64()
+        .ok_or_else(|| format!("{context}: repaired run requires repair_minute"))?;
     let mut by_day = std::collections::BTreeMap::<u64, &Value>::new();
+    let mut post_digest_days = std::collections::BTreeMap::<String, Vec<u64>>::new();
     for followup in followups {
         let day = field(followup, "day", context)?
             .as_u64()
             .ok_or_else(|| format!("{context}: follow-up day must be integer"))?;
         if ![7, 30, 90].contains(&day) || by_day.insert(day, followup).is_some() {
             return Err(format!("{context}: duplicate or unsupported follow-up day"));
+        }
+        if let Some(digest) = followup
+            .get("measurement")
+            .and_then(|measurement| measurement.get("raw_record_digest"))
+            .and_then(Value::as_str)
+        {
+            post_digest_days
+                .entry(digest.to_owned())
+                .or_default()
+                .push(day);
         }
     }
 
@@ -255,6 +270,17 @@ fn verify_followups(
                 continue;
             }
         };
+        if post_digest_days
+            .get(&post.raw_digest)
+            .is_some_and(|days| days.len() > 1)
+        {
+            output.push(empty_followup(day, "indeterminate_evidence_scope"));
+            continue;
+        }
+        if pre.end > repair_minute || post.start < repair_minute {
+            output.push(empty_followup(day, "indeterminate_evidence_scope"));
+            continue;
+        }
         if pre.instrument_id != post.instrument_id
             || pre.calibration_ref != post.calibration_ref
             || pre.method_ref != post.method_ref
@@ -338,16 +364,18 @@ fn evaluate_scenario(scenario: &Value, input: &Value) -> Result<Value, String> {
         return Err(format!("{id}: invalid diagnostic action"));
     }
     let pipe_output = localization_level == "pipe" || localization_level == "within_pipe";
-    let pipe_eligible = pipe_output && state_eligible && candidates.len() == 1;
-    let false_safe_pipe_claim = pipe_output && !pipe_eligible;
-    let localization_correct = pipe_eligible
+    let pipe_claim_issued = detected && action != "abstain" && pipe_output;
+    let pipe_eligible = pipe_claim_issued && state_eligible && candidates.len() == 1;
+    let false_safe_pipe_claim = pipe_claim_issued && !pipe_eligible;
+    let localization_correct = detected
+        && pipe_eligible
         && truth_assets.len() == 1
         && candidates[0] == truth_assets[0];
 
-    let true_positive = detected && truth == "leak";
-    let false_positive = detected && truth == "non_leak";
-    let false_negative = !detected && truth == "leak";
     let abstained = action == "abstain";
+    let true_positive = detected && truth == "leak" && !abstained;
+    let false_positive = detected && truth == "non_leak" && !abstained;
+    let false_negative = truth == "leak" && (!detected || abstained);
 
     let inspection = field(scenario, "inspection", id)?;
     let inspection_status = string(inspection, "status", id)?;
@@ -748,9 +776,10 @@ mod tests {
 
     #[test]
     fn seven_day_repair_does_not_claim_thirty_or_ninety_day_persistence() {
-        let (input, _, _) = fixture();
+        let (input, schema, oracle) = fixture();
+        let result = evaluate_all(&input, &schema, &oracle).unwrap();
         let output = result_scenario(
-            &evaluate_all(&input, &fixture().1, &fixture().2).unwrap(),
+            &result,
             "IVU-T1-007-repair-only-seven-day-followup",
         );
         assert_eq!(output["verified_lower_reduction_7d_m3_day"], 6.2);
@@ -760,9 +789,10 @@ mod tests {
 
     #[test]
     fn unmatched_pressure_makes_post_repair_verification_indeterminate() {
-        let (input, _, _) = fixture();
+        let (input, schema, oracle) = fixture();
+        let result = evaluate_all(&input, &schema, &oracle).unwrap();
         let output = result_scenario(
-            &evaluate_all(&input, &fixture().1, &fixture().2).unwrap(),
+            &result,
             "IVU-T1-008-post-pressure-mismatch",
         );
         assert_eq!(
@@ -773,9 +803,10 @@ mod tests {
 
     #[test]
     fn reused_raw_pre_post_record_is_not_verification() {
-        let (input, _, _) = fixture();
+        let (input, schema, oracle) = fixture();
+        let result = evaluate_all(&input, &schema, &oracle).unwrap();
         let output = result_scenario(
-            &evaluate_all(&input, &fixture().1, &fixture().2).unwrap(),
+            &result,
             "IVU-T1-009-replayed-raw-record",
         );
         assert_eq!(
@@ -786,9 +817,10 @@ mod tests {
 
     #[test]
     fn repair_asset_mismatch_does_not_earn_repair_or_verification_credit() {
-        let (input, _, _) = fixture();
+        let (input, schema, oracle) = fixture();
+        let result = evaluate_all(&input, &schema, &oracle).unwrap();
         let output = result_scenario(
-            &evaluate_all(&input, &fixture().1, &fixture().2).unwrap(),
+            &result,
             "IVU-T1-010-repair-asset-mismatch",
         );
         assert_eq!(output["repair_consistent"], false);
@@ -797,9 +829,10 @@ mod tests {
 
     #[test]
     fn zone_localization_and_missing_post_repair_evidence_do_not_create_pipe_or_saving_claims() {
-        let (input, _, _) = fixture();
+        let (input, schema, oracle) = fixture();
+        let result = evaluate_all(&input, &schema, &oracle).unwrap();
         let output = result_scenario(
-            &evaluate_all(&input, &fixture().1, &fixture().2).unwrap(),
+            &result,
             "IVU-T1-011-zone-inspection-no-post-repair-evidence",
         );
         assert_eq!(output["pipe_claim_eligible"], false);
@@ -808,14 +841,59 @@ mod tests {
 
     #[test]
     fn prioritization_without_inspection_has_no_confirmed_repair_or_savings() {
-        let (input, _, _) = fixture();
+        let (input, schema, oracle) = fixture();
+        let result = evaluate_all(&input, &schema, &oracle).unwrap();
         let output = result_scenario(
-            &evaluate_all(&input, &fixture().1, &fixture().2).unwrap(),
+            &result,
             "IVU-T1-012-prioritized-not-inspected",
         );
         assert_eq!(output["inspection_confirmed"], false);
         assert_eq!(output["repair_consistent"], false);
         assert!(output["verified_lower_reduction_7d_m3_day"].is_null());
+    }
+
+    #[test]
+    fn abstained_leak_is_not_counted_as_a_true_positive_or_pipe_claim() {
+        let (input, _, _) = fixture();
+        let mut scenario = input["scenarios"][0].clone();
+        scenario["diagnostic"]["action"] = json!("abstain");
+        let output = evaluate_scenario(&scenario, &input).unwrap();
+        assert_eq!(output["true_positive"], false);
+        assert_eq!(output["false_negative"], true);
+        assert_eq!(output["pipe_claim_eligible"], false);
+        assert_eq!(output["localization_correct"], false);
+    }
+
+    #[test]
+    fn post_repair_followup_before_repair_time_is_not_credited() {
+        let (input, _, _) = fixture();
+        let mut scenario = input["scenarios"][0].clone();
+        scenario["verification"]["followups"][0]["measurement"]["window_start_minute"] =
+            json!(100);
+        scenario["verification"]["followups"][0]["measurement"]["window_end_minute"] =
+            json!(150);
+        let output = evaluate_scenario(&scenario, &input).unwrap();
+        assert_eq!(
+            output["repair_verification"][0]["status"],
+            "indeterminate_evidence_scope"
+        );
+    }
+
+    #[test]
+    fn replayed_post_measurement_between_followup_days_invalidates_both() {
+        let (input, _, _) = fixture();
+        let mut scenario = input["scenarios"][0].clone();
+        scenario["verification"]["followups"][1]["measurement"]["raw_record_digest"] =
+            scenario["verification"]["followups"][0]["measurement"]["raw_record_digest"].clone();
+        let output = evaluate_scenario(&scenario, &input).unwrap();
+        assert_eq!(
+            output["repair_verification"][0]["status"],
+            "indeterminate_evidence_scope"
+        );
+        assert_eq!(
+            output["repair_verification"][1]["status"],
+            "indeterminate_evidence_scope"
+        );
     }
 
     #[test]
