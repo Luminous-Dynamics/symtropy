@@ -71,6 +71,11 @@
       "case_id": "evidence-refs-are-replayable",
       "expected_disposition": "complete_claim_eligible",
       "description": "Accounting report includes sorted and deduplicated evidence source, method and calibration references used by its observed terms."
+    },
+    {
+      "case_id": "integer-outside-json-safe-range",
+      "expected_disposition": "indeterminate",
+      "description": "Input quantity or aggregate outside the exact JSON integer bound is rejected as indeterminate; no rounded or wrapped total is emitted."
     }
   ]
 }
