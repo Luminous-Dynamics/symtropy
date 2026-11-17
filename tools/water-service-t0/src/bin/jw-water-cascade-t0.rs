@@ -341,7 +341,10 @@ fn evaluate_case(case: &Value) -> Result<Value, String> {
             temporal_join = "LOCAL_MEASUREMENT_ONLY";
             disposition = "LOCAL_POINT_OF_USE_SYNTHETIC_ONLY";
         }
-        "claim_ceiling" => disposition = "SYNTHETIC_TO_FIELD_PROMOTION_REJECTED",
+        "claim_ceiling" => {
+            temporal_join = "NOT_JOINED";
+            disposition = "SYNTHETIC_TO_FIELD_PROMOTION_REJECTED";
+        },
         other => return Err(format!("{id}: unknown family '{other}'")),
     }
 
