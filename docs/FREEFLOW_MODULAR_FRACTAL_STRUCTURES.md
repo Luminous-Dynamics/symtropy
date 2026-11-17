@@ -630,3 +630,5 @@ The first matched-mass tetrahedron vs. interior-hub scratch calculation is recor
 ### Robust-design and uncertainty workstream
 
 Opened [issue #5813](https://github.com/Luminous-Dynamics/symtropy/issues/5813) for load, material, connector, tolerance and process uncertainty propagation. The research objective is to optimize robust lifecycle performance, not nominal stiffness alone. The plan separates deterministic interval screening from calibrated probabilistic analysis, then adds robust Pareto search and active selection of simulations/coupons based on value of information. No probability of failure will be inferred from the current deterministic member-removal scenarios.
+
+The isolated beam kernel now also has fixtures for both principal bending planes and all six zero-energy rigid-body modes, in addition to the first cantilever and transformation checks. These are authored numerical verification tests; exact-head CI has not yet executed them.
