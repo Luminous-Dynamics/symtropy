@@ -119,6 +119,11 @@ The drift model is a hard relative-rate bound over the complete source interval,
 
 
 
+
+
+### Direct algorithm comparison
+
+The SAP-only benchmark runs the original full multi-slab algorithm and the hierarchical coarse-to-fine algorithm on the same normalized site-clock trajectories. It alternates timing order, performs warm-up calls, and reports direct/hierarchical p50/p95/p99 plus speedup, direct candidate count, coarse candidate count, refined candidate count and refinement pair-slab work. Exact complete candidate-record equality is asserted before timing is reported. This isolates the cost saved by avoiding a full body/index sweep per slab; it does not include clock-map construction or outer-envelope inflation. The integrated multi-clock-vs-exhaustive benchmark remains a separate end-to-end software path.
 ### Hierarchical coarse-to-fine refinement
 
 The current multi-clock owner no longer rebuilds a full SAP for every requested time slab. It first performs one full-horizon coarse SAP pass, then refines only the emitted pair candidates by rebuilding both bodies' conservative bounds on their common active subintervals.
