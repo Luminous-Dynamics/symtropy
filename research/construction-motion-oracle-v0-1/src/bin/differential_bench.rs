@@ -834,7 +834,7 @@ fn run_relative_time_multibody_benchmarks() {
 
 fn run_relative_time_multibody_broadphase_benchmarks() {
     println!(
-        "relative_time_multibody_broadphase,distribution,body_count,reference_pairs,candidates,pairwise_checks,outer_pruned,unresolved,noncontact_candidates,p50_us,p95_us,p99_us"
+        "relative_time_multibody_broadphase,distribution,body_count,reference_pairs,outer_bodies,candidates,pairwise_checks,outer_pruned,unresolved,noncontact_candidates,p50_us,p95_us,p99_us"
     );
 
     let distributions = [
@@ -911,6 +911,7 @@ fn run_relative_time_multibody_broadphase_benchmarks() {
                 distribution.label(),
                 count,
                 report.reference_pair_count,
+                report.valid_outer_envelope_bodies,
                 report.broadphase_candidate_pairs,
                 report.pairwise_checked_pairs,
                 report.outer_space_time_pruned_pairs,
