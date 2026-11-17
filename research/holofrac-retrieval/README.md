@@ -34,12 +34,12 @@ The CLI emits a CSV summary for 2K/4K/8K/16K dimensions and per-query raw outcom
 - Four partial-context CLI queries per dimension: subject+relation, relation+object, subject+object and a no-answer control.
 - Separate role-aligned and holistic partial-vector ranking metrics, with exact-oracle verified results and abstention.
 - Partial-context query module with role-aligned slot similarity and holistic partial-bundle ranking.
-- Factorized role/value codebook: one bipolar vector per unique typed role/value pair, shared across fact records.
+- Factorized role/value codebook: one bipolar vector per unique typed role/value pair, shared across fact records. Each fact stores five compact codebook indices, and partial retrieval resolves slot vectors through those indices without per-candidate string-key lookups.
 - Exact-oracle verification, false-suggestion accounting and abstention when no exact facts match.
 - Precision@k, recall@k, reciprocal rank and separate timing measures for both partial-retrieval treatments.
 - Stale-index rejection when the exact canonical source graph changes after index construction; insertion-order changes remain equivalent.
 - Rejection of an index queried with a different encoder schema, seed or dimension.
-- Separate bipolar-only, f32-only and dual-view vector-payload estimates, plus unique codebook-entry count, factorized role-slot payload and total retained vector payload.
+- Separate bipolar-only, f32-only and dual-view vector-payload estimates, plus unique codebook-entry count, factorized role-slot payload, duplicated-slot baseline, byte savings, compact index-reference bytes and total retained vector payload.
 
 ## Claim boundaries
 
@@ -47,7 +47,7 @@ This is an initial exact-fact and partial-context retrieval fixture, not a floor
 
 The f32 view is a conversion of the same bipolar code. It does not test learned continuous-HV representations. The current fixture is small and synthetic; its results cannot establish generalization to real buildings or superiority over commercial/academic graph retrieval systems.
 
-The reported memory values are vector-payload estimates, not allocator-inclusive process RSS. The prototype retains one bipolar and one f32 holistic vector per fact, plus a shared bipolar role/value codebook. The role-slot payload therefore scales with the number of unique typed role/value pairs rather than five vectors per fact. Estimates exclude hash-map keys/table overhead, allocator overhead, graph objects and canonical-key strings; the benchmark follow-up will measure actual process RSS. Timings are local microbenchmarks on a small synthetic graph and must not be treated as SOTA results. The index build is separated from query scoring; source freshness is verified before the timed batch.
+The reported memory values are vector-payload estimates, not allocator-inclusive process RSS. The prototype retains one bipolar and one f32 holistic vector per fact, plus a shared bipolar role/value codebook. The role-slot payload therefore scales with the number of unique typed role/value pairs rather than five vectors per fact. Estimates exclude hash-map keys/table overhead, allocator overhead, graph objects and canonical-key strings. Compact per-fact slot-reference bytes are reported separately and alongside vector payload; follow-on capacity workloads must measure actual process RSS. Timings are local microbenchmarks on a small synthetic graph and must not be treated as SOTA results. The index build is separated from query scoring; source freshness is verified before the timed batch.
 
 The source-graph digest and encoder fingerprint are non-cryptographic regression identifiers. They are not security hashes, signatures, or provenance attestations.
 
