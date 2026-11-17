@@ -1,0 +1,187 @@
+{
+  "schema_version": "aero-mission-profile/v1",
+  "profile_id": "synthetic.rural-medical-cargo.001",
+  "revision": 1,
+  "data_origin": "synthetic",
+  "claim_ceiling": "synthetic_architecture_screening",
+  "service": {
+    "service_class": "essential_medical_cargo",
+    "payload": {
+      "description": "Synthetic standard cargo parcel; not patient carriage or clinical cargo qualification",
+      "mass_kg": 2,
+      "volume_m3": 0.012,
+      "temperature_controlled": false,
+      "handling_constraints": [
+        "synthetic_fixture_only"
+      ]
+    },
+    "frequency_per_day": 4,
+    "service_deadline_seconds": 5400,
+    "required_completion_fraction": 0.95
+  },
+  "route": {
+    "origin_site_id": "synthetic_clinic_a",
+    "destination_site_id": "synthetic_district_hub_b",
+    "route_distance_m": 60000,
+    "ground_transfer_origin_seconds": 600,
+    "ground_transfer_destination_seconds": 600
+  },
+  "operating_envelope": {
+    "altitude_m": {
+      "minimum": 900,
+      "maximum": 1800
+    },
+    "density_altitude_m": {
+      "minimum": 900,
+      "maximum": 2600
+    },
+    "temperature_c": {
+      "minimum": 10,
+      "maximum": 38
+    },
+    "wind_speed_mps": {
+      "minimum": 0,
+      "maximum": 10
+    },
+    "gust_speed_mps": {
+      "minimum": 0,
+      "maximum": 15
+    },
+    "visibility_m": {
+      "minimum": 5000,
+      "maximum": 20000
+    },
+    "precipitation": "none",
+    "operating_period": "day",
+    "scenario_set_ref": "synthetic.rural-medical-weather.v1"
+  },
+  "reserve": {
+    "minimum_energy_fraction": 0.2,
+    "minimum_time_seconds": 600,
+    "diversion_required": true,
+    "diversion_site_ids": [
+      "synthetic_recovery_site_c"
+    ]
+  },
+  "infrastructure": {
+    "sites": [
+      {
+        "site_id": "synthetic_clinic_a",
+        "role": "origin",
+        "facility_options": [
+          {
+            "facility_class": "prepared_strip",
+            "availability": "conditional",
+            "turnaround_seconds": 900,
+            "charging_power_kw": null,
+            "charging_energy_source": "not_applicable",
+            "cost_reference": "synthetic.cost.site-a.v1"
+          },
+          {
+            "facility_class": "landing_pad",
+            "availability": "available",
+            "turnaround_seconds": 600,
+            "charging_power_kw": 20,
+            "charging_energy_source": "grid",
+            "cost_reference": "synthetic.cost.site-a.v1"
+          }
+        ]
+      },
+      {
+        "site_id": "synthetic_district_hub_b",
+        "role": "destination",
+        "facility_options": [
+          {
+            "facility_class": "runway",
+            "availability": "available",
+            "turnaround_seconds": 1200,
+            "charging_power_kw": 40,
+            "charging_energy_source": "grid",
+            "cost_reference": "synthetic.cost.site-b.v1"
+          },
+          {
+            "facility_class": "vertiport",
+            "availability": "conditional",
+            "turnaround_seconds": 900,
+            "charging_power_kw": 40,
+            "charging_energy_source": "grid",
+            "cost_reference": "synthetic.cost.site-b.v1"
+          }
+        ]
+      },
+      {
+        "site_id": "synthetic_recovery_site_c",
+        "role": "diversion",
+        "facility_options": [
+          {
+            "facility_class": "open_area",
+            "availability": "unknown",
+            "turnaround_seconds": 0,
+            "charging_power_kw": null,
+            "charging_energy_source": "unknown",
+            "cost_reference": "synthetic.cost.site-c.v1"
+          }
+        ]
+      }
+    ],
+    "charging_policy": {
+      "charging_allowed": true,
+      "maximum_grid_power_kw": 40,
+      "queue_model_ref": "synthetic.charging-queue.v1"
+    }
+  },
+  "ground_comparator": {
+    "mode": "road",
+    "door_to_door_time_seconds": 7200,
+    "cost_basis": "per_mission",
+    "cost_value": null,
+    "energy_mj": null,
+    "emissions_kgco2e": null,
+    "source_ref": "synthetic.ground-baseline.v1"
+  },
+  "candidate_families": [
+    "battery_fixed_wing",
+    "electric_stol",
+    "lift_plus_cruise"
+  ],
+  "hard_constraints": [
+    {
+      "constraint_id": "deadline-001",
+      "metric_key": "door_to_door_time_seconds",
+      "operator": "<=",
+      "limit_value": 5400,
+      "unit": "s",
+      "scope": "service"
+    },
+    {
+      "constraint_id": "reserve-001",
+      "metric_key": "remaining_energy_fraction",
+      "operator": ">=",
+      "limit_value": 0.2,
+      "unit": "fraction",
+      "scope": "energy"
+    },
+    {
+      "constraint_id": "payload-001",
+      "metric_key": "delivered_payload_mass_kg",
+      "operator": ">=",
+      "limit_value": 2,
+      "unit": "kg",
+      "scope": "vehicle"
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "synthetic.profile.fixture.v1",
+      "source_type": "synthetic_fixture",
+      "rights_status": "synthetic"
+    }
+  ],
+  "assumptions": [
+    "All numeric values in this example are synthetic schema fixtures, not measured South African operating conditions.",
+    "The profile compares one common service; candidate-specific facility and infrastructure costs must be included rather than assumed free.",
+    "Unknown diversion-site suitability remains unknown and cannot be treated as a verified emergency landing option.",
+    "No aircraft performance values are supplied in this mission profile."
+  ],
+  "dependency_manifest_ref": "synthetic.dependencies.v1"
+}
