@@ -172,6 +172,11 @@ fn parse_topology(input: &str, route_manifest: &str) -> Result<BTreeMap<String, 
                 "topology-v0.1.tsv: line {line}: invalid qualification validity interval"
             ));
         }
+        if !matches!(row[9].as_str(), "CURRENT" | "STALE" | "UNKNOWN") {
+            return Err(format!(
+                "topology-v0.1.tsv: line {line}: invalid qualification state"
+            ));
+        }
         route.dependencies.push(Dependency {
             fault_domain_id: row[4].clone(),
             qualification_id: row[5].clone(),
@@ -286,14 +291,19 @@ fn route_state(route: &Route, scenario: &Scenario) -> RouteState {
             || scenario
                 .revoked_qualification_ids
                 .contains(&dependency.qualification_id)
-            || dependency.declared_state != "CURRENT"
+            || dependency.declared_state == "STALE"
             || scenario.decision_time_utc < dependency.valid_from_utc
             || scenario.decision_time_utc >= dependency.valid_until_utc
     });
     if known_blocker {
         return RouteState::Blocked;
     }
-    if scenario.unknown_dependency_route_ids.contains(&route.id) {
+    let has_unknown_dependency = scenario.unknown_dependency_route_ids.contains(&route.id)
+        || route
+            .dependencies
+            .iter()
+            .any(|dependency| dependency.declared_state == "UNKNOWN");
+    if has_unknown_dependency {
         return RouteState::Unknown;
     }
     RouteState::Available
@@ -742,5 +752,72 @@ mod tests {
                 .replace("ev1", "ev2")
         );
         assert!(parse_topology(&topology, routes).is_err());
+    }
+}
+
+    #[test]
+    fn unknown_qualification_is_unknown_and_expands_optimistic_bound() {
+        let mut routes = parse_topology(TOPOLOGY, ROUTES).unwrap();
+        let route = routes.get_mut("independent_e").unwrap();
+        route.dependencies[0].declared_state = "UNKNOWN".to_owned();
+        let mut scenario = parse_scenarios(SCENARIOS)
+            .unwrap()
+            .remove("S00")
+            .unwrap();
+        scenario.expected_available_routes.remove("independent_e");
+        scenario.expected_unknown_routes.insert("independent_e".to_owned());
+        scenario.expected_independent_lower_bound = 2;
+        scenario.expected_independent_upper_bound = 3;
+        let result = evaluate_scenario(&routes, &scenario).expect("unknown qualification should remain explicit");
+        assert_eq!(result.independent_lower_bound, 2);
+        assert_eq!(result.independent_upper_bound, 3);
+        assert_eq!(result.unknown_routes, vec!["independent_e".to_owned()]);
+    }
+
+    #[test]
+    fn stale_qualification_blocks_route() {
+        let mut routes = parse_topology(TOPOLOGY, ROUTES).unwrap();
+        let route = routes.get_mut("independent_e").unwrap();
+        route.dependencies[0].declared_state = "STALE".to_owned();
+        let scenario = parse_scenarios(SCENARIOS).unwrap().remove("S00").unwrap();
+        assert_eq!(route_state(route, &scenario), RouteState::Blocked);
+    }
+
+    #[test]
+    fn pairwise_independent_path_count_matches_separate_subset_oracle() {
+        fn mask_set(mask: u8) -> BTreeSet<String> {
+            (0..3)
+                .filter(|bit| mask & (1 << bit) != 0)
+                .map(|bit| format!("fd-{bit}"))
+                .collect()
+        }
+        for a in 0..8 {
+            for b in 0..8 {
+                for c in 0..8 {
+                    for d in 0..8 {
+                        let sets = vec![mask_set(a), mask_set(b), mask_set(c), mask_set(d)];
+                        let mut oracle = 0;
+                        for subset in 0..(1_usize << sets.len()) {
+                            let selected = (0..sets.len())
+                                .filter(|index| subset & (1 << index) != 0)
+                                .collect::<Vec<_>>();
+                            let pairwise_disjoint = selected.iter().enumerate().all(|(i, left)| {
+                                selected.iter().skip(i + 1).all(|right| {
+                                    sets[*left].is_disjoint(&sets[*right])
+                                })
+                            });
+                            if pairwise_disjoint {
+                                oracle = oracle.max(selected.len());
+                            }
+                        }
+                        assert_eq!(
+                            max_pairwise_disjoint(&sets, 0, &BTreeSet::new()),
+                            oracle,
+                            "masks {a},{b},{c},{d}"
+                        );
+                    }
+                }
+            }
+        }
     }
 }
