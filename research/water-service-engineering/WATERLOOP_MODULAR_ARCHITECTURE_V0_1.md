@@ -293,3 +293,16 @@ For any reuse beyond a household boundary, assess GN 6292 Regulation 12 and the 
 - municipal and professional approval path.
 
 **Current disposition:** design basis drafted; no physical hardware, hydraulic sizing, treatment train, water-quality result, regulatory approval or field performance has been qualified.
+
+
+## 15. Luminous platform integration contract
+
+| System | Owns | Must not do |
+|---|---|---|
+| **Symtropy** | Water balance, process/hydraulic models, treatment-train comparisons, design envelopes, physical T1/T2 qualification and benchmark receipts | Claim field performance from synthetic/modelled evidence; self-authorize water-quality release |
+| **Mycelix** | Source/evidence provenance, instrument identity and calibration, measurand/timebase/uncertainty, raw water observations and intended-use assessment under #6100, signed release/maintenance evidence where authorized | Infer microbial safety from proxy sensors; convert an operator assertion or model output into a laboratory result |
+| **Sol-Atlas** | Site/catchment/parcel context, flood/groundwater/soil constraints, land rights, household/service context and post-occupancy outcomes | Treat a site suitability layer as a permit, water-quality result or installation approval |
+| **Symthaea** | Forecasting, anomaly detection, causal diagnosis, treatment optimization hypotheses and uncertainty-aware maintenance suggestions | Override local safety interlocks, release quarantined water, change a qualified treatment profile or actuate potable/non-potable cross-connections |
+| **Luminous platform** | Versioned design packages, traceable requirements, evidence graph, lifecycle cost/service comparisons, accessible operator/resident interfaces and reproducible decision records | Collapse separate evidence classes or allow a dashboard score to replace competent engineering or regulatory authority |
+
+The execution boundary is: Symthaea may propose; Symtropy may simulate and benchmark; Mycelix may attest evidence within its authority; Sol-Atlas may supply site/rights context; a competent responsible person and applicable authority decide whether a design may be installed or operated. Local hard interlocks remain independent of cloud connectivity and model outputs.
