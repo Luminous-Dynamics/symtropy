@@ -1,4 +1,4 @@
-use quadruped_static_support_oracle::{evaluate, ContactPoint, SupportFrame, SupportSnapshot};
+use quadruped_static_support_oracle::{ContactPoint, SupportFrame, SupportSnapshot, evaluate};
 
 fn main() {
     let snapshot = SupportSnapshot {
@@ -24,7 +24,10 @@ fn main() {
     println!("suite=QUADRUPED-STATIC-SUPPORT-ORACLE-001");
     println!("disposition={:?}", result.disposition);
     println!("hull_area_m2={:?}", result.hull_area_m2);
-    println!("nominal_signed_margin_m={:?}", result.nominal_signed_margin_m);
+    println!(
+        "nominal_signed_margin_m={:?}",
+        result.nominal_signed_margin_m
+    );
     println!("conservative_margin_m={:?}", result.conservative_margin_m);
     println!("required_margin_m={}", result.required_margin_m);
     println!("note=analytic static support only; no dynamic stability or actuation authority");
