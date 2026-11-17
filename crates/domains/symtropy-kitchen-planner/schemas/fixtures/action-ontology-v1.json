@@ -1,0 +1,235 @@
+{
+  "schema_version": 1,
+  "ontology_version": 1,
+  "claim_ceiling": "Planning taxonomy only; not a robot trajectory, device command, safety interlock or food-safety assessment.",
+  "mappings": [
+    {
+      "action_kind": "wash",
+      "expected_core": "preparing",
+      "expected_group": "wash",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "peel",
+      "expected_core": "preparing",
+      "expected_group": "peel",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "trim",
+      "expected_core": "preparing",
+      "expected_group": "trim",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "chop",
+      "expected_core": "cutting",
+      "expected_group": "chop",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "slice",
+      "expected_core": "cutting",
+      "expected_group": "slice",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "dice",
+      "expected_core": "cutting",
+      "expected_group": "dice",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "grate",
+      "expected_core": "cutting",
+      "expected_group": "grate",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "shred",
+      "expected_core": "cutting",
+      "expected_group": "shred",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "halve",
+      "expected_core": "cutting",
+      "expected_group": "halve",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "pour",
+      "expected_core": "pouring",
+      "expected_group": "pour",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "drain",
+      "expected_core": "pouring",
+      "expected_group": "drain",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "sprinkle",
+      "expected_core": "pouring",
+      "expected_group": "sprinkle",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "stir",
+      "expected_core": "mixing",
+      "expected_group": "stir",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "add",
+      "expected_core": "mixing",
+      "expected_group": "add",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "combine",
+      "expected_core": "mixing",
+      "expected_group": "combine",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "whisk",
+      "expected_core": "mixing",
+      "expected_group": "whisk",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "mix",
+      "expected_core": "mixing",
+      "expected_group": "mix",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "blend",
+      "expected_core": "mixing",
+      "expected_group": "blend",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "emulsify",
+      "expected_core": "mixing",
+      "expected_group": "emulsify",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "knead",
+      "expected_core": "preparing",
+      "expected_group": "knead",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "pick",
+      "expected_core": "pick_and_place",
+      "expected_group": "pick",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "place",
+      "expected_core": "pick_and_place",
+      "expected_group": "place",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "move",
+      "expected_core": "pick_and_place",
+      "expected_group": "move",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "cover",
+      "expected_core": "pick_and_place",
+      "expected_group": "cover",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "serve",
+      "expected_core": "pick_and_place",
+      "expected_group": "serve",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "saute",
+      "expected_core": "cook_and_cool",
+      "expected_group": "saute",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "cook",
+      "expected_core": "cook_and_cool",
+      "expected_group": "cook",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "heat",
+      "expected_core": "cook_and_cool",
+      "expected_group": "heat",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "freeze",
+      "expected_core": "cook_and_cool",
+      "expected_group": "freeze",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "boil",
+      "expected_core": "cook_and_cool",
+      "expected_group": "boil",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "simmer",
+      "expected_core": "cook_and_cool",
+      "expected_group": "simmer",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "steam",
+      "expected_core": "cook_and_cool",
+      "expected_group": "steam",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "bake",
+      "expected_core": "cook_and_cool",
+      "expected_group": "bake",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "roast",
+      "expected_core": "cook_and_cool",
+      "expected_group": "roast",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "pressure_cook",
+      "expected_core": "cook_and_cool",
+      "expected_group": "pressure_cook",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "cool",
+      "expected_core": "cook_and_cool",
+      "expected_group": "cool",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "rest",
+      "expected_core": "cook_and_cool",
+      "expected_group": "rest",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "other",
+      "expected_core": null,
+      "expected_group": null,
+      "expected_method": "unmapped"
+    }
+  ]
+}
