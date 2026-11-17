@@ -16,7 +16,9 @@ pub struct ReplayError {
 
 impl ReplayError {
     fn new(message: impl Into<String>) -> Self {
-        Self { message: message.into() }
+        Self {
+            message: message.into(),
+        }
     }
 }
 
@@ -244,10 +246,14 @@ fn validate_request(request: &ReplayRequest) -> Result<(), ReplayError> {
         return Err(ReplayError::new("scenario duration must be positive"));
     }
     if request.scenario.channels.is_empty() {
-        return Err(ReplayError::new("scenario must declare at least one diagnostic channel"));
+        return Err(ReplayError::new(
+            "scenario must declare at least one diagnostic channel",
+        ));
     }
     if request.points.is_empty() {
-        return Err(ReplayError::new("at least one evaluation point is required"));
+        return Err(ReplayError::new(
+            "at least one evaluation point is required",
+        ));
     }
 
     let mut channel_ids = BTreeSet::new();
@@ -269,7 +275,10 @@ fn validate_request(request: &ReplayRequest) -> Result<(), ReplayError> {
     for point in &request.points {
         non_empty(&point.point_id, "point_id")?;
         if !point_ids.insert(point.point_id.clone()) {
-            return Err(ReplayError::new(format!("duplicate point_id: {}", point.point_id)));
+            return Err(ReplayError::new(format!(
+                "duplicate point_id: {}",
+                point.point_id
+            )));
         }
         if point.time_ns >= request.scenario.duration_ns {
             return Err(ReplayError::new(format!(
@@ -291,7 +300,10 @@ fn validate_request(request: &ReplayRequest) -> Result<(), ReplayError> {
     for fault in &request.schedule.faults {
         non_empty(&fault.fault_id, "fault_id")?;
         if !fault_ids.insert(fault.fault_id.clone()) {
-            return Err(ReplayError::new(format!("duplicate fault_id: {}", fault.fault_id)));
+            return Err(ReplayError::new(format!(
+                "duplicate fault_id: {}",
+                fault.fault_id
+            )));
         }
         if fault.start_time_ns >= fault.end_time_ns {
             return Err(ReplayError::new(format!(
@@ -359,7 +371,9 @@ fn canonical_scenario(scenario: &ScenarioSpec) -> ScenarioSpec {
 
 fn canonical_schedule(schedule: &FaultSchedule) -> FaultSchedule {
     let mut canonical = schedule.clone();
-    canonical.faults.sort_by(|left, right| left.fault_id.cmp(&right.fault_id));
+    canonical
+        .faults
+        .sort_by(|left, right| left.fault_id.cmp(&right.fault_id));
     canonical
 }
 
@@ -390,7 +404,11 @@ pub fn run_replay(request: &ReplayRequest) -> Result<ReplayReceipt, ReplayError>
     let scenario_sha256 = digest_serialized(&scenario)?;
     let schedule_sha256 = digest_serialized(&schedule)?;
     let evaluation_points_sha256 = digest_serialized(&request.points)?;
-    let channel_ids: Vec<String> = scenario.channels.iter().map(|c| c.channel_id.clone()).collect();
+    let channel_ids: Vec<String> = scenario
+        .channels
+        .iter()
+        .map(|c| c.channel_id.clone())
+        .collect();
 
     let mut summary = ReplaySummary::default();
     let mut rows = Vec::with_capacity(request.points.len());
@@ -449,7 +467,10 @@ pub fn run_replay(request: &ReplayRequest) -> Result<ReplayReceipt, ReplayError>
     };
     let receipt_sha256 = digest_serialized(&body)?;
 
-    Ok(ReplayReceipt { body, receipt_sha256 })
+    Ok(ReplayReceipt {
+        body,
+        receipt_sha256,
+    })
 }
 
 pub fn verify_receipt(receipt: &ReplayReceipt) -> Result<(), ReplayError> {
@@ -473,7 +494,9 @@ pub fn verify_receipt(receipt: &ReplayReceipt) -> Result<(), ReplayError> {
     for row in &receipt.body.rows {
         if let Some(previous) = previous_time {
             if row.time_ns <= previous {
-                return Err(ReplayError::new("receipt rows are not strictly time ordered"));
+                return Err(ReplayError::new(
+                    "receipt rows are not strictly time ordered",
+                ));
             }
         }
         previous_time = Some(row.time_ns);
@@ -490,7 +513,9 @@ pub fn verify_receipt(receipt: &ReplayReceipt) -> Result<(), ReplayError> {
         }
     }
     if recomputed != receipt.body.summary {
-        return Err(ReplayError::new("receipt summary does not match row contents"));
+        return Err(ReplayError::new(
+            "receipt summary does not match row contents",
+        ));
     }
     Ok(())
 }
@@ -500,7 +525,9 @@ pub fn audit_manifest_json(json: &str) -> Result<AuditReport, ReplayError> {
         .map_err(|error| ReplayError::new(format!("manifest parse failed: {error}")))?;
 
     if manifest.schema_version != BENCHMARK_SCHEMA_VERSION {
-        return Err(ReplayError::new("unsupported benchmark manifest schema version"));
+        return Err(ReplayError::new(
+            "unsupported benchmark manifest schema version",
+        ));
     }
     non_empty(&manifest.benchmark_id, "benchmark_id")?;
     if manifest.evidence_class != EVIDENCE_CLASS || manifest.physical_measurements {
@@ -520,7 +547,10 @@ pub fn audit_manifest_json(json: &str) -> Result<AuditReport, ReplayError> {
     for case in &manifest.cases {
         non_empty(&case.case_id, "case_id")?;
         if !case_ids.insert(case.case_id.clone()) {
-            return Err(ReplayError::new(format!("duplicate case_id: {}", case.case_id)));
+            return Err(ReplayError::new(format!(
+                "duplicate case_id: {}",
+                case.case_id
+            )));
         }
         if case.expected_disposition != "COMPLETED"
             && case.expected_disposition != "REFUSED"
@@ -549,7 +579,10 @@ pub fn audit_manifest_json(json: &str) -> Result<AuditReport, ReplayError> {
         });
     }
 
-    let matched_expectations = results.iter().filter(|result| result.matched_expectation).count();
+    let matched_expectations = results
+        .iter()
+        .filter(|result| result.matched_expectation)
+        .count();
     let case_count = results.len();
     Ok(AuditReport {
         benchmark_id: manifest.benchmark_id,
@@ -587,7 +620,8 @@ mod tests {
             },
             schedule: FaultSchedule {
                 schedule_id: "schedule-001".to_owned(),
-                faults: vec![FaultEvent {
+                faults: vec![
+                    FaultEvent {
                     fault_id: "drop-density".to_owned(),
                     target: FaultTarget::Channel {
                         channel_id: "density".to_owned(),
@@ -595,7 +629,8 @@ mod tests {
                     mode: FaultMode::Dropout,
                     start_time_ns: 20,
                     end_time_ns: 40,
-                }, FaultEvent {
+                },
+                    FaultEvent {
                     fault_id: "delay-temperature".to_owned(),
                     target: FaultTarget::Channel {
                         channel_id: "temperature".to_owned(),
@@ -643,17 +678,32 @@ mod tests {
         reordered.scenario.channels.reverse();
         reordered.schedule.faults.reverse();
         let receipt_b = run_replay(&reordered).expect("reordered replay should complete");
-        assert_eq!(receipt_a.body.scenario_sha256, receipt_b.body.scenario_sha256);
-        assert_eq!(receipt_a.body.schedule_sha256, receipt_b.body.schedule_sha256);
+        assert_eq!(
+            receipt_a.body.scenario_sha256,
+            receipt_b.body.scenario_sha256
+        );
+        assert_eq!(
+            receipt_a.body.schedule_sha256,
+            receipt_b.body.schedule_sha256
+        );
         assert_eq!(receipt_a.receipt_sha256, receipt_b.receipt_sha256);
     }
 
     #[test]
     fn fault_intervals_are_half_open() {
         let receipt = run_replay(&base_request()).expect("replay should complete");
-        assert_eq!(receipt.body.rows[0].channels[0].state, ChannelState::SyntheticNominal);
-        assert_eq!(receipt.body.rows[1].channels[0].state, ChannelState::Unavailable);
-        assert_eq!(receipt.body.rows[2].channels[0].state, ChannelState::SyntheticNominal);
+        assert_eq!(
+            receipt.body.rows[0].channels[0].state,
+            ChannelState::SyntheticNominal
+        );
+        assert_eq!(
+            receipt.body.rows[1].channels[0].state,
+            ChannelState::Unavailable
+        );
+        assert_eq!(
+            receipt.body.rows[2].channels[0].state,
+            ChannelState::SyntheticNominal
+        );
     }
 
     #[test]
@@ -671,7 +721,10 @@ mod tests {
         let receipt = run_replay(&request).expect("group fault should replay");
         for row in &receipt.body.rows {
             assert_eq!(row.channels[1].state, ChannelState::Unavailable);
-            assert_eq!(row.channels[1].active_fault_ids, vec!["thomson-system-loss"]);
+            assert_eq!(
+                row.channels[1].active_fault_ids,
+                vec!["thomson-system-loss"]
+            );
         }
     }
 
