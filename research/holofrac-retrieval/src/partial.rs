@@ -232,7 +232,12 @@ impl SpatialIndex {
         for indexed in &self.facts {
             let mut score_sum = 0.0_f64;
             for (slot, query_value) in &query_slots {
-                score_sum += f64::from(query_value.similarity(indexed.encoded.slots.get(*slot))?);
+                let candidate_value = crate::fact_slot_value(graph, &indexed.fact, *slot)?;
+                let candidate_vector = self
+                    .role_codebook
+                    .get(&(*slot, candidate_value))
+                    .ok_or(HoloFracError::MissingCodebookEntry)?;
+                score_sum += f64::from(query_value.similarity(candidate_vector)?);
             }
             let slot_score = (score_sum / query_slots.len() as f64) as f32;
             slot_ranked.push(PartialCandidate {
