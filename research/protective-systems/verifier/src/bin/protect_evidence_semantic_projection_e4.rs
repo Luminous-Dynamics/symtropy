@@ -6,11 +6,12 @@
 //! metadata into provider authentication, rights authorization, model truth,
 //! or physical resilience.
 
-use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
+use serde::de::{self, DeserializeOwned, MapAccess, SeqAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
+use std::fmt;
 use std::process;
 
 const DATACITE: &[u8] = include_bytes!(
@@ -29,6 +30,8 @@ const E1_STATUS: &str = "NOT_EXECUTED";
 const E1_ANALYSIS_ID: &str = "synthetic.analysis.water-continuity.001";
 const CLAIM_CEILING: &str = "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY";
 const TERMINAL_RULE: &str = "E4-OPENLINEAGE-TERMINAL-STATE-001";
+const JCS_MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
+const JCS_ALGORITHM: &str = "RFC8785-JCS-SHA256/1";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -192,14 +195,136 @@ struct ProjectionReport {
     mapping_decision_count: usize,
     class_counts: BTreeMap<String, usize>,
     envelope_sha256: String,
+    semantic_fingerprint_algorithm: String,
+    semantic_fingerprint_sha256: String,
     context_source_receipt: SourceReceipt,
     source_receipts: Vec<SourceReceipt>,
     provider_views: Vec<ProviderNativeView>,
     mapping_decisions: Vec<MappingDecision>,
 }
 
+struct StrictJson(Value);
+
+struct StrictJsonVisitor;
+
+impl<'de> Visitor<'de> for StrictJsonVisitor {
+    type Value = StrictJson;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("a JSON value without duplicate object member names")
+    }
+
+    fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(StrictJson(Value::Bool(value)))
+    }
+
+    fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(StrictJson(Value::Number(value.into())))
+    }
+
+    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(StrictJson(Value::Number(value.into())))
+    }
+
+    fn visit_f64<E>(self, value: f64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        let number = serde_json::Number::from_f64(value)
+            .ok_or_else(|| E::custom("non-finite JSON number is not permitted"))?;
+        Ok(StrictJson(Value::Number(number)))
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(StrictJson(Value::String(value.to_owned())))
+    }
+
+    fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(StrictJson(Value::String(value)))
+    }
+
+    fn visit_unit<E>(self) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(StrictJson(Value::Null))
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(StrictJson(Value::Null))
+    }
+
+    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        StrictJson::deserialize(deserializer)
+    }
+
+    fn visit_seq<A>(self, mut sequence: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let mut items = Vec::new();
+        while let Some(item) = sequence.next_element::<StrictJson>()? {
+            items.push(item.0);
+        }
+        Ok(StrictJson(Value::Array(items)))
+    }
+
+    fn visit_map<A>(self, mut object: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut values = Map::new();
+        while let Some(key) = object.next_key::<String>()? {
+            if values.contains_key(&key) {
+                return Err(de::Error::custom(format!(
+                    "duplicate JSON object member name: {key}"
+                )));
+            }
+            let value = object.next_value::<StrictJson>()?;
+            values.insert(key, value.0);
+        }
+        Ok(StrictJson(Value::Object(values)))
+    }
+}
+
+impl<'de> Deserialize<'de> for StrictJson {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(StrictJsonVisitor)
+    }
+}
+
 fn parse(bytes: &[u8], label: &str) -> Result<Value, String> {
-    serde_json::from_slice(bytes).map_err(|error| format!("{label} JSON invalid: {error}"))
+    let mut deserializer = serde_json::Deserializer::from_slice(bytes);
+    let value = StrictJson::deserialize(&mut deserializer)
+        .map_err(|error| format!("{label} JSON invalid: {error}"))?;
+    deserializer
+        .end()
+        .map_err(|error| format!("{label} JSON has trailing data: {error}"))?;
+    Ok(value.0)
 }
 
 fn required_text<'a>(value: &'a Value, key: &str, path: &str) -> Result<&'a str, String> {
@@ -862,6 +987,104 @@ fn mapping_class_name(class: &MappingClass) -> &'static str {
     }
 }
 
+#[derive(Serialize)]
+struct SemanticSourceReceipt<'a> {
+    provider: &'a str,
+    native_profile: &'a str,
+    source_identity: &'a str,
+    retrieval_mode: &'a str,
+    rights_status: &'a str,
+    permitted_use: &'a str,
+    claim_ceiling: &'a str,
+}
+
+impl<'a> From<&'a SourceReceipt> for SemanticSourceReceipt<'a> {
+    fn from(receipt: &'a SourceReceipt) -> Self {
+        Self {
+            provider: &receipt.provider,
+            native_profile: &receipt.native_profile,
+            source_identity: &receipt.source_identity,
+            retrieval_mode: &receipt.retrieval_mode,
+            rights_status: &receipt.rights_status,
+            permitted_use: &receipt.permitted_use,
+            claim_ceiling: &receipt.claim_ceiling,
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct SemanticFingerprintDocument<'a> {
+    schema_version: &'a str,
+    claim_ceiling: &'a str,
+    context_source: SemanticSourceReceipt<'a>,
+    source_receipts: Vec<SemanticSourceReceipt<'a>>,
+    provider_views: &'a [ProviderNativeView],
+    mapping_decisions: &'a [MappingDecision],
+}
+
+fn validate_jcs_safe_numbers(value: &Value, path: &str) -> Result<(), String> {
+    match value {
+        Value::Number(number) => {
+            if let Some(integer) = number.as_u64() {
+                if integer > JCS_MAX_SAFE_INTEGER {
+                    return Err(format!(
+                        "{path} integer exceeds the RFC 8785 interoperable safe-integer bound"
+                    ));
+                }
+            } else if let Some(integer) = number.as_i64() {
+                if integer.unsigned_abs() > JCS_MAX_SAFE_INTEGER {
+                    return Err(format!(
+                        "{path} integer exceeds the RFC 8785 interoperable safe-integer bound"
+                    ));
+                }
+            } else if let Some(float) = number.as_f64() {
+                if !float.is_finite()
+                    || (float.fract() == 0.0 && float.abs() > JCS_MAX_SAFE_INTEGER as f64)
+                {
+                    return Err(format!(
+                        "{path} floating-point value is outside the E4 JCS-safe numeric profile"
+                    ));
+                }
+            } else {
+                return Err(format!("{path} is not an interoperable JSON number"));
+            }
+        }
+        Value::Array(items) => {
+            for (index, item) in items.iter().enumerate() {
+                validate_jcs_safe_numbers(item, &format!("{path}[{index}]"))?;
+            }
+        }
+        Value::Object(items) => {
+            for (key, item) in items {
+                validate_jcs_safe_numbers(item, &format!("{path}/{key}"))?;
+            }
+        }
+        Value::Null | Value::Bool(_) | Value::String(_) => {}
+    }
+    Ok(())
+}
+
+fn semantic_fingerprint(envelope: &ProjectionEnvelope) -> Result<String, String> {
+    let document = SemanticFingerprintDocument {
+        schema_version: &envelope.schema_version,
+        claim_ceiling: &envelope.claim_ceiling,
+        context_source: SemanticSourceReceipt::from(&envelope.context_source_receipt),
+        source_receipts: envelope
+            .source_receipts
+            .iter()
+            .map(SemanticSourceReceipt::from)
+            .collect(),
+        provider_views: &envelope.provider_views,
+        mapping_decisions: &envelope.mapping_decisions,
+    };
+    let value = serde_json::to_value(&document)
+        .map_err(|error| format!("semantic fingerprint JSON projection failed: {error}"))?;
+    validate_jcs_safe_numbers(&value, "$")?;
+    let canonical = serde_json_canonicalizer::to_vec(&document)
+        .map_err(|error| format!("RFC 8785 canonicalization failed: {error}"))?;
+    Ok(hash(&canonical))
+}
+
 fn build_report() -> Result<ProjectionReport, String> {
     let datacite = parse(DATACITE, "DataCite")?;
     let ogc = parse(OGC, "OGC Records")?;
@@ -872,6 +1095,7 @@ fn build_report() -> Result<ProjectionReport, String> {
     let decoded: ProjectionEnvelope = serde_json::from_slice(&encoded)
         .map_err(|error| format!("semantic projection deserialization failed: {error}"))?;
     let roundtrip_equal = decoded == envelope;
+    let semantic_fingerprint_sha256 = semantic_fingerprint(&envelope)?;
     let mut class_counts = BTreeMap::new();
     for mapping in &envelope.mapping_decisions {
         *class_counts
@@ -894,6 +1118,8 @@ fn build_report() -> Result<ProjectionReport, String> {
         mapping_decision_count: envelope.mapping_decisions.len(),
         class_counts,
         envelope_sha256: hash(&encoded),
+        semantic_fingerprint_algorithm: JCS_ALGORITHM.to_owned(),
+        semantic_fingerprint_sha256,
         context_source_receipt: envelope.context_source_receipt,
         source_receipts: envelope.source_receipts,
         provider_views: envelope.provider_views,
@@ -1400,6 +1626,86 @@ mod tests {
         assert!(report.mapping_decisions.iter().any(|item| {
             item.provider == "OPENLINEAGE" && item.source_path == "/"
         }));
+    }
+
+    #[test]
+    fn strict_parser_rejects_duplicate_json_object_member_names() {
+        let error = parse(br#"{"record":{"id":"first","id":"second"}}"#, "duplicate")
+            .expect_err("duplicate nested object member");
+        assert!(error.contains("duplicate JSON object member name: id"));
+    }
+
+    #[test]
+    fn strict_parser_accepts_unique_objects_and_rejects_trailing_json() {
+        let value = parse(br#"{"a":1,"b":{"c":true}}"#, "unique").expect("unique object");
+        assert_eq!(value["b"]["c"], true);
+        let error = parse(br#"{"a":1} {"b":2}"#, "trailing")
+            .expect_err("trailing JSON document");
+        assert!(error.contains("trailing data"));
+    }
+
+    #[test]
+    fn rfc8785_jcs_matches_the_published_number_and_string_vector() {
+        let input = r#"{"numbers":[333333333.33333329,1E30,4.50,2e-3,0.000000000000000000000000001],"string":"€$\u000f\nA'B\"\\\\\"/","literals":[null,true,false]}"#;
+        let value = parse(input.as_bytes(), "RFC 8785 vector").expect("valid vector");
+        let canonical = serde_json_canonicalizer::to_string(&value).expect("JCS canonicalization");
+        let expected = r#"{"literals":[null,true,false],"numbers":[333333333.3333333,1e+30,4.5,0.002,1e-27],"string":"€$\u000f\nA'B\"\\\\\"/"}"#;
+        assert_eq!(canonical, expected);
+    }
+
+    #[test]
+    fn rfc8785_jcs_uses_utf16_property_order_and_preserves_array_order() {
+        let input = r#"{"€":"euro","\r":"cr","שּׁ":"hebrew","1":"one","😀":"emoji","\u0080":"control","ö":"diaeresis","array":[{"z":1,"a":2},3]}"#;
+        let value = parse(input.as_bytes(), "RFC 8785 UTF-16 vector").expect("valid vector");
+        let canonical = serde_json_canonicalizer::to_string(&value).expect("JCS canonicalization");
+        let expected = r#"{"\r":"cr","1":"one","\u0080":"control","ö":"diaeresis","€":"euro","😀":"emoji","שּׁ":"hebrew","array":[{"a":2,"z":1},3]}"#;
+        assert_eq!(canonical, expected);
+    }
+
+    #[test]
+    fn jcs_profile_rejects_integers_outside_exact_safe_range() {
+        let unsafe_integer = json!({"value": 9_007_199_254_740_992u64});
+        let error = validate_jcs_safe_numbers(&unsafe_integer, "$")
+            .expect_err("unsafe integer must not be fingerprinted");
+        assert!(error.contains("safe-integer bound"));
+        let safe_integer = json!({"value": 9_007_199_254_740_991u64});
+        assert!(validate_jcs_safe_numbers(&safe_integer, "$").is_ok());
+    }
+
+    #[test]
+    fn semantic_fingerprint_ignores_raw_byte_whitespace_and_object_key_order() {
+        let (datacite, ogc, lineage) = parsed_fixtures();
+        let envelope_a = build_envelope(&datacite, &ogc, &lineage).expect("baseline");
+        let compact_datacite = serde_json::to_string(&datacite).expect("compact JSON");
+        let reparsed_datacite = parse(compact_datacite.as_bytes(), "compact DataCite")
+            .expect("parse compact DataCite");
+        let envelope_b = build_envelope_with_source_bytes(
+            &reparsed_datacite,
+            &ogc,
+            &lineage,
+            [compact_datacite.as_bytes(), OGC, OPENLINEAGE],
+        )
+        .expect("reproject compact JSON");
+        assert_eq!(semantic_fingerprint(&envelope_a), semantic_fingerprint(&envelope_b));
+        assert_ne!(
+            envelope_a.source_receipts[0].source_sha256,
+            envelope_b.source_receipts[0].source_sha256
+        );
+    }
+
+    #[test]
+    fn semantic_fingerprint_changes_when_a_provider_meaning_changes() {
+        let (datacite, ogc, lineage) = parsed_fixtures();
+        let baseline = build_envelope(&datacite, &ogc, &lineage).expect("baseline");
+        let mut changed = datacite.clone();
+        changed["data"]["attributes"]["titles"][0]["title"] =
+            Value::String("Semantically changed title".into());
+        let changed = build_envelope(&changed, &ogc, &lineage).expect("changed projection");
+        assert_ne!(
+            semantic_fingerprint(&baseline),
+            semantic_fingerprint(&changed),
+            "semantic changes must change the JCS fingerprint"
+        );
     }
 
     #[test]
