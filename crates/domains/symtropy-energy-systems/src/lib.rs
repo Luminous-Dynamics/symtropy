@@ -30,23 +30,23 @@ pub use fuel::{
     FuelRecordError,
 };
 pub use module_contract::{
-    AcPort, CompatibilityAssessment, CompatibilityReason, CompatibilityStatus,
-    ConnectionEnvelope, DcPolarity, DcPort, ElectricalInterface, ElectricalInterfaceKind,
-    EvidenceClaim, EvidencePolicy, ModuleClass, ModuleEvidenceClass, ModuleIdentity,
-    ModulePort, PortContractError, PortDirection, PowerModule, QuantityRange,
+    AcPort, CompatibilityAssessment, CompatibilityReason, CompatibilityStatus, ConnectionEnvelope,
+    DcPolarity, DcPort, ElectricalInterface, ElectricalInterfaceKind, EvidenceClaim,
+    EvidencePolicy, ModuleClass, ModuleEvidenceClass, ModuleIdentity, ModulePort,
+    PortContractError, PortDirection, PowerModule, QuantityRange,
 };
 pub use service_graph::{
     GraphEvidence, GraphEvidenceState, GraphMaturity, GraphRevision, LoadCoverageStatus,
-    LoadSourceCoverage, ServiceEdge, ServiceEdgeKind, ServiceGraph, ServiceGraphError,
-    ServiceNode, ServiceNodeKind, SourceMapAssessment, SourcePath, StaleModuleConfiguration,
-    PathWitnessPolicy,
+    LoadSourceCoverage, PathWitnessPolicy, ServiceEdge, ServiceEdgeKind, ServiceGraph,
+    ServiceGraphError, ServiceNode, ServiceNodeKind, SourceMapAssessment, SourcePath,
+    StaleModuleConfiguration,
 };
 pub use transport_contract::{
-    assess_matched_service, ComparisonField, ConversionStage, EnergyCarrier,
-    MatchedServiceAssessment, MatchedServiceComparisonStatus, MatchedServiceReason,
-    StorageState, TransportContractError, TransportMechanism, TransportMedium,
-    TransportPathCandidate, TransportPathContract, TransportPrimitive,
-    TransportPrimitiveSpec, UsefulServiceContract, UsefulServiceKind, UsefulServiceSpec,
+    ComparisonField, ConversionStage, EnergyCarrier, MatchedServiceAssessment,
+    MatchedServiceComparisonStatus, MatchedServiceReason, StorageState, TransportContractError,
+    TransportMechanism, TransportMedium, TransportPathCandidate, TransportPathContract,
+    TransportPrimitive, TransportPrimitiveSpec, UsefulServiceContract, UsefulServiceKind,
+    UsefulServiceSpec, assess_matched_service,
 };
 
 /// Errors returned when an input is non-finite, physically out of range, or
