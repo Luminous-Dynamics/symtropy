@@ -1,0 +1,498 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/kitchen-workcell-benchmark-v0.1.schema.json",
+  "title": "Kitchen Workcell Benchmark Manifest V0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "status",
+    "claim_ceiling",
+    "comparators",
+    "tasks",
+    "metrics",
+    "target_hypotheses",
+    "runs",
+    "power_scheduler",
+    "planner_baselines"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,100}$"
+    },
+    "status": {
+      "enum": [
+        "draft_not_run",
+        "preregistered",
+        "data_collection",
+        "analysis",
+        "qualified",
+        "withdrawn"
+      ]
+    },
+    "claim_ceiling": {
+      "const": "No physical performance, food-safety, conformity, sensory or lifecycle claim is established."
+    },
+    "preregistration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_revision",
+        "frozen_before_trials"
+      ],
+      "properties": {
+        "protocol_revision": {
+          "type": "string"
+        },
+        "frozen_before_trials": {
+          "type": "boolean"
+        },
+        "frozen_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "reviewer_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "comparators": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "comparator_id",
+          "domain",
+          "manufacturer",
+          "model",
+          "market_status",
+          "exact_revision_status"
+        ],
+        "properties": {
+          "comparator_id": {
+            "type": "string"
+          },
+          "domain": {
+            "enum": [
+              "pressure_multicooker",
+              "food_processor",
+              "integrated_cooking_machine",
+              "stovetop_pressure_cooker"
+            ]
+          },
+          "manufacturer": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "sku": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "market_status": {
+            "enum": [
+              "candidate_not_acquired",
+              "available_verified",
+              "unavailable",
+              "discontinued",
+              "unknown"
+            ]
+          },
+          "exact_revision_status": {
+            "enum": [
+              "unverified",
+              "verified",
+              "not_applicable"
+            ]
+          },
+          "source_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "task_id",
+          "domain",
+          "operation",
+          "input_manifest_required",
+          "primary_metrics"
+        ],
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "domain": {
+            "enum": [
+              "thermal",
+              "processing",
+              "workflow",
+              "cleaning",
+              "lifecycle",
+              "safety"
+            ]
+          },
+          "operation": {
+            "type": "string"
+          },
+          "input_manifest_required": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "primary_metrics": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "safety_boundary": {
+            "type": "string"
+          },
+          "control_condition": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric_id",
+          "unit",
+          "denominator",
+          "method",
+          "evidence_class"
+        ],
+        "properties": {
+          "metric_id": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "denominator": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "evidence_class": {
+            "enum": [
+              "measured",
+              "assayed",
+              "declared",
+              "modelled",
+              "simulated"
+            ]
+          },
+          "target_ratio_max": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "target_ratio_min": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "non_inferiority_margin": {
+            "type": "number"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "target_hypotheses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "hypothesis_id",
+          "metric_id",
+          "target",
+          "status"
+        ],
+        "properties": {
+          "hypothesis_id": {
+            "type": "string"
+          },
+          "metric_id": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "status": {
+            "const": "unverified_hypothesis"
+          },
+          "stop_conditions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "instruments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "instrument_id",
+          "measurement"
+        ],
+        "properties": {
+          "instrument_id": {
+            "type": "string"
+          },
+          "measurement": {
+            "type": "string"
+          },
+          "calibration_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "not_selected",
+              "selected_unverified",
+              "calibration_verified",
+              "out_of_calibration"
+            ]
+          }
+        }
+      }
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "run_id",
+          "status",
+          "comparator_id",
+          "task_id",
+          "input_digest"
+        ],
+        "properties": {
+          "run_id": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "planned",
+              "not_started",
+              "in_progress",
+              "completed",
+              "failed",
+              "aborted",
+              "unknown"
+            ]
+          },
+          "comparator_id": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "input_digest": {
+            "type": "string"
+          },
+          "raw_data_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "failure_codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "accepted_output_mass_g": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "energy_wh": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "operator_interventions": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "review_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "power_scheduler": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "implementation_ref",
+        "issue_ref",
+        "schema_ref",
+        "fixtures_ref",
+        "unit",
+        "claim_boundary"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "linked_unrun",
+            "schema_checked",
+            "code_checked",
+            "qualified"
+          ]
+        },
+        "implementation_ref": {
+          "type": "string",
+          "format": "uri"
+        },
+        "issue_ref": {
+          "type": "string",
+          "format": "uri"
+        },
+        "schema_ref": {
+          "type": "string",
+          "format": "uri"
+        },
+        "fixtures_ref": {
+          "type": "string",
+          "format": "uri"
+        },
+        "unit": {
+          "const": "W_real"
+        },
+        "claim_boundary": {
+          "type": "string",
+          "minLength": 10
+        }
+      }
+    },
+    "planner_baselines": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "baseline_id",
+          "class",
+          "status",
+          "description",
+          "evaluation_role"
+        ],
+        "properties": {
+          "baseline_id": {
+            "type": "string"
+          },
+          "class": {
+            "enum": [
+              "human_practitioner",
+              "serial_greedy",
+              "resource_greedy",
+              "power_constrained",
+              "recipe2plan_external",
+              "recipe_grounding_external",
+              "exact_solver_lower_bound",
+              "action_ontology_external",
+              "kitchen_r_external",
+              "behavior_1k_external",
+              "safevla_bench_external"
+            ]
+          },
+          "status": {
+            "enum": [
+              "existing_local",
+              "proposed_not_implemented",
+              "external_public_benchmark",
+              "not_acquired"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "implementation_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "dataset_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "evaluation_role": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
