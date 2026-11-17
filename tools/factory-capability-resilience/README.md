@@ -28,7 +28,7 @@ Consequently, five nominal paths provide only three simultaneously pairwise faul
 
 - `topology-v0.1.tsv`: the 43 mandatory dependency rows for the five candidate paths.
 - `routes-v0.1.tsv`: expected mandatory dependency count and route class for each candidate path.
-- `scenarios-v0.1.tsv`: 14 deterministic scenario rows, including shared-root failures, a single qualification revocation, an unknown dependency remainder, a compound failure, a no-route case, a failed first-article gate, and paired hidden-future controls.
+- `scenarios-v0.1.tsv`: 16 deterministic scenario rows, including shared-root failures, a single qualification revocation, an unknown dependency remainder, a compound failure, a no-route case, a failed and unknown first-article gates, unknown-only-route and paired hidden-future controls.
 - `policy-arms-v0.1.tsv`: baseline and oracle definitions.
 - `Cargo.toml`, `src/lib.rs`, `src/main.rs`: dependency-free route evaluator, interval calculation, paired-future fingerprint check, and TSV CLI.
 - `.github/workflows/factory-capability-resilience.yml`: focused Rust formatting, Clippy, unit-test and deterministic replay gate.
@@ -43,7 +43,7 @@ For each candidate path:
 2. A path is `AVAILABLE` only when its dependency inventory is complete, every referenced qualification is current and applicable at the decision epoch, and none of its fault domains is failed in the scenario.
 3. A path with any declared unknown dependency remainder is `UNKNOWN`, not available and not silently dropped from the inventory.
 4. A path with a failed fault domain or revoked qualification is `BLOCKED`.
-5. A synthetic accepted output is possible iff at least one complete, current path remains available and the scenario's separate first-article/independent-inspection gate is `PASS`. A feasible route is not an accepted product.
+5. Product disposition is four-valued: `ACCEPTED` (at least one complete route plus PASS first-article gate), `REJECTED` (a known available route plus FAIL first-article gate), `UNKNOWN` (only unknown routes remain, or acceptance evidence is unknown), or `BLOCKED` (no available or unknown route remains). A feasible route is not an accepted product.
 6. Report an **independent-path interval**, not an unjustified point estimate, when route inventory is incomplete. The lower bound is the largest pairwise-disjoint subset of fully known `AVAILABLE` paths. The optimistic upper bound also includes `UNKNOWN` paths, assuming they are available and their unknown remainder introduces no additional conflicts. The upper bound is therefore optimistic; the lower bound is conservative. If both bounds are equal, the unknown path does not change this particular count, but it remains `UNKNOWN` and must not be admitted.
 7. With a complete inventory, lower and upper bounds coincide and equal the maximum subset of available routes whose declared fault-domain sets are pairwise disjoint. It is computed by exhaustive subset enumeration on this tiny fixture. It is not a failure probability, reliability estimate, or generalized max-flow result.
 
@@ -76,7 +76,7 @@ The interval expresses uncertainty in capability inventory; it does not represen
 | S11/S12 paired hidden futures | different post-event path sets | [2, 2] each | decision before event must be identical |
 | S13 first-article inspection rejected | all five paths available | [3, 3] | route exists but no product is accepted |
 
-The machine-readable TSV is authoritative for scenario IDs, injected events, acceptance-gate state, expected route dispositions, lower/upper independence bounds and expected output disposition. The table is explanatory.
+The machine-readable TSV is authoritative for scenario IDs, injected events, acceptance-gate state, expected route dispositions, lower/upper independence bounds and expected four-valued output disposition. The table is explanatory.
 
 Run the focused evaluator with:
 
@@ -95,7 +95,7 @@ cargo run --quiet --manifest-path tools/factory-capability-resilience/Cargo.toml
 - When inventory is incomplete, emit lower/upper independent-path bounds; never promote the optimistic upper bound to a verified count.
 - An unknown path must remain excluded from the admissible set, even when the lower and upper independence bounds happen to coincide.
 - Distinguish `AVAILABLE`, `BLOCKED`, and `UNKNOWN`; do not collapse them into a boolean.
-- For paired hidden-future scenarios S11/S12, require the same pre-event action/decision digest because the observable prefix is identical and the future event is not visible.
+- For paired hidden-future scenarios S11/S12, require the same pre-event action/decision digest because the observable prefix is identical and the future event is not visible. The pre-decision fingerprint excludes post-decision route outcomes and first-article acceptance results.
 - Keep product inspection/acceptance and genealogy as separate hard gates. S13 proves that a set of valid routes can still produce no accepted output when first-article inspection fails.
 - Never infer a probability from the 13 scenario rows.
 
@@ -127,7 +127,7 @@ Report separately:
 - WIP/genealogy, inspection, and blocked-output disposition;
 - runtime, memory, solver calls, and explicit `INCONCLUSIVE` outcomes.
 
-Hard gates: zero invalid route admissions; zero false independence claims for declared shared roots; no incomplete inventory treated as complete; a failed or unknown first-article gate cannot yield `ACCEPTED`; exact agreement with the exhaustive oracle on all supported tiny fixtures; 100% non-anticipativity on the paired hidden-future controls; explicit disposition for every blocked or unknown path.
+Hard gates: zero invalid route admissions; zero false independence claims for declared shared roots; no incomplete inventory treated as complete; `REJECTED`, `UNKNOWN` and `BLOCKED` cannot be collapsed into `ACCEPTED`; exact agreement with the exhaustive oracle on all supported tiny fixtures; 100% non-anticipativity on the paired hidden-future controls; explicit disposition for every blocked or unknown path.
 
 Performance targets are hypotheses only. Establish a baseline before preregistering percentage improvements. Do not combine correctness gates and performance metrics into one weighted score.
 
