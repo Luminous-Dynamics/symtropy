@@ -699,7 +699,12 @@ mod tests {
         let report = time_swept_capsule_broadphase(
             &[
                 body("a", CapsuleMotionSpan {
-                    capsule_at_start: Capsule::new(p(0.0, -1.0, 0.0), p(0.0, 1.0, 0.0), 0.5).unwrap(),
+                    capsule_at_start: Capsule::new(
+                        p(0.0, -1.0, 0.0),
+                        p(0.0, 1.0, 0.0),
+                        0.5,
+                    )
+                    .unwrap(),
                     translation: p(0.0, 100.0, 0.0),
                     start_ms: 0,
                     end_ms: 100,
@@ -709,7 +714,12 @@ mod tests {
                     clock_uncertainty_ms: 0,
                 }),
                 body("b", CapsuleMotionSpan {
-                    capsule_at_start: Capsule::new(p(0.0, 0.0, -1.0), p(0.0, 0.0, 1.0), 0.5).unwrap(),
+                    capsule_at_start: Capsule::new(
+                        p(0.0, 0.0, -1.0),
+                        p(0.0, 0.0, 1.0),
+                        0.5,
+                    )
+                    .unwrap(),
                     translation: p(0.0, -100.0, 0.0),
                     start_ms: 0,
                     end_ms: 100,
@@ -722,7 +732,12 @@ mod tests {
             4,
         )
         .unwrap();
-        assert!(report.slabs.iter().all(|slab| slab.sweep_axis != SweepAxis::X));
+        assert!(
+            report
+                .slabs
+                .iter()
+                .all(|slab| slab.sweep_axis != SweepAxis::X)
+        );
     }
 
     #[test]
@@ -764,15 +779,21 @@ mod tests {
         bodies: &[TimedCapsuleBody],
         subdivision_count: u32,
     ) -> Vec<(String, String)> {
-        let horizon_start = bodies.iter().map(|body| body.motion.start_ms).min().unwrap();
+        let horizon_start = bodies
+            .iter()
+            .map(|body| body.motion.start_ms)
+            .min()
+            .unwrap();
         let horizon_end = bodies.iter().map(|body| body.motion.end_ms).max().unwrap();
         let duration = horizon_end - horizon_start;
         let mut pairs = BTreeSet::new();
         for left in 0..bodies.len() {
             for right in (left + 1)..bodies.len() {
                 for slab in 0..subdivision_count {
-                    let slab_start = slab_boundary(horizon_start, duration, slab, subdivision_count).unwrap();
-                    let slab_end = slab_boundary(horizon_start, duration, slab + 1, subdivision_count).unwrap();
+                    let slab_start =
+                        slab_boundary(horizon_start, duration, slab, subdivision_count).unwrap();
+                    let slab_end =
+                        slab_boundary(horizon_start, duration, slab + 1, subdivision_count).unwrap();
                     if slab_start >= slab_end {
                         continue;
                     }
@@ -785,12 +806,18 @@ mod tests {
                     if overlap_start >= overlap_end {
                         continue;
                     }
-                    let left_bounds = swept_bounds(&bodies[left].motion, overlap_start, overlap_end).unwrap();
-                    let right_bounds = swept_bounds(&bodies[right].motion, overlap_start, overlap_end).unwrap();
+                    let left_bounds =
+                        swept_bounds(&bodies[left].motion, overlap_start, overlap_end).unwrap();
+                    let right_bounds =
+                        swept_bounds(&bodies[right].motion, overlap_start, overlap_end).unwrap();
                     if left_bounds.overlaps(right_bounds) {
                         let a = &bodies[left].body_id;
                         let b = &bodies[right].body_id;
-                        pairs.insert(if a < b { (a.clone(), b.clone()) } else { (b.clone(), a.clone()) });
+                        pairs.insert(if a < b {
+                            (a.clone(), b.clone())
+                        } else {
+                            (b.clone(), a.clone())
+                        });
                     }
                 }
             }
@@ -812,10 +839,7 @@ mod tests {
         let mut wrong_frame = motion.clone();
         wrong_frame.frame_id = "other-frame".into();
         assert_eq!(
-            time_swept_capsule_broadphase(
-                &[body("a", motion.clone()), body("b", wrong_frame)],
-                1
-            ),
+            time_swept_capsule_broadphase(&[body("a", motion.clone()), body("b", wrong_frame)], 1),
             Err(MultiBodyBroadphaseError::FrameMismatch)
         );
 
@@ -854,7 +878,12 @@ mod tests {
             let moving = body(
                 "moving",
                 CapsuleMotionSpan {
-                    capsule_at_start: Capsule::new(p(next(), next(), next()), p(next(), next(), next()), 0.0).unwrap(),
+                    capsule_at_start: Capsule::new(
+                        p(next(), next(), next()),
+                        p(next(), next(), next()),
+                        0.0,
+                    )
+                    .unwrap(),
                     translation: p(next(), next(), next()),
                     start_ms: 0,
                     end_ms: 1_000,
