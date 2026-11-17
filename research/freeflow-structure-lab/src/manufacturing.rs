@@ -164,7 +164,7 @@ impl fmt::Display for ManufacturingError {
                 required_mm,
             } => write!(
                 f,
-                "minimum radial clearance {minimum_radial_clearance_mm} mm is below required {required_mm} mm"
+                "minimum radial clearance {minimum_radial_clearance_mm} mm is below {required_mm} mm"
             ),
             Self::ExcessiveClearance {
                 maximum_radial_clearance_mm,
