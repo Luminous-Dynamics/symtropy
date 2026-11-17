@@ -617,6 +617,94 @@ mod tests {
     }
 
     #[test]
+    fn policy_comparison_uses_identical_gates_but_changes_ordering() {
+        let targets = [target("a", 1, 0.0, 1.0), target("b", 1, 0.0, 1.0)];
+        let near_single = candidate("near-single", "p-near", 1.0, 0.0, &["a"]);
+        let far_multi = candidate("far-multi", "p-far", 10.0, 0.0, &["a", "b"]);
+        let candidates = [near_single, far_multi];
+
+        let cost_sensitive = plan_acquisition_with_policy(
+            &targets,
+            &[],
+            &candidates,
+            &budget(),
+            SelectionPolicy::EvidenceGainPerCost,
+        )
+        .unwrap();
+        let max_gain = plan_acquisition_with_policy(
+            &targets,
+            &[],
+            &candidates,
+            &budget(),
+            SelectionPolicy::MaximumMarginalEvidence,
+        )
+        .unwrap();
+        let nearest = plan_acquisition_with_policy(
+            &targets,
+            &[],
+            &candidates,
+            &budget(),
+            SelectionPolicy::NearestFeasible,
+        )
+        .unwrap();
+
+        assert_eq!(cost_sensitive.steps[0].candidate_id, "near-single");
+        assert_eq!(nearest.steps[0].candidate_id, "near-single");
+        assert_eq!(max_gain.steps[0].candidate_id, "far-multi");
+        for plan in [&cost_sensitive, &max_gain, &nearest] {
+            assert_eq!(plan.disposition, PlanDisposition::Complete);
+            assert!(plan.cumulative_elapsed_time_s <= budget().maximum_elapsed_time_s);
+            assert!(plan.cumulative_energy_wh <= budget().maximum_energy_wh);
+        }
+    }
+
+    #[test]
+    fn every_policy_keeps_unknown_candidates_ineligible() {
+        let targets = [target("a", 1, 0.0, 1.0)];
+        let mut unknown = candidate("unknown", "p-unknown", 1.0, 0.0, &["a"]);
+        unknown.quality = CandidateQuality::Unknown;
+        let policies = [
+            SelectionPolicy::EvidenceGainPerCost,
+            SelectionPolicy::NearestFeasible,
+            SelectionPolicy::MaximumMarginalEvidence,
+            SelectionPolicy::InputOrder,
+            SelectionPolicy::SeededHashOrder { seed: 17 },
+        ];
+        for policy in policies {
+            let plan =
+                plan_acquisition_with_policy(&targets, &[], &[unknown.clone()], &budget(), policy)
+                    .unwrap();
+            assert_eq!(plan.disposition, PlanDisposition::Blocked);
+            assert!(plan.steps.is_empty());
+            assert_eq!(plan.blockers.unknown, 1);
+        }
+    }
+
+    #[test]
+    fn seeded_hash_policy_is_independent_of_candidate_input_order() {
+        let targets = [target("a", 1, 0.0, 1.0)];
+        let first = candidate("alpha", "p-a", 1.0, 0.0, &["a"]);
+        let second = candidate("beta", "p-b", 1.0, 0.0, &["a"]);
+        let forward = plan_acquisition_with_policy(
+            &targets,
+            &[],
+            &[first.clone(), second.clone()],
+            &budget(),
+            SelectionPolicy::SeededHashOrder { seed: 99 },
+        )
+        .unwrap();
+        let reverse = plan_acquisition_with_policy(
+            &targets,
+            &[],
+            &[second, first],
+            &budget(),
+            SelectionPolicy::SeededHashOrder { seed: 99 },
+        )
+        .unwrap();
+        assert_eq!(forward.steps[0].candidate_id, reverse.steps[0].candidate_id);
+    }
+
+    #[test]
     fn empty_target_set_is_rejected() {
         assert!(plan_acquisition(&[], &[], &[], &budget()).is_err());
     }
