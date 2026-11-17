@@ -1,0 +1,588 @@
+{
+  "schema_version": "human-subsystem-port-contract/0.1",
+  "claim_ceiling": "Source-mapped adapter proposal only. No coupled JOS-3 runtime or external human validation is implemented by this manifest.",
+  "models": [
+    {
+      "model_id": "JOS3",
+      "version": "0.5.0",
+      "source_revision": "3c74ee2af2f79aa360093cc517e38bf465ec8c5b",
+      "source_url": "https://github.com/TanabeLab/JOS-3",
+      "license": "MIT",
+      "maturity": "reference_only",
+      "implementation_language": "Python (external reference implementation only)",
+      "notes": [
+        "Upstream package metadata declares version 0.5.0.",
+        "Upstream README describes 17 regional body parts and transient input sequences.",
+        "Upstream source documents JOS-3 internal blood flow and heat transport variables.",
+        "Not a heart-rate model; do not equate cardiac output to heart rate.",
+        "Do not equate evaporative heat-loss power to measured fluid loss without a validated conversion and explicit assumptions.",
+        "Source README says non-shivering thermogenesis term Mnshiv in Equation 41 is not used in the referenced code path; AVA blood-flow equations were corrected in 0.5.0; pelvis capacity corrected in 0.4.0."
+      ]
+    }
+  ],
+  "subsystems": [
+    {
+      "subsystem_id": "SYS-ENV",
+      "name": "environmental_boundary",
+      "level": [
+        "L7"
+      ],
+      "owner": "symtropy_plant",
+      "status": "reference_research"
+    },
+    {
+      "subsystem_id": "SYS-THERMO",
+      "name": "regional_human_thermoregulation",
+      "level": [
+        "L3",
+        "L4",
+        "L5"
+      ],
+      "owner": "external_reference",
+      "status": "reference_research",
+      "model_id": "JOS3",
+      "validity_domain": [
+        "JOS-3 source model parameter and boundary-condition domain"
+      ],
+      "unsupported_conditions": [
+        "No claim of universal human heat-strain validity.",
+        "No clinical or occupational fitness decisions."
+      ]
+    },
+    {
+      "subsystem_id": "SYS-OBS",
+      "name": "sensor_observation_process",
+      "level": [
+        "L2",
+        "L5",
+        "L6",
+        "L7"
+      ],
+      "owner": "neutral_observation_contract",
+      "status": "implemented_bounded"
+    },
+    {
+      "subsystem_id": "SYS-COG",
+      "name": "candidate_state_estimation_and_policy",
+      "level": [
+        "L6"
+      ],
+      "owner": "symthaea_inference",
+      "status": "reference_research"
+    }
+  ],
+  "ports": [
+    {
+      "port_id": "JOS3-IN-TA",
+      "subsystem_id": "SYS-THERMO",
+      "model_id": "JOS3",
+      "variable_name": "Ta",
+      "semantic_name": "air_temperature",
+      "quantity_class": "boundary_condition",
+      "direction": "input",
+      "unit": {
+        "symbol": "°C",
+        "quantity_kind": "absolute_temperature",
+        "dimension_exponents": [
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "scale_to_si": 1,
+        "offset_to_si": 273.15
+      },
+      "time_contract": {
+        "event_time_unit": "s",
+        "clock_domain": "symtropy_physical_time",
+        "min_step_seconds": 1,
+        "max_step_seconds": 3600,
+        "default_step_seconds": 60,
+        "interpolation": "zero_order_hold",
+        "late_event_policy": "reject",
+        "duplicate_event_policy": "reject",
+        "receive_time_required": true,
+        "notes": [
+          "Model source describes input in degrees Celsius.",
+          "Step limits here are proposed admission bounds, not validated JOS-3 limits."
+        ]
+      },
+      "uncertainty": {
+        "representation": "none_declared",
+        "calibration_status": "not_calibrated"
+      },
+      "validity_status": "source_verified",
+      "source_locator": "TanabeLab/JOS-3 src/jos3/jos3.py JOS3 setter Ta"
+    },
+    {
+      "port_id": "JOS3-IN-TR",
+      "subsystem_id": "SYS-THERMO",
+      "model_id": "JOS3",
+      "variable_name": "Tr",
+      "semantic_name": "mean_radiant_temperature",
+      "quantity_class": "boundary_condition",
+      "direction": "input",
+      "unit": {
+        "symbol": "°C",
+        "quantity_kind": "absolute_temperature",
+        "dimension_exponents": [
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "scale_to_si": 1,
+        "offset_to_si": 273.15
+      },
+      "time_contract": {
+        "event_time_unit": "s",
+        "clock_domain": "symtropy_physical_time",
+        "min_step_seconds": 1,
+        "max_step_seconds": 3600,
+        "default_step_seconds": 60,
+        "interpolation": "zero_order_hold",
+        "late_event_policy": "reject",
+        "duplicate_event_policy": "reject",
+        "receive_time_required": true
+      },
+      "uncertainty": {
+        "representation": "none_declared",
+        "calibration_status": "not_calibrated"
+      },
+      "validity_status": "source_verified",
+      "source_locator": "TanabeLab/JOS-3 src/jos3/jos3.py JOS3 setter Tr"
+    },
+    {
+      "port_id": "JOS3-IN-VA",
+      "subsystem_id": "SYS-THERMO",
+      "model_id": "JOS3",
+      "variable_name": "Va",
+      "semantic_name": "air_velocity",
+      "quantity_class": "boundary_condition",
+      "direction": "input",
+      "unit": {
+        "symbol": "m/s",
+        "quantity_kind": "linear",
+        "dimension_exponents": [
+          0,
+          1,
+          -1,
+          0,
+          0,
+          0,
+          0
+        ],
+        "scale_to_si": 1,
+        "offset_to_si": 0
+      },
+      "time_contract": {
+        "event_time_unit": "s",
+        "clock_domain": "symtropy_physical_time",
+        "min_step_seconds": 1,
+        "max_step_seconds": 3600,
+        "default_step_seconds": 60,
+        "interpolation": "zero_order_hold",
+        "late_event_policy": "reject",
+        "duplicate_event_policy": "reject",
+        "receive_time_required": true
+      },
+      "uncertainty": {
+        "representation": "none_declared",
+        "calibration_status": "not_calibrated"
+      },
+      "validity_status": "source_verified",
+      "source_locator": "TanabeLab/JOS-3 src/jos3/jos3.py JOS3 setter Va"
+    },
+    {
+      "port_id": "JOS3-IN-RH",
+      "subsystem_id": "SYS-THERMO",
+      "model_id": "JOS3",
+      "variable_name": "RH",
+      "semantic_name": "relative_humidity",
+      "quantity_class": "boundary_condition",
+      "direction": "input",
+      "unit": {
+        "symbol": "%",
+        "quantity_kind": "dimensionless",
+        "dimension_exponents": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "scale_to_si": 0.01,
+        "offset_to_si": 0
+      },
+      "time_contract": {
+        "event_time_unit": "s",
+        "clock_domain": "symtropy_physical_time",
+        "min_step_seconds": 1,
+        "max_step_seconds": 3600,
+        "default_step_seconds": 60,
+        "interpolation": "zero_order_hold",
+        "late_event_policy": "reject",
+        "duplicate_event_policy": "reject",
+        "receive_time_required": true
+      },
+      "uncertainty": {
+        "representation": "none_declared",
+        "calibration_status": "not_calibrated"
+      },
+      "validity_status": "source_verified",
+      "source_locator": "TanabeLab/JOS-3 src/jos3/jos3.py JOS3 setter RH"
+    },
+    {
+      "port_id": "JOS3-IN-ICL",
+      "subsystem_id": "SYS-THERMO",
+      "model_id": "JOS3",
+      "variable_name": "Icl",
+      "semantic_name": "clothing_insulation",
+      "quantity_class": "boundary_condition",
+      "direction": "input",
+      "unit": {
+        "symbol": "clo",
+        "quantity_kind": "linear",
+        "dimension_exponents": [
+          -1,
+          0,
+          3,
+          0,
+          1,
+          0,
+          0
+        ],
+        "scale_to_si": 0.155,
+        "offset_to_si": 0,
+        "semantic_note": "Thermal resistance per area; conversion 1 clo = 0.155 m²·K/W."
+      },
+      "time_contract": {
+        "event_time_unit": "s",
+        "clock_domain": "symtropy_physical_time",
+        "min_step_seconds": 1,
+        "max_step_seconds": 3600,
+        "default_step_seconds": 60,
+        "interpolation": "zero_order_hold",
+        "late_event_policy": "reject",
+        "duplicate_event_policy": "reject",
+        "receive_time_required": true
+      },
+      "uncertainty": {
+        "representation": "none_declared",
+        "calibration_status": "not_calibrated"
+      },
+      "validity_status": "source_verified",
+      "source_locator": "TanabeLab/JOS-3 src/jos3/jos3.py JOS3 setter Icl"
+    },
+    {
+      "port_id": "JOS3-IN-PAR",
+      "subsystem_id": "SYS-THERMO",
+      "model_id": "JOS3",
+      "variable_name": "PAR",
+      "semantic_name": "physical_activity_ratio",
+      "quantity_class": "configuration",
+      "direction": "input",
+      "unit": {
+        "symbol": "1",
+        "quantity_kind": "dimensionless",
+        "dimension_exponents": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "scale_to_si": 1,
+        "offset_to_si": 0
+      },
+      "time_contract": {
+        "event_time_unit": "s",
+        "clock_domain": "symtropy_physical_time",
+        "min_step_seconds": 1,
+        "max_step_seconds": 3600,
+        "default_step_seconds": 60,
+        "interpolation": "zero_order_hold",
+        "late_event_policy": "reject",
+        "duplicate_event_policy": "reject",
+        "receive_time_required": true,
+        "notes": [
+          "PAR is ratio of metabolic rate to basal metabolic rate in the JOS-3 source documentation.",
+          "Mapping from Symtropy mechanical work or MET estimates to PAR remains review_required."
+        ]
+      },
+      "uncertainty": {
+        "representation": "none_declared",
+        "calibration_status": "not_calibrated"
+      },
+      "validity_status": "source_verified",
+      "source_locator": "TanabeLab/JOS-3 src/jos3/jos3.py JOS3 setter PAR"
+    },
+    {
+      "port_id": "JOS3-IN-POSTURE",
+      "subsystem_id": "SYS-THERMO",
+      "model_id": "JOS3",
+      "variable_name": "posture",
+      "semantic_name": "body_posture",
+      "quantity_class": "configuration",
+      "direction": "input",
+      "unit": {
+        "symbol": "enum",
+        "quantity_kind": "symbolic",
+        "dimension_exponents": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "scale_to_si": 1,
+        "offset_to_si": 0,
+        "semantic_note": "Allowed source values: standing, sitting, lying."
+      },
+      "time_contract": {
+        "event_time_unit": "s",
+        "clock_domain": "symtropy_physical_time",
+        "min_step_seconds": 1,
+        "max_step_seconds": 3600,
+        "default_step_seconds": 60,
+        "interpolation": "zero_order_hold",
+        "late_event_policy": "reject",
+        "duplicate_event_policy": "reject",
+        "receive_time_required": true
+      },
+      "uncertainty": {
+        "representation": "none_declared",
+        "calibration_status": "not_calibrated"
+      },
+      "validity_status": "source_verified",
+      "source_locator": "TanabeLab/JOS-3 src/jos3/jos3.py JOS3 setter posture"
+    },
+    {
+      "port_id": "JOS3-OUT-TSK",
+      "subsystem_id": "SYS-THERMO",
+      "model_id": "JOS3",
+      "variable_name": "Tsk",
+      "semantic_name": "regional_skin_temperature",
+      "quantity_class": "state",
+      "direction": "output",
+      "unit": {
+        "symbol": "°C",
+        "quantity_kind": "absolute_temperature",
+        "dimension_exponents": [
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "scale_to_si": 1,
+        "offset_to_si": 273.15
+      },
+      "time_contract": {
+        "event_time_unit": "s",
+        "clock_domain": "symtropy_physical_time",
+        "min_step_seconds": 1,
+        "max_step_seconds": 3600,
+        "default_step_seconds": 60,
+        "interpolation": "model_native",
+        "late_event_policy": "reject",
+        "duplicate_event_policy": "reject",
+        "receive_time_required": false
+      },
+      "uncertainty": {
+        "representation": "none_declared",
+        "calibration_status": "not_calibrated"
+      },
+      "validity_status": "source_verified",
+      "source_locator": "TanabeLab/JOS-3 src/jos3/jos3.py property Tsk"
+    },
+    {
+      "port_id": "JOS3-OUT-TCR",
+      "subsystem_id": "SYS-THERMO",
+      "model_id": "JOS3",
+      "variable_name": "Tcr",
+      "semantic_name": "regional_core_temperature",
+      "quantity_class": "state",
+      "direction": "output",
+      "unit": {
+        "symbol": "°C",
+        "quantity_kind": "absolute_temperature",
+        "dimension_exponents": [
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "scale_to_si": 1,
+        "offset_to_si": 273.15
+      },
+      "time_contract": {
+        "event_time_unit": "s",
+        "clock_domain": "symtropy_physical_time",
+        "min_step_seconds": 1,
+        "max_step_seconds": 3600,
+        "default_step_seconds": 60,
+        "interpolation": "model_native",
+        "late_event_policy": "reject",
+        "duplicate_event_policy": "reject",
+        "receive_time_required": false
+      },
+      "uncertainty": {
+        "representation": "none_declared",
+        "calibration_status": "not_calibrated"
+      },
+      "validity_status": "source_verified",
+      "source_locator": "TanabeLab/JOS-3 src/jos3/jos3.py property Tcr"
+    },
+    {
+      "port_id": "JOS3-OUT-TCB",
+      "subsystem_id": "SYS-THERMO",
+      "model_id": "JOS3",
+      "variable_name": "Tcb",
+      "semantic_name": "central_blood_temperature",
+      "quantity_class": "state",
+      "direction": "output",
+      "unit": {
+        "symbol": "°C",
+        "quantity_kind": "absolute_temperature",
+        "dimension_exponents": [
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "scale_to_si": 1,
+        "offset_to_si": 273.15
+      },
+      "time_contract": {
+        "event_time_unit": "s",
+        "clock_domain": "symtropy_physical_time",
+        "min_step_seconds": 1,
+        "max_step_seconds": 3600,
+        "default_step_seconds": 60,
+        "interpolation": "model_native",
+        "late_event_policy": "reject",
+        "duplicate_event_policy": "reject",
+        "receive_time_required": false
+      },
+      "uncertainty": {
+        "representation": "none_declared",
+        "calibration_status": "not_calibrated"
+      },
+      "validity_status": "source_verified",
+      "source_locator": "TanabeLab/JOS-3 src/jos3/jos3.py property Tcb"
+    },
+    {
+      "port_id": "JOS3-OUT-CO",
+      "subsystem_id": "SYS-THERMO",
+      "model_id": "JOS3",
+      "variable_name": "CO",
+      "semantic_name": "model_cardiac_output",
+      "quantity_class": "state",
+      "direction": "output",
+      "unit": {
+        "symbol": "L/h",
+        "quantity_kind": "linear",
+        "dimension_exponents": [
+          0,
+          3,
+          -1,
+          0,
+          0,
+          0,
+          0
+        ],
+        "scale_to_si": 2.777777778e-7,
+        "offset_to_si": 0,
+        "semantic_note": "Volume flow; this is not heart rate."
+      },
+      "time_contract": {
+        "event_time_unit": "s",
+        "clock_domain": "symtropy_physical_time",
+        "min_step_seconds": 1,
+        "max_step_seconds": 3600,
+        "default_step_seconds": 60,
+        "interpolation": "model_native",
+        "late_event_policy": "reject",
+        "duplicate_event_policy": "reject",
+        "receive_time_required": false
+      },
+      "uncertainty": {
+        "representation": "none_declared",
+        "calibration_status": "not_calibrated"
+      },
+      "validity_status": "source_verified",
+      "source_locator": "TanabeLab/JOS-3 src/jos3/params.py parameter CO"
+    },
+    {
+      "port_id": "JOS3-OUT-ESWEAT",
+      "subsystem_id": "SYS-THERMO",
+      "model_id": "JOS3",
+      "variable_name": "Esweat",
+      "semantic_name": "sweating_evaporative_heat_loss_power",
+      "quantity_class": "rate",
+      "direction": "output",
+      "unit": {
+        "symbol": "W",
+        "quantity_kind": "linear",
+        "dimension_exponents": [
+          1,
+          2,
+          -3,
+          0,
+          0,
+          0,
+          0
+        ],
+        "scale_to_si": 1,
+        "offset_to_si": 0,
+        "semantic_note": "Heat-loss power from sweating, not water mass flow."
+      },
+      "time_contract": {
+        "event_time_unit": "s",
+        "clock_domain": "symtropy_physical_time",
+        "min_step_seconds": 1,
+        "max_step_seconds": 3600,
+        "default_step_seconds": 60,
+        "interpolation": "model_native",
+        "late_event_policy": "reject",
+        "duplicate_event_policy": "reject",
+        "receive_time_required": false
+      },
+      "uncertainty": {
+        "representation": "none_declared",
+        "calibration_status": "not_calibrated"
+      },
+      "validity_status": "source_verified",
+      "source_locator": "TanabeLab/JOS-3 src/jos3/params.py parameter Esweat"
+    }
+  ],
+  "edges": [],
+  "semantic_invariants": [
+    "No JOS-3 heat-loss power is converted to sweat mass-flow without an explicit, source-verified latent-heat and accounting transformation.",
+    "No cardiac-output volume-flow variable is treated as heart rate.",
+    "No PAR-to-mechanical-work mapping is admitted without a separate validated mapping.",
+    "Plant coupling variables are not candidate-visible observations unless an explicit sensor event is generated.",
+    "All 17-region outputs retain regional ordering and source body-region identity."
+  ]
+}
