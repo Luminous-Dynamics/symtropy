@@ -45,3 +45,9 @@ The ideal kinematic observation is narrow: a regular tetrahedron has six pin-joi
 Cycle rank, graph connectivity, port count and visual appearance are not structural strength or redundancy proof. The generated geometry is not yet shown to have a statistical fractal scaling regime.
 
 The next stage is independent truss/beam analysis, realistic connector models, matched conventional-truss/spaceframe/TPMS/graded-lattice baselines, and physical coupon tests. Do not connect this output to safety-critical design decisions.
+
+## Deterministic assembly-plan compiler
+
+The assembly module compiles a geometry-audited tetrahedral cell hierarchy into an explicit parent-before-child sequence. It validates contiguous cell IDs, one root, parent-before-child ordering, generation progression, complete triangular shared faces, previously introduced face vertices and exactly one new apex node per child. It emits a deterministic non-cryptographic plan digest.
+
+The output is a discrete assembly dependency plan only. It does not establish robot reach, graspability, collision-free motion, insertion force, connector locking, temporary support, tool availability, inspection or physical buildability. Those belong to the separate robotics workstream.
