@@ -23,14 +23,16 @@
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FieldCellSupport {
-    /// A native sensor channel at this taxel location was admitted to the
-    /// inverse problem. The reconstructed value is still model-conditioned.
+    /// This cell is uniquely estimable from admitted native observations and
+    /// has its own admitted sensor channel.
     NativeChannelAvailable,
-    /// No native channel at this location was admitted, but another admitted
-    /// channel has nonzero sensitivity to this field cell through K.
+    /// This cell is uniquely estimable from other admitted channels through
+    /// the supplied mechanical coupling operator.
     InferredThroughMechanicalCoupling,
-    /// No admitted channel observes this field cell under the supplied K.
-    /// The inverse solver must not invent a numerical value for it.
+    /// The admitted native data have sensitivity to this cell, but the value
+    /// is not uniquely determined. Any point estimate is prior-selected.
+    UnderidentifiedByNativeData,
+    /// No admitted native channel has sensitivity to this cell.
     NoObservableSupport,
 }
 
@@ -39,6 +41,9 @@ pub struct FieldCellEstimate {
     pub taxel_index: usize,
     pub latent_contact_intensity: Option<f64>,
     pub support: FieldCellSupport,
+    /// True only when this scalar field component is estimable from the
+    /// admitted native observation matrix without graph/L1 prior assumptions.
+    pub native_data_identifiable: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -92,7 +97,9 @@ pub struct FieldReconstructionReport {
     pub taxel_count: usize,
     pub admitted_native_channel_count: usize,
     pub inferred_cell_count: usize,
+    pub underidentified_cell_count: usize,
     pub unsupported_cell_count: usize,
+    pub native_data_identifiable_cell_count: usize,
     pub estimates: Vec<FieldCellEstimate>,
     /// Predicted native response from the fitted field; entries for
     /// non-admitted channels are still forward predictions, not observations.
@@ -198,11 +205,16 @@ fn validate_problem(
     Ok(n)
 }
 
-fn native_data_rank(
+fn native_data_estimability(
     problem: &FieldReconstructionProblem,
     n: usize,
     sensitivity_epsilon: f64,
-) -> usize {
+) -> (usize, Vec<bool>) {
+    // RREF of the admitted native observation matrix A. A field component x_j
+    // is uniquely identifiable iff it is a pivot variable whose RREF equation
+    // has zero coefficients for every free variable. Nonzero sensitivity in
+    // one channel is not sufficient: it may still trade off against other
+    // unknown field components.
     let admitted_rows: Vec<_> = (0..n)
         .filter(|row| problem.admitted_native_channels[*row])
         .collect();
@@ -217,12 +229,16 @@ fn native_data_rank(
         }
     }
 
+    let mut identifiable = vec![false; n];
     if row_count == 0 || maximum_absolute_value == 0.0 {
-        return 0;
+        return (0, identifiable);
     }
 
-    let tolerance = sensitivity_epsilon.max(f64::EPSILON * n as f64) * maximum_absolute_value;
+    let tolerance = sensitivity_epsilon.max(f64::EPSILON * n as f64 * 8.0)
+        * maximum_absolute_value;
+    let mut pivot_columns = Vec::with_capacity(row_count);
     let mut pivot_row = 0;
+
     for column in 0..n {
         if pivot_row >= row_count {
             break;
@@ -245,20 +261,43 @@ fn native_data_rank(
         }
 
         let pivot_value = matrix[pivot_row * n + column];
-        for row in (pivot_row + 1)..row_count {
-            let factor = matrix[row * n + column] / pivot_value;
-            if factor.abs() <= tolerance {
+        for update_column in column..n {
+            matrix[pivot_row * n + update_column] /= pivot_value;
+        }
+        for row in 0..row_count {
+            if row == pivot_row {
                 continue;
             }
-            matrix[row * n + column] = 0.0;
-            for update_column in (column + 1)..n {
-                matrix[row * n + update_column] -= factor * matrix[pivot_row * n + update_column];
+            let factor = matrix[row * n + column];
+            if factor.abs() <= tolerance {
+                matrix[row * n + column] = 0.0;
+                continue;
             }
+            for update_column in column..n {
+                matrix[row * n + update_column] -=
+                    factor * matrix[pivot_row * n + update_column];
+            }
+            matrix[row * n + column] = 0.0;
         }
+
+        pivot_columns.push(column);
         pivot_row += 1;
     }
 
-    pivot_row
+    let mut is_pivot = vec![false; n];
+    for column in &pivot_columns {
+        is_pivot[*column] = true;
+    }
+    let free_columns: Vec<_> = (0..n).filter(|column| !is_pivot[*column]).collect();
+
+    for (row, pivot_column) in pivot_columns.iter().copied().enumerate() {
+        let independent_of_free_variables = free_columns
+            .iter()
+            .all(|free_column| matrix[row * n + *free_column].abs() <= tolerance);
+        identifiable[pivot_column] = independent_of_free_variables;
+    }
+
+    (pivot_row, identifiable)
 }
 
 fn build_quadratic(
@@ -397,18 +436,21 @@ fn cell_support(
     n: usize,
     column: usize,
     sensitivity_epsilon: f64,
+    native_data_identifiable: bool,
 ) -> FieldCellSupport {
-    if problem.admitted_native_channels[column] {
-        return FieldCellSupport::NativeChannelAvailable;
-    }
-
     let has_admitted_sensitivity = (0..n).any(|row| {
         problem.admitted_native_channels[row]
             && problem.coupling_matrix[row * n + column].abs() > sensitivity_epsilon
     });
 
-    if has_admitted_sensitivity {
-        FieldCellSupport::InferredThroughMechanicalCoupling
+    if native_data_identifiable {
+        if problem.admitted_native_channels[column] {
+            FieldCellSupport::NativeChannelAvailable
+        } else {
+            FieldCellSupport::InferredThroughMechanicalCoupling
+        }
+    } else if has_admitted_sensitivity {
+        FieldCellSupport::UnderidentifiedByNativeData
     } else {
         FieldCellSupport::NoObservableSupport
     }
@@ -426,8 +468,11 @@ pub fn reconstruct_contact_field(
     config: &FieldReconstructionConfig,
 ) -> Result<FieldReconstructionReport, String> {
     let n = validate_problem(problem, config)?;
-    let native_data_rank = native_data_rank(problem, n, config.sensitivity_epsilon);
+    let (native_data_rank, native_data_identifiable) =
+        native_data_estimability(problem, n, config.sensitivity_epsilon);
     let native_data_full_column_rank = native_data_rank == n;
+    let native_data_identifiable_cell_count =
+        native_data_identifiable.iter().filter(|identified| **identified).count();
     let regularization_enabled = problem.smoothness_penalty > 0.0;
     let sparsity_prior_enabled = problem.sparsity_penalty > 0.0;
     let quadratic = build_quadratic(problem, n)?;
@@ -505,14 +550,28 @@ pub fn reconstruct_contact_field(
     }
 
     let mut inferred_cell_count = 0;
+    let mut underidentified_cell_count = 0;
     let mut unsupported_cell_count = 0;
     let estimates: Vec<_> = (0..n)
         .map(|taxel_index| {
-            let support = cell_support(problem, n, taxel_index, config.sensitivity_epsilon);
+            let identifiable = native_data_identifiable[taxel_index];
+            let support = cell_support(
+                problem,
+                n,
+                taxel_index,
+                config.sensitivity_epsilon,
+                identifiable,
+            );
             let latent_contact_intensity = match support {
                 FieldCellSupport::NativeChannelAvailable => Some(field[taxel_index]),
                 FieldCellSupport::InferredThroughMechanicalCoupling => {
                     inferred_cell_count += 1;
+                    Some(field[taxel_index])
+                }
+                FieldCellSupport::UnderidentifiedByNativeData => {
+                    underidentified_cell_count += 1;
+                    // Retain a prior-selected point estimate for research and
+                    // prediction, but never label it as uniquely identified.
                     Some(field[taxel_index])
                 }
                 FieldCellSupport::NoObservableSupport => {
@@ -524,6 +583,7 @@ pub fn reconstruct_contact_field(
                 taxel_index,
                 latent_contact_intensity,
                 support,
+                native_data_identifiable: identifiable,
             }
         })
         .collect();
@@ -532,7 +592,9 @@ pub fn reconstruct_contact_field(
         taxel_count: n,
         admitted_native_channel_count: admitted_count,
         inferred_cell_count,
+        underidentified_cell_count,
         unsupported_cell_count,
+        native_data_identifiable_cell_count,
         estimates,
         predicted_native_response,
         residual_rms_native_units: (residual_sum / admitted_count as f64).sqrt(),
@@ -668,18 +730,53 @@ mod tests {
     }
 
     #[test]
-    fn missing_sensor_channel_is_not_labelled_as_a_direct_measurement() {
+    fn local_sensitivity_does_not_masquerade_as_unique_identifiability() {
         let mut problem = identity_problem(vec![0.2, 0.4, 0.6]);
         problem.admitted_native_channels[1] = false;
         problem.coupling_matrix = vec![0.8, 0.2, 0.0, 0.2, 0.6, 0.2, 0.0, 0.2, 0.8];
         let report = reconstruct_contact_field(&problem, &FieldReconstructionConfig::default())
             .expect("partial channels");
+        assert_eq!(report.native_data_rank, 2);
+        assert_eq!(report.native_data_identifiable_cell_count, 0);
+        assert_eq!(report.inferred_cell_count, 0);
+        assert_eq!(report.underidentified_cell_count, 3);
+        assert_eq!(report.unsupported_cell_count, 0);
+        assert!(report.estimates.iter().all(|estimate| {
+            !estimate.native_data_identifiable
+                && estimate.support == FieldCellSupport::UnderidentifiedByNativeData
+                && estimate.latent_contact_intensity.is_some()
+        }));
+    }
+
+    #[test]
+    fn a_cell_can_be_identifiable_through_other_taxels_even_when_its_own_channel_is_missing() {
+        let mut problem = identity_problem(vec![0.2, 0.4, 0.6]);
+        problem.admitted_native_channels = vec![true, false, true];
+        // The admitted row at taxel 2 measures field cell 1. The null-space
+        // freedom remains only between field cells 0 and 2.
+        problem.coupling_matrix = vec![
+            1.0, 0.0, 1.0,
+            0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0,
+        ];
+        let report = reconstruct_contact_field(&problem, &FieldReconstructionConfig::default())
+            .expect("mechanically inferred unique component");
+        assert_eq!(report.native_data_rank, 2);
+        assert!(!report.native_data_full_column_rank);
+        assert_eq!(report.native_data_identifiable_cell_count, 1);
+        assert!(report.estimates[1].native_data_identifiable);
         assert_eq!(
             report.estimates[1].support,
             FieldCellSupport::InferredThroughMechanicalCoupling
         );
-        assert_eq!(report.inferred_cell_count, 1);
-        assert_eq!(report.unsupported_cell_count, 0);
+        assert_eq!(
+            report.estimates[0].support,
+            FieldCellSupport::UnderidentifiedByNativeData
+        );
+        assert_eq!(
+            report.estimates[2].support,
+            FieldCellSupport::UnderidentifiedByNativeData
+        );
     }
 
     #[test]
@@ -710,6 +807,13 @@ mod tests {
             .expect("regularized estimate");
         assert_eq!(report.native_data_rank, 2);
         assert!(!report.native_data_full_column_rank);
+        assert_eq!(report.native_data_identifiable_cell_count, 2);
+        assert!(!report.estimates[1].native_data_identifiable);
+        assert_eq!(
+            report.estimates[1].support,
+            FieldCellSupport::UnderidentifiedByNativeData
+        );
+        assert!(report.estimates[1].latent_contact_intensity.is_some());
         assert!(report.regularization_enabled);
     }
 
@@ -720,6 +824,7 @@ mod tests {
             .expect("fully observed field");
         assert_eq!(report.native_data_rank, 3);
         assert!(report.native_data_full_column_rank);
+        assert_eq!(report.native_data_identifiable_cell_count, 3);
         assert!(!report.regularization_enabled);
     }
 
