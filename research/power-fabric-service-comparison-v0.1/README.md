@@ -135,3 +135,10 @@ This metadata gate is intentionally not an optimizer or numeric performance comp
 The intended chain is: this PR establishes matched-service metadata; modality owners provide measured/uncertain metrics; #3453 filters feasible candidates and computes robust Pareto relations; #3421 adds primary-energy/lifecycle context; Symthaea may propose routes using these qualified inputs but cannot certify its own physical predictions or override safety.
 
 A synthetic `Comparable` result from this crate is not evidence of an energy-efficiency win.
+
+
+### Plasma-channel classification
+
+The physical taxonomy now represents a plasma channel as **electrical energy + plasma-channel conduction + ionized-gas medium**. This avoids falsely treating plasma as a new energy carrier or grouping it with RF/optical radiation. The new test checks this classification and verifies that a normal research-evidence record does not satisfy the stricter FieldQualified evidence policy.
+
+This is still a metadata classification only. It does not make plasma paths deployable, safe or efficient; #5881 remains the owner of the transient channel's lifetime, creation/sustainment energy and net useful-service research.
