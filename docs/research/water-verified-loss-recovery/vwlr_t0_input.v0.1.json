@@ -1,0 +1,1813 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "vwlr-t0-input-v0.1",
+  "benchmark_id": "WATER-VERIFIED-LOSS-RECOVERY-T0-001",
+  "evidence_class": "synthetic_only",
+  "claim_ceiling": "synthetic_verified_repair_and_loss_attribution_contract_only",
+  "max_pressure_difference_percent": 5,
+  "max_demand_difference_percent": 5,
+  "uncertainty_expansion_factor": 2,
+  "minimum_follow_up_hours": 168,
+  "cases": [
+    {
+      "case_id": "VWLR-T0-001-successful-repair",
+      "events": [
+        {
+          "event_id": "EV-1-1",
+          "recovery_claim_id": "REC-EV-1-1",
+          "network_id": "SYNTH-JHB-NORTH",
+          "topology": {
+            "revision": "topo-jhb-north-v1",
+            "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "measurement_boundary_id": "DMA-TREATED-outlet-boundary-v1",
+          "diagnostic": {
+            "disposition": "suspected_leak",
+            "predicted_component_ids": [
+              "PIPE-17"
+            ],
+            "localization_level": "pipe",
+            "abstained": false,
+            "model_result_ref": "MODEL-EV-1-1"
+          },
+          "inspection": {
+            "inspection_id": "INSP-EV-1-1",
+            "disposition": "completed",
+            "method": "acoustic_plus_step_test",
+            "crew_hours": 2,
+            "travel_hours": 1,
+            "cost_zar": 1200,
+            "evidence_ref": "FIELD-EV-1-1"
+          },
+          "field_confirmation": {
+            "disposition": "confirmed_leak",
+            "confirmed_component_ids": [
+              "PIPE-17"
+            ],
+            "method": "excavation_and_visual_confirmation",
+            "evidence_ref": "CONFIRM-EV-1-1"
+          },
+          "repair": {
+            "repair_id": "REPAIR-EV-1-1",
+            "status": "completed",
+            "target_component_ids": [
+              "PIPE-17"
+            ],
+            "work_order_status": "closed",
+            "repair_cost_zar": 4500,
+            "evidence_ref": "REPAIR-RECEIPT-EV-1-1"
+          },
+          "treated_pre": {
+            "measurement_id": "EV-1-1-T-PRE",
+            "instrument_id": "M-EV-1-1-T-PRE",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 1000,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-1-1-T-PRE-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000001"
+          },
+          "treated_post": {
+            "measurement_id": "EV-1-1-T-POST",
+            "instrument_id": "M-EV-1-1-T-POST",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 300,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-1-1-T-POST-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000002"
+          },
+          "control_pre": {
+            "measurement_id": "EV-1-1-C-PRE",
+            "instrument_id": "M-EV-1-1-C-PRE",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-1-1-C-PRE-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000003"
+          },
+          "control_post": {
+            "measurement_id": "EV-1-1-C-POST",
+            "instrument_id": "M-EV-1-1-C-POST",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-1-1-C-POST-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000004"
+          },
+          "max_pressure_difference_percent": 5,
+          "max_demand_difference_percent": 5,
+          "uncertainty_expansion_factor": 2,
+          "follow_up": {
+            "window_hours": 168,
+            "recurrence_detected": false,
+            "reopen_count": 0
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+        }
+      ]
+    },
+    {
+      "case_id": "VWLR-T0-002-work-order-closed-no-post-test",
+      "events": [
+        {
+          "event_id": "EV-2-1",
+          "recovery_claim_id": "REC-EV-2-1",
+          "network_id": "SYNTH-JHB-NORTH",
+          "topology": {
+            "revision": "topo-jhb-north-v1",
+            "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "measurement_boundary_id": "DMA-TREATED-outlet-boundary-v1",
+          "diagnostic": {
+            "disposition": "suspected_leak",
+            "predicted_component_ids": [
+              "PIPE-17"
+            ],
+            "localization_level": "pipe",
+            "abstained": false,
+            "model_result_ref": "MODEL-EV-2-1"
+          },
+          "inspection": {
+            "inspection_id": "INSP-EV-2-1",
+            "disposition": "completed",
+            "method": "acoustic_plus_step_test",
+            "crew_hours": 2,
+            "travel_hours": 1,
+            "cost_zar": 1200,
+            "evidence_ref": "FIELD-EV-2-1"
+          },
+          "field_confirmation": {
+            "disposition": "confirmed_leak",
+            "confirmed_component_ids": [
+              "PIPE-17"
+            ],
+            "method": "excavation_and_visual_confirmation",
+            "evidence_ref": "CONFIRM-EV-2-1"
+          },
+          "repair": {
+            "repair_id": "REPAIR-EV-2-99",
+            "status": "completed",
+            "target_component_ids": [
+              "PIPE-17"
+            ],
+            "work_order_status": "closed",
+            "repair_cost_zar": 4500,
+            "evidence_ref": "REPAIR-RECEIPT-EV-2-99"
+          },
+          "treated_pre": {
+            "measurement_id": "EV-2-1-T-PRE",
+            "instrument_id": "M-EV-2-1-T-PRE",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 1000,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-2-1-T-PRE-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000009"
+          },
+          "treated_post": null,
+          "control_pre": {
+            "measurement_id": "EV-2-1-C-PRE",
+            "instrument_id": "M-EV-2-1-C-PRE",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-2-1-C-PRE-v1",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000000b"
+          },
+          "control_post": {
+            "measurement_id": "EV-2-1-C-POST",
+            "instrument_id": "M-EV-2-1-C-POST",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-2-1-C-POST-v1",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000000c"
+          },
+          "max_pressure_difference_percent": 5,
+          "max_demand_difference_percent": 5,
+          "uncertainty_expansion_factor": 2,
+          "follow_up": {
+            "window_hours": 168,
+            "recurrence_detected": false,
+            "reopen_count": 0
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+        }
+      ]
+    },
+    {
+      "case_id": "VWLR-T0-003-measurable-partial-repair",
+      "events": [
+        {
+          "event_id": "EV-3-1",
+          "recovery_claim_id": "REC-EV-3-1",
+          "network_id": "SYNTH-JHB-NORTH",
+          "topology": {
+            "revision": "topo-jhb-north-v1",
+            "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "measurement_boundary_id": "DMA-TREATED-outlet-boundary-v1",
+          "diagnostic": {
+            "disposition": "suspected_leak",
+            "predicted_component_ids": [
+              "PIPE-17"
+            ],
+            "localization_level": "pipe",
+            "abstained": false,
+            "model_result_ref": "MODEL-EV-3-1"
+          },
+          "inspection": {
+            "inspection_id": "INSP-EV-3-1",
+            "disposition": "completed",
+            "method": "acoustic_plus_step_test",
+            "crew_hours": 2,
+            "travel_hours": 1,
+            "cost_zar": 1200,
+            "evidence_ref": "FIELD-EV-3-1"
+          },
+          "field_confirmation": {
+            "disposition": "confirmed_leak",
+            "confirmed_component_ids": [
+              "PIPE-17"
+            ],
+            "method": "excavation_and_visual_confirmation",
+            "evidence_ref": "CONFIRM-EV-3-1"
+          },
+          "repair": {
+            "repair_id": "REPAIR-EV-3-99",
+            "status": "partial",
+            "target_component_ids": [
+              "PIPE-17"
+            ],
+            "work_order_status": "closed",
+            "repair_cost_zar": 4500,
+            "evidence_ref": "REPAIR-RECEIPT-EV-3-99"
+          },
+          "treated_pre": {
+            "measurement_id": "EV-3-1-T-PRE",
+            "instrument_id": "M-EV-3-1-T-PRE",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 1000,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-3-1-T-PRE-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000012"
+          },
+          "treated_post": {
+            "measurement_id": "EV-3-1-T-POST",
+            "instrument_id": "M-EV-3-1-T-POST",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 600,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-3-1-T-POST-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000011"
+          },
+          "control_pre": {
+            "measurement_id": "EV-3-1-C-PRE",
+            "instrument_id": "M-EV-3-1-C-PRE",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-3-1-C-PRE-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000014"
+          },
+          "control_post": {
+            "measurement_id": "EV-3-1-C-POST",
+            "instrument_id": "M-EV-3-1-C-POST",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-3-1-C-POST-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000015"
+          },
+          "max_pressure_difference_percent": 5,
+          "max_demand_difference_percent": 5,
+          "uncertainty_expansion_factor": 2,
+          "follow_up": {
+            "window_hours": 168,
+            "recurrence_detected": false,
+            "reopen_count": 0
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+        }
+      ]
+    },
+    {
+      "case_id": "VWLR-T0-004-pressure-confounds-reduction",
+      "events": [
+        {
+          "event_id": "EV-4-1",
+          "recovery_claim_id": "REC-EV-4-1",
+          "network_id": "SYNTH-JHB-NORTH",
+          "topology": {
+            "revision": "topo-jhb-north-v1",
+            "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "measurement_boundary_id": "DMA-TREATED-outlet-boundary-v1",
+          "diagnostic": {
+            "disposition": "suspected_leak",
+            "predicted_component_ids": [
+              "PIPE-17"
+            ],
+            "localization_level": "pipe",
+            "abstained": false,
+            "model_result_ref": "MODEL-EV-4-1"
+          },
+          "inspection": {
+            "inspection_id": "INSP-EV-4-1",
+            "disposition": "completed",
+            "method": "acoustic_plus_step_test",
+            "crew_hours": 2,
+            "travel_hours": 1,
+            "cost_zar": 1200,
+            "evidence_ref": "FIELD-EV-4-1"
+          },
+          "field_confirmation": {
+            "disposition": "confirmed_leak",
+            "confirmed_component_ids": [
+              "PIPE-17"
+            ],
+            "method": "excavation_and_visual_confirmation",
+            "evidence_ref": "CONFIRM-EV-4-1"
+          },
+          "repair": {
+            "repair_id": "REPAIR-EV-4-1",
+            "status": "completed",
+            "target_component_ids": [
+              "PIPE-17"
+            ],
+            "work_order_status": "closed",
+            "repair_cost_zar": 4500,
+            "evidence_ref": "REPAIR-RECEIPT-EV-4-1"
+          },
+          "treated_pre": {
+            "measurement_id": "EV-4-1-T-PRE",
+            "instrument_id": "M-EV-4-1-T-PRE",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 1000,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-4-1-T-PRE-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000017"
+          },
+          "treated_post": {
+            "measurement_id": "EV-4-1-T-POST",
+            "instrument_id": "M-EV-4-1-T-POST",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 300,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 400,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-4-1-T-POST-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000016"
+          },
+          "control_pre": {
+            "measurement_id": "EV-4-1-C-PRE",
+            "instrument_id": "M-EV-4-1-C-PRE",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-4-1-C-PRE-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000019"
+          },
+          "control_post": {
+            "measurement_id": "EV-4-1-C-POST",
+            "instrument_id": "M-EV-4-1-C-POST",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-4-1-C-POST-v1",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000001a"
+          },
+          "max_pressure_difference_percent": 5,
+          "max_demand_difference_percent": 5,
+          "uncertainty_expansion_factor": 2,
+          "follow_up": {
+            "window_hours": 168,
+            "recurrence_detected": false,
+            "reopen_count": 0
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+        }
+      ]
+    },
+    {
+      "case_id": "VWLR-T0-005-demand-change-confounds-reduction",
+      "events": [
+        {
+          "event_id": "EV-5-1",
+          "recovery_claim_id": "REC-EV-5-1",
+          "network_id": "SYNTH-JHB-NORTH",
+          "topology": {
+            "revision": "topo-jhb-north-v1",
+            "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "measurement_boundary_id": "DMA-TREATED-outlet-boundary-v1",
+          "diagnostic": {
+            "disposition": "suspected_leak",
+            "predicted_component_ids": [
+              "PIPE-17"
+            ],
+            "localization_level": "pipe",
+            "abstained": false,
+            "model_result_ref": "MODEL-EV-5-1"
+          },
+          "inspection": {
+            "inspection_id": "INSP-EV-5-1",
+            "disposition": "completed",
+            "method": "acoustic_plus_step_test",
+            "crew_hours": 2,
+            "travel_hours": 1,
+            "cost_zar": 1200,
+            "evidence_ref": "FIELD-EV-5-1"
+          },
+          "field_confirmation": {
+            "disposition": "confirmed_leak",
+            "confirmed_component_ids": [
+              "PIPE-17"
+            ],
+            "method": "excavation_and_visual_confirmation",
+            "evidence_ref": "CONFIRM-EV-5-1"
+          },
+          "repair": {
+            "repair_id": "REPAIR-EV-5-1",
+            "status": "completed",
+            "target_component_ids": [
+              "PIPE-17"
+            ],
+            "work_order_status": "closed",
+            "repair_cost_zar": 4500,
+            "evidence_ref": "REPAIR-RECEIPT-EV-5-1"
+          },
+          "treated_pre": {
+            "measurement_id": "EV-5-1-T-PRE",
+            "instrument_id": "M-EV-5-1-T-PRE",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 1000,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-5-1-T-PRE-v1",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000001c"
+          },
+          "treated_post": {
+            "measurement_id": "EV-5-1-T-POST",
+            "instrument_id": "M-EV-5-1-T-POST",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 300,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 13000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-5-1-T-POST-v1",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000001b"
+          },
+          "control_pre": {
+            "measurement_id": "EV-5-1-C-PRE",
+            "instrument_id": "M-EV-5-1-C-PRE",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-5-1-C-PRE-v1",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000001e"
+          },
+          "control_post": {
+            "measurement_id": "EV-5-1-C-POST",
+            "instrument_id": "M-EV-5-1-C-POST",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-5-1-C-POST-v1",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000001f"
+          },
+          "max_pressure_difference_percent": 5,
+          "max_demand_difference_percent": 5,
+          "uncertainty_expansion_factor": 2,
+          "follow_up": {
+            "window_hours": 168,
+            "recurrence_detected": false,
+            "reopen_count": 0
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+        }
+      ]
+    },
+    {
+      "case_id": "VWLR-T0-006-calibration-lapse",
+      "events": [
+        {
+          "event_id": "EV-6-1",
+          "recovery_claim_id": "REC-EV-6-1",
+          "network_id": "SYNTH-JHB-NORTH",
+          "topology": {
+            "revision": "topo-jhb-north-v1",
+            "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "measurement_boundary_id": "DMA-TREATED-outlet-boundary-v1",
+          "diagnostic": {
+            "disposition": "suspected_leak",
+            "predicted_component_ids": [
+              "PIPE-17"
+            ],
+            "localization_level": "pipe",
+            "abstained": false,
+            "model_result_ref": "MODEL-EV-6-1"
+          },
+          "inspection": {
+            "inspection_id": "INSP-EV-6-1",
+            "disposition": "completed",
+            "method": "acoustic_plus_step_test",
+            "crew_hours": 2,
+            "travel_hours": 1,
+            "cost_zar": 1200,
+            "evidence_ref": "FIELD-EV-6-1"
+          },
+          "field_confirmation": {
+            "disposition": "confirmed_leak",
+            "confirmed_component_ids": [
+              "PIPE-17"
+            ],
+            "method": "excavation_and_visual_confirmation",
+            "evidence_ref": "CONFIRM-EV-6-1"
+          },
+          "repair": {
+            "repair_id": "REPAIR-EV-6-1",
+            "status": "completed",
+            "target_component_ids": [
+              "PIPE-17"
+            ],
+            "work_order_status": "closed",
+            "repair_cost_zar": 4500,
+            "evidence_ref": "REPAIR-RECEIPT-EV-6-1"
+          },
+          "treated_pre": {
+            "measurement_id": "EV-6-1-T-PRE",
+            "instrument_id": "M-EV-6-1-T-PRE",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 1000,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-6-1-T-PRE-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000021"
+          },
+          "treated_post": {
+            "measurement_id": "EV-6-1-T-POST",
+            "instrument_id": "M-EV-6-1-T-POST",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 300,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "stale",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-6-1-T-POST-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000020"
+          },
+          "control_pre": {
+            "measurement_id": "EV-6-1-C-PRE",
+            "instrument_id": "M-EV-6-1-C-PRE",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-6-1-C-PRE-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000023"
+          },
+          "control_post": {
+            "measurement_id": "EV-6-1-C-POST",
+            "instrument_id": "M-EV-6-1-C-POST",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-6-1-C-POST-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000024"
+          },
+          "max_pressure_difference_percent": 5,
+          "max_demand_difference_percent": 5,
+          "uncertainty_expansion_factor": 2,
+          "follow_up": {
+            "window_hours": 168,
+            "recurrence_detected": false,
+            "reopen_count": 0
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+        }
+      ]
+    },
+    {
+      "case_id": "VWLR-T0-007-wrong-pipe-repaired-no-effect",
+      "events": [
+        {
+          "event_id": "EV-7-1",
+          "recovery_claim_id": "REC-EV-7-1",
+          "network_id": "SYNTH-JHB-NORTH",
+          "topology": {
+            "revision": "topo-jhb-north-v1",
+            "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "measurement_boundary_id": "DMA-TREATED-outlet-boundary-v1",
+          "diagnostic": {
+            "disposition": "suspected_leak",
+            "predicted_component_ids": [
+              "PIPE-17"
+            ],
+            "localization_level": "pipe",
+            "abstained": false,
+            "model_result_ref": "MODEL-EV-7-1"
+          },
+          "inspection": {
+            "inspection_id": "INSP-EV-7-1",
+            "disposition": "completed",
+            "method": "acoustic_plus_step_test",
+            "crew_hours": 2,
+            "travel_hours": 1,
+            "cost_zar": 1200,
+            "evidence_ref": "FIELD-EV-7-1"
+          },
+          "field_confirmation": {
+            "disposition": "confirmed_leak",
+            "confirmed_component_ids": [
+              "PIPE-22"
+            ],
+            "method": "excavation_and_visual_confirmation",
+            "evidence_ref": "CONFIRM-EV-7-1"
+          },
+          "repair": {
+            "repair_id": "REPAIR-EV-7-1",
+            "status": "completed",
+            "target_component_ids": [
+              "PIPE-17"
+            ],
+            "work_order_status": "closed",
+            "repair_cost_zar": 4500,
+            "evidence_ref": "REPAIR-RECEIPT-EV-7-1"
+          },
+          "treated_pre": {
+            "measurement_id": "EV-7-1-T-PRE",
+            "instrument_id": "M-EV-7-1-T-PRE",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 1000,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-7-1-T-PRE-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000026"
+          },
+          "treated_post": {
+            "measurement_id": "EV-7-1-T-POST",
+            "instrument_id": "M-EV-7-1-T-POST",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 990,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-7-1-T-POST-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000025"
+          },
+          "control_pre": {
+            "measurement_id": "EV-7-1-C-PRE",
+            "instrument_id": "M-EV-7-1-C-PRE",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-7-1-C-PRE-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000028"
+          },
+          "control_post": {
+            "measurement_id": "EV-7-1-C-POST",
+            "instrument_id": "M-EV-7-1-C-POST",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-7-1-C-POST-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000029"
+          },
+          "max_pressure_difference_percent": 5,
+          "max_demand_difference_percent": 5,
+          "uncertainty_expansion_factor": 2,
+          "follow_up": {
+            "window_hours": 168,
+            "recurrence_detected": false,
+            "reopen_count": 0
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+        }
+      ]
+    },
+    {
+      "case_id": "VWLR-T0-008-false-alarm-no-leak",
+      "events": [
+        {
+          "event_id": "EV-8-1",
+          "recovery_claim_id": "REC-EV-8-1",
+          "network_id": "SYNTH-JHB-NORTH",
+          "topology": {
+            "revision": "topo-jhb-north-v1",
+            "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "measurement_boundary_id": "DMA-TREATED-outlet-boundary-v1",
+          "diagnostic": {
+            "disposition": "suspected_leak",
+            "predicted_component_ids": [
+              "PIPE-31"
+            ],
+            "localization_level": "zone",
+            "abstained": false,
+            "model_result_ref": "MODEL-EV-8-1"
+          },
+          "inspection": {
+            "inspection_id": "INSP-EV-8-1",
+            "disposition": "completed",
+            "method": "acoustic_plus_step_test",
+            "crew_hours": 2,
+            "travel_hours": 1,
+            "cost_zar": 1200,
+            "evidence_ref": "FIELD-EV-8-1"
+          },
+          "field_confirmation": {
+            "disposition": "confirmed_no_leak",
+            "confirmed_component_ids": [],
+            "method": "acoustic_followup_and_step_test",
+            "evidence_ref": "CONFIRM-NO-LEAK-EV-8-1"
+          },
+          "repair": null,
+          "treated_pre": {
+            "measurement_id": "EV-8-1-T-PRE",
+            "instrument_id": "M-EV-8-1-T-PRE",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 1000,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-8-1-T-PRE-v1",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000002a"
+          },
+          "treated_post": null,
+          "control_pre": {
+            "measurement_id": "EV-8-1-C-PRE",
+            "instrument_id": "M-EV-8-1-C-PRE",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-8-1-C-PRE-v1",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000002c"
+          },
+          "control_post": {
+            "measurement_id": "EV-8-1-C-POST",
+            "instrument_id": "M-EV-8-1-C-POST",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-8-1-C-POST-v1",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000002d"
+          },
+          "max_pressure_difference_percent": 5,
+          "max_demand_difference_percent": 5,
+          "uncertainty_expansion_factor": 2,
+          "follow_up": {
+            "window_hours": 168,
+            "recurrence_detected": false,
+            "reopen_count": 0
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+        }
+      ]
+    },
+    {
+      "case_id": "VWLR-T0-009-concurrent-leaks-one-repaired",
+      "events": [
+        {
+          "event_id": "EV-9-1",
+          "recovery_claim_id": "REC-EV-9-1",
+          "network_id": "SYNTH-JHB-NORTH",
+          "topology": {
+            "revision": "topo-jhb-north-v1",
+            "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "measurement_boundary_id": "DMA-TREATED-outlet-boundary-v1",
+          "diagnostic": {
+            "disposition": "suspected_multiple_leaks",
+            "predicted_component_ids": [
+              "PIPE-41",
+              "PIPE-42"
+            ],
+            "localization_level": "pipe_set",
+            "abstained": false,
+            "model_result_ref": "MODEL-EV-9-1"
+          },
+          "inspection": {
+            "inspection_id": "INSP-EV-9-1",
+            "disposition": "completed",
+            "method": "acoustic_plus_step_test",
+            "crew_hours": 2,
+            "travel_hours": 1,
+            "cost_zar": 1200,
+            "evidence_ref": "FIELD-EV-9-1"
+          },
+          "field_confirmation": {
+            "disposition": "confirmed_leak",
+            "confirmed_component_ids": [
+              "PIPE-41",
+              "PIPE-42"
+            ],
+            "method": "two_site_excavation",
+            "evidence_ref": "CONFIRM-EV-9-1"
+          },
+          "repair": {
+            "repair_id": "REPAIR-EV-9-1",
+            "status": "partial",
+            "target_component_ids": [
+              "PIPE-41"
+            ],
+            "work_order_status": "closed",
+            "repair_cost_zar": 5200,
+            "evidence_ref": "REPAIR-RECEIPT-EV-9-1"
+          },
+          "treated_pre": {
+            "measurement_id": "EV-9-1-T-PRE",
+            "instrument_id": "M-EV-9-1-T-PRE",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 1000,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-9-1-T-PRE-v1",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000002f"
+          },
+          "treated_post": {
+            "measurement_id": "EV-9-1-T-POST",
+            "instrument_id": "M-EV-9-1-T-POST",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 700,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-9-1-T-POST-v1",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000002e"
+          },
+          "control_pre": {
+            "measurement_id": "EV-9-1-C-PRE",
+            "instrument_id": "M-EV-9-1-C-PRE",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-9-1-C-PRE-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000031"
+          },
+          "control_post": {
+            "measurement_id": "EV-9-1-C-POST",
+            "instrument_id": "M-EV-9-1-C-POST",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-9-1-C-POST-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000032"
+          },
+          "max_pressure_difference_percent": 5,
+          "max_demand_difference_percent": 5,
+          "uncertainty_expansion_factor": 2,
+          "follow_up": {
+            "window_hours": 168,
+            "recurrence_detected": false,
+            "reopen_count": 0
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+        }
+      ]
+    },
+    {
+      "case_id": "VWLR-T0-010-repair-failed-no-material-reduction",
+      "events": [
+        {
+          "event_id": "EV-10-1",
+          "recovery_claim_id": "REC-EV-10-1",
+          "network_id": "SYNTH-JHB-NORTH",
+          "topology": {
+            "revision": "topo-jhb-north-v1",
+            "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "measurement_boundary_id": "DMA-TREATED-outlet-boundary-v1",
+          "diagnostic": {
+            "disposition": "suspected_leak",
+            "predicted_component_ids": [
+              "PIPE-17"
+            ],
+            "localization_level": "pipe",
+            "abstained": false,
+            "model_result_ref": "MODEL-EV-10-1"
+          },
+          "inspection": {
+            "inspection_id": "INSP-EV-10-1",
+            "disposition": "completed",
+            "method": "acoustic_plus_step_test",
+            "crew_hours": 2,
+            "travel_hours": 1,
+            "cost_zar": 1200,
+            "evidence_ref": "FIELD-EV-10-1"
+          },
+          "field_confirmation": {
+            "disposition": "confirmed_leak",
+            "confirmed_component_ids": [
+              "PIPE-17"
+            ],
+            "method": "excavation_and_visual_confirmation",
+            "evidence_ref": "CONFIRM-EV-10-1"
+          },
+          "repair": {
+            "repair_id": "REPAIR-EV-10-1",
+            "status": "failed",
+            "target_component_ids": [
+              "PIPE-17"
+            ],
+            "work_order_status": "closed",
+            "repair_cost_zar": 4500,
+            "evidence_ref": "REPAIR-RECEIPT-EV-10-1"
+          },
+          "treated_pre": {
+            "measurement_id": "EV-10-1-T-PRE",
+            "instrument_id": "M-EV-10-1-T-PRE",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 1000,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-10-1-T-PRE-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000034"
+          },
+          "treated_post": {
+            "measurement_id": "EV-10-1-T-POST",
+            "instrument_id": "M-EV-10-1-T-POST",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 990,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-10-1-T-POST-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000033"
+          },
+          "control_pre": {
+            "measurement_id": "EV-10-1-C-PRE",
+            "instrument_id": "M-EV-10-1-C-PRE",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-10-1-C-PRE-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000036"
+          },
+          "control_post": {
+            "measurement_id": "EV-10-1-C-POST",
+            "instrument_id": "M-EV-10-1-C-POST",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-10-1-C-POST-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000037"
+          },
+          "max_pressure_difference_percent": 5,
+          "max_demand_difference_percent": 5,
+          "uncertainty_expansion_factor": 2,
+          "follow_up": {
+            "window_hours": 168,
+            "recurrence_detected": false,
+            "reopen_count": 0
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+        }
+      ]
+    },
+    {
+      "case_id": "VWLR-T0-011-recurrence-defeats-sustained-claim",
+      "events": [
+        {
+          "event_id": "EV-11-1",
+          "recovery_claim_id": "REC-EV-11-1",
+          "network_id": "SYNTH-JHB-NORTH",
+          "topology": {
+            "revision": "topo-jhb-north-v1",
+            "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "measurement_boundary_id": "DMA-TREATED-outlet-boundary-v1",
+          "diagnostic": {
+            "disposition": "suspected_leak",
+            "predicted_component_ids": [
+              "PIPE-17"
+            ],
+            "localization_level": "pipe",
+            "abstained": false,
+            "model_result_ref": "MODEL-EV-11-1"
+          },
+          "inspection": {
+            "inspection_id": "INSP-EV-11-1",
+            "disposition": "completed",
+            "method": "acoustic_plus_step_test",
+            "crew_hours": 2,
+            "travel_hours": 1,
+            "cost_zar": 1200,
+            "evidence_ref": "FIELD-EV-11-1"
+          },
+          "field_confirmation": {
+            "disposition": "confirmed_leak",
+            "confirmed_component_ids": [
+              "PIPE-17"
+            ],
+            "method": "excavation_and_visual_confirmation",
+            "evidence_ref": "CONFIRM-EV-11-1"
+          },
+          "repair": {
+            "repair_id": "REPAIR-EV-11-1",
+            "status": "completed",
+            "target_component_ids": [
+              "PIPE-17"
+            ],
+            "work_order_status": "closed",
+            "repair_cost_zar": 4500,
+            "evidence_ref": "REPAIR-RECEIPT-EV-11-1"
+          },
+          "treated_pre": {
+            "measurement_id": "EV-11-1-T-PRE",
+            "instrument_id": "M-EV-11-1-T-PRE",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 1000,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-11-1-T-PRE-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000038"
+          },
+          "treated_post": {
+            "measurement_id": "EV-11-1-T-POST",
+            "instrument_id": "M-EV-11-1-T-POST",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 300,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-11-1-T-POST-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000039"
+          },
+          "control_pre": {
+            "measurement_id": "EV-11-1-C-PRE",
+            "instrument_id": "M-EV-11-1-C-PRE",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-11-1-C-PRE-v1",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000003a"
+          },
+          "control_post": {
+            "measurement_id": "EV-11-1-C-POST",
+            "instrument_id": "M-EV-11-1-C-POST",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-11-1-C-POST-v1",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000003b"
+          },
+          "max_pressure_difference_percent": 5,
+          "max_demand_difference_percent": 5,
+          "uncertainty_expansion_factor": 2,
+          "follow_up": {
+            "window_hours": 168,
+            "recurrence_detected": true,
+            "reopen_count": 1
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+        }
+      ]
+    },
+    {
+      "case_id": "VWLR-T0-012-duplicate-recovery-claim",
+      "events": [
+        {
+          "event_id": "EV-12-1",
+          "recovery_claim_id": "REC-SHARED-CLAIM",
+          "network_id": "SYNTH-JHB-NORTH",
+          "topology": {
+            "revision": "topo-jhb-north-v1",
+            "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "measurement_boundary_id": "DMA-TREATED-outlet-boundary-v1",
+          "diagnostic": {
+            "disposition": "suspected_leak",
+            "predicted_component_ids": [
+              "PIPE-17"
+            ],
+            "localization_level": "pipe",
+            "abstained": false,
+            "model_result_ref": "MODEL-EV-12-1"
+          },
+          "inspection": {
+            "inspection_id": "INSP-EV-12-1",
+            "disposition": "completed",
+            "method": "acoustic_plus_step_test",
+            "crew_hours": 2,
+            "travel_hours": 1,
+            "cost_zar": 1200,
+            "evidence_ref": "FIELD-EV-12-1"
+          },
+          "field_confirmation": {
+            "disposition": "confirmed_leak",
+            "confirmed_component_ids": [
+              "PIPE-17"
+            ],
+            "method": "excavation_and_visual_confirmation",
+            "evidence_ref": "CONFIRM-EV-12-1"
+          },
+          "repair": {
+            "repair_id": "REPAIR-EV-12-1",
+            "status": "completed",
+            "target_component_ids": [
+              "PIPE-17"
+            ],
+            "work_order_status": "closed",
+            "repair_cost_zar": 4500,
+            "evidence_ref": "REPAIR-RECEIPT-EV-12-1"
+          },
+          "treated_pre": {
+            "measurement_id": "EV-12-1-T-PRE",
+            "instrument_id": "M-EV-12-1-T-PRE",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 1000,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-12-1-T-PRE-v1",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000003c"
+          },
+          "treated_post": {
+            "measurement_id": "EV-12-1-T-POST",
+            "instrument_id": "M-EV-12-1-T-POST",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 300,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-12-1-T-POST-v1",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000003d"
+          },
+          "control_pre": {
+            "measurement_id": "EV-12-1-C-PRE",
+            "instrument_id": "M-EV-12-1-C-PRE",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-12-1-C-PRE-v1",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000003e"
+          },
+          "control_post": {
+            "measurement_id": "EV-12-1-C-POST",
+            "instrument_id": "M-EV-12-1-C-POST",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-12-1-C-POST-v1",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000003f"
+          },
+          "max_pressure_difference_percent": 5,
+          "max_demand_difference_percent": 5,
+          "uncertainty_expansion_factor": 2,
+          "follow_up": {
+            "window_hours": 168,
+            "recurrence_detected": false,
+            "reopen_count": 0
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+        },
+        {
+          "event_id": "EV-12-2",
+          "recovery_claim_id": "REC-SHARED-CLAIM",
+          "network_id": "SYNTH-JHB-NORTH",
+          "topology": {
+            "revision": "topo-jhb-north-v1",
+            "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "measurement_boundary_id": "DMA-TREATED-outlet-boundary-v1",
+          "diagnostic": {
+            "disposition": "suspected_leak",
+            "predicted_component_ids": [
+              "PIPE-17"
+            ],
+            "localization_level": "pipe",
+            "abstained": false,
+            "model_result_ref": "MODEL-EV-12-2"
+          },
+          "inspection": {
+            "inspection_id": "INSP-EV-12-2",
+            "disposition": "completed",
+            "method": "acoustic_plus_step_test",
+            "crew_hours": 2,
+            "travel_hours": 1,
+            "cost_zar": 1200,
+            "evidence_ref": "FIELD-EV-12-2"
+          },
+          "field_confirmation": {
+            "disposition": "confirmed_leak",
+            "confirmed_component_ids": [
+              "PIPE-17"
+            ],
+            "method": "excavation_and_visual_confirmation",
+            "evidence_ref": "CONFIRM-EV-12-2"
+          },
+          "repair": {
+            "repair_id": "REPAIR-EV-12-2",
+            "status": "completed",
+            "target_component_ids": [
+              "PIPE-17"
+            ],
+            "work_order_status": "closed",
+            "repair_cost_zar": 4500,
+            "evidence_ref": "REPAIR-RECEIPT-EV-12-2"
+          },
+          "treated_pre": {
+            "measurement_id": "EV-12-2-T-PRE",
+            "instrument_id": "M-EV-12-2-T-PRE",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 1000,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-12-2-T-PRE-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000040"
+          },
+          "treated_post": {
+            "measurement_id": "EV-12-2-T-POST",
+            "instrument_id": "M-EV-12-2-T-POST",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 300,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-12-2-T-POST-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000041"
+          },
+          "control_pre": {
+            "measurement_id": "EV-12-2-C-PRE",
+            "instrument_id": "M-EV-12-2-C-PRE",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-12-2-C-PRE-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000042"
+          },
+          "control_post": {
+            "measurement_id": "EV-12-2-C-POST",
+            "instrument_id": "M-EV-12-2-C-POST",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-12-2-C-POST-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000043"
+          },
+          "max_pressure_difference_percent": 5,
+          "max_demand_difference_percent": 5,
+          "uncertainty_expansion_factor": 2,
+          "follow_up": {
+            "window_hours": 168,
+            "recurrence_detected": false,
+            "reopen_count": 0
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+        }
+      ]
+    },
+    {
+      "case_id": "VWLR-T0-013-topology-boundary-mismatch",
+      "events": [
+        {
+          "event_id": "EV-13-1",
+          "recovery_claim_id": "REC-EV-13-1",
+          "network_id": "SYNTH-JHB-NORTH",
+          "topology": {
+            "revision": "topo-jhb-north-v1",
+            "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "measurement_boundary_id": "DMA-TREATED-outlet-boundary-v1",
+          "diagnostic": {
+            "disposition": "suspected_leak",
+            "predicted_component_ids": [
+              "PIPE-17"
+            ],
+            "localization_level": "pipe",
+            "abstained": false,
+            "model_result_ref": "MODEL-EV-13-1"
+          },
+          "inspection": {
+            "inspection_id": "INSP-EV-13-1",
+            "disposition": "completed",
+            "method": "acoustic_plus_step_test",
+            "crew_hours": 2,
+            "travel_hours": 1,
+            "cost_zar": 1200,
+            "evidence_ref": "FIELD-EV-13-1"
+          },
+          "field_confirmation": {
+            "disposition": "confirmed_leak",
+            "confirmed_component_ids": [
+              "PIPE-17"
+            ],
+            "method": "excavation_and_visual_confirmation",
+            "evidence_ref": "CONFIRM-EV-13-1"
+          },
+          "repair": {
+            "repair_id": "REPAIR-EV-13-1",
+            "status": "completed",
+            "target_component_ids": [
+              "PIPE-17"
+            ],
+            "work_order_status": "closed",
+            "repair_cost_zar": 4500,
+            "evidence_ref": "REPAIR-RECEIPT-EV-13-1"
+          },
+          "treated_pre": {
+            "measurement_id": "EV-13-1-T-PRE",
+            "instrument_id": "M-EV-13-1-T-PRE",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 1000,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-13-1-T-PRE-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000045"
+          },
+          "treated_post": {
+            "measurement_id": "EV-13-1-T-POST",
+            "instrument_id": "M-EV-13-1-T-POST",
+            "zone_id": "TREATED",
+            "boundary_id": "DMA-TREATED-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v2",
+            "topology_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "net_loss_l_per_day": 300,
+            "standard_uncertainty_l_per_day": 10,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-13-1-T-POST-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000044"
+          },
+          "control_pre": {
+            "measurement_id": "EV-13-1-C-PRE",
+            "instrument_id": "M-EV-13-1-C-PRE",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-13-1-C-PRE-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000047"
+          },
+          "control_post": {
+            "measurement_id": "EV-13-1-C-POST",
+            "instrument_id": "M-EV-13-1-C-POST",
+            "zone_id": "CONTROL",
+            "boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+            "topology_revision": "topo-jhb-north-v1",
+            "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "net_loss_l_per_day": 500,
+            "standard_uncertainty_l_per_day": 5,
+            "pressure_kpa": 600,
+            "demand_l_per_day": 10000,
+            "window_start_utc": "2026-01-01T00:00:00Z",
+            "window_end_utc": "2026-01-01T06:00:00Z",
+            "calibration_status": "current",
+            "time_status": "current",
+            "method_ref": "METHOD-EV-13-1-C-POST-v1",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000048"
+          },
+          "max_pressure_difference_percent": 5,
+          "max_demand_difference_percent": 5,
+          "uncertainty_expansion_factor": 2,
+          "follow_up": {
+            "window_hours": 168,
+            "recurrence_detected": false,
+            "reopen_count": 0
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+        }
+      ]
+    }
+  ]
+}
