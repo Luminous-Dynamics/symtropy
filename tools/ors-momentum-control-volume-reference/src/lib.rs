@@ -73,6 +73,10 @@ pub struct MassFluxPort {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ControlVolumeScenario {
     pub case_id: String,
+    /// Common inertial frame identity for all state and flux vectors in this case.
+    pub frame_id: String,
+    /// Evaluation epoch in seconds from the declared synthetic reference epoch.
+    pub epoch_s: f64,
     /// dM_CV/dt in kg/s, positive when mass accumulates inside the CV.
     pub mass_accumulation_kg_s: f64,
     /// d/dt integral_CV(rho * v dV), in N, in the declared inertial frame.
@@ -86,6 +90,8 @@ pub struct ControlVolumeScenario {
 #[derive(Clone, Debug, PartialEq)]
 pub struct CaseEvaluation {
     pub case_id: String,
+    pub frame_id: String,
+    pub epoch_s: f64,
     pub mass_flow_in_kg_s: f64,
     pub mass_flow_out_kg_s: f64,
     pub mass_balance_residual_kg_s: f64,
@@ -145,7 +151,7 @@ pub fn parse_corpus(cases_csv: &str, ports_csv: &str) -> Result<Vec<ControlVolum
         .next()
         .ok_or_else(|| "empty scenario corpus".to_owned())?;
     if case_header
-        != "case_id,mass_accumulation_kg_s,momentum_accumulation_x_n,momentum_accumulation_y_n,momentum_accumulation_z_n,other_external_force_x_n,other_external_force_y_n,other_external_force_z_n"
+        != "case_id,frame_id,epoch_s,mass_accumulation_kg_s,momentum_accumulation_x_n,momentum_accumulation_y_n,momentum_accumulation_z_n,other_external_force_x_n,other_external_force_y_n,other_external_force_z_n"
     {
         return Err("unexpected scenario corpus header".to_owned());
     }
@@ -156,25 +162,29 @@ pub fn parse_corpus(cases_csv: &str, ports_csv: &str) -> Result<Vec<ControlVolum
             return Err(format!("scenario line {}: blank row", line_index + 2));
         }
         let fields: Vec<&str> = line.split(',').collect();
-        if fields.len() != 8 {
-            return Err(format!("scenario line {}: expected eight columns", line_index + 2));
+        if fields.len() != 10 {
+            return Err(format!("scenario line {}: expected ten columns", line_index + 2));
         }
         let case_id = fields[0].to_owned();
-        if !valid_identifier(&case_id) {
-            return Err(format!("scenario line {}: invalid case ID", line_index + 2));
+        let frame_id = fields[1].to_owned();
+        if !valid_identifier(&case_id) || !valid_identifier(&frame_id) {
+            return Err(format!("scenario line {}: invalid case or frame ID", line_index + 2));
         }
+        let epoch_s = parse_number(fields[2], &format!("scenario line {} epoch", line_index + 2))?;
         let mass_accumulation_kg_s =
-            parse_number(fields[1], &format!("scenario line {} mass accumulation", line_index + 2))?;
+            parse_number(fields[3], &format!("scenario line {} mass accumulation", line_index + 2))?;
         let momentum_accumulation_n = parse_vector(
-            &fields[2..5],
+            &fields[4..7],
             &format!("scenario line {} momentum accumulation", line_index + 2),
         )?;
         let other_external_force_n = parse_vector(
-            &fields[5..8],
+            &fields[7..10],
             &format!("scenario line {} other external force", line_index + 2),
         )?;
         let scenario = ControlVolumeScenario {
             case_id: case_id.clone(),
+            frame_id,
+            epoch_s,
             mass_accumulation_kg_s,
             momentum_accumulation_n,
             other_external_force_n,
@@ -273,8 +283,11 @@ pub fn parse_corpus(cases_csv: &str, ports_csv: &str) -> Result<Vec<ControlVolum
 }
 
 pub fn evaluate_scenario(scenario: &ControlVolumeScenario) -> Result<CaseEvaluation, String> {
-    if !valid_identifier(&scenario.case_id) {
-        return Err("invalid case ID".to_owned());
+    if !valid_identifier(&scenario.case_id) || !valid_identifier(&scenario.frame_id) {
+        return Err("invalid case or frame ID".to_owned());
+    }
+    if !scenario.epoch_s.is_finite() {
+        return Err(format!("{}: non-finite evaluation epoch", scenario.case_id));
     }
     if scenario.ports.is_empty() {
         return Err(format!("{}: at least one mass-flux port is required", scenario.case_id));
@@ -360,6 +373,8 @@ pub fn evaluate_scenario(scenario: &ControlVolumeScenario) -> Result<CaseEvaluat
 
     Ok(CaseEvaluation {
         case_id: scenario.case_id.clone(),
+        frame_id: scenario.frame_id.clone(),
+        epoch_s: scenario.epoch_s,
         mass_flow_in_kg_s,
         mass_flow_out_kg_s,
         mass_balance_residual_kg_s,
@@ -575,6 +590,8 @@ mod tests {
             let outlet = Vector3::new(speed * angle.cos(), speed * angle.sin(), 0.0);
             let test_case = ControlVolumeScenario {
                 case_id: "SMALL_ANGLE".to_owned(),
+                frame_id: "INERTIAL_SYNTHETIC".to_owned(),
+                epoch_s: 0.0,
                 mass_accumulation_kg_s: 0.0,
                 momentum_accumulation_n: Vector3::ZERO,
                 other_external_force_n: Vector3::ZERO,
@@ -609,6 +626,8 @@ mod tests {
         let original_result = evaluate_scenario(&original).expect("original case");
         let rotated = ControlVolumeScenario {
             case_id: original.case_id.clone(),
+            frame_id: "ROTATED_INERTIAL".to_owned(),
+            epoch_s: original.epoch_s,
             mass_accumulation_kg_s: original.mass_accumulation_kg_s,
             momentum_accumulation_n: rotate_x(
                 rotate_z(original.momentum_accumulation_n, 0.37),
@@ -665,6 +684,8 @@ mod tests {
         let boost = Vector3::new(3.0, -2.0, 1.5);
         let boosted = ControlVolumeScenario {
             case_id: original.case_id.clone(),
+            frame_id: "BOOSTED_INERTIAL".to_owned(),
+            epoch_s: original.epoch_s,
             mass_accumulation_kg_s: original.mass_accumulation_kg_s,
             momentum_accumulation_n: original
                 .momentum_accumulation_n
@@ -744,6 +765,8 @@ mod tests {
     fn zero_flow_ports_are_valid_when_mass_and_momentum_ledgers_close() {
         let zero = ControlVolumeScenario {
             case_id: "ZERO_FLOW".to_owned(),
+            frame_id: "INERTIAL_SYNTHETIC".to_owned(),
+            epoch_s: 0.0,
             mass_accumulation_kg_s: 0.0,
             momentum_accumulation_n: Vector3::ZERO,
             other_external_force_n: Vector3::ZERO,
