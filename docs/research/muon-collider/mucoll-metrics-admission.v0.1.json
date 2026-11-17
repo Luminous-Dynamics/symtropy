@@ -1,0 +1,22 @@
+{
+  "schema_version": "0.1.0",
+  "policy_id": "mucoll-metrics-admission-v0.1",
+  "benchmark_repository": {
+    "name": "MuonColliderSoft/mucoll-benchmarks",
+    "revision": "f1d1cddc412fa037dd21449af90c97ce4d16f293",
+    "require_clean_worktree": true
+  },
+  "stack_repository": {
+    "name": "MuonColliderSoft/mucoll-spack",
+    "revision": "553debf49dd25628054e95f3a24d1d067d5ef1ed"
+  },
+  "expected_studies": [
+    "tracks",
+    "seeds",
+    "hits",
+    "photons"
+  ],
+  "require_github_actions": true,
+  "forbid_physics_thresholds": true,
+  "claim_ceiling": "Artifact and provenance integrity only. Physics comparison is not evaluated; qualification decision remains abstain until a separately admitted reference set and uncertainty model exist."
+}
