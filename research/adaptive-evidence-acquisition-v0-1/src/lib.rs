@@ -281,7 +281,7 @@ pub fn plan_acquisition_with_policy(
                 });
                 if angle_is_independent {
                     marginal.push(target_id.to_owned());
-                    gain += target.weight;
+                    gain += target.weight / target.required_independent_passes as f64;
                 }
             }
             if marginal.is_empty() || !gain.is_finite() {
@@ -623,6 +623,25 @@ mod tests {
         let second = plan_acquisition(&targets, &[], &candidates, &budget()).unwrap();
         assert_eq!(first, second);
         assert_eq!(first.steps[0].candidate_id, "alpha");
+    }
+
+    #[test]
+    fn marginal_gain_is_normalized_by_required_pass_count() {
+        let targets = [target("two-pass", 2, 0.0, 2.0), target("one-pass", 1, 0.0, 1.5)];
+        let candidates = [
+            candidate("candidate-two-pass", "p-two", 1.0, 0.0, &["two-pass"]),
+            candidate("candidate-one-pass", "p-one", 1.0, 0.0, &["one-pass"]),
+        ];
+        let plan = plan_acquisition(
+            &targets,
+            &[],
+            &candidates,
+            &budget(),
+        )
+        .unwrap();
+        assert_eq!(plan.steps[0].candidate_id, "candidate-one-pass");
+        assert_eq!(plan.steps[1].candidate_id, "candidate-two-pass");
+        assert_eq!(plan.disposition, PlanDisposition::Complete);
     }
 
     #[test]
