@@ -225,7 +225,7 @@ fn non_empty(value: &str, field: &str) -> Result<(), ReplayError> {
 fn target_matches(target: &FaultTarget, channel: &ChannelSpec) -> bool {
     match target {
         FaultTarget::Channel { channel_id } => channel.channel_id == *channel_id,
-        FaultTarget::DiagnosticSystem { system_id } => channel.diagnostic_system_id == *system_id
+        FaultTarget::DiagnosticSystem { system_id } => channel.diagnostic_system_id == *system_id,
     }
 }
 
