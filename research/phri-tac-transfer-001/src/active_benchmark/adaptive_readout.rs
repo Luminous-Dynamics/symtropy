@@ -11,7 +11,7 @@
 
 #![forbid(unsafe_code)]
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub const DEFAULT_TAXEL_COUNT: usize = 1_024;
 pub const DEFAULT_READOUT_BUDGET: usize = 16;
@@ -52,6 +52,7 @@ pub enum AcquisitionPolicy {
     FixedRasterPrefix,
     UniformRandom,
     ContactLocality,
+    SpatialStratified,
     RiskAdaptive,
 }
 
@@ -246,6 +247,41 @@ fn sort_candidates(
                     .then_with(|| right.contact_probability.total_cmp(&left.contact_probability))
                     .then_with(|| left.index.cmp(&right.index))
             });
+        }
+        AcquisitionPolicy::SpatialStratified => {
+            let mut tiles: BTreeMap<usize, Vec<CandidateOrder>> = BTreeMap::new();
+            for candidate in ordered {
+                let source = &problem.candidates[candidate.index];
+                let tile_x = source.grid_x * 4 / problem.grid_width;
+                let tile_y = source.grid_y * 4 / problem.grid_height;
+                let tile_id = tile_y * 4 + tile_x;
+                tiles.entry(tile_id).or_default().push(candidate);
+            }
+
+            let mut stratified = Vec::new();
+            let mut remainder = Vec::new();
+            for (tile_id, candidates) in tiles {
+                let mut random_state = (problem.seed ^ ((tile_id as u64 + 1) * 0x9E37_79B9_7F4A_7C15)).max(1);
+                let mut keyed: Vec<_> = candidates
+                    .into_iter()
+                    .map(|candidate| (next_random(&mut random_state), candidate))
+                    .collect();
+                keyed.sort_by_key(|(random_key, _)| *random_key);
+                let mut candidates = keyed.into_iter().map(|(_, candidate)| candidate);
+                if let Some(first) = candidates.next() {
+                    stratified.push(first);
+                }
+                remainder.extend(candidates);
+            }
+            remainder.sort_by(|left, right| {
+                right.event_hazard
+                    .total_cmp(&left.event_hazard)
+                    .then_with(|| right.uncertainty.total_cmp(&left.uncertainty))
+                    .then_with(|| right.contact_probability.total_cmp(&left.contact_probability))
+                    .then_with(|| left.index.cmp(&right.index))
+            });
+            stratified.extend(remainder);
+            ordered = stratified;
         }
         AcquisitionPolicy::RiskAdaptive => {
             ordered.sort_by(|left, right| {
@@ -992,6 +1028,27 @@ mod tests {
         let score = score_acquisition_plan(&input, &plan, &truth).expect("score");
         assert_eq!(score.urgent_event_recall, Some(0.0));
         assert!(score.unknown_active_contact_taxel_count > 0);
+    }
+
+    #[test]
+    fn spatial_stratified_policy_covers_macro_regions_before_local_refinement() {
+        let input = problem(DEFAULT_READOUT_BUDGET);
+        let first = plan_adaptive_readout(&input, AcquisitionPolicy::SpatialStratified)
+            .expect("stratified plan");
+        let second = plan_adaptive_readout(&input, AcquisitionPolicy::SpatialStratified)
+            .expect("repeat stratified plan");
+        assert_eq!(first, second);
+        assert_eq!(first.selected_taxel_count, DEFAULT_READOUT_BUDGET);
+        let macro_tiles: BTreeSet<_> = first
+            .selected_taxel_indices
+            .iter()
+            .map(|index| {
+                let candidate = &input.candidates[*index];
+                (candidate.grid_y * 4 / input.grid_height) * 4
+                    + candidate.grid_x * 4 / input.grid_width
+            })
+            .collect();
+        assert_eq!(macro_tiles.len(), DEFAULT_READOUT_BUDGET);
     }
 
     #[test]
