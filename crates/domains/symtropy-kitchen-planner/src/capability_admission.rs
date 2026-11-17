@@ -164,7 +164,11 @@ fn disposition_from_issues(issues: &[KitchenCapabilityIssueV1]) -> KitchenCapabi
     if issues.iter().any(|issue| {
         matches!(
             issue.code,
-            KitchenCapabilityIssueCodeV1::DuplicateTaskBinding
+            KitchenCapabilityIssueCodeV1::UnsupportedSchemaVersion
+                | KitchenCapabilityIssueCodeV1::InvalidClaimCeiling
+                | KitchenCapabilityIssueCodeV1::InvalidRecipeGraph
+                | KitchenCapabilityIssueCodeV1::DuplicateModuleRevision
+                | KitchenCapabilityIssueCodeV1::DuplicateTaskBinding
                 | KitchenCapabilityIssueCodeV1::UnknownTaskBinding
                 | KitchenCapabilityIssueCodeV1::UnknownModule
                 | KitchenCapabilityIssueCodeV1::StaleModuleRevision
@@ -177,7 +181,6 @@ fn disposition_from_issues(issues: &[KitchenCapabilityIssueV1]) -> KitchenCapabi
                 | KitchenCapabilityIssueCodeV1::ScheduledResourceMismatch
                 | KitchenCapabilityIssueCodeV1::BatchBelowMinimum
                 | KitchenCapabilityIssueCodeV1::BatchAboveMaximum
-                | KitchenCapabilityIssueCodeV1::BatchMassArithmeticOverflow
                 | KitchenCapabilityIssueCodeV1::MaximumRunTimeExceeded
                 | KitchenCapabilityIssueCodeV1::PowerPlanRecipeMismatch
                 | KitchenCapabilityIssueCodeV1::InvalidPowerSchedule
@@ -259,11 +262,6 @@ fn assess_module_power(
         .iter()
         .find(|profile| profile.task_id == task.schedule.task_id)
     else {
-        add_issue(
-            issues,
-            KitchenCapabilityIssueCodeV1::MissingTaskPowerProfile,
-            "task has no explicit power profile in the validated power plan",
-        );
         return;
     };
 
@@ -341,6 +339,18 @@ fn task_assessment(
     let mut action_group = None;
     let mut claim_status = None;
     let mut evidence_class = None;
+
+    if !power_plan
+        .task_profiles
+        .iter()
+        .any(|profile| profile.task_id == task.schedule.task_id)
+    {
+        add_issue(
+            &mut issues,
+            KitchenCapabilityIssueCodeV1::MissingTaskPowerProfile,
+            "task has no explicit power profile in the validated power plan",
+        );
+    }
 
     if binding.module_id.trim().is_empty()
         || binding.module_revision.trim().is_empty()
@@ -690,7 +700,11 @@ pub fn evaluate_kitchen_capability_admission(
     }
 
     let power_report = validate_power_envelope(&request.power_plan, &request.schedule);
-    if !power_report.is_valid() {
+    let only_missing_task_profiles = !power_report.violations.is_empty()
+        && power_report.violations.iter().all(|violation| {
+            violation.code == crate::power::PowerConstraintViolationCode::MissingTaskProfile
+        });
+    if !power_report.is_valid() && !only_missing_task_profiles {
         add_issue(
             &mut request_issues,
             KitchenCapabilityIssueCodeV1::InvalidPowerSchedule,
@@ -806,12 +820,17 @@ pub fn evaluate_kitchen_capability_admission(
         KitchenCapabilityDispositionV1::WithinDeclaredEnvelope
     };
 
-    let disposition = if !request_issues.is_empty()
+    let request_disposition = disposition_from_issues(&request_issues);
+    let disposition = if request_disposition == KitchenCapabilityDispositionV1::Blocked
         || task_disposition == KitchenCapabilityDispositionV1::Blocked
     {
         KitchenCapabilityDispositionV1::Blocked
+    } else if request_disposition == KitchenCapabilityDispositionV1::Indeterminate
+        || task_disposition == KitchenCapabilityDispositionV1::Indeterminate
+    {
+        KitchenCapabilityDispositionV1::Indeterminate
     } else {
-        task_disposition
+        KitchenCapabilityDispositionV1::WithinDeclaredEnvelope
     };
 
     KitchenCapabilityAdmissionReportV1 {
@@ -1091,6 +1110,34 @@ mod tests {
         assert_eq!(
             disposition(&request),
             KitchenCapabilityDispositionV1::Blocked
+        );
+    }
+
+    #[test]
+    fn missing_task_power_profile_is_indeterminate() {
+        let mut request = fixture_request();
+        request.power_plan.task_profiles.clear();
+        let report = evaluate_kitchen_capability_admission(&request);
+        assert_eq!(
+            report.disposition,
+            KitchenCapabilityDispositionV1::Indeterminate
+        );
+        assert!(!report.admitted);
+        assert!(report.task_assessments[0].issues.iter().any(|issue| {
+            issue.code == KitchenCapabilityIssueCodeV1::MissingTaskPowerProfile
+        }));
+        assert!(!report.request_issues.iter().any(|issue| {
+            issue.code == KitchenCapabilityIssueCodeV1::InvalidPowerSchedule
+        }));
+    }
+
+    #[test]
+    fn batch_mass_overflow_is_indeterminate_not_a_false_mismatch() {
+        let mut request = fixture_request();
+        request.recipe.tasks[0].ingredient_inputs[0].quantity.value = u64::MAX;
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Indeterminate
         );
     }
 
