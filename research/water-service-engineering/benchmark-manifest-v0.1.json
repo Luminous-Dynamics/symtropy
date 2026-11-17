@@ -41,7 +41,13 @@
       "PW-T0-005-source-water-out-of-envelope",
       "PW-T0-006-stale-method-or-calibration",
       "PW-T0-007-storage-recontamination",
-      "PW-T0-008-reject-backwash-residual-omission"
+      "PW-T0-008-reject-backwash-residual-omission",
+      "PW-T0-009-gross-treatment-throughput-not-service-credit",
+      "PW-T0-010-quality-not-qualified-no-credit",
+      "PW-T0-011-no-reuse-control-no-credit",
+      "PW-T0-012-recovered-output-unused-no-credit",
+      "PW-T0-013-double-counted-shared-stream-rejected",
+      "PW-T0-014-quality-evidence-for-different-use-profile-no-credit"
     ],
     "comparison_dimensions": [
       "pathogen_specific_log_reduction",
@@ -53,7 +59,12 @@
       "water_recovery_reject_backwash_and_residuals",
       "energy_and_chemical_intensity",
       "availability_maintenance_and_repair",
-      "lifecycle_cost_and_equity"
+      "lifecycle_cost_and_equity",
+      "qualified_delivered_volume_separate_from_gross_treatment_output",
+      "measured_recovered_use_at_end_use_boundary",
+      "net_mains_displacement_against_matched_control_profile",
+      "service_credit_double_count_and_shared_source_guards",
+      "quality_evidence_is_scoped_to_exact_declared_end_use_profile"
     ],
     "hard_gates": [
       "zero_false_safe_in_frozen_critical_corpus",
@@ -110,7 +121,7 @@
     ]
   },
   "proposed_improvement_targets_not_achieved": {
-    "potable_treatment": ">=20% lifecycle-cost reduction per 1000 L profile-conforming water in at least one matched context without quality or service regression",
+    "potable_treatment": "investigate >=20% lifecycle-cost reduction per 1000 L of independently verified use-qualified net mains displacement in at least one matched context without quality, service, energy or residual-handling regression; use-profile qualification is explicitly matched to the intended end use",
     "pump_system": "investigate >=10% time-integrated wire-to-water energy reduction and >=20% lifecycle-cost reduction in at least one matched duty context without service or reliability regression"
   },
   "pressurized_leak_diagnostics": {
@@ -158,7 +169,7 @@
     "package": "tools/water-service-t0",
     "input_corpus": "research/water-service-engineering/t0-known-answer-vectors-v0.1.json",
     "independent_oracle": "research/water-service-engineering/t0-known-answer-oracle-v0.1.json",
-    "case_count": 23,
-    "status": "source_level_replay_23_of_23_matched_native_rust_unverified"
+    "case_count": 29,
+    "status": "use_profile_scoped_service_credit_cases_added_native_validation_pending"
   }
 }

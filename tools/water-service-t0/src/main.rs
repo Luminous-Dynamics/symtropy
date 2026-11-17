@@ -72,7 +72,7 @@ fn run() -> Result<i32, String> {
     let no_mismatches = evaluation["mismatches"]
         .as_array()
         .is_some_and(Vec::is_empty);
-    let success = total == 23 && matched == 23 && no_mismatches;
+    let success = total == 29 && matched == 29 && no_mismatches;
 
     let raw_revision = env::var("WATER_SERVICE_T0_REVISION")
         .or_else(|_| env::var("GITHUB_SHA"))

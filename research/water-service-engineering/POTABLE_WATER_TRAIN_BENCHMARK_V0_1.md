@@ -134,6 +134,17 @@ Use paired source-water lots, randomized run order, blinded lab samples where pr
 
 No T0/T1 pass implies potable water. No synthetic or modelled outcome may be labelled a laboratory or field result.
 
+
+## 8. Useful-service credit and net mains displacement
+
+Gross treatment throughput, recovered storage, use-qualified delivery, actual end-use consumption and net mains-water displacement are separate quantities. The service-credit benchmark uses a conservative upper bound:
+
+`credited litres <= min(qualified delivered litres, independently metered recovered use, matched-control mains displacement)`
+
+No credit is issued when critical quality evidence is stale/missing/out of scope, when a matched no-reuse control is absent, or when recovered output is unused, rejected, purged or overflowed. Shared source/meter identities are checked across end uses; duplicated or over-claimed streams are rejected rather than credited twice.
+
+These are synthetic T0 arithmetic/contract cases only. Real mains displacement requires a prospective matched control, independent meters, time-aligned use boundaries and rights-cleared data. It is not inferred from treatment throughput.
+
 ## 9. Candidate targets — research goals, not achieved results
 
 ### Hard gates
