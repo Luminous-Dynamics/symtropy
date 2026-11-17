@@ -35,14 +35,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S1",
-            "calibration_lineage": "CAL-S1",
-            "power_supply": "PWR-S1",
-            "communications_path": "GW-S1",
-            "clock_domain": "CLK-S1",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S2",
@@ -53,14 +71,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S2",
-            "calibration_lineage": "CAL-S2",
-            "power_supply": "PWR-S2",
-            "communications_path": "GW-S2",
-            "clock_domain": "CLK-S2",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S3",
@@ -71,14 +107,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S3",
-            "calibration_lineage": "CAL-S3",
-            "power_supply": "PWR-S3",
-            "communications_path": "GW-S3",
-            "clock_domain": "CLK-S3",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S4",
@@ -89,14 +143,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S4",
-            "calibration_lineage": "CAL-S4",
-            "power_supply": "PWR-S4",
-            "communications_path": "GW-S4",
-            "clock_domain": "CLK-S4",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         }
       ],
       "active_failed_domains": [],
@@ -159,14 +231,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S1-PRIMARY",
-            "calibration_lineage": "CAL-S1-PRIMARY",
-            "power_supply": "PWR-S1-PRIMARY",
-            "communications_path": "GW-S1-PRIMARY",
-            "clock_domain": "CLK-S1-PRIMARY",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S1-PRIMARY"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S1-PRIMARY"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S1-PRIMARY"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S1-PRIMARY"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S1-PRIMARY"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S1-ALT",
@@ -177,14 +267,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S1-ALT",
-            "calibration_lineage": "CAL-S1-ALT",
-            "power_supply": "PWR-S1-ALT",
-            "communications_path": "GW-S1-ALT",
-            "clock_domain": "CLK-S1-ALT",
-            "measurement_principle": "PRINC-acoustic"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S1-ALT"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S1-ALT"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S1-ALT"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S1-ALT"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S1-ALT"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-acoustic"
+            }
+          ]
         },
         {
           "sensor_id": "S2",
@@ -195,14 +303,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S2",
-            "calibration_lineage": "CAL-S2",
-            "power_supply": "PWR-S2",
-            "communications_path": "GW-S2",
-            "clock_domain": "CLK-S2",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S3",
@@ -213,14 +339,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S3",
-            "calibration_lineage": "CAL-S3",
-            "power_supply": "PWR-S3",
-            "communications_path": "GW-S3",
-            "clock_domain": "CLK-S3",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S4",
@@ -231,14 +375,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S4",
-            "calibration_lineage": "CAL-S4",
-            "power_supply": "PWR-S4",
-            "communications_path": "GW-S4",
-            "clock_domain": "CLK-S4",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         }
       ],
       "active_failed_domains": [
@@ -306,14 +468,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S1-A",
-            "calibration_lineage": "CAL-SHARED-S1",
-            "power_supply": "PWR-S1-A",
-            "communications_path": "GW-S1-A",
-            "clock_domain": "CLK-S1-A",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S1-A"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-SHARED-S1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S1-A"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S1-A"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S1-A"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S1-B",
@@ -324,14 +504,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S1-B",
-            "calibration_lineage": "CAL-SHARED-S1",
-            "power_supply": "PWR-S1-B",
-            "communications_path": "GW-S1-B",
-            "clock_domain": "CLK-S1-B",
-            "measurement_principle": "PRINC-acoustic"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S1-B"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-SHARED-S1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S1-B"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S1-B"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S1-B"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-acoustic"
+            }
+          ]
         },
         {
           "sensor_id": "S2",
@@ -342,14 +540,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S2",
-            "calibration_lineage": "CAL-S2",
-            "power_supply": "PWR-S2",
-            "communications_path": "GW-S2",
-            "clock_domain": "CLK-S2",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S3",
@@ -360,14 +576,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S3",
-            "calibration_lineage": "CAL-S3",
-            "power_supply": "PWR-S3",
-            "communications_path": "GW-S3",
-            "clock_domain": "CLK-S3",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S4",
@@ -378,14 +612,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S4",
-            "calibration_lineage": "CAL-S4",
-            "power_supply": "PWR-S4",
-            "communications_path": "GW-S4",
-            "clock_domain": "CLK-S4",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         }
       ],
       "active_failed_domains": [
@@ -451,14 +703,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S1-A",
-            "calibration_lineage": "CAL-S1-A",
-            "power_supply": "PWR-SHARED-S1",
-            "communications_path": "GW-S1-A",
-            "clock_domain": "CLK-S1-A",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S1-A"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S1-A"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-SHARED-S1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S1-A"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S1-A"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S1-B",
@@ -469,14 +739,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S1-B",
-            "calibration_lineage": "CAL-S1-B",
-            "power_supply": "PWR-SHARED-S1",
-            "communications_path": "GW-S1-B",
-            "clock_domain": "CLK-S1-B",
-            "measurement_principle": "PRINC-acoustic"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S1-B"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S1-B"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-SHARED-S1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S1-B"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S1-B"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-acoustic"
+            }
+          ]
         },
         {
           "sensor_id": "S2",
@@ -487,14 +775,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S2",
-            "calibration_lineage": "CAL-S2",
-            "power_supply": "PWR-S2",
-            "communications_path": "GW-S2",
-            "clock_domain": "CLK-S2",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S3",
@@ -505,14 +811,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S3",
-            "calibration_lineage": "CAL-S3",
-            "power_supply": "PWR-S3",
-            "communications_path": "GW-S3",
-            "clock_domain": "CLK-S3",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S4",
@@ -523,14 +847,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S4",
-            "calibration_lineage": "CAL-S4",
-            "power_supply": "PWR-S4",
-            "communications_path": "GW-S4",
-            "clock_domain": "CLK-S4",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         }
       ],
       "active_failed_domains": [
@@ -596,14 +938,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S1-A",
-            "calibration_lineage": "CAL-S1-A",
-            "power_supply": "PWR-S1-A",
-            "communications_path": "GW-SHARED-S1",
-            "clock_domain": "CLK-S1-A",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S1-A"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S1-A"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S1-A"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-SHARED-S1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S1-A"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S1-B",
@@ -614,14 +974,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S1-B",
-            "calibration_lineage": "CAL-S1-B",
-            "power_supply": "PWR-S1-B",
-            "communications_path": "GW-SHARED-S1",
-            "clock_domain": "CLK-S1-B",
-            "measurement_principle": "PRINC-acoustic"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S1-B"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S1-B"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S1-B"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-SHARED-S1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S1-B"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-acoustic"
+            }
+          ]
         },
         {
           "sensor_id": "S2",
@@ -632,14 +1010,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S2",
-            "calibration_lineage": "CAL-S2",
-            "power_supply": "PWR-S2",
-            "communications_path": "GW-S2",
-            "clock_domain": "CLK-S2",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S3",
@@ -650,14 +1046,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S3",
-            "calibration_lineage": "CAL-S3",
-            "power_supply": "PWR-S3",
-            "communications_path": "GW-S3",
-            "clock_domain": "CLK-S3",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S4",
@@ -668,14 +1082,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S4",
-            "calibration_lineage": "CAL-S4",
-            "power_supply": "PWR-S4",
-            "communications_path": "GW-S4",
-            "clock_domain": "CLK-S4",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         }
       ],
       "active_failed_domains": [
@@ -741,14 +1173,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S1",
-            "calibration_lineage": "CAL-S1",
-            "power_supply": "PWR-S1",
-            "communications_path": "GW-S1",
-            "clock_domain": "CLK-COMMON",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-COMMON"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S2",
@@ -759,14 +1209,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S2",
-            "calibration_lineage": "CAL-S2",
-            "power_supply": "PWR-S2",
-            "communications_path": "GW-S2",
-            "clock_domain": "CLK-COMMON",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-COMMON"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S3",
@@ -777,14 +1245,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S3",
-            "calibration_lineage": "CAL-S3",
-            "power_supply": "PWR-S3",
-            "communications_path": "GW-S3",
-            "clock_domain": "CLK-COMMON",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-COMMON"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S4",
@@ -795,14 +1281,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S4",
-            "calibration_lineage": "CAL-S4",
-            "power_supply": "PWR-S4",
-            "communications_path": "GW-S4",
-            "clock_domain": "CLK-COMMON",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-COMMON"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         }
       ],
       "active_failed_domains": [
@@ -860,14 +1364,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S1",
-            "calibration_lineage": "CAL-S1",
-            "power_supply": "PWR-S1",
-            "communications_path": "GW-S1",
-            "clock_domain": "CLK-S1",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S2",
@@ -878,14 +1400,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S2",
-            "calibration_lineage": "CAL-S2",
-            "power_supply": "PWR-S2",
-            "communications_path": "GW-S2",
-            "clock_domain": "CLK-S2",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S3",
@@ -896,14 +1436,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S3",
-            "calibration_lineage": "CAL-S3",
-            "power_supply": "PWR-S3",
-            "communications_path": "GW-S3",
-            "clock_domain": "CLK-S3",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S4",
@@ -914,14 +1472,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S4",
-            "calibration_lineage": "CAL-S4",
-            "power_supply": "PWR-S4",
-            "communications_path": "GW-S4",
-            "clock_domain": "CLK-S4",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         }
       ],
       "active_failed_domains": [],
@@ -984,14 +1560,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S1",
-            "calibration_lineage": "CAL-S1",
-            "power_supply": "PWR-S1",
-            "communications_path": "GW-S1",
-            "clock_domain": "CLK-S1",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S2",
@@ -1002,14 +1596,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S2",
-            "calibration_lineage": "CAL-S2",
-            "power_supply": "PWR-S2",
-            "communications_path": "GW-S2",
-            "clock_domain": "CLK-S2",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S3",
@@ -1020,14 +1632,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S3",
-            "calibration_lineage": "CAL-S3",
-            "power_supply": "PWR-S3",
-            "communications_path": "GW-S3",
-            "clock_domain": "CLK-S3",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S4",
@@ -1038,14 +1668,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S4",
-            "calibration_lineage": "CAL-S4",
-            "power_supply": "PWR-S4",
-            "communications_path": "GW-S4",
-            "clock_domain": "CLK-S4",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         }
       ],
       "active_failed_domains": [],
@@ -1113,14 +1761,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S1",
-            "calibration_lineage": "CAL-S1",
-            "power_supply": "PWR-S1",
-            "communications_path": "GW-S1",
-            "clock_domain": "CLK-S1",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S2",
@@ -1131,14 +1797,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S2",
-            "calibration_lineage": "CAL-S2",
-            "power_supply": "PWR-S2",
-            "communications_path": "GW-S2",
-            "clock_domain": "CLK-S2",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S3",
@@ -1149,14 +1833,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S3",
-            "calibration_lineage": "CAL-S3",
-            "power_supply": "PWR-S3",
-            "communications_path": "GW-S3",
-            "clock_domain": "CLK-S3",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S4",
@@ -1167,14 +1869,32 @@
           "calibration_status": "stale",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S4",
-            "calibration_lineage": "CAL-S4",
-            "power_supply": "PWR-S4",
-            "communications_path": "GW-S4",
-            "clock_domain": "CLK-S4",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         }
       ],
       "active_failed_domains": [],
@@ -1235,14 +1955,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S1-PRESSURE",
-            "calibration_lineage": "CAL-S1-PRESSURE",
-            "power_supply": "PWR-S1-PRESSURE",
-            "communications_path": "GW-S1-PRESSURE",
-            "clock_domain": "CLK-S1-PRESSURE",
-            "measurement_principle": "PRINC-S1-PRESSURE"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S1-PRESSURE"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S1-PRESSURE"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S1-PRESSURE"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S1-PRESSURE"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S1-PRESSURE"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-S1-PRESSURE"
+            }
+          ]
         },
         {
           "sensor_id": "S1-ACOUSTIC",
@@ -1253,14 +1991,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S1-ACOUSTIC",
-            "calibration_lineage": "CAL-S1-ACOUSTIC",
-            "power_supply": "PWR-S1-ACOUSTIC",
-            "communications_path": "GW-S1-ACOUSTIC",
-            "clock_domain": "CLK-S1-ACOUSTIC",
-            "measurement_principle": "PRINC-acoustic"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S1-ACOUSTIC"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S1-ACOUSTIC"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S1-ACOUSTIC"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S1-ACOUSTIC"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S1-ACOUSTIC"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-acoustic"
+            }
+          ]
         },
         {
           "sensor_id": "S2",
@@ -1271,14 +2027,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S2",
-            "calibration_lineage": "CAL-S2",
-            "power_supply": "PWR-S2",
-            "communications_path": "GW-S2",
-            "clock_domain": "CLK-S2",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S3",
@@ -1289,14 +2063,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S3",
-            "calibration_lineage": "CAL-S3",
-            "power_supply": "PWR-S3",
-            "communications_path": "GW-S3",
-            "clock_domain": "CLK-S3",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S4",
@@ -1307,14 +2099,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S4",
-            "calibration_lineage": "CAL-S4",
-            "power_supply": "PWR-S4",
-            "communications_path": "GW-S4",
-            "clock_domain": "CLK-S4",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         }
       ],
       "active_failed_domains": [
@@ -1382,14 +2192,32 @@
           "calibration_status": "stale",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S1",
-            "calibration_lineage": "CAL-S1",
-            "power_supply": "PWR-S1",
-            "communications_path": "GW-S1",
-            "clock_domain": "CLK-S1",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S2",
@@ -1400,14 +2228,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S2",
-            "calibration_lineage": "CAL-S2",
-            "power_supply": "PWR-S2",
-            "communications_path": "GW-S2",
-            "clock_domain": "CLK-S2",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S3",
@@ -1418,14 +2264,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S3",
-            "calibration_lineage": "CAL-S3",
-            "power_supply": "PWR-S3",
-            "communications_path": "GW-S3",
-            "clock_domain": "CLK-S3",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S4",
@@ -1436,14 +2300,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S4",
-            "calibration_lineage": "CAL-S4",
-            "power_supply": "PWR-S4",
-            "communications_path": "GW-S4",
-            "clock_domain": "CLK-S4",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         }
       ],
       "active_failed_domains": [],
@@ -1496,14 +2378,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S1",
-            "calibration_lineage": "CAL-S1",
-            "power_supply": "PWR-S1",
-            "communications_path": "GW-S1",
-            "clock_domain": "CLK-S1",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S2",
@@ -1514,14 +2414,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S2",
-            "calibration_lineage": "CAL-S2",
-            "power_supply": "PWR-S2",
-            "communications_path": "GW-S2",
-            "clock_domain": "CLK-S2",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S3",
@@ -1532,14 +2450,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S3",
-            "calibration_lineage": "CAL-S3",
-            "power_supply": "PWR-S3",
-            "communications_path": "GW-S3",
-            "clock_domain": "CLK-S3",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         },
         {
           "sensor_id": "S4",
@@ -1550,14 +2486,32 @@
           "calibration_status": "current",
           "time_status": "current",
           "reading_value": 50,
-          "failure_domains": {
-            "physical_interface": "PIF-S4",
-            "calibration_lineage": "CAL-S4",
-            "power_supply": "PWR-S4",
-            "communications_path": "GW-S4",
-            "clock_domain": "CLK-S4",
-            "measurement_principle": "PRINC-pressure"
-          }
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "PIF-S4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-S4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-S4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-S4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-S4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "PRINC-pressure"
+            }
+          ]
         }
       ],
       "active_failed_domains": [],
