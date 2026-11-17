@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "research_only_independent_symbolic_static_bach_oracle",
+  "symbolic_engine": {
+    "name": "SymPy",
+    "version": "1.14.0",
+    "production_dependency": false
+  },
+  "metric": "diag(-F(r), 1/F(r), r^2, r^2 sin(theta)^2)",
+  "signature": "(-+++)",
+  "riemann_convention": "R^a_(bcd)=d_c Gamma^a_(db)-d_d Gamma^a_(cb)+Gamma^a_(ce)Gamma^e_(db)-Gamma^a_(de)Gamma^e_(cb)",
+  "ricci_convention": "R_bd=R^a_(bad)",
+  "bach_convention": "B_kl=2 nabla^j nabla^m C_jklm + R^jm C_jklm",
+  "derivation_scope": "The full covariant Bach tensor is derived for generic symbolic F(r) before specializing to the four-term ansatz. This is independent of the published symmetry-reduced B1+B2 and B1-B2 expressions.",
+  "generic_metric_identities": {
+    "bach_trace_identically_zero": true,
+    "covariant_divergence_components_identically_zero": [true, true, true, true],
+    "nonzero_covariant_bach_components": ["B_tt", "B_rr", "B_theta_theta", "B_phi_phi"],
+    "off_diagonal_components_zero": true
+  },
+  "published_static_reduction": {
+    "B1_plus_B2_from_tensor": "B_tt/F + F*B_rr",
+    "B1_minus_B2_from_tensor": "4*B_theta_theta/r^2",
+    "B1_plus_B2_matches_published_expression": true,
+    "B1_minus_B2_matches_published_expression": true,
+    "comparison_scope": "Exact symbolic equality for generic F(r), not only the vacuum zero set."
+  },
+  "four_term_ansatz": {
+    "metric_function": "F(r)=c_inverse/r+c_constant+c_linear*r+c_quadratic*r^2",
+    "vacuum_constraint": "Q=c_constant^2-3*c_linear*c_inverse-1",
+    "full_covariant_components": {
+      "B_tt": "Q*F(r)/(3*r^4)",
+      "B_rr": "-Q/(3*r^4*F(r))",
+      "B_theta_theta": "Q/(3*r^2)",
+      "B_phi_phi": "Q*sin(theta)^2/(3*r^2)"
+    },
+    "component_formulas_verified_exactly": true,
+    "off_diagonal_components_zero": true,
+    "quadratic_coefficient_free_in_vacuum_constraint": true,
+    "published_scalar_combinations": {
+      "B1_plus_B2": "0",
+      "B1_minus_B2": "4*Q/(3*r^4)"
+    }
+  },
+  "fixtures": {
+    "on_shell_mannheim_kazanas_coefficients": {
+      "beta": "1",
+      "gamma": "1/10",
+      "kappa": "1/100",
+      "c_inverse": "-17/10",
+      "c_constant": "7/10",
+      "c_linear": "1/10",
+      "c_quadratic": "-1/100",
+      "Q": "0"
+    },
+    "on_shell": [
+      {
+        "r": "3",
+        "F": "103/300",
+        "F_prime": "103/450",
+        "B_tt": "0",
+        "B_rr": "0",
+        "B_theta_theta": "0",
+        "B1_plus_B2": "0",
+        "B1_minus_B2": "0",
+        "static_frame_domain_valid": true
+      },
+      {
+        "r": "6",
+        "F": "197/300",
+        "F_prime": "49/1800",
+        "B_tt": "0",
+        "B_rr": "0",
+        "B_theta_theta": "0",
+        "B1_plus_B2": "0",
+        "B1_minus_B2": "0",
+        "static_frame_domain_valid": true
+      }
+    ],
+    "off_shell_perturbation": {
+      "change": "c_constant: 7/10 -> 11/10; all other coefficients held fixed",
+      "c_inverse": "-17/10",
+      "c_constant": "11/10",
+      "c_linear": "1/10",
+      "c_quadratic": "-1/100",
+      "Q": "18/25"
+    },
+    "off_shell": [
+      {
+        "r": "3",
+        "F": "223/300",
+        "F_prime": "103/450",
+        "B_tt": "223/101250",
+        "B_rr": "-8/2007",
+        "B_theta_theta": "2/75",
+        "B1_plus_B2": "0",
+        "B1_minus_B2": "8/675",
+        "static_frame_domain_valid": true
+      },
+      {
+        "r": "6",
+        "F": "317/300",
+        "F_prime": "49/1800",
+        "B_tt": "317/1620000",
+        "B_rr": "-1/5706",
+        "B_theta_theta": "1/150",
+        "B1_plus_B2": "0",
+        "B1_minus_B2": "1/1350",
+        "static_frame_domain_valid": true
+      }
+    ],
+    "off_shell_residual_ratio_r3_over_r6": "16"
+  },
+  "claim_ceiling": "Independent symbolic verification of the full static-spherical Bach tensor for generic F(r), its trace/divergence identities, and its four-term specialization. This is not a general arbitrary-metric numerical evaluator, not a compiled Rust test, and not rotating-solution or observational validation."
+}
