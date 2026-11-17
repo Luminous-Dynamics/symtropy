@@ -79,58 +79,114 @@
     {
       "id": "fast_hydromechanical",
       "nominal_window": "microseconds_to_minutes",
-      "state_families": ["xylem_pressure", "tissue_pressure", "strain", "swelling", "pressure_driven_mass_flow"],
+      "state_families": [
+        "xylem_pressure",
+        "tissue_pressure",
+        "strain",
+        "swelling",
+        "pressure_driven_mass_flow"
+      ],
       "qualification": "source_specific_time_constants_and_observation_rate_required"
     },
     {
       "id": "stomatal_and_leaf",
       "nominal_window": "seconds_to_hours",
-      "state_families": ["stomatal_conductance", "transpiration", "leaf_water_potential", "carbon_assimilation", "leaf_temperature"],
+      "state_families": [
+        "stomatal_conductance",
+        "transpiration",
+        "leaf_water_potential",
+        "carbon_assimilation",
+        "leaf_temperature"
+      ],
       "qualification": "diurnal_forcing_and_sensor_cadence_must_be_preserved"
     },
     {
       "id": "soil_root_hydraulic",
       "nominal_window": "minutes_to_days",
-      "state_families": ["soil_water_potential", "soil_hydraulic_conductivity", "rhizosphere_resistance", "root_uptake", "root_hydraulic_conductance"],
+      "state_families": [
+        "soil_water_potential",
+        "soil_hydraulic_conductivity",
+        "rhizosphere_resistance",
+        "root_uptake",
+        "root_hydraulic_conductance"
+      ],
       "qualification": "soil_texture_root_architecture_and_boundary_conditions_are_profile_specific"
     },
     {
       "id": "fungal_network",
       "nominal_window": "hours_to_days",
-      "state_families": ["hyphal_topology", "growth_front", "cytoplasmic_flow", "fungal_resource_pools"],
+      "state_families": [
+        "hyphal_topology",
+        "growth_front",
+        "cytoplasmic_flow",
+        "fungal_resource_pools"
+      ],
       "qualification": "taxon_strain_and_observation_modality_are_explicit"
     },
     {
       "id": "developmental_and_recovery",
       "nominal_window": "days_to_months",
-      "state_families": ["root_architecture_change", "fungal_turnover", "carbon_allocation", "growth", "survival", "recovery_memory"],
+      "state_families": [
+        "root_architecture_change",
+        "fungal_turnover",
+        "carbon_allocation",
+        "growth",
+        "survival",
+        "recovery_memory"
+      ],
       "qualification": "historical_state_is_preserved_only_where_the_constitutive_model_requires_it"
     }
   ],
   "causal_process_paths": [
     {
       "id": "soil_to_leaf_hydraulics",
-      "sequence": ["soil_water_state", "soil_and_rhizosphere_conductance", "root_uptake_flux", "xylem_water_state", "leaf_water_state"],
+      "sequence": [
+        "soil_water_state",
+        "soil_and_rhizosphere_conductance",
+        "root_uptake_flux",
+        "xylem_water_state",
+        "leaf_water_state"
+      ],
       "status": "reference_models_required"
     },
     {
       "id": "stomatal_carbon_water",
-      "sequence": ["leaf_water_state", "stomatal_conductance", "transpiration", "carbon_assimilation"],
+      "sequence": [
+        "leaf_water_state",
+        "stomatal_conductance",
+        "transpiration",
+        "carbon_assimilation"
+      ],
       "status": "compare_process_based_and_empirical_models"
     },
     {
       "id": "poroelastic_signal",
-      "sequence": ["local_pressure_perturbation", "xylem_pressure_propagation", "tissue_pressure_and_strain", "downstream_observable_response"],
+      "sequence": [
+        "local_pressure_perturbation",
+        "xylem_pressure_propagation",
+        "tissue_pressure_and_strain",
+        "downstream_observable_response"
+      ],
       "status": "wound_reference_only_until_drought_mechanism_is_independently_supported"
     },
     {
       "id": "chemical_elicitor",
-      "sequence": ["elicitor_release", "pressure_driven_advection_and_diffusion", "target_receptor_or_channel", "cellular_response"],
+      "sequence": [
+        "elicitor_release",
+        "pressure_driven_advection_and_diffusion",
+        "target_receptor_or_channel",
+        "cellular_response"
+      ],
       "status": "competing_hypothesis_requires_direct_chemical_or_reporter_evidence"
     },
     {
       "id": "fungal_interface",
-      "sequence": ["soil_resource_or_water_state", "admitted_fungal_process", "measured_interface_exchange", "plant_pool_or_state_change"],
+      "sequence": [
+        "soil_resource_or_water_state",
+        "admitted_fungal_process",
+        "measured_interface_exchange",
+        "plant_pool_or_state_change"
+      ],
       "status": "disabled_without_taxon_specific_route_evidence_and_matched_controls"
     }
   ],
@@ -195,77 +251,200 @@
   "observation_channels": [
     {
       "id": "soil_and_rhizosphere",
-      "observables": ["soil_water_content", "soil_water_potential", "soil_hydraulic_conductivity", "rhizosphere_resistance"],
-      "required_metadata": ["soil_profile", "depth", "spatial_support", "calibration", "time_window", "uncertainty"]
+      "observables": [
+        "soil_water_content",
+        "soil_water_potential",
+        "soil_hydraulic_conductivity",
+        "rhizosphere_resistance"
+      ],
+      "required_metadata": [
+        "soil_profile",
+        "depth",
+        "spatial_support",
+        "calibration",
+        "time_window",
+        "uncertainty"
+      ]
     },
     {
       "id": "root_and_xylem",
-      "observables": ["root_uptake_flux", "root_hydraulic_conductance", "xylem_water_potential", "xylem_pressure"],
-      "required_metadata": ["root_identity", "architecture_revision", "measurement_method", "units", "time_window", "uncertainty"]
+      "observables": [
+        "root_uptake_flux",
+        "root_hydraulic_conductance",
+        "xylem_water_potential",
+        "xylem_pressure"
+      ],
+      "required_metadata": [
+        "root_identity",
+        "architecture_revision",
+        "measurement_method",
+        "units",
+        "time_window",
+        "uncertainty"
+      ]
     },
     {
       "id": "leaf_and_stomatal",
-      "observables": ["leaf_water_potential", "stomatal_conductance", "transpiration", "carbon_assimilation", "leaf_temperature"],
-      "required_metadata": ["plant_taxon_or_genotype", "leaf_identity", "sensor_calibration", "environmental_forcing", "time_window", "uncertainty"]
+      "observables": [
+        "leaf_water_potential",
+        "stomatal_conductance",
+        "transpiration",
+        "carbon_assimilation",
+        "leaf_temperature"
+      ],
+      "required_metadata": [
+        "plant_taxon_or_genotype",
+        "leaf_identity",
+        "sensor_calibration",
+        "environmental_forcing",
+        "time_window",
+        "uncertainty"
+      ]
     },
     {
       "id": "mechanical",
-      "observables": ["tissue_pressure", "strain", "swelling", "deformation"],
-      "required_metadata": ["tissue_identity", "geometry", "spatial_resolution", "imaging_or_sensor_calibration", "time_window", "uncertainty"]
+      "observables": [
+        "tissue_pressure",
+        "strain",
+        "swelling",
+        "deformation"
+      ],
+      "required_metadata": [
+        "tissue_identity",
+        "geometry",
+        "spatial_resolution",
+        "imaging_or_sensor_calibration",
+        "time_window",
+        "uncertainty"
+      ]
     },
     {
       "id": "calcium",
-      "observables": ["cytosolic_calcium_reporter_signal"],
-      "required_metadata": ["reporter_identity", "calibration", "imaging_exposure", "time_window", "uncertainty"],
+      "observables": [
+        "cytosolic_calcium_reporter_signal"
+      ],
+      "required_metadata": [
+        "reporter_identity",
+        "calibration",
+        "imaging_exposure",
+        "time_window",
+        "uncertainty"
+      ],
       "claim_limit": "reporter_signal_is_not_a_direct_measurement_of_hydraulic_pressure_or_specific_causal_pathway"
     },
     {
       "id": "electrical",
-      "observables": ["measured_electrical_potential_or_current"],
-      "required_metadata": ["electrode_geometry", "reference_electrode", "instrument_calibration", "filtering", "time_window", "uncertainty"],
+      "observables": [
+        "measured_electrical_potential_or_current"
+      ],
+      "required_metadata": [
+        "electrode_geometry",
+        "reference_electrode",
+        "instrument_calibration",
+        "filtering",
+        "time_window",
+        "uncertainty"
+      ],
       "claim_limit": "electrical_dynamics_do_not_establish_mass_flow_or_nutrient_transfer"
     },
     {
       "id": "fungal",
-      "observables": ["hyphal_graph", "hyphal_growth", "cytoplasmic_flow_velocity", "fungal_resource_pool"],
-      "required_metadata": ["fungal_taxon_and_strain", "culture_or_field_unit", "roi_or_segment", "source_receipt", "clock_alignment", "uncertainty"]
+      "observables": [
+        "hyphal_graph",
+        "hyphal_growth",
+        "cytoplasmic_flow_velocity",
+        "fungal_resource_pool"
+      ],
+      "required_metadata": [
+        "fungal_taxon_and_strain",
+        "culture_or_field_unit",
+        "roi_or_segment",
+        "source_receipt",
+        "clock_alignment",
+        "uncertainty"
+      ]
     },
     {
       "id": "isotope_and_exchange",
-      "observables": ["isotope_atom_fraction", "total_element_pool_mass_if_available", "compartment_specific_recovery"],
-      "required_metadata": ["isotope_identity", "donor_and_receiver_compartment", "baseline", "matched_control", "time_alignment", "source_receipt", "uncertainty"],
+      "observables": [
+        "isotope_atom_fraction",
+        "total_element_pool_mass_if_available",
+        "compartment_specific_recovery"
+      ],
+      "required_metadata": [
+        "isotope_identity",
+        "donor_and_receiver_compartment",
+        "baseline",
+        "matched_control",
+        "time_alignment",
+        "source_receipt",
+        "uncertainty"
+      ],
       "claim_limit": "isotope_enrichment_alone_does_not_establish_direct_fungal_transport_or_mass_transferred"
     }
   ],
   "model_tournament": [
     {
       "id": "soil_root_reference",
-      "families": ["OpenAlea_HydroRoot", "DuMux", "CPlantBox", "R_SWMS", "OpenSimRoot", "SRI"],
+      "families": [
+        "OpenAlea_HydroRoot",
+        "DuMux",
+        "CPlantBox",
+        "R_SWMS",
+        "OpenSimRoot",
+        "SRI"
+      ],
       "role": "root_and_soil_water_reference_not_a_fungal_baseline"
     },
     {
       "id": "stomatal_process_models",
-      "families": ["Buckley_2026_process_based", "Rockwell_2026_time_dependent_hydraulic_null"],
+      "families": [
+        "Buckley_2026_process_based",
+        "Rockwell_2026_time_dependent_hydraulic_null"
+      ],
       "role": "matched_process_based_stomatal_and_hydraulic_comparators"
     },
     {
       "id": "stomatal_simple_baselines",
-      "families": ["empirical_vpd_response", "constant_conductance", "uncoupled_carbon_demand"],
-      "role": "simple_negative_and_reference_baselines"
+      "families": [
+        "empirical_vpd_response",
+        "constant_conductance",
+        "uncoupled_carbon_demand",
+        "two_resistance_linear_stomatal_closure_null"
+      ],
+      "role": "simple_negative_and_reference_baselines",
+      "note": "Internal analytical null reference; no biological calibration or source-paper reproduction is claimed."
     },
     {
       "id": "fast_signal_models",
-      "families": ["Bacheva_2025_poroelastic_reference", "pressure_diffusion_only", "elicitor_advection_diffusion"],
+      "families": [
+        "Bacheva_2025_poroelastic_reference",
+        "pressure_diffusion_only",
+        "elicitor_advection_diffusion"
+      ],
       "role": "competing_signal_propagation_hypotheses"
     },
     {
       "id": "fungal_interface_controls",
-      "families": ["no_fungus", "disconnected_or_severed_network", "diffusion_only", "microbial_only", "admitted_AMF_graph_flow"],
+      "families": [
+        "no_fungus",
+        "disconnected_or_severed_network",
+        "diffusion_only",
+        "microbial_only",
+        "admitted_AMF_graph_flow"
+      ],
       "role": "route_discrimination_controls_not_universal_water_transfer_models"
     },
     {
       "id": "coupling_ablations",
-      "families": ["uncoupled_submodels", "no_hydraulic_memory", "no_poroelastic_path", "no_atmospheric_demand_path", "no_soil_supply_path", "no_fungal_interface"],
+      "families": [
+        "uncoupled_submodels",
+        "no_hydraulic_memory",
+        "no_poroelastic_path",
+        "no_atmospheric_demand_path",
+        "no_soil_supply_path",
+        "no_fungal_interface"
+      ],
       "role": "isolate_contribution_of_each_modelled_path"
     }
   ],
