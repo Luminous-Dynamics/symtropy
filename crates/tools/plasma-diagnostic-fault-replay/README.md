@@ -26,3 +26,7 @@ The crate has its own Cargo workspace boundary and does not join the Symtropy ro
 ## Important boundary
 
 The fixture does not contain plasma measurements, reconstruct diagnostic values, estimate sensor failure rates, model instrument physics, or demonstrate disruption prediction. Fault injection patterns are software challenge inputs only. A valid replay receipt proves only the recorded scenario/fault identity and replay-contract consistency. SHA-256 here is an integrity identifier, not a digital signature or proof of author identity. It does not establish diagnostic accuracy or physical truth.
+
+## Fault-mode interpretation
+
+The replay engine currently maps a declared fault mode to an evidence disposition (unavailable, invalid, delayed or degraded) at selected timepoints. It does **not** synthesize corrupted waveform values, sensor noise distributions, acquisition electronics, or diagnostic reconstruction. In particular, saturation, bias and gain drift are represented as a degraded-channel state, not by numerical clipping or signal transformation. The corpus includes temporal schedules shaped around public MAST/TokaMark robustness scenarios, but remains a software fault-disposition benchmark only.
