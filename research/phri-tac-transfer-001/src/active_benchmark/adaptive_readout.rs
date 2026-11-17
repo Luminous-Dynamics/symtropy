@@ -308,7 +308,7 @@ pub fn plan_adaptive_readout(
     problem: &AdaptiveAcquisitionProblem,
     policy: AcquisitionPolicy,
 ) -> Result<AcquisitionPlan, String> {
-    let taxel_count = validate_problem(problem)?;
+    validate_problem(problem)?;
     if policy == AcquisitionPolicy::ContactLocality && problem.predicted_contact_center.is_none() {
         return Err("contact-locality acquisition requires a predicted contact center".to_owned());
     }
@@ -1055,27 +1055,6 @@ mod tests {
                 let candidate = &input.candidates[*index];
                 macro_tile_coordinate(candidate.grid_y, input.grid_height) * 4
                     + macro_tile_coordinate(candidate.grid_x, input.grid_width)
-            })
-            .collect();
-        assert_eq!(macro_tiles.len(), DEFAULT_READOUT_BUDGET);
-    }
-
-    #[test]
-    fn spatial_stratified_policy_covers_macro_regions_before_local_refinement() {
-        let input = problem(DEFAULT_READOUT_BUDGET);
-        let first = plan_adaptive_readout(&input, AcquisitionPolicy::SpatialStratified)
-            .expect("stratified plan");
-        let second = plan_adaptive_readout(&input, AcquisitionPolicy::SpatialStratified)
-            .expect("repeat stratified plan");
-        assert_eq!(first, second);
-        assert_eq!(first.selected_taxel_count, DEFAULT_READOUT_BUDGET);
-        let macro_tiles: BTreeSet<_> = first
-            .selected_taxel_indices
-            .iter()
-            .map(|index| {
-                let candidate = &input.candidates[*index];
-                (candidate.grid_y * 4 / input.grid_height) * 4
-                    + candidate.grid_x * 4 / input.grid_width
             })
             .collect();
         assert_eq!(macro_tiles.len(), DEFAULT_READOUT_BUDGET);
