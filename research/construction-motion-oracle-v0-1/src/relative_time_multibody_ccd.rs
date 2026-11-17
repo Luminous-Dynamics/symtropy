@@ -362,10 +362,8 @@ fn map_body_clock(
     else {
         return fail(ClockMappingFailure::ClockUncertaintyOverflow);
     };
-    let source_uncertainty_quotient =
-        source_uncertainty_product / DRIFT_PPM_DENOMINATOR;
-    let source_uncertainty_remainder =
-        source_uncertainty_product % DRIFT_PPM_DENOMINATOR;
+    let source_uncertainty_quotient = source_uncertainty_product / DRIFT_PPM_DENOMINATOR;
+    let source_uncertainty_remainder = source_uncertainty_product % DRIFT_PPM_DENOMINATOR;
     let source_uncertainty_site_ms =
         source_uncertainty_quotient + u128::from(source_uncertainty_remainder != 0);
     let Some(total_uncertainty) = offset_half_width
@@ -875,11 +873,7 @@ mod tests {
     fn source_timestamp_uncertainty_is_scaled_by_the_clock_rate_bound() {
         let mut motion = span(0.0, 0.0, 0, 1_000, "clock-a");
         motion.clock_uncertainty_ms = 3;
-        let a = body(
-            "a",
-            motion,
-            Some(mapping("clock-a", 0, 0, 500_000)),
-        );
+        let a = body("a", motion, Some(mapping("clock-a", 0, 0, 500_000)));
         let b = body(
             "b",
             span(50.0, 0.0, 0, 1_000, "clock-b"),
@@ -889,5 +883,4 @@ mod tests {
         // ceil(3 ms * 1.5 rate) + ceil(1,000 ms * 500 ppm) = 5 + 1.
         assert_eq!(report.body_mappings[0].total_uncertainty_ms, Some(6));
     }
-
 }
