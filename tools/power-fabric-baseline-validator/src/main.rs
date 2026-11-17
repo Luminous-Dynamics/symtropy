@@ -254,7 +254,7 @@ pub fn validate_document(document: &Value) -> Result<BaselineSummary, String> {
         "industry_demonstration",
         "industry_pilot",
     ];
-    let allowed_relations = ["exact", "approximate", "greater_than", "range"];
+    let allowed_relations = ["exact", "approximate", "greater_than", "range", "less_than"];
     let mut record_ids = BTreeSet::new();
     let mut measurement_count = 0;
 
@@ -358,7 +358,7 @@ mod tests {
     }
 
     #[test]
-    fn frozen_v01_corpus_validates_with_six_source_records() {
+    fn frozen_v01_corpus_validates_with_ten_source_records() {
         let summary = validate_document(&corpus()).unwrap();
         assert_eq!(summary.records, 10);
         assert_eq!(summary.measurements, 46);
