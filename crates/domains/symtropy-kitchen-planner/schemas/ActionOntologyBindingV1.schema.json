@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/kitchen/ActionOntologyBindingV1.schema.json",
+  "title": "ActionOntologyBindingV1",
+  "description": "A source-aware recipe action-core binding. Taxonomy mapping is for planning vocabulary only and does not imply a trajectory, command or safety qualification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ontology_version",
+    "mapping",
+    "parameters",
+    "tool_capability_refs",
+    "precondition_refs",
+    "evidence_class"
+  ],
+  "properties": {
+    "ontology_version": {
+      "const": 1
+    },
+    "mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "core",
+        "group",
+        "provenance_ref"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "rule_based",
+            "human_reviewed",
+            "unmapped"
+          ]
+        },
+        "core": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "cutting",
+            "pouring",
+            "mixing",
+            "preparing",
+            "pick_and_place",
+            "cook_and_cool",
+            null
+          ]
+        },
+        "group": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "wash",
+            "peel",
+            "trim",
+            "chop",
+            "slice",
+            "dice",
+            "grate",
+            "shred",
+            "pour",
+            "sprinkle",
+            "stir",
+            "mix",
+            "knead",
+            "blend",
+            "emulsify",
+            "pick",
+            "place",
+            "move",
+            "serve",
+            "saute",
+            "boil",
+            "simmer",
+            "steam",
+            "bake",
+            "roast",
+            "pressure_cook",
+            "cool",
+            "rest",
+            null
+          ]
+        },
+        "provenance_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        }
+      }
+    },
+    "parameters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "value",
+          "decimal_places",
+          "unit",
+          "source_ref"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "type": "integer"
+          },
+          "decimal_places": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 6
+          },
+          "unit": {
+            "enum": [
+              "millimetre",
+              "centimetre",
+              "gram",
+              "milligram",
+              "millilitre",
+              "litre",
+              "second",
+              "millisecond",
+              "degree_celsius",
+              "revolutions_per_minute",
+              "percent",
+              "count"
+            ]
+          },
+          "source_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "tool_capability_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "precondition_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "evidence_class": {
+      "enum": [
+        "declared",
+        "modelled",
+        "simulated"
+      ]
+    }
+  }
+}
