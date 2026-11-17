@@ -137,7 +137,9 @@
             "recurrence_detected": false,
             "reopen_count": 0
           },
-          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+          "treated_zone_id": "TREATED",
+          "control_zone_id": "CONTROL"
         }
       ]
     },
@@ -252,7 +254,9 @@
             "recurrence_detected": false,
             "reopen_count": 0
           },
-          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+          "treated_zone_id": "TREATED",
+          "control_zone_id": "CONTROL"
         }
       ]
     },
@@ -384,7 +388,9 @@
             "recurrence_detected": false,
             "reopen_count": 0
           },
-          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+          "treated_zone_id": "TREATED",
+          "control_zone_id": "CONTROL"
         }
       ]
     },
@@ -516,7 +522,9 @@
             "recurrence_detected": false,
             "reopen_count": 0
           },
-          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+          "treated_zone_id": "TREATED",
+          "control_zone_id": "CONTROL"
         }
       ]
     },
@@ -648,7 +656,9 @@
             "recurrence_detected": false,
             "reopen_count": 0
           },
-          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+          "treated_zone_id": "TREATED",
+          "control_zone_id": "CONTROL"
         }
       ]
     },
@@ -780,7 +790,9 @@
             "recurrence_detected": false,
             "reopen_count": 0
           },
-          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+          "treated_zone_id": "TREATED",
+          "control_zone_id": "CONTROL"
         }
       ]
     },
@@ -912,7 +924,9 @@
             "recurrence_detected": false,
             "reopen_count": 0
           },
-          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+          "treated_zone_id": "TREATED",
+          "control_zone_id": "CONTROL"
         }
       ]
     },
@@ -1016,7 +1030,9 @@
             "recurrence_detected": false,
             "reopen_count": 0
           },
-          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+          "treated_zone_id": "TREATED",
+          "control_zone_id": "CONTROL"
         }
       ]
     },
@@ -1150,7 +1166,9 @@
             "recurrence_detected": false,
             "reopen_count": 0
           },
-          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+          "treated_zone_id": "TREATED",
+          "control_zone_id": "CONTROL"
         }
       ]
     },
@@ -1282,7 +1300,9 @@
             "recurrence_detected": false,
             "reopen_count": 0
           },
-          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+          "treated_zone_id": "TREATED",
+          "control_zone_id": "CONTROL"
         }
       ]
     },
@@ -1414,7 +1434,9 @@
             "recurrence_detected": true,
             "reopen_count": 1
           },
-          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+          "treated_zone_id": "TREATED",
+          "control_zone_id": "CONTROL"
         }
       ]
     },
@@ -1546,7 +1568,9 @@
             "recurrence_detected": false,
             "reopen_count": 0
           },
-          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+          "treated_zone_id": "TREATED",
+          "control_zone_id": "CONTROL"
         },
         {
           "event_id": "EV-12-2",
@@ -1673,7 +1697,9 @@
             "recurrence_detected": false,
             "reopen_count": 0
           },
-          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+          "treated_zone_id": "TREATED",
+          "control_zone_id": "CONTROL"
         }
       ]
     },
@@ -1805,7 +1831,9 @@
             "recurrence_detected": false,
             "reopen_count": 0
           },
-          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1",
+          "treated_zone_id": "TREATED",
+          "control_zone_id": "CONTROL"
         }
       ]
     }
