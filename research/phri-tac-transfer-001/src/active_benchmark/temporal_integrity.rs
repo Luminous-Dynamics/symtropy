@@ -117,7 +117,7 @@ fn checked_i64(value: f64, field: &str) -> Result<i64, String> {
 /// Fit reference_time = reference_epoch + offset
 /// + (local_time - local_epoch) * (1 + drift_ppb / 1e9).
 /// Three or more synchronization pairs are required so residuals can be
-/// checked rather than simply fitting a line through two points.
+///   checked rather than simply fitting a line through two points.
 pub fn fit_clock_mapping(
     clock_domain: &str,
     reference_clock_domain: &str,
