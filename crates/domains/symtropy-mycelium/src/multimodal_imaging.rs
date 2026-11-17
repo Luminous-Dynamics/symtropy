@@ -230,9 +230,9 @@ impl ModalityObservation {
             return Err(ModalityEvidenceError::InvalidTemporalResolution);
         }
         if self.spatial_support == SpatialSupport::ThreeDimensionalVolume
-            && !self
+            && self
                 .spatial_resolution_um
-                .is_some_and(|resolution| resolution.z_um.is_some())
+                .is_none_or(|resolution| resolution.z_um.is_none())
         {
             return Err(ModalityEvidenceError::ThreeDimensionalSupportRequiresDepthResolution);
         }
