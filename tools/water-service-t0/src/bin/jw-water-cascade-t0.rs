@@ -297,15 +297,15 @@ fn evaluate_case(case: &Value) -> Result<Value, String> {
                 return Err(format!("{id}: unsupported reported_end_kind '{end_kind}'"));
             }
             if end_kind == "split_at_bridge_cap" && gap <= MAX_C41_NO_REPORT_GAP {
-                return Err(format!("{id}: split_at_bridge_cap requires more than four no_report days"));
+                return Err(format!(
+                    "{id}: split_at_bridge_cap requires more than four no_report days"
+                ));
             }
             if end_kind == "fair_off_bypass" {
                 let last_reported = reports(case)?
                     .iter()
                     .rev()
-                    .find(|row| {
-                        row.get("status").and_then(Value::as_str) != Some("no_report")
-                    })
+                    .find(|row| row.get("status").and_then(Value::as_str) != Some("no_report"))
                     .ok_or_else(|| format!("{id}: fair/off-bypass return row missing"))?;
                 if string(last_reported, "status", &context)? != "fair"
                     || field(last_reported, "bypass", &context)?.as_bool() != Some(false)
@@ -511,7 +511,6 @@ fn run(args: &[String]) -> Result<Value, String> {
     }
     let source_context = field(&input, "source_context", "input")?;
     if string(source_context, "time_zone", "source_context")? != "Africa/Johannesburg" {
-
         return Err("notice valid-day interval requires Africa/Johannesburg time zone".to_owned());
     }
     validate_schema_markers(&input_schema, &oracle_schema)?;
