@@ -618,9 +618,7 @@ fn refine_time_swept_capsule_candidates(
             let overlap_start_ms = first_cached
                 .active_start_ms
                 .max(second_cached.active_start_ms);
-            let overlap_end_ms = first_cached
-                .active_end_ms
-                .min(second_cached.active_end_ms);
+            let overlap_end_ms = first_cached.active_end_ms.min(second_cached.active_end_ms);
             if overlap_start_ms >= overlap_end_ms {
                 continue;
             }
@@ -638,11 +636,11 @@ fn refine_time_swept_capsule_candidates(
                 continue;
             }
 
-            let both_cached_intervals_are_pair_interval =
-                first_cached.active_start_ms == overlap_start_ms
-                    && first_cached.active_end_ms == overlap_end_ms
-                    && second_cached.active_start_ms == overlap_start_ms
-                    && second_cached.active_end_ms == overlap_end_ms;
+            let both_cached_intervals_are_pair_interval = first_cached.active_start_ms
+                == overlap_start_ms
+                && first_cached.active_end_ms == overlap_end_ms
+                && second_cached.active_start_ms == overlap_start_ms
+                && second_cached.active_end_ms == overlap_end_ms;
             let common_bounds_overlap = if both_cached_intervals_are_pair_interval {
                 first_cached.bounds.overlaps(second_cached.bounds)
             } else {
@@ -1290,9 +1288,7 @@ mod tests {
         for initial_seed in 0..12_u64 {
             let mut seed = 0x5a17_0000_u64.wrapping_add(initial_seed);
             let mut next = || {
-                seed = seed
-                    .wrapping_mul(6_364_136_223_846_793_005)
-                    .wrapping_add(1);
+                seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
                 (seed >> 32) as i64
             };
             let mut bodies = Vec::new();
@@ -1330,7 +1326,10 @@ mod tests {
                     clock_domain_id: "site-clock".into(),
                     clock_uncertainty_ms: 0,
                 };
-                bodies.push(body(&format!("seed-{initial_seed}-body-{index:02}"), motion));
+                bodies.push(body(
+                    &format!("seed-{initial_seed}-body-{index:02}"),
+                    motion,
+                ));
             }
 
             for subdivisions in [1, 2, 4, 8, 16] {
@@ -1338,8 +1337,7 @@ mod tests {
                     time_swept_capsule_broadphase_hierarchical(&bodies, subdivisions).unwrap();
                 let direct = time_swept_capsule_broadphase(&bodies, subdivisions).unwrap();
                 assert_eq!(
-                    hierarchical.refinement.pairs,
-                    direct.pairs,
+                    hierarchical.refinement.pairs, direct.pairs,
                     "randomized complete candidate records diverged for seed {initial_seed} at {subdivisions} slabs"
                 );
                 let coarse_ids: BTreeSet<_> = hierarchical
@@ -1361,15 +1359,13 @@ mod tests {
         }
     }
 
-
     #[test]
     fn cached_slab_bounds_fast_reject_and_reuse_exact_common_intervals() {
         let bodies = [
             body("a", span(-10.0, 0.0, 20.0, 0, 1_000)),
             body("b", span(10.0, 0.0, -20.0, 0, 1_000)),
         ];
-        let hierarchical =
-            time_swept_capsule_broadphase_hierarchical(&bodies, 8).unwrap();
+        let hierarchical = time_swept_capsule_broadphase_hierarchical(&bodies, 8).unwrap();
         let direct = time_swept_capsule_broadphase(&bodies, 8).unwrap();
         assert_eq!(hierarchical.refinement.pairs, direct.pairs);
         assert_eq!(hierarchical.refinement.body_slab_bounds_built, 16);
@@ -1384,18 +1380,13 @@ mod tests {
             body("a", span(0.0, 0.0, 0.0, 0, 1_000)),
             body("b", span(0.0, 0.0, 0.0, 275, 725)),
         ];
-        let hierarchical =
-            time_swept_capsule_broadphase_hierarchical(&bodies, 4).unwrap();
+        let hierarchical = time_swept_capsule_broadphase_hierarchical(&bodies, 4).unwrap();
         let direct = time_swept_capsule_broadphase(&bodies, 4).unwrap();
         assert_eq!(hierarchical.refinement.pairs, direct.pairs);
         assert_eq!(hierarchical.refinement.coarse_candidate_pairs, 1);
         assert!(hierarchical.refinement.common_interval_rebuilds > 0);
-        assert_eq!(
-            hierarchical.refinement.body_slab_bounds_built,
-            2 + 4
-        );
+        assert_eq!(hierarchical.refinement.body_slab_bounds_built, 2 + 4);
     }
-
 
     #[test]
     fn empty_coarse_candidate_set_skips_all_refinement_cache_work() {
@@ -1403,8 +1394,7 @@ mod tests {
             body("a", span(0.0, 0.0, 0.0, 0, 1_000)),
             body("b", span(10_000.0, 0.0, 0.0, 0, 1_000)),
         ];
-        let hierarchical =
-            time_swept_capsule_broadphase_hierarchical(&bodies, 16).unwrap();
+        let hierarchical = time_swept_capsule_broadphase_hierarchical(&bodies, 16).unwrap();
         assert!(hierarchical.coarse.pairs.is_empty());
         assert_eq!(hierarchical.refinement.coarse_candidate_pairs, 0);
         assert_eq!(hierarchical.refinement.body_slab_bounds_built, 0);
@@ -1412,5 +1402,4 @@ mod tests {
         assert_eq!(hierarchical.refinement.cached_bounds_fast_rejects, 0);
         assert_eq!(hierarchical.refinement.common_interval_rebuilds, 0);
     }
-
 }
