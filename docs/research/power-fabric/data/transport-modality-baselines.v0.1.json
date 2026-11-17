@@ -36,6 +36,18 @@
       },
       "measurements": [
         {
+          "name": "prototype_power_class",
+          "value": 50000,
+          "unit": "watt",
+          "relation": "exact",
+          "measurement_plane": "prototype rating / nominal class as stated in paper title",
+          "boundary": "declared prototype power class; not independently interpreted as continuous average or receiver load power",
+          "source_reported": true,
+          "conditions": [
+            "50 kW experimental prototype"
+          ]
+        },
+        {
           "name": "dc_to_dc_efficiency",
           "value": 96.824,
           "value_upper": 97.165,
@@ -73,7 +85,7 @@
     {
       "id": "ntt-mhi-2025-1km-laser",
       "modality": "optical_laser_wpt",
-      "study_type": "industry_pilot",
+      "study_type": "industry_demonstration",
       "comparison_group": "optical-lpt-optical-output-to-receiver-electrical-1km",
       "source": {
         "title": "NTT and Mitsubishi Heavy Industries Achieved World's Highest Efficiency in Laser Wireless Power Transmission under Atmospheric Turbulence",
