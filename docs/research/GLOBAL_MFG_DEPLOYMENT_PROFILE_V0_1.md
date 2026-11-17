@@ -253,12 +253,13 @@ GMDP fields to bind: local manufacturer/importer/builder status, vehicle categor
 
 ### Brazil — EV CKD/SKD tariff route and time-limited quota
 
-Brazil is a useful example of why customs routes need their own time and eligibility model. MDIC's 26 October 2026 update says the 35% import duty for electrified CKD vehicles is to apply from January 2027, with additional zero-duty import quotas for CKD and SKD for six months, totalling US$463 million. The official Siscomex import page specifically lists the relevant electric/hybrid CKD/SKD NCM lines, links Resolution Gecex 927/2026 and Portaria Secex 513/2026, and lists companies allocated shares of the quota. Eligibility and quota use are therefore not an automatic country-wide entitlement.
+Brazil is a useful example of why customs routes need their own time and eligibility model. MDIC's 26 October 2026 update says the 35% import duty for electrified CKD vehicles is to apply from January 2027, with additional zero-duty import quotas for CKD and SKD for six months, totalling US$463 million. The official Siscomex import page lists the EV CKD/SKD quota, NCM/EX lines 8703.40.00 Ex 019, 8703.60.00 Ex 019 and 8703.80.00 Ex 014, Resolution Gecex 927/2026, Portaria Secex 513/2026 and a company-allocation list. **The official Secex legislation index records Portaria Secex 513 as amended by Portaria Secex 551 of 5 November 2026.** A pointer to Portaria 513 alone is therefore not a complete current rule chain. Quota eligibility and use are not automatic country-wide entitlements.
 
 - MDIC announcement, updated 26 October 2026: https://www.gov.br/mdic/pt-br/assuntos/noticias/2025/julho/gecex-delibera-sobre-cronograma-de-elevacao-tarifaria-para-carros-eletricos-e-hibridos-importados/
-- Siscomex import quotas and linked legal instruments/company allocation: https://www.gov.br/siscomex/pt-br/informacoes/importacao
+- Siscomex EV CKD/SKD quota, NCM/EX lines and company allocation: https://www.gov.br/siscomex/pt-br/informacoes/importacao
+- Secex legislation index (records Portaria 513 amendment by Portaria 551, 5 November 2026): https://www.gov.br/siscomex/pt-br/legislacao/secex
 
-GMDP fields to bind: NCM/EX tariff line, product form (CBU/CKD/SKD), origin, importer/company allocation, quota instrument, allocated amount, balance, application and utilisation window, customs value, rate outside the quota, and source snapshot date. The tariff schedule and quota are not vehicle type approval and must not be blended into a single compliance score.
+GMDP fields to bind: NCM/EX tariff line, product form (CBU/CKD/SKD), origin, importer/company allocation, current underlying resolution, current portaria and all amendments, allocated amount, quota balance, application and utilisation window, customs value, rate outside the quota, and each official source's last-updated/retrieval date. The tariff schedule and quota are not vehicle type approval and must not be blended into a single compliance score.
 
 ### Cross-market implications
 
