@@ -12,10 +12,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
-    CandidateRefinementReport, Capsule, CapsuleMotionSpan, ClockUncertaintyCcdResult,
-    ClockUncertaintyDisposition, ClockUncertaintyError, MultiBodyBroadphaseError,
+    Capsule, CapsuleMotionSpan, ClockUncertaintyCcdResult, ClockUncertaintyDisposition,
+    ClockUncertaintyError, HierarchicalMultiBodyBroadphaseReport, MultiBodyBroadphaseError,
     MultiBodyBroadphaseReport, TimedCapsuleBody, clock_uncertainty_aware_capsule_query,
-    refine_time_swept_capsule_candidates, time_swept_capsule_broadphase,
+    time_swept_capsule_broadphase_hierarchical,
 };
 
 const DRIFT_PPM_DENOMINATOR: u128 = 1_000_000;
@@ -738,35 +738,29 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
     // Coarse SAP is run once across the full horizon. Temporal refinement
     // then visits only this conservative candidate set, not every body in
     // every slab.
-    let broadphase = if outer_bodies.len() >= 2 {
-        Some(
-            time_swept_capsule_broadphase(&outer_bodies, 1)
+    let hierarchical: Option<HierarchicalMultiBodyBroadphaseReport> =
+        if outer_bodies.len() >= 2 {
+            Some(
+                time_swept_capsule_broadphase_hierarchical(
+                    &outer_bodies,
+                    config.subdivision_count,
+                )
                 .map_err(RelativeTimeBroadphaseError::Broadphase)?,
-        )
-    } else {
-        None
-    };
-    let refinement: Option<CandidateRefinementReport> = match broadphase.as_ref() {
-        Some(coarse) => Some(
-            refine_time_swept_capsule_candidates(
-                &outer_bodies,
-                coarse,
-                config.subdivision_count,
             )
-            .map_err(RelativeTimeBroadphaseError::Broadphase)?,
-        ),
-        None => None,
-    };
-    let refined_pairs = refinement
+        } else {
+            None
+        };
+    let broadphase = hierarchical.as_ref().map(|report| report.coarse.clone());
+    let refined_pairs = hierarchical
         .as_ref()
-        .map_or(&[][..], |report| report.pairs.as_slice());
-    let coarse_broadphase_candidate_pairs = broadphase
+        .map_or(&[][..], |report| report.refinement.pairs.as_slice());
+    let coarse_broadphase_candidate_pairs = hierarchical
         .as_ref()
-        .map_or(0, |report| report.pairs.len() as u64);
+        .map_or(0, |report| report.refinement.coarse_candidate_pairs);
     let broadphase_candidate_pairs = refined_pairs.len() as u64;
-    let refinement_tested_pair_slabs = refinement
+    let refinement_tested_pair_slabs = hierarchical
         .as_ref()
-        .map_or(0, |report| report.tested_pair_slabs);
+        .map_or(0, |report| report.refinement.tested_pair_slabs);
     let valid_outer_envelope_bodies = outer_bodies.len() as u64;
     let valid_outer_pair_count = valid_outer_envelope_bodies
         .checked_mul(valid_outer_envelope_bodies.saturating_sub(1))
