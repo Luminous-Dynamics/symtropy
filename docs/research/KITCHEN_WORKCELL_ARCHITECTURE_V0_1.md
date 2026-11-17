@@ -319,3 +319,36 @@ A May 2026 independent comparison of seven cooking food processors lists Bosch C
 For South African comparisons, retain local models as separate regional SKUs: Russell Hobbs RHEP7/RHEP6N pressure cookers and Kenwood FDP65.400WH food processor are listed as candidates, while their current exact revision and availability remain unverified. Acquire manufacturer datasheets and physical type-plate readings before treating the listing specifications as ground truth. Stovetop pressure cookers must be measured as a complete cooktop-plus-vessel system and not compared to electric appliance wattage alone.
 
 The commercial benchmark is not “has more programmes.” Compare each function against the best specialist tool and the integrated cooking machine: accepted output quality, task time, active labor, cleaning burden, durability, consumable/accessory costs, energy, water, repairability and user autonomy. A modular workcell only wins when matched-task trials demonstrate a better outcome or meaningful option value without shifting hidden burden to setup, cleaning, maintenance or user supervision.
+
+
+## 16. Recipe action ontology and integrated kitchen robotics evaluation
+
+### Six action-core hierarchy
+
+The recipe-grounding lane now includes an optional `ActionOntologyBindingV1` with six cores—cutting, pouring, mixing, preparing, pick-and-place, cook-and-cool—and specific action groups. Each binding carries its ontology version, deterministic or human-reviewed mapping method, provenance, typed parameters, tool-capability references, precondition references and declared/modelled/simulated evidence class. The field is optional for backward compatibility; no binding means no ontology enrichment was performed. `Other` stays unmapped by default.
+
+The taxonomy is aligned with the 2025 *Everything robots need to know about cooking actions* study. The paper analyses Recipe1M+ (1,028,692 recipes / 10,767,598 instructions) and reports about 54% verb coverage from direct matching and 76.5% after cosine-similarity matching against its six cores and action groups. It describes a further neuro-symbolic/LLM step for remaining verbs and limitations around less common actions, simplified parameterization, and reliance on simulation/selected demonstrations rather than broad real-kitchen qualification. Its 76.5% is the paper's corpus/protocol result, not a Symtropy measurement and not a precision score. Reference: https://www.frontiersin.org/journals/robotics-and-ai/articles/10.3389/frobt.2025.1682031/full
+
+Our action-ontology benchmark therefore records coverage, group precision/recall, unmapped verb fraction, human override rate and downstream task-graph feasibility separately. It also tests whether ambiguous verbs remain unmapped rather than being force-fit for a headline coverage gain. Compare to the paper only after matching the corpus, rights, language coverage, normalization, similarity threshold and evaluation split. Kneading is categorized as Preparing in line with that taxonomy; verbs whose meaning depends on context remain explicit unknowns.
+
+### Kitchen-R as a three-layer robotic benchmark
+
+Kitchen-R (Kachaev et al., *Mind and Motion Aligned*, 2025) uses an Isaac Sim digital twin and 500+ complex language instructions for a mobile manipulator. It provides a VLM-based task-planning baseline and a diffusion-policy low-level control baseline, and separates three evaluation modes: planning-only, low-level control-only, and integrated whole-system execution. The paper describes roughly 2,700 mobile-manipulation trajectories. Reference: https://link.springer.com/article/10.1134/S1064562425700450
+
+This suggests a useful evaluation boundary for Symtropy:
+
+1. **Planning:** recipe/action grounding, task decomposition, resources, timing windows and plan validity.
+2. **Low-level control:** manipulation/navigation success, recovery, perception robustness and timeouts.
+3. **Integrated:** complete episodes with the planner and control policy connected, counting failures and human takeovers.
+
+Our first Kitchen-R adapter is a simulation evaluation target only. Kitchen-R's mobile-manipulation benchmark does not certify food processing, heating, pressure-vessel operation, hygiene, taste or food safety. A simulated scene reaching its goal is not an instrumented meal-quality result or real appliance qualification. Planning, control and integrated success rates must be reported separately, on the same frozen episode IDs and environment configuration; no component may be assumed to execute perfectly.
+
+### Benchmark gates
+
+- Action grounding: exact core/group precision and recall, coverage, unmapped fraction, human overrides, language/locale stratification and rights/provenance.
+- Planning: independent task-graph validation, temporal-window violations, resource conflicts, schedule feasibility and replan latency.
+- Low-level policy: subtask success, collision/contact violations, navigation/manipulation completion, failure recovery and timeouts.
+- Integrated: episode success, recovery, human takeover, execution time and reproducibility under fixed seeds.
+- Physical kitchen: separately instrumented energy, water, temperature, accepted food yield, blinded texture/sensory quality and qualified food-safety procedures.
+
+Do not collapse these dimensions into one score. The objective is to improve the whole chain without trading precision for coverage or simulation success for unsupported physical claims.
