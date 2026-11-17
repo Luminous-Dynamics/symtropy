@@ -300,8 +300,7 @@ fn validate_manifest(manifest: &Value) -> Result<(), Vec<String>> {
                 if header_label != Some(expected_header_labels[index]) {
                     errors.push(format!(
                         "column {} must retain source header label {}",
-                        MOMENT_NAMES[index],
-                        expected_header_labels[index]
+                        MOMENT_NAMES[index], expected_header_labels[index]
                     ));
                 }
             }
