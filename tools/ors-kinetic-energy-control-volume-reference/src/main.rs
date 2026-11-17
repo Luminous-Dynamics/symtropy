@@ -2,9 +2,7 @@ use std::env;
 use std::fmt::Write as _;
 use std::process::ExitCode;
 
-use ors_kinetic_energy_control_volume_reference::{
-    CaseEvaluation, FlowDirection, evaluate_corpus,
-};
+use ors_kinetic_energy_control_volume_reference::{CaseEvaluation, FlowDirection, evaluate_corpus};
 
 fn valid_hex(value: &str, length: usize) -> bool {
     value.len() == length
@@ -41,8 +39,18 @@ fn flow_direction(direction: FlowDirection) -> &'static str {
 fn write_case(output: &mut String, case: &CaseEvaluation, is_last: bool) {
     writeln!(output, "    {{").unwrap();
     writeln!(output, "      \"case_id\": {},", json_string(&case.case_id)).unwrap();
-    writeln!(output, "      \"frame_id\": {},", json_string(&case.frame_id)).unwrap();
-    writeln!(output, "      \"boundary_id\": {},", json_string(&case.boundary_id)).unwrap();
+    writeln!(
+        output,
+        "      \"frame_id\": {},",
+        json_string(&case.frame_id)
+    )
+    .unwrap();
+    writeln!(
+        output,
+        "      \"boundary_id\": {},",
+        json_string(&case.boundary_id)
+    )
+    .unwrap();
     writeln!(output, "      \"epoch_s\": {:.15e},", case.epoch_s).unwrap();
     writeln!(output, "      \"port_count\": {},", case.port_count).unwrap();
     writeln!(
