@@ -1,0 +1,1397 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "wdn-verified-intervention-yield-t0-v0.1",
+  "benchmark_id": "WDN-VERIFIED-INTERVENTION-YIELD-001",
+  "evidence_class": "synthetic_only",
+  "claim_ceiling": "synthetic_inspection_repair_outcome_contract_only",
+  "annualized_savings_claims_allowed": false,
+  "cases": [
+    {
+      "case_id": "VIY-T0-001-verified-repair-positive",
+      "max_pressure_difference_percent": 5,
+      "uncertainty_expansion_factor": 2,
+      "events": [
+        {
+          "event_id": "LEAK-EVT-1-1",
+          "topology_revision": "topology-jhb-2026-10-01",
+          "dma_id": "DMA-7",
+          "alert": {
+            "alert_id": "ALERT-1-1",
+            "event_id": "LEAK-EVT-1-1",
+            "candidate_asset_id": "PIPE-12",
+            "first_seen_utc": "2026-10-01T00:30:00Z",
+            "evidence_ref": "ALERT-RECEIPT-1-1"
+          },
+          "inspection": {
+            "inspection_id": "INSPECT-1-1",
+            "event_id": "LEAK-EVT-1-1",
+            "status": "completed",
+            "finding": "confirmed_leak",
+            "confirmed_asset_id": "PIPE-12",
+            "fault_class": "joint_leak",
+            "inspector_id": "CREW-7",
+            "independent_review": true,
+            "reviewer_id": "INSPECTOR-REVIEWER-3",
+            "confirmation_ref": "FIELD-CONFIRM-1-1",
+            "inspected_at": "2026-10-01T00:55:00Z",
+            "crew_hours": 2.5
+          },
+          "repair": {
+            "work_order_id": "WO-1-1",
+            "event_id": "LEAK-EVT-1-1",
+            "asset_id": "PIPE-12",
+            "state": "completed",
+            "repair_ref": "REPAIR-RECEIPT-1-1",
+            "completed_at": "2026-10-01T03:00:00Z",
+            "crew_id": "CREW-7",
+            "crew_hours": 2.5,
+            "cost_minor": 45000,
+            "currency": "ZAR"
+          },
+          "verification": {
+            "verification_id": "VERIFY-1-1",
+            "event_id": "LEAK-EVT-1-1",
+            "status": "pass",
+            "verifier_id": "QA-INDEPENDENT-5",
+            "independent": true,
+            "verification_ref": "VERIFY-RECEIPT-1-1",
+            "verified_at": "2026-10-01T05:10:00Z",
+            "follow_up_status": "no_recurrence_observed",
+            "follow_up_ref": "FOLLOW-UP-1-1"
+          },
+          "pre_measurement": {
+            "measurement_id": "MEAS-1-1-pre",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 18,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 300,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T01:00:00Z",
+            "end_utc": "2026-10-01T02:00:00Z",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000001389",
+            "validity": "valid"
+          },
+          "post_measurement": {
+            "measurement_id": "MEAS-1-1-post",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 10,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 303,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T04:00:00Z",
+            "end_utc": "2026-10-01T05:00:00Z",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000138a",
+            "validity": "valid"
+          },
+          "confounding_interventions": [],
+          "service": {
+            "hard_floor_violation": false,
+            "service_interruption_minutes": 0,
+            "affected_connections": 0
+          },
+          "follow_up_days": 30
+        }
+      ]
+    },
+    {
+      "case_id": "VIY-T0-002-independent-confirmed-no-leak",
+      "max_pressure_difference_percent": 5,
+      "uncertainty_expansion_factor": 2,
+      "events": [
+        {
+          "event_id": "LEAK-EVT-2-1",
+          "topology_revision": "topology-jhb-2026-10-01",
+          "dma_id": "DMA-7",
+          "alert": {
+            "alert_id": "ALERT-2-1",
+            "event_id": "LEAK-EVT-2-1",
+            "candidate_asset_id": "PIPE-12",
+            "first_seen_utc": "2026-10-01T00:30:00Z",
+            "evidence_ref": "ALERT-RECEIPT-2-1"
+          },
+          "inspection": {
+            "inspection_id": "INSPECT-2-1",
+            "event_id": "LEAK-EVT-2-1",
+            "status": "completed",
+            "finding": "confirmed_no_leak",
+            "confirmed_asset_id": null,
+            "fault_class": "joint_leak",
+            "inspector_id": "CREW-7",
+            "independent_review": true,
+            "reviewer_id": "INSPECTOR-REVIEWER-3",
+            "confirmation_ref": "FIELD-CONFIRM-2-1",
+            "inspected_at": "2026-10-01T00:55:00Z",
+            "crew_hours": 2.5
+          },
+          "repair": null,
+          "verification": null,
+          "pre_measurement": null,
+          "post_measurement": null,
+          "confounding_interventions": [],
+          "service": {
+            "hard_floor_violation": false,
+            "service_interruption_minutes": 0,
+            "affected_connections": 0
+          },
+          "follow_up_days": 30
+        }
+      ]
+    },
+    {
+      "case_id": "VIY-T0-003-alert-localizes-wrong-asset",
+      "max_pressure_difference_percent": 5,
+      "uncertainty_expansion_factor": 2,
+      "events": [
+        {
+          "event_id": "LEAK-EVT-3-1",
+          "topology_revision": "topology-jhb-2026-10-01",
+          "dma_id": "DMA-7",
+          "alert": {
+            "alert_id": "ALERT-3-1",
+            "event_id": "LEAK-EVT-3-1",
+            "candidate_asset_id": "PIPE-99",
+            "first_seen_utc": "2026-10-01T00:30:00Z",
+            "evidence_ref": "ALERT-RECEIPT-3-1"
+          },
+          "inspection": {
+            "inspection_id": "INSPECT-3-1",
+            "event_id": "LEAK-EVT-3-1",
+            "status": "completed",
+            "finding": "confirmed_leak",
+            "confirmed_asset_id": "PIPE-12",
+            "fault_class": "joint_leak",
+            "inspector_id": "CREW-7",
+            "independent_review": true,
+            "reviewer_id": "INSPECTOR-REVIEWER-3",
+            "confirmation_ref": "FIELD-CONFIRM-3-1",
+            "inspected_at": "2026-10-01T00:55:00Z",
+            "crew_hours": 2.5
+          },
+          "repair": {
+            "work_order_id": "WO-3-1",
+            "event_id": "LEAK-EVT-3-1",
+            "asset_id": "PIPE-12",
+            "state": "completed",
+            "repair_ref": "REPAIR-RECEIPT-3-1",
+            "completed_at": "2026-10-01T03:00:00Z",
+            "crew_id": "CREW-7",
+            "crew_hours": 2.5,
+            "cost_minor": 45000,
+            "currency": "ZAR"
+          },
+          "verification": {
+            "verification_id": "VERIFY-3-1",
+            "event_id": "LEAK-EVT-3-1",
+            "status": "pass",
+            "verifier_id": "QA-INDEPENDENT-5",
+            "independent": true,
+            "verification_ref": "VERIFY-RECEIPT-3-1",
+            "verified_at": "2026-10-01T05:10:00Z",
+            "follow_up_status": "no_recurrence_observed",
+            "follow_up_ref": "FOLLOW-UP-3-1"
+          },
+          "pre_measurement": {
+            "measurement_id": "MEAS-3-1-pre",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 18,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 300,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T01:00:00Z",
+            "end_utc": "2026-10-01T02:00:00Z",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000138d",
+            "validity": "valid"
+          },
+          "post_measurement": {
+            "measurement_id": "MEAS-3-1-post",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 10,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 303,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T04:00:00Z",
+            "end_utc": "2026-10-01T05:00:00Z",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000138e",
+            "validity": "valid"
+          },
+          "confounding_interventions": [],
+          "service": {
+            "hard_floor_violation": false,
+            "service_interruption_minutes": 0,
+            "affected_connections": 0
+          },
+          "follow_up_days": 30
+        }
+      ]
+    },
+    {
+      "case_id": "VIY-T0-004-repair-not-completed",
+      "max_pressure_difference_percent": 5,
+      "uncertainty_expansion_factor": 2,
+      "events": [
+        {
+          "event_id": "LEAK-EVT-4-1",
+          "topology_revision": "topology-jhb-2026-10-01",
+          "dma_id": "DMA-7",
+          "alert": {
+            "alert_id": "ALERT-4-1",
+            "event_id": "LEAK-EVT-4-1",
+            "candidate_asset_id": "PIPE-12",
+            "first_seen_utc": "2026-10-01T00:30:00Z",
+            "evidence_ref": "ALERT-RECEIPT-4-1"
+          },
+          "inspection": {
+            "inspection_id": "INSPECT-4-1",
+            "event_id": "LEAK-EVT-4-1",
+            "status": "completed",
+            "finding": "confirmed_leak",
+            "confirmed_asset_id": "PIPE-12",
+            "fault_class": "joint_leak",
+            "inspector_id": "CREW-7",
+            "independent_review": true,
+            "reviewer_id": "INSPECTOR-REVIEWER-3",
+            "confirmation_ref": "FIELD-CONFIRM-4-1",
+            "inspected_at": "2026-10-01T00:55:00Z",
+            "crew_hours": 2.5
+          },
+          "repair": {
+            "work_order_id": "WO-4-1",
+            "event_id": "LEAK-EVT-4-1",
+            "asset_id": "PIPE-12",
+            "state": "authorized_not_completed",
+            "repair_ref": "REPAIR-RECEIPT-4-1",
+            "completed_at": null,
+            "crew_id": "CREW-7",
+            "crew_hours": 2.5,
+            "cost_minor": 45000,
+            "currency": "ZAR"
+          },
+          "verification": {
+            "verification_id": "VERIFY-4-1",
+            "event_id": "LEAK-EVT-4-1",
+            "status": "pass",
+            "verifier_id": "QA-INDEPENDENT-5",
+            "independent": true,
+            "verification_ref": "VERIFY-RECEIPT-4-1",
+            "verified_at": "2026-10-01T05:10:00Z",
+            "follow_up_status": "no_recurrence_observed",
+            "follow_up_ref": "FOLLOW-UP-4-1"
+          },
+          "pre_measurement": {
+            "measurement_id": "MEAS-4-1-pre",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 18,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 300,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T01:00:00Z",
+            "end_utc": "2026-10-01T02:00:00Z",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000138f",
+            "validity": "valid"
+          },
+          "post_measurement": {
+            "measurement_id": "MEAS-4-1-post",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 10,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 303,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T04:00:00Z",
+            "end_utc": "2026-10-01T05:00:00Z",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000001390",
+            "validity": "valid"
+          },
+          "confounding_interventions": [],
+          "service": {
+            "hard_floor_violation": false,
+            "service_interruption_minutes": 0,
+            "affected_connections": 0
+          },
+          "follow_up_days": 30
+        }
+      ]
+    },
+    {
+      "case_id": "VIY-T0-005-workorder-closed-without-independent-verification",
+      "max_pressure_difference_percent": 5,
+      "uncertainty_expansion_factor": 2,
+      "events": [
+        {
+          "event_id": "LEAK-EVT-5-1",
+          "topology_revision": "topology-jhb-2026-10-01",
+          "dma_id": "DMA-7",
+          "alert": {
+            "alert_id": "ALERT-5-1",
+            "event_id": "LEAK-EVT-5-1",
+            "candidate_asset_id": "PIPE-12",
+            "first_seen_utc": "2026-10-01T00:30:00Z",
+            "evidence_ref": "ALERT-RECEIPT-5-1"
+          },
+          "inspection": {
+            "inspection_id": "INSPECT-5-1",
+            "event_id": "LEAK-EVT-5-1",
+            "status": "completed",
+            "finding": "confirmed_leak",
+            "confirmed_asset_id": "PIPE-12",
+            "fault_class": "joint_leak",
+            "inspector_id": "CREW-7",
+            "independent_review": true,
+            "reviewer_id": "INSPECTOR-REVIEWER-3",
+            "confirmation_ref": "FIELD-CONFIRM-5-1",
+            "inspected_at": "2026-10-01T00:55:00Z",
+            "crew_hours": 2.5
+          },
+          "repair": {
+            "work_order_id": "WO-5-1",
+            "event_id": "LEAK-EVT-5-1",
+            "asset_id": "PIPE-12",
+            "state": "completed",
+            "repair_ref": "REPAIR-RECEIPT-5-1",
+            "completed_at": "2026-10-01T03:00:00Z",
+            "crew_id": "CREW-7",
+            "crew_hours": 2.5,
+            "cost_minor": 45000,
+            "currency": "ZAR"
+          },
+          "verification": null,
+          "pre_measurement": {
+            "measurement_id": "MEAS-5-1-pre",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 18,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 300,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T01:00:00Z",
+            "end_utc": "2026-10-01T02:00:00Z",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000001391",
+            "validity": "valid"
+          },
+          "post_measurement": {
+            "measurement_id": "MEAS-5-1-post",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 10,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 303,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T04:00:00Z",
+            "end_utc": "2026-10-01T05:00:00Z",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000001392",
+            "validity": "valid"
+          },
+          "confounding_interventions": [],
+          "service": {
+            "hard_floor_violation": false,
+            "service_interruption_minutes": 0,
+            "affected_connections": 0
+          },
+          "follow_up_days": 30
+        }
+      ]
+    },
+    {
+      "case_id": "VIY-T0-006-repair-record-asset-mismatch",
+      "max_pressure_difference_percent": 5,
+      "uncertainty_expansion_factor": 2,
+      "events": [
+        {
+          "event_id": "LEAK-EVT-6-1",
+          "topology_revision": "topology-jhb-2026-10-01",
+          "dma_id": "DMA-7",
+          "alert": {
+            "alert_id": "ALERT-6-1",
+            "event_id": "LEAK-EVT-6-1",
+            "candidate_asset_id": "PIPE-12",
+            "first_seen_utc": "2026-10-01T00:30:00Z",
+            "evidence_ref": "ALERT-RECEIPT-6-1"
+          },
+          "inspection": {
+            "inspection_id": "INSPECT-6-1",
+            "event_id": "LEAK-EVT-6-1",
+            "status": "completed",
+            "finding": "confirmed_leak",
+            "confirmed_asset_id": "PIPE-12",
+            "fault_class": "joint_leak",
+            "inspector_id": "CREW-7",
+            "independent_review": true,
+            "reviewer_id": "INSPECTOR-REVIEWER-3",
+            "confirmation_ref": "FIELD-CONFIRM-6-1",
+            "inspected_at": "2026-10-01T00:55:00Z",
+            "crew_hours": 2.5
+          },
+          "repair": {
+            "work_order_id": "WO-6-1",
+            "event_id": "LEAK-EVT-6-1",
+            "asset_id": "PIPE-99",
+            "state": "completed",
+            "repair_ref": "REPAIR-RECEIPT-6-1",
+            "completed_at": "2026-10-01T03:00:00Z",
+            "crew_id": "CREW-7",
+            "crew_hours": 2.5,
+            "cost_minor": 45000,
+            "currency": "ZAR"
+          },
+          "verification": {
+            "verification_id": "VERIFY-6-1",
+            "event_id": "LEAK-EVT-6-1",
+            "status": "pass",
+            "verifier_id": "QA-INDEPENDENT-5",
+            "independent": true,
+            "verification_ref": "VERIFY-RECEIPT-6-1",
+            "verified_at": "2026-10-01T05:10:00Z",
+            "follow_up_status": "no_recurrence_observed",
+            "follow_up_ref": "FOLLOW-UP-6-1"
+          },
+          "pre_measurement": {
+            "measurement_id": "MEAS-6-1-pre",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 18,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 300,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T01:00:00Z",
+            "end_utc": "2026-10-01T02:00:00Z",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000001393",
+            "validity": "valid"
+          },
+          "post_measurement": {
+            "measurement_id": "MEAS-6-1-post",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 10,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 303,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T04:00:00Z",
+            "end_utc": "2026-10-01T05:00:00Z",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000001394",
+            "validity": "valid"
+          },
+          "confounding_interventions": [],
+          "service": {
+            "hard_floor_violation": false,
+            "service_interruption_minutes": 0,
+            "affected_connections": 0
+          },
+          "follow_up_days": 30
+        }
+      ]
+    },
+    {
+      "case_id": "VIY-T0-007-post-pressure-outside-match-envelope",
+      "max_pressure_difference_percent": 5,
+      "uncertainty_expansion_factor": 2,
+      "events": [
+        {
+          "event_id": "LEAK-EVT-7-1",
+          "topology_revision": "topology-jhb-2026-10-01",
+          "dma_id": "DMA-7",
+          "alert": {
+            "alert_id": "ALERT-7-1",
+            "event_id": "LEAK-EVT-7-1",
+            "candidate_asset_id": "PIPE-12",
+            "first_seen_utc": "2026-10-01T00:30:00Z",
+            "evidence_ref": "ALERT-RECEIPT-7-1"
+          },
+          "inspection": {
+            "inspection_id": "INSPECT-7-1",
+            "event_id": "LEAK-EVT-7-1",
+            "status": "completed",
+            "finding": "confirmed_leak",
+            "confirmed_asset_id": "PIPE-12",
+            "fault_class": "joint_leak",
+            "inspector_id": "CREW-7",
+            "independent_review": true,
+            "reviewer_id": "INSPECTOR-REVIEWER-3",
+            "confirmation_ref": "FIELD-CONFIRM-7-1",
+            "inspected_at": "2026-10-01T00:55:00Z",
+            "crew_hours": 2.5
+          },
+          "repair": {
+            "work_order_id": "WO-7-1",
+            "event_id": "LEAK-EVT-7-1",
+            "asset_id": "PIPE-12",
+            "state": "completed",
+            "repair_ref": "REPAIR-RECEIPT-7-1",
+            "completed_at": "2026-10-01T03:00:00Z",
+            "crew_id": "CREW-7",
+            "crew_hours": 2.5,
+            "cost_minor": 45000,
+            "currency": "ZAR"
+          },
+          "verification": {
+            "verification_id": "VERIFY-7-1",
+            "event_id": "LEAK-EVT-7-1",
+            "status": "pass",
+            "verifier_id": "QA-INDEPENDENT-5",
+            "independent": true,
+            "verification_ref": "VERIFY-RECEIPT-7-1",
+            "verified_at": "2026-10-01T05:10:00Z",
+            "follow_up_status": "no_recurrence_observed",
+            "follow_up_ref": "FOLLOW-UP-7-1"
+          },
+          "pre_measurement": {
+            "measurement_id": "MEAS-7-1-pre",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 18,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 300,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T01:00:00Z",
+            "end_utc": "2026-10-01T02:00:00Z",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000001395",
+            "validity": "valid"
+          },
+          "post_measurement": {
+            "measurement_id": "MEAS-7-1-post",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 10,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 240,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T04:00:00Z",
+            "end_utc": "2026-10-01T05:00:00Z",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000001396",
+            "validity": "valid"
+          },
+          "confounding_interventions": [],
+          "service": {
+            "hard_floor_violation": false,
+            "service_interruption_minutes": 0,
+            "affected_connections": 0
+          },
+          "follow_up_days": 30
+        }
+      ]
+    },
+    {
+      "case_id": "VIY-T0-008-concurrent-valve-change-confounds-post-flow",
+      "max_pressure_difference_percent": 5,
+      "uncertainty_expansion_factor": 2,
+      "events": [
+        {
+          "event_id": "LEAK-EVT-8-1",
+          "topology_revision": "topology-jhb-2026-10-01",
+          "dma_id": "DMA-7",
+          "alert": {
+            "alert_id": "ALERT-8-1",
+            "event_id": "LEAK-EVT-8-1",
+            "candidate_asset_id": "PIPE-12",
+            "first_seen_utc": "2026-10-01T00:30:00Z",
+            "evidence_ref": "ALERT-RECEIPT-8-1"
+          },
+          "inspection": {
+            "inspection_id": "INSPECT-8-1",
+            "event_id": "LEAK-EVT-8-1",
+            "status": "completed",
+            "finding": "confirmed_leak",
+            "confirmed_asset_id": "PIPE-12",
+            "fault_class": "joint_leak",
+            "inspector_id": "CREW-7",
+            "independent_review": true,
+            "reviewer_id": "INSPECTOR-REVIEWER-3",
+            "confirmation_ref": "FIELD-CONFIRM-8-1",
+            "inspected_at": "2026-10-01T00:55:00Z",
+            "crew_hours": 2.5
+          },
+          "repair": {
+            "work_order_id": "WO-8-1",
+            "event_id": "LEAK-EVT-8-1",
+            "asset_id": "PIPE-12",
+            "state": "completed",
+            "repair_ref": "REPAIR-RECEIPT-8-1",
+            "completed_at": "2026-10-01T03:00:00Z",
+            "crew_id": "CREW-7",
+            "crew_hours": 2.5,
+            "cost_minor": 45000,
+            "currency": "ZAR"
+          },
+          "verification": {
+            "verification_id": "VERIFY-8-1",
+            "event_id": "LEAK-EVT-8-1",
+            "status": "pass",
+            "verifier_id": "QA-INDEPENDENT-5",
+            "independent": true,
+            "verification_ref": "VERIFY-RECEIPT-8-1",
+            "verified_at": "2026-10-01T05:10:00Z",
+            "follow_up_status": "no_recurrence_observed",
+            "follow_up_ref": "FOLLOW-UP-8-1"
+          },
+          "pre_measurement": {
+            "measurement_id": "MEAS-8-1-pre",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 18,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 300,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T01:00:00Z",
+            "end_utc": "2026-10-01T02:00:00Z",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000001397",
+            "validity": "valid"
+          },
+          "post_measurement": {
+            "measurement_id": "MEAS-8-1-post",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 10,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 303,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T04:00:00Z",
+            "end_utc": "2026-10-01T05:00:00Z",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000001398",
+            "validity": "valid"
+          },
+          "confounding_interventions": [
+            "valve_change"
+          ],
+          "service": {
+            "hard_floor_violation": false,
+            "service_interruption_minutes": 0,
+            "affected_connections": 0
+          },
+          "follow_up_days": 30
+        }
+      ]
+    },
+    {
+      "case_id": "VIY-T0-009-stale-calibration-or-meter-boundary",
+      "max_pressure_difference_percent": 5,
+      "uncertainty_expansion_factor": 2,
+      "events": [
+        {
+          "event_id": "LEAK-EVT-9-1",
+          "topology_revision": "topology-jhb-2026-10-01",
+          "dma_id": "DMA-7",
+          "alert": {
+            "alert_id": "ALERT-9-1",
+            "event_id": "LEAK-EVT-9-1",
+            "candidate_asset_id": "PIPE-12",
+            "first_seen_utc": "2026-10-01T00:30:00Z",
+            "evidence_ref": "ALERT-RECEIPT-9-1"
+          },
+          "inspection": {
+            "inspection_id": "INSPECT-9-1",
+            "event_id": "LEAK-EVT-9-1",
+            "status": "completed",
+            "finding": "confirmed_leak",
+            "confirmed_asset_id": "PIPE-12",
+            "fault_class": "joint_leak",
+            "inspector_id": "CREW-7",
+            "independent_review": true,
+            "reviewer_id": "INSPECTOR-REVIEWER-3",
+            "confirmation_ref": "FIELD-CONFIRM-9-1",
+            "inspected_at": "2026-10-01T00:55:00Z",
+            "crew_hours": 2.5
+          },
+          "repair": {
+            "work_order_id": "WO-9-1",
+            "event_id": "LEAK-EVT-9-1",
+            "asset_id": "PIPE-12",
+            "state": "completed",
+            "repair_ref": "REPAIR-RECEIPT-9-1",
+            "completed_at": "2026-10-01T03:00:00Z",
+            "crew_id": "CREW-7",
+            "crew_hours": 2.5,
+            "cost_minor": 45000,
+            "currency": "ZAR"
+          },
+          "verification": {
+            "verification_id": "VERIFY-9-1",
+            "event_id": "LEAK-EVT-9-1",
+            "status": "pass",
+            "verifier_id": "QA-INDEPENDENT-5",
+            "independent": true,
+            "verification_ref": "VERIFY-RECEIPT-9-1",
+            "verified_at": "2026-10-01T05:10:00Z",
+            "follow_up_status": "no_recurrence_observed",
+            "follow_up_ref": "FOLLOW-UP-9-1"
+          },
+          "pre_measurement": {
+            "measurement_id": "MEAS-9-1-pre",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 18,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 300,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T01:00:00Z",
+            "end_utc": "2026-10-01T02:00:00Z",
+            "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000001399",
+            "validity": "valid"
+          },
+          "post_measurement": {
+            "measurement_id": "MEAS-9-1-post",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "stale",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 10,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 303,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T04:00:00Z",
+            "end_utc": "2026-10-01T05:00:00Z",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000139a",
+            "validity": "valid"
+          },
+          "confounding_interventions": [],
+          "service": {
+            "hard_floor_violation": false,
+            "service_interruption_minutes": 0,
+            "affected_connections": 0
+          },
+          "follow_up_days": 30
+        }
+      ]
+    },
+    {
+      "case_id": "VIY-T0-010-raw-record-replayed-across-events",
+      "max_pressure_difference_percent": 5,
+      "uncertainty_expansion_factor": 2,
+      "events": [
+        {
+          "event_id": "LEAK-EVT-10-1",
+          "topology_revision": "topology-jhb-2026-10-01",
+          "dma_id": "DMA-7",
+          "alert": {
+            "alert_id": "ALERT-10-1",
+            "event_id": "LEAK-EVT-10-1",
+            "candidate_asset_id": "PIPE-12",
+            "first_seen_utc": "2026-10-01T00:30:00Z",
+            "evidence_ref": "ALERT-RECEIPT-10-1"
+          },
+          "inspection": {
+            "inspection_id": "INSPECT-10-1",
+            "event_id": "LEAK-EVT-10-1",
+            "status": "completed",
+            "finding": "confirmed_leak",
+            "confirmed_asset_id": "PIPE-12",
+            "fault_class": "joint_leak",
+            "inspector_id": "CREW-7",
+            "independent_review": true,
+            "reviewer_id": "INSPECTOR-REVIEWER-3",
+            "confirmation_ref": "FIELD-CONFIRM-10-1",
+            "inspected_at": "2026-10-01T00:55:00Z",
+            "crew_hours": 2.5
+          },
+          "repair": {
+            "work_order_id": "WO-10-1",
+            "event_id": "LEAK-EVT-10-1",
+            "asset_id": "PIPE-12",
+            "state": "completed",
+            "repair_ref": "REPAIR-RECEIPT-10-1",
+            "completed_at": "2026-10-01T03:00:00Z",
+            "crew_id": "CREW-7",
+            "crew_hours": 2.5,
+            "cost_minor": 45000,
+            "currency": "ZAR"
+          },
+          "verification": {
+            "verification_id": "VERIFY-10-1",
+            "event_id": "LEAK-EVT-10-1",
+            "status": "pass",
+            "verifier_id": "QA-INDEPENDENT-5",
+            "independent": true,
+            "verification_ref": "VERIFY-RECEIPT-10-1",
+            "verified_at": "2026-10-01T05:10:00Z",
+            "follow_up_status": "no_recurrence_observed",
+            "follow_up_ref": "FOLLOW-UP-10-1"
+          },
+          "pre_measurement": {
+            "measurement_id": "MEAS-10-1-pre",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 18,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 300,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T01:00:00Z",
+            "end_utc": "2026-10-01T02:00:00Z",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000139b",
+            "validity": "valid"
+          },
+          "post_measurement": {
+            "measurement_id": "MEAS-10-1-post",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 10,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 303,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T04:00:00Z",
+            "end_utc": "2026-10-01T05:00:00Z",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000139c",
+            "validity": "valid"
+          },
+          "confounding_interventions": [],
+          "service": {
+            "hard_floor_violation": false,
+            "service_interruption_minutes": 0,
+            "affected_connections": 0
+          },
+          "follow_up_days": 30
+        },
+        {
+          "event_id": "LEAK-EVT-10-2",
+          "topology_revision": "topology-jhb-2026-10-01",
+          "dma_id": "DMA-7",
+          "alert": {
+            "alert_id": "ALERT-10-2",
+            "event_id": "LEAK-EVT-10-2",
+            "candidate_asset_id": "PIPE-12",
+            "first_seen_utc": "2026-10-02T00:30:00Z",
+            "evidence_ref": "ALERT-RECEIPT-10-2"
+          },
+          "inspection": {
+            "inspection_id": "INSPECT-10-2",
+            "event_id": "LEAK-EVT-10-2",
+            "status": "completed",
+            "finding": "confirmed_leak",
+            "confirmed_asset_id": "PIPE-12",
+            "fault_class": "joint_leak",
+            "inspector_id": "CREW-7",
+            "independent_review": true,
+            "reviewer_id": "INSPECTOR-REVIEWER-3",
+            "confirmation_ref": "FIELD-CONFIRM-10-2",
+            "inspected_at": "2026-10-02T00:55:00Z",
+            "crew_hours": 2.5
+          },
+          "repair": {
+            "work_order_id": "WO-10-2",
+            "event_id": "LEAK-EVT-10-2",
+            "asset_id": "PIPE-12",
+            "state": "completed",
+            "repair_ref": "REPAIR-RECEIPT-10-2",
+            "completed_at": "2026-10-02T03:00:00Z",
+            "crew_id": "CREW-7",
+            "crew_hours": 2.5,
+            "cost_minor": 45000,
+            "currency": "ZAR"
+          },
+          "verification": {
+            "verification_id": "VERIFY-10-2",
+            "event_id": "LEAK-EVT-10-2",
+            "status": "pass",
+            "verifier_id": "QA-INDEPENDENT-5",
+            "independent": true,
+            "verification_ref": "VERIFY-RECEIPT-10-2",
+            "verified_at": "2026-10-02T05:10:00Z",
+            "follow_up_status": "no_recurrence_observed",
+            "follow_up_ref": "FOLLOW-UP-10-2"
+          },
+          "pre_measurement": {
+            "measurement_id": "MEAS-10-2-pre",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 18,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 300,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-02T01:00:00Z",
+            "end_utc": "2026-10-02T02:00:00Z",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000139c",
+            "validity": "valid"
+          },
+          "post_measurement": {
+            "measurement_id": "MEAS-10-2-post",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 10,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 303,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-02T04:00:00Z",
+            "end_utc": "2026-10-02T05:00:00Z",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000139e",
+            "validity": "valid"
+          },
+          "confounding_interventions": [],
+          "service": {
+            "hard_floor_violation": false,
+            "service_interruption_minutes": 0,
+            "affected_connections": 0
+          },
+          "follow_up_days": 30
+        }
+      ]
+    },
+    {
+      "case_id": "VIY-T0-011-follow-up-recurrence-observed",
+      "max_pressure_difference_percent": 5,
+      "uncertainty_expansion_factor": 2,
+      "events": [
+        {
+          "event_id": "LEAK-EVT-11-1",
+          "topology_revision": "topology-jhb-2026-10-01",
+          "dma_id": "DMA-7",
+          "alert": {
+            "alert_id": "ALERT-11-1",
+            "event_id": "LEAK-EVT-11-1",
+            "candidate_asset_id": "PIPE-12",
+            "first_seen_utc": "2026-10-01T00:30:00Z",
+            "evidence_ref": "ALERT-RECEIPT-11-1"
+          },
+          "inspection": {
+            "inspection_id": "INSPECT-11-1",
+            "event_id": "LEAK-EVT-11-1",
+            "status": "completed",
+            "finding": "confirmed_leak",
+            "confirmed_asset_id": "PIPE-12",
+            "fault_class": "joint_leak",
+            "inspector_id": "CREW-7",
+            "independent_review": true,
+            "reviewer_id": "INSPECTOR-REVIEWER-3",
+            "confirmation_ref": "FIELD-CONFIRM-11-1",
+            "inspected_at": "2026-10-01T00:55:00Z",
+            "crew_hours": 2.5
+          },
+          "repair": {
+            "work_order_id": "WO-11-1",
+            "event_id": "LEAK-EVT-11-1",
+            "asset_id": "PIPE-12",
+            "state": "completed",
+            "repair_ref": "REPAIR-RECEIPT-11-1",
+            "completed_at": "2026-10-01T03:00:00Z",
+            "crew_id": "CREW-7",
+            "crew_hours": 2.5,
+            "cost_minor": 45000,
+            "currency": "ZAR"
+          },
+          "verification": {
+            "verification_id": "VERIFY-11-1",
+            "event_id": "LEAK-EVT-11-1",
+            "status": "pass",
+            "verifier_id": "QA-INDEPENDENT-5",
+            "independent": true,
+            "verification_ref": "VERIFY-RECEIPT-11-1",
+            "verified_at": "2026-10-01T05:10:00Z",
+            "follow_up_status": "recurrence_observed",
+            "follow_up_ref": "RECURRENCE-CASE-11"
+          },
+          "pre_measurement": {
+            "measurement_id": "MEAS-11-1-pre",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 18,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 300,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T01:00:00Z",
+            "end_utc": "2026-10-01T02:00:00Z",
+            "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000139f",
+            "validity": "valid"
+          },
+          "post_measurement": {
+            "measurement_id": "MEAS-11-1-post",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 10,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 303,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T04:00:00Z",
+            "end_utc": "2026-10-01T05:00:00Z",
+            "raw_record_digest": "00000000000000000000000000000000000000000000000000000000000013a0",
+            "validity": "valid"
+          },
+          "confounding_interventions": [],
+          "service": {
+            "hard_floor_violation": false,
+            "service_interruption_minutes": 0,
+            "affected_connections": 0
+          },
+          "follow_up_days": 30
+        }
+      ]
+    },
+    {
+      "case_id": "VIY-T0-012-inspection-evidence-indeterminate",
+      "max_pressure_difference_percent": 5,
+      "uncertainty_expansion_factor": 2,
+      "events": [
+        {
+          "event_id": "LEAK-EVT-12-1",
+          "topology_revision": "topology-jhb-2026-10-01",
+          "dma_id": "DMA-7",
+          "alert": {
+            "alert_id": "ALERT-12-1",
+            "event_id": "LEAK-EVT-12-1",
+            "candidate_asset_id": "PIPE-12",
+            "first_seen_utc": "2026-10-01T00:30:00Z",
+            "evidence_ref": "ALERT-RECEIPT-12-1"
+          },
+          "inspection": {
+            "inspection_id": "INSPECT-12-1",
+            "event_id": "LEAK-EVT-12-1",
+            "status": "completed",
+            "finding": "unresolved",
+            "confirmed_asset_id": "PIPE-12",
+            "fault_class": "joint_leak",
+            "inspector_id": "CREW-7",
+            "independent_review": false,
+            "reviewer_id": null,
+            "confirmation_ref": "FIELD-CONFIRM-12-1",
+            "inspected_at": "2026-10-01T00:55:00Z",
+            "crew_hours": 2.5
+          },
+          "repair": {
+            "work_order_id": "WO-12-1",
+            "event_id": "LEAK-EVT-12-1",
+            "asset_id": "PIPE-12",
+            "state": "completed",
+            "repair_ref": "REPAIR-RECEIPT-12-1",
+            "completed_at": "2026-10-01T03:00:00Z",
+            "crew_id": "CREW-7",
+            "crew_hours": 2.5,
+            "cost_minor": 45000,
+            "currency": "ZAR"
+          },
+          "verification": {
+            "verification_id": "VERIFY-12-1",
+            "event_id": "LEAK-EVT-12-1",
+            "status": "pass",
+            "verifier_id": "QA-INDEPENDENT-5",
+            "independent": true,
+            "verification_ref": "VERIFY-RECEIPT-12-1",
+            "verified_at": "2026-10-01T05:10:00Z",
+            "follow_up_status": "no_recurrence_observed",
+            "follow_up_ref": "FOLLOW-UP-12-1"
+          },
+          "pre_measurement": {
+            "measurement_id": "MEAS-12-1-pre",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 18,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 300,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T01:00:00Z",
+            "end_utc": "2026-10-01T02:00:00Z",
+            "raw_record_digest": "00000000000000000000000000000000000000000000000000000000000013a1",
+            "validity": "valid"
+          },
+          "post_measurement": {
+            "measurement_id": "MEAS-12-1-post",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 10,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 303,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T04:00:00Z",
+            "end_utc": "2026-10-01T05:00:00Z",
+            "raw_record_digest": "00000000000000000000000000000000000000000000000000000000000013a2",
+            "validity": "valid"
+          },
+          "confounding_interventions": [],
+          "service": {
+            "hard_floor_violation": false,
+            "service_interruption_minutes": 0,
+            "affected_connections": 0
+          },
+          "follow_up_days": 30
+        }
+      ]
+    },
+    {
+      "case_id": "VIY-T0-013-apparent-flow-change-within-uncertainty",
+      "max_pressure_difference_percent": 5,
+      "uncertainty_expansion_factor": 2,
+      "events": [
+        {
+          "event_id": "LEAK-EVT-13-1",
+          "topology_revision": "topology-jhb-2026-10-01",
+          "dma_id": "DMA-7",
+          "alert": {
+            "alert_id": "ALERT-13-1",
+            "event_id": "LEAK-EVT-13-1",
+            "candidate_asset_id": "PIPE-12",
+            "first_seen_utc": "2026-10-01T00:30:00Z",
+            "evidence_ref": "ALERT-RECEIPT-13-1"
+          },
+          "inspection": {
+            "inspection_id": "INSPECT-13-1",
+            "event_id": "LEAK-EVT-13-1",
+            "status": "completed",
+            "finding": "confirmed_leak",
+            "confirmed_asset_id": "PIPE-12",
+            "fault_class": "joint_leak",
+            "inspector_id": "CREW-7",
+            "independent_review": true,
+            "reviewer_id": "INSPECTOR-REVIEWER-3",
+            "confirmation_ref": "FIELD-CONFIRM-13-1",
+            "inspected_at": "2026-10-01T00:55:00Z",
+            "crew_hours": 2.5
+          },
+          "repair": {
+            "work_order_id": "WO-13-1",
+            "event_id": "LEAK-EVT-13-1",
+            "asset_id": "PIPE-12",
+            "state": "completed",
+            "repair_ref": "REPAIR-RECEIPT-13-1",
+            "completed_at": "2026-10-01T03:00:00Z",
+            "crew_id": "CREW-7",
+            "crew_hours": 2.5,
+            "cost_minor": 45000,
+            "currency": "ZAR"
+          },
+          "verification": {
+            "verification_id": "VERIFY-13-1",
+            "event_id": "LEAK-EVT-13-1",
+            "status": "pass",
+            "verifier_id": "QA-INDEPENDENT-5",
+            "independent": true,
+            "verification_ref": "VERIFY-RECEIPT-13-1",
+            "verified_at": "2026-10-01T05:10:00Z",
+            "follow_up_status": "no_recurrence_observed",
+            "follow_up_ref": "FOLLOW-UP-13-1"
+          },
+          "pre_measurement": {
+            "measurement_id": "MEAS-13-1-pre",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 18,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 300,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T01:00:00Z",
+            "end_utc": "2026-10-01T02:00:00Z",
+            "raw_record_digest": "00000000000000000000000000000000000000000000000000000000000013a3",
+            "validity": "valid"
+          },
+          "post_measurement": {
+            "measurement_id": "MEAS-13-1-post",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 17.6,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 303,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T04:00:00Z",
+            "end_utc": "2026-10-01T05:00:00Z",
+            "raw_record_digest": "00000000000000000000000000000000000000000000000000000000000013a4",
+            "validity": "valid"
+          },
+          "confounding_interventions": [],
+          "service": {
+            "hard_floor_violation": false,
+            "service_interruption_minutes": 0,
+            "affected_connections": 0
+          },
+          "follow_up_days": 30
+        }
+      ]
+    },
+    {
+      "case_id": "VIY-T0-014-repair-verified-but-service-floor-violated",
+      "max_pressure_difference_percent": 5,
+      "uncertainty_expansion_factor": 2,
+      "events": [
+        {
+          "event_id": "LEAK-EVT-14-1",
+          "topology_revision": "topology-jhb-2026-10-01",
+          "dma_id": "DMA-7",
+          "alert": {
+            "alert_id": "ALERT-14-1",
+            "event_id": "LEAK-EVT-14-1",
+            "candidate_asset_id": "PIPE-12",
+            "first_seen_utc": "2026-10-01T00:30:00Z",
+            "evidence_ref": "ALERT-RECEIPT-14-1"
+          },
+          "inspection": {
+            "inspection_id": "INSPECT-14-1",
+            "event_id": "LEAK-EVT-14-1",
+            "status": "completed",
+            "finding": "confirmed_leak",
+            "confirmed_asset_id": "PIPE-12",
+            "fault_class": "joint_leak",
+            "inspector_id": "CREW-7",
+            "independent_review": true,
+            "reviewer_id": "INSPECTOR-REVIEWER-3",
+            "confirmation_ref": "FIELD-CONFIRM-14-1",
+            "inspected_at": "2026-10-01T00:55:00Z",
+            "crew_hours": 2.5
+          },
+          "repair": {
+            "work_order_id": "WO-14-1",
+            "event_id": "LEAK-EVT-14-1",
+            "asset_id": "PIPE-12",
+            "state": "completed",
+            "repair_ref": "REPAIR-RECEIPT-14-1",
+            "completed_at": "2026-10-01T03:00:00Z",
+            "crew_id": "CREW-7",
+            "crew_hours": 2.5,
+            "cost_minor": 45000,
+            "currency": "ZAR"
+          },
+          "verification": {
+            "verification_id": "VERIFY-14-1",
+            "event_id": "LEAK-EVT-14-1",
+            "status": "pass",
+            "verifier_id": "QA-INDEPENDENT-5",
+            "independent": true,
+            "verification_ref": "VERIFY-RECEIPT-14-1",
+            "verified_at": "2026-10-01T05:10:00Z",
+            "follow_up_status": "no_recurrence_observed",
+            "follow_up_ref": "FOLLOW-UP-14-1"
+          },
+          "pre_measurement": {
+            "measurement_id": "MEAS-14-1-pre",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 18,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 300,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T01:00:00Z",
+            "end_utc": "2026-10-01T02:00:00Z",
+            "raw_record_digest": "00000000000000000000000000000000000000000000000000000000000013a5",
+            "validity": "valid"
+          },
+          "post_measurement": {
+            "measurement_id": "MEAS-14-1-post",
+            "meter_id": "DMA-METER-07",
+            "calibration_ref": "CAL-DMA-METER-07-2026-09",
+            "calibration_status": "current",
+            "method_ref": "DMA-MINIMUM-NIGHT-FLOW-v1",
+            "boundary_id": "DMA-7-INLET",
+            "unit": "L/s",
+            "value": 10,
+            "standard_uncertainty": 0.3,
+            "pressure_kpa": 303,
+            "demand_profile_digest": "0000000000000000000000000000000000000000000000000000000000000309",
+            "start_utc": "2026-10-01T04:00:00Z",
+            "end_utc": "2026-10-01T05:00:00Z",
+            "raw_record_digest": "00000000000000000000000000000000000000000000000000000000000013a6",
+            "validity": "valid"
+          },
+          "confounding_interventions": [],
+          "service": {
+            "hard_floor_violation": true,
+            "service_interruption_minutes": 18,
+            "affected_connections": 125
+          },
+          "follow_up_days": 30
+        }
+      ]
+    }
+  ]
+}

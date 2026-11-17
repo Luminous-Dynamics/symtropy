@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WDN verified intervention yield oracle v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "benchmark_id",
+    "cases"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "wdn-verified-intervention-yield-t0-oracle-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WDN-VERIFIED-INTERVENTION-YIELD-001"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 14,
+      "maxItems": 14,
+      "items": {
+        "type": "object",
+        "required": [
+          "case_id",
+          "event_count",
+          "alert_count",
+          "investigation_count",
+          "independent_confirmed_leak_count",
+          "false_dispatch_count",
+          "repair_completed_count",
+          "independent_post_repair_verification_count",
+          "verified_repair_count",
+          "recurrence_count",
+          "localization_asset_mismatch_count",
+          "observed_flow_reduction_lps",
+          "lower_bound_flow_reduction_lps",
+          "crew_hours",
+          "repair_cost_minor",
+          "currency",
+          "service_floor_violation_count",
+          "event_dispositions",
+          "causal_attribution_status",
+          "annualized_savings_claim",
+          "claim_eligibility"
+        ]
+      }
+    }
+  }
+}

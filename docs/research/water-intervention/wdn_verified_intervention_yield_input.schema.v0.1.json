@@ -1,0 +1,474 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/water-intervention/wdn_verified_intervention_yield_input.schema.v0.1.json",
+  "title": "WDN verified intervention yield input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "annualized_savings_claims_allowed",
+    "cases"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "wdn-verified-intervention-yield-t0-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WDN-VERIFIED-INTERVENTION-YIELD-001"
+    },
+    "evidence_class": {
+      "const": "synthetic_only"
+    },
+    "claim_ceiling": {
+      "type": "string"
+    },
+    "annualized_savings_claims_allowed": {
+      "const": false
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 14,
+      "maxItems": 14,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "max_pressure_difference_percent",
+          "uncertainty_expansion_factor",
+          "events"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^VIY-T0-[0-9]{3}-"
+          },
+          "max_pressure_difference_percent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 20
+          },
+          "uncertainty_expansion_factor": {
+            "const": 2
+          },
+          "events": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "items": {
+              "$ref": "#/$defs/event"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurement_id",
+        "meter_id",
+        "calibration_ref",
+        "calibration_status",
+        "method_ref",
+        "boundary_id",
+        "unit",
+        "value",
+        "standard_uncertainty",
+        "pressure_kpa",
+        "demand_profile_digest",
+        "start_utc",
+        "end_utc",
+        "raw_record_digest",
+        "validity"
+      ],
+      "properties": {
+        "measurement_id": {
+          "type": "string"
+        },
+        "meter_id": {
+          "type": "string"
+        },
+        "calibration_ref": {
+          "type": "string"
+        },
+        "calibration_status": {
+          "enum": [
+            "current",
+            "stale",
+            "missing"
+          ]
+        },
+        "method_ref": {
+          "type": "string"
+        },
+        "boundary_id": {
+          "type": "string"
+        },
+        "unit": {
+          "const": "L/s"
+        },
+        "value": {
+          "type": "number",
+          "minimum": 0
+        },
+        "standard_uncertainty": {
+          "type": "number",
+          "minimum": 0
+        },
+        "pressure_kpa": {
+          "type": "number",
+          "minimum": 0
+        },
+        "demand_profile_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "start_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "raw_record_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "validity": {
+          "enum": [
+            "valid",
+            "invalid",
+            "stale",
+            "missing"
+          ]
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "topology_revision",
+        "dma_id",
+        "alert",
+        "inspection",
+        "repair",
+        "verification",
+        "pre_measurement",
+        "post_measurement",
+        "confounding_interventions",
+        "service",
+        "follow_up_days"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string"
+        },
+        "topology_revision": {
+          "type": "string"
+        },
+        "dma_id": {
+          "type": "string"
+        },
+        "alert": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "alert_id",
+            "event_id",
+            "candidate_asset_id",
+            "first_seen_utc",
+            "evidence_ref"
+          ],
+          "properties": {
+            "alert_id": {
+              "type": "string"
+            },
+            "event_id": {
+              "type": "string"
+            },
+            "candidate_asset_id": {
+              "type": "string"
+            },
+            "first_seen_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "evidence_ref": {
+              "type": "string"
+            }
+          }
+        },
+        "inspection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "inspection_id",
+            "event_id",
+            "status",
+            "finding",
+            "confirmed_asset_id",
+            "fault_class",
+            "inspector_id",
+            "independent_review",
+            "reviewer_id",
+            "confirmation_ref",
+            "inspected_at",
+            "crew_hours"
+          ],
+          "properties": {
+            "inspection_id": {
+              "type": "string"
+            },
+            "event_id": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "completed",
+                "pending",
+                "failed"
+              ]
+            },
+            "finding": {
+              "enum": [
+                "confirmed_leak",
+                "confirmed_no_leak",
+                "unresolved"
+              ]
+            },
+            "confirmed_asset_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "fault_class": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "inspector_id": {
+              "type": "string"
+            },
+            "independent_review": {
+              "type": "boolean"
+            },
+            "reviewer_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "confirmation_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "inspected_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "crew_hours": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "repair": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "work_order_id",
+            "event_id",
+            "asset_id",
+            "state",
+            "repair_ref",
+            "completed_at",
+            "crew_id",
+            "crew_hours",
+            "cost_minor",
+            "currency"
+          ],
+          "properties": {
+            "work_order_id": {
+              "type": "string"
+            },
+            "event_id": {
+              "type": "string"
+            },
+            "asset_id": {
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "authorized_not_completed",
+                "completed",
+                "partial"
+              ]
+            },
+            "repair_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "completed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "crew_id": {
+              "type": "string"
+            },
+            "crew_hours": {
+              "type": "number",
+              "minimum": 0
+            },
+            "cost_minor": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "currency": {
+              "const": "ZAR"
+            }
+          }
+        },
+        "verification": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "verification_id",
+            "event_id",
+            "status",
+            "verifier_id",
+            "independent",
+            "verification_ref",
+            "verified_at",
+            "follow_up_status",
+            "follow_up_ref"
+          ],
+          "properties": {
+            "verification_id": {
+              "type": "string"
+            },
+            "event_id": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "pass",
+                "fail",
+                "pending"
+              ]
+            },
+            "verifier_id": {
+              "type": "string"
+            },
+            "independent": {
+              "type": "boolean"
+            },
+            "verification_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "verified_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "follow_up_status": {
+              "enum": [
+                "no_recurrence_observed",
+                "recurrence_observed",
+                "not_yet_due",
+                "unknown"
+              ]
+            },
+            "follow_up_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "pre_measurement": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/measurement"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "post_measurement": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/measurement"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "confounding_interventions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "service": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "hard_floor_violation",
+            "service_interruption_minutes",
+            "affected_connections"
+          ],
+          "properties": {
+            "hard_floor_violation": {
+              "type": "boolean"
+            },
+            "service_interruption_minutes": {
+              "type": "number",
+              "minimum": 0
+            },
+            "affected_connections": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "follow_up_days": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

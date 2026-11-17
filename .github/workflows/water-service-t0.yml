@@ -8,7 +8,9 @@ on:
       - "Cargo.lock"
       - "research/water-service-engineering/**"
       - "docs/research/jw-water-cascade/**"
+      - "docs/research/water-intervention/**"
       - "docs/research/jw-water-intake-t1/**"
+      - "docs/research/water-intervention/**"
       - ".github/workflows/water-service-t0.yml"
   pull_request:
     paths:
@@ -91,6 +93,17 @@ jobs:
             research/water-service-engineering/waterloop-matched-service-t1-input.schema.v0.1.json \
             research/water-service-engineering/waterloop-matched-service-t1-oracle.v0.1.json \
             artifacts/water-service-t0/waterloop-matched-service-t1-receipt.json
+      - name: Evaluate verified leak intervention yield T0
+        id: evaluate_intervention_yield
+        env:
+          WDN_VERIFIED_INTERVENTION_YIELD_T0_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin wdn-verified-intervention-yield-t0 -- \
+            docs/research/water-intervention/wdn_verified_intervention_yield_input.v0.1.json \
+            docs/research/water-intervention/wdn_verified_intervention_yield_input.schema.v0.1.json \
+            docs/research/water-intervention/wdn_verified_intervention_yield_oracle.v0.1.json \
+            artifacts/water-service-t0/wdn-verified-intervention-yield-t0-receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -126,6 +139,12 @@ jobs:
             research/water-service-engineering/waterloop-matched-service-t1-oracle.v0.1.json
             research/water-service-engineering/waterloop-matched-service-t1-oracle.schema.v0.1.json
             artifacts/water-service-t0/waterloop-matched-service-t1-receipt.json
+            docs/research/water-intervention/WDN_VERIFIED_INTERVENTION_YIELD_T0_PROTOCOL_V0_1.md
+            docs/research/water-intervention/wdn_verified_intervention_yield_input.v0.1.json
+            docs/research/water-intervention/wdn_verified_intervention_yield_input.schema.v0.1.json
+            docs/research/water-intervention/wdn_verified_intervention_yield_oracle.v0.1.json
+            docs/research/water-intervention/wdn_verified_intervention_yield_oracle.schema.v0.1.json
+            artifacts/water-service-t0/wdn-verified-intervention-yield-t0-receipt.json
           if-no-files-found: warn
       - name: Set up Python for matched-service protocol validation
         uses: actions/setup-python@v5
@@ -223,6 +242,52 @@ jobs:
                   if quality is not None and (not quality.get("sample_set_digest") or not quality.get("independent_reviewer_ref") or not quality.get("method_revision_ref") or not quality.get("valid_from_utc") or not quality.get("valid_until_utc")):
                       raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_QUALITY_RELEASE_SCOPE_FAIL")
           print("WATERLOOP_MATCHED_SERVICE_T1_SCHEMA_PASS: 15 cases; six paired blocks; run-bound records; scoped quality releases; synthetic-only")
+
+          from jsonschema import FormatChecker
+
+          vi_root = Path("docs/research/water-intervention")
+          vi_input_schema = json.loads((vi_root / "wdn_verified_intervention_yield_input.schema.v0.1.json").read_text())
+          vi_input = json.loads((vi_root / "wdn_verified_intervention_yield_input.v0.1.json").read_text())
+          vi_oracle_schema = json.loads((vi_root / "wdn_verified_intervention_yield_oracle.schema.v0.1.json").read_text())
+          vi_oracle = json.loads((vi_root / "wdn_verified_intervention_yield_oracle.v0.1.json").read_text())
+          for name, schema in [("input", vi_input_schema), ("oracle", vi_oracle_schema)]:
+              Draft202012Validator.check_schema(schema)
+          for name, schema, document in [
+              ("input", vi_input_schema, vi_input),
+              ("oracle", vi_oracle_schema, vi_oracle),
+          ]:
+              validator = Draft202012Validator(schema, format_checker=FormatChecker())
+              errors = sorted(
+                  validator.iter_errors(document),
+                  key=lambda error: (list(map(str, error.absolute_path)), error.message),
+              )
+              if errors:
+                  for error in errors:
+                      pointer = "/" + "/".join(map(str, error.absolute_path))
+                      print(f"WDN_VERIFIED_INTERVENTION_{name.upper()}_SCHEMA_FAIL: {pointer}: {error.message}")
+                  raise SystemExit(1)
+          if len(vi_input["cases"]) != 14 or len(vi_oracle["cases"]) != 14:
+              raise SystemExit("WDN_VERIFIED_INTERVENTION_CASE_COUNT_FAIL")
+          if {x["case_id"] for x in vi_input["cases"]} != {x["case_id"] for x in vi_oracle["cases"]}:
+              raise SystemExit("WDN_VERIFIED_INTERVENTION_ORACLE_CASE_SET_FAIL")
+          event_ids = [event["event_id"] for case in vi_input["cases"] for event in case["events"]]
+          if len(event_ids) != len(set(event_ids)):
+              raise SystemExit("WDN_VERIFIED_INTERVENTION_EVENT_ID_DUPLICATE")
+          for case in vi_oracle["cases"]:
+              if case["causal_attribution_status"] != "NotRun" or case["annualized_savings_claim"] is not False or case["claim_eligibility"] != "NotEligible":
+                  raise SystemExit(f"WDN_VERIFIED_INTERVENTION_CLAIM_GUARD_BREACH: {case['case_id']}")
+          if vi_input["evidence_class"] != "synthetic_only" or vi_input["annualized_savings_claims_allowed"] is not False:
+              raise SystemExit("WDN_VERIFIED_INTERVENTION_EVIDENCE_CLASS_FAIL")
+          digest_owners = {}
+          for case in vi_input["cases"]:
+              for event in case["events"]:
+                  for key in ["pre_measurement", "post_measurement"]:
+                      measurement = event.get(key)
+                      if measurement is not None:
+                          digest_owners.setdefault(measurement["raw_record_digest"], set()).add(event["event_id"])
+          if not any(len(owners) > 1 for owners in digest_owners.values()):
+              raise SystemExit("WDN_VERIFIED_INTERVENTION_RAW_REPLAY_NEGATIVE_CONTROL_MISSING")
+          print("WDN_VERIFIED_INTERVENTION_SCHEMA_PASS: 14 cases; multi-axis metrics; no causal or annualized savings claims")
           PY
       - name: Require an exact successful evaluator receipt
         if: always()
@@ -232,9 +297,11 @@ jobs:
           INTAKE_OUTCOME: ${{ steps.verify_intake_t1.outcome }}
           MATCHED_SERVICE_PLAN_OUTCOME: ${{ steps.validate_matched_service.outcome }}
           MATCHED_SERVICE_T1_OUTCOME: ${{ steps.evaluate_matched_service_t1.outcome }}
+          INTERVENTION_YIELD_OUTCOME: ${{ steps.evaluate_intervention_yield.outcome }}
         run: |
           test "$EVALUATE_OUTCOME" = "success"
           test "$CASCADE_OUTCOME" = "success"
           test "$INTAKE_OUTCOME" = "success"
           test "$MATCHED_SERVICE_PLAN_OUTCOME" = "success"
           test "$MATCHED_SERVICE_T1_OUTCOME" = "success"
+          test "$INTERVENTION_YIELD_OUTCOME" = "success"
