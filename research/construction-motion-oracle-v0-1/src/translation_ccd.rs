@@ -327,11 +327,11 @@ fn solve_small_system(
         }
 
         let pivot = matrix[pivot_col][pivot_col];
-        let pivot_row_values = matrix[pivot_col];
         for value in matrix[pivot_col].iter_mut().skip(pivot_col) {
             *value /= pivot;
         }
         right[pivot_col] /= pivot;
+        let pivot_row_values = matrix[pivot_col];
 
         for row in 0..size {
             if row == pivot_col {
