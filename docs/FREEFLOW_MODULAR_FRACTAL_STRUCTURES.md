@@ -626,3 +626,7 @@ The next solver issue (#5768) has begun with an isolated 12-DOF 3D Euler-Bernoul
 The comparison rules are now versioned in research/ffmfe-benchmark/PROTOCOL_V1.md. The protocol separates evidence levels L0-L7, member-only and installed-system mass, baseline families, search budgets, hold-outs, statistical reporting and evidence receipts.
 
 The first matched-mass tetrahedron vs. interior-hub scratch calculation is recorded in [issue #5808](https://github.com/Luminous-Dynamics/symtropy/issues/5808) for reproduction with the Rust evaluator and an independent solver. It is a single ideal axial-truss case and not a generalized topology conclusion.
+
+### Robust-design and uncertainty workstream
+
+Opened [issue #5813](https://github.com/Luminous-Dynamics/symtropy/issues/5813) for load, material, connector, tolerance and process uncertainty propagation. The research objective is to optimize robust lifecycle performance, not nominal stiffness alone. The plan separates deterministic interval screening from calibrated probabilistic analysis, then adds robust Pareto search and active selection of simulations/coupons based on value of information. No probability of failure will be inferred from the current deterministic member-removal scenarios.
