@@ -103,3 +103,16 @@ The command-line scorecard now includes a heterogeneous three-node chain and fou
 
 The graph extension is tracked by [HUMAN-NESTED-NETWORK-001 / #5944](https://github.com/Luminous-Dynamics/symtropy/issues/5944). All graph weights and states are arbitrary mathematical fixtures, not human-derived parameters.
 
+
+### Adaptive graph-network controller
+
+The graph module also provides adaptive simultaneous shared-flux subcycling. It:
+- compares one full network step with two half steps;
+- accepts the two-half-step state;
+- rejects steps that exceed the local error indicator;
+- rejects negative states when the initial state is nonnegative;
+- rejects steps that increase the weighted quadratic energy beyond a floating-point slack;
+- preserves the weighted total through paired edge fluxes;
+- scores global trajectory error independently against the spectral oracle.
+
+The configured local absolute/relative tolerance is an error-indicator target, not a global error guarantee. The report keeps accepted/rejected steps, global error, conservation, dissipation, positivity and step sizes distinct. This remains a small-graph synthetic mathematical reference.
