@@ -6,7 +6,7 @@ This is a dependency-free, standalone Rust reference for the observation-side ar
 
 ## Included
 
-- Published progressive available-energy formulations AE1–AE6.
+- Published progressive available-energy formulations AE1–AE6. Each result returns the exact included term IDs and whether each was measured, estimated or explicitly not applicable.
 - Typed status for measured, estimated, not-applicable, missing, invalid, out-of-domain and unqualified terms.
 - Positive-sink normalization and explicit signed storage releases.
 - Turbulent energy H + LE with separate unfiltered, full-QC and friction-velocity-filtered dispositions.
@@ -50,7 +50,7 @@ Accordingly:
 - It does not create a physical energy ledger or prove first-law closure.
 - It does not calculate entropy production, exergy destruction, biological welfare, or moral value.
 
-NotApplicable is the only state that contributes an explicit zero, and it is valid only when its numeric value is absent. Missing, invalid, out-of-domain and unqualified terms fail closed.
+NotApplicable is the only state that contributes an explicit zero, and it is valid only when its numeric value is absent. Missing, invalid, out-of-domain and unqualified terms fail closed. The result retains the included-term dispositions so a numeric AE value cannot conceal estimated or not-applicable components.
 
 ## Run
 
