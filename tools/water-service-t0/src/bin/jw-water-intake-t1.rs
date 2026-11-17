@@ -816,13 +816,11 @@ mod tests {
         let (body, headers, manifest_bytes, bundle) = fixture();
         let mut body_value: Value = serde_json::from_slice(&body).unwrap();
         body_value["release"] = json!("2026-11-17-deadbeef");
-        body_value["licence"] = json!(
-            "CC BY 4.0. Credit Johannesburg Water for the underlying facts."
-        );
+        body_value["licence"] =
+            json!("CC BY 4.0. Credit Johannesburg Water for the underlying facts.");
         let publisher_body = serde_json::to_vec_pretty(&body_value).unwrap();
 
-        let publisher_licence =
-            "CC BY 4.0. Credit Johannesburg Water for the underlying facts.";
+        let publisher_licence = "CC BY 4.0. Credit Johannesburg Water for the underlying facts.";
         let publisher_headers = String::from_utf8(headers)
             .unwrap()
             .replace("SYNTHETIC-ONLY", publisher_licence)
@@ -837,8 +835,7 @@ mod tests {
             json!("https://watersearch.co.za/api/v1/suburbs/synthetic-suburb/history");
         manifest["capture"]["headers"]["x-licence"] = json!(publisher_licence);
         manifest["rights_review"]["status"] = json!("pending");
-        let pending_manifest =
-            refresh_manifest(&publisher_body, &publisher_headers, &mut manifest);
+        let pending_manifest = refresh_manifest(&publisher_body, &publisher_headers, &mut manifest);
 
         let pending = validate_capture(
             &publisher_body,
@@ -853,8 +850,7 @@ mod tests {
         assert_eq!(pending["household_tap_status"], "not_established");
 
         manifest["rights_review"]["status"] = json!("approved");
-        manifest["rights_review"]["review_reference"] =
-            json!("synthetic-review-reference-only");
+        manifest["rights_review"]["review_reference"] = json!("synthetic-review-reference-only");
         let approved_manifest =
             refresh_manifest(&publisher_body, &publisher_headers, &mut manifest);
         let approved = validate_capture(
