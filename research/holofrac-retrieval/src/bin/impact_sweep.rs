@@ -1,6 +1,4 @@
-use holofrac_spatial_retrieval::impact::{
-    run_impact_benchmark, run_shared_cause_impact_benchmark,
-};
+use holofrac_spatial_retrieval::impact::{run_impact_benchmark, run_shared_cause_impact_benchmark};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let source_sha = std::env::var("HOLOFRAC_SOURCE_SHA").unwrap_or_else(|_| "UNSET".to_owned());
@@ -8,7 +6,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("# source_sha={source_sha}");
     println!("# target_arch={}", std::env::consts::ARCH);
     println!("# target_os={}", std::env::consts::OS);
-    println!("topology,artifacts,chain_length,changed_sources,dependencies,evidence,affected_artifacts,stale_evidence,retained_evidence,graph_build_us,closure_us,evidence_revalidation_avoided");
+    println!(
+        "topology,artifacts,chain_length,changed_sources,dependencies,evidence,affected_artifacts,stale_evidence,retained_evidence,graph_build_us,closure_us,evidence_revalidation_avoided"
+    );
 
     for artifact_count in [100_usize, 1_000, 10_000, 100_000] {
         for changed_chains in [1_usize, 10, 100] {
@@ -33,11 +33,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for project_count in [20_usize, 200, 2_000, 20_000] {
         for shared_change in [true, false] {
-            let report =
-                run_shared_cause_impact_benchmark(project_count, shared_change)?;
+            let report = run_shared_cause_impact_benchmark(project_count, shared_change)?;
             println!(
                 "{},{},{},{},{},{},{},{},{},{:.3},{:.3},{}",
-                if shared_change { "shared_cause" } else { "local_project_change" },
+                if shared_change {
+                    "shared_cause"
+                } else {
+                    "local_project_change"
+                },
                 report.artifact_count,
                 0,
                 report.changed_source_count,
