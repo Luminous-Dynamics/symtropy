@@ -850,7 +850,10 @@ mod tests {
             )],
         )
         .unwrap();
-        assert_eq!(receipt.decision.stop_reason, Some(StopReason::SafetyGateFailed));
+        assert_eq!(
+            receipt.decision.stop_reason,
+            Some(StopReason::SafetyGateFailed)
+        );
         assert!(receipt.decision.selected.is_none());
     }
 
