@@ -17,8 +17,8 @@ use symtropy_human_systems::intervention::{
     InterventionScenarioId, PhysicalExposureTruth, generate_intervention_scenario,
 };
 use symtropy_human_systems::observation::{
-    EstimatorView, ObservationEvent, ObservationQuantity, ScenarioId, ScorerEventTruth,
-    generate_scenario, ObservationStatus,
+    EstimatorView, ObservationEvent, ObservationQuantity, ObservationStatus, ScenarioId,
+    ScorerEventTruth, generate_scenario,
 };
 use symtropy_human_systems::sampling_rate::{
     FIXTURE_DURATION_SECONDS, canonical_rate_profiles, sample_ideal_lowpass,
