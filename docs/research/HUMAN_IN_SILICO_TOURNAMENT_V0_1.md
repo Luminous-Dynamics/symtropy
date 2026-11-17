@@ -99,6 +99,16 @@ Primary sources:
 - ECGSYN is a useful synthetic ECG signal generator; waveform realism is not proof of underlying physiological accuracy.
 - CellML, SBML and SED-ML aid model and experiment exchange. Schema validity alone does not validate equations or a model's domain.
 
+### Real environmental forcing without human records
+
+A safe route to add genuinely observed data is to use **environmental boundary conditions**, not human response data. The NASA POWER hourly API provides globally located hourly meteorological and solar time series (hourly archive from 2001 to near-real-time), with UTC or local-solar-time options. ERA5 provides hourly atmospheric and land-surface reanalysis from 1940 onward on a roughly 0.25-degree grid and is distributed under CC BY 4.0. Candidate variables include air temperature, dew-point/derived humidity, wind components and solar radiation.
+
+Sources: [NASA POWER hourly API](https://power.larc.nasa.gov/docs/services/api/temporal/hourly/), [ERA5 hourly single-level dataset](https://cds.climate.copernicus.eu/stac-browser/collections/reanalysis-era5-single-levels).
+
+Use these data only as real external forcing for synthetic model runs: real weather in, simulated physiology out. This validates the ingestion, timestamp, unit-conversion and boundary-condition pipeline against observed environmental variability. It does **not** validate the model's human response, and it must not be described as a real-human scenario.
+
+A second, strictly separate method lane may use existing public non-human data in the repository (for example Drosophila sensorimotor experiments, plant hydraulic/stomatal observations and fungal-network measurements) to test generic observation, event, conservation and causal-evaluation methods. Keep taxa, model equations and parameter provenance separate; no cross-species physiological claims or human parameter transfer.
+
 Every adapter must pin exact release/commit, license, equations, parameter defaults, dependencies, solver, initial-state procedure, output units and unsupported inputs before admission.
 
 ## Synthetic challenge catalogue
