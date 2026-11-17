@@ -150,7 +150,24 @@
       "simulated_scores_never_presented_as_field_accuracy",
       "model_only_alerts_never_authorize_physical_actuation",
       "saved_water_and_repair_claims_require_independent_post_repair_measurements"
-    ]
+    ],
+    "dataset_admission": {
+      "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4979",
+      "crosswalk": "research/water-service-engineering/wdn-dataset-crosswalk-v0.1.md",
+      "register": "research/water-service-engineering/wdn-dataset-admission-v0.1.json",
+      "schema": "research/water-service-engineering/wdn-dataset-admission.schema.json",
+      "status": "metadata_crosswalk_only_no_dataset_files_acquired",
+      "dataset_ids": [
+        "DITEC_WDN",
+        "LEAKDB",
+        "WDSEVENTDB",
+        "LEAKTESTBED_AGHASHASHI_2023",
+        "SLOVAK_UTILITY_SCADA_2026",
+        "BATTLEDIM_L_TOWN",
+        "NET3_47K_PAPER_CORPUS"
+      ],
+      "evidence_ceiling": "metadata_catalogue_and_research_design_only"
+    }
   },
   "t0_evaluator": {
     "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4978",

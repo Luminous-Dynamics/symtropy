@@ -1,0 +1,394 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "wdn-cross-population-protocol-v0.1",
+  "benchmark_id": "WDN-CROSSPOP-COMPARE-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4979",
+  "parent_benchmark": "https://github.com/Luminous-Dynamics/symtropy/issues/4963",
+  "status": "metadata_only_no_data_admitted",
+  "no_pooled_leaderboard": true,
+  "claim_ceiling": "population_specific_reproduction_and_transfer_design_only",
+  "global_rules": [
+    "Do not pool raw scores across populations with different evidence class, topology, time cadence, label construction or task ground truth.",
+    "Every dataset release, exact file list and licence decision must be pinned before admission.",
+    "Keep every physical event and all of its windows in one partition; do not split adjacent overlapping windows across train and test.",
+    "Purge label windows and event buffers across temporal partition boundaries.",
+    "Fit preprocessing, scaling, feature selection, calibration and thresholds on training data only.",
+    "Report sensor count, measurement principles, sampling frequency, missingness and lifecycle cost with every result.",
+    "An unknown or physically unidentifiable location must be represented as an ambiguity set or abstention, not a forced pipe label.",
+    "A data paper, benchmark record or source-code listing is not proof that raw bytes or their redistribution rights have been admitted."
+  ],
+  "task_contract": {
+    "T1_detection": {
+      "definition": "Detect an event within the time resolution and event-label precision supported by the source.",
+      "required_metrics": [
+        "PR-AUC",
+        "recall_at_preregistered_false_alarm_budget",
+        "precision",
+        "false_alarms_per_asset_time",
+        "Brier_score_or_calibration_error",
+        "event_detection_delay_only_when_onset_precision_supports_it"
+      ],
+      "not_substitutable_by": [
+        "overall_accuracy_alone",
+        "synthetic_balanced_accuracy_reported_as_field_recall"
+      ]
+    },
+    "T2_localization": {
+      "definition": "Estimate zone, segment or pipe only when ground-truth location and physical observability support that resolution.",
+      "required_metrics": [
+        "Top_1_and_Top_5_accuracy_where_candidate_set_is_defined",
+        "P50_and_P95_network_distance_error",
+        "hit_rate_within_declared_distance",
+        "candidate_set_size",
+        "credible_set_coverage",
+        "abstention_risk_coverage",
+        "sensor_budget_and_observability_coverage"
+      ],
+      "not_substitutable_by": [
+        "classification_accuracy_without_location_ground_truth",
+        "zone_hit_reported_as_pipe_level_accuracy"
+      ]
+    },
+    "T3_characterization": {
+      "definition": "Estimate leak flow or severity only where independent ground truth supports a quantitative target.",
+      "required_metrics": [
+        "MAE_and_bias_in_native_units",
+        "P50_and_P95_absolute_error",
+        "prediction_interval_coverage_and_width",
+        "calibration_by_leak_size",
+        "false_severity_escalations"
+      ],
+      "not_substitutable_by": [
+        "leak_type_classification_as_leak_flow_estimation",
+        "synthetic_orifice_setting_as_verified_field_leak_rate"
+      ]
+    }
+  },
+  "baseline_ladder": [
+    {
+      "baseline_id": "B0",
+      "name": "Persistence / last valid state",
+      "required_for": [
+        "T1"
+      ],
+      "notes": "Preserve missing data; no_report is not normal."
+    },
+    {
+      "baseline_id": "B1",
+      "name": "Fixed threshold and CUSUM",
+      "required_for": [
+        "T1"
+      ],
+      "notes": "Thresholds frozen on train/validation only."
+    },
+    {
+      "baseline_id": "B2",
+      "name": "Water balance / minimum-night-flow",
+      "required_for": [
+        "T1",
+        "T2_when_supported"
+      ],
+      "notes": "Use only when zone boundaries, demand and metrology are fit for the method."
+    },
+    {
+      "baseline_id": "B3",
+      "name": "Hydraulic residual / EPANET-WNTR model",
+      "required_for": [
+        "T1",
+        "T2"
+      ],
+      "notes": "Model/topology/parameter revision must be pinned."
+    },
+    {
+      "baseline_id": "B4",
+      "name": "Random Forest / XGBoost",
+      "required_for": [
+        "T1",
+        "T2",
+        "T3_when_supported"
+      ],
+      "notes": "Tabular baseline with explicit feature and sensor budget."
+    },
+    {
+      "baseline_id": "B5",
+      "name": "CNN / temporal model",
+      "required_for": [
+        "T1",
+        "T2_when_supported"
+      ],
+      "notes": "Sequence split by event/time, not random overlapping windows."
+    },
+    {
+      "baseline_id": "B6",
+      "name": "GNN / spatiotemporal graph model",
+      "required_for": [
+        "T1",
+        "T2"
+      ],
+      "notes": "Graph revision and held-out network protocol required."
+    },
+    {
+      "baseline_id": "B7",
+      "name": "Multimodal fusion",
+      "required_for": [
+        "T1",
+        "T2",
+        "T3_when_supported"
+      ],
+      "notes": "Ablate each sensing principle and common-cause dependency; fusion only earns credit for measured incremental value."
+    }
+  ],
+  "populations": [
+    {
+      "dataset_id": "DITEC_WDN",
+      "population_class": "synthetic_normal_hydraulic",
+      "native_resolution": "hourly simulated states; 24-hour and annual horizons",
+      "known_scale": {
+        "networks": 36,
+        "scenarios": 36000,
+        "states_reported": 228000000
+      },
+      "label_granularity": "normal hydraulic state; no leak-positive labels admitted",
+      "allowed_tasks": [
+        "P0_normal_state_modelling",
+        "hydraulic_residual_baseline"
+      ],
+      "split_policy": "Leave-network-out and simulation-seed-out; never relabel normal-only states as leak-negative without a documented event-generation design.",
+      "prohibited_claims": [
+        "leak_detection_superiority",
+        "physical_or_utility_field_performance"
+      ],
+      "intake_status": "catalogued_metadata_only",
+      "files_acquired": false,
+      "archive_sha256": null,
+      "split_manifest": null
+    },
+    {
+      "dataset_id": "LEAKDB",
+      "population_class": "synthetic_leak_scenarios",
+      "native_resolution": "scenario-dependent; verify from archive before admission",
+      "known_scale": {
+        "archive_size_bytes": 13900000000
+      },
+      "label_granularity": "synthetic leak scenario; exact label and sensor schema require file audit",
+      "allowed_tasks": [
+        "P1_synthetic_T1_detection",
+        "P1_synthetic_T2_localization_if_labels_support"
+      ],
+      "split_policy": "Hold out complete generated scenarios and network/topology IDs; reproduce original generator/scoring split before any alternative split.",
+      "prohibited_claims": [
+        "physical_lab_validation",
+        "utility_field_generalization"
+      ],
+      "intake_status": "rights_pending_and_archive_not_acquired",
+      "files_acquired": false,
+      "archive_sha256": null,
+      "split_manifest": null
+    },
+    {
+      "dataset_id": "LEAKTESTBED_AGHASHASHI_2023",
+      "population_class": "controlled_physical_laboratory_testbed",
+      "native_resolution": "30-second signals; 51.2 kHz accelerometer/dynamic pressure; 8 kHz hydrophone",
+      "known_scale": {
+        "signals": 280,
+        "pipe_loop_length_m": 47,
+        "pipe_diameter_mm": 152.4,
+        "sensor_channels": 6
+      },
+      "label_granularity": "controlled induced leak type and no-leak; location/magnitude granularity requires raw-file audit",
+      "allowed_tasks": [
+        "P2_physical_T1_detection",
+        "P2_sensor_modality_ablation",
+        "P2_T2_only_if_coordinate_ground_truth_is_verified"
+      ],
+      "split_policy": "Group by complete physical experiment/configuration; hold out leak mechanisms, topology or sensor locations for transfer. Never split overlapping segments from one 30-second record across partitions.",
+      "prohibited_claims": [
+        "municipal_network_performance",
+        "natural_leak_generalization",
+        "T3_flow_characterization_without_independent_rate_ground_truth"
+      ],
+      "intake_status": "catalogued_metadata_only_file_level_rights_pending",
+      "files_acquired": false,
+      "archive_sha256": null,
+      "split_manifest": null
+    },
+    {
+      "dataset_id": "SLOVAK_UTILITY_SCADA_2026",
+      "population_class": "real_utility_single_zone_hourly_telemetry",
+      "native_resolution": "hourly; 2022-01-01 through 2022-12-30",
+      "known_scale": {
+        "records": 8737,
+        "variables": 18,
+        "zones": 1
+      },
+      "label_granularity": "binary fault_d7 label derived using a plus/minus seven-day event window",
+      "allowed_tasks": [
+        "P3_coarse_T1_anomaly_detection",
+        "missingness_robustness",
+        "temporal_transfer_within_this_zone"
+      ],
+      "split_policy": "Blocked chronological split; purge at least the full label window plus a preregistered buffer at boundaries; event records and all affected hours remain within one partition. Do not report precise onset/lead time or T2 pipe localization from fault_d7.",
+      "prohibited_claims": [
+        "sub_hour_detection_lead",
+        "acoustic_detection",
+        "pipe_level_localization",
+        "multi_utility_generalization_from_one_zone"
+      ],
+      "intake_status": "catalogued_metadata_only",
+      "files_acquired": false,
+      "archive_sha256": null,
+      "split_manifest": null
+    },
+    {
+      "dataset_id": "BATTLEDIM_L_TOWN",
+      "population_class": "competition_simulation_with_scada_style_series",
+      "native_resolution": "5-minute SCADA-style data",
+      "known_scale": {
+        "training_period": "2018",
+        "evaluation_period": "2019"
+      },
+      "label_granularity": "competition-defined leakage events and model-based location with economic response scoring",
+      "allowed_tasks": [
+        "P3_official_T1_reproduction",
+        "P3_official_T2_reproduction",
+        "economic_response_reproduction"
+      ],
+      "split_policy": "Preserve official 2018 historical/training and 2019 evaluation split and official scoring/economic rules; no random window repartition for the headline reproduction.",
+      "prohibited_claims": [
+        "live_utility_deployment",
+        "field_accuracy_without_transfer"
+      ],
+      "intake_status": "catalogued_metadata_only_rights_need_primary_verification",
+      "files_acquired": false,
+      "archive_sha256": null,
+      "split_manifest": null
+    },
+    {
+      "dataset_id": "NET3_47K_PAPER_CORPUS",
+      "population_class": "paper_reported_synthetic_benchmark",
+      "native_resolution": "EPANET/WNTR scenario resolution; exact artifact metadata unavailable",
+      "known_scale": {
+        "scenarios_reported": 47000,
+        "reported_detection_accuracy_percent_gt": 95
+      },
+      "label_granularity": "paper-reported simulated leak detection/localization; exact label definitions pending artifact recovery",
+      "allowed_tasks": [
+        "P1_paper_result_reproduction_after_artifact_recovery"
+      ],
+      "split_policy": "Do not create a replacement split and call it reproduction. Recover exact generator, scenario files, split, seed, sensor budget and scorer first.",
+      "prohibited_claims": [
+        "exact_reproduction_from_abstract",
+        "field_performance"
+      ],
+      "intake_status": "paper_reference_only_artifact_recovery_blocked",
+      "files_acquired": false,
+      "archive_sha256": null,
+      "split_manifest": null
+    },
+    {
+      "dataset_id": "PAMPLONA_DAS_2026",
+      "population_class": "controlled_field_DAS_trial",
+      "native_resolution": "DAS; effective gauge length 2.6 m; raw trace sampling/format require acquisition audit",
+      "known_scale": {
+        "fibre_route_km": 17,
+        "controlled_valve_flow_l_s_min": 0.14,
+        "controlled_valve_flow_l_s_max": 3.75
+      },
+      "label_granularity": "controlled valve leak events on one route; not natural leak events",
+      "allowed_tasks": [
+        "P2_controlled_field_T1_detection_after_access",
+        "P2_controlled_field_T2_localization_after_access"
+      ],
+      "split_policy": "Hold out complete valve events, route segments and environmental periods; if only one route, report within-route transfer only and retain route-specific coupling calibration.",
+      "prohibited_claims": [
+        "natural_failure_validation",
+        "universal_minimum_detectable_leak",
+        "citywide_DAS_availability"
+      ],
+      "intake_status": "request_only_raw_data_and_rights_not_admitted",
+      "files_acquired": false,
+      "archive_sha256": null,
+      "split_manifest": null
+    },
+    {
+      "dataset_id": "WDSEVENTDB",
+      "population_class": "sensor_instrumented_testbed_events",
+      "native_resolution": "requires file-level inspection",
+      "known_scale": {
+        "archive_size_bytes": 2300000
+      },
+      "label_granularity": "leakage, cyberattack and sensor-failure events as described; counts/locations require file audit",
+      "allowed_tasks": [
+        "P2_event_diagnosis_after_file_audit",
+        "sensor_fault_separation_if_native_labels_support"
+      ],
+      "split_policy": "Group by complete physical event and testbed configuration; keep leak, cyberattack and sensor failure as separate classes. Do not merge with LeakTestbed without archive-level equivalence proof.",
+      "prohibited_claims": [
+        "utility_scale_field_generalization"
+      ],
+      "intake_status": "catalogued_metadata_only_rights_and_files_pending",
+      "files_acquired": false,
+      "archive_sha256": null,
+      "split_manifest": null
+    }
+  ],
+  "comparison_requirements": {
+    "per_population_reporting": true,
+    "cross_population_pooled_metric_allowed": false,
+    "required_transfer_matrix": [
+      "train_population",
+      "test_population",
+      "label_mapping_valid",
+      "sensor_principle_overlap",
+      "topology_overlap",
+      "domain_shift",
+      "metrics_reported_separately"
+    ],
+    "observability_report": [
+      "identifiable_fault_pair_fraction",
+      "diagnosability_vs_failed_sensor_curve",
+      "diagnosability_vs_failed_dependency_domain_curve",
+      "sensor_count",
+      "lifecycle_cost",
+      "sampling_rate",
+      "common_cause_groups",
+      "abstention_rate"
+    ],
+    "T1_metrics": [
+      "PR_AUC",
+      "recall_at_preregistered_false_alarm_budget",
+      "false_alarms_per_asset_time",
+      "Brier_score_or_calibration_error",
+      "detection_delay_only_when_label_onset_supports_it"
+    ],
+    "T2_metrics": [
+      "Top_1",
+      "Top_5",
+      "P50_network_distance_error",
+      "P95_network_distance_error",
+      "candidate_set_size",
+      "ambiguity_set_coverage",
+      "abstention_risk_coverage"
+    ],
+    "T3_metrics": [
+      "MAE_native_units",
+      "P50_absolute_error",
+      "P95_absolute_error",
+      "prediction_interval_coverage",
+      "interval_width",
+      "bias"
+    ],
+    "targets_not_achieved": {
+      "T1": "Investigate >=95% recall at a pre-registered false-alarm budget on each eligible held-out population; do not substitute pooled accuracy.",
+      "T2": "Investigate >=25% lower P95 localization distance than the strongest reproduced baseline at equal sensor budget and equal physical identifiability coverage.",
+      "T3": "Investigate calibrated magnitude intervals with >=90% empirical coverage on an independently labelled population where measured leak flow ground truth exists.",
+      "sensor_efficiency": "Produce a Pareto curve over sensor count, lifecycle cost, observability and maintenance; no weighted winner without an explicitly approved utility profile."
+    }
+  },
+  "admission": {
+    "dataset_files_acquired": false,
+    "dataset_digests_created": false,
+    "split_manifests_created": false,
+    "model_performance_claimed": false
+  }
+}

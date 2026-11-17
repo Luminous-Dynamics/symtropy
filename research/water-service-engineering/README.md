@@ -107,3 +107,12 @@ A dedicated child workstream now benchmarks mechanism-aware membrane fouling est
 ## Executable T0 evaluator
 
 The 23-case input corpus now has a **separate expected-output oracle**. The Rust evaluator is in `tools/water-service-t0`, tracked by [#4978](https://github.com/Luminous-Dynamics/symtropy/issues/4978) and included in [PR #4962](https://github.com/Luminous-Dynamics/symtropy/pull/4962). It computes pump duty, VFD/throttling, water/marker closure and fail-closed treatment/network diagnosis outputs, and emits a digest-bound receipt. Source-level independent replay matched 23/23 oracle outputs; native Rust build/tests/Clippy/CI remain unverified until an exact-head run.
+
+
+## Pressurized-network dataset admission
+
+The public dataset crosswalk is now recorded in [wdn-dataset-crosswalk-v0.1.md](./wdn-dataset-crosswalk-v0.1.md), with the machine-readable [dataset register](./wdn-dataset-admission-v0.1.json) and [Draft 2020-12 schema](./wdn-dataset-admission.schema.json). Eight distinct populations are catalogued: DiTEC-WDN, LeakDB, WDSEventDB, Aghashahi LeakTestbed, Slovak utility SCADA, BattLeDIM/L-Town, the paper-reported 47k+ Net3 corpus, and the request-only Pamplona dark-fibre DAS trial. No raw DAS files have been acquired. This is metadata intake only: no source files have been acquired or hashed, and unresolved dataset licences remain blocked from redistribution.
+
+## Cross-population benchmark protocol
+
+The dataset crosswalk now has a separate machine-readable [cross-population protocol](./wdn-cross-population-protocol.v0.1.json), its [Draft 2020-12 schema](./wdn-cross-population-protocol.schema.v0.1.json), and [evaluation design](./WDN_CROSS_POPULATION_BENCHMARK_PROTOCOL_V0_1.md). It freezes T1/T2/T3 task semantics, an eight-baseline ladder, eight non-pooled evidence populations, event/network-aware split rules, observability curves and proposed (not achieved) targets. CI validates the protocol and asserts that all populations remain metadata-only.

@@ -1,0 +1,556 @@
+{
+  "schema_version": "wdn-dataset-admission-v0.1",
+  "programme": "PRESSURIZED-WATER-LEAK-DIAGNOSTICS-BENCH-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4979",
+  "status": "metadata_crosswalk_only_no_dataset_files_acquired",
+  "evidence_ceiling": "catalogue_metadata_and_research_design_only_no_model_performance_or_field_claim",
+  "intake_rules": [
+    "No source bytes have been acquired or hashed by this register.",
+    "Do not invent source digests, event labels, calibration records, rights, or sample counts.",
+    "Public record visibility is not equivalent to a redistribution licence.",
+    "Keep synthetic, lab/HIL, utility/field and paper-derived populations separate.",
+    "Do not collapse normal-only hydraulic scenarios or generic anomaly labels into leak-positive labels.",
+    "No pooled cross-population leaderboard; transfer experiments must report each target population separately."
+  ],
+  "datasets": [
+    {
+      "dataset_id": "BATTLEDIM_L_TOWN",
+      "title": "Dataset of BattLeDIM: Battle of the Leakage Detection and Isolation Methods",
+      "creators": [
+        "Stelios G. Vrachimis",
+        "Demetrios G. Eliades",
+        "Riccardo Taormina",
+        "Avi Ostfeld",
+        "Zoran Kapelan",
+        "Shuming Liu",
+        "Marios S. Kyriakou",
+        "Pavlos Pavlou",
+        "Mengning Qiu",
+        "Marios Polycarpou"
+      ],
+      "source": {
+        "type": "competition_network_simulation_and_scada_benchmark",
+        "url": "https://zenodo.org/records/4017659",
+        "persistent_id": "https://doi.org/10.5281/zenodo.4017659",
+        "record_version": "v1",
+        "published": "2020-09-07",
+        "companion_site": "https://battledim.ucy.ac.cy/",
+        "companion_data_page": "https://battledim.ucy.ac.cy/?page_id=33",
+        "file_listing": [
+          {
+            "name": "dataset_configuration.yaml",
+            "record_md5": "48486401f5b4d0447023f5ce5d242c52"
+          },
+          {
+            "name": "L-TOWN.inp",
+            "record_size_bytes": 412200,
+            "record_md5": "bfbb16b8b463e0576200ba6ad360f68e"
+          },
+          {
+            "name": "L-TOWN_Real.inp",
+            "record_size_bytes": 177200000,
+            "record_md5": "40fb38de25ed692a5ddd30e0f5fae332"
+          },
+          {
+            "name": "README.txt",
+            "record_md5": "7ad5cdc2eebfe78197a3412e80d07ddc"
+          }
+        ]
+      },
+      "rights": {
+        "status": "requires_primary_record_and_companion_file_verification",
+        "license": null,
+        "notes": "Zenodo record Rights > License field is blank in the surfaced page; competition site offers dataset and evaluation code. Confirm usage terms for each file and evaluation script before redistribution."
+      },
+      "profile": {
+        "network": "L-Town, hypothetical network based on a real network in Cyprus",
+        "train_period": "2018 historical SCADA and known detected/fixed leakage records",
+        "evaluation_period": "2019 SCADA and leakage events evaluated by the competition",
+        "native_sampling": "5 minutes",
+        "measurements": [
+          "tank level",
+          "flow sensors",
+          "AMR aggregated consumption",
+          "pressure sensors"
+        ],
+        "model": "EPANET INP",
+        "challenge": "detect and localize events; competition evaluation included isolation effort and water-loss economics"
+      },
+      "tasks": {
+        "eligible": [
+          "P3_competition_reproduction",
+          "P3_leak_detection",
+          "P3_leak_localization",
+          "economic_response_metric_reproduction"
+        ],
+        "not_eligible": [
+          "claiming independent utility field validation from a hypothetical/simulated L-Town model",
+          "random_window_splits_across_2018_2019_events"
+        ]
+      },
+      "intake": {
+        "status": "catalogued_metadata_only",
+        "files_acquired": false,
+        "sha256": [],
+        "split_manifest": null
+      },
+      "evidence_limit": "Strong standardized benchmark / simulated utility network with SCADA-style series. Do not equate L-Town's network model and generated SCADA with a live utility deployment."
+    },
+    {
+      "dataset_id": "DITEC_WDN",
+      "title": "DiTEC-WDN: A Large-Scale Dataset of Hydraulic Scenarios across Multiple Water Distribution Networks",
+      "creators": [
+        "Huy Truong",
+        "Andrés Tello",
+        "Alexander Lazovik",
+        "Victoria Degeler"
+      ],
+      "publication": {
+        "date": "2025-11-03",
+        "doi": "10.1038/s41597-025-06026-0",
+        "url": "https://www.nature.com/articles/s41597-025-06026-0"
+      },
+      "source": {
+        "type": "synthetic_hydraulic_scenario_dataset",
+        "url": "https://huggingface.co/datasets/rugds/ditec-wdn",
+        "persistent_id": "https://doi.org/10.57967/hf/6341",
+        "record_version": "repository main; exact commit not yet pinned"
+      },
+      "rights": {
+        "status": "declared_CC_BY_4_0",
+        "license": "CC-BY-4.0",
+        "evidence_url": "https://huggingface.co/datasets/rugds/ditec-wdn",
+        "notes": "Re-check current dataset card and any per-file or dependency terms at acquisition."
+      },
+      "profile": {
+        "networks": 36,
+        "scenarios": 36000,
+        "states_reported": 228000000,
+        "simulation_horizons": [
+          "24 hours",
+          "1 year"
+        ],
+        "time_step_reported": "1 hour",
+        "format": [
+          "Parquet",
+          "EPANET INP source network metadata"
+        ],
+        "data_character": "synthetic hydraulically realistic states under standard operating conditions"
+      },
+      "tasks": {
+        "eligible": [
+          "P0_normal_state_hydraulic_modelling",
+          "graph_and_time_series_state_forecasting",
+          "solver_differential_checks"
+        ],
+        "not_eligible": [
+          "leak_detection_supervision_without_separately_verified_leak_labels",
+          "field_performance_claims"
+        ]
+      },
+      "intake": {
+        "status": "catalogued_metadata_only",
+        "files_acquired": false,
+        "sha256": [],
+        "split_manifest": null
+      },
+      "evidence_limit": "Synthetic normal-condition hydraulic state corpus. It is a potentially useful P0 baseline and does not itself provide leak-positive labels or field leak evidence."
+    },
+    {
+      "dataset_id": "LEAKDB",
+      "title": "LeakDB Dataset",
+      "creators": [
+        "Stelios G. Vrachimis",
+        "Marios S. Kyriakou",
+        "Demetrios G. Eliades",
+        "Marios M. Polycarpou"
+      ],
+      "publication": {
+        "doi": "10.5281/zenodo.1313116",
+        "url": "https://doi.org/10.5281/zenodo.1313116"
+      },
+      "source": {
+        "type": "synthetic_leak_scenario_dataset",
+        "url": "https://zenodo.org/records/13985057",
+        "persistent_id": "https://doi.org/10.5281/zenodo.13985057",
+        "record_version": "v1",
+        "published": "2024-10-24",
+        "file_listing": [
+          {
+            "name": "LeakDB.zip",
+            "size_bytes": 13900000000,
+            "record_md5": "d607929ef7caea432e663aee8071f2d7"
+          }
+        ]
+      },
+      "rights": {
+        "status": "requires_primary_record_and_archive_verification",
+        "license": null,
+        "secondary_catalog_claim": "CC-BY-4.0",
+        "secondary_catalog_url": "https://datasetcatalog.nlm.nih.gov/dataset?q=0002173632",
+        "notes": "The Zenodo record page currently exposes a blank License field while the NLM Dataset Catalog reports CC BY 4.0. Confirm Zenodo API metadata and archive contents before redistribution or derived release."
+      },
+      "profile": {
+        "scenario_character": "artificially created realistic leakage scenarios across multiple networks and varying conditions",
+        "scoring_toolkit": "MATLAB scoring tool and generator source are referenced by the record",
+        "source_code": "https://github.com/KIOS-Research/LeakDB"
+      },
+      "tasks": {
+        "eligible": [
+          "P1_synthetic_leak_detection",
+          "P1_synthetic_leak_localization_if_native_labels_support_it",
+          "synthetic_robustness_and_ablation"
+        ],
+        "not_eligible": [
+          "physical_testbed_or_utility_field_claims"
+        ]
+      },
+      "intake": {
+        "status": "catalogued_metadata_only",
+        "files_acquired": false,
+        "sha256": [],
+        "split_manifest": null
+      },
+      "evidence_limit": "Synthetic leakage corpus. Reproduce the original scoring protocol and pin code/data revisions; never describe this result as field accuracy."
+    },
+    {
+      "dataset_id": "LEAKTESTBED_AGHASHASHI_2023",
+      "title": "Benchmarking dataset for leak detection and localization in water distribution systems",
+      "creators": [
+        "Mohsen Aghashahi",
+        "Lina Sela",
+        "M. Katherine Banks"
+      ],
+      "publication": {
+        "date": "2023-06",
+        "doi": "10.1016/j.dib.2023.109148",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10147960/"
+      },
+      "source": {
+        "type": "controlled_physical_laboratory_testbed_dataset",
+        "url": "https://waterfutures.github.io/WaterBenchmarkHub/benchmarks/LeakTestbed.html",
+        "persistent_id": "https://data.mendeley.com/datasets/tbrnp6vrnj",
+        "record_version": "Mendeley record version not yet pinned"
+      },
+      "rights": {
+        "status": "article_CC_BY_but_raw_data_terms_require_confirmation",
+        "license": "CC-BY for the Data in Brief article",
+        "evidence_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10147960/",
+        "notes": "The article is CC BY; confirm the Mendeley dataset's own file-level licence before redistribution of raw signals or derivative datasets."
+      },
+      "profile": {
+        "signal_count": 280,
+        "pipe_loop_length_m": 47,
+        "pipe_diameter_mm": 152.4,
+        "topologies": [
+          "looped",
+          "branched"
+        ],
+        "leak_classes": [
+          "longitudinal_crack",
+          "circumferential_crack",
+          "gasket_leak",
+          "orifice_leak",
+          "no_leak"
+        ],
+        "sensor_types": [
+          "accelerometer",
+          "hydrophone",
+          "dynamic_pressure"
+        ],
+        "record_duration_s": 30,
+        "sampling_hz": {
+          "accelerometer": 51200,
+          "dynamic_pressure": 51200,
+          "hydrophone": 8000
+        },
+        "background_conditions": [
+          "no_demand",
+          "0.18 L/s",
+          "0.47 L/s",
+          "transient demand",
+          "with noise",
+          "without noise"
+        ]
+      },
+      "tasks": {
+        "eligible": [
+          "P2_physical_lab_leak_detection",
+          "P2_physical_lab_localization",
+          "sensor_modality_and_location_ablation"
+        ],
+        "not_eligible": [
+          "municipal_field_generalization_without_transfer_test",
+          "leak_magnitude_characterization_unless_raw_metadata_supports_ground_truth"
+        ]
+      },
+      "intake": {
+        "status": "catalogued_metadata_only",
+        "files_acquired": false,
+        "sha256": [],
+        "split_manifest": null
+      },
+      "evidence_limit": "Physical laboratory loop signals. This is much stronger than synthetic-only evidence but remains a 47 m laboratory testbed, not a full utility network."
+    },
+    {
+      "dataset_id": "NET3_47K_PAPER_CORPUS",
+      "title": "Benchmarking Diverse Learning Architectures for Leak Detection and Localization in Water Distribution Systems",
+      "creators": [
+        "Ranganathan S",
+        "Vinothkumar N",
+        "Muthuramalingam E"
+      ],
+      "publication": {
+        "date": "2026-05",
+        "doi": "10.1016/j.jwpe.2026.110114",
+        "url": "https://www.sciencedirect.com/science/article/pii/S2214714426006720"
+      },
+      "source": {
+        "type": "paper_reported_synthetic_benchmark",
+        "persistent_id": "https://doi.org/10.1016/j.jwpe.2026.110114",
+        "record_version": "paper-specific artifacts not yet located"
+      },
+      "rights": {
+        "status": "not_assessed",
+        "license": null,
+        "notes": "No dataset licence, exact input archive or source-code release is recorded here yet. Paper access/rights and artifact availability must be verified."
+      },
+      "profile": {
+        "scenarios_reported": 47000,
+        "network": "EPANET/WNTR Net3",
+        "model_families": [
+          "ML",
+          "DL",
+          "GNN",
+          "Transformer"
+        ],
+        "reported_detection_accuracy": ">95%",
+        "reported_challenge": "localization remains harder",
+        "raw_data_acquired": false,
+        "source_code_acquired": false
+      },
+      "tasks": {
+        "eligible": [
+          "P1_paper_result_reproduction_only_after_exact_artifact_recovery"
+        ],
+        "not_eligible": [
+          "claiming_exact_reproduction_from_paper_abstract",
+          "comparing_accuracy_without_original_split_and_scoring_protocol"
+        ]
+      },
+      "intake": {
+        "status": "paper_reference_only_artifact_recovery_blocked",
+        "files_acquired": false,
+        "sha256": [],
+        "split_manifest": null
+      },
+      "evidence_limit": "Paper-reported synthetic result. The >95% figure is a reproduction target, not an independently verified result in this programme."
+    },
+    {
+      "dataset_id": "PAMPLONA_DAS_2026",
+      "title": "Urban Water Leakage Detection System over Dark Fiber Networks Based on Distributed Acoustic Sensing and Sparse Autoencoders — controlled field trial dataset",
+      "creators": [
+        "Vahid Sharif",
+        "Yuanyuan Yao",
+        "Alayn Loayssa",
+        "Mikel Sagues"
+      ],
+      "publication": {
+        "date": "2026-03-31",
+        "journal": "Sensors",
+        "volume": "26(7)",
+        "article": "2152",
+        "doi": "10.3390/s26072152",
+        "url": "https://www.mdpi.com/1424-8220/26/7/2152"
+      },
+      "source": {
+        "type": "controlled_field_DAS_acquisition",
+        "url": "https://www.mdpi.com/1424-8220/26/7/2152",
+        "record_version": "paper_version_2026-03-31",
+        "raw_data_availability": "available_on_reasonable_request_from_corresponding_author",
+        "raw_data_acquired": false,
+        "published_comparator_details": {
+          "fibre_route_km": 17,
+          "effective_gauge_length_m": 2.6,
+          "pipe_diameter_mm": 400,
+          "approximate_lateral_fibre_pipe_separation_m": 1,
+          "leak_generation": "controlled_drainage_valve_not_natural_failure",
+          "controlled_flow_range_l_s": [
+            0.14,
+            3.75
+          ],
+          "normal_baseline_acquisitions": 300,
+          "acquisition_duration_s": 5,
+          "effective_acoustic_bandwidth_hz": 1000
+        }
+      },
+      "rights": {
+        "status": "raw_data_terms_and_access_pending",
+        "license": null,
+        "publication_license": "article_is_open_access; raw_dataset_licence_not_established_by_article_access",
+        "notes": "The paper's Data Availability Statement says data are available on reasonable request. No raw data, event-level files, route geometry or code have been acquired. Do not claim permission to redistribute raw traces from article open-access status."
+      },
+      "profile": {
+        "evidence_population": "controlled_field_leak_events",
+        "route": "Pamplona urban municipal telecommunications dark fibre",
+        "pipe_material": "400 mm asbestos-cement pipe",
+        "fibre_pipe_geometry": "separate trench, approximately 1 m lateral separation at demonstrated location",
+        "signal_type": "distributed acoustic sensing / dynamic strain",
+        "methods": [
+          "frequency-domain feature metrics",
+          "sparse-autoencoder anomaly detection"
+        ],
+        "comparator": "Sewerin Aquaphone A200 punctual electro-acoustic detector",
+        "known_limitations": [
+          "controlled valve events do not reproduce all natural leak hydraulics/mechanics",
+          "location-specific normal baseline calibration",
+          "site-specific pipe/soil/conduit coupling",
+          "traffic/pedestrian/transformer disturbances",
+          "Rayleigh fading",
+          "autoencoder may flag persistent non-leak environmental changes"
+        ]
+      },
+      "tasks": {
+        "eligible": [
+          "P2_controlled_field_DAS_detection",
+          "P2_controlled_field_localization",
+          "DAS_vs_point_acoustic_comparison_after_raw_data_admission"
+        ],
+        "not_eligible": [
+          "natural_leak_field_generalization",
+          "universal_minimum_detectable_leak_claim",
+          "municipal_scale_operational_availability",
+          "raw_data_redistribution_without_permission"
+        ]
+      },
+      "intake": {
+        "status": "catalogued_metadata_only",
+        "files_acquired": false,
+        "sha256": [],
+        "split_manifest": null
+      },
+      "evidence_limit": "Controlled field leaks produced with a drainage valve on one urban route. This is not a natural-failure population or proof of municipal-scale sensitivity. Raw data are available only on reasonable request and have not been acquired."
+    },
+    {
+      "dataset_id": "SLOVAK_UTILITY_SCADA_2026",
+      "title": "A multisource dataset for anomaly detection and fault prediction in urban water distribution networks",
+      "creators": [
+        "Jan Babela",
+        "Michal Munk",
+        "Dasa Munkova"
+      ],
+      "publication": {
+        "date": "2026-04-17",
+        "doi": "10.1038/s41597-026-07203-5",
+        "url": "https://www.nature.com/articles/s41597-026-07203-5"
+      },
+      "source": {
+        "type": "real_utility_operational_scada_dataset",
+        "url": "https://zenodo.org/records/15096167",
+        "persistent_id": "https://doi.org/10.5281/zenodo.15096167",
+        "record_version": "exact Zenodo version to pin at intake",
+        "published": "2025-03-28",
+        "file_listing": [
+          {
+            "name": "input_model_potenc_predXfault7_A.csv",
+            "record_size_bytes": 838000,
+            "record_md5": "ae08cf142a6128f9ddc205a2ccbf80a9"
+          },
+          {
+            "name": "README.txt",
+            "record_md5": "850d7486a5ad81d87021b6e162e17a19"
+          }
+        ]
+      },
+      "rights": {
+        "status": "declared_CC_BY_4_0",
+        "license": "CC-BY-4.0",
+        "evidence_url": "https://www.nature.com/articles/s41597-026-07203-5",
+        "notes": "Re-check Zenodo metadata at acquisition."
+      },
+      "profile": {
+        "coverage": "2022-01-01 through 2022-12-30 hourly timestamps; single Slovak distribution zone",
+        "record_count": 8737,
+        "variables": 18,
+        "label": "binary fault_d7",
+        "time_resolution": "1 hour",
+        "missingness": "missing/offline readings retained as NULL; no artificial imputation",
+        "code_availability": "no custom source code in associated Zenodo record"
+      },
+      "tasks": {
+        "eligible": [
+          "P3_real_utility_single_zone_retrospective_anomaly_detection",
+          "P3_temporal_holdout",
+          "missingness_robustness"
+        ],
+        "not_eligible": [
+          "high_frequency_acoustic_or_transient_detection",
+          "multi_utility_generalization_claims",
+          "treating_binary_fault_label_as_verified_leak_mechanism_or_location_without_label_audit"
+        ]
+      },
+      "intake": {
+        "status": "catalogued_metadata_only",
+        "files_acquired": false,
+        "sha256": [],
+        "split_manifest": null
+      },
+      "evidence_limit": "Real utility data, but a single zone, one year, hourly resolution and derived binary fault label. Preserve native hourly resolution; this cannot validate sub-hour localization or acoustic detection."
+    },
+    {
+      "dataset_id": "WDSEVENTDB",
+      "title": "WDSEventDB: A real-time benchmark dataset for event diagnosis in water distribution networks",
+      "creators": [
+        "Nazia Raza",
+        "Oluwabunmi Iwakin",
+        "Vilacres Daniela",
+        "Saskia Anindya Putri",
+        "Faegheh Moazeni"
+      ],
+      "source": {
+        "type": "sensor_instrumented_testbed_event_dataset",
+        "url": "https://zenodo.org/records/17547955",
+        "persistent_id": "https://doi.org/10.5281/zenodo.17547955",
+        "record_version": "v1",
+        "published": "2025-11-06",
+        "file_listing": [
+          {
+            "name": "WDSEventDB.zip",
+            "record_size_bytes": 2300000,
+            "record_md5": "4ac57517151a5958ebc2226954254f8d"
+          }
+        ]
+      },
+      "rights": {
+        "status": "requires_primary_record_and_archive_verification",
+        "license": null,
+        "notes": "Record is marked Open and description says open-source, but the Zenodo Rights > License field is blank in the surfaced record. Do not infer a redistribution licence from the Open visibility flag."
+      },
+      "profile": {
+        "events_reported": [
+          "leakage",
+          "cyberattack",
+          "sensor_failure"
+        ],
+        "collection": "sensor-instrumented water-distribution testbed; exact event counts, sampling details and labels not yet inspected"
+      },
+      "tasks": {
+        "eligible": [
+          "P2_testbed_event_diagnosis_after_file_level_admission",
+          "P2_sensor_failure_and_cyber_event_separation_if_labels_confirm"
+        ],
+        "not_eligible": [
+          "utility_scale_field_generalization_without_external_validation"
+        ]
+      },
+      "intake": {
+        "status": "catalogued_metadata_only",
+        "files_acquired": false,
+        "sha256": [],
+        "split_manifest": null
+      },
+      "evidence_limit": "Controlled sensor-instrumented testbed. File-level contents, ground truth, label structure, licence and sampling metadata remain to be examined before a split can be created.",
+      "warning": "The Zenodo record lists a related Data in Brief DOI 10.1016/j.dib.2023.109148; that DOI describes the separate Aghashahi LeakTestbed dataset. Do not assume the two records are the same dataset without archive/file inspection."
+    }
+  ]
+}
