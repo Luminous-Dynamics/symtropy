@@ -773,7 +773,7 @@ mod tests {
     }
 
     #[test]
-    fn L1_prior_is_not_promoted_when_all_development_candidates_regress() {
+    fn l1_prior_is_not_promoted_when_all_development_candidates_regress() {
         let candidates = vec![
             L1PenaltyCandidateSummary {
                 penalty: 0.001,
@@ -794,7 +794,7 @@ mod tests {
     }
 
     #[test]
-    fn L1_prior_requires_mean_noninferiority_and_worst_family_guard() {
+    fn l1_prior_requires_mean_noninferiority_and_worst_family_guard() {
         let candidates = vec![
             L1PenaltyCandidateSummary {
                 penalty: 0.001,
