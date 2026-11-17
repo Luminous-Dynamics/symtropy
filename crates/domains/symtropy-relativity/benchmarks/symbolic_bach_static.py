@@ -291,8 +291,8 @@ fixture = {
         "off_shell": [sample_record(off_shell, radius) for radius in (3, 6)],
         "off_shell_residual_ratio_r3_over_r6": str(
             sp.factor(
-                sample_record(off_shell, 3)["B1_minus_B2"]
-                and sp.Rational(8, 675) / sp.Rational(1, 1350)
+                (4 * constraint.subs(off_shell) / (3 * sp.Integer(3)**4))
+                / (4 * constraint.subs(off_shell) / (3 * sp.Integer(6)**4))
             )
         ),
     },
