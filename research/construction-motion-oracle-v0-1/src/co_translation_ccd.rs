@@ -515,7 +515,7 @@ mod tests {
         let obstacle = capsule(p(10.0, -1.0, 2.0), p(10.0, 1.0, 2.0), 0.2);
         let moving_delta = p(12.0, 3.0, 0.0);
         let obstacle_delta = p(-3.0, -1.0, 0.0);
-        let counts: Vec<u32> = [1, 2, 4, 8, 16]
+        let counts: Vec<(u32, u32)> = [1, 2, 4, 8, 16]
             .into_iter()
             .map(|n| {
                 let result = co_translating_capsule_time_sliced_aabb_candidates(
