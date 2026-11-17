@@ -2044,4 +2044,54 @@ mod tests {
         assert_eq!(ledger.accepted_count(&old_package), Some(0));
     }
 
+
+    #[test]
+    fn event_identity_index_remains_stable_after_long_append_history() {
+        let mut ledger = SiteStateLedger::new();
+        let package = package('a', &["point-1"]);
+        let package_event = event(
+            "event-publish",
+            1,
+            None,
+            '1',
+            "design-authority",
+            SiteActorRole::DesignAuthority,
+            SiteEventPayload::WorkPackagePublished {
+                package: package.clone(),
+            },
+        );
+        ledger.apply(package_event.clone()).unwrap();
+
+        for sequence in 2..=130_u64 {
+            let event_id = format!("station-event-{sequence:04}");
+            let event_digest = format!("{sequence:064x}");
+            let station = event(
+                &event_id,
+                sequence,
+                ledger.last_event_sha256().map(str::to_owned),
+                '2',
+                "surveyor",
+                SiteActorRole::Surveyor,
+                SiteEventPayload::StationQualified {
+                    package_sha256: package.package_sha256.clone(),
+                    station_id: format!("station-{sequence:04}"),
+                    frame_sha256: digest('c'),
+                    transform_sha256: digest('d'),
+                    calibration_sha256: digest('9'),
+                },
+            );
+            let mut station = station;
+            station.event_sha256 = event_digest;
+            ledger.apply(station).unwrap();
+        }
+
+        assert_eq!(ledger.last_sequence(), 130);
+        assert_eq!(ledger.event_count(), 130);
+        assert_eq!(
+            ledger.apply(package_event),
+            Ok(SiteApplyOutcome::DuplicateIgnored)
+        );
+        assert_eq!(ledger.event_count(), 130);
+    }
+
 }
