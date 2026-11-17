@@ -230,9 +230,9 @@ pub enum CalibrationFailure {
     BoundsTooVacuous,
     /// Submitted upper bound on uninformative probability is too wide.
     UninformativeUpperBoundTooWide,
-    /// Primary selector exceeds its maximum paired mean regret.
+    /// Primary selector's one-sided paired regret upper bound exceeds the frozen maximum.
     PrimaryDecisionRegretExceeded,
-    /// Primary selector does not improve on random selection by the preregistered margin.
+    /// Primary selector's paired improvement lower bound misses the preregistered margin.
     InsufficientImprovementOverRandom,
 }
 
@@ -303,6 +303,8 @@ pub struct SelectorRegret {
     pub mean_regret: f64,
     /// Maximum regret observed across the paired units.
     pub maximum_regret: f64,
+    /// One-sided Hoeffding upper confidence bound on mean regret.
+    pub one_sided_upper_bound: f64,
 }
 
 /// Result for the exact estimator/policy/held-out population.
@@ -316,10 +318,14 @@ pub struct CalibrationResult {
     pub selector_regrets: Vec<SelectorRegret>,
     /// Primary selector mean regret, when calibratable.
     pub primary_mean_regret: Option<f64>,
+    /// One-sided upper confidence bound on primary mean regret.
+    pub primary_mean_regret_upper_bound: Option<f64>,
     /// Random-baseline mean regret, when calibratable.
     pub random_mean_regret: Option<f64>,
-    /// Random regret minus primary regret; positive means the primary selector is better.
+    /// Paired random regret minus primary regret; positive means the primary selector is better.
     pub improvement_over_random: Option<f64>,
+    /// One-sided lower Hoeffding confidence bound on paired improvement over random.
+    pub improvement_over_random_lower_bound: Option<f64>,
     /// Explicit reasons no calibration claim can be made.
     pub not_calibratable_reasons: Vec<NotCalibratableReason>,
     /// Acceptance gates that failed despite sufficient evidence.
@@ -492,8 +498,10 @@ fn not_calibratable(
         candidate_strata: Vec::new(),
         selector_regrets: Vec::new(),
         primary_mean_regret: None,
+        primary_mean_regret_upper_bound: None,
         random_mean_regret: None,
         improvement_over_random: None,
+        improvement_over_random_lower_bound: None,
         not_calibratable_reasons: reasons,
         failures: Vec::new(),
         policy_sha256: policy.policy_sha256.clone(),
@@ -648,6 +656,8 @@ pub fn evaluate_calibration(
         return Err(CalibrationError::InvalidPolicy);
     }
     let mut forecast_map: BTreeMap<&str, &UtilityEstimateReceipt> = BTreeMap::new();
+    let mut forecast_receipt_ids = BTreeSet::new();
+    let mut forecast_payloads = BTreeSet::new();
     for (candidate_id, receipt) in forecasts {
         if candidate_id.trim().is_empty()
             || forecast_map.insert(candidate_id.as_str(), receipt).is_some()
@@ -655,6 +665,11 @@ pub fn evaluate_calibration(
             return Err(CalibrationError::DuplicateCandidateForecast);
         }
         validate_forecast(receipt, candidate_id, policy)?;
+        if !forecast_receipt_ids.insert(receipt.receipt_id.as_str())
+            || !forecast_payloads.insert(receipt.payload_sha256.as_str())
+        {
+            return Err(CalibrationError::DuplicateUtilityEstimateReceiptId);
+        }
     }
 
     let mut outcome_keys = BTreeSet::new();
@@ -898,11 +913,15 @@ pub fn evaluate_calibration(
         }
         let mean_regret = regrets.iter().sum::<f64>() / regrets.len() as f64;
         let maximum_regret = regrets.iter().copied().fold(0.0_f64, f64::max);
+        let alpha = 1.0 - policy.confidence_level;
+        let hoeffding_radius = (alpha.recip().ln() / (2.0 * regrets.len() as f64)).sqrt();
+        let one_sided_upper_bound = (mean_regret + hoeffding_radius).min(1.0);
         selector_regrets.push(SelectorRegret {
             selector_id: selector_id.clone(),
             paired_unit_count: regrets.len(),
             mean_regret,
             maximum_regret,
+            one_sided_upper_bound,
         });
     }
     selector_regrets.sort_by(|left, right| left.selector_id.cmp(&right.selector_id));
@@ -916,10 +935,54 @@ pub fn evaluate_calibration(
         .find(|item| item.selector_id == policy.random_baseline_selector_id)
         .ok_or(CalibrationError::InvalidSelectionDecision)?;
     let improvement = random.mean_regret - primary.mean_regret;
-    if primary.mean_regret > policy.maximum_primary_mean_regret {
+    let primary_by_unit: BTreeMap<&str, f64> = expected_units
+        .iter()
+        .map(|unit| {
+            let decision = decision_map
+                .get(&(policy.primary_selector_id.as_str(), *unit))
+                .expect("primary decision existence checked above");
+            let candidates = by_unit.get(*unit).expect("paired outcomes checked above");
+            let best = candidates
+                .values()
+                .map(|outcome| outcome.realized.decision_relevance)
+                .fold(0.0_f64, f64::max);
+            let selected = candidates
+                .get(decision.candidate_id.as_str())
+                .expect("selected candidate exists in paired outcomes");
+            (*unit, (best - selected.realized.decision_relevance).max(0.0))
+        })
+        .collect();
+    let random_by_unit: BTreeMap<&str, f64> = expected_units
+        .iter()
+        .map(|unit| {
+            let decision = decision_map
+                .get(&(policy.random_baseline_selector_id.as_str(), *unit))
+                .expect("random decision existence checked above");
+            let candidates = by_unit.get(*unit).expect("paired outcomes checked above");
+            let best = candidates
+                .values()
+                .map(|outcome| outcome.realized.decision_relevance)
+                .fold(0.0_f64, f64::max);
+            let selected = candidates
+                .get(decision.candidate_id.as_str())
+                .expect("selected candidate exists in paired outcomes");
+            (*unit, (best - selected.realized.decision_relevance).max(0.0))
+        })
+        .collect();
+    let paired_differences: Vec<f64> = expected_units
+        .iter()
+        .map(|unit| random_by_unit[unit] - primary_by_unit[unit])
+        .collect();
+    let paired_improvement = paired_differences.iter().sum::<f64>()
+        / paired_differences.len() as f64;
+    let alpha = 1.0 - policy.confidence_level;
+    let paired_radius = 2.0
+        * (alpha.recip().ln() / (2.0 * paired_differences.len() as f64)).sqrt();
+    let improvement_lower_bound = (paired_improvement - paired_radius).max(-1.0);
+    if primary.one_sided_upper_bound > policy.maximum_primary_mean_regret {
         failures.insert(CalibrationFailure::PrimaryDecisionRegretExceeded);
     }
-    if improvement < policy.minimum_regret_improvement_vs_random {
+    if improvement_lower_bound < policy.minimum_regret_improvement_vs_random {
         failures.insert(CalibrationFailure::InsufficientImprovementOverRandom);
     }
 
@@ -934,8 +997,10 @@ pub fn evaluate_calibration(
         candidate_strata,
         selector_regrets,
         primary_mean_regret: Some(primary.mean_regret),
+        primary_mean_regret_upper_bound: Some(primary.one_sided_upper_bound),
         random_mean_regret: Some(random.mean_regret),
-        improvement_over_random: Some(improvement),
+        improvement_over_random: Some(paired_improvement),
+        improvement_over_random_lower_bound: Some(improvement_lower_bound),
         not_calibratable_reasons: Vec::new(),
         failures,
         policy_sha256: policy.policy_sha256.clone(),
