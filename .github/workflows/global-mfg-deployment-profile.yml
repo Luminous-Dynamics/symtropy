@@ -81,6 +81,9 @@ jobs:
             and .negative_control_count == 18
             and .jurisdiction_dimension_count == 7
             and (.jurisdiction_dimensions | length) == 7
+            and .shared_engineering_core_digest == ("sha256:" + ("0" * 64))
+            and .shared_process_definition_ref_count == 2
+            and .shared_inspection_requirement_ref_count == 2
             and .json_schema_valid == true
             and .json_schema_draft == "2020-12"
             and .all_profile_claims_not_established == true
