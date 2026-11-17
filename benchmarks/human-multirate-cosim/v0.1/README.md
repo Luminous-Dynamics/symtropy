@@ -122,3 +122,11 @@ The configured local absolute/relative tolerance is an error-indicator target, n
 The `simulate_network_topology_events` reference runs piecewise-constant graphs. Each topology event is an exact model-time boundary: the segment before the event uses the old edge set, the accepted endpoint state is carried unchanged into the new graph, and a new spectral oracle is built for the next segment. Events that are reordered, outside the horizon or not aligned with the fixed communication grid are rejected; v0.1 does not round event times or interpolate across topology changes.
 
 The runner includes one three-node conductance-switch example. This qualifies event splitting and state continuity for a tiny synthetic graph, not a general asynchronous federation.
+
+## Graph sensor-placement tournament
+
+The `sensor_design` module composes the graph spectral oracle with a small exact sensor-subset search. It builds the finite-horizon information matrix using the full declared observation-noise covariance and the spectral transition matrix at each observation time. It reports observability rank, information eigenvalues, minimum/maximum eigenvalue, condition number, log determinant and trace-inverse only when full rank.
+
+The exact selector compares E-optimal, D-optimal and A-optimal objectives over all budget-feasible subsets (up to 16 candidate sensors). A separate robust lane enumerates every single declared common-cause group loss and scores the remaining observable subspace. Unknown groups and independent sensor failures are not inferred.
+
+This is a tiny known-truth mathematical reference, not a scalable sensor-placement solver and not a physical sensor-performance result. It is designed to export candidate-visible layouts and event histories to Symthaea #12728 while keeping evaluator truth sealed. The work is tracked in [HUMAN-NESTED-SENSOR-CO-DESIGN-001 / #5977](https://github.com/Luminous-Dynamics/symtropy/issues/5977).
