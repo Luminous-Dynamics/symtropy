@@ -14,6 +14,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// Household real-power envelope validation and safe scheduling fallback.
+pub mod action_ontology;
+
+/// Household real-power envelope validation and safe scheduling fallback.
 pub mod power;
 
 /// Typed source-aware recipe action graph mapped into KitchenPlanV1.
