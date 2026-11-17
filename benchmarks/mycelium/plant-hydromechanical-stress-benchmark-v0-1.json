@@ -275,6 +275,54 @@
       "forcing": "same_initial_state_and_forcing_integrated_at_multiple_time_steps_and_observation_cadences",
       "purpose": "verify_numerical_convergence_and_observation_sampling_invariance_within_declared_tolerance",
       "holdout": true
+    },
+    {
+      "id": "S10",
+      "name": "supply_demand_observational_equivalence",
+      "forcing": "paired_synthetic_inputs_with_different_soil_water_potential_and_vpd_but_matching_leaf_water_potential_and_stomatal_conductance",
+      "purpose": "qualify_mechanism_identifiability_and_require_abstention_when_available_observations_do_not_distinguish_supply_from_demand",
+      "holdout": true,
+      "synthetic_truth": {
+        "shared": {
+          "soil_to_root_conductance_kg_m2_s_mpa": 0.0002,
+          "root_to_leaf_conductance_kg_m2_s_mpa": 0.0002,
+          "maximum_stomatal_conductance_mol_m2_s": 0.2,
+          "atmospheric_pressure_pa": 100000,
+          "stomatal_open_leaf_potential_mpa": -0.5,
+          "stomatal_closed_leaf_potential_mpa": -2
+        },
+        "supply_limited": {
+          "soil_water_potential_mpa": -0.3245102969849023,
+          "vapor_pressure_deficit_pa": 1000,
+          "expected_leaf_water_potential_mpa": -0.6490205939698044,
+          "expected_stomatal_conductance_mol_m2_s": 0.18013058747069277,
+          "expected_transpiration_kg_m2_s": 0.00003245102969849021
+        },
+        "demand_limited": {
+          "soil_water_potential_mpa": 0,
+          "vapor_pressure_deficit_pa": 2000,
+          "expected_leaf_water_potential_mpa": -0.6490205939698044,
+          "expected_stomatal_conductance_mol_m2_s": 0.18013058747069277,
+          "expected_transpiration_kg_m2_s": 0.00006490205939698043
+        },
+        "equivalence": {
+          "leaf_water_potential_absolute_tolerance_mpa": 1e-12,
+          "stomatal_conductance_absolute_tolerance_mol_m2_s": 1e-12,
+          "transpiration_ratio_demand_over_supply": 2
+        }
+      },
+      "observation_bundles": {
+        "ambiguous": [
+          "leaf_water_potential",
+          "stomatal_conductance"
+        ],
+        "discriminating": [
+          "soil_water_potential",
+          "vapor_pressure_deficit",
+          "transpiration_or_sap_flow"
+        ]
+      },
+      "required_model_behavior": "report the mechanism as non-identifiable from the ambiguous observation bundle; do not infer soil limitation or atmospheric demand from leaf water potential alone"
     }
   ],
   "observation_channels": [
@@ -506,7 +554,8 @@
     "plant_hydraulic_storage_change_and_cumulative_water_balance_residual",
     "transient_leaf_water_potential_pulse_response_and_recovery",
     "time_step_refinement_error_at_matched_observation_times",
-    "history_dependence_from_lumped_water_storage"
+    "history_dependence_from_lumped_water_storage",
+    "mechanism_identifiability_and_correct_abstention_under_observational_equivalence"
   ],
   "fair_comparison_rules": [
     "freeze source release code commit data checksum model configuration and parameter units",
@@ -520,7 +569,8 @@
     "report capacitance and time-step values with units; distinguish numerical storage memory from biological acclimation or long-term stress memory",
     "compare transient trajectories at common observation timestamps and verify time-step refinement before parameter fitting",
     "HydroRoot root-side output must be coupled through an explicit soil boundary adapter; do not interpret its soilless boundary model as a soil-root interaction solver",
-    "respect source-specific software licenses; a public code/data record with missing license metadata is not automatically a grant to modify or redistribute"
+    "respect source-specific software licenses; a public code/data record with missing license metadata is not automatically a grant to modify or redistribute",
+    "include paired cases with observationally equivalent measured states but different causal inputs; score correct abstention until a discriminating measurement is available"
   ],
   "preregistration_receipt": [
     "model_and_source_revision",
