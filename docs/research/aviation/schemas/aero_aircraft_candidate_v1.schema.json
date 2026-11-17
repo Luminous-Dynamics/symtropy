@@ -44,7 +44,8 @@
         "electric_rotorcraft",
         "hybrid_fixed_wing",
         "hybrid_vtol",
-        "glider_or_solar_assisted"
+        "glider_or_solar_assisted",
+        "solar_haps"
       ]
     },
     "data_origin": {
@@ -100,7 +101,8 @@
             "glider",
             "solar_assisted",
             "other",
-            "unknown"
+            "unknown",
+            "solar_electric_haps"
           ]
         },
         "propulsor_count": {
