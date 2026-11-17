@@ -7,7 +7,9 @@
 use std::collections::HashSet;
 use std::time::Instant;
 
-use symtropy_hdc_core::{BipolarBundle, BipolarHV, EncoderSpec, HdcError, ItemMemory, LevelEncoder};
+use symtropy_hdc_core::{
+    BipolarBundle, BipolarHV, EncoderSpec, HdcError, ItemMemory, LevelEncoder,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct FieldSample {
@@ -49,12 +51,18 @@ impl std::fmt::Display for FieldError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::EmptySamples => f.write_str("continuous field requires at least one sample"),
-            Self::InvalidRange => f.write_str("field coordinate/value range must be finite with max > min"),
-            Self::SampleOutsideRange => f.write_str("field sample or query lies outside declared coordinate/value ranges"),
+            Self::InvalidRange => {
+                f.write_str("field coordinate/value range must be finite with max > min")
+            },
+            Self::SampleOutsideRange => {
+                f.write_str("field sample or query lies outside declared coordinate/value ranges")
+            },
             Self::DuplicateEncodedPosition => {
                 f.write_str("two field samples quantize to the same encoded spatial position")
             }
-            Self::InvalidGrid => f.write_str("regular field grid requires at least two samples per axis"),
+            Self::InvalidGrid => {
+                f.write_str("regular field grid requires at least two samples per axis")
+            },
             Self::Hdc(error) => write!(f, "continuous spatial VSA error: {error}"),
         }
     }
@@ -134,20 +142,10 @@ impl SpatialFieldMemory {
                 return Err(FieldError::DuplicateEncodedPosition);
             }
             let position = encode_position(
-                &x_encoder,
-                &y_encoder,
-                &x_role,
-                &y_role,
-                x_range,
-                y_range,
-                sample.x,
-                sample.y,
+                &x_encoder, &y_encoder, &x_role, &y_role, x_range, y_range, sample.x, sample.y,
             )?;
-            let value = value_encoder.encode(
-                sample.value,
-                value_range.min,
-                value_range.max,
-            )?;
+            let value =
+                value_encoder.encode(sample.value, value_range.min, value_range.max)?;
             bundle.add(&position.bind(&value)?)?;
         }
 
@@ -205,13 +203,11 @@ impl SpatialFieldMemory {
             x,
             y,
         )?;
-        let coordinate_encode_micros =
-            encode_started.elapsed().as_secs_f64() * 1_000_000.0;
+        let coordinate_encode_micros = encode_started.elapsed().as_secs_f64() * 1_000_000.0;
 
         let unbind_started = Instant::now();
         let noisy_value = self.memory.bind(&position)?;
-        let positional_unbind_micros =
-            unbind_started.elapsed().as_secs_f64() * 1_000_000.0;
+        let positional_unbind_micros = unbind_started.elapsed().as_secs_f64() * 1_000_000.0;
 
         let cleanup_started = Instant::now();
         let mut best_level = 0_usize;
@@ -266,8 +262,12 @@ fn encode_position(
     x: f64,
     y: f64,
 ) -> Result<BipolarHV, HdcError> {
-    let x_value = x_encoder.encode(x, x_range.min, x_range.max)?.bind(x_role)?;
-    let y_value = y_encoder.encode(y, y_range.min, y_range.max)?.bind(y_role)?;
+    let x_value = x_encoder
+        .encode(x, x_range.min, x_range.max)?
+        .bind(x_role)?;
+    let y_value = y_encoder
+        .encode(y, y_range.min, y_range.max)?
+        .bind(y_role)?;
     Ok(x_value.bind(&y_value)?)
 }
 
@@ -389,8 +389,7 @@ pub fn run_regular_grid_field_benchmark(
 }
 
 pub fn analytic_field(x: f64, y: f64) -> f64 {
-    0.5 + 0.2 * (std::f64::consts::TAU * x).sin()
-        + 0.2 * (std::f64::consts::TAU * y).cos()
+    0.5 + 0.2 * (std::f64::consts::TAU * x).sin() + 0.2 * (std::f64::consts::TAU * y).cos()
 }
 
 fn nearest_sample_value(samples: &[FieldSample], x: f64, y: f64) -> f64 {
@@ -475,7 +474,11 @@ mod tests {
             ),
             Err(FieldError::EmptySamples)
         ));
-        let sample = [FieldSample { x: 1.1, y: 0.5, value: 0.5 }];
+        let sample = [FieldSample {
+            x: 1.1,
+            y: 0.5,
+            value: 0.5,
+        }];
         assert!(matches!(
             SpatialFieldMemory::build(
                 &sample,
@@ -517,16 +520,27 @@ mod tests {
     #[test]
     fn coordinate_and_scalar_encoding_are_deterministic() {
         let samples = [
-            FieldSample { x: 0.0, y: 0.0, value: analytic_field(0.0, 0.0) },
-            FieldSample { x: 1.0, y: 1.0, value: analytic_field(1.0, 1.0) },
+            FieldSample {
+                x: 0.0,
+                y: 0.0,
+                value: analytic_field(0.0, 0.0),
+            },
+            FieldSample {
+                x: 1.0,
+                y: 1.0,
+                value: analytic_field(1.0, 1.0),
+            },
         ];
-        let build = || SpatialFieldMemory::build(
-            &samples,
-            spec(4_096, 77),
-            FieldRange { min: 0.0, max: 1.0 },
-            FieldRange { min: 0.0, max: 1.0 },
-            FieldRange { min: 0.0, max: 1.0 },
-        ).unwrap();
+        let build = || {
+            SpatialFieldMemory::build(
+                &samples,
+                spec(4_096, 77),
+                FieldRange { min: 0.0, max: 1.0 },
+                FieldRange { min: 0.0, max: 1.0 },
+                FieldRange { min: 0.0, max: 1.0 },
+            )
+            .unwrap()
+        };
         let a = build();
         let b = build();
         let qa = a.query(0.0, 0.0).unwrap();
