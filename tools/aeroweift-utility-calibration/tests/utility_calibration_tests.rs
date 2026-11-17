@@ -1,7 +1,8 @@
 use aeroweift_utility_calibration::{
     CalibrationDisposition, CalibrationError, CalibrationPolicy, ChallengeObservation,
     EvidencePartition, IndependentUnit, PredictedUtility, RealizedUtility, UtilityClaim,
-    UtilityDimension, evaluate_utility_claim,
+    UtilityDimension, DecisionAlternativeOutcome, DecisionCase, DecisionResourceBudget,
+    DecisionResourceUse, DecisionRegretError, evaluate_decision_regret, evaluate_utility_claim,
 };
 
 fn digest(ch: char) -> String {
@@ -433,4 +434,178 @@ fn known_failure_is_not_hidden_by_insufficient_data_in_another_stratum() {
     assert!(!crosswind.sufficient_data);
     assert!(corridor.sufficient_data);
     assert!(!corridor.passed);
+}
+
+
+fn decision_budget() -> DecisionResourceBudget {
+    DecisionResourceBudget {
+        setup_minutes: 10,
+        facility_minutes: 10,
+        cpu_seconds: 100,
+        accelerator_seconds: 100,
+        energy_joules: 1_000,
+        adjudication_person_minutes: 10,
+    }
+}
+
+fn decision_use() -> DecisionResourceUse {
+    DecisionResourceUse {
+        setup_minutes: 5,
+        facility_minutes: 5,
+        cpu_seconds: 50,
+        accelerator_seconds: 50,
+        energy_joules: 500,
+        adjudication_person_minutes: 5,
+    }
+}
+
+#[test]
+fn decision_regret_uses_best_feasible_alternative_under_identical_budget() {
+    let report = evaluate_decision_regret(&[DecisionCase {
+        case_id: "heldout-case-1".into(),
+        resource_budget: decision_budget(),
+        selected_candidate_id: Some("candidate-a".into()),
+        alternatives: vec![
+            DecisionAlternativeOutcome {
+                candidate_id: "candidate-a".into(),
+                feasible: true,
+                decision_utility: 0.60,
+                resource_use: decision_use(),
+            },
+            DecisionAlternativeOutcome {
+                candidate_id: "candidate-b".into(),
+                feasible: true,
+                decision_utility: 0.90,
+                resource_use: decision_use(),
+            },
+        ],
+    }])
+    .unwrap();
+    assert_eq!(report.case_count, 1);
+    assert_eq!(report.cases[0].oracle_candidate_id.as_deref(), Some("candidate-b"));
+    assert_eq!(report.cases[0].regret, 0.30);
+    assert_eq!(report.false_feasible_selection_count, 0);
+}
+
+#[test]
+fn infeasible_or_over_budget_selection_is_false_feasible_and_gets_zero_utility() {
+    let mut over_budget = decision_use();
+    over_budget.energy_joules = 1_001;
+    let report = evaluate_decision_regret(&[DecisionCase {
+        case_id: "heldout-case-overbudget".into(),
+        resource_budget: decision_budget(),
+        selected_candidate_id: Some("candidate-overbudget".into()),
+        alternatives: vec![
+            DecisionAlternativeOutcome {
+                candidate_id: "candidate-overbudget".into(),
+                feasible: true,
+                decision_utility: 0.99,
+                resource_use: over_budget,
+            },
+            DecisionAlternativeOutcome {
+                candidate_id: "candidate-safe".into(),
+                feasible: true,
+                decision_utility: 0.70,
+                resource_use: decision_use(),
+            },
+        ],
+    }])
+    .unwrap();
+    assert_eq!(report.false_feasible_selection_count, 1);
+    assert_eq!(report.cases[0].selected_utility, 0.0);
+    assert_eq!(report.cases[0].regret, 0.70);
+}
+
+#[test]
+fn abstention_is_scored_against_the_feasible_no_action_baseline() {
+    let report = evaluate_decision_regret(&[DecisionCase {
+        case_id: "heldout-case-abstain".into(),
+        resource_budget: decision_budget(),
+        selected_candidate_id: None,
+        alternatives: vec![DecisionAlternativeOutcome {
+            candidate_id: "candidate-useful".into(),
+            feasible: true,
+            decision_utility: 0.75,
+            resource_use: decision_use(),
+        }],
+    }])
+    .unwrap();
+    assert_eq!(report.abstention_count, 1);
+    assert_eq!(report.cases[0].selected_utility, 0.0);
+    assert_eq!(report.cases[0].regret, 0.75);
+}
+
+#[test]
+fn duplicate_decision_case_or_unknown_selected_candidate_fails_closed() {
+    let case = DecisionCase {
+        case_id: "heldout-case-duplicate".into(),
+        resource_budget: decision_budget(),
+        selected_candidate_id: Some("missing".into()),
+        alternatives: vec![DecisionAlternativeOutcome {
+            candidate_id: "candidate-a".into(),
+            feasible: true,
+            decision_utility: 0.5,
+            resource_use: decision_use(),
+        }],
+    };
+    assert_eq!(
+        evaluate_decision_regret(&[case.clone()]),
+        Err(DecisionRegretError::SelectedCandidateMissing)
+    );
+    let valid = DecisionCase {
+        selected_candidate_id: Some("candidate-a".into()),
+        ..case
+    };
+    assert_eq!(
+        evaluate_decision_regret(&[valid.clone(), valid]),
+        Err(DecisionRegretError::DuplicateCase)
+    );
+}
+
+
+#[test]
+fn decision_regret_is_permutation_invariant_with_stable_tie_breaking() {
+    let first = DecisionCase {
+        case_id: "case-b".into(),
+        resource_budget: decision_budget(),
+        selected_candidate_id: Some("candidate-z".into()),
+        alternatives: vec![
+            DecisionAlternativeOutcome {
+                candidate_id: "candidate-z".into(),
+                feasible: true,
+                decision_utility: 0.5,
+                resource_use: decision_use(),
+            },
+            DecisionAlternativeOutcome {
+                candidate_id: "candidate-a".into(),
+                feasible: true,
+                decision_utility: 0.8,
+                resource_use: decision_use(),
+            },
+            DecisionAlternativeOutcome {
+                candidate_id: "candidate-b".into(),
+                feasible: true,
+                decision_utility: 0.8,
+                resource_use: decision_use(),
+            },
+        ],
+    };
+    let second = DecisionCase {
+        case_id: "case-a".into(),
+        resource_budget: decision_budget(),
+        selected_candidate_id: None,
+        alternatives: vec![DecisionAlternativeOutcome {
+            candidate_id: "candidate-c".into(),
+            feasible: true,
+            decision_utility: 0.4,
+            resource_use: decision_use(),
+        }],
+    };
+    let forward = evaluate_decision_regret(&[first.clone(), second.clone()]).unwrap();
+    let reverse = evaluate_decision_regret(&[second, first]).unwrap();
+    assert_eq!(forward, reverse);
+    assert_eq!(
+        forward.cases[1].oracle_candidate_id.as_deref(),
+        Some("candidate-a")
+    );
 }
