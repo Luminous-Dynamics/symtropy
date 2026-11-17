@@ -13,10 +13,12 @@ use crate::module_capability::{
     KitchenModuleCapabilityV1, ModuleCapabilityClaimStatusV1, ModuleEvidenceClassV1,
     validate_kitchen_module_capability,
 };
+use crate::power::{PowerConstrainedPlanV1, validate_power_envelope};
 use crate::recipe_graph::{
     ExactRecipeQuantityV1, RecipeQuantityUnitV1, RecipeTaskGraphV1, RecipeTaskNodeV1,
-    validate_recipe_task_graph,
+    recipe_graph_to_kitchen_plan, validate_recipe_task_graph,
 };
+use crate::KitchenScheduleReceiptV1;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -46,6 +48,8 @@ pub struct KitchenCapabilityAdmissionRequestV1 {
     pub recipe: RecipeTaskGraphV1,
     pub modules: Vec<KitchenModuleCapabilityV1>,
     pub bindings: Vec<KitchenTaskModuleBindingV1>,
+    pub power_plan: PowerConstrainedPlanV1,
+    pub schedule: KitchenScheduleReceiptV1,
     pub claim_ceiling: String,
 }
 
@@ -90,6 +94,14 @@ pub enum KitchenCapabilityIssueCodeV1 {
     BatchAboveMaximum,
     MissingMaximumRunTime,
     MaximumRunTimeExceeded,
+    PowerPlanRecipeMismatch,
+    InvalidPowerSchedule,
+    MissingTaskPowerProfile,
+    MissingModuleContinuousPowerLimit,
+    MissingModulePeakPowerLimit,
+    MissingModuleSurgeDuration,
+    ModulePeakPowerExceeded,
+    ModuleSurgeDurationExceeded,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -167,6 +179,10 @@ fn disposition_from_issues(issues: &[KitchenCapabilityIssueV1]) -> KitchenCapabi
                 | KitchenCapabilityIssueCodeV1::BatchAboveMaximum
                 | KitchenCapabilityIssueCodeV1::BatchMassArithmeticOverflow
                 | KitchenCapabilityIssueCodeV1::MaximumRunTimeExceeded
+                | KitchenCapabilityIssueCodeV1::PowerPlanRecipeMismatch
+                | KitchenCapabilityIssueCodeV1::InvalidPowerSchedule
+                | KitchenCapabilityIssueCodeV1::ModulePeakPowerExceeded
+                | KitchenCapabilityIssueCodeV1::ModuleSurgeDurationExceeded
         )
     }) {
         KitchenCapabilityDispositionV1::Blocked
@@ -229,10 +245,100 @@ fn task_batch_mass_nanograms(task: &RecipeTaskNodeV1) -> Result<u128, BatchMassE
         })
 }
 
+
+/// Check one task power profile against the exact selected module's own
+/// continuous, peak and transient limits. Household aggregate power is
+/// independently verified at request level by the existing power validator.
+fn assess_module_power(
+    task: &RecipeTaskNodeV1,
+    module: &KitchenModuleCapabilityV1,
+    power_plan: &PowerConstrainedPlanV1,
+    issues: &mut Vec<KitchenCapabilityIssueV1>,
+) {
+    let Some(profile) = power_plan
+        .task_profiles
+        .iter()
+        .find(|profile| profile.task_id == task.schedule.task_id)
+    else {
+        add_issue(
+            issues,
+            KitchenCapabilityIssueCodeV1::MissingTaskPowerProfile,
+            "task has no explicit power profile in the validated power plan",
+        );
+        return;
+    };
+
+    let Some(continuous_limit_w) = module.electrical.continuous_real_power_limit_w else {
+        add_issue(
+            issues,
+            KitchenCapabilityIssueCodeV1::MissingModuleContinuousPowerLimit,
+            "module has no declared continuous real-power limit",
+        );
+        return;
+    };
+    let Some(peak_limit_w) = module.electrical.peak_real_power_limit_w else {
+        add_issue(
+            issues,
+            KitchenCapabilityIssueCodeV1::MissingModulePeakPowerLimit,
+            "module has no declared peak real-power limit",
+        );
+        return;
+    };
+
+    let mut contiguous_surge_ms = 0_u64;
+    let mut peak_issue_added = false;
+    let mut surge_issue_added = false;
+    let mut missing_surge_issue_added = false;
+    for segment in &profile.segments {
+        if segment.real_power_w > peak_limit_w && !peak_issue_added {
+            add_issue(
+                issues,
+                KitchenCapabilityIssueCodeV1::ModulePeakPowerExceeded,
+                "task power segment exceeds the exact module revision's peak real-power limit",
+            );
+            peak_issue_added = true;
+        }
+
+        if segment.real_power_w > continuous_limit_w {
+            let duration_ms = segment
+                .end_offset_ms
+                .saturating_sub(segment.start_offset_ms);
+            contiguous_surge_ms = contiguous_surge_ms.saturating_add(duration_ms);
+            match module.electrical.maximum_surge_duration_ms {
+                Some(maximum_ms) if contiguous_surge_ms > maximum_ms => {
+                    if !surge_issue_added {
+                        add_issue(
+                            issues,
+                            KitchenCapabilityIssueCodeV1::ModuleSurgeDurationExceeded,
+                            "contiguous task demand above the module's continuous limit exceeds its declared maximum surge duration",
+                        );
+                        surge_issue_added = true;
+                    }
+                }
+                Some(_) => {}
+                None if segment.real_power_w <= peak_limit_w => {
+                    if !missing_surge_issue_added {
+                        add_issue(
+                            issues,
+                            KitchenCapabilityIssueCodeV1::MissingModuleSurgeDuration,
+                            "module has no declared maximum surge duration for demand above its continuous limit",
+                        );
+                        missing_surge_issue_added = true;
+                    }
+                }
+                None => {}
+            }
+        } else {
+            contiguous_surge_ms = 0;
+        }
+    }
+}
+
 fn task_assessment(
     task: &RecipeTaskNodeV1,
     binding: &KitchenTaskModuleBindingV1,
     modules: &[KitchenModuleCapabilityV1],
+    power_plan: &PowerConstrainedPlanV1,
 ) -> KitchenTaskCapabilityAssessmentV1 {
     let mut issues = Vec::new();
     let mut action_group = None;
@@ -505,6 +611,7 @@ fn task_assessment(
         ),
     }
 
+    assess_module_power(task, module, power_plan, &mut issues);
     sort_issues(&mut issues);
     assessment_from(
         task,
@@ -572,6 +679,28 @@ pub fn evaluate_kitchen_capability_admission(
             &mut request_issues,
             KitchenCapabilityIssueCodeV1::InvalidRecipeGraph,
             "recipe graph failed its existing source-aware graph validator",
+        );
+    }
+
+    if let Ok(mapped_plan) = recipe_graph_to_kitchen_plan(&request.recipe) {
+        if request.power_plan.plan != mapped_plan {
+            add_issue(
+                &mut request_issues,
+                KitchenCapabilityIssueCodeV1::PowerPlanRecipeMismatch,
+                "power plan tasks and scheduling fields must exactly equal the recipe graph's mapped plan",
+            );
+        }
+    }
+
+    let power_report = validate_power_envelope(&request.power_plan, &request.schedule);
+    if !power_report.is_valid() {
+        add_issue(
+            &mut request_issues,
+            KitchenCapabilityIssueCodeV1::InvalidPowerSchedule,
+            format!(
+                "existing power-envelope verifier reported {} violation(s)",
+                power_report.violations.len()
+            ),
         );
     }
 
@@ -655,7 +784,12 @@ pub fn evaluate_kitchen_capability_admission(
                 });
             }
             Some(bindings) => {
-                task_assessments.push(task_assessment(task, bindings[0], &request.modules))
+                task_assessments.push(task_assessment(
+                    task,
+                    bindings[0],
+                    &request.modules,
+                    &request.power_plan,
+                ))
             }
         }
     }
@@ -726,6 +860,31 @@ mod tests {
             RecipeEvidenceClassV1::Declared,
         ));
 
+        let power_plan = PowerConstrainedPlanV1 {
+            schema_version: crate::power::POWER_CONSTRAINED_PLAN_SCHEMA_VERSION,
+            plan: recipe_graph_to_kitchen_plan(&recipe)
+                .expect("positive synthetic recipe graph must map to a plan"),
+            envelope: crate::power::PowerEnvelopeV1 {
+                continuous_real_power_limit_w: 1_500,
+                surge_real_power_limit_w: 2_000,
+                max_surge_duration_ms: 100,
+                background_real_power_w: 100,
+            },
+            task_profiles: vec![crate::power::TaskPowerProfileV1 {
+                task_id: "chop-onion".to_owned(),
+                source_ref: "fixture:task-power-profile".to_owned(),
+                evidence_class: crate::power::PowerProfileEvidenceClassV1::Simulated,
+                segments: vec![crate::power::PowerSegmentV1 {
+                    start_offset_ms: 0,
+                    end_offset_ms: 30_000,
+                    real_power_w: 400,
+                }],
+            }],
+        };
+        let schedule = crate::power::build_power_constrained_schedule(&power_plan)
+            .expect("positive synthetic power plan must schedule")
+            .schedule;
+
         KitchenCapabilityAdmissionRequestV1 {
             schema_version: KITCHEN_CAPABILITY_ADMISSION_SCHEMA_VERSION,
             request_id: "fixture:valid-chop-admission".to_owned(),
@@ -740,6 +899,8 @@ mod tests {
                 output_form_ref: "form:chopped-produce".to_owned(),
                 scheduled_resource_id: "processor".to_owned(),
             }],
+            power_plan,
+            schedule,
             claim_ceiling: KITCHEN_CAPABILITY_ADMISSION_CLAIM_CEILING.to_owned(),
         }
     }
@@ -1021,6 +1182,56 @@ mod tests {
 
         let mut request = pressure_fixture_request();
         request.modules[0].pressure_safety = None;
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Blocked
+        );
+    }
+
+
+    #[test]
+    fn module_peak_and_contiguous_surge_limits_are_enforced() {
+        let mut request = fixture_request();
+        request.power_plan.task_profiles[0].segments[0].real_power_w = 1_300;
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Blocked
+        );
+
+        let mut request = fixture_request();
+        request.power_plan.task_profiles[0].segments[0].real_power_w = 1_100;
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Blocked
+        );
+    }
+
+    #[test]
+    fn missing_module_electrical_limits_remain_indeterminate() {
+        let mut request = fixture_request();
+        request.modules[0].electrical.continuous_real_power_limit_w = None;
+        request.modules[0].electrical.peak_real_power_limit_w = None;
+        request.modules[0].electrical.maximum_surge_duration_ms = None;
+        request.modules[0].electrical.power_profile_ref = None;
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Indeterminate
+        );
+    }
+
+    #[test]
+    fn household_power_schedule_is_revalidated_and_bound_to_recipe() {
+        let mut request = fixture_request();
+        request.power_plan.envelope.continuous_real_power_limit_w = 300;
+        request.power_plan.envelope.surge_real_power_limit_w = 400;
+        request.power_plan.envelope.max_surge_duration_ms = 1;
+        assert_eq!(
+            disposition(&request),
+            KitchenCapabilityDispositionV1::Blocked
+        );
+
+        let mut request = fixture_request();
+        request.power_plan.plan.tasks[0].duration_ms += 1;
         assert_eq!(
             disposition(&request),
             KitchenCapabilityDispositionV1::Blocked
