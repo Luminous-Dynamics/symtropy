@@ -1410,4 +1410,90 @@ mod tests {
         assert_eq!(ledger.accepted_count(&package_digest), Some(1));
     }
 
+
+    #[test]
+    fn referee_measurement_can_override_a_robot_not_printed_claim() {
+        let (mut ledger, package_digest, attempt_id) = setup_started_attempt();
+        let robot = event(
+            "event-robot-not-printed",
+            4,
+            ledger.last_event_sha256().map(str::to_owned),
+            '5',
+            "robot-1",
+            SiteActorRole::Robot,
+            SiteEventPayload::RobotObservationRecorded {
+                package_sha256: package_digest.clone(),
+                entity_id: "line-1".into(),
+                attempt_id: attempt_id.clone(),
+                disposition: RobotExecutionDisposition::NotPrinted,
+                robot_receipt_sha256: digest('7'),
+            },
+        );
+        ledger.apply(robot).unwrap();
+        let referee = event(
+            "event-referee-found-mark",
+            5,
+            ledger.last_event_sha256().map(str::to_owned),
+            '6',
+            "referee-1",
+            SiteActorRole::Referee,
+            SiteEventPayload::RefereeAssessmentRecorded {
+                package_sha256: package_digest.clone(),
+                entity_id: "line-1".into(),
+                attempt_id,
+                assessment: SiteRefereeAssessment::Measured(measurement(0.1, 0.1)),
+            },
+        );
+        ledger.apply(referee).unwrap();
+        assert!(matches!(
+            ledger.entity_state(&package_digest, "line-1"),
+            Some(SiteEntityState::Accepted { .. })
+        ));
+        assert_eq!(ledger.accepted_count(&package_digest), Some(1));
+    }
+
+    #[test]
+    fn measured_geometry_with_insufficient_reference_u95_is_held_in_the_ledger() {
+        let (mut ledger, package_digest, attempt_id) = setup_started_attempt();
+        let robot = event(
+            "event-robot",
+            4,
+            ledger.last_event_sha256().map(str::to_owned),
+            '5',
+            "robot-1",
+            SiteActorRole::Robot,
+            SiteEventPayload::RobotObservationRecorded {
+                package_sha256: package_digest.clone(),
+                entity_id: "line-1".into(),
+                attempt_id: attempt_id.clone(),
+                disposition: RobotExecutionDisposition::Printed,
+                robot_receipt_sha256: digest('7'),
+            },
+        );
+        ledger.apply(robot).unwrap();
+        let referee = event(
+            "event-referee-low-resolution",
+            5,
+            ledger.last_event_sha256().map(str::to_owned),
+            '6',
+            "referee-1",
+            SiteActorRole::Referee,
+            SiteEventPayload::RefereeAssessmentRecorded {
+                package_sha256: package_digest.clone(),
+                entity_id: "line-1".into(),
+                attempt_id,
+                assessment: SiteRefereeAssessment::Measured(measurement(0.1, 0.5)),
+            },
+        );
+        ledger.apply(referee).unwrap();
+        assert!(matches!(
+            ledger.entity_state(&package_digest, "line-1"),
+            Some(SiteEntityState::Held {
+                reason: EntityScoreReason::ReferenceResolutionInsufficient,
+                ..
+            })
+        ));
+        assert_eq!(ledger.accepted_count(&package_digest), Some(0));
+    }
+
 }
