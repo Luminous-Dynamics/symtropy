@@ -149,7 +149,7 @@ fn calculate_case(
     let muon_beam_energy_mev = beam_energy_gev * 1.0e3;
     let muon_sr_loss_fraction_per_turn = muon_sr_loss_mev_per_turn / muon_beam_energy_mev;
     let muon_sr_power_mw_per_beam_formal =
-        average_muon_beam_current_a * muon_sr_loss_mev_per_turn / 1.0e6;
+        average_muon_beam_current_a * muon_sr_loss_mev_per_turn;
     let muon_sr_to_injection_power_ratio =
         muon_sr_power_mw_per_beam_formal / muon_injection_power_mw_per_beam;
     let muon_quantum_chi = quantum_parameter(beam_energy_gev, field_t, MUON_MASS_GEV)?;
