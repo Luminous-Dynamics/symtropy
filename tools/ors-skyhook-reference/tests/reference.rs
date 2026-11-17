@@ -1,4 +1,4 @@
-use ors_skyhook_reference::{evaluate_corpus, evaluate_fixture, parse_fixtures, FixtureStatus};
+use ors_skyhook_reference::{FixtureStatus, evaluate_corpus, evaluate_fixture, parse_fixtures};
 
 const CORPUS: &str = include_str!("../cases-v0.1.csv");
 
