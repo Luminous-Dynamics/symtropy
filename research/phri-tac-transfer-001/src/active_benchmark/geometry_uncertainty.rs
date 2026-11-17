@@ -645,6 +645,140 @@ mod tests {
         assert!(report.total_geometry_covariance_row_major.is_none());
     }
 
+    fn wrench_components(geometry: &TaxelGeometrySet, field: &[f64]) -> [f64; 6] {
+        let operator = build_wrench_operator(geometry).unwrap();
+        let wrench = integrate_tactile_field(&operator, field).unwrap();
+        [
+            wrench.force_n.x,
+            wrench.force_n.y,
+            wrench.force_n.z,
+            wrench.moment_nm.x,
+            wrench.moment_nm.y,
+            wrench.moment_nm.z,
+        ]
+    }
+
+    fn finite_difference(
+        geometry: &TaxelGeometrySet,
+        field: &[f64],
+        perturb: impl Fn(&mut TaxelGeometrySet, f64),
+        epsilon: f64,
+    ) -> [f64; 6] {
+        let mut plus = geometry.clone();
+        let mut minus = geometry.clone();
+        perturb(&mut plus, epsilon);
+        perturb(&mut minus, -epsilon);
+        let plus_wrench = wrench_components(&plus, field);
+        let minus_wrench = wrench_components(&minus, field);
+        std::array::from_fn(|index| {
+            (plus_wrench[index] - minus_wrench[index]) / (2.0 * epsilon)
+        })
+    }
+
+    fn covariance_from_single_local_parameter(
+        geometry: &TaxelGeometrySet,
+        field: &[f64],
+        set_sigma: impl Fn(&mut GeometryUncertaintyModel, f64),
+        perturb: impl Fn(&mut TaxelGeometrySet, f64),
+        epsilon: f64,
+        sigma: f64,
+    ) -> [[f64; 6]; 6] {
+        let mut uncertainty = model(geometry);
+        for value in &mut uncertainty.common_rigid_pose_covariance_row_major {
+            *value = 0.0;
+        }
+        for axis in 0..6 {
+            uncertainty.common_rigid_pose_covariance_row_major[axis * 6 + axis] = 1.0e-24;
+        }
+        uncertainty.local_taxels[0].area_m2 = 0.0;
+        uncertainty.local_taxels[0].application_point_m = Vec3::default();
+        uncertainty.local_taxels[0].orientation_rad = Vec3::default();
+        set_sigma(&mut uncertainty, sigma);
+        let report = propagate_geometry_wrench_uncertainty(geometry, field, &uncertainty).unwrap();
+        let row_major = report.local_geometry_covariance_row_major.unwrap();
+        let analytic: [[f64; 6]; 6] = std::array::from_fn(|row| {
+            std::array::from_fn(|column| row_major[row * 6 + column])
+        });
+        let derivative = finite_difference(geometry, field, perturb, epsilon);
+        for row in 0..6 {
+            for column in 0..6 {
+                let expected = derivative[row] * derivative[column] * sigma * sigma;
+                assert!(
+                    (analytic[row][column] - expected).abs() < expected.abs().max(1.0e-15) * 1.0e-5 + 1.0e-15,
+                    "local geometry Jacobian mismatch at ({row}, {column}): analytic={}, finite-difference={expected}",
+                    analytic[row][column]
+                );
+            }
+        }
+        analytic
+    }
+
+    #[test]
+    fn local_area_position_and_basis_jacobians_match_central_finite_difference() {
+        let geometry = geometry();
+        let field = [10_000.0, 1_000.0, 500.0];
+
+        let _area = covariance_from_single_local_parameter(
+            &geometry,
+            &field,
+            |model, sigma| model.local_taxels[0].area_m2 = sigma,
+            |geometry, delta| geometry.taxels[0].area_m2 += delta,
+            1.0e-8,
+            1.0e-6,
+        );
+
+        let position = covariance_from_single_local_parameter(
+            &geometry,
+            &field,
+            |model, sigma| model.local_taxels[0].application_point_m.x = sigma,
+            |geometry, delta| geometry.taxels[0].application_point_m.x += delta,
+            1.0e-6,
+            1.0e-3,
+        );
+        assert!(position[4][4] > 0.0);
+
+        let orientation = covariance_from_single_local_parameter(
+            &geometry,
+            &field,
+            |model, sigma| model.local_taxels[0].orientation_rad.z = sigma,
+            |geometry, delta| {
+                let cosine = delta.cos();
+                let sine = delta.sin();
+                let tangent_u = geometry.taxels[0].tangent_u;
+                let tangent_v = geometry.taxels[0].tangent_v;
+                geometry.taxels[0].tangent_u = Vec3 {
+                    x: cosine * tangent_u.x - sine * tangent_u.y,
+                    y: sine * tangent_u.x + cosine * tangent_u.y,
+                    z: tangent_u.z,
+                };
+                geometry.taxels[0].tangent_v = Vec3 {
+                    x: cosine * tangent_v.x - sine * tangent_v.y,
+                    y: sine * tangent_v.x + cosine * tangent_v.y,
+                    z: tangent_v.z,
+                };
+            },
+            1.0e-6,
+            1.0e-3,
+        );
+        assert!(orientation[0][0] > 0.0);
+    }
+
+    #[test]
+    fn shared_global_pose_covariance_produces_correlated_wrench_components() {
+        let geometry = geometry();
+        let field = [10_000.0, 0.0, 0.0];
+        let mut uncertainty = model(&geometry);
+        // Correlate x/y translation errors. For a normal force, these produce
+        // coupled My/Mx errors about a fixed external origin.
+        uncertainty.common_rigid_pose_covariance_row_major[1] = 0.5e-6;
+        uncertainty.common_rigid_pose_covariance_row_major[6] = 0.5e-6;
+        let report = propagate_geometry_wrench_uncertainty(&geometry, &field, &uncertainty)
+            .expect("correlated global pose covariance");
+        let covariance = report.global_pose_covariance_row_major.unwrap();
+        assert!(covariance[3 * 6 + 4].abs() > 0.0);
+        assert!((covariance[3 * 6 + 4] - covariance[4 * 6 + 3]).abs() < 1.0e-15);
+    }
+
     #[test]
     fn geometry_context_and_parameter_validation_fail_closed() {
         let geometry = geometry();
