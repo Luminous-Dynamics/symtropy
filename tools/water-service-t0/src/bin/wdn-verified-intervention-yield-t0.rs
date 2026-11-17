@@ -934,6 +934,30 @@ mod tests {
     }
 
     #[test]
+    fn raw_record_reuse_within_one_event_is_rejected() {
+        let (mut input, _, _) = fixture();
+        input["cases"][0]["events"][0]["post_measurement"]["raw_record_digest"] =
+            input["cases"][0]["events"][0]["pre_measurement"]["raw_record_digest"].clone();
+        let duplicates = duplicate_raw_event_ids(&input).unwrap();
+        assert_eq!(duplicates, BTreeSet::from(["LEAK-EVT-1-1".to_owned()]));
+        let output = evaluate_case(&input["cases"][0], &duplicates).unwrap();
+        assert_eq!(
+            output["event_dispositions"][0]["disposition"],
+            "duplicate_raw_record_replay"
+        );
+    }
+
+    #[test]
+    fn event_ids_must_be_unique_across_the_benchmark() {
+        let (mut input, _, _) = fixture();
+        input["cases"][1]["events"][0]["event_id"] =
+            input["cases"][0]["events"][0]["event_id"].clone();
+        assert!(duplicate_raw_event_ids(&input)
+            .unwrap_err()
+            .contains("duplicate event_id"));
+    }
+
+    #[test]
     fn a_tampered_oracle_reports_one_mismatch() {
         let (input, schema, mut oracle) = fixture();
         oracle["cases"][0]["verified_repair_count"] = json!(99);
