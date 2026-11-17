@@ -48,6 +48,18 @@ fn write_case(output: &mut String, case: &CaseEvaluation, is_last: bool) {
     .unwrap();
     writeln!(
         output,
+        "      \"frame_id\": {},",
+        json_string(&case.frame_id)
+    )
+    .unwrap();
+    writeln!(
+        output,
+        "      \"epoch_s\": {:.15e},",
+        case.epoch_s
+    )
+    .unwrap();
+    writeln!(
+        output,
         "      \"mass_flow_in_kg_s\": {:.15e},",
         case.mass_flow_in_kg_s
     )
