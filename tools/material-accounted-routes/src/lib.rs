@@ -794,9 +794,11 @@ mod tests {
         let mut cases = parse_cases(CASES).unwrap();
         cases[0].output_ref = "-".into();
         let receipts = parse_receipts(RECEIPTS).unwrap();
-        assert!(evaluate(&cases, &receipts)
-            .unwrap_err()
-            .contains("invalid output_ref"));
+        assert!(
+            evaluate(&cases, &receipts)
+                .unwrap_err()
+                .contains("invalid output_ref")
+        );
     }
 
     #[test]
@@ -804,9 +806,11 @@ mod tests {
         let cases = parse_cases(CASES).unwrap();
         let mut receipts = parse_receipts(RECEIPTS).unwrap();
         receipts[0].receipt_ref = "-".into();
-        assert!(evaluate(&cases, &receipts)
-            .unwrap_err()
-            .contains("invalid receipt_ref"));
+        assert!(
+            evaluate(&cases, &receipts)
+                .unwrap_err()
+                .contains("invalid receipt_ref")
+        );
     }
 
     #[test]
