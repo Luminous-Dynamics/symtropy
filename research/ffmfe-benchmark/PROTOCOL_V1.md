@@ -283,3 +283,9 @@ A first 12-DOF Euler-Bernoulli 3D beam element kernel is also present. Its close
 Uncertainty propagation and robust multiobjective design are tracked in Symtropy issue #5813. The current protocol requires deterministic bounded/interval screening before probabilistic reliability claims. Distribution assumptions, correlations, provenance and calibration status must be explicit. Probabilistic estimates require physical data, convergence diagnostics, full failure accounting and uncertainty intervals. A deterministic removal-scenario fraction is not a reliability probability.
 
 Symthaea's role is to prioritize simulations and coupons by expected decision-uncertainty reduction/value of information. It must not replace physical calibration or independent engineering qualification.
+
+## 17. Beam/frame model level update
+
+A 3D linear Euler-Bernoulli element kernel and a small global frame assembler are now authored in the standalone research crate. The frame solver assembles 12-DOF members into six-DOF-per-node static systems and assumes rigid six-DOF joints where members share a node. It audits global force/moment/energy consistency.
+
+This is a research progression toward L4, not L4 qualification yet. The implementation still lacks independently verified global eigenvalue buckling, geometric stiffness, connector releases/flexible six-DOF joint matrices, imperfections, Timoshenko shear and nonlinear/contact behavior. Current beam and frame analytical tests are authored but have not been run by exact-head CI. Do not report L4 as achieved until independent solver comparison, convergence, rotational joint characterization and global buckling verification are complete.
