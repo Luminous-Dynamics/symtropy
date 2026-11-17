@@ -10,67 +10,97 @@
       "point_credit_l": 480,
       "uncertainty_screened_lower_credit_l": 462,
       "energy_kwh": 0.15,
+      "energy_observed_block_count": 6,
+      "control_energy_kwh": 0.060000000000000005,
+      "control_energy_observed_block_count": 6,
+      "net_energy_delta_kwh": 0.09000000000000001,
+      "net_energy_observed_block_count": 6,
       "energy_kwh_per_1000l_lower_credit": 0.3246753246753247,
+      "net_energy_kwh_per_1000l_lower_credit": 0.19480519480519484,
       "block_dispositions": [
         {
           "block_id": "B1",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B2",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B3",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B4",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B5",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B6",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         }
       ],
       "disposition_counts": {
@@ -78,8 +108,7 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible",
-      "energy_observed_block_count": 6
+      "claim_eligibility": "NotEligible"
     },
     {
       "case_id": "MS-T1-002-high-gross-zero-fixture-use",
@@ -88,67 +117,97 @@
       "point_credit_l": 400,
       "uncertainty_screened_lower_credit_l": 385,
       "energy_kwh": 0.15,
+      "energy_observed_block_count": 6,
+      "control_energy_kwh": 0.060000000000000005,
+      "control_energy_observed_block_count": 6,
+      "net_energy_delta_kwh": 0.09000000000000001,
+      "net_energy_observed_block_count": 6,
       "energy_kwh_per_1000l_lower_credit": 0.38961038961038963,
+      "net_energy_kwh_per_1000l_lower_credit": 0.2337662337662338,
       "block_dispositions": [
         {
           "block_id": "B1",
           "disposition": "zero_credit_no_recovered_fixture_use",
           "point_credit_l": 0,
           "uncertainty_screened_lower_credit_l": 0,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": null
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": null,
+          "net_energy_per_1000l_lower_credit": null
         },
         {
           "block_id": "B2",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B3",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B4",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B5",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B6",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         }
       ],
       "disposition_counts": {
@@ -157,8 +216,7 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible",
-      "energy_observed_block_count": 6
+      "claim_eligibility": "NotEligible"
     },
     {
       "case_id": "MS-T1-003-quality-profile-mismatch",
@@ -167,67 +225,97 @@
       "point_credit_l": 400,
       "uncertainty_screened_lower_credit_l": 385,
       "energy_kwh": 0.15,
+      "energy_observed_block_count": 6,
+      "control_energy_kwh": 0.060000000000000005,
+      "control_energy_observed_block_count": 6,
+      "net_energy_delta_kwh": 0.09000000000000001,
+      "net_energy_observed_block_count": 6,
       "energy_kwh_per_1000l_lower_credit": 0.38961038961038963,
+      "net_energy_kwh_per_1000l_lower_credit": 0.2337662337662338,
       "block_dispositions": [
         {
           "block_id": "B1",
           "disposition": "zero_credit_quality_not_released_for_profile",
           "point_credit_l": 0,
           "uncertainty_screened_lower_credit_l": 0,
+          "matched_control_mains_normalized_l": null,
           "matched_control_displacement_l": null,
           "lower_displacement_l": null,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": null
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": null,
+          "net_energy_per_1000l_lower_credit": null
         },
         {
           "block_id": "B2",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B3",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B4",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B5",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B6",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         }
       ],
       "disposition_counts": {
@@ -236,8 +324,7 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible",
-      "energy_observed_block_count": 6
+      "claim_eligibility": "NotEligible"
     },
     {
       "case_id": "MS-T1-004-stale-quality-release",
@@ -246,67 +333,97 @@
       "point_credit_l": 400,
       "uncertainty_screened_lower_credit_l": 385,
       "energy_kwh": 0.15,
+      "energy_observed_block_count": 6,
+      "control_energy_kwh": 0.060000000000000005,
+      "control_energy_observed_block_count": 6,
+      "net_energy_delta_kwh": 0.09000000000000001,
+      "net_energy_observed_block_count": 6,
       "energy_kwh_per_1000l_lower_credit": 0.38961038961038963,
+      "net_energy_kwh_per_1000l_lower_credit": 0.2337662337662338,
       "block_dispositions": [
         {
           "block_id": "B1",
           "disposition": "zero_credit_quality_not_released_for_profile",
           "point_credit_l": 0,
           "uncertainty_screened_lower_credit_l": 0,
+          "matched_control_mains_normalized_l": null,
           "matched_control_displacement_l": null,
           "lower_displacement_l": null,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": null
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": null,
+          "net_energy_per_1000l_lower_credit": null
         },
         {
           "block_id": "B2",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B3",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B4",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B5",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B6",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         }
       ],
       "disposition_counts": {
@@ -315,8 +432,7 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible",
-      "energy_observed_block_count": 6
+      "claim_eligibility": "NotEligible"
     },
     {
       "case_id": "MS-T1-005-missing-matched-control",
@@ -325,67 +441,97 @@
       "point_credit_l": 400,
       "uncertainty_screened_lower_credit_l": 385,
       "energy_kwh": 0.15,
+      "energy_observed_block_count": 6,
+      "control_energy_kwh": 0.05,
+      "control_energy_observed_block_count": 5,
+      "net_energy_delta_kwh": 0.07500000000000001,
+      "net_energy_observed_block_count": 5,
       "energy_kwh_per_1000l_lower_credit": 0.38961038961038963,
+      "net_energy_kwh_per_1000l_lower_credit": 0.19480519480519484,
       "block_dispositions": [
         {
           "block_id": "B1",
           "disposition": "indeterminate_missing_control",
           "point_credit_l": 0,
           "uncertainty_screened_lower_credit_l": 0,
+          "matched_control_mains_normalized_l": null,
           "matched_control_displacement_l": null,
           "lower_displacement_l": null,
+          "control_energy_kwh": null,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": null
+          "net_energy_delta_kwh": null,
+          "energy_per_1000l_lower_credit": null,
+          "net_energy_per_1000l_lower_credit": null
         },
         {
           "block_id": "B2",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B3",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B4",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B5",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B6",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         }
       ],
       "disposition_counts": {
@@ -394,8 +540,7 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible",
-      "energy_observed_block_count": 6
+      "claim_eligibility": "NotEligible"
     },
     {
       "case_id": "MS-T1-006-fallback-mains-reduces-credit",
@@ -404,67 +549,97 @@
       "point_credit_l": 460,
       "uncertainty_screened_lower_credit_l": 442,
       "energy_kwh": 0.15,
+      "energy_observed_block_count": 6,
+      "control_energy_kwh": 0.060000000000000005,
+      "control_energy_observed_block_count": 6,
+      "net_energy_delta_kwh": 0.09000000000000001,
+      "net_energy_observed_block_count": 6,
       "energy_kwh_per_1000l_lower_credit": 0.33936651583710403,
+      "net_energy_kwh_per_1000l_lower_credit": 0.20361990950226247,
       "block_dispositions": [
         {
           "block_id": "B1",
           "disposition": "credited",
           "point_credit_l": 60,
           "uncertainty_screened_lower_credit_l": 57,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 60,
           "lower_displacement_l": 57,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.4385964912280702
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.4385964912280702,
+          "net_energy_per_1000l_lower_credit": 0.2631578947368421
         },
         {
           "block_id": "B2",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B3",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B4",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B5",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B6",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         }
       ],
       "disposition_counts": {
@@ -472,8 +647,7 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible",
-      "energy_observed_block_count": 6
+      "claim_eligibility": "NotEligible"
     },
     {
       "case_id": "MS-T1-007-duplicate-meter-identities",
@@ -482,67 +656,97 @@
       "point_credit_l": 400,
       "uncertainty_screened_lower_credit_l": 385,
       "energy_kwh": 0.15,
+      "energy_observed_block_count": 6,
+      "control_energy_kwh": 0.060000000000000005,
+      "control_energy_observed_block_count": 6,
+      "net_energy_delta_kwh": 0.09000000000000001,
+      "net_energy_observed_block_count": 6,
       "energy_kwh_per_1000l_lower_credit": 0.38961038961038963,
+      "net_energy_kwh_per_1000l_lower_credit": 0.2337662337662338,
       "block_dispositions": [
         {
           "block_id": "B1",
           "disposition": "zero_credit_duplicate_meter_or_record_identity",
           "point_credit_l": 0,
           "uncertainty_screened_lower_credit_l": 0,
+          "matched_control_mains_normalized_l": null,
           "matched_control_displacement_l": null,
           "lower_displacement_l": null,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": null
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": null,
+          "net_energy_per_1000l_lower_credit": null
         },
         {
           "block_id": "B2",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B3",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B4",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B5",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B6",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         }
       ],
       "disposition_counts": {
@@ -551,8 +755,7 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible",
-      "energy_observed_block_count": 6
+      "claim_eligibility": "NotEligible"
     },
     {
       "case_id": "MS-T1-008-duplicate-recovered-allocation",
@@ -561,67 +764,97 @@
       "point_credit_l": 320,
       "uncertainty_screened_lower_credit_l": 308,
       "energy_kwh": 0.15,
+      "energy_observed_block_count": 6,
+      "control_energy_kwh": 0.060000000000000005,
+      "control_energy_observed_block_count": 6,
+      "net_energy_delta_kwh": 0.09000000000000001,
+      "net_energy_observed_block_count": 6,
       "energy_kwh_per_1000l_lower_credit": 0.487012987012987,
+      "net_energy_kwh_per_1000l_lower_credit": 0.29220779220779225,
       "block_dispositions": [
         {
           "block_id": "B1",
           "disposition": "zero_credit_duplicate_recovered_allocation",
           "point_credit_l": 0,
           "uncertainty_screened_lower_credit_l": 0,
+          "matched_control_mains_normalized_l": null,
           "matched_control_displacement_l": null,
           "lower_displacement_l": null,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": null
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": null,
+          "net_energy_per_1000l_lower_credit": null
         },
         {
           "block_id": "B2",
           "disposition": "zero_credit_duplicate_recovered_allocation",
           "point_credit_l": 0,
           "uncertainty_screened_lower_credit_l": 0,
+          "matched_control_mains_normalized_l": null,
           "matched_control_displacement_l": null,
           "lower_displacement_l": null,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": null
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": null,
+          "net_energy_per_1000l_lower_credit": null
         },
         {
           "block_id": "B3",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B4",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B5",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B6",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         }
       ],
       "disposition_counts": {
@@ -630,8 +863,7 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible",
-      "energy_observed_block_count": 6
+      "claim_eligibility": "NotEligible"
     },
     {
       "case_id": "MS-T1-009-reject-stream-reused-as-fixture-use",
@@ -640,67 +872,97 @@
       "point_credit_l": 400,
       "uncertainty_screened_lower_credit_l": 385,
       "energy_kwh": 0.15,
+      "energy_observed_block_count": 6,
+      "control_energy_kwh": 0.060000000000000005,
+      "control_energy_observed_block_count": 6,
+      "net_energy_delta_kwh": 0.09000000000000001,
+      "net_energy_observed_block_count": 6,
       "energy_kwh_per_1000l_lower_credit": 0.38961038961038963,
+      "net_energy_kwh_per_1000l_lower_credit": 0.2337662337662338,
       "block_dispositions": [
         {
           "block_id": "B1",
           "disposition": "zero_credit_service_boundary_mismatch",
           "point_credit_l": 0,
           "uncertainty_screened_lower_credit_l": 0,
+          "matched_control_mains_normalized_l": null,
           "matched_control_displacement_l": null,
           "lower_displacement_l": null,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": null
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": null,
+          "net_energy_per_1000l_lower_credit": null
         },
         {
           "block_id": "B2",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B3",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B4",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B5",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B6",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         }
       ],
       "disposition_counts": {
@@ -709,8 +971,7 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible",
-      "energy_observed_block_count": 6
+      "claim_eligibility": "NotEligible"
     },
     {
       "case_id": "MS-T1-010-service-envelope-violation",
@@ -719,67 +980,97 @@
       "point_credit_l": 400,
       "uncertainty_screened_lower_credit_l": 385,
       "energy_kwh": 0.15,
+      "energy_observed_block_count": 6,
+      "control_energy_kwh": 0.060000000000000005,
+      "control_energy_observed_block_count": 6,
+      "net_energy_delta_kwh": 0.09000000000000001,
+      "net_energy_observed_block_count": 6,
       "energy_kwh_per_1000l_lower_credit": 0.38961038961038963,
+      "net_energy_kwh_per_1000l_lower_credit": 0.2337662337662338,
       "block_dispositions": [
         {
           "block_id": "B1",
           "disposition": "zero_credit_service_envelope_violation",
           "point_credit_l": 0,
           "uncertainty_screened_lower_credit_l": 0,
+          "matched_control_mains_normalized_l": null,
           "matched_control_displacement_l": null,
           "lower_displacement_l": null,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": null
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": null,
+          "net_energy_per_1000l_lower_credit": null
         },
         {
           "block_id": "B2",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B3",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B4",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B5",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B6",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         }
       ],
       "disposition_counts": {
@@ -788,8 +1079,7 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible",
-      "energy_observed_block_count": 6
+      "claim_eligibility": "NotEligible"
     },
     {
       "case_id": "MS-T1-011-overlapping-measurement-windows",
@@ -798,67 +1088,97 @@
       "point_credit_l": 400,
       "uncertainty_screened_lower_credit_l": 385,
       "energy_kwh": 0.15,
+      "energy_observed_block_count": 6,
+      "control_energy_kwh": 0.060000000000000005,
+      "control_energy_observed_block_count": 6,
+      "net_energy_delta_kwh": 0.09000000000000001,
+      "net_energy_observed_block_count": 6,
       "energy_kwh_per_1000l_lower_credit": 0.38961038961038963,
+      "net_energy_kwh_per_1000l_lower_credit": 0.2337662337662338,
       "block_dispositions": [
         {
           "block_id": "B1",
           "disposition": "indeterminate_overlapping_windows",
           "point_credit_l": 0,
           "uncertainty_screened_lower_credit_l": 0,
+          "matched_control_mains_normalized_l": null,
           "matched_control_displacement_l": null,
           "lower_displacement_l": null,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": null
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": null,
+          "net_energy_per_1000l_lower_credit": null
         },
         {
           "block_id": "B2",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B3",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B4",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B5",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B6",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         }
       ],
       "disposition_counts": {
@@ -867,8 +1187,7 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible",
-      "energy_observed_block_count": 6
+      "claim_eligibility": "NotEligible"
     },
     {
       "case_id": "MS-T1-012-demand-trace-or-volume-mismatch",
@@ -877,67 +1196,97 @@
       "point_credit_l": 400,
       "uncertainty_screened_lower_credit_l": 385,
       "energy_kwh": 0.15,
+      "energy_observed_block_count": 6,
+      "control_energy_kwh": 0.060000000000000005,
+      "control_energy_observed_block_count": 6,
+      "net_energy_delta_kwh": 0.09000000000000001,
+      "net_energy_observed_block_count": 6,
       "energy_kwh_per_1000l_lower_credit": 0.38961038961038963,
+      "net_energy_kwh_per_1000l_lower_credit": 0.2337662337662338,
       "block_dispositions": [
         {
           "block_id": "B1",
           "disposition": "indeterminate_demand_not_comparable",
           "point_credit_l": 0,
           "uncertainty_screened_lower_credit_l": 0,
+          "matched_control_mains_normalized_l": null,
           "matched_control_displacement_l": null,
           "lower_displacement_l": null,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": null
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": null,
+          "net_energy_per_1000l_lower_credit": null
         },
         {
           "block_id": "B2",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B3",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B4",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B5",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B6",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         }
       ],
       "disposition_counts": {
@@ -946,8 +1295,7 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible",
-      "energy_observed_block_count": 6
+      "claim_eligibility": "NotEligible"
     },
     {
       "case_id": "MS-T1-013-uncertainty-consumes-credit-margin",
@@ -956,67 +1304,97 @@
       "point_credit_l": 480,
       "uncertainty_screened_lower_credit_l": 385,
       "energy_kwh": 0.15,
+      "energy_observed_block_count": 6,
+      "control_energy_kwh": 0.060000000000000005,
+      "control_energy_observed_block_count": 6,
+      "net_energy_delta_kwh": 0.09000000000000001,
+      "net_energy_observed_block_count": 6,
       "energy_kwh_per_1000l_lower_credit": 0.38961038961038963,
+      "net_energy_kwh_per_1000l_lower_credit": 0.2337662337662338,
       "block_dispositions": [
         {
           "block_id": "B1",
           "disposition": "zero_credit_uncertainty_dominates_apparent_credit",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 0,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": null
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": null,
+          "net_energy_per_1000l_lower_credit": null
         },
         {
           "block_id": "B2",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B3",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B4",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B5",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         },
         {
           "block_id": "B6",
           "disposition": "credited",
           "point_credit_l": 80,
           "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
           "matched_control_displacement_l": 90,
           "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
           "energy_kwh": 0.025,
-          "energy_per_1000l_lower_credit": 0.3246753246753247
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
         }
       ],
       "disposition_counts": {
@@ -1025,8 +1403,223 @@
       },
       "physical_qualification_status": "NotRun",
       "statistical_inference_status": "NotRun",
-      "claim_eligibility": "NotEligible",
-      "energy_observed_block_count": 6
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "MS-T1-014-duplicate-raw-record-across-blocks",
+      "paired_block_count": 6,
+      "credited_block_count": 4,
+      "point_credit_l": 320,
+      "uncertainty_screened_lower_credit_l": 308,
+      "energy_kwh": 0.15,
+      "energy_observed_block_count": 6,
+      "control_energy_kwh": 0.060000000000000005,
+      "control_energy_observed_block_count": 6,
+      "net_energy_delta_kwh": 0.09000000000000001,
+      "net_energy_observed_block_count": 6,
+      "energy_kwh_per_1000l_lower_credit": 0.487012987012987,
+      "net_energy_kwh_per_1000l_lower_credit": 0.29220779220779225,
+      "block_dispositions": [
+        {
+          "block_id": "B1",
+          "disposition": "zero_credit_duplicate_raw_record_across_blocks",
+          "point_credit_l": 0,
+          "uncertainty_screened_lower_credit_l": 0,
+          "matched_control_mains_normalized_l": null,
+          "matched_control_displacement_l": null,
+          "lower_displacement_l": null,
+          "control_energy_kwh": 0.01,
+          "energy_kwh": 0.025,
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": null,
+          "net_energy_per_1000l_lower_credit": null
+        },
+        {
+          "block_id": "B2",
+          "disposition": "zero_credit_duplicate_raw_record_across_blocks",
+          "point_credit_l": 0,
+          "uncertainty_screened_lower_credit_l": 0,
+          "matched_control_mains_normalized_l": null,
+          "matched_control_displacement_l": null,
+          "lower_displacement_l": null,
+          "control_energy_kwh": 0.01,
+          "energy_kwh": 0.025,
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": null,
+          "net_energy_per_1000l_lower_credit": null
+        },
+        {
+          "block_id": "B3",
+          "disposition": "credited",
+          "point_credit_l": 80,
+          "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
+          "matched_control_displacement_l": 90,
+          "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
+          "energy_kwh": 0.025,
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
+        },
+        {
+          "block_id": "B4",
+          "disposition": "credited",
+          "point_credit_l": 80,
+          "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
+          "matched_control_displacement_l": 90,
+          "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
+          "energy_kwh": 0.025,
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
+        },
+        {
+          "block_id": "B5",
+          "disposition": "credited",
+          "point_credit_l": 80,
+          "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
+          "matched_control_displacement_l": 90,
+          "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
+          "energy_kwh": 0.025,
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
+        },
+        {
+          "block_id": "B6",
+          "disposition": "credited",
+          "point_credit_l": 80,
+          "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
+          "matched_control_displacement_l": 90,
+          "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
+          "energy_kwh": 0.025,
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
+        }
+      ],
+      "disposition_counts": {
+        "zero_credit_duplicate_raw_record_across_blocks": 2,
+        "credited": 4
+      },
+      "physical_qualification_status": "NotRun",
+      "statistical_inference_status": "NotRun",
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "MS-T1-015-expired-quality-release",
+      "paired_block_count": 6,
+      "credited_block_count": 5,
+      "point_credit_l": 400,
+      "uncertainty_screened_lower_credit_l": 385,
+      "energy_kwh": 0.15,
+      "energy_observed_block_count": 6,
+      "control_energy_kwh": 0.060000000000000005,
+      "control_energy_observed_block_count": 6,
+      "net_energy_delta_kwh": 0.09000000000000001,
+      "net_energy_observed_block_count": 6,
+      "energy_kwh_per_1000l_lower_credit": 0.38961038961038963,
+      "net_energy_kwh_per_1000l_lower_credit": 0.2337662337662338,
+      "block_dispositions": [
+        {
+          "block_id": "B1",
+          "disposition": "zero_credit_quality_release_out_of_validity_window",
+          "point_credit_l": 0,
+          "uncertainty_screened_lower_credit_l": 0,
+          "matched_control_mains_normalized_l": null,
+          "matched_control_displacement_l": null,
+          "lower_displacement_l": null,
+          "control_energy_kwh": 0.01,
+          "energy_kwh": 0.025,
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": null,
+          "net_energy_per_1000l_lower_credit": null
+        },
+        {
+          "block_id": "B2",
+          "disposition": "credited",
+          "point_credit_l": 80,
+          "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
+          "matched_control_displacement_l": 90,
+          "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
+          "energy_kwh": 0.025,
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
+        },
+        {
+          "block_id": "B3",
+          "disposition": "credited",
+          "point_credit_l": 80,
+          "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
+          "matched_control_displacement_l": 90,
+          "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
+          "energy_kwh": 0.025,
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
+        },
+        {
+          "block_id": "B4",
+          "disposition": "credited",
+          "point_credit_l": 80,
+          "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
+          "matched_control_displacement_l": 90,
+          "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
+          "energy_kwh": 0.025,
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
+        },
+        {
+          "block_id": "B5",
+          "disposition": "credited",
+          "point_credit_l": 80,
+          "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
+          "matched_control_displacement_l": 90,
+          "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
+          "energy_kwh": 0.025,
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
+        },
+        {
+          "block_id": "B6",
+          "disposition": "credited",
+          "point_credit_l": 80,
+          "uncertainty_screened_lower_credit_l": 77,
+          "matched_control_mains_normalized_l": 100,
+          "matched_control_displacement_l": 90,
+          "lower_displacement_l": 87,
+          "control_energy_kwh": 0.01,
+          "energy_kwh": 0.025,
+          "net_energy_delta_kwh": 0.015000000000000001,
+          "energy_per_1000l_lower_credit": 0.3246753246753247,
+          "net_energy_per_1000l_lower_credit": 0.19480519480519484
+        }
+      ],
+      "disposition_counts": {
+        "zero_credit_quality_release_out_of_validity_window": 1,
+        "credited": 5
+      },
+      "physical_qualification_status": "NotRun",
+      "statistical_inference_status": "NotRun",
+      "claim_eligibility": "NotEligible"
     }
   ]
 }
