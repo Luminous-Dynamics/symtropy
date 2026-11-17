@@ -12,9 +12,9 @@ pub const COST_ITEMS: &str = include_str!("../fixtures/cost-items-v0.1.tsv");
 pub const OUTPUTS: &str = include_str!("../fixtures/outputs-v0.1.tsv");
 pub const EXPECTED: &str = include_str!("../fixtures/expected-v0.1.tsv");
 
-const CASE_HEADER: &str = "case_id\troute_ref\troute_status\tproduct_profile_ref\tacceptance_profile_ref\tbatch_ref\tcurrency\tprice_date\tamount_unit";
+const CASE_HEADER: &str = "case_id\troute_ref\troute_status\tproduct_profile_ref\tacceptance_profile_ref\tbatch_ref\tdeclared_units_started\tcurrency\tprice_date\tamount_unit";
 const COST_HEADER: &str = "case_id\tbatch_ref\tcost_item_id\tcategory\tamount_minor_low\tamount_minor_high\tcurrency\tprice_date\tamount_unit\tevidence_class\tscope\tsource_ref";
-const OUTPUT_HEADER: &str = "case_id\toutput_id\tfinal_disposition\trelease_ref";
+const OUTPUT_HEADER: &str = "case_id\tbatch_ref\toutput_id\tfinal_disposition\trelease_ref";
 const EXPECTED_HEADER: &str = "case_id\tdisposition\ttotal_low_minor\ttotal_high_minor\tstarted\tfirst_pass_released\tfinal_released";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -43,6 +43,7 @@ pub struct CaseManifest {
     pub product_profile_ref: String,
     pub acceptance_profile_ref: String,
     pub batch_ref: String,
+    pub declared_units_started: usize,
     pub currency: String,
     pub price_date: String,
     pub amount_unit: String,
@@ -95,6 +96,7 @@ impl FinalDisposition {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OutputRecord {
     pub case_id: String,
+    pub batch_ref: String,
     pub output_id: String,
     pub final_disposition: FinalDisposition,
     pub release_ref: String,
@@ -275,7 +277,7 @@ pub fn parse_cases(input: &str) -> Result<Vec<CaseManifest>, String> {
         if line.is_empty() {
             continue;
         }
-        let row = split_row(line, 9, "cases", index + 2)?;
+        let row = split_row(line, 10, "cases", index + 2)?;
         for (label, value) in [
             ("case_id", row[0]),
             ("route_ref", row[1]),
@@ -287,7 +289,11 @@ pub fn parse_cases(input: &str) -> Result<Vec<CaseManifest>, String> {
                 return Err(format!("cases:{}: invalid {label}: {value}", index + 2));
             }
         }
-        if !valid_currency(row[6]) || !valid_date(row[7]) || !valid_ref(row[8]) {
+        let declared_units_started = row[6].parse::<usize>().map_err(|_| format!("cases:{}: invalid declared_units_started", index + 2))?;
+        if declared_units_started == 0 {
+            return Err(format!("cases:{}: declared_units_started must be positive", index + 2));
+        }
+        if !valid_currency(row[7]) || !valid_date(row[8]) || !valid_ref(row[9]) {
             return Err(format!("cases:{}: invalid currency, price date or amount unit", index + 2));
         }
         if !ids.insert(row[0].to_owned()) {
@@ -300,9 +306,10 @@ pub fn parse_cases(input: &str) -> Result<Vec<CaseManifest>, String> {
             product_profile_ref: row[3].to_owned(),
             acceptance_profile_ref: row[4].to_owned(),
             batch_ref: row[5].to_owned(),
-            currency: row[6].to_owned(),
-            price_date: row[7].to_owned(),
-            amount_unit: row[8].to_owned(),
+            declared_units_started,
+            currency: row[7].to_owned(),
+            price_date: row[8].to_owned(),
+            amount_unit: row[9].to_owned(),
         });
     }
     if cases.is_empty() {
@@ -392,23 +399,24 @@ pub fn parse_outputs(input: &str) -> Result<Vec<OutputRecord>, String> {
         if line.is_empty() {
             continue;
         }
-        let row = split_row(line, 4, "outputs", index + 2)?;
-        if !valid_ref(row[0]) || !valid_ref(row[1]) {
+        let row = split_row(line, 5, "outputs", index + 2)?;
+        if !valid_ref(row[0]) || !valid_ref(row[1]) || !valid_ref(row[2]) {
             return Err(format!("outputs:{}: invalid case or output identity", index + 2));
         }
-        let disposition = FinalDisposition::parse(row[2])?;
+        let disposition = FinalDisposition::parse(row[3])?;
         if disposition.is_released() {
-            if !valid_ref(row[3]) {
+            if !valid_ref(row[4]) {
                 return Err(format!("outputs:{}: released output requires a release reference", index + 2));
             }
-        } else if row[3] != "-" {
+        } else if row[4] != "-" {
             return Err(format!("outputs:{}: non-released output cannot carry a release reference", index + 2));
         }
         rows.push(OutputRecord {
             case_id: row[0].to_owned(),
-            output_id: row[1].to_owned(),
+            batch_ref: row[1].to_owned(),
+            output_id: row[2].to_owned(),
             final_disposition: disposition,
-            release_ref: row[3].to_owned(),
+            release_ref: row[4].to_owned(),
         });
     }
     Ok(rows)
@@ -466,6 +474,9 @@ pub fn evaluate(
             if !valid_ref(value) {
                 return Err(format!("case {}: invalid {label}: {value}", case.case_id));
             }
+        }
+        if case.declared_units_started == 0 {
+            return Err(format!("case {}: declared_units_started must be positive", case.case_id));
         }
         if !valid_currency(&case.currency) || !valid_date(&case.price_date) {
             return Err(format!("case {}: invalid currency or price date", case.case_id));
@@ -538,8 +549,12 @@ pub fn evaluate(
         if !cases_by_id.contains_key(output.case_id.as_str()) {
             return Err(format!("orphan output for unknown case: {}", output.case_id));
         }
-        if !valid_ref(&output.output_id) {
+        if !valid_ref(&output.batch_ref) || !valid_ref(&output.output_id) {
             return Err(format!("invalid output identity: {}", output.output_id));
+        }
+        let case = cases_by_id[output.case_id.as_str()];
+        if output.batch_ref != case.batch_ref {
+            return Err(format!("output {}: batch reference does not match case {}", output.output_id, case.case_id));
         }
         if !output_ids.insert((output.case_id.as_str(), output.output_id.as_str())) {
             return Err(format!("output identity reused within case: {}", output.output_id));
@@ -567,7 +582,13 @@ pub fn evaluate(
             .filter(|output| output.case_id == case.case_id)
             .collect();
 
-        let units_started = case_outputs.len();
+        if case_outputs.len() != case.declared_units_started {
+            return Err(format!(
+                "case {}: declared {} started units but received {} final dispositions",
+                case.case_id, case.declared_units_started, case_outputs.len()
+            ));
+        }
+        let units_started = case.declared_units_started;
         let first_pass_released = case_outputs
             .iter()
             .filter(|output| output.final_disposition == FinalDisposition::ReleasedFirstPass)
@@ -1097,6 +1118,32 @@ mod tests {
         assert!(evaluate(&cases, &costs, &outputs)
             .unwrap_err()
             .contains("cost total overflow"));
+    }
+
+    #[test]
+    fn omitted_started_unit_is_rejected_instead_of_inflating_yield() {
+        let (cases, costs, mut outputs) = parsed();
+        outputs.pop();
+        assert!(evaluate(&cases, &costs, &outputs)
+            .unwrap_err()
+            .contains("final dispositions"));
+    }
+
+    #[test]
+    fn output_record_must_bind_exact_batch() {
+        let (cases, costs, mut outputs) = parsed();
+        outputs[0].batch_ref = "batch:wrong-run".into();
+        assert!(evaluate(&cases, &costs, &outputs)
+            .unwrap_err()
+            .contains("batch reference does not match"));
+    }
+
+    #[test]
+    fn declared_started_count_must_be_positive() {
+        let corrupted = CASES.replacen("batch:run-001\t3", "batch:run-001\t0", 1);
+        assert!(parse_cases(&corrupted)
+            .unwrap_err()
+            .contains("declared_units_started must be positive"));
     }
 
     #[test]
