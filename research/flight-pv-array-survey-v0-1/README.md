@@ -37,6 +37,12 @@ The published 2017 specification treats aerial-drone whole-array thermography as
 
 A module may be geometrically covered but radiometrically ineligible. A module with eligible radiometry but uncertain array registration is not qualified. The report never labels a module healthy, faulty, safe, accepted or in need of maintenance.
 
+## P1 raster route baseline
+
+The library includes a deterministic boustrophedon/lawnmower route generator. It derives the array-plane bounding rectangle from the exact module roster, computes along-lane and cross-lane waypoint spacing from the conservative camera footprint and requested overlap fractions, alternates lane direction, and reports which complete modules fall inside each planned footprint.
+
+It also reports a straight-line route-length lower bound over the generated waypoint centres. It deliberately omits turn radius, acceleration/deceleration, wind compensation, obstacles, rotor dynamics, controller tracking and flight-safety constraints; it is not a flyable trajectory. P2 should later select altitude and speed jointly from camera FOV, detector integration/exposure, GSD and motion-blur limits, rather than treating a fixed footprint as universally valid.
+
 ## Motion smear model
 
 The v0.1 upper-bound proxy is:
