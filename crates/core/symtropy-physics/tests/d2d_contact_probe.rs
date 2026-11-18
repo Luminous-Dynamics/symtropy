@@ -43,6 +43,13 @@ impl ProbeRequestV1 {
         }
         Ok(())
     }
+
+    fn fingerprint(self) -> u64 {
+        let mut hash = FNV_OFFSET;
+        hash_text(&mut hash, "symtropy-d2d-probe-request-v1");
+        hash_u64(&mut hash, self.tangential_impulse.to_bits());
+        hash
+    }
 }
 
 /// Evaluator-owned scenario configuration. This type must remain outside the
@@ -81,6 +88,50 @@ struct ProbeOutcome {
     terminal_vx: f64,
     terminal_vy: f64,
     collision_event_count: usize,
+}
+
+// This is the only response shape intended to cross back to the learner.
+// It deliberately excludes EvaluatorScenarioV1, ProbeManifestV1,
+// scenario_fingerprint, hidden friction, and evaluator-private trace digests.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+struct ProbeObservationV1 {
+    terminal_x: f64,
+    terminal_y: f64,
+    terminal_vx: f64,
+    terminal_vy: f64,
+    collision_event_count: usize,
+}
+
+impl From<ProbeOutcome> for ProbeObservationV1 {
+    fn from(outcome: ProbeOutcome) -> Self {
+        Self {
+            terminal_x: outcome.terminal_x,
+            terminal_y: outcome.terminal_y,
+            terminal_vx: outcome.terminal_vx,
+            terminal_vy: outcome.terminal_vy,
+            collision_event_count: outcome.collision_event_count,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum ProbePublicFailureV1 {
+    InvalidRequest,
+    ExecutionFailed,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+struct ProbeResponseV1 {
+    schema_version: u32,
+    branch_id: String,
+    request_fingerprint: u64,
+    disposition: ProbeDispositionV1,
+    completed_steps: usize,
+    observation: Option<ProbeObservationV1>,
+    failure: Option<ProbePublicFailureV1>,
 }
 
 // Versioned, compact records for the D2D adapter fixture. The fingerprints
@@ -559,6 +610,49 @@ fn execute_probe_with_record(
     Ok((snapshots, outcome, record))
 }
 
+/// Evaluator dispatcher. It consumes hidden scenario truth internally and returns
+/// only the learner-facing response DTO. This helper still runs in-process;
+/// actual evaluator isolation requires a process/permission boundary.
+fn dispatch_probe_request(
+    branch_id: &str,
+    request: ProbeRequestV1,
+    scenario: EvaluatorScenarioV1,
+) -> ProbeResponseV1 {
+    let request_fingerprint = request.fingerprint();
+    if request.validate().is_err() {
+        return ProbeResponseV1 {
+            schema_version: 1,
+            branch_id: branch_id.to_string(),
+            request_fingerprint,
+            disposition: ProbeDispositionV1::Failed,
+            completed_steps: 0,
+            observation: None,
+            failure: Some(ProbePublicFailureV1::InvalidRequest),
+        };
+    }
+
+    match execute_probe_with_record(branch_id, request, scenario) {
+        Ok((snapshots, outcome, _private_record)) => ProbeResponseV1 {
+            schema_version: 1,
+            branch_id: branch_id.to_string(),
+            request_fingerprint,
+            disposition: ProbeDispositionV1::Completed,
+            completed_steps: snapshots.len(),
+            observation: Some(outcome.into()),
+            failure: None,
+        },
+        Err(_private_error) => ProbeResponseV1 {
+            schema_version: 1,
+            branch_id: branch_id.to_string(),
+            request_fingerprint,
+            disposition: ProbeDispositionV1::Failed,
+            completed_steps: 0,
+            observation: None,
+            failure: Some(ProbePublicFailureV1::ExecutionFailed),
+        },
+    }
+}
+
 fn execute_probe(
     request: ProbeRequestV1,
     scenario: EvaluatorScenarioV1,
@@ -567,6 +661,78 @@ fn execute_probe(
         execute_probe_with_record("unlabelled-fixture-run", request, scenario)
             .expect("test fixture probe should execute");
     (snapshots, outcome)
+}
+
+#[test]
+fn learner_response_contains_only_authorized_observation_and_request_identity() {
+    let request = ProbeRequestV1 {
+        tangential_impulse: 3.0,
+    };
+    let response = dispatch_probe_request(
+        "learner-visible-branch-1",
+        request,
+        EvaluatorScenarioV1 {
+            surface_friction: 0.05,
+        },
+    );
+
+    assert_eq!(response.schema_version, 1);
+    assert_eq!(response.branch_id, "learner-visible-branch-1");
+    assert_eq!(response.request_fingerprint, request.fingerprint());
+    assert_eq!(response.disposition, ProbeDispositionV1::Completed);
+    assert_eq!(response.completed_steps, STEPS);
+    assert!(response.failure.is_none());
+    let observation = response.observation.expect("completed response has an observation");
+    assert!(observation.collision_event_count > 0);
+
+    // Compile-time response-shape boundary: ProbeResponseV1 contains no
+    // scenario friction, evaluator manifest, scenario fingerprint or trace digest.
+}
+
+#[test]
+fn failed_evaluator_attempt_returns_visible_failure_disposition_not_dropped_error() {
+    let request = ProbeRequestV1 {
+        tangential_impulse: 1.0,
+    };
+    let response = dispatch_probe_request(
+        "expected-branch-invalid-world",
+        request,
+        EvaluatorScenarioV1 {
+            surface_friction: f64::NAN,
+        },
+    );
+
+    assert_eq!(response.branch_id, "expected-branch-invalid-world");
+    assert_eq!(response.request_fingerprint, request.fingerprint());
+    assert_eq!(response.disposition, ProbeDispositionV1::Failed);
+    assert_eq!(response.completed_steps, 0);
+    assert!(response.observation.is_none());
+    assert_eq!(
+        response.failure,
+        Some(ProbePublicFailureV1::ExecutionFailed)
+    );
+}
+
+#[test]
+fn invalid_learner_request_is_rejected_before_evaluator_dispatch() {
+    let invalid_request = ProbeRequestV1 {
+        tangential_impulse: f64::INFINITY,
+    };
+    let response = dispatch_probe_request(
+        "invalid-learner-request",
+        invalid_request,
+        EvaluatorScenarioV1 {
+            surface_friction: 0.5,
+        },
+    );
+
+    assert_eq!(response.disposition, ProbeDispositionV1::Failed);
+    assert_eq!(
+        response.failure,
+        Some(ProbePublicFailureV1::InvalidRequest)
+    );
+    assert!(response.observation.is_none());
+    assert_eq!(response.completed_steps, 0);
 }
 
 #[test]
