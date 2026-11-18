@@ -421,10 +421,16 @@
                   "type": "object",
                   "additionalProperties": false,
                   "required": [
+                    "taskId",
                     "stage",
+                    "dependsOn",
                     "durationHours"
                   ],
                   "properties": {
+                    "taskId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
                     "stage": {
                       "enum": [
                         "detect_and_isolate",
@@ -435,6 +441,14 @@
                         "repair_or_replace",
                         "test_and_commission"
                       ]
+                    },
+                    "dependsOn": {
+                      "type": "array",
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
                     },
                     "durationHours": {
                       "type": "number",
