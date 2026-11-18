@@ -1,0 +1,634 @@
+{
+  "schema_version": "0.1.0",
+  "snapshot_date": "2026-11-18",
+  "principles": [
+    "Global common schema and evidence semantics; local engineering, law, standards and cost profiles.",
+    "No jurisdictional standard is assumed to be legally adopted from international publication alone.",
+    "An approved work item or filed standard is not a published effective requirement.",
+    "Unknown local rules, hazards and cost inputs remain explicit and block claims that require them."
+  ],
+  "standards_register": [
+    {
+      "record_id": "STD-IEC-60826-2017",
+      "designation": "IEC 60826:2017",
+      "title": "Design criteria of overhead transmission lines",
+      "publisher": "International Electrotechnical Commission",
+      "edition": "4",
+      "status": "published_active",
+      "publication_date": "2017-02-13",
+      "status_checked_on": "2026-11-18",
+      "scope": "Overhead-line design criteria; standard notes that concepts may also inform refurbishment, upgrades and uprating. Does not replace detailed design of supports, foundations, conductors or insulators.",
+      "source_uri": "https://webstore.iec.ch/en/publication/59954",
+      "verified_on": "2026-11-18",
+      "jurisdiction_scope": [
+        "International reference; national adoption and utility requirements must be checked"
+      ],
+      "national_adoption_status": "not_checked",
+      "adoption_authority_uri": null,
+      "known_supersession_or_work_item": null,
+      "notes": "IEC catalogue identifies edition 4 and stability date 2031. Do not treat this as proof of national adoption."
+    },
+    {
+      "record_id": "STD-IEEE-738-2023",
+      "designation": "IEEE 738-2023",
+      "title": "Standard for Calculating the Current-Temperature Relationship of Bare Overhead Conductors",
+      "publisher": "IEEE Standards Association",
+      "edition": "2023",
+      "status": "published_active",
+      "publication_date": "2023-12-19",
+      "status_checked_on": "2026-11-18",
+      "scope": "Numerical relationship between current, conductor temperature and weather; does not prescribe the suitable weather conditions or conductor parameters for a line rating.",
+      "source_uri": "https://standards.ieee.org/ieee/738/10207/",
+      "verified_on": "2026-11-18",
+      "jurisdiction_scope": [
+        "IEEE adopting jurisdictions and projects that specify IEEE 738"
+      ],
+      "national_adoption_status": "not_checked",
+      "adoption_authority_uri": null,
+      "known_supersession_or_work_item": null,
+      "notes": "Active standard, supersedes IEEE 738-2012. Weather and conductor input selection remain a separate engineering responsibility."
+    },
+    {
+      "record_id": "STD-IEC-60840-2020-A1-2023-COR1-2025",
+      "designation": "IEC 60840:2020+AMD1:2023/COR1:2025",
+      "title": "Power cables with extruded insulation and their accessories for rated voltages above 30 kV up to 150 kV",
+      "publisher": "International Electrotechnical Commission",
+      "edition": "2020 + Amendment 1:2023 + Corrigendum 1:2025",
+      "status": "published_active",
+      "publication_date": "2025-06-17",
+      "status_checked_on": "2026-11-18",
+      "scope": "Cable systems, cables and accessories for fixed installations in the stated voltage range; special submarine cable systems may require modified or special test conditions.",
+      "source_uri": "https://webstore.iec.ch/en/publication/107576",
+      "verified_on": "2026-11-18",
+      "jurisdiction_scope": [
+        "International reference; national adoption and utility requirements must be checked"
+      ],
+      "national_adoption_status": "not_checked",
+      "adoption_authority_uri": null,
+      "known_supersession_or_work_item": null,
+      "notes": "The IEC catalogue identifies the 2025 corrigendum and corrected consolidated version."
+    },
+    {
+      "record_id": "STD-IEC-62067-2022",
+      "designation": "IEC 62067:2022",
+      "title": "Power cables with extruded insulation and their accessories for rated voltages above 150 kV up to 500 kV",
+      "publisher": "International Electrotechnical Commission",
+      "edition": "3",
+      "status": "published_active",
+      "publication_date": "2022-04-21",
+      "status_checked_on": "2026-11-18",
+      "scope": "Cable systems, cables and accessories for fixed installations in the stated voltage range; special submarine systems may require modified or special test conditions.",
+      "source_uri": "https://webstore.iec.ch/en/publication/66951",
+      "verified_on": "2026-11-18",
+      "jurisdiction_scope": [
+        "International reference; national adoption and utility requirements must be checked"
+      ],
+      "national_adoption_status": "not_checked",
+      "adoption_authority_uri": null,
+      "known_supersession_or_work_item": null,
+      "notes": "The IEC catalogue identifies edition 3 and stability date 2030."
+    },
+    {
+      "record_id": "STD-IEC-60071-2-2023",
+      "designation": "IEC 60071-2:2023",
+      "title": "Insulation co-ordination — Part 2: Application guidelines",
+      "publisher": "International Electrotechnical Commission",
+      "edition": "5",
+      "status": "published_active",
+      "publication_date": "2023-05-24",
+      "status_checked_on": "2026-11-18",
+      "scope": "Application guidance for selection of insulation levels and related withstand requirements; includes detailed simulation and special considerations for cable lines and GIL/GIB.",
+      "source_uri": "https://webstore.iec.ch/en/publication/64145",
+      "verified_on": "2026-11-18",
+      "jurisdiction_scope": [
+        "International reference; national adoption and utility requirements must be checked"
+      ],
+      "national_adoption_status": "not_checked",
+      "adoption_authority_uri": null,
+      "known_supersession_or_work_item": "IEC 60071-2 Edition 6 is under development; catalogue forecast 2027-12-30.",
+      "notes": "The 2023 edition remains valid in the IEC catalogue snapshot; future work item is not yet a published replacement."
+    },
+    {
+      "record_id": "STD-IEC-60071-11-2022",
+      "designation": "IEC 60071-11:2022",
+      "title": "Insulation co-ordination — Part 11: Definitions, principles and rules for HVDC systems",
+      "publisher": "International Electrotechnical Commission",
+      "edition": "1",
+      "status": "published_active",
+      "publication_date": "2022-11-08",
+      "status_checked_on": "2026-11-18",
+      "scope": "Insulation coordination for HVDC systems, including LCC and VSC; not a human-safety standard.",
+      "source_uri": "https://webstore.iec.ch/en/publication/66648",
+      "verified_on": "2026-11-18",
+      "jurisdiction_scope": [
+        "International reference; national adoption and utility requirements must be checked"
+      ],
+      "national_adoption_status": "not_checked",
+      "adoption_authority_uri": null,
+      "known_supersession_or_work_item": null,
+      "notes": "A corrigendum from November 2023 is incorporated in the IEC catalogue version."
+    },
+    {
+      "record_id": "STD-IEC-TS-60071-4-2026",
+      "designation": "IEC TS 60071-4:2026",
+      "title": "Instructions for simulation-based insulation coordination and modelling of electrical networks",
+      "publisher": "International Electrotechnical Commission",
+      "edition": "1",
+      "status": "published_active",
+      "publication_date": "2026-10-23",
+      "status_checked_on": "2026-11-18",
+      "scope": "Guidance for computational modelling and deterministic/probabilistic simulation methods used in insulation coordination studies.",
+      "source_uri": "https://webstore.iec.ch/en/publication/107140",
+      "verified_on": "2026-11-18",
+      "jurisdiction_scope": [
+        "International technical specification; adoption and utility use must be checked"
+      ],
+      "national_adoption_status": "not_checked",
+      "adoption_authority_uri": null,
+      "known_supersession_or_work_item": "Replaces IEC TR 60071-4:2004.",
+      "notes": "New 2026 technical specification. Particularly relevant to reproducible simulation and uncertainty-aware insulation coordination."
+    },
+    {
+      "record_id": "STD-ASME-B31-12-2023",
+      "designation": "ASME B31.12-2023",
+      "title": "Hydrogen Piping and Pipelines",
+      "publisher": "American Society of Mechanical Engineers",
+      "edition": "2023",
+      "status": "published_active",
+      "publication_date": "2023-01-01",
+      "status_checked_on": "2026-11-18",
+      "scope": "Hydrogen gaseous mixtures and liquid hydrogen piping/pipelines within stated scope; industrial piping and pipeline requirements are separated.",
+      "source_uri": "https://www.asme.org/codes-standards/find-codes-standards/b31-12-hydrogen-piping-pipelines",
+      "verified_on": "2026-11-18",
+      "jurisdiction_scope": [
+        "United States origin; other jurisdictional use/adoption must be separately checked"
+      ],
+      "national_adoption_status": "not_checked",
+      "adoption_authority_uri": null,
+      "known_supersession_or_work_item": null,
+      "notes": "ASME lists the 2023 edition as remaining in effect. National law or local adoption is not implied."
+    },
+    {
+      "record_id": "STD-ISO-14687-2025",
+      "designation": "ISO 14687:2025",
+      "title": "Hydrogen fuel quality — Product specification",
+      "publisher": "International Organization for Standardization",
+      "edition": "2",
+      "status": "published_active",
+      "publication_date": "2025-02-12",
+      "status_checked_on": "2026-11-18",
+      "scope": "Minimum hydrogen quality characteristics for residential, commercial, industrial, vehicular and stationary uses.",
+      "source_uri": "https://www.iso.org/standard/82660.html",
+      "verified_on": "2026-11-18",
+      "jurisdiction_scope": [
+        "International reference; national adoption and application must be checked"
+      ],
+      "national_adoption_status": "not_checked",
+      "adoption_authority_uri": null,
+      "known_supersession_or_work_item": "ISO/AWI 14687 Edition 3 approved in June 2026 and under development.",
+      "notes": "Do not treat the future work item as published. The 2025 edition is the published edition in this snapshot."
+    },
+    {
+      "record_id": "STD-NERC-TPL-001-5.1",
+      "designation": "NERC TPL-001-5.1",
+      "title": "Transmission System Planning Performance Requirements",
+      "publisher": "North American Electric Reliability Corporation",
+      "edition": "5.1",
+      "status": "published_active",
+      "publication_date": null,
+      "status_checked_on": "2026-11-18",
+      "scope": "Mandatory transmission planning performance requirements within the applicable North American jurisdiction and enforcement framework.",
+      "source_uri": "https://www.nerc.com/standards/reliability-standards/tpl",
+      "verified_on": "2026-11-18",
+      "jurisdiction_scope": [
+        "Applicable NERC jurisdictions only; not a global planning criterion"
+      ],
+      "national_adoption_status": "not_applicable",
+      "adoption_authority_uri": null,
+      "known_supersession_or_work_item": "NERC TPL-001-6 is listed as filed and pending regulatory approval in the 2026-11-18 catalogue snapshot.",
+      "notes": "The NERC catalogue distinguishes TPL-001-5.1 mandatory from TPL-001-6 filed/pending approval."
+    },
+    {
+      "record_id": "STD-CEA-TRANSMISSION-PLANNING-2023",
+      "designation": "CEA Manual on Transmission Planning Criteria 2023",
+      "title": "Manual on Transmission Planning Criteria",
+      "publisher": "Central Electricity Authority, India",
+      "edition": "2023",
+      "status": "published_active",
+      "publication_date": "2023-01-01",
+      "status_checked_on": "2026-11-18",
+      "scope": "Transmission planning criteria for the Indian power system. Includes criteria for considering HVDC bipoles in high-capacity long-distance corridors.",
+      "source_uri": "https://www.cea.nic.in/api/dashboardReports/view-pdf/en/8da5cbc3-88c4-461c-8694-e2a050cc4dbf",
+      "verified_on": "2026-11-18",
+      "jurisdiction_scope": [
+        "India"
+      ],
+      "national_adoption_status": "not_applicable",
+      "adoption_authority_uri": "https://cea.nic.in/",
+      "known_supersession_or_work_item": null,
+      "notes": "India-specific planning manual, not a universal HVDC break-even threshold."
+    }
+  ],
+  "regional_profiles": [
+    {
+      "profile_id": "sapp",
+      "name": "Southern Africa / SAPP",
+      "countries_or_scope": [
+        "South Africa",
+        "Namibia",
+        "Botswana",
+        "Zimbabwe",
+        "Mozambique",
+        "Zambia",
+        "Eswatini",
+        "Lesotho"
+      ],
+      "maturity": "template_unpopulated",
+      "grid_contexts": [
+        "regional interconnectors",
+        "renewable evacuation",
+        "mine and port networks",
+        "rural electrification"
+      ],
+      "hazards_to_assess": [
+        "highveld heat",
+        "Karoo wind",
+        "coastal salt fog",
+        "lightning",
+        "drought and water scarcity",
+        "dolomite/karst",
+        "flood and fire"
+      ],
+      "standards_references": [
+        "STD-IEC-60826-2017",
+        "STD-IEEE-738-2023",
+        "STD-IEC-60840-2020-A1-2023-COR1-2025",
+        "STD-IEC-62067-2022"
+      ],
+      "data_gaps": [
+        [
+          "National adoption, SANS/NRS, grid-code and utility project requirements need country-by-country verification."
+        ],
+        "No local route costs, calibrated hazard distributions or utility as-built datasets are embedded in this template."
+      ],
+      "local_cost_data_status": "unknown"
+    },
+    {
+      "profile_id": "north-america",
+      "name": "North America",
+      "countries_or_scope": [
+        "United States",
+        "Canada",
+        "Mexico"
+      ],
+      "maturity": "template_unpopulated",
+      "grid_contexts": [
+        "large meshed grids",
+        "long radial corridors",
+        "cross-border interconnectors",
+        "offshore wind",
+        "remote communities"
+      ],
+      "hazards_to_assess": [
+        "wildfire",
+        "hurricane",
+        "ice and snow",
+        "extreme cold",
+        "heat",
+        "geomagnetic disturbance",
+        "mountain landslide"
+      ],
+      "standards_references": [
+        "STD-IEEE-738-2023",
+        "STD-IEC-60826-2017",
+        "STD-NERC-TPL-001-5.1"
+      ],
+      "data_gaps": [
+        [
+          "FERC, NERC applicability, provincial/state rules, NESC/ASCE/IEEE adoptions and local grid codes vary."
+        ],
+        "No local route costs, calibrated hazard distributions or utility as-built datasets are embedded in this template."
+      ],
+      "local_cost_data_status": "unknown"
+    },
+    {
+      "profile_id": "europe-uk",
+      "name": "Europe / United Kingdom",
+      "countries_or_scope": [
+        "EU/EEA countries",
+        "United Kingdom",
+        "Switzerland",
+        "Western Balkans"
+      ],
+      "maturity": "template_unpopulated",
+      "grid_contexts": [
+        "cross-border synchronous network",
+        "offshore wind",
+        "urban cable corridors",
+        "multi-terminal HVDC"
+      ],
+      "hazards_to_assess": [
+        "windstorm",
+        "flood",
+        "ice",
+        "wildfire",
+        "salt fog",
+        "land-use/ecology"
+      ],
+      "standards_references": [
+        "STD-IEC-60826-2017",
+        "STD-IEC-60840-2020-A1-2023-COR1-2025",
+        "STD-IEC-62067-2022",
+        "STD-IEC-60071-2-2023"
+      ],
+      "data_gaps": [
+        [
+          "ENTSO-E TYNDP, national TSO plans, EN adoption, national regulator and utility requirements need local profile."
+        ],
+        "No local route costs, calibrated hazard distributions or utility as-built datasets are embedded in this template."
+      ],
+      "local_cost_data_status": "unknown"
+    },
+    {
+      "profile_id": "india-south-asia",
+      "name": "India / South Asia",
+      "countries_or_scope": [
+        "India",
+        "Pakistan",
+        "Bangladesh",
+        "Nepal",
+        "Bhutan",
+        "Sri Lanka"
+      ],
+      "maturity": "template_unpopulated",
+      "grid_contexts": [
+        "UHVAC/HVDC corridors",
+        "hydro evacuation",
+        "urban demand",
+        "cross-border interconnectors",
+        "rural grids"
+      ],
+      "hazards_to_assess": [
+        "monsoon",
+        "cyclone",
+        "extreme heat",
+        "high altitude",
+        "landslide",
+        "flood",
+        "dust"
+      ],
+      "standards_references": [
+        "STD-CEA-TRANSMISSION-PLANNING-2023",
+        "STD-IEC-60071-2-2023",
+        "STD-IEC-62067-2022"
+      ],
+      "data_gaps": [
+        [
+          "CEA manual applies to India; BIS adoptions, neighbouring national codes and utility requirements need separate verification."
+        ],
+        "No local route costs, calibrated hazard distributions or utility as-built datasets are embedded in this template."
+      ],
+      "local_cost_data_status": "unknown"
+    },
+    {
+      "profile_id": "east-asia",
+      "name": "East Asia",
+      "countries_or_scope": [
+        "China",
+        "Japan",
+        "South Korea",
+        "Taiwan"
+      ],
+      "maturity": "template_unpopulated",
+      "grid_contexts": [
+        "UHVDC/UHVAC",
+        "dense urban networks",
+        "island grids",
+        "offshore wind"
+      ],
+      "hazards_to_assess": [
+        "earthquake",
+        "tsunami",
+        "typhoon",
+        "salt fog",
+        "heat",
+        "landslide"
+      ],
+      "standards_references": [
+        "STD-IEC-60826-2017",
+        "STD-IEC-62067-2022",
+        "STD-IEC-60071-11-2022"
+      ],
+      "data_gaps": [
+        [
+          "Separate Chinese, Japanese, Korean and Taiwan standards, grid codes and utility practices; none are inferred from IEC membership."
+        ],
+        "No local route costs, calibrated hazard distributions or utility as-built datasets are embedded in this template."
+      ],
+      "local_cost_data_status": "unknown"
+    },
+    {
+      "profile_id": "latin-america",
+      "name": "Latin America",
+      "countries_or_scope": [
+        "Brazil",
+        "Chile",
+        "Argentina",
+        "Peru",
+        "Colombia",
+        "Ecuador",
+        "Uruguay",
+        "Paraguay"
+      ],
+      "maturity": "template_unpopulated",
+      "grid_contexts": [
+        "long radial corridors",
+        "hydropower",
+        "mining",
+        "interconnectors",
+        "remote load"
+      ],
+      "hazards_to_assess": [
+        "Andes altitude",
+        "earthquake",
+        "volcano",
+        "Amazon biodiversity",
+        "tropical storm",
+        "flood",
+        "drought"
+      ],
+      "standards_references": [
+        "STD-IEC-60826-2017",
+        "STD-IEC-60071-2-2023",
+        "STD-IEC-62067-2022"
+      ],
+      "data_gaps": [
+        [
+          "National ANEEL/CNE/OSINERGMIN and other regulator, standards-body, utility and environmental rules require review by country."
+        ],
+        "No local route costs, calibrated hazard distributions or utility as-built datasets are embedded in this template."
+      ],
+      "local_cost_data_status": "unknown"
+    },
+    {
+      "profile_id": "mena",
+      "name": "Middle East / North Africa",
+      "countries_or_scope": [
+        "Saudi Arabia",
+        "UAE",
+        "Oman",
+        "Qatar",
+        "Kuwait",
+        "Bahrain",
+        "Egypt",
+        "Morocco",
+        "Algeria",
+        "Tunisia"
+      ],
+      "maturity": "template_unpopulated",
+      "grid_contexts": [
+        "desert solar",
+        "interconnectors",
+        "industrial clusters",
+        "hydrogen/ammonia export",
+        "coastal loads"
+      ],
+      "hazards_to_assess": [
+        "extreme heat",
+        "sand abrasion",
+        "dust pollution",
+        "salt fog",
+        "water scarcity",
+        "flash flood"
+      ],
+      "standards_references": [
+        "STD-IEC-60826-2017",
+        "STD-IEEE-738-2023",
+        "STD-ASME-B31-12-2023",
+        "STD-ISO-14687-2025"
+      ],
+      "data_gaps": [
+        [
+          "National utility, GCC/Arab regional and pressure-system code adoptions require country-specific verification."
+        ],
+        "No local route costs, calibrated hazard distributions or utility as-built datasets are embedded in this template."
+      ],
+      "local_cost_data_status": "unknown"
+    },
+    {
+      "profile_id": "ssa-other",
+      "name": "Sub-Saharan Africa beyond SAPP",
+      "countries_or_scope": [
+        "West Africa",
+        "East Africa",
+        "Central Africa"
+      ],
+      "maturity": "template_unpopulated",
+      "grid_contexts": [
+        "regional power pools",
+        "hydro/solar",
+        "rural mini-grids",
+        "long interconnectors",
+        "islanded systems"
+      ],
+      "hazards_to_assess": [
+        "tropical storm",
+        "heat",
+        "lightning",
+        "flood",
+        "corrosion",
+        "drought",
+        "remote access"
+      ],
+      "standards_references": [
+        "STD-IEC-60826-2017",
+        "STD-IEEE-738-2023",
+        "STD-IEC-62067-2022"
+      ],
+      "data_gaps": [
+        [
+          "ECOWAS WAPP, EAPP, CAPP, national utilities and regulator rules; country-by-country adoption and financing remain open."
+        ],
+        "No local route costs, calibrated hazard distributions or utility as-built datasets are embedded in this template."
+      ],
+      "local_cost_data_status": "unknown"
+    },
+    {
+      "profile_id": "oceania-pacific",
+      "name": "Oceania / Pacific Islands",
+      "countries_or_scope": [
+        "Australia",
+        "New Zealand",
+        "Papua New Guinea",
+        "Pacific island states"
+      ],
+      "maturity": "template_unpopulated",
+      "grid_contexts": [
+        "long-distance networks",
+        "remote grids",
+        "islands",
+        "subsea links",
+        "microgrids"
+      ],
+      "hazards_to_assess": [
+        "bushfire",
+        "cyclone",
+        "salt fog",
+        "flood",
+        "heat",
+        "seismic/volcanic",
+        "remote repair"
+      ],
+      "standards_references": [
+        "STD-IEEE-738-2023",
+        "STD-IEC-60826-2017",
+        "STD-IEC-62067-2022"
+      ],
+      "data_gaps": [
+        [
+          "Australia, New Zealand and island state standards and interconnection codes are separate; local adoption unknown."
+        ],
+        "No local route costs, calibrated hazard distributions or utility as-built datasets are embedded in this template."
+      ],
+      "local_cost_data_status": "unknown"
+    },
+    {
+      "profile_id": "arctic-high-latitude",
+      "name": "Arctic / High Latitude",
+      "countries_or_scope": [
+        "Northern Canada",
+        "Alaska",
+        "Nordic Arctic regions",
+        "Greenland"
+      ],
+      "maturity": "template_unpopulated",
+      "grid_contexts": [
+        "remote radial networks",
+        "industrial/mining corridors",
+        "interties",
+        "microgrids"
+      ],
+      "hazards_to_assess": [
+        "permafrost",
+        "extreme cold",
+        "ice loading",
+        "geomagnetic disturbance",
+        "freeze-thaw",
+        "remote logistics"
+      ],
+      "standards_references": [
+        "STD-IEC-60826-2017",
+        "STD-IEEE-738-2023",
+        "STD-IEC-60071-2-2023"
+      ],
+      "data_gaps": [
+        [
+          "National/local low-temperature, foundation, environmental and grid requirements need regional specialist review."
+        ],
+        "No local route costs, calibrated hazard distributions or utility as-built datasets are embedded in this template."
+      ],
+      "local_cost_data_status": "unknown"
+    }
+  ],
+  "claim_boundary": "Initial metadata snapshot for research routing only. This register is not a standards interpretation, compliance opinion, legal adoption check or engineering approval. Confirm the latest edition, national adoption and project applicability with the relevant standards body, regulator, utility and qualified professionals before design or procurement."
+}
