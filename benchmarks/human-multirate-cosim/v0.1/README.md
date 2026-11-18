@@ -155,3 +155,11 @@ The active-input runner now enumerates a deterministic finite grid over:
 Every candidate gets a stable profile ID. Feasible profiles are scored; over-amplitude and over-energy candidates are retained as explicit rejection rows. On this frozen fixture, the finite grid contains 30 feasible profiles and 6 rejected profiles. The best worst-case pairwise Gaussian KL score is approximately 0.334498 for a unit-amplitude, 0.5-duration pulse at node 0 or node 2.
 
 This is exact enumeration of a small, preregistered pulse family. It is not the continuous-control optimum and does not imply that the best discrete candidate is globally optimal. A future comparison should use the low-dimensional Pontryagin/optimal-control formulation from the cited model-discrimination literature and report the continuous-vs-grid optimality gap.
+
+## Nuisance-profiled model-family discrimination
+
+The `robust_discrimination` module groups fixed-parameter graph variants into declared structural model families and computes the least-favourable equal-covariance Gaussian KL separation over every cross-family variant pair. Within-family variant pairs are excluded from the structural-family objective and remain visible in the base experiment score.
+
+The frozen negative control deliberately puts a zero-bypass-conductance variant inside the bypass family. This variant reproduces the chain model exactly. Therefore a fixed nominal chain-vs-positive-bypass pulse score can be about 0.334498 while the family-level worst-case separation is zero. Correct disposition: the candidate family sets overlap under their declared parameter bounds; do not claim structural identification.
+
+This is an exact finite-grid nuisance-profile reference. It is not continuous profile likelihood: no likelihood optimizer, interval threshold, posterior, or Pontryagin control solver is implemented. The model-family map and every variant remain explicit and digested. Work is tracked in [HUMAN-NESTED-ROBUST-DISCRIMINATION-001 / #5995](https://github.com/Luminous-Dynamics/symtropy/issues/5995).
