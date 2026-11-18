@@ -118,7 +118,8 @@ All arms must use the same source split, empirical event distribution where appl
 3. Turn-angle distributions conditioned on preceding run-displacement direction and active-motor evidence class.
 4. Up-gradient run fraction after short versus long duration bins, reported independently of mechanism.
 5. Mechanism-by-duration overlap matrix, only where mechanism evidence is independently available.
-6. First circular Fourier harmonic magnitude and phase of realized run-displacement orientations.
+6. Duration-as-mechanism diagnostic (sensitivity, specificity, PPV, NPV, balanced accuracy), evaluated only on DIRECTLY_OBSERVED or MODEL_LATENT ground-truth events; algorithm-inferred/unresolved/exact-boundary cases remain excluded.
+7. First circular Fourier harmonic magnitude and phase of realized run-displacement orientations.
 7. Mean-squared displacement as a function of lag time.
 8. Chemotactic drift velocity and projected displacement.
 9. Sensitivity to agar fraction, pore-size/free-path distribution and mutant condition.
