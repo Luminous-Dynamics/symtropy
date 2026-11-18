@@ -1491,6 +1491,10 @@ fn validate_food_flows(
                         "terminal edible/loss destination references must be unique",
                     );
                 }
+                task_output_origins
+                    .entry(producer.clone())
+                    .or_default()
+                    .extend(output.ingredient_origins.iter().cloned());
                 output_use_counts
                     .entry((producer.clone(), output_ref.clone()))
                     .and_modify(|count| *count += 1)
@@ -2253,7 +2257,7 @@ mod tests {
     #[test]
     fn incomplete_raw_material_allocation_is_indeterminate() {
         let mut request = valid_request();
-        request.food_flow_edges.retain(|edge| edge.edge_id != "edge:raw-onion-trim-loss");
+        request.food_flow_edges.retain(|edge| edge.edge_id != "edge:raw-onion-to-chop");
         let report = compile_meal(&request);
         assert_eq!(report.disposition, MealCompilationDispositionV1::Indeterminate);
         assert!(report.issues.iter().any(|issue| {
