@@ -29,11 +29,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!(
             "policy,{},{},selected_experiment,{},decision_without_measurement={}",
             policy.as_str(),
-            report
-                .policy_outcome
-                .selected_experiment_id
-                .as_deref()
-                .unwrap_or("none"),
+            "policy_selection",
             report
                 .policy_outcome
                 .selected_experiment_id
@@ -78,6 +74,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 policy.as_str(),
                 metrics.experiment_id,
                 metrics.mutual_information_bits
+            );
+            println!(
+                "experiment,{},{},cost,{:.8},",
+                policy.as_str(),
+                metrics.experiment_id,
+                metrics.cost
+            );
+            println!(
+                "experiment,{},{},baseline_expected_value,{:.8},",
+                policy.as_str(),
+                metrics.experiment_id,
+                metrics.baseline_expected_value
+            );
+            println!(
+                "experiment,{},{},expected_value_after_observation,{:.8},",
+                policy.as_str(),
+                metrics.experiment_id,
+                metrics.expected_value_after_observation
             );
             println!(
                 "experiment,{},{},expected_value_improvement,{:.8},",
