@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/shipyard-preflight-report-v0.1.schema.json",
+  "title": "Shipyard Lift Preflight Report V0.1",
+  "description": "Canonical verifier output; ready_for_human_review is not a lift permit or safety approval.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "disposition",
+    "design_load_upper_mn",
+    "leg_assessments",
+    "diagnostics"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "shipyard-lift-envelope-v0.1"
+    },
+    "disposition": {
+      "enum": [
+        "ready_for_human_review",
+        "rejected",
+        "indeterminate"
+      ]
+    },
+    "design_load_upper_mn": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "leg_assessments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "leg_id",
+          "tension_upper_mn",
+          "working_load_limit_mn",
+          "within_working_load_limit"
+        ],
+        "properties": {
+          "leg_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "tension_upper_mn": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "working_load_limit_mn": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "within_working_load_limit": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "severity",
+          "subject_id",
+          "detail"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "severity": {
+            "enum": [
+              "rejected",
+              "indeterminate"
+            ]
+          },
+          "subject_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
