@@ -1275,6 +1275,54 @@ pub enum InvalidationEvent {
     },
 }
 
+impl InvalidationEvent {
+    /// Canonical JSON payload for source/event transport.
+    pub fn canonical_json(&self) -> String {
+        match self {
+            Self::EvidenceStateChanged {
+                source_record_id,
+                new_state,
+            } => format!(
+                "{{\"event_type\":\"evidence_state_changed\",\"source_record_id\":{},\"new_state\":{}}}",
+                json_quote(source_record_id),
+                json_quote(evidence_state_name(*new_state)),
+            ),
+            Self::EvidenceDigestChanged {
+                source_record_id,
+                new_sha256,
+            } => format!(
+                "{{\"event_type\":\"evidence_digest_changed\",\"source_record_id\":{},\"new_sha256\":{}}}",
+                json_quote(source_record_id),
+                json_quote(&new_sha256.to_ascii_lowercase()),
+            ),
+            Self::SubjectRevisionChanged {
+                kind,
+                subject_id,
+                new_revision,
+            } => format!(
+                "{{\"event_type\":\"subject_revision_changed\",\"kind\":{},\"subject_id\":{},\"new_revision\":{}}}",
+                json_quote(subject_kind_name(*kind)),
+                json_quote(subject_id),
+                json_quote(new_revision),
+            ),
+            Self::OperatingWindowChanged {
+                new_start_tick,
+                new_end_tick,
+            } => format!(
+                "{{\"event_type\":\"operating_window_changed\",\"new_start_tick\":{},\"new_end_tick\":{}}}",
+                new_start_tick,
+                new_end_tick,
+            ),
+            Self::ClockDomainChanged {
+                new_clock_domain_id,
+            } => format!(
+                "{{\"event_type\":\"clock_domain_changed\",\"new_clock_domain_id\":{}}}",
+                json_quote(new_clock_domain_id),
+            ),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InvalidationReason {
     EvidenceStateChanged,
@@ -2156,7 +2204,12 @@ mod tests {
     }
 
     #[test]
-    fn receipt_canonical_json_contains_sorted_evidence_and_subject_dependencies() {
+    fn receipt_canonical_json_contains_sorted_evidence_and_subject_dependencies() {        let event = InvalidationEvent::EvidenceStateChanged {
+            source_record_id: "mass-record-001".to_owned(),
+            new_state: EvidenceState::Revoked,
+        };
+        assert!(event.canonical_json().contains(r#""event_type":"evidence_state_changed""#));
+
         let plan = baseline();
         let receipt = synthetic_receipt(&plan);
         let json = receipt.canonical_json();
