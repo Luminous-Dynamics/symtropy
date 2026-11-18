@@ -54,7 +54,10 @@
         "clearance_policy",
         "material_lot",
         "work_package_schedule",
-        "authority_policy"
+        "authority_policy",
+        "inspection_specification",
+        "metrology_reference",
+        "site_ledger_state"
       ]
     },
     "dependency_key": {
@@ -304,7 +307,851 @@
             "$ref": "#/$defs/dependency_domain"
           }
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "artifact_kind": {
+                "const": "ifc_ids_preflight"
+              }
+            },
+            "required": [
+              "artifact_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "required_domains": {
+                "allOf": [
+                  {
+                    "contains": {
+                      "const": "source_model"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "ifc_schema"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "ids_specification"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "ids_engine_build"
+                    },
+                    "minContains": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "artifact_kind": {
+                "const": "design_work_package"
+              }
+            },
+            "required": [
+              "artifact_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "required_domains": {
+                "allOf": [
+                  {
+                    "contains": {
+                      "const": "source_model"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "ifc_schema"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "ids_specification"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "design_revision"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "coordinate_frame"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "coordinate_transform"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "acceptance_profile"
+                    },
+                    "minContains": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "artifact_kind": {
+                "const": "station_qualification"
+              }
+            },
+            "required": [
+              "artifact_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "required_domains": {
+                "allOf": [
+                  {
+                    "contains": {
+                      "const": "coordinate_frame"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "coordinate_transform"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "survey_control"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "station_calibration"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "site_clock_map"
+                    },
+                    "minContains": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "artifact_kind": {
+                "const": "material_readiness"
+              }
+            },
+            "required": [
+              "artifact_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "required_domains": {
+                "allOf": [
+                  {
+                    "contains": {
+                      "const": "material_lot"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "design_revision"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "work_package_schedule"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "authority_policy"
+                    },
+                    "minContains": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "artifact_kind": {
+                "const": "production_task"
+              }
+            },
+            "required": [
+              "artifact_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "required_domains": {
+                "allOf": [
+                  {
+                    "contains": {
+                      "const": "design_revision"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "coordinate_frame"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "coordinate_transform"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "work_package_schedule"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "material_lot"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "authority_policy"
+                    },
+                    "minContains": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "artifact_kind": {
+                "const": "robot_trajectory"
+              }
+            },
+            "required": [
+              "artifact_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "required_domains": {
+                "allOf": [
+                  {
+                    "contains": {
+                      "const": "design_revision"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "entity_geometry"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "coordinate_frame"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "coordinate_transform"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "robot_configuration"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "tool_configuration"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "payload_configuration"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "trajectory_configuration"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "site_clock_map"
+                    },
+                    "minContains": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "artifact_kind": {
+                "const": "motion_envelope"
+              }
+            },
+            "required": [
+              "artifact_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "required_domains": {
+                "allOf": [
+                  {
+                    "contains": {
+                      "const": "design_revision"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "entity_geometry"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "coordinate_frame"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "coordinate_transform"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "robot_configuration"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "tool_configuration"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "payload_configuration"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "trajectory_configuration"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "site_clock_map"
+                    },
+                    "minContains": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "artifact_kind": {
+                "const": "space_time_occupancy_assessment"
+              }
+            },
+            "required": [
+              "artifact_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "required_domains": {
+                "allOf": [
+                  {
+                    "contains": {
+                      "const": "coordinate_frame"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "coordinate_transform"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "obstacle_map"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "dynamic_actor_manifest"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "site_clock_map"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "occupancy_engine_build"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "clearance_policy"
+                    },
+                    "minContains": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "artifact_kind": {
+                "const": "dispatch_readiness"
+              }
+            },
+            "required": [
+              "artifact_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "required_domains": {
+                "allOf": [
+                  {
+                    "contains": {
+                      "const": "design_revision"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "coordinate_frame"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "coordinate_transform"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "robot_configuration"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "tool_configuration"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "payload_configuration"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "trajectory_configuration"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "obstacle_map"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "dynamic_actor_manifest"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "site_clock_map"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "occupancy_engine_build"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "clearance_policy"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "site_ledger_state"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "work_package_schedule"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "authority_policy"
+                    },
+                    "minContains": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "artifact_kind": {
+                "const": "inspection_plan"
+              }
+            },
+            "required": [
+              "artifact_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "required_domains": {
+                "allOf": [
+                  {
+                    "contains": {
+                      "const": "design_revision"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "entity_geometry"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "coordinate_frame"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "coordinate_transform"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "acceptance_profile"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "inspection_specification"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "authority_policy"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "work_package_schedule"
+                    },
+                    "minContains": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "artifact_kind": {
+                "const": "as_built_measurement"
+              }
+            },
+            "required": [
+              "artifact_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "required_domains": {
+                "allOf": [
+                  {
+                    "contains": {
+                      "const": "design_revision"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "entity_geometry"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "coordinate_frame"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "coordinate_transform"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "survey_control"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "station_calibration"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "metrology_reference"
+                    },
+                    "minContains": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "artifact_kind": {
+                "const": "accepted_construction_record"
+              }
+            },
+            "required": [
+              "artifact_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "required_domains": {
+                "allOf": [
+                  {
+                    "contains": {
+                      "const": "design_revision"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "entity_geometry"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "coordinate_frame"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "coordinate_transform"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "acceptance_profile"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "metrology_reference"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "material_lot"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "authority_policy"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "site_ledger_state"
+                    },
+                    "minContains": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "artifact_kind": {
+                "const": "handover_record"
+              }
+            },
+            "required": [
+              "artifact_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "required_domains": {
+                "allOf": [
+                  {
+                    "contains": {
+                      "const": "source_model"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "design_revision"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "acceptance_profile"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "inspection_specification"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "metrology_reference"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "authority_policy"
+                    },
+                    "minContains": 1
+                  },
+                  {
+                    "contains": {
+                      "const": "site_ledger_state"
+                    },
+                    "minContains": 1
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
     },
     "dependency_contract_set": {
       "type": "object",
