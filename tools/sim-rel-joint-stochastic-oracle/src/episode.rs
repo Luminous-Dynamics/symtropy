@@ -67,6 +67,8 @@ pub struct PublicActionDescription {
     pub description: String,
     /// Declared target of the intervention, e.g. sensor, process, or observation.
     pub target: String,
+    /// Public cost used by policies and included in the canonical profile digest.
+    pub cost_units: u64,
 }
 
 /// Public meaning of one categorical observation returned by the model.
@@ -205,6 +207,7 @@ impl EpisodeManifest {
             if action.action_id.trim().is_empty()
                 || action.description.trim().is_empty()
                 || action.target.trim().is_empty()
+                || action.cost_units == 0
                 || action.description.len() > 2048
                 || !action_ids.insert(action.action_id.as_str())
             {
@@ -245,6 +248,11 @@ impl EpisodeManifest {
             .iter()
             .map(|item| item.action_id.as_str())
             .collect();
+        let action_costs: Vec<u64> = profile
+            .actions
+            .iter()
+            .map(|item| item.cost_units)
+            .collect();
         let observation_ids: Vec<&str> = profile
             .observations
             .iter()
@@ -261,6 +269,7 @@ impl EpisodeManifest {
                 .iter()
                 .zip(&kernel.action_ids)
                 .any(|(public, owner)| *public != owner.as_str())
+            || action_costs != kernel.action_costs
             || observation_ids.len() != kernel.observation_ids.len()
             || observation_ids
                 .iter()
@@ -1323,7 +1332,8 @@ mod tests {
         let actions = kernel
             .action_ids
             .iter()
-            .map(|id| {
+            .zip(&kernel.action_costs)
+            .map(|(id, cost_units)| {
                 let (description, target) = match id.as_str() {
                     "measure-combined-signal" => (
                         "Measure the combined categorical signal through the current sensor state.",
@@ -1351,6 +1361,7 @@ mod tests {
                     action_id: id.clone(),
                     description: description.to_owned(),
                     target: target.to_owned(),
+                    cost_units: *cost_units,
                 }
             })
             .collect();
