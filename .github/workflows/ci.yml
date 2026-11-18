@@ -74,6 +74,15 @@ jobs:
       if: runner.os == 'Linux'
       run: bash scripts/check-licenses.sh
 
+    # The kitchen benchmark is a draft, not a results feed. Validate its typed
+    # manifest, cross-references, preregistration state and evidence boundaries
+    # whenever its fail-closed validator is present on the PR head.
+    - name: Validate Kitchen Workcell Benchmark manifest (draft-only)
+      if: ${{ runner.os == 'Linux' && hashFiles('tools/validate_kitchen_workcell_manifest.py') != '' }}
+      run: |
+        python3 -m pip install --disable-pip-version-check --no-input -r tools/requirements-kitchen-benchmark.txt
+        python3 tools/validate_kitchen_workcell_manifest.py
+
     - name: Run Clippy
       run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
