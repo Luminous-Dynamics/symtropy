@@ -197,16 +197,24 @@ fn measure_case(
 
     // Warm up the exact input before timing.
     black_box(
-        compile_change_impact(black_box(graph), black_box(change_set))
-            .expect("warm-up graph and change set must be valid"),
+        compile_change_impact_with_contract(
+            black_box(graph),
+            black_box(contracts),
+            black_box(change_set),
+        )
+        .expect("warm-up graph, contract and change set must be valid"),
     );
 
     let mut durations = Vec::with_capacity(SAMPLES);
     let mut invalidated_counts = Vec::with_capacity(SAMPLES);
     for _ in 0..SAMPLES {
         let start = Instant::now();
-        let report = compile_change_impact(black_box(graph), black_box(change_set))
-            .expect("timed graph and change set must be valid");
+        let report = compile_change_impact_with_contract(
+            black_box(graph),
+            black_box(contracts),
+            black_box(change_set),
+        )
+        .expect("timed graph, contract and change set must be valid");
         durations.push(start.elapsed());
         invalidated_counts.push(report.invalidated_artifact_count());
     }
