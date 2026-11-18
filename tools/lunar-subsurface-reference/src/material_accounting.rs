@@ -10,10 +10,7 @@ struct DensityRange {
     maximum_kg_m3: f64,
 }
 
-fn calculate_mass_range(
-    volume_m3: f64,
-    density: DensityRange,
-) -> Result<MassRange, String> {
+fn calculate_mass_range(volume_m3: f64, density: DensityRange) -> Result<MassRange, String> {
     if !volume_m3.is_finite() || volume_m3 <= 0.0 {
         return Err("volume must be finite and positive".to_owned());
     }
@@ -51,13 +48,10 @@ pub(super) fn render_report_json() -> Result<String, String> {
     let single_bore_volume_m3 = 3_000_000.0;
     let twin_bore_overbreak_volume_m3 = 7_200_000.0;
 
-    let highland_single =
-        calculate_mass_range(single_bore_volume_m3, highland_crust)?;
-    let highland_twin =
-        calculate_mass_range(twin_bore_overbreak_volume_m3, highland_crust)?;
+    let highland_single = calculate_mass_range(single_bore_volume_m3, highland_crust)?;
+    let highland_twin = calculate_mass_range(twin_bore_overbreak_volume_m3, highland_crust)?;
     let basin_single = calculate_mass_range(single_bore_volume_m3, basin_ejecta)?;
-    let basin_twin =
-        calculate_mass_range(twin_bore_overbreak_volume_m3, basin_ejecta)?;
+    let basin_twin = calculate_mass_range(twin_bore_overbreak_volume_m3, basin_ejecta)?;
 
     let mut report = String::new();
     report.push_str(
