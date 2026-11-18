@@ -763,6 +763,32 @@
       ],
       "safety_boundary": "Cleaning completion or UI status is not sanitation/allergen clearance. Unknown or unqualified surface state holds the next incompatible task; no process may bypass appliance-local safety or use unqualified chemical/UV/heat treatment.",
       "control_condition": "Compare manufacturer-declared cleanability, manual baseline and modular workcell design on identical soil, surface, cleaning method and assay protocols; include blinded assays, known positives/negatives and failed controls."
+    },
+    {
+      "task_id": "regional-product-conformity-dossier",
+      "domain": "safety",
+      "operation": "build exact-unit, revision-bound South African regulatory and conformity dossiers for appliance comparators and kitchen workcell modules",
+      "input_manifest_required": [
+        "exact physical type plate and model/SKU identity",
+        "hardware/firmware and regional revision",
+        "intended use and product category",
+        "South African market/import route",
+        "applicable NRCS compulsory specification and LOA scope decision",
+        "applicable SANS/IEC standard and edition",
+        "external test report and laboratory accreditation scope",
+        "food-contact material and hygienic-design evidence",
+        "energy efficiency/legal metrology applicability where relevant",
+        "local importer/warranty/service and prototype deviation records"
+      ],
+      "primary_metrics": [
+        "regional_typeplate_identity_completeness",
+        "regional_regulatory_applicability_review_coverage",
+        "regional_loa_evidence_coverage",
+        "regional_test_report_scope_match_rate",
+        "regional_revision_change_review_coverage"
+      ],
+      "safety_boundary": "The evaluator records evidence and scope only. It does not issue LOAs, certificates, test reports or market authorization. A missing, stale or mismatched approval cannot be inferred from a retailer listing, foreign certificate or manufacturer marketing claim.",
+      "control_condition": "Compare retailer-listing-only, manufacturer-document-only and complete exact-unit reviewed dossiers on the same appliance/module set; include stale, expired, wrong-region, wrong-revision and wrong-lab-scope negative controls."
     }
   ],
   "metrics": [
@@ -1685,6 +1711,46 @@
       "method": "Count unqualified/unknown surface cases correctly held from scheduling; separately report false holds and missed holds.",
       "evidence_class": "simulated",
       "notes": "Unknown or stale cleanability evidence cannot be assumed safe."
+    },
+    {
+      "metric_id": "regional_typeplate_identity_completeness",
+      "unit": "fraction",
+      "denominator": "all acquired comparator and prototype units included in the South African physical comparison",
+      "method": "Count units with verified exact manufacturer/model/SKU/type-plate, rated electrical values, regional revision and physical identity record bound to the test unit.",
+      "evidence_class": "measured",
+      "notes": "Retail listings or model-family pages do not satisfy exact-unit identity."
+    },
+    {
+      "metric_id": "regional_regulatory_applicability_review_coverage",
+      "unit": "fraction",
+      "denominator": "all exact comparator/module revisions proposed for South African acquisition, testing or market placement",
+      "method": "Count units with a reviewer-signed, source-referenced applicability matrix for product category, relevant VC/SANS/IEC parts, market route and intended use.",
+      "evidence_class": "assayed",
+      "notes": "Applicability review is not itself certification or approval."
+    },
+    {
+      "metric_id": "regional_loa_evidence_coverage",
+      "unit": "fraction",
+      "denominator": "all exact units for which an NRCS Letter of Authority is required by the applicable VC and market route",
+      "method": "Count units with independently verified exact-model/family-scope LOA identity, holder, validity and market-route match.",
+      "evidence_class": "assayed",
+      "notes": "Only count units where LOA applicability is independently determined; unknown applicability stays unknown."
+    },
+    {
+      "metric_id": "regional_test_report_scope_match_rate",
+      "unit": "fraction",
+      "denominator": "all external test reports used to support a product safety/performance/conformity claim",
+      "method": "Count reports whose issuing lab, accreditation scope, standard edition, model/revision, product configuration, intended use and market scope match the claim being made.",
+      "evidence_class": "assayed",
+      "notes": "A test report is not interchangeable with a product approval or LOA."
+    },
+    {
+      "metric_id": "regional_revision_change_review_coverage",
+      "unit": "fraction",
+      "denominator": "all simulated or physical changes to safety-, food-contact-, electrical- or performance-relevant product/module revisions",
+      "method": "Count changes with a documented impact review and invalidation of all dependent qualification/admission receipts until reverified.",
+      "evidence_class": "simulated",
+      "notes": "Relevant changes must not silently inherit older product evidence."
     }
   ],
   "target_hypotheses": [
@@ -2336,6 +2402,48 @@
       "stop_conditions": [
         "standing water or retained moisture is ignored",
         "storage conditions are changed after seeing results"
+      ]
+    },
+    {
+      "hypothesis_id": "H-REGION-TYPEPLATE-100",
+      "metric_id": "regional_typeplate_identity_completeness",
+      "target": "1.000 of units in the physical comparator set have verified exact type-plate identity and rated electrical specification before trials.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "a unit is admitted from a retailer listing alone",
+        "regional SKU/type-plate conflict is unresolved",
+        "a modified prototype is presented as an unmodified comparator"
+      ]
+    },
+    {
+      "hypothesis_id": "H-REGION-APPLICABILITY-100",
+      "metric_id": "regional_regulatory_applicability_review_coverage",
+      "target": "1.000 of exact units proposed for testing or market placement have a reviewer-signed jurisdiction/product-specific applicability decision.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "a generic standard family is asserted without exact product classification",
+        "market approval is inferred from a foreign certificate",
+        "the review source/status is stale or unverified"
+      ]
+    },
+    {
+      "hypothesis_id": "H-REGION-REPORT-SCOPE-100",
+      "metric_id": "regional_test_report_scope_match_rate",
+      "target": "1.000 of external reports used in a conformity claim match exact model/revision/configuration, standard edition, lab accreditation scope and market claim.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any report from a mismatched revision or unaccredited scope supports the claim",
+        "test report is treated as LOA or product certification without evidence"
+      ]
+    },
+    {
+      "hypothesis_id": "H-REGION-CHANGE-100",
+      "metric_id": "regional_revision_change_review_coverage",
+      "target": "1.000 of relevant hardware/firmware/material changes invalidate dependent evidence and receive a documented impact review.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "a relevant change silently inherits previous safety or food-contact qualification",
+        "prototype deviation is not disclosed"
       ]
     }
   ],
