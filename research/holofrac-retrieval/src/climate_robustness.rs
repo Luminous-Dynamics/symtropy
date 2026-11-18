@@ -394,7 +394,8 @@ pub fn evaluate_climate_robustness(
     let universal_frontier = universal_frontier.unwrap_or_default();
 
     let mut candidate_reports = Vec::with_capacity(candidates.len());
-    let mut robust_worst_case_rows = Vec::new();
+    let mut robust_worst_case_rows: Vec<(String, [f64; CLIMATE_CRITERION_COUNT])> =
+        Vec::new();
 
     for candidate in candidates {
         let mut weighted_mean = [0.0_f64; CLIMATE_CRITERION_COUNT];
@@ -438,7 +439,7 @@ pub fn evaluate_climate_robustness(
         }
 
         if guaranteed_feasible {
-            robust_worst_case_rows.push((candidate.candidate_id.as_str(), &worst_case));
+            robust_worst_case_rows.push((candidate.candidate_id.clone(), worst_case));
         }
 
         candidate_reports.push(CandidateRobustnessReport {
@@ -454,7 +455,11 @@ pub fn evaluate_climate_robustness(
         });
     }
 
-    let robust_frontier_candidate_ids = frontier_ids(robust_worst_case_rows);
+    let robust_frontier_candidate_ids = frontier_ids(
+        robust_worst_case_rows
+            .iter()
+            .map(|(candidate_id, outcomes)| (candidate_id.as_str(), outcomes)),
+    );
 
     Ok(ClimateRobustnessReport {
         schema_version: CLIMATE_ROBUSTNESS_SCHEMA_VERSION,
