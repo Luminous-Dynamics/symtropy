@@ -390,6 +390,51 @@
       ],
       "assertion": "Each rigging leg must identify its lifting point and bind lifting-point evidence to the exact block revision.",
       "synthetic_only": true
+    },
+    {
+      "id": "LEV-REC-001",
+      "mode": "metamorphic",
+      "test_name": "preflight_receipt_reuses_only_exact_input_digest_inside_operation_window",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Receipt reuse requires the same canonical input digest, an issuance tick not in the future, and a time strictly before the operation end.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-REC-002",
+      "mode": "metamorphic",
+      "test_name": "referenced_evidence_change_invalidates_receipt_but_unrelated_change_does_not",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "A revocation or digest replacement for a referenced source invalidates the receipt; an unrelated source event does not.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-REC-003",
+      "mode": "metamorphic",
+      "test_name": "configuration_revision_and_operating_clock_changes_invalidate_receipt",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "A crane/rigging subject revision, operating-window change or timebase change invalidates the exact receipt.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-REC-004",
+      "mode": "metamorphic",
+      "test_name": "receipt_constructor_rejects_invalid_hashes_and_mismatched_report",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Receipt construction rejects malformed caller digests and a report not reproduced from the supplied plan.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-REC-005",
+      "mode": "metamorphic",
+      "test_name": "receipt_canonical_json_contains_sorted_evidence_and_subject_dependencies",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Receipt bytes include canonical sorted source-record and versioned-subject dependency lists.",
+      "synthetic_only": true
     }
   ]
 }
