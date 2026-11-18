@@ -1045,6 +1045,393 @@ pub fn evaluate(plan: &LiftPlan) -> PreflightReport {
     }
 }
 
+
+/// Versioned subjects that can invalidate a previously evaluated lift plan.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum SubjectKind {
+    Block,
+    CraneConfiguration,
+    RiggingAssembly,
+    RiggingComponent,
+    LiftingPoint,
+    DynamicFactorProfile,
+    WeatherObservation,
+    WeatherLimitProfile,
+}
+
+/// A source record on which the preflight result depends.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct EvidenceDependency {
+    pub source_record_id: String,
+    pub sha256: String,
+    pub state: EvidenceState,
+    pub subject_id: String,
+    pub subject_revision: String,
+}
+
+impl From<&EvidenceRef> for EvidenceDependency {
+    fn from(value: &EvidenceRef) -> Self {
+        Self {
+            source_record_id: value.source_record_id.clone(),
+            sha256: value.sha256.to_ascii_lowercase(),
+            state: value.state,
+            subject_id: value.subject_id.clone(),
+            subject_revision: value.subject_revision.clone(),
+        }
+    }
+}
+
+/// A versioned asset/configuration dependency not fully described by one evidence record.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SubjectDependency {
+    pub kind: SubjectKind,
+    pub subject_id: String,
+    pub revision: String,
+}
+
+/// The complete dependency closure and operating interval for one preflight input.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PreflightDependencies {
+    pub clock_domain_id: String,
+    pub start_tick: u64,
+    pub end_tick: u64,
+    pub evidence_records: Vec<EvidenceDependency>,
+    pub subjects: Vec<SubjectDependency>,
+}
+
+impl PreflightDependencies {
+    pub fn from_plan(plan: &LiftPlan) -> Self {
+        let mut evidence_records = BTreeSet::new();
+        for evidence in [
+            &plan.mass_evidence,
+            &plan.centre_of_gravity_envelope_evidence,
+            &plan.pick_point_and_load_share_evidence,
+            &plan.dynamic_factor_evidence,
+            &plan.crane_chart.evidence,
+            &plan.weather.observation_evidence,
+            &plan.weather.operating_limit_evidence,
+            &plan.motion.motion_report_evidence,
+            &plan.motion.occupancy_evidence,
+        ] {
+            evidence_records.insert(EvidenceDependency::from(evidence));
+        }
+        for leg in &plan.rigging_legs {
+            evidence_records.insert(EvidenceDependency::from(&leg.load_case_evidence));
+            evidence_records.insert(EvidenceDependency::from(&leg.lifting_point_evidence));
+            evidence_records.insert(EvidenceDependency::from(&leg.wll_evidence));
+        }
+
+        let mut subjects = BTreeSet::new();
+        subjects.insert(SubjectDependency {
+            kind: SubjectKind::Block,
+            subject_id: plan.block_id.clone(),
+            revision: plan.block_revision.clone(),
+        });
+        subjects.insert(SubjectDependency {
+            kind: SubjectKind::CraneConfiguration,
+            subject_id: plan.crane_id.clone(),
+            revision: plan.crane_configuration_revision.clone(),
+        });
+        subjects.insert(SubjectDependency {
+            kind: SubjectKind::RiggingAssembly,
+            subject_id: plan.rigging_assembly_id.clone(),
+            revision: plan.rigging_assembly_revision.clone(),
+        });
+        subjects.insert(SubjectDependency {
+            kind: SubjectKind::DynamicFactorProfile,
+            subject_id: plan.dynamic_factor_profile_id.clone(),
+            revision: plan.dynamic_factor_profile_revision.clone(),
+        });
+        subjects.insert(SubjectDependency {
+            kind: SubjectKind::WeatherObservation,
+            subject_id: plan.weather.observation_subject_id.clone(),
+            revision: plan.weather.observation_subject_revision.clone(),
+        });
+        subjects.insert(SubjectDependency {
+            kind: SubjectKind::WeatherLimitProfile,
+            subject_id: plan.weather.limit_profile_id.clone(),
+            revision: plan.weather.limit_profile_revision.clone(),
+        });
+        for leg in &plan.rigging_legs {
+            subjects.insert(SubjectDependency {
+                kind: SubjectKind::RiggingComponent,
+                subject_id: leg.leg_id.clone(),
+                revision: leg.component_revision.clone(),
+            });
+            subjects.insert(SubjectDependency {
+                kind: SubjectKind::LiftingPoint,
+                subject_id: leg.lifting_point_id.clone(),
+                revision: plan.block_revision.clone(),
+            });
+        }
+
+        Self {
+            clock_domain_id: plan.clock_domain_id.clone(),
+            start_tick: plan.start_tick,
+            end_tick: plan.end_tick,
+            evidence_records: evidence_records.into_iter().collect(),
+            subjects: subjects.into_iter().collect(),
+        }
+    }
+
+    /// Returns the first exact dependency match that requires re-evaluation.
+    pub fn invalidation_for(&self, event: &InvalidationEvent) -> Option<InvalidationMatch> {
+        match event {
+            InvalidationEvent::EvidenceStateChanged {
+                source_record_id,
+                new_state,
+            } => self
+                .evidence_records
+                .iter()
+                .find(|dependency| {
+                    dependency.source_record_id == *source_record_id
+                        && dependency.state != *new_state
+                })
+                .map(|dependency| InvalidationMatch {
+                    reason: InvalidationReason::EvidenceStateChanged,
+                    dependency_id: dependency.source_record_id.clone(),
+                    previous_revision: Some(evidence_state_name(dependency.state).to_owned()),
+                    current_revision: Some(evidence_state_name(*new_state).to_owned()),
+                }),
+            InvalidationEvent::EvidenceDigestChanged {
+                source_record_id,
+                new_sha256,
+            } => self
+                .evidence_records
+                .iter()
+                .find(|dependency| {
+                    dependency.source_record_id == *source_record_id
+                        && !dependency.sha256.eq_ignore_ascii_case(new_sha256)
+                })
+                .map(|dependency| InvalidationMatch {
+                    reason: InvalidationReason::EvidenceDigestChanged,
+                    dependency_id: dependency.source_record_id.clone(),
+                    previous_revision: Some(dependency.sha256.clone()),
+                    current_revision: Some(new_sha256.to_ascii_lowercase()),
+                }),
+            InvalidationEvent::SubjectRevisionChanged {
+                kind,
+                subject_id,
+                new_revision,
+            } => self
+                .subjects
+                .iter()
+                .find(|dependency| {
+                    dependency.kind == *kind
+                        && dependency.subject_id == *subject_id
+                        && dependency.revision != *new_revision
+                })
+                .map(|dependency| InvalidationMatch {
+                    reason: InvalidationReason::SubjectRevisionChanged,
+                    dependency_id: dependency.subject_id.clone(),
+                    previous_revision: Some(dependency.revision.clone()),
+                    current_revision: Some(new_revision.clone()),
+                }),
+            InvalidationEvent::OperatingWindowChanged {
+                new_start_tick,
+                new_end_tick,
+            } if self.start_tick != *new_start_tick || self.end_tick != *new_end_tick => {
+                Some(InvalidationMatch {
+                    reason: InvalidationReason::OperatingWindowChanged,
+                    dependency_id: "lift-operation-window".to_owned(),
+                    previous_revision: Some(format!("[{}, {})", self.start_tick, self.end_tick)),
+                    current_revision: Some(format!("[{}, {})", new_start_tick, new_end_tick)),
+                })
+            }
+            InvalidationEvent::ClockDomainChanged {
+                new_clock_domain_id,
+            } if self.clock_domain_id != *new_clock_domain_id => Some(InvalidationMatch {
+                reason: InvalidationReason::ClockDomainChanged,
+                dependency_id: "lift-clock-domain".to_owned(),
+                previous_revision: Some(self.clock_domain_id.clone()),
+                current_revision: Some(new_clock_domain_id.clone()),
+            }),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum InvalidationEvent {
+    EvidenceStateChanged {
+        source_record_id: String,
+        new_state: EvidenceState,
+    },
+    EvidenceDigestChanged {
+        source_record_id: String,
+        new_sha256: String,
+    },
+    SubjectRevisionChanged {
+        kind: SubjectKind,
+        subject_id: String,
+        new_revision: String,
+    },
+    OperatingWindowChanged {
+        new_start_tick: u64,
+        new_end_tick: u64,
+    },
+    ClockDomainChanged {
+        new_clock_domain_id: String,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InvalidationReason {
+    EvidenceStateChanged,
+    EvidenceDigestChanged,
+    SubjectRevisionChanged,
+    OperatingWindowChanged,
+    ClockDomainChanged,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InvalidationMatch {
+    pub reason: InvalidationReason,
+    pub dependency_id: String,
+    pub previous_revision: Option<String>,
+    pub current_revision: Option<String>,
+}
+
+/// Audit receipt over caller-computed SHA-256 digests and an exact dependency closure.
+///
+/// The standard library does not provide SHA-256. The host must hash the exact
+/// `LiftPlan::canonical_json()` and `PreflightReport::canonical_json()` bytes
+/// and supply those digests. This constructor re-evaluates the plan and checks
+/// report equality, but deliberately does not implement or authenticate hashing.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PreflightReceipt {
+    pub input_sha256: String,
+    pub report_sha256: String,
+    pub evaluator_revision: String,
+    pub issued_at_tick: u64,
+    pub valid_until_tick: u64,
+    pub disposition: Disposition,
+    pub dependencies: PreflightDependencies,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReceiptError {
+    InputDigestInvalid,
+    ReportDigestInvalid,
+    EvaluatorRevisionEmpty,
+    EvaluatedReportDoesNotMatchPlan,
+    ReceiptIssuedAtOrAfterOperationEnd,
+}
+
+impl PreflightReceipt {
+    pub fn from_evaluation(
+        plan: &LiftPlan,
+        report: &PreflightReport,
+        input_sha256: &str,
+        report_sha256: &str,
+        evaluator_revision: &str,
+        issued_at_tick: u64,
+    ) -> Result<Self, ReceiptError> {
+        if !is_sha256(input_sha256) {
+            return Err(ReceiptError::InputDigestInvalid);
+        }
+        if !is_sha256(report_sha256) {
+            return Err(ReceiptError::ReportDigestInvalid);
+        }
+        if !nonblank(evaluator_revision) {
+            return Err(ReceiptError::EvaluatorRevisionEmpty);
+        }
+        if evaluate(plan) != *report {
+            return Err(ReceiptError::EvaluatedReportDoesNotMatchPlan);
+        }
+        if issued_at_tick >= plan.end_tick {
+            return Err(ReceiptError::ReceiptIssuedAtOrAfterOperationEnd);
+        }
+
+        Ok(Self {
+            input_sha256: input_sha256.to_ascii_lowercase(),
+            report_sha256: report_sha256.to_ascii_lowercase(),
+            evaluator_revision: evaluator_revision.to_owned(),
+            issued_at_tick,
+            valid_until_tick: plan.end_tick,
+            disposition: report.disposition,
+            dependencies: PreflightDependencies::from_plan(plan),
+        })
+    }
+
+    /// A receipt is reusable only for the exact canonical input digest and while
+    /// within its declared operation interval. A current digest must be computed
+    /// by the host from the current canonical input bytes.
+    pub fn is_current_for(&self, current_input_sha256: &str, now_tick: u64) -> bool {
+        self.disposition == Disposition::ReadyForHumanReview
+            && is_sha256(current_input_sha256)
+            && self.input_sha256.eq_ignore_ascii_case(current_input_sha256)
+            && now_tick >= self.issued_at_tick
+            && now_tick < self.valid_until_tick
+    }
+
+    pub fn invalidation_for(&self, event: &InvalidationEvent) -> Option<InvalidationMatch> {
+        self.dependencies.invalidation_for(event)
+    }
+
+    /// Canonical JSON for the receipt. Hashes are caller-computed; this method
+    /// serializes them and the sorted dependency closure.
+    pub fn canonical_json(&self) -> String {
+        let evidence = self
+            .dependencies
+            .evidence_records
+            .iter()
+            .map(|dependency| {
+                format!(
+                    "{{\"source_record_id\":{},\"sha256\":{},\"state\":{},\"subject_id\":{},\"subject_revision\":{}}}",
+                    json_quote(&dependency.source_record_id),
+                    json_quote(&dependency.sha256),
+                    json_quote(evidence_state_name(dependency.state)),
+                    json_quote(&dependency.subject_id),
+                    json_quote(&dependency.subject_revision),
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        let subjects = self
+            .dependencies
+            .subjects
+            .iter()
+            .map(|dependency| {
+                format!(
+                    "{{\"kind\":{},\"subject_id\":{},\"revision\":{}}}",
+                    json_quote(subject_kind_name(dependency.kind)),
+                    json_quote(&dependency.subject_id),
+                    json_quote(&dependency.revision),
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        format!(
+            "{{\"receipt_contract_version\":\"shipyard-lift-preflight-receipt-v0\",\"input_sha256\":{},\"report_sha256\":{},\"evaluator_revision\":{},\"issued_at_tick\":{},\"valid_until_tick\":{},\"clock_domain_id\":{},\"disposition\":{},\"operation_start_tick\":{},\"operation_end_tick\":{},\"evidence_dependencies\":[{}],\"subject_dependencies\":[{}]}}",
+            json_quote(&self.input_sha256),
+            json_quote(&self.report_sha256),
+            json_quote(&self.evaluator_revision),
+            self.issued_at_tick,
+            self.valid_until_tick,
+            json_quote(&self.dependencies.clock_domain_id),
+            json_quote(disposition_name(self.disposition)),
+            self.dependencies.start_tick,
+            self.dependencies.end_tick,
+            evidence,
+            subjects,
+        )
+    }
+}
+
+fn subject_kind_name(value: SubjectKind) -> &'static str {
+    match value {
+        SubjectKind::Block => "block",
+        SubjectKind::CraneConfiguration => "crane_configuration",
+        SubjectKind::RiggingAssembly => "rigging_assembly",
+        SubjectKind::RiggingComponent => "rigging_component",
+        SubjectKind::LiftingPoint => "lifting_point",
+        SubjectKind::DynamicFactorProfile => "dynamic_factor_profile",
+        SubjectKind::WeatherObservation => "weather_observation",
+        SubjectKind::WeatherLimitProfile => "weather_limit_profile",
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
