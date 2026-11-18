@@ -1014,7 +1014,10 @@ impl fmt::Display for NoiseCalibrationError {
                 f,
                 "target in-family coverage must be finite and strictly between zero and one"
             ),
-            Self::SeedsMustDiffer => write!(f, "calibration and validation seeds must differ"),
+            Self::SeedsMustDiffer => write!(
+                f,
+                "calibration, validation and evaluator seeds must be pairwise distinct"
+            ),
             Self::IncompatibleHiddenTruth { evaluator_id } => write!(
                 f,
                 "hidden truth {evaluator_id} does not share the declared state basis and horizon"
@@ -1723,7 +1726,12 @@ mod tests {
         assert!(report.validation_in_family_coverage > 0.85);
         assert!(report.out_of_family_rejection_rate > 0.90);
         assert_ne!(report.calibration_seed, report.validation_seed);
-        assert!(report.assumptions.iter().any(|item| item.contains("full space-time covariance")));
+        assert!(
+            report
+                .assumptions
+                .iter()
+                .any(|item| item.contains("full space-time covariance"))
+        );
         assert_eq!(report.out_of_family_false_accepts + report.out_of_family_rejections, 128);
         assert_ne!(report.evaluator_seed, report.validation_seed);
     }
