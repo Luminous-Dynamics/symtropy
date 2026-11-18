@@ -6,7 +6,9 @@ This directory holds a run-level JSON Schema and an intentionally synthetic exam
 
 - `benchmark-run.schema.json`: JSON Schema Draft 2020-12 for one experiment/model-comparison record.
 - `dataset-manifest.schema.json`: JSON Schema for group-disjoint partition assignments and blind-test freeze policy.
-- `examples/synthetic-calibration-run.json`: structurally representative but non-physical run fixture.
+- `examples/synthetic-calibration-run.json`: explicitly synthetic calibration run fixture.
+- `examples/synthetic-validation-run.json`: explicitly synthetic validation run fixture.
+- `examples/synthetic-blind-run.json`: explicitly synthetic blind-test run fixture.
 - `examples/synthetic-dataset-manifest.json`: three-partition, group-isolated synthetic manifest.
 - `examples/synthetic-force-trace.csv`: tiny synthetic force trace referenced by the fixture.
 - `examples/synthetic-model-config.json`: fixture model configuration.
@@ -125,7 +127,17 @@ The credible competitive claim is not “we are already faster than NASA / TBM i
 
 ## CI fixture guard
 
-The Linux CI step parses both schemas and examples, checks artifact and run-ID uniqueness, verifies that the sample run's group keys match the manifest partition maps, requires all four isolation axes and all three partitions, checks blind-test freeze flags, verifies included file SHA-256 digests, and recomputes force-trace peak/mean/impulse/work/displaced-volume arithmetic. This is fixture regression coverage, not a general JSON Schema engine or a validator for arbitrary external datasets.
+The Linux CI step checks the synthetic schemas, all three partition records, unique run IDs, complete run/manifest membership, all four core plus optional lab/campaign axes, blind-test freeze flags, measurement status/provenance, prediction-interval ordering, artifact reference resolution, actual artifact SHA-256 values, and force-trace peak/mean/impulse/work/displaced-volume arithmetic. It runs the reusable `scripts/validate-lunar-excavation-dataset.sh` against the full synthetic dataset.
+
+For a real dataset, invoke the same CLI from the repository root:
+
+```bash
+bash scripts/validate-lunar-excavation-dataset.sh \\
+  path/to/dataset-manifest.json \\
+  path/to/runs/*.json
+```
+
+Artifact paths inside each run record are resolved relative to that run file's directory. The validator requires the supplied run files to match all manifest assignments exactly, and by default rejects placeholder paths. The `--allow-synthetic-placeholders` option is reserved for the committed synthetic CI fixtures. The tool performs semantic and provenance checks; it is not a complete JSON Schema implementation, an independent blind-data custodian, or proof that the measurement values are physically true.
 
 
 ## New published comparators added to the tournament — 18 November 2026
