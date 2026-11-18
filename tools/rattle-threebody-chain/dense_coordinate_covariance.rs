@@ -577,16 +577,8 @@ mod tests {
 
     fn state_from_flat(q: &Vec9, v: &Vec9) -> super::super::State {
         super::super::State {
-            q: [
-                [q[0], q[1], q[2]],
-                [q[3], q[4], q[5]],
-                [q[6], q[7], q[8]],
-            ],
-            v: [
-                [v[0], v[1], v[2]],
-                [v[3], v[4], v[5]],
-                [v[6], v[7], v[8]],
-            ],
+            q: [[q[0], q[1], q[2]], [q[3], q[4], q[5]], [q[6], q[7], q[8]]],
+            v: [[v[0], v[1], v[2]], [v[3], v[4], v[5]], [v[6], v[7], v[8]]],
         }
     }
 
@@ -621,14 +613,8 @@ mod tests {
                     dense_velocity_lambda,
                     residuals,
                 ) = dense_coordinate_rattle_step(
-                        &basis,
-                        &inverse,
-                        masses,
-                        lengths,
-                        &dense_q,
-                        &dense_v,
-                        dt,
-                    );
+                    &basis, &inverse, masses, lengths, &dense_q, &dense_v, dt,
+                );
                 let (reference_q, reference_v) = flatten_state(&reference.after);
 
                 maximum_position_error =
