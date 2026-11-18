@@ -386,21 +386,42 @@ pub fn egb_angular_momentum_flux(
     }
 }
 
-/// Evaluate the time-sector radial first integral implied by
-/// Brihaye et al. (2010), Eq. (2.14):
+/// Evaluate the time-sector radial current appearing in Brihaye et al.
+/// (2010), Eq. (2.14).
 ///
-/// P_t = sqrt(f*h/b) * r^2 * (h*w*w' - b').
+/// The full current includes the Gauss-Bonnet corrections:
+/// P_t(r) = sqrt(f*h/b) * [
+///   r^2*(h*w*w' - b')
+///   + alpha*((f - 4 + h/r^2 + r*f*h'/h)*b'
+///       + (4 - 3*h/r^2 - f)*h*w*w'
+///       + r*f*h*w'^2)
+/// ].
 ///
-/// On an asymptotically flat EGB solution this constant equals 2*U, where
-/// U is the 1/r^2 coefficient of the asymptotic lapse. The identity is a
-/// field-equation consequence, not an additional independent equation.
+/// IMPORTANT: at finite alpha this is NOT a conserved constant. On a full
+/// 5D EGB solution the printed identity gives a source-balance equation.
+/// Its asymptotic limit is 2*U. At alpha=0 it reduces to the Einstein
+/// constant current P_t=2*U.
+///
+/// The current is a diagnostic / sourced identity, not a substitute for
+/// the remaining EGB field equations.
 pub fn time_sector_radial_flux(
     sample: RadialMetricSample5D,
+    alpha: f64,
 ) -> Result<f64, ReferenceError> {
+    if !alpha.is_finite() {
+        return Err(ReferenceError::NonFiniteParameter("alpha"));
+    }
     sample.validate_exterior()?;
-    let value = (sample.f * sample.h / sample.b).sqrt()
-        * sample.radius.powi(2)
-        * (sample.h * sample.w * sample.w_prime - sample.b_prime);
+    let radius_sq = sample.radius.powi(2);
+    let base = radius_sq * (sample.h * sample.w * sample.w_prime - sample.b_prime);
+    let b_prime_coefficient = sample.f - 4.0
+        + sample.h / radius_sq
+        + sample.radius * sample.f * sample.h_prime / sample.h;
+    let ww_prime_coefficient = 4.0 - 3.0 * sample.h / radius_sq - sample.f;
+    let gauss_bonnet = b_prime_coefficient * sample.b_prime
+        + ww_prime_coefficient * sample.h * sample.w * sample.w_prime
+        + sample.radius * sample.f * sample.h * sample.w_prime.powi(2);
+    let value = (sample.f * sample.h / sample.b).sqrt() * (base + alpha * gauss_bonnet);
     if value.is_finite() {
         Ok(value)
     } else {
@@ -408,29 +429,72 @@ pub fn time_sector_radial_flux(
     }
 }
 
-/// Reconstruct b'(r) from the constant time-sector radial flux.
+/// The on-shell source term in the derivative of the time-sector current,
+/// derived by combining Eq. (2.14) with the trace of the 5D EGB equations:
 ///
-/// This is an exploratory reduction only. A certified implementation must
-/// enclose the denominator over the full radial subdomain rather than rely
-/// on this pointwise floating-point positivity check.
-pub fn reconstruct_b_prime_from_time_flux(
+///   dP_t/dr = (alpha/6) * r^2 * sqrt(b*h/f) * L_GB.
+///
+/// The caller must provide the Gauss-Bonnet scalar from an independent
+/// curvature evaluator. This helper only applies the source prefactor.
+pub fn time_sector_current_source(
     sample: RadialMetricSample5D,
-    conserved_flux: f64,
+    alpha: f64,
+    gauss_bonnet_scalar: f64,
 ) -> Result<f64, ReferenceError> {
-    if !conserved_flux.is_finite() {
-        return Err(ReferenceError::NonFiniteParameter("conserved_flux"));
+    if !alpha.is_finite() {
+        return Err(ReferenceError::NonFiniteParameter("alpha"));
+    }
+    if !gauss_bonnet_scalar.is_finite() {
+        return Err(ReferenceError::NonFiniteParameter("gauss_bonnet_scalar"));
     }
     sample.validate_exterior()?;
-    let radial_factor = (sample.f * sample.h / sample.b).sqrt();
-    let denominator = sample.radius.powi(2) * radial_factor;
-    let scale = sample.radius.powi(2).abs() * radial_factor.abs() + 1.0;
-    if !denominator.is_finite() || denominator.abs() <= 64.0 * f64::EPSILON * scale {
+    let value = alpha / 6.0
+        * sample.radius.powi(2)
+        * (sample.b * sample.h / sample.f).sqrt()
+        * gauss_bonnet_scalar;
+    if value.is_finite() {
+        Ok(value)
+    } else {
+        Err(ReferenceError::NonFiniteResult("time_sector_current_source"))
+    }
+}
+
+/// Reconstruct b'(r) from the local value of the full time-sector current
+/// P_t(r), including the alpha-dependent terms in Eq. (2.14).
+///
+/// This is an exploratory pointwise inversion. A certified implementation
+/// must interval-enclose the coefficient of b' away from zero over each
+/// subdomain and independently control the source balance.
+pub fn reconstruct_b_prime_from_time_flux(
+    sample: RadialMetricSample5D,
+    alpha: f64,
+    local_current: f64,
+) -> Result<f64, ReferenceError> {
+    if !alpha.is_finite() {
+        return Err(ReferenceError::NonFiniteParameter("alpha"));
+    }
+    if !local_current.is_finite() {
+        return Err(ReferenceError::NonFiniteParameter("local_current"));
+    }
+    sample.validate_exterior()?;
+    let radius_sq = sample.radius.powi(2);
+    let b_prime_coefficient = sample.f - 4.0
+        + sample.h / radius_sq
+        + sample.radius * sample.f * sample.h_prime / sample.h;
+    let coefficient = -radius_sq + alpha * b_prime_coefficient;
+    let scale = radius_sq.abs() + (alpha * b_prime_coefficient).abs() + 1.0;
+    if coefficient.abs() <= 64.0 * f64::EPSILON * scale {
         return Err(ReferenceError::FluxDenominatorNearZero {
-            denominator,
+            denominator: coefficient,
             scale,
         });
     }
-    let result = sample.h * sample.w * sample.w_prime - conserved_flux / denominator;
+    let ww_prime_coefficient = 4.0 - 3.0 * sample.h / radius_sq - sample.f;
+    let non_b_prime = (radius_sq + alpha * ww_prime_coefficient)
+        * sample.h * sample.w * sample.w_prime
+        + alpha * sample.radius * sample.f * sample.h * sample.w_prime.powi(2);
+    let normalized_current = local_current / (sample.f * sample.h / sample.b).sqrt();
+    let result = (normalized_current - non_b_prime) / coefficient;
     if result.is_finite() {
         Ok(result)
     } else {
@@ -639,15 +703,15 @@ mod tests {
     }
 
     #[test]
-    fn time_sector_first_integral_is_constant_on_exact_mp_solution() {
+    fn time_sector_current_reduces_to_einstein_constant_on_exact_mp_solution() {
         let solution = mp();
         let expected = 2.0 * solution.asymptotic_parameters().u_mass;
         for radius in [1.01, 1.1, 1.5, 2.0, 3.0, 10.0, 100.0] {
             let profile = solution.evaluate(radius).unwrap();
-            let flux = time_sector_radial_flux(sample(profile)).unwrap();
+            let flux = time_sector_radial_flux(sample(profile), 0.0).unwrap();
             close(flux, expected, 3e-12);
             close(
-                reconstruct_b_prime_from_time_flux(sample(profile), expected).unwrap(),
+                reconstruct_b_prime_from_time_flux(sample(profile), 0.0, expected).unwrap(),
                 profile.b_prime,
                 3e-14,
             );
@@ -664,14 +728,31 @@ mod tests {
     }
 
     #[test]
-    fn time_sector_flux_detects_a_mutated_lapse_derivative() {
+    fn time_sector_current_detects_a_mutated_lapse_derivative_in_einstein_limit() {
         let solution = mp();
         let profile = solution.evaluate(2.0).unwrap();
         let mut mutated = sample(profile);
         mutated.b_prime += 0.01;
         let correct = 2.0 * solution.asymptotic_parameters().u_mass;
-        let residual = time_sector_radial_flux(mutated).unwrap() - correct;
+        let residual = time_sector_radial_flux(mutated, 0.0).unwrap() - correct;
         assert!(residual.abs() > 1e-3);
+    }
+
+    #[test]
+    fn time_sector_b_prime_reconstruction_uses_alpha_corrections() {
+        let solution = mp();
+        let expected_current = 2.0 * solution.asymptotic_parameters().u_mass;
+        for radius in [1.1, 1.5, 2.0, 3.0, 10.0] {
+            let profile = solution.evaluate(radius).unwrap();
+            let radial_sample = sample(profile);
+            let reconstructed = reconstruct_b_prime_from_time_flux(
+                radial_sample,
+                0.0,
+                expected_current,
+            )
+            .unwrap();
+            close(reconstructed, profile.b_prime, 3e-14);
+        }
     }
 
     #[test]
