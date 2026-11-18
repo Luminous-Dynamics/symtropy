@@ -3,15 +3,16 @@
 
 //! CPU-first reference models for biological motility research.
 //!
-//! This crate starts with an event-based model for bacterial movement in porous
-//! media. It deliberately separates run-time bias, short reorientation events,
-//! and long mechanical-trap events. It is a research reference, not a validated
-//! flagellar motor or pore-resolved hydrodynamics solver.
+//! This crate provides CPU-first reference models for bacterial movement in
+//! porous media. Physical event mechanism, observed event-duration bin, and
+//! evidence status are distinct model dimensions. It includes explicit
+//! renewal waiting-time laws, right-censor-aware survival estimation, and
+//! finite-window model comparison. It is not a validated flagellar motor,
+//! pore-resolved hydrodynamics, or biological prediction system.
 //!
-//! The event classes are operational: the one-second boundary follows the
-//! analysis convention in Beier et al. (2026). A short event is not, by itself,
-//! proof that a motor mechanism caused it; that interpretation needs source
-//! data and independent biological evidence.
+//! The one-second boundary is an observational analysis convention. It never
+//! assigns a physical mechanism; duration alone cannot prove a motor event or
+//! a passive mechanical trap.
 
 #![forbid(unsafe_code)]
 
@@ -22,7 +23,9 @@ use std::fmt;
 mod renewal;
 pub use renewal::{
     DirectionalWaitingTimes, SurvivalCurve, SurvivalError, SurvivalObservation,
-    SurvivalOutcome, SurvivalPoint, WaitingTimeLaw, WaitingTimeLawError, kaplan_meier,
+    SurvivalOutcome, SurvivalPoint, WaitingTimeCandidate, WaitingTimeCandidateScore,
+    WaitingTimeComparison, WaitingTimeComparisonError, WaitingTimeLaw, WaitingTimeLawError,
+    compare_waiting_time_models, kaplan_meier,
 };
 
 pub const EVENT_CLASS_THRESHOLD_S: f64 = 1.0;
