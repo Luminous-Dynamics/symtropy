@@ -424,11 +424,13 @@ mod tests {
             check_dispatch_readiness(&ledger, &request),
             Err(DispatchReadinessFailure::SiteSnapshotSequenceMismatch)
         );
-        request.occupancy.site_ledger_sequence = ledger.last_sequence();
-        request.occupancy.site_ledger_event_sha256 =
-            ledger.last_event_sha256().unwrap().to_owned();
+
+        // A new occupancy receipt must be created for the changed ledger head.
+        let fresh_request = request(&ledger);
         assert_eq!(
-            check_dispatch_readiness(&ledger, &request).unwrap().site_ledger_sequence,
+            check_dispatch_readiness(&ledger, &fresh_request)
+                .unwrap()
+                .site_ledger_sequence,
             2
         );
     }
@@ -480,7 +482,7 @@ mod tests {
     fn expired_or_cross_clock_assessment_is_not_reused() {
         let ledger = site_ledger();
         let mut request = request(&ledger);
-        request.now_tick = 450;
+        request.now_tick = 550;
         assert_eq!(
             check_dispatch_readiness(&ledger, &request),
             Err(DispatchReadinessFailure::EnvelopeExpired)
@@ -549,6 +551,50 @@ mod tests {
         assert_eq!(
             check_dispatch_readiness(&ledger, &request),
             Err(DispatchReadinessFailure::EntityNotDispatchable)
+        );
+    }
+
+
+    #[test]
+    fn stale_actor_invalid_bounds_and_unmodelled_occupants_are_not_clear() {
+        let ledger = site_ledger();
+        let mut request = request(&ledger);
+        request.occupancy.stale_actor_count = 1;
+        assert!(matches!(
+            check_dispatch_readiness(&ledger, &request),
+            Err(DispatchReadinessFailure::OccupancyNotClear {
+                stale_actors: 1,
+                ..
+            })
+        ));
+        request.occupancy.stale_actor_count = 0;
+        request.occupancy.invalid_bound_count = 1;
+        assert!(matches!(
+            check_dispatch_readiness(&ledger, &request),
+            Err(DispatchReadinessFailure::OccupancyNotClear {
+                invalid_bounds: 1,
+                ..
+            })
+        ));
+        request.occupancy.invalid_bound_count = 0;
+        request.occupancy.unmodelled_occupant_count = 1;
+        assert!(matches!(
+            check_dispatch_readiness(&ledger, &request),
+            Err(DispatchReadinessFailure::OccupancyNotClear {
+                unmodelled_occupants: 1,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn narrowphase_coverage_must_be_complete_even_when_candidate_count_is_zero() {
+        let ledger = site_ledger();
+        let mut request = request(&ledger);
+        request.occupancy.narrowphase_coverage_complete = false;
+        assert_eq!(
+            check_dispatch_readiness(&ledger, &request),
+            Err(DispatchReadinessFailure::IncompleteNarrowphaseCoverage)
         );
     }
 
