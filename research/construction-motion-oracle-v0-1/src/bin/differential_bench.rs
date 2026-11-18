@@ -5,7 +5,7 @@ use construction_motion_oracle::{
     AnalyticPath, DesignIntentEntity, DispatchEnvelopeBinding, DispatchReadinessRequest,
     FieldAcceptanceProfile, FieldLayoutEntityType, OccupancyAssessmentReceipt, SiteActorRole,
     SiteEventEnvelope, SiteEventPayload, SiteStateLedger, SiteWorkPackage, Vec3,
-    chord_collision, check_dispatch_readiness, endpoints_only_collision,
+    check_dispatch_readiness, chord_collision, endpoints_only_collision,
     verify_dispatch_readiness_receipt_current,
 };
 
@@ -126,9 +126,10 @@ fn main() {
     run_site_dispatch_readiness_benchmarks();
 }
 
-
 fn run_site_ledger_append_scaling_benchmarks() {
-    println!("site_ledger_append_scaling,event_count,rounds,total_p50_us,total_p95_us,total_p99_us,ns_per_event_p50,ns_per_event_p95,ns_per_event_p99");
+    println!(
+        "site_ledger_append_scaling,event_count,rounds,total_p50_us,total_p95_us,total_p99_us,ns_per_event_p50,ns_per_event_p95,ns_per_event_p99"
+    );
     for event_count in [100_u64, 1_000, 10_000] {
         let mut round_durations = Vec::with_capacity(31);
         for _round in 0..31 {
@@ -216,7 +217,6 @@ fn run_site_ledger_append_scaling_benchmarks() {
         );
     }
 }
-
 
 fn run_site_dispatch_readiness_benchmarks() {
     let package_sha256 = "a".repeat(64);
