@@ -623,10 +623,16 @@ mod tests {
             transform_sha256: digest('1'),
             entity_manifest_sha256: digest('2'),
             acceptance_profile_sha256: digest('3'),
-            entities: vec![DesignIntentEntity {
-                design_entity_id: "ifc4x3:0000000000000000000001".into(),
-                entity_type: FieldLayoutEntityType::Point,
-            }],
+            entities: vec![
+                DesignIntentEntity {
+                    design_entity_id: "ifc4x3:0000000000000000000001".into(),
+                    entity_type: FieldLayoutEntityType::Point,
+                },
+                DesignIntentEntity {
+                    design_entity_id: "ifc4x3:0000000000000000000002".into(),
+                    entity_type: FieldLayoutEntityType::Point,
+                },
+            ],
             acceptance_profile: FieldAcceptanceProfile {
                 max_abs_xy_residual_mm: 1.0,
                 max_reference_u95_xy_mm: 0.25,
@@ -649,16 +655,23 @@ mod tests {
         ledger
     }
 
-    fn readiness_request(ledger: &SiteStateLedger) -> DispatchReadinessRequest {
+    fn readiness_request(
+        ledger: &SiteStateLedger,
+        robot_id: &str,
+        entity_id: &str,
+        now_tick: u64,
+        snapshot_digest: char,
+        assessment_digest: char,
+    ) -> DispatchReadinessRequest {
         DispatchReadinessRequest {
             schema_version: DISPATCH_READINESS_REQUEST_SCHEMA_VERSION.into(),
             envelope: DispatchEnvelopeBinding {
                 package_sha256: ledger.active_package_sha256().unwrap().to_owned(),
                 design_revision_sha256: digest('e'),
-                entity_id: "ifc4x3:0000000000000000000001".into(),
+                entity_id: entity_id.into(),
                 frame_sha256: digest('f'),
                 transform_sha256: digest('1'),
-                robot_id: "robot-01".into(),
+                robot_id: robot_id.into(),
                 robot_configuration_sha256: digest('5'),
                 tool_configuration_sha256: digest('6'),
                 payload_configuration_sha256: digest('7'),
@@ -666,7 +679,7 @@ mod tests {
                 trajectory_sha256: digest('9'),
                 envelope_sha256: digest('a'),
                 site_clock_domain_id: "site-clock-01".into(),
-                generated_at_tick: 100,
+                generated_at_tick: now_tick.saturating_sub(20),
                 valid_until_tick: 500,
             },
             trusted_occupancy_engine_build_sha256: digest('e'),
@@ -674,7 +687,7 @@ mod tests {
             occupancy: OccupancyAssessmentReceipt {
                 assessed_envelope_sha256: digest('a'),
                 primitive_manifest_sha256: digest('8'),
-                site_snapshot_sha256: digest('b'),
+                site_snapshot_sha256: digest(snapshot_digest),
                 site_ledger_sequence: ledger.last_sequence(),
                 site_ledger_event_sha256: ledger.last_event_sha256().unwrap().to_owned(),
                 dynamic_occupancy_manifest_sha256: digest('c'),
@@ -682,7 +695,7 @@ mod tests {
                 occupancy_engine_build_sha256: digest('e'),
                 clearance_policy_sha256: digest('f'),
                 site_clock_domain_id: "site-clock-01".into(),
-                checked_at_tick: 110,
+                checked_at_tick: now_tick.saturating_sub(10),
                 valid_until_tick: 400,
                 primitive_coverage_complete: true,
                 dynamic_actor_coverage_complete: true,
@@ -696,9 +709,9 @@ mod tests {
                 unqualified_bound_count: 0,
                 stale_actor_count: 0,
                 unmodelled_occupant_count: 0,
-                assessment_receipt_sha256: digest('9'),
+                assessment_receipt_sha256: digest(assessment_digest),
             },
-            now_tick: 120,
+            now_tick,
         }
     }
 
@@ -715,15 +728,28 @@ mod tests {
                 actor_role: SiteActorRole::SiteResourceAuthority,
                 payload: SiteEventPayload::ResourceCatalogPublished {
                     catalog_sha256: digest('6'),
-                    resources: vec![SiteResourceDefinition {
-                        resource_id: "workface-A".into(),
-                        definition_sha256: digest('7'),
-                    }],
+                    resources: vec![
+                        SiteResourceDefinition {
+                            resource_id: "workface-A".into(),
+                            definition_sha256: digest('7'),
+                        },
+                        SiteResourceDefinition {
+                            resource_id: "workface-B".into(),
+                            definition_sha256: digest('8'),
+                        },
+                    ],
                 },
             })
             .unwrap();
 
-        let request = readiness_request(ledger);
+        let request = readiness_request(
+            ledger,
+            "robot-01",
+            "ifc4x3:0000000000000000000001",
+            120,
+            'b',
+            '9',
+        );
         let receipt = check_dispatch_readiness(ledger, &request).unwrap();
         let reservation = crate::site_state_ledger::SpaceTimeReservation {
             reservation_id: "reservation-1".into(),
@@ -795,7 +821,7 @@ mod tests {
             schema_version: RESERVATION_COMMAND_SCHEMA_VERSION.into(),
             reservation_id: "reservation-1".into(),
             fencing_token: reservation.committed_sequence,
-            robot_id: "robot-01".into(),
+            robot_id: readiness.robot_id.clone(),
             attempt_id: "attempt-1".into(),
             package_sha256: readiness.package_sha256.clone(),
             design_revision_sha256: readiness.design_revision_sha256.clone(),
@@ -863,40 +889,87 @@ mod tests {
         let mut ledger = initial_ledger();
         let (readiness, reservation) = commit_one_reservation(&mut ledger);
 
-        let later = SiteEventPayload::SpaceTimeReservationCommitted {
-            reservation: {
-                let mut next = reservation.reservation.clone();
-                next.reservation_id = "reservation-2".into();
-                next.resource_claim_manifest_sha256 = digest('1');
-                next.claims[0].resource_id = "workface-B".into();
-                next.claims[0].definition_sha256 = digest('2');
-                next.resource_catalog_sha256 = digest('3');
-                next
-            },
+        // A second robot obtains a fresh occupancy assessment against the
+        // current ledger, which already contains reservation-1. It reserves a
+        // different exclusive workface under the same engine and policy.
+        let second_request = readiness_request(
+            &ledger,
+            "robot-02",
+            "ifc4x3:0000000000000000000002",
+            125,
+            'c',
+            'd',
+        );
+        let second_readiness = check_dispatch_readiness(&ledger, &second_request).unwrap();
+        let second_reservation = crate::site_state_ledger::SpaceTimeReservation {
+            reservation_id: "reservation-2".into(),
+            resource_catalog_sha256: digest('6'),
+            resource_claim_manifest_sha256: digest('e'),
+            claims: vec![ExclusiveResourceClaim {
+                resource_id: "workface-B".into(),
+                definition_sha256: digest('8'),
+                start_tick: 135,
+                end_tick: 300,
+            }],
+            package_sha256: second_readiness.package_sha256.clone(),
+            design_revision_sha256: second_readiness.design_revision_sha256.clone(),
+            entity_id: second_readiness.entity_id.clone(),
+            robot_id: second_readiness.robot_id.clone(),
+            envelope_sha256: second_readiness.envelope_sha256.clone(),
+            readiness_receipt_sha256: digest('f'),
+            occupancy_assessment_receipt_sha256: second_readiness
+                .occupancy_assessment_receipt_sha256
+                .clone(),
+            occupancy_engine_build_sha256: second_readiness
+                .occupancy_engine_build_sha256
+                .clone(),
+            clearance_policy_sha256: second_readiness.clearance_policy_sha256.clone(),
+            site_snapshot_sha256: second_readiness.site_snapshot_sha256.clone(),
+            site_ledger_sequence: second_readiness.site_ledger_sequence,
+            site_ledger_event_sha256: second_readiness.site_ledger_event_sha256.clone(),
+            site_clock_domain_id: second_readiness.site_clock_domain_id.clone(),
+            checked_at_tick: second_readiness.checked_at_tick,
+            valid_until_tick: second_readiness.valid_until_tick,
+            committed_at_tick: 125,
+            start_tick: 135,
+            end_tick: 300,
+            lease_valid_until_tick: 350,
         };
-        // A distinct resource catalog version would change the site's
-        // reservation namespace; it is not a compatible later event.
-        let incompatible = SiteEventEnvelope {
-            event_id: "later-mixed-policy".into(),
+        let second_commit = SiteEventEnvelope {
+            event_id: "reservation-2-commit".into(),
             sequence: ledger.last_sequence() + 1,
             previous_event_sha256: ledger.last_event_sha256().map(str::to_owned),
-            event_sha256: digest('4'),
+            event_sha256: digest('a'),
             actor_id: "dispatch-coordinator".into(),
             actor_role: SiteActorRole::DispatchCoordinator,
-            payload: later,
+            payload: SiteEventPayload::SpaceTimeReservationCommitted {
+                reservation: second_reservation,
+            },
         };
-        // The ledger itself rejects this fabricated event because its catalog
-        // digest and snapshot do not match. No partial event is appended.
-        assert!(ledger.apply(incompatible).is_err());
+        commit_dispatch_reservation(
+            &mut ledger,
+            &second_readiness,
+            &digest('f'),
+            &digest('e'),
+            &digest('f'),
+            125,
+            second_commit,
+        )
+        .unwrap();
+
+        // The original token remains valid: the later reservation was
+        // checked against a snapshot containing the first reservation, and
+        // it uses the same occupancy engine, policy, package and site clock.
         let request = command_request(&ledger, &readiness, &reservation, "cmd-1", 1);
         assert!(check_reservation_command_current(&ledger, &request).is_ok());
 
-        // A site station change is not in the compatible-event allowlist.
+        // A station/transform change is not in the compatible-event
+        // allowlist, so it invalidates the old command authorization.
         let station = SiteEventEnvelope {
             event_id: "station-after-reservation".into(),
             sequence: ledger.last_sequence() + 1,
             previous_event_sha256: ledger.last_event_sha256().map(str::to_owned),
-            event_sha256: digest('5'),
+            event_sha256: digest('b'),
             actor_id: "surveyor".into(),
             actor_role: SiteActorRole::Surveyor,
             payload: SiteEventPayload::StationQualified {
@@ -911,9 +984,8 @@ mod tests {
         let stale_request = command_request(&ledger, &readiness, &reservation, "cmd-2", 2);
         assert!(matches!(
             check_reservation_command_current(&ledger, &stale_request),
-            Err(ReservationCommandFailure::UnrelatedLedgerMutation(
-                event_id
-            )) if event_id == "station-after-reservation"
+            Err(ReservationCommandFailure::UnrelatedLedgerMutation(event_id))
+                if event_id == "station-after-reservation"
         ));
     }
 
