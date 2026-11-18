@@ -1117,9 +1117,10 @@ mod tests {
             law: &exponential,
         }];
         let comparison =
-            compare_waiting_time_models(&observations, &[0.0, 1.0, 2.0, 3.0], &candidates, Some(3))
+            compare_waiting_time_models(&observations, &[0.0, 3.0], &candidates, Some(3))
                 .expect("valid matched-window comparison");
 
+        assert_eq!(comparison.time_grid_s, vec![0.0, 1.0, 2.0, 3.0]);
         assert_eq!(
             comparison.reference_survival_probabilities,
             vec![1.0, 2.0 / 3.0, 2.0 / 3.0, 0.0]
