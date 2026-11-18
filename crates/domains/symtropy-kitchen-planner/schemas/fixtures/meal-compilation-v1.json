@@ -1,0 +1,132 @@
+{
+  "fixture_bundle_id": "meal-compilation-v1-adversarial",
+  "status": "synthetic_only_unexecuted",
+  "compiler_version": "symtropy-kitchen-meal-compiler-v1",
+  "scenarios": [
+    {
+      "id": "valid-two-step-with-trim-loss",
+      "expected": "compiled",
+      "assert": "two graphs are present; 250 g input is split into 240 g task output and 10 g explicit trim output"
+    },
+    {
+      "id": "proposal-acceptance-revision-mismatch",
+      "expected": "conflicted",
+      "assert": "acceptance for revision n cannot authorize revision n+1"
+    },
+    {
+      "id": "proposal-acceptance-digest-mismatch",
+      "expected": "conflicted",
+      "assert": "acceptance digest must equal exact typed proposal digest"
+    },
+    {
+      "id": "unknown-household-quantity",
+      "expected": "indeterminate",
+      "assert": "unknown quantity remains absent and cannot enter numeric flow"
+    },
+    {
+      "id": "underallocated-ingredient",
+      "expected": "indeterminate",
+      "assert": "every explicit ingredient amount needs task-input or planned-loss allocation"
+    },
+    {
+      "id": "overallocated-ingredient",
+      "expected": "conflicted",
+      "assert": "checked exact allocations may not exceed explicit proposal amount"
+    },
+    {
+      "id": "mass-volume-substitution",
+      "expected": "conflicted",
+      "assert": "no density or dimension inference is allowed"
+    },
+    {
+      "id": "missing-action-ontology",
+      "expected": "indeterminate",
+      "assert": "natural language cannot be mapped to an executable action"
+    },
+    {
+      "id": "action-provenance-mismatch",
+      "expected": "indeterminate",
+      "assert": "ontology mapping provenance must match the explicit action-resolution reference"
+    },
+    {
+      "id": "stale-price-or-availability",
+      "expected": "indeterminate",
+      "assert": "market facts must be valid at explicit compilation as-of time"
+    },
+    {
+      "id": "generic-allergen-fact",
+      "expected": "blocked",
+      "assert": "generic ingredient allergen information cannot become product/lot-scoped declaration"
+    },
+    {
+      "id": "missing-output-lineage",
+      "expected": "blocked",
+      "assert": "every task output must preserve ingredient-origin lineage"
+    },
+    {
+      "id": "duplicate-terminal-output",
+      "expected": "conflicted",
+      "assert": "terminal planned edible/loss destination IDs are unique"
+    },
+    {
+      "id": "task-dependency-mismatch",
+      "expected": "conflicted",
+      "assert": "scheduler dependency ID set equals proposal dependency ID set"
+    },
+    {
+      "id": "unknown-myelix-lot-reference",
+      "expected": "outside_compiler_scope",
+      "assert": "compiler preserves lot reference but does not attest household receipt or availability"
+    },
+    {
+      "id": "appliance-module-assignment-in-proposal",
+      "expected": "schema_rejected",
+      "assert": "Symthaea proposal cannot select an exact appliance module or issue settings"
+    },
+    {
+      "id": "missing-as-of-time-evidence",
+      "expected": "indeterminate",
+      "assert": "freshness comparisons require an explicit clock/as-of evidence reference"
+    },
+    {
+      "id": "generic-ingredient-price",
+      "expected": "blocked",
+      "assert": "a generic ingredient price cannot become an exact SKU/lot market price"
+    },
+    {
+      "id": "decision-reference-retention",
+      "expected": "compiled",
+      "assert": "time source, lot, license, market, source record and revision refs remain in report provenance"
+    },
+    {
+      "id": "task-loss-not-accounted",
+      "expected": "conflicted",
+      "assert": "task input must reconcile to declared ingredient contributions in downstream/edible/planned-loss outputs"
+    },
+    {
+      "id": "output-contribution-does-not-equal-output-quantity",
+      "expected": "conflicted",
+      "assert": "per-ingredient contributions must sum exactly to each typed planned output"
+    },
+    {
+      "id": "dimension-mixing-in-one-output",
+      "expected": "blocked",
+      "assert": "contributions to one output cannot mix mass, volume and count dimensions"
+    }
+  ],
+  "score_policy": {
+    "false_compiled": "hard_failure",
+    "unknown_promoted_to_known": "hard_failure",
+    "evidence_reference_loss": "hard_failure",
+    "side_effect": "hard_failure",
+    "latency": "reported_separately",
+    "compile_rate": "reported_separately"
+  },
+  "target_hypotheses": {
+    "fixture_conformance": 1,
+    "false_compiled_adversarial_10000": 0,
+    "decision_reference_coverage": 1,
+    "deterministic_repeatability": 1,
+    "p95_100_tasks_500_edges_ms": 50
+  }
+}

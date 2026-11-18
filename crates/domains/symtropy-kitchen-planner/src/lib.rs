@@ -28,6 +28,9 @@ pub mod recipe_graph;
 /// Read-only admission between recipe tasks and exact appliance module revisions.
 pub mod capability_admission;
 
+/// Evidence-bounded compiler from accepted meal proposals to action and food-flow graphs.
+pub mod meal_compiler;
+
 pub const KITCHEN_PLAN_SCHEMA_VERSION: u32 = 1;
 pub const KITCHEN_SCHEDULE_SCHEMA_VERSION: u32 = 1;
 pub const GREEDY_SCHEDULER_ID: &str = "stable_topological_earliest_gap_v1";

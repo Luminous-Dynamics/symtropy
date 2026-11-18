@@ -1,0 +1,113 @@
+{
+  "contract_fixture_id": "symthaea-meal-proposal-v1-explicit-user-proposal",
+  "status": "frozen_cross_repository_synthetic_fixture",
+  "source": {
+    "repository": "Luminous-Dynamics/symthaea",
+    "pull_request": 12715,
+    "head_sha": "146c70d73315067efca35cf14c9916d340e7fee7",
+    "schema_path": "crates/domains/symthaea-culinary/schemas/MealProposalV1.schema.json",
+    "schema_id": "https://luminousdynamics.io/schemas/culinary/MealProposalV1.schema.json",
+    "production_source_path": "crates/domains/symthaea-culinary/src/meal_proposal.rs",
+    "schema_blob_sha": "df69f8b120524a74c4fbd9f73badf26984845767",
+    "fixture_bundle_blob_sha": "dfbb25fef5f10822bfa5cb08f5b6ce4b267e6a20"
+  },
+  "expected_wire_contract": "MealProposalV1",
+  "proposal": {
+    "schema_version": 1,
+    "proposal_id": "fixture:meal-proposal-001",
+    "revision": 1,
+    "title": "Rice, vegetables and beans",
+    "source": {
+      "source_ref": "fixture:user-request",
+      "content_digest_sha256": null,
+      "license_ref": "user_authored",
+      "attribution": "User-authored intent",
+      "evidence_class": "user_specified"
+    },
+    "constraints": {
+      "servings": 4,
+      "time_budget_ms": 3600000,
+      "budget_minor_units": 20000,
+      "currency_code": "ZAR",
+      "preferred_cuisine_tags": [
+        "south_african_inspired"
+      ],
+      "user_declared_exclusions": [],
+      "user_declared_preferences": [
+        "mild"
+      ]
+    },
+    "ingredients": [
+      {
+        "ingredient_id": "rice",
+        "display_name": "Brown rice",
+        "quantity_state": "explicit",
+        "quantity": {
+          "dimension": "mass",
+          "value": 300,
+          "decimal_places": 0,
+          "unit": "gram"
+        },
+        "food_state": "raw",
+        "product_lot_ref": null,
+        "fact_refs": []
+      },
+      {
+        "ingredient_id": "beans",
+        "display_name": "Beans",
+        "quantity_state": "unknown",
+        "quantity": null,
+        "food_state": "cooked",
+        "product_lot_ref": null,
+        "fact_refs": []
+      }
+    ],
+    "tasks": [
+      {
+        "task_id": "prepare",
+        "description": "Rinse and prepare the ingredients",
+        "action_label": "prepare",
+        "ingredient_refs": [
+          "rice",
+          "beans"
+        ],
+        "depends_on": [],
+        "estimated_duration_min_ms": 300000,
+        "estimated_duration_max_ms": 600000,
+        "fact_refs": [
+          "fixture:recipe"
+        ]
+      },
+      {
+        "task_id": "cook",
+        "description": "Cook the rice and combine with vegetables",
+        "action_label": "cook",
+        "ingredient_refs": [
+          "rice"
+        ],
+        "depends_on": [
+          "prepare"
+        ],
+        "estimated_duration_min_ms": 900000,
+        "estimated_duration_max_ms": 1500000,
+        "fact_refs": []
+      }
+    ],
+    "facts": [],
+    "uncertainties": [
+      {
+        "field_path": "ingredients.beans.quantity",
+        "reason": "Exact household quantity has not been observed",
+        "impact": "planning_blocker"
+      }
+    ],
+    "review_state": "proposed",
+    "claim_ceiling": "A user-reviewable culinary proposal with scoped source references and explicit uncertainty; not verified household inventory, nutrition/health advice, food-safety approval, equipment compatibility, a schedule, or actuation authority."
+  },
+  "negative_controls": {
+    "household_lot_inference": "forbidden",
+    "appliance_assignment": "absent",
+    "actuator_command": "absent",
+    "unknown_quantity_promotion": "forbidden"
+  }
+}
