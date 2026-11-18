@@ -481,6 +481,27 @@
         },
         "wall_contact_angle_deg": {
           "$ref": "#/$defs/measurement"
+        },
+        "feeder_type": {
+          "enum": [
+            "rotary_pocket",
+            "screw",
+            "vibratory_trough",
+            "gravity_only",
+            "other"
+          ]
+        },
+        "feeder_geometry_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pocket_volume_m3": {
+          "$ref": "#/$defs/measurement"
+        },
+        "feeder_rotational_speed_rpm": {
+          "$ref": "#/$defs/measurement"
         }
       }
     },
@@ -497,7 +518,8 @@
         "target_froude_number",
         "actual_froude_number",
         "vibration_frequency_hz",
-        "vibration_amplitude_m"
+        "vibration_amplitude_m",
+        "vibration_enabled"
       ],
       "properties": {
         "operation_type": {
@@ -563,6 +585,27 @@
             "reconditioned",
             "unknown"
           ]
+        },
+        "feeder_setpoint_rpm": {
+          "$ref": "#/$defs/measurement"
+        },
+        "vibration_enabled": {
+          "type": "boolean"
+        },
+        "vibration_peak_acceleration_m_s2": {
+          "$ref": "#/$defs/measurement"
+        },
+        "vibration_gamma": {
+          "$ref": "#/$defs/measurement"
+        },
+        "vibration_displacement_peak_m": {
+          "$ref": "#/$defs/measurement"
+        },
+        "vibration_displacement_peak_to_peak_m": {
+          "$ref": "#/$defs/measurement"
+        },
+        "vibration_phase_rad": {
+          "$ref": "#/$defs/measurement"
         }
       }
     },
@@ -581,7 +624,12 @@
         "residual_mass_kg",
         "dust_and_fines_mass_kg",
         "energy_input_j",
-        "accepted_target_size_mass_kg"
+        "accepted_target_size_mass_kg",
+        "flow_continuity_status",
+        "flow_interruption_count",
+        "mass_flow_rate_cv",
+        "vibration_energy_j",
+        "agglomerate_fragmentation_fraction"
       ],
       "properties": {
         "raw_observation_artifact_id": {
@@ -670,6 +718,55 @@
             "string",
             "null"
           ]
+        },
+        "flow_continuity_status": {
+          "enum": [
+            "continuous",
+            "reduced",
+            "intermittent",
+            "no_flow",
+            "unknown"
+          ]
+        },
+        "flow_interruption_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "flow_interruption_duration_s": {
+          "$ref": "#/$defs/measurement"
+        },
+        "target_mass_flow_rate_kg_s": {
+          "$ref": "#/$defs/measurement"
+        },
+        "mass_flow_rate_cv": {
+          "$ref": "#/$defs/measurement"
+        },
+        "vibration_energy_j": {
+          "$ref": "#/$defs/measurement"
+        },
+        "vibration_power_w": {
+          "$ref": "#/$defs/measurement"
+        },
+        "agglomerate_fragmentation_fraction": {
+          "$ref": "#/$defs/measurement"
+        },
+        "size_fraction_profile_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "composition_profile_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "out_of_spec_mass_kg": {
+          "$ref": "#/$defs/measurement"
+        },
+        "out_of_spec_duration_s": {
+          "$ref": "#/$defs/measurement"
         }
       }
     },
@@ -805,7 +902,15 @@
             "model_parameters",
             "model_output",
             "segmentation_output",
-            "other"
+            "other",
+            "vibration_waveform",
+            "accelerometer_trace",
+            "feeder_encoder_trace",
+            "load_cell_trace",
+            "size_fraction_profile",
+            "composition_profile",
+            "input_material_characterization",
+            "output_material_characterization"
           ]
         },
         "path": {
