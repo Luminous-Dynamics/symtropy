@@ -494,7 +494,7 @@ pub fn reconcile(
     let mut events_by_channel: BTreeMap<Channel, Vec<TelemetryEvent>> = BTreeMap::new();
     let mut event_ids: BTreeMap<String, TelemetryEvent> = BTreeMap::new();
     let mut seen_evidence: BTreeMap<String, EvidenceRef> = BTreeMap::new();
-    let mut accepted_event_count = 0_usize;
+    let mut verified_event_count = 0_usize;
     let mut sequence_records: BTreeMap<(Channel, String, u64), TelemetryEvent> = BTreeMap::new();
     let mut exact_retransmissions = 0_usize;
 
@@ -619,7 +619,7 @@ pub fn reconcile(
             .entry(event.observation.channel())
             .or_default()
             .push(event.clone());
-        accepted_event_count += 1;
+        // Count after the channel is matched to its source coverage below.
     }
 
     let mut maximum_hook_load = None;
@@ -706,6 +706,7 @@ pub fn reconcile(
             event.source_id == stream.source_id
                 && event.source_revision == stream.source_revision
         });
+        verified_event_count += channel_events.len();
 
         let unique_sequences: BTreeSet<u64> = channel_events.iter().map(|e| e.sequence).collect();
         let expected_sequence_count = stream
@@ -1003,7 +1004,6 @@ pub fn reconcile(
     });
     unknown_intervals.dedup();
 
-    let verified_event_count = accepted_event_count;
     ReconciliationReport {
         contract_version: RECONCILIATION_CONTRACT_VERSION,
         disposition: disposition_for(&diagnostics),
@@ -1175,6 +1175,104 @@ mod tests {
 
     fn has_code(report: &ReconciliationReport, code: &str) -> bool {
         report.diagnostics.iter().any(|d| d.code == code)
+    }
+
+    #[test]
+    fn mismatched_source_cannot_satisfy_attested_sequence_coverage() {
+        let (binding, policy, mut coverage, mut events) = baseline();
+        let stream = coverage
+            .iter_mut()
+            .find(|item| item.channel == Channel::HookLoad)
+            .unwrap();
+        stream.source_id = "replacement-load-cell".to_owned();
+        stream.source_revision = "replacement-r2".to_owned();
+        stream.evidence = evidence("replacement-cal", "replacement-load-cell", "replacement-r2");
+        let report = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "EVENT_SOURCE_MISMATCH"));
+        assert!(has_code(&report, "EVENT_SEQUENCE_GAP"));
+        assert!(report.maximum_hook_load_upper_mn.is_none());
+
+        // Also exercise the reverse direction: an unbound source cannot fill a gap.
+        events.retain(|event| event.observation.channel() != Channel::HookLoad);
+        events.push(event(
+            Channel::HookLoad,
+            0,
+            110,
+            Observation::HookLoad { upper_mn: 100_000_000 },
+        ));
+        let second = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(second.disposition, Disposition::Indeterminate);
+    }
+
+    #[test]
+    fn conflicting_source_evidence_record_identity_is_indeterminate() {
+        let (binding, policy, mut coverage, events) = baseline();
+        let item = coverage
+            .iter_mut()
+            .find(|item| item.channel == Channel::HookLoad)
+            .unwrap();
+        item.evidence.source_record_id = "shared-record".to_owned();
+        let wind = coverage
+            .iter_mut()
+            .find(|item| item.channel == Channel::WindGust)
+            .unwrap();
+        wind.evidence.source_record_id = "shared-record".to_owned();
+        wind.evidence.subject_id = wind.source_id.clone();
+        let report = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "EVIDENCE_ID_CONFLICT"));
+    }
+
+    #[test]
+    fn missing_required_motion_event_is_indeterminate_even_with_complete_empty_stream() {
+        let (binding, policy, mut coverage, mut events) = baseline();
+        events.retain(|event| event.observation.channel() != Channel::MotionEnvelope);
+        coverage
+            .iter_mut()
+            .find(|item| item.channel == Channel::MotionEnvelope)
+            .unwrap()
+            .next_sequence_exclusive = 0;
+        let report = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "REQUIRED_CHANNEL_HAS_NO_EVENTS"));
+    }
+
+    #[test]
+    fn occupancy_conflict_is_a_deviation() {
+        let (binding, policy, coverage, mut events) = baseline();
+        let event = events
+            .iter_mut()
+            .find(|event| event.observation.channel() == Channel::OccupancyProjection)
+            .unwrap();
+        event.observation = Observation::OccupancyProjection {
+            projection_id: "occupancy-01".to_owned(),
+            projection_sha256: "4".repeat(64),
+            covers_lift: false,
+        };
+        let report = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(report.disposition, Disposition::DeviationObserved);
+        assert!(has_code(&report, "OCCUPANCY_DEVIATION"));
+    }
+
+    #[test]
+    fn exact_limit_equality_is_conforming_but_unknown_interval_is_not_hidden() {
+        let (mut binding, policy, mut coverage, mut events) = baseline();
+        binding.maximum_hook_load_mn = 410_000_000;
+        for event in &mut events {
+            if let Observation::HookLoad { upper_mn } = &mut event.observation {
+                *upper_mn = 410_000_000;
+            }
+        }
+        coverage
+            .iter_mut()
+            .find(|item| item.channel == Channel::WindGust)
+            .unwrap()
+            .complete = false;
+        let report = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "COVERAGE_INCOMPLETE"));
+        assert!(!has_code(&report, "HOOK_LOAD_LIMIT_EXCEEDED"));
     }
 
     #[test]
