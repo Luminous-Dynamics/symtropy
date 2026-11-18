@@ -122,6 +122,7 @@ pub enum Violation {
     InvalidReservation { reservation_id: String },
     DuplicateReservation { reservation_id: String },
     BlockOverlap { first_block: String, second_block: String, area_id: String },
+    BlockDoubleBooked { block_id: String, first_area_id: String, second_area_id: String },
     AccessBlocked { block_id: String, access_id: String, area_id: String },
     ResourceOverCapacity { resource_id: String, at: u32, capacity: u32, active_units: u64 },
     PrecedenceViolation { before: String, after: String },
@@ -185,6 +186,21 @@ pub fn verify(plan: &Plan) -> Verification {
         for j in (i + 1)..plan.placements.len() {
             let first = &plan.placements[i];
             let second = &plan.placements[j];
+
+            // A physical block may have successive placement records, but it
+            // cannot occupy two places at the same time, even across areas.
+            if first.block_id == second.block_id
+                && first.occupied.is_valid()
+                && second.occupied.is_valid()
+                && first.occupied.overlaps(second.occupied)
+            {
+                violations.push(Violation::BlockDoubleBooked {
+                    block_id: first.block_id.clone(),
+                    first_area_id: first.area_id.clone(),
+                    second_area_id: second.area_id.clone(),
+                });
+            }
+
             if first.area_id != second.area_id
                 || !first.occupied.is_valid()
                 || !second.occupied.is_valid()
@@ -422,6 +438,39 @@ mod tests {
         let mut plan = baseline();
         plan.placements[1].footprint = plan.placements[0].footprint;
         plan.placements[1].occupied = Interval::new(2, 4);
+        assert_eq!(verify(&plan).disposition, Disposition::Feasible);
+    }
+
+    #[test]
+    fn same_block_cannot_be_double_booked_across_areas() {
+        let mut plan = baseline();
+        let mut second = placement(
+            "a",
+            Some(Rect::new(10, 0, 12, 2)),
+            Interval::new(1, 3),
+        );
+        second.area_id = "yard-b".to_owned();
+        plan.placements.push(second);
+
+        let result = verify(&plan);
+        assert_eq!(result.disposition, Disposition::Infeasible);
+        assert!(result.violations.iter().any(|violation| matches!(
+            violation,
+            Violation::BlockDoubleBooked { block_id, .. } if block_id == "a"
+        )));
+    }
+
+    #[test]
+    fn same_block_can_have_successive_non_overlapping_placements() {
+        let mut plan = baseline();
+        let mut next = placement(
+            "a",
+            Some(Rect::new(10, 0, 12, 2)),
+            Interval::new(2, 4),
+        );
+        next.area_id = "yard-b".to_owned();
+        plan.placements.push(next);
+
         assert_eq!(verify(&plan).disposition, Disposition::Feasible);
     }
 
