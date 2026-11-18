@@ -70,7 +70,7 @@ The v0.1 model samples an **effective path-length budget**; it is not an explici
 
 ## Contact mechanosensing and collective order
 
-`CollisionReversalLaw` models the response to an **already identified** cell-cell contact. It consumes contact angle and duration; it does not generate collisions or derive them from density. A characteristic response time `tau_CR` is defined so a perpendicular contact (`pi/2)) lasting `tau_CR` gives 0.5 reversal probability. The angular gate decreases linearly to zero at/below `pi/6`. The continuous duration response uses an exponential-hazard interpolation; this is an explicit model assumption constrained by the published anchor, not claimed as the paper's complete fitted response curve.
+`CollisionReversalLaw` models the response to an **already identified** cell-cell contact. It consumes contact angle and duration; it does not generate collisions or derive them from density. A characteristic response time `tau_CR` is defined so a perpendicular contact (`pi/2`) lasting `tau_CR` gives 0.5 reversal probability. The angular gate scales probability linearly from zero at/below `pi/6` to one at `pi/2`. The duration response uses an exponential saturation `1 - exp(-ln(2) * t / tau_CR)`; this is an explicit interpolation assumption constrained by the published anchor, not claimed as the paper's complete fitted duration-response curve.
 
 `CollisionResponseSummary` keeps contact incidence, per-contact reversal fraction and population reversal rate separate. This supports the key hypothesis that a fixed sensory response law can yield density-dependent population reversal frequency because density changes contact incidence—not because the per-contact probability is forced to depend on density.
 
