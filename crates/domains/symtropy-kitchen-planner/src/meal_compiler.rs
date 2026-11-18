@@ -588,13 +588,13 @@ fn quantity_to_base(
     };
     let divisor = 10_u128
         .checked_pow(u32::from(quantity.decimal_places))
-        .ok_or(())?;
+        .ok_or(QuantityConversionError::InvalidScale)?;
     if factor % divisor != 0 {
-        return Err(());
+        return Err(QuantityConversionError::InvalidScale);
     }
     let value = u128::from(quantity.value)
         .checked_mul(factor / divisor)
-        .ok_or(())?;
+        .ok_or(QuantityConversionError::Overflow)?;
     Ok((quantity.dimension, value))
 }
 
@@ -1445,7 +1445,7 @@ fn validate_food_flows(
                 FoodFlowSourceV1::TaskOutput { task_id: producer, output_ref },
                 FoodFlowDestinationV1::TaskInput { task_id: consumer },
             ) => {
-                let Some(consumer_task) = tasks.get(consumer.as_str()) else {
+                let Some(consumer_task) = tasks.get(consumer.as_str()).copied() else {
                     add_issue(
                         issues,
                         MealCompilationIssueCodeV1::UnknownFlowTask,
@@ -1463,19 +1463,13 @@ fn validate_food_flows(
                     );
                     continue;
                 }
-                let Some(consumer_task) = Some(*consumer_task) else {
-                    unreachable!();
-                };
-                let Some(consumer_task) = Some(consumer_task) else {
+                let Some(binding) = bindings.get(producer.as_str()) else {
                     add_issue(
                         issues,
-                        MealCompilationIssueCodeV1::UnknownFlowTask,
-                        Some(&edge.edge_id),
-                        "intermediate flow references an unknown producer or consumer task",
+                        MealCompilationIssueCodeV1::MissingTaskBinding,
+                        Some(producer),
+                        "intermediate flow producer has no resolved task binding",
                     );
-                    continue;
-                };
-                let Some(binding) = bindings.get(producer.as_str()) else {
                     continue;
                 };
                 let Some(output) = binding.outputs.iter().find(|item| item.output_ref == *output_ref)
@@ -1514,7 +1508,6 @@ fn validate_food_flows(
                     .entry((producer.clone(), output_ref.clone()))
                     .and_modify(|count| *count += 1)
                     .or_insert(1);
-                let _ = (producer_task, consumer_task);
                 task_input_origins
                     .entry(consumer.clone())
                     .or_default()
