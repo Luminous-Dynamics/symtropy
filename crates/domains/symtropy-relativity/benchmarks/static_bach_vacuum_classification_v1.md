@@ -151,3 +151,23 @@ For every such problem, identify kernel/phase modes before constructing the appr
 ## 7. Claim ceiling
 
 The symbolic derivation and exact coefficient controls establish the static spherical Bach reduction and its analytic solution family, subject to the assumptions above. They do not prove the Lean formal classification, horizon regularity, asymptotic physical admissibility, dynamical stability, rotating solutions, EFT validity or observational viability.
+
+
+## 8. Exact static-annulus and coefficient arithmetic in Lean
+
+The branch now includes `benchmarks/lean/static_bach_vacuum_coefficients_v1.lean`. It contains kernel-checkable rational/algebraic controls for:
+- Schwarzschild Q=0;
+- non-Einstein MK Q=0;
+- the off-shell Q=18/25 mutation and exact residuals 8/675 at r=3 and 1/1350 at r=6;
+- the factor-16 residual ratio;
+- the conventional beta/gamma coefficient parameterization satisfying Q=0 identically;
+- B(3)=103/300 and B(6)=197/300;
+- a direct factorization proving B(r)>0 for every r in [3,6].
+
+The positivity proof uses
+[
+100r B(r)=103+(r-3)(-r^2+7r+91),
+]
+whose factors are positive/nonnegative on the declared annulus. This confirms the entire MK reference annulus lies in the static chart, not merely the two sampled endpoints.
+
+This Lean file is authored and has not been compiled. The full differential integration, equivalence of the reduced projections to all covariant components, and the complete classification theorem remain in #6048.
