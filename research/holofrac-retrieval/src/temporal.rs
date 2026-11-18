@@ -301,7 +301,7 @@ fn fract(value: f64) -> f64 {
     value - value.floor()
 }
 
-fn sensor_location(sensor_id: u32, sensor_count: usize) -> SensorLocation {
+fn sensor_location(sensor_id: u32) -> SensorLocation {
     let index = sensor_id as f64;
     SensorLocation {
         sensor_id,
@@ -392,7 +392,7 @@ impl TemporalFixture {
         validate_config(&config)?;
         let mut rng = DeterministicRng::new(config.seed);
         let sensors: Vec<_> = (0..config.sensor_count)
-            .map(|index| sensor_location(index as u32, config.sensor_count))
+            .map(|index| sensor_location(index as u32))
             .collect();
         let mut events = Vec::new();
         let mut evaluator_truth = Vec::new();
