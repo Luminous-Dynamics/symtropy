@@ -59,7 +59,9 @@ impl fmt::Display for CovarianceError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Empty => write!(f, "covariance matrix must be non-empty"),
-            Self::DimensionTooLarge => write!(f, "dense covariance dimension exceeds the declared limit"),
+            Self::DimensionTooLarge => {
+                write!(f, "dense covariance dimension exceeds the declared limit")
+            }
             Self::NonSquare { row, expected, actual } => {
                 write!(f, "covariance row {row} has {actual} entries; expected {expected}")
             }
@@ -67,29 +69,59 @@ impl fmt::Display for CovarianceError {
                 write!(f, "covariance entry ({row}, {column}) must be finite")
             }
             Self::Asymmetric { row, column } => {
-                write!(f, "covariance entries ({row}, {column}) and ({column}, {row}) are asymmetric")
+                write!(
+                    f,
+                    "covariance entries ({row}, {column}) and ({column}, {row}) are asymmetric"
+                )
             }
             Self::NotPositiveDefinite { pivot } => {
                 write!(f, "covariance is not strictly positive definite at Cholesky pivot {pivot}")
             }
-            Self::InvalidCorrelation => write!(f, "AR(1) correlation must be finite with absolute value below one"),
-            Self::InvalidTimeSchedule => write!(f, "sample times must be finite and strictly increasing"),
-            Self::InvalidCorrelationScale => write!(f, "correlation time scale must be finite and positive"),
+            Self::InvalidCorrelation => {
+                write!(f, "AR(1) correlation must be finite with absolute value below one")
+            }
+            Self::InvalidTimeSchedule => {
+                write!(f, "sample times must be finite and strictly increasing")
+            }
+            Self::InvalidCorrelationScale => {
+                write!(f, "correlation time scale must be finite and positive")
+            }
             Self::DimensionMismatch { expected, actual } => {
                 write!(f, "dimension mismatch: expected {expected}, received {actual}")
             }
-            Self::NonFiniteResidual { index } => write!(f, "residual entry {index} must be finite"),
-            Self::NonFiniteObservedValue { index } => write!(f, "observed entry {index} must be finite"),
-            Self::NonFiniteResult => write!(f, "covariance operation produced a non-finite result"),
+            Self::NonFiniteResidual { index } => {
+                write!(f, "residual entry {index} must be finite")
+            }
+            Self::NonFiniteObservedValue { index } => {
+                write!(f, "observed entry {index} must be finite")
+            }
+            Self::NonFiniteResult => {
+                write!(f, "covariance operation produced a non-finite result")
+            }
             Self::NoObservedValues => write!(f, "at least one observed component is required"),
-            Self::InvalidObservationIdentity => write!(f, "covariance, process, sampling, operator and availability IDs must be non-empty"),
+            Self::InvalidObservationIdentity => write!(
+                f,
+                "covariance, process, sampling, operator and availability IDs must be non-empty"
+            ),
             Self::InvalidSensorOrder => write!(f, "sensor IDs must be non-empty and unique"),
-            Self::TraceSensorOrderMismatch => write!(f, "bound covariance sensor order does not match the observation trace"),
-            Self::TraceTimeScheduleMismatch => write!(f, "bound covariance time schedule does not match the observation trace"),
-            Self::TraceProcessIdentityMismatch => write!(f, "bound covariance observation process does not match the observation trace"),
-            Self::TraceSamplingPolicyMismatch => write!(f, "bound covariance sampling policy does not match the observation trace"),
-            Self::TraceOperatorMismatch => write!(f, "bound covariance observation operator does not match the observation trace"),
-            Self::TraceAvailabilityCutoffMismatch => write!(f, "bound covariance availability cutoff does not match the observation trace"),
+            Self::TraceSensorOrderMismatch => {
+                write!(f, "bound covariance sensor order does not match the observation trace")
+            }
+            Self::TraceTimeScheduleMismatch => {
+                write!(f, "bound covariance time schedule does not match the observation trace")
+            }
+            Self::TraceProcessIdentityMismatch => {
+                write!(f, "bound covariance observation process does not match the observation trace")
+            }
+            Self::TraceSamplingPolicyMismatch => {
+                write!(f, "bound covariance sampling policy does not match the observation trace")
+            }
+            Self::TraceOperatorMismatch => {
+                write!(f, "bound covariance observation operator does not match the observation trace")
+            }
+            Self::TraceAvailabilityCutoffMismatch => {
+                write!(f, "bound covariance availability cutoff does not match the observation trace")
+            }
         }
     }
 }
@@ -752,7 +784,9 @@ impl fmt::Display for NoiseRobustnessError {
         match self {
             Self::Covariance(error) => write!(f, "covariance admission/scoring failed: {error}"),
             Self::Profiled(error) => write!(f, "profiled adequacy evaluation failed: {error}"),
-            Self::InvalidMonteCarloCount => write!(f, "Monte Carlo trial count is outside the admitted range"),
+            Self::InvalidMonteCarloCount => {
+                write!(f, "Monte Carlo trial count is outside the admitted range")
+            }
         }
     }
 }
@@ -946,18 +980,43 @@ impl fmt::Display for NoiseCalibrationError {
             Self::Robustness(error) => write!(f, "noise robustness evaluation failed: {error}"),
             Self::Profiled(error) => write!(f, "profiled scenario invalid: {error}"),
             Self::InvalidReplicateCount => write!(f, "replicates per model must be positive"),
-            Self::ExcessiveSampleCount => write!(f, "full-covariance calibration exceeds the 100,000-sample campaign bound"),
-            Self::DuplicateHiddenTruthId(id) => write!(f, "duplicate hidden truth evaluator ID {id}"),
-            Self::InvalidTargetCoverage => write!(f, "target in-family coverage must be finite and strictly between zero and one"),
+            Self::ExcessiveSampleCount => {
+                write!(f, "full-covariance calibration exceeds the 100,000-sample campaign bound")
+            }
+            Self::DuplicateHiddenTruthId(id) => {
+                write!(f, "duplicate hidden truth evaluator ID {id}")
+            }
+            Self::InvalidTargetCoverage => write!(
+                f,
+                "target in-family coverage must be finite and strictly between zero and one"
+            ),
             Self::SeedsMustDiffer => write!(f, "calibration and validation seeds must differ"),
-            Self::IncompatibleHiddenTruth { evaluator_id } => write!(f, "hidden truth {evaluator_id} does not share the declared state basis and horizon"),
-            Self::MissingTrueFamily(id) => write!(f, "candidate model {id} has no declared structural family"),
-            Self::MissingModelPrediction(id) => write!(f, "candidate model {id} has no predicted observation trace"),
-            Self::MissingFamilyResidual(id) => write!(f, "candidate family {id} has no residual in the adequacy result"),
-            Self::MissingHiddenPrediction(id) => write!(f, "hidden evaluator truth {id} has no generated observation prediction"),
-            Self::InvalidPredictionShape => write!(f, "predicted observations do not match the bound time/sensor dimensions"),
-            Self::NonFinitePrediction => write!(f, "predicted or sampled observation is non-finite"),
-            Self::NoAvailableHiddenModelId => write!(f, "could not allocate collision-free hidden model IDs"),
+            Self::IncompatibleHiddenTruth { evaluator_id } => write!(
+                f,
+                "hidden truth {evaluator_id} does not share the declared state basis and horizon"
+            ),
+            Self::MissingTrueFamily(id) => {
+                write!(f, "candidate model {id} has no declared structural family")
+            }
+            Self::MissingModelPrediction(id) => {
+                write!(f, "candidate model {id} has no predicted observation trace")
+            }
+            Self::MissingFamilyResidual(id) => {
+                write!(f, "candidate family {id} has no residual in the adequacy result")
+            }
+            Self::MissingHiddenPrediction(id) => write!(
+                f,
+                "hidden evaluator truth {id} has no generated observation prediction"
+            ),
+            Self::InvalidPredictionShape => {
+                write!(f, "predicted observations do not match the bound time/sensor dimensions")
+            }
+            Self::NonFinitePrediction => {
+                write!(f, "predicted or sampled observation is non-finite")
+            }
+            Self::NoAvailableHiddenModelId => {
+                write!(f, "could not allocate collision-free hidden model IDs")
+            }
         }
     }
 }
