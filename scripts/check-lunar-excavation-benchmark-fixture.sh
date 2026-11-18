@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+
+schema="tools/lunar-excavation-benchmark/benchmark-run.schema.json"
+record="tools/lunar-excavation-benchmark/examples/synthetic-calibration-run.json"
+force_trace="tools/lunar-excavation-benchmark/examples/synthetic-force-trace.csv"
+model_config="tools/lunar-excavation-benchmark/examples/synthetic-model-config.json"
+
+fail() {
+  printf 'lunar benchmark fixture check: %s\n' "$*" >&2
+  exit 1
+}
+
+command -v jq >/dev/null 2>&1 || fail "jq is required"
+
+# Parse and identify the schema; this is not a general JSON Schema validator.
+jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+  and .title == "Lunar Excavation Model Benchmark Run"' "$schema" >/dev/null \
+  || fail "schema JSON is invalid or has an unexpected identity"
+
+jq -e '
+  .schema_version == "0.1.0"
+  and .benchmark_id == "lunar-excavation-model-validation-v0"
+  and .source_class == "synthetic_fixture"
+  and .partition == "calibration"
+  and (.notes | contains("NON-PHYSICAL SYNTHETIC FIXTURE"))
+' "$record" >/dev/null || fail "example must remain an explicitly synthetic calibration fixture"
+
+jq -e '
+  [.artifacts[].artifact_id] as $ids
+  | ($ids | length) == ($ids | unique | length)
+' "$record" >/dev/null || fail "artifact IDs are not unique"
+
+jq -e '
+  . as $r
+  | [
+      $r.specimen.grain_size_distribution_artifact_id,
+      $r.tool.geometry_artifact_id,
+      $r.operation.tool_path_artifact_id,
+      $r.observations.force_trace_artifact_id,
+      $r.observations.residual_geometry_artifact_id,
+      $r.model.configuration_artifact_id,
+      $r.model.parameters_artifact_id
+    ] as $refs
+  | all($refs[]; . as $id | any($r.artifacts[]; .artifact_id == $id))
+' "$record" >/dev/null || fail "an artifact reference does not resolve"
+
+jq -e '
+  .group_keys.material_batch_id == .specimen.batch_id
+  and .group_keys.preparation_protocol_id == .specimen.preparation_protocol_id
+  and .group_keys.tool_geometry_id == .tool.geometry_id
+' "$record" >/dev/null || fail "split group keys disagree with the specimen or tool"
+
+jq -e '
+  ([.. | objects | select(has("status") and has("unit")) | .status] as $s
+   | ($s | length) > 0 and all($s[]; . == "synthetic"))
+  and any(.artifacts[]; (.path | startswith("synthetic-placeholder:")))
+' "$record" >/dev/null || fail "fixture must remain non-physical and retain omitted-artifact sentinels"
+
+# Confirm the included raw trace and model-config digests against the exact bytes.
+printf '%s  %s\n' \
+  "706b23281d0b554eef6c6edc14a72707965bdd57692d4e8478f14b28de910bbc" "$force_trace" \
+  "a56e6313d1891ac46bbd6f5075fbeb768d37cdb42c4a930d4504c7d6352e2324" "$model_config" \
+  | sha256sum --check --status || fail "fixture SHA-256 mismatch"
+
+# Recompute peak, trapezoidal impulse, and time-mean force from the force trace.
+read -r peak impulse mean_force < <(
+  awk -F, '
+    NR == 1 { next }
+    {
+      t = $1 + 0
+      f = $2 + 0
+      if (first) {
+        first_t = t
+        prev_t = t
+        prev_f = f
+        peak = f
+        first = 0
+        next
+      }
+      if (f > peak) peak = f
+      impulse += (prev_f + f) * 0.5 * (t - prev_t)
+      prev_t = t
+      prev_f = f
+    }
+    END {
+      duration = prev_t - first_t
+      if (duration <= 0) exit 1
+      printf "%.12f %.12f %.12f\n", peak, impulse, impulse / duration
+    }
+  ' "$force_trace"
+) || fail "could not calculate fixture force trace"
+
+expected_peak="$(jq -r '.observations.peak_force_N.value' "$record")"
+expected_impulse="$(jq -r '.observations.impulse_N_s.value' "$record")"
+expected_mean="$(jq -r '.observations.mean_force_N.value' "$record")"
+feed_rate="$(jq -r '.operation.feed_rate_m_s.value' "$record")"
+duration="$(jq -r '.operation.duration_s.value' "$record")"
+width="$(jq -r '.tool.cutting_width_m.value' "$record")"
+depth="$(jq -r '.operation.penetration_depth_m.value' "$record")"
+expected_work="$(jq -r '.observations.energy_input_J.value' "$record")"
+expected_volume="$(jq -r '.observations.displaced_volume_m3.value' "$record")"
+
+close_enough() {
+  awk -v actual="$1" -v expected="$2" '
+    function abs(x) { return x < 0 ? -x : x }
+    BEGIN {
+      scale = abs(expected) > 1 ? abs(expected) : 1
+      exit (abs(actual - expected) <= 1e-9 * scale ? 0 : 1)
+    }
+  '
+}
+
+close_enough "$peak" "$expected_peak" || fail "peak force does not match raw trace"
+close_enough "$impulse" "$expected_impulse" || fail "impulse does not match raw trace"
+close_enough "$mean_force" "$expected_mean" || fail "mean force does not match raw trace"
+close_enough "$(awk -v i="$impulse" -v v="$feed_rate" 'BEGIN { printf "%.12f", i*v }')" "$expected_work" \
+  || fail "declared work does not match force impulse and feed rate"
+close_enough "$(awk -v w="$width" -v d="$depth" -v v="$feed_rate" -v t="$duration" 'BEGIN { printf "%.12f", w*d*v*t }')" "$expected_volume" \
+  || fail "declared displaced volume does not match the rectangular-cut fixture"
+
+printf 'lunar benchmark fixture check: PASS (synthetic fixture only; no physical qualification)\n'
