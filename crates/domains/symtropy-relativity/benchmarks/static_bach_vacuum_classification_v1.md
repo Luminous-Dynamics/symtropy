@@ -1,7 +1,7 @@
 # Static spherical Bach-vacuum classification v1
 
 **Status:** exact symbolic reduction independently checked; formal Lean classification not yet written or executed.  
-**Owner:** BH-STATIC-CLASSIFICATION-001 (#6044).  
+**Owner:** [BH-STATIC-CLASSIFICATION-001 #6048](https://github.com/Luminous-Dynamics/symtropy/issues/6048).  
 **Related:** [Bach reference PR #5968](https://github.com/Luminous-Dynamics/symtropy/pull/5968), [general Bach #5937](https://github.com/Luminous-Dynamics/symtropy/issues/5937), [formal BVP #6019](https://github.com/Luminous-Dynamics/symtropy/issues/6019), [SOTA benchmark #6043](https://github.com/Luminous-Dynamics/symtropy/issues/6043).
 
 ## 1. Result
