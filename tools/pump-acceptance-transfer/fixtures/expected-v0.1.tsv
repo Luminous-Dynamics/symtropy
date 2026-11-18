@@ -30,3 +30,4 @@ invalid_npsh3_interval	PROFILE_INCOMPLETE
 invalid_npshr_interval	PROFILE_INCOMPLETE
 invalid_npsha_interval	PROFILE_INCOMPLETE
 invalid_required_head_interval	PROFILE_INCOMPLETE
+site_npsha_calibration_missing	EVIDENCE_INCOMPLETE
