@@ -47,8 +47,8 @@ const fn build_multi_indices() -> [MultiIndex; COEFFICIENT_COUNT] {
 
 const MULTI_INDICES: [MultiIndex; COEFFICIENT_COUNT] = build_multi_indices();
 
-fn total_degree(alpha: [u8; 4]) -> u8 {
-    alpha[0] + alpha[1] + alpha[2] + alpha[3]
+fn total_degree(alpha: [u8; 4]) -> u16 {
+    u16::from(alpha[0]) + u16::from(alpha[1]) + u16::from(alpha[2]) + u16::from(alpha[3])
 }
 
 fn index_of(alpha: [u8; 4]) -> Option<usize> {
@@ -76,6 +76,13 @@ pub enum TaylorJetError {
     CoordinateIndexOutOfRange(usize),
     DerivativeOrderExhausted,
     InvalidMultiIndex([u8; 4]),
+    ExpansionPointMismatch,
+    MissingExpansionPoint,
+    ExpansionPointCoordinateMismatch {
+        coordinate: usize,
+        expected: f64,
+        actual: f64,
+    },
     DivisionByZero,
     NonFiniteInput,
     NonFiniteIntermediate(&'static str),
@@ -95,6 +102,20 @@ impl fmt::Display for TaylorJetError {
             }
             Self::DerivativeOrderExhausted => write!(f, "Taylor-jet derivative order is exhausted"),
             Self::InvalidMultiIndex(alpha) => write!(f, "unsupported multi-index {alpha:?}"),
+            Self::ExpansionPointMismatch => {
+                write!(f, "Taylor jets expanded at different coordinate points cannot be combined")
+            }
+            Self::MissingExpansionPoint => {
+                write!(f, "Taylor jet has no declared expansion point")
+            }
+            Self::ExpansionPointCoordinateMismatch {
+                coordinate,
+                expected,
+                actual,
+            } => write!(
+                f,
+                "Taylor-jet coordinate {coordinate} is centered at {actual}, expected {expected}"
+            ),
             Self::DivisionByZero => write!(f, "Taylor-jet reciprocal has zero base value"),
             Self::NonFiniteInput => write!(f, "Taylor-jet input contains a non-finite value"),
             Self::NonFiniteIntermediate(operation) => {
@@ -111,6 +132,7 @@ impl std::error::Error for TaylorJetError {}
 pub struct TaylorJet4Order5 {
     coefficients: [f64; COEFFICIENT_COUNT],
     order: u8,
+    expansion_point: Option<[f64; 4]>,
 }
 
 impl TaylorJet4Order5 {
@@ -127,11 +149,29 @@ impl TaylorJet4Order5 {
             return Err(TaylorJetError::NonFiniteInput);
         }
         for (index, alpha) in MULTI_INDICES.iter().enumerate() {
-            if total_degree(alpha.0) > order && coefficients[index] != 0.0 {
+            if total_degree(alpha.0) > u16::from(order) && coefficients[index] != 0.0 {
                 return Err(TaylorJetError::InvalidMultiIndex(alpha.0));
             }
         }
-        Ok(Self { coefficients, order })
+        Ok(Self {
+            coefficients,
+            order,
+            expansion_point: None,
+        })
+    }
+
+    /// Construct normalized Taylor coefficients with an explicit coordinate point.
+    pub fn new_at(
+        coefficients: [f64; COEFFICIENT_COUNT],
+        order: u8,
+        expansion_point: [f64; 4],
+    ) -> Result<Self, TaylorJetError> {
+        if expansion_point.iter().any(|value| !value.is_finite()) {
+            return Err(TaylorJetError::NonFiniteInput);
+        }
+        let mut jet = Self::new(coefficients, order)?;
+        jet.expansion_point = Some(expansion_point);
+        Ok(jet)
     }
 
     pub fn zero(order: u8) -> Result<Self, TaylorJetError> {
@@ -149,6 +189,9 @@ impl TaylorJet4Order5 {
     }
 
     /// Coordinate variable centered at value for one of the four axes.
+    ///
+    /// Unspecified coordinates are centered at zero. Use variable_at when
+    /// combining variables at a shared nonzero spacetime point.
     pub fn variable(value: f64, coordinate: usize) -> Result<Self, TaylorJetError> {
         if !value.is_finite() {
             return Err(TaylorJetError::NonFiniteInput);
@@ -156,13 +199,57 @@ impl TaylorJet4Order5 {
         if coordinate >= 4 {
             return Err(TaylorJetError::CoordinateIndexOutOfRange(coordinate));
         }
+        let mut point = [0.0; 4];
+        point[coordinate] = value;
+        Self::variable_at(point, coordinate)
+    }
+
+    /// Coordinate variable centered at a complete four-coordinate point.
+    pub fn variable_at(
+        expansion_point: [f64; 4],
+        coordinate: usize,
+    ) -> Result<Self, TaylorJetError> {
+        if expansion_point.iter().any(|value| !value.is_finite()) {
+            return Err(TaylorJetError::NonFiniteInput);
+        }
+        if coordinate >= 4 {
+            return Err(TaylorJetError::CoordinateIndexOutOfRange(coordinate));
+        }
         let mut coefficients = [0.0; COEFFICIENT_COUNT];
-        coefficients[0] = value;
+        coefficients[0] = expansion_point[coordinate];
         let mut alpha = [0; 4];
         alpha[coordinate] = 1;
         let index = index_of(alpha).ok_or(TaylorJetError::InvalidMultiIndex(alpha))?;
         coefficients[index] = 1.0;
-        Self::new(coefficients, MAX_ORDER)
+        Self::new_at(coefficients, MAX_ORDER, expansion_point)
+    }
+
+    pub const fn expansion_point(&self) -> Option<[f64; 4]> {
+        self.expansion_point
+    }
+
+    /// Require this jet to be expanded at the given coordinate on one axis.
+    pub fn require_coordinate_center(
+        &self,
+        coordinate: usize,
+        expected: f64,
+    ) -> Result<(), TaylorJetError> {
+        if coordinate >= 4 {
+            return Err(TaylorJetError::CoordinateIndexOutOfRange(coordinate));
+        }
+        if !expected.is_finite() {
+            return Err(TaylorJetError::NonFiniteInput);
+        }
+        let point = self.expansion_point.ok_or(TaylorJetError::MissingExpansionPoint)?;
+        let actual = point[coordinate];
+        if actual != expected {
+            return Err(TaylorJetError::ExpansionPointCoordinateMismatch {
+                coordinate,
+                expected,
+                actual,
+            });
+        }
+        Ok(())
     }
 
     pub const fn order(&self) -> u8 {
@@ -205,11 +292,11 @@ impl TaylorJet4Order5 {
         }
         let mut coefficients = self.coefficients;
         for (index, alpha) in MULTI_INDICES.iter().enumerate() {
-            if total_degree(alpha.0) > requested {
+            if total_degree(alpha.0) > u16::from(requested) {
                 coefficients[index] = 0.0;
             }
         }
-        Self::new(coefficients, requested)
+        Self::new_with_point(coefficients, requested, self.expansion_point)
     }
 
     /// Differentiate with respect to one coordinate; available order decreases by one.
@@ -223,7 +310,7 @@ impl TaylorJet4Order5 {
         let output_order = self.order - 1;
         let mut coefficients = [0.0; COEFFICIENT_COUNT];
         for (index, alpha) in MULTI_INDICES.iter().enumerate() {
-            if total_degree(alpha.0) > output_order {
+            if total_degree(alpha.0) > u16::from(output_order) {
                 continue;
             }
             let mut source = alpha.0;
@@ -232,10 +319,35 @@ impl TaylorJet4Order5 {
             coefficients[index] =
                 f64::from(source[coordinate]) * self.coefficients[source_index];
         }
-        Self::new(coefficients, output_order)
+        Self::new_with_point(coefficients, output_order, self.expansion_point)
+    }
+
+    fn merged_expansion_point(
+        self,
+        other: Self,
+    ) -> Result<Option<[f64; 4]>, TaylorJetError> {
+        match (self.expansion_point, other.expansion_point) {
+            (Some(left), Some(right)) if left != right => {
+                Err(TaylorJetError::ExpansionPointMismatch)
+            }
+            (Some(point), _) | (_, Some(point)) => Ok(Some(point)),
+            (None, None) => Ok(None),
+        }
+    }
+
+    fn new_with_point(
+        coefficients: [f64; COEFFICIENT_COUNT],
+        order: u8,
+        expansion_point: Option<[f64; 4]>,
+    ) -> Result<Self, TaylorJetError> {
+        match expansion_point {
+            Some(point) => Self::new_at(coefficients, order, point),
+            None => Self::new(coefficients, order),
+        }
     }
 
     pub fn add(self, other: Self) -> Result<Self, TaylorJetError> {
+        let expansion_point = self.merged_expansion_point(other)?;
         let order = self.order.min(other.order);
         let mut coefficients = [0.0; COEFFICIENT_COUNT];
         for (index, alpha) in MULTI_INDICES.iter().enumerate() {
@@ -243,7 +355,7 @@ impl TaylorJet4Order5 {
                 coefficients[index] = self.coefficients[index] + other.coefficients[index];
             }
         }
-        Self::new(coefficients, order)?.ensure_finite("addition")
+        Self::new_with_point(coefficients, order, expansion_point)?.ensure_finite("addition")
     }
 
     pub fn subtract(self, other: Self) -> Result<Self, TaylorJetError> {
@@ -260,11 +372,12 @@ impl TaylorJet4Order5 {
                 coefficients[index] = self.coefficients[index] * factor;
             }
         }
-        Self::new(coefficients, self.order)?.ensure_finite("scaling")
+        Self::new_with_point(coefficients, self.order, self.expansion_point)?.ensure_finite("scaling")
     }
 
     /// Truncated product by normalized-coefficient convolution.
     pub fn multiply(self, other: Self) -> Result<Self, TaylorJetError> {
+        let expansion_point = self.merged_expansion_point(other)?;
         let order = self.order.min(other.order);
         let mut coefficients = [0.0; COEFFICIENT_COUNT];
         for (left_index, left_alpha) in MULTI_INDICES.iter().enumerate() {
@@ -297,7 +410,7 @@ impl TaylorJet4Order5 {
                 coefficients[output_index] += left_value * right_value;
             }
         }
-        Self::new(coefficients, order)?.ensure_finite("multiplication")
+        Self::new_with_point(coefficients, order, expansion_point)?.ensure_finite("multiplication")
     }
 
     /// Reciprocal by a total-degree-ordered power-series recurrence.
@@ -315,13 +428,13 @@ impl TaylorJet4Order5 {
         for degree in 1..=self.order {
             for (alpha_index, alpha_entry) in MULTI_INDICES.iter().enumerate() {
                 let alpha = alpha_entry.0;
-                if total_degree(alpha) != degree {
+                if total_degree(alpha) != u16::from(degree) {
                     continue;
                 }
                 let mut sum = 0.0;
                 for (beta_index, beta_entry) in MULTI_INDICES.iter().enumerate().skip(1) {
                     let beta = beta_entry.0;
-                    if total_degree(beta) > degree {
+                    if total_degree(beta) > u16::from(degree) {
                         break;
                     }
                     let mut bounded = true;
@@ -342,7 +455,7 @@ impl TaylorJet4Order5 {
                 output[alpha_index] = -sum / base;
             }
         }
-        Self::new(output, self.order)?.ensure_finite("reciprocal")
+        Self::new_with_point(output, self.order, self.expansion_point)?.ensure_finite("reciprocal")
     }
 
     pub fn divide(self, denominator: Self) -> Result<Self, TaylorJetError> {
@@ -425,8 +538,9 @@ mod tests {
 
     #[test]
     fn mixed_polynomial_derivative_matches_hand_calculation() {
-        let x = TaylorJet4Order5::variable(2.0, 0).unwrap();
-        let y = TaylorJet4Order5::variable(3.0, 1).unwrap();
+        let point = [2.0, 3.0, 0.0, 0.0];
+        let x = TaylorJet4Order5::variable_at(point, 0).unwrap();
+        let y = TaylorJet4Order5::variable_at(point, 1).unwrap();
         let x3 = x.multiply(x).unwrap().multiply(x).unwrap();
         let y2 = y.multiply(y).unwrap();
         let polynomial = x3.multiply(y2).unwrap();
@@ -511,6 +625,23 @@ mod tests {
         assert_eq!(
             lower.derivative_at([4, 0, 0, 0]),
             Err(TaylorJetError::InvalidMultiIndex([4, 0, 0, 0]))
+        );
+    }
+
+    #[test]
+    fn jets_at_different_expansion_points_cannot_be_combined() {
+        let x = TaylorJet4Order5::variable(2.0, 0).unwrap();
+        let y = TaylorJet4Order5::variable(3.0, 1).unwrap();
+        assert_eq!(x.add(y), Err(TaylorJetError::ExpansionPointMismatch));
+        assert_eq!(x.multiply(y), Err(TaylorJetError::ExpansionPointMismatch));
+    }
+
+    #[test]
+    fn invalid_multi_indices_cannot_overflow_degree_validation() {
+        let x = TaylorJet4Order5::constant(1.0).unwrap();
+        assert_eq!(
+            x.coefficient([u8::MAX; 4]),
+            Err(TaylorJetError::InvalidMultiIndex([u8::MAX; 4]))
         );
     }
 
