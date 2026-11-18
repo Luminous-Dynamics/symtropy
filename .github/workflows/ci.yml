@@ -84,5 +84,20 @@ jobs:
       if: ${{ hashFiles('tools/airborne-energy-observability-validator/Cargo.toml') != '' }}
       run: cargo test --locked -p airborne-energy-observability-validator
 
+    # Standalone benchmark packages use an explicit empty [workspace] so they
+    # remain dependency-isolated. The root --workspace commands above do not
+    # include them; run each present benchmark directly and fail on exact-head.
+    - name: Check J1 Task Model Benchmark Formatting
+      if: runner.os == 'Linux' && hashFiles('benchmarks/synthetic-joints/j1-task-model/v0.1/Cargo.toml') != ''
+      run: cargo fmt --manifest-path benchmarks/synthetic-joints/j1-task-model/v0.1/Cargo.toml -- --check
+
+    - name: Test J1 Task Model Benchmark
+      if: runner.os == 'Linux' && hashFiles('benchmarks/synthetic-joints/j1-task-model/v0.1/Cargo.toml') != ''
+      run: cargo test --manifest-path benchmarks/synthetic-joints/j1-task-model/v0.1/Cargo.toml --locked
+
+    - name: Clippy J1 Task Model Benchmark
+      if: runner.os == 'Linux' && hashFiles('benchmarks/synthetic-joints/j1-task-model/v0.1/Cargo.toml') != ''
+      run: cargo clippy --manifest-path benchmarks/synthetic-joints/j1-task-model/v0.1/Cargo.toml --all-targets --locked -- -D warnings
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
