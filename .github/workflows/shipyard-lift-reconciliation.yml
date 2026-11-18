@@ -43,9 +43,9 @@ jobs:
           jq -e '
             .contract_version == "shipyard-lift-reconciliation-v0.1"
             and .vector_set_id == "SHIPYARD-LIFT-RECONCILIATION-CONFORMANCE-V0.1"
-            and (.vectors | length) == 42
-            and ([.vectors[].id] | unique | length) == 42
-            and ([.vectors[].test_name] | unique | length) == 42
+            and (.vectors | length) == 45
+            and ([.vectors[].id] | unique | length) == 45
+            and ([.vectors[].test_name] | unique | length) == 45
             and all(.vectors[];
               .synthetic_only == true
               and (
@@ -59,7 +59,7 @@ jobs:
           jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and (.required | index("clock_domain_id") != null) and (.required | index("complete") != null)' tools/shipyard-lift-reconciliation/schemas/stream-coverage-v0.1.schema.json
           jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and (.required | index("maximum_sample_gap_ticks") != null) and (.required | index("maximum_ingest_lateness_ticks") != null)' tools/shipyard-lift-reconciliation/schemas/reconciliation-policy-v0.1.schema.json
           jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.disposition.enum == ["conforming_to_declared_envelope","deviation_observed","indeterminate"] and (.required | index("event_ledger_sha256") != null)' tools/shipyard-lift-reconciliation/schemas/reconciliation-report-v0.1.schema.json
-          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.vectors.minItems == 42' tools/shipyard-lift-reconciliation/schemas/conformance-vectors-v0.1.schema.json
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.vectors.minItems == 45' tools/shipyard-lift-reconciliation/schemas/conformance-vectors-v0.1.schema.json
           jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and (.required | index("authorisation_evidence") != null) and (.required | index("event_ledger_sha256") != null) and (.required | index("motion_report_sha256") != null)' tools/shipyard-lift-reconciliation/schemas/execution-binding-v0.1.schema.json
           while IFS= read -r test_name; do
             grep -Fq "fn ${test_name}(" tools/shipyard-lift-reconciliation/src/lib.rs
