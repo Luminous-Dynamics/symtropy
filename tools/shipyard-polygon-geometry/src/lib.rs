@@ -908,7 +908,7 @@ mod tests {
         y2: i128,
         polygon: &[(i64, i64)],
     ) -> PointLocation {
-        let mut inside = false;
+        let mut winding_number = 0_i32;
         for index in 0..polygon.len() {
             let a = polygon[index];
             let b = polygon[(index + 1) % polygon.len()];
@@ -926,14 +926,18 @@ mod tests {
             {
                 return PointLocation::Boundary;
             }
-            if (ay2 > y2) != (by2 > y2) {
-                let crosses_right = if b.1 > a.1 { cross > 0 } else { cross < 0 };
-                if crosses_right {
-                    inside = !inside;
+
+            // Winding-number crossing test, intentionally distinct from the
+            // production even/odd horizontal-ray toggle.
+            if ay2 <= y2 {
+                if by2 > y2 && cross > 0 {
+                    winding_number += 1;
                 }
+            } else if by2 <= y2 && cross < 0 {
+                winding_number -= 1;
             }
         }
-        if inside {
+        if winding_number != 0 {
             PointLocation::Inside
         } else {
             PointLocation::Outside
@@ -1103,6 +1107,17 @@ mod tests {
             [(0, 0), (2, 0), (4, 0), (4, 4), (0, 4)];
         assert_eq!(
             exact_reference_relation(&square, &same_square_with_redundant_vertex),
+            PolygonRelation::PositiveAreaOverlap
+        );
+        let inscribed_diamond = [(2, 0), (4, 2), (2, 4), (0, 2)];
+        assert_eq!(
+            exact_reference_relation(&square, &inscribed_diamond),
+            PolygonRelation::PositiveAreaOverlap
+        );
+        let crossing_up = [(0, 0), (4, 0), (2, 4)];
+        let crossing_down = [(0, 3), (4, 3), (2, -1)];
+        assert_eq!(
+            exact_reference_relation(&crossing_up, &crossing_down),
             PolygonRelation::PositiveAreaOverlap
         );
         assert_eq!(
