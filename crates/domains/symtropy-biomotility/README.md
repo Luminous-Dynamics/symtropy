@@ -47,6 +47,21 @@ cargo test --manifest-path crates/domains/symtropy-biomotility/Cargo.toml
 
 The model uses only the Rust standard library. The seeded generator is for deterministic research fixtures only; it is not cryptographic.
 
+## Mechanistic ablations
+
+`simulate_with_bias_mode` exposes four matched experiment arms:
+
+| Mode | Run-time distribution | Short-event turn-angle distribution |
+|---|---|---|
+| `None` | Pooled / direction-independent | Pooled / direction-independent |
+| `RunTimeOnly` | Conditioned on preceding-run direction | Pooled / direction-independent |
+| `TurnAngleOnly` | Pooled / direction-independent | Conditioned on preceding-run direction |
+| `Combined` | Conditioned on preceding-run direction | Conditioned on preceding-run direction |
+
+The unconditional sample sets must be derived from the same admitted condition and observation protocol as the directional distributions. Do not substitute arbitrary constants or fit each ablation on a different split. The convenience `simulate` function uses `Combined`.
+
+Rotational diffusion acts during runs and is controlled by a declared coefficient and integration step.
+
 ## Interpretation of conditional orientation metrics
 
 The summary attaches an event in record i to the run in record i+1. The final event has no observed following run and is excluded from the conditional denominator. Therefore short-event and long-trap fractions are not calculated from the run that occurred before the event. Direction is classified at the beginning of the following run; rotational diffusion during that following run is a separate trajectory effect.
