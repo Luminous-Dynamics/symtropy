@@ -126,7 +126,9 @@ impl fmt::Display for EnergyOptimalControlError {
             Self::InvalidProbeAmplitude => {
                 write!(f, "could not construct a feasible positive control-basis probe")
             }
-            Self::NonFiniteGramMatrix => write!(f, "control discrimination Gram matrix is non-finite"),
+            Self::NonFiniteGramMatrix => {
+                write!(f, "control discrimination Gram matrix is non-finite")
+            }
             Self::SpectralFailure => write!(f, "symmetric control Gram eigensolver failed"),
             Self::InvalidReplayObjective => {
                 write!(f, "replayed model-pair score is missing or non-finite")
@@ -248,10 +250,6 @@ pub fn optimize_pairwise_energy_ball_control(
         selected_sensor_ids.len(),
     )?;
 
-    let minimum_segment_duration = boundaries
-        .windows(2)
-        .map(|pair| pair[1] - pair[0])
-        .fold(f64::INFINITY, f64::min);
     let maximum_segment_duration = boundaries
         .windows(2)
         .map(|pair| pair[1] - pair[0])
@@ -773,7 +771,7 @@ mod tests {
             EnergyBallOptimalityDisposition::NoDiscriminatingControl
         );
         assert_eq!(report.achieved_gaussian_kl, 0.0);
-        assert_eq!(report.profile_cost().0, 0.0);
+        assert_eq!(profile_cost(&report.profile).0, 0.0);
     }
 
     #[test]
