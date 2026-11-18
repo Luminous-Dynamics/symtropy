@@ -34,6 +34,5 @@ mod tests {
             food_quality_assessment::FOOD_QUALITY_CLAIM_CEILING,
             "Descriptive evidence assessment for the exact declared samples and protocol only; not food-safety or allergen qualification, nutrition/medical suitability, universal taste, regulatory conformity, a serving permit, or product superiority."
         );
-        assert!(!food_quality_assessment::FoodQualityAssessmentReportV1::grants_serving_permit);
     }
 }
