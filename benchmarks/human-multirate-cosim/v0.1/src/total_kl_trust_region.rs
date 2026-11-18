@@ -147,7 +147,7 @@ impl fmt::Display for TotalKlTrustRegionError {
             Self::CovarianceIdentityMismatch => {
                 write!(
                     f,
-                    "covariance sensor order or exact sample schedule does not match the experiment"
+                    "covariance sensor order or sample schedule does not match the request"
                 )
             }
             Self::MissingCovarianceIdentity => {

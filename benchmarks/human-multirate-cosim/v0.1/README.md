@@ -542,3 +542,30 @@ The current mathematical fixture does not establish that the covariance
 family is true, that AR(1) is adequate, or that a real measurement process
 is Gaussian. Covariance qualification, model adequacy, calibration and
 optimizer optimality remain separate evidence claims.
+### Request identity is separate from covariance metadata
+
+The full-covariance API takes both `ObservationCovarianceV1` and a separate
+`ObservationDesignIdentityV1` supplied by the experiment request. Each of the
+five identity fields must match exactly; sensor order and time schedule must
+also match the actual selected sensors and scenario observations. Empty IDs,
+stale process IDs, reordered sensors and altered time schedules reject.
+These identifiers are not signatures: the evidence layer still has to
+authenticate the referenced manifests and observation receipts.
+
+### Independent numerical sanity check for the AR(1) lane
+
+A separate dense matrix-exponential reproduction on the runner's uniform
+time schedule `[0.4, 0.8, 1.2, 1.6, 2.0]`, sensor covariance
+`[[0.02, 0.005], [0.005, 0.03]]`, and AR(1) rho `0.6` gives:
+
+- independent-time assumed total-KL optimum: `0.8250152876`;
+- full AR(1) total-KL optimum: `0.3484730316`;
+- AR(1) passive baseline KL: `0.0100630820`;
+- AR(1) incremental control-induced KL: `0.2699262960`;
+- AR(1) peak amplitude: `0.4509310235` (cap `2.0`);
+- AR(1) multiplier: `1.2166724912`; stationarity residual: `8.9e-16`.
+
+The IID-assumed optimum differs materially from the AR(1)-qualified optimum
+on this fixture. The covariance misspecification is therefore decision-
+relevant, not merely a small score adjustment. These values are independent
+mathematical reproductions, not Rust runner output or CI qualification.
