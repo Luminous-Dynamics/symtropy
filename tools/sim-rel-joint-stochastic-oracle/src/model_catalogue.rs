@@ -635,6 +635,34 @@ mod tests {
     }
 
     #[test]
+    fn public_task_prior_is_independent_of_hidden_generator_sampling_prior() {
+        let owner = tiny_kernel();
+        let ids = owner.hypothesis_ids.clone();
+        let catalogue = PublicModelCatalogue::from_kernel(&owner, &ids).unwrap();
+        let mut hypotheses = public_hypotheses();
+        hypotheses[0].prior_probability = PublicProbability::new(3, 4).unwrap();
+        hypotheses[1].prior_probability = PublicProbability::new(1, 4).unwrap();
+        let reconstructed = catalogue
+            .to_joint_kernel(&hypotheses, &public_actions())
+            .unwrap();
+        let mass_a = reconstructed
+            .initial_belief
+            .iter()
+            .find(|point| point.hypothesis == 0)
+            .unwrap()
+            .mass;
+        let mass_b = reconstructed
+            .initial_belief
+            .iter()
+            .find(|point| point.hypothesis == 1)
+            .unwrap()
+            .mass;
+        assert_eq!(mass_a, Rational::new(3, 4).unwrap());
+        assert_eq!(mass_b, Rational::new(1, 4).unwrap());
+        assert_ne!(reconstructed.initial_belief, owner.initial_belief);
+    }
+
+    #[test]
     fn task_prior_and_candidate_model_order_must_match() {
         let owner = tiny_kernel();
         let ids = owner.hypothesis_ids.clone();
