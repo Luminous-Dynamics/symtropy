@@ -10,7 +10,10 @@
         "arrival_earliest_ms": 0,
         "departure_latest_ms": 1000000,
         "arrival_latest_ms": 0,
-        "departure_earliest_ms": 1000000
+        "departure_earliest_ms": 1000000,
+        "available_pad_resource_ids": [
+          "pad-depot-01"
+        ]
       },
       {
         "stop_id": "stop-02",
@@ -18,7 +21,10 @@
         "arrival_earliest_ms": 1300000,
         "departure_latest_ms": 1900000,
         "arrival_latest_ms": 1300000,
-        "departure_earliest_ms": 1900000
+        "departure_earliest_ms": 1900000,
+        "available_pad_resource_ids": [
+          "pad-hub-b-01"
+        ]
       }
     ]
   },
