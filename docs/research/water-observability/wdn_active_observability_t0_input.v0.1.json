@@ -1,0 +1,2038 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "wdn-active-observability-t0-input-v0.1",
+  "benchmark_id": "WDN-ACTIVE-OBSERVABILITY-T0-001",
+  "evidence_class": "synthetic_only",
+  "claim_ceiling": "counterfactual_observability_and_feasibility_contract_only",
+  "max_hypotheses": 8,
+  "max_probes_per_case": 4,
+  "max_sequence_length": 2,
+  "cases": [
+    {
+      "case_id": "ACTOBS-T0-001-safe-temporary-sensor-separates-four",
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "max_sequence_length": 2,
+      "hypotheses": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "ground_truth_ref": "SYNTH-LEAK-A"
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "ground_truth_ref": "SYNTH-LEAK-B"
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "ground_truth_ref": "SYNTH-LEAK-C"
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "ground_truth_ref": "SYNTH-LEAK-D"
+        }
+      ],
+      "passive_observations": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "TEMP-PRESSURE-1",
+          "kind": "temporary_sensor",
+          "estimated_duration_seconds": 300,
+          "feasibility": {
+            "hydraulic_model_current": true,
+            "topology_current": true,
+            "operating_window_valid": true,
+            "telemetry_time_valid": true,
+            "calibration_current": true,
+            "pressure_floor_margin_kpa": 30,
+            "required_pressure_margin_kpa": 15,
+            "fire_flow_margin_lps": 25,
+            "required_fire_flow_margin_lps": 10,
+            "maximum_transient_kpa": 100,
+            "allowed_maximum_transient_kpa": 150,
+            "quality_hazard_clear": true,
+            "isolation_conflict_clear": true,
+            "reversible_rollback_defined": true,
+            "operator_authorized": true,
+            "permit_approved": true,
+            "action_timeout_clear": true,
+            "valve_identity_verified": null,
+            "valve_position_verified": null
+          },
+          "observations": [
+            {
+              "hypothesis_id": "LEAK-D",
+              "features": [
+                {
+                  "feature_id": "TEMP-PRESSURE-1_response",
+                  "lower": 12,
+                  "upper": 13
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-C",
+              "features": [
+                {
+                  "feature_id": "TEMP-PRESSURE-1_response",
+                  "lower": 8,
+                  "upper": 9
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-B",
+              "features": [
+                {
+                  "feature_id": "TEMP-PRESSURE-1_response",
+                  "lower": 4,
+                  "upper": 5
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-A",
+              "features": [
+                {
+                  "feature_id": "TEMP-PRESSURE-1_response",
+                  "lower": 0,
+                  "upper": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "ACTOBS-T0-002-manual-observation-reduces-to-two",
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "max_sequence_length": 2,
+      "hypotheses": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "ground_truth_ref": "SYNTH-LEAK-A"
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "ground_truth_ref": "SYNTH-LEAK-B"
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "ground_truth_ref": "SYNTH-LEAK-C"
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "ground_truth_ref": "SYNTH-LEAK-D"
+        }
+      ],
+      "passive_observations": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "MANUAL-ACOUSTIC-1",
+          "kind": "operator_observation",
+          "estimated_duration_seconds": 300,
+          "feasibility": {
+            "hydraulic_model_current": true,
+            "topology_current": true,
+            "operating_window_valid": true,
+            "telemetry_time_valid": true,
+            "calibration_current": true,
+            "pressure_floor_margin_kpa": 30,
+            "required_pressure_margin_kpa": 15,
+            "fire_flow_margin_lps": 25,
+            "required_fire_flow_margin_lps": 10,
+            "maximum_transient_kpa": 100,
+            "allowed_maximum_transient_kpa": 150,
+            "quality_hazard_clear": true,
+            "isolation_conflict_clear": true,
+            "reversible_rollback_defined": true,
+            "operator_authorized": true,
+            "permit_approved": true,
+            "action_timeout_clear": true,
+            "valve_identity_verified": null,
+            "valve_position_verified": null
+          },
+          "observations": [
+            {
+              "hypothesis_id": "LEAK-A",
+              "features": [
+                {
+                  "feature_id": "MANUAL-ACOUSTIC-1_response",
+                  "lower": 0,
+                  "upper": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-B",
+              "features": [
+                {
+                  "feature_id": "MANUAL-ACOUSTIC-1_response",
+                  "lower": 0,
+                  "upper": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-C",
+              "features": [
+                {
+                  "feature_id": "MANUAL-ACOUSTIC-1_response",
+                  "lower": 8,
+                  "upper": 9
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-D",
+              "features": [
+                {
+                  "feature_id": "MANUAL-ACOUSTIC-1_response",
+                  "lower": 8,
+                  "upper": 9
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "ACTOBS-T0-003-valve-probe-pressure-floor-failure",
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "max_sequence_length": 2,
+      "hypotheses": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "ground_truth_ref": "SYNTH-LEAK-A"
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "ground_truth_ref": "SYNTH-LEAK-B"
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "ground_truth_ref": "SYNTH-LEAK-C"
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "ground_truth_ref": "SYNTH-LEAK-D"
+        }
+      ],
+      "passive_observations": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "VALVE-PROBE-LOW-PRESSURE",
+          "kind": "simulated_valve_perturbation",
+          "estimated_duration_seconds": 300,
+          "feasibility": {
+            "hydraulic_model_current": true,
+            "topology_current": true,
+            "operating_window_valid": true,
+            "telemetry_time_valid": true,
+            "calibration_current": true,
+            "pressure_floor_margin_kpa": 5,
+            "required_pressure_margin_kpa": 15,
+            "fire_flow_margin_lps": 25,
+            "required_fire_flow_margin_lps": 10,
+            "maximum_transient_kpa": 100,
+            "allowed_maximum_transient_kpa": 150,
+            "quality_hazard_clear": true,
+            "isolation_conflict_clear": true,
+            "reversible_rollback_defined": true,
+            "operator_authorized": true,
+            "permit_approved": true,
+            "action_timeout_clear": true,
+            "valve_identity_verified": true,
+            "valve_position_verified": true
+          },
+          "observations": [
+            {
+              "hypothesis_id": "LEAK-A",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-LOW-PRESSURE_response",
+                  "lower": 0,
+                  "upper": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-B",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-LOW-PRESSURE_response",
+                  "lower": 4,
+                  "upper": 5
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-C",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-LOW-PRESSURE_response",
+                  "lower": 8,
+                  "upper": 9
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-D",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-LOW-PRESSURE_response",
+                  "lower": 12,
+                  "upper": 13
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "ACTOBS-T0-004-valve-probe-fire-flow-failure",
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "max_sequence_length": 2,
+      "hypotheses": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "ground_truth_ref": "SYNTH-LEAK-A"
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "ground_truth_ref": "SYNTH-LEAK-B"
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "ground_truth_ref": "SYNTH-LEAK-C"
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "ground_truth_ref": "SYNTH-LEAK-D"
+        }
+      ],
+      "passive_observations": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "VALVE-PROBE-LOW-FIRE-FLOW",
+          "kind": "simulated_valve_perturbation",
+          "estimated_duration_seconds": 300,
+          "feasibility": {
+            "hydraulic_model_current": true,
+            "topology_current": true,
+            "operating_window_valid": true,
+            "telemetry_time_valid": true,
+            "calibration_current": true,
+            "pressure_floor_margin_kpa": 30,
+            "required_pressure_margin_kpa": 15,
+            "fire_flow_margin_lps": 2,
+            "required_fire_flow_margin_lps": 10,
+            "maximum_transient_kpa": 100,
+            "allowed_maximum_transient_kpa": 150,
+            "quality_hazard_clear": true,
+            "isolation_conflict_clear": true,
+            "reversible_rollback_defined": true,
+            "operator_authorized": true,
+            "permit_approved": true,
+            "action_timeout_clear": true,
+            "valve_identity_verified": true,
+            "valve_position_verified": true
+          },
+          "observations": [
+            {
+              "hypothesis_id": "LEAK-A",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-LOW-FIRE-FLOW_response",
+                  "lower": 0,
+                  "upper": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-B",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-LOW-FIRE-FLOW_response",
+                  "lower": 4,
+                  "upper": 5
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-C",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-LOW-FIRE-FLOW_response",
+                  "lower": 8,
+                  "upper": 9
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-D",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-LOW-FIRE-FLOW_response",
+                  "lower": 12,
+                  "upper": 13
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "ACTOBS-T0-005-valve-probe-transient-failure",
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "max_sequence_length": 2,
+      "hypotheses": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "ground_truth_ref": "SYNTH-LEAK-A"
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "ground_truth_ref": "SYNTH-LEAK-B"
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "ground_truth_ref": "SYNTH-LEAK-C"
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "ground_truth_ref": "SYNTH-LEAK-D"
+        }
+      ],
+      "passive_observations": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "VALVE-PROBE-TRANSIENT",
+          "kind": "simulated_valve_perturbation",
+          "estimated_duration_seconds": 300,
+          "feasibility": {
+            "hydraulic_model_current": true,
+            "topology_current": true,
+            "operating_window_valid": true,
+            "telemetry_time_valid": true,
+            "calibration_current": true,
+            "pressure_floor_margin_kpa": 30,
+            "required_pressure_margin_kpa": 15,
+            "fire_flow_margin_lps": 25,
+            "required_fire_flow_margin_lps": 10,
+            "maximum_transient_kpa": 190,
+            "allowed_maximum_transient_kpa": 150,
+            "quality_hazard_clear": true,
+            "isolation_conflict_clear": true,
+            "reversible_rollback_defined": true,
+            "operator_authorized": true,
+            "permit_approved": true,
+            "action_timeout_clear": true,
+            "valve_identity_verified": true,
+            "valve_position_verified": true
+          },
+          "observations": [
+            {
+              "hypothesis_id": "LEAK-A",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-TRANSIENT_response",
+                  "lower": 0,
+                  "upper": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-B",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-TRANSIENT_response",
+                  "lower": 4,
+                  "upper": 5
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-C",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-TRANSIENT_response",
+                  "lower": 8,
+                  "upper": 9
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-D",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-TRANSIENT_response",
+                  "lower": 12,
+                  "upper": 13
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "ACTOBS-T0-006-valve-identity-unverified",
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "max_sequence_length": 2,
+      "hypotheses": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "ground_truth_ref": "SYNTH-LEAK-A"
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "ground_truth_ref": "SYNTH-LEAK-B"
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "ground_truth_ref": "SYNTH-LEAK-C"
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "ground_truth_ref": "SYNTH-LEAK-D"
+        }
+      ],
+      "passive_observations": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "VALVE-PROBE-UNKNOWN-IDENTITY",
+          "kind": "simulated_valve_perturbation",
+          "estimated_duration_seconds": 300,
+          "feasibility": {
+            "hydraulic_model_current": true,
+            "topology_current": true,
+            "operating_window_valid": true,
+            "telemetry_time_valid": true,
+            "calibration_current": true,
+            "pressure_floor_margin_kpa": 30,
+            "required_pressure_margin_kpa": 15,
+            "fire_flow_margin_lps": 25,
+            "required_fire_flow_margin_lps": 10,
+            "maximum_transient_kpa": 100,
+            "allowed_maximum_transient_kpa": 150,
+            "quality_hazard_clear": true,
+            "isolation_conflict_clear": true,
+            "reversible_rollback_defined": true,
+            "operator_authorized": true,
+            "permit_approved": true,
+            "action_timeout_clear": true,
+            "valve_identity_verified": false,
+            "valve_position_verified": true
+          },
+          "observations": [
+            {
+              "hypothesis_id": "LEAK-A",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-UNKNOWN-IDENTITY_response",
+                  "lower": 0,
+                  "upper": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-B",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-UNKNOWN-IDENTITY_response",
+                  "lower": 4,
+                  "upper": 5
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-C",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-UNKNOWN-IDENTITY_response",
+                  "lower": 8,
+                  "upper": 9
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-D",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-UNKNOWN-IDENTITY_response",
+                  "lower": 12,
+                  "upper": 13
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "ACTOBS-T0-007-stale-hydraulic-model-and-topology",
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "max_sequence_length": 2,
+      "hypotheses": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "ground_truth_ref": "SYNTH-LEAK-A"
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "ground_truth_ref": "SYNTH-LEAK-B"
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "ground_truth_ref": "SYNTH-LEAK-C"
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "ground_truth_ref": "SYNTH-LEAK-D"
+        }
+      ],
+      "passive_observations": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "VALVE-PROBE-STALE-MODEL",
+          "kind": "simulated_valve_perturbation",
+          "estimated_duration_seconds": 300,
+          "feasibility": {
+            "hydraulic_model_current": false,
+            "topology_current": false,
+            "operating_window_valid": true,
+            "telemetry_time_valid": true,
+            "calibration_current": true,
+            "pressure_floor_margin_kpa": 30,
+            "required_pressure_margin_kpa": 15,
+            "fire_flow_margin_lps": 25,
+            "required_fire_flow_margin_lps": 10,
+            "maximum_transient_kpa": 100,
+            "allowed_maximum_transient_kpa": 150,
+            "quality_hazard_clear": true,
+            "isolation_conflict_clear": true,
+            "reversible_rollback_defined": true,
+            "operator_authorized": true,
+            "permit_approved": true,
+            "action_timeout_clear": true,
+            "valve_identity_verified": true,
+            "valve_position_verified": true
+          },
+          "observations": [
+            {
+              "hypothesis_id": "LEAK-A",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-STALE-MODEL_response",
+                  "lower": 0,
+                  "upper": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-B",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-STALE-MODEL_response",
+                  "lower": 4,
+                  "upper": 5
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-C",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-STALE-MODEL_response",
+                  "lower": 8,
+                  "upper": 9
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-D",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-STALE-MODEL_response",
+                  "lower": 12,
+                  "upper": 13
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "ACTOBS-T0-008-invalid-telemetry-time-and-calibration",
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "max_sequence_length": 2,
+      "hypotheses": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "ground_truth_ref": "SYNTH-LEAK-A"
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "ground_truth_ref": "SYNTH-LEAK-B"
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "ground_truth_ref": "SYNTH-LEAK-C"
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "ground_truth_ref": "SYNTH-LEAK-D"
+        }
+      ],
+      "passive_observations": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "VALVE-PROBE-BAD-TIME-CAL",
+          "kind": "simulated_valve_perturbation",
+          "estimated_duration_seconds": 300,
+          "feasibility": {
+            "hydraulic_model_current": true,
+            "topology_current": true,
+            "operating_window_valid": true,
+            "telemetry_time_valid": false,
+            "calibration_current": false,
+            "pressure_floor_margin_kpa": 30,
+            "required_pressure_margin_kpa": 15,
+            "fire_flow_margin_lps": 25,
+            "required_fire_flow_margin_lps": 10,
+            "maximum_transient_kpa": 100,
+            "allowed_maximum_transient_kpa": 150,
+            "quality_hazard_clear": true,
+            "isolation_conflict_clear": true,
+            "reversible_rollback_defined": true,
+            "operator_authorized": true,
+            "permit_approved": true,
+            "action_timeout_clear": true,
+            "valve_identity_verified": true,
+            "valve_position_verified": true
+          },
+          "observations": [
+            {
+              "hypothesis_id": "LEAK-A",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-BAD-TIME-CAL_response",
+                  "lower": 0,
+                  "upper": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-B",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-BAD-TIME-CAL_response",
+                  "lower": 4,
+                  "upper": 5
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-C",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-BAD-TIME-CAL_response",
+                  "lower": 8,
+                  "upper": 9
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-D",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-BAD-TIME-CAL_response",
+                  "lower": 12,
+                  "upper": 13
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "ACTOBS-T0-009-safe-probe-with-overlapping-uncertainty",
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "max_sequence_length": 2,
+      "hypotheses": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "ground_truth_ref": "SYNTH-LEAK-A"
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "ground_truth_ref": "SYNTH-LEAK-B"
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "ground_truth_ref": "SYNTH-LEAK-C"
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "ground_truth_ref": "SYNTH-LEAK-D"
+        }
+      ],
+      "passive_observations": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "TEMP-PRESSURE-AMBIGUOUS",
+          "kind": "temporary_sensor",
+          "estimated_duration_seconds": 300,
+          "feasibility": {
+            "hydraulic_model_current": true,
+            "topology_current": true,
+            "operating_window_valid": true,
+            "telemetry_time_valid": true,
+            "calibration_current": true,
+            "pressure_floor_margin_kpa": 30,
+            "required_pressure_margin_kpa": 15,
+            "fire_flow_margin_lps": 25,
+            "required_fire_flow_margin_lps": 10,
+            "maximum_transient_kpa": 100,
+            "allowed_maximum_transient_kpa": 150,
+            "quality_hazard_clear": true,
+            "isolation_conflict_clear": true,
+            "reversible_rollback_defined": true,
+            "operator_authorized": true,
+            "permit_approved": true,
+            "action_timeout_clear": true,
+            "valve_identity_verified": null,
+            "valve_position_verified": null
+          },
+          "observations": [
+            {
+              "hypothesis_id": "LEAK-A",
+              "features": [
+                {
+                  "feature_id": "TEMP-PRESSURE-AMBIGUOUS_response",
+                  "lower": 0,
+                  "upper": 5
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-B",
+              "features": [
+                {
+                  "feature_id": "TEMP-PRESSURE-AMBIGUOUS_response",
+                  "lower": 1,
+                  "upper": 6
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-C",
+              "features": [
+                {
+                  "feature_id": "TEMP-PRESSURE-AMBIGUOUS_response",
+                  "lower": 2,
+                  "upper": 7
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-D",
+              "features": [
+                {
+                  "feature_id": "TEMP-PRESSURE-AMBIGUOUS_response",
+                  "lower": 3,
+                  "upper": 8
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "ACTOBS-T0-010-weak-probe-below-required-worst-case-reduction",
+      "minimum_worst_case_ambiguity_reduction": 2,
+      "max_sequence_length": 2,
+      "hypotheses": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "ground_truth_ref": "SYNTH-LEAK-A"
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "ground_truth_ref": "SYNTH-LEAK-B"
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "ground_truth_ref": "SYNTH-LEAK-C"
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "ground_truth_ref": "SYNTH-LEAK-D"
+        }
+      ],
+      "passive_observations": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "TEMP-PRESSURE-WEAK",
+          "kind": "temporary_sensor",
+          "estimated_duration_seconds": 900,
+          "feasibility": {
+            "hydraulic_model_current": true,
+            "topology_current": true,
+            "operating_window_valid": true,
+            "telemetry_time_valid": true,
+            "calibration_current": true,
+            "pressure_floor_margin_kpa": 30,
+            "required_pressure_margin_kpa": 15,
+            "fire_flow_margin_lps": 25,
+            "required_fire_flow_margin_lps": 10,
+            "maximum_transient_kpa": 100,
+            "allowed_maximum_transient_kpa": 150,
+            "quality_hazard_clear": true,
+            "isolation_conflict_clear": true,
+            "reversible_rollback_defined": true,
+            "operator_authorized": true,
+            "permit_approved": true,
+            "action_timeout_clear": true,
+            "valve_identity_verified": null,
+            "valve_position_verified": null
+          },
+          "observations": [
+            {
+              "hypothesis_id": "LEAK-A",
+              "features": [
+                {
+                  "feature_id": "TEMP-PRESSURE-WEAK_response",
+                  "lower": 0,
+                  "upper": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-B",
+              "features": [
+                {
+                  "feature_id": "TEMP-PRESSURE-WEAK_response",
+                  "lower": 0,
+                  "upper": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-C",
+              "features": [
+                {
+                  "feature_id": "TEMP-PRESSURE-WEAK_response",
+                  "lower": 0,
+                  "upper": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-D",
+              "features": [
+                {
+                  "feature_id": "TEMP-PRESSURE-WEAK_response",
+                  "lower": 8,
+                  "upper": 9
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "ACTOBS-T0-011-two-probes-jointly-separate-hypotheses",
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "max_sequence_length": 2,
+      "hypotheses": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "ground_truth_ref": "SYNTH-LEAK-A"
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "ground_truth_ref": "SYNTH-LEAK-B"
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "ground_truth_ref": "SYNTH-LEAK-C"
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "ground_truth_ref": "SYNTH-LEAK-D"
+        }
+      ],
+      "passive_observations": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "TEMP-PROBE-ONE-AXIS",
+          "kind": "temporary_sensor",
+          "estimated_duration_seconds": 300,
+          "feasibility": {
+            "hydraulic_model_current": true,
+            "topology_current": true,
+            "operating_window_valid": true,
+            "telemetry_time_valid": true,
+            "calibration_current": true,
+            "pressure_floor_margin_kpa": 30,
+            "required_pressure_margin_kpa": 15,
+            "fire_flow_margin_lps": 25,
+            "required_fire_flow_margin_lps": 10,
+            "maximum_transient_kpa": 100,
+            "allowed_maximum_transient_kpa": 150,
+            "quality_hazard_clear": true,
+            "isolation_conflict_clear": true,
+            "reversible_rollback_defined": true,
+            "operator_authorized": true,
+            "permit_approved": true,
+            "action_timeout_clear": true,
+            "valve_identity_verified": null,
+            "valve_position_verified": null
+          },
+          "observations": [
+            {
+              "hypothesis_id": "LEAK-A",
+              "features": [
+                {
+                  "feature_id": "TEMP-PROBE-ONE-AXIS_response",
+                  "lower": 0,
+                  "upper": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-B",
+              "features": [
+                {
+                  "feature_id": "TEMP-PROBE-ONE-AXIS_response",
+                  "lower": 0,
+                  "upper": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-C",
+              "features": [
+                {
+                  "feature_id": "TEMP-PROBE-ONE-AXIS_response",
+                  "lower": 8,
+                  "upper": 9
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-D",
+              "features": [
+                {
+                  "feature_id": "TEMP-PROBE-ONE-AXIS_response",
+                  "lower": 8,
+                  "upper": 9
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "probe_id": "MANUAL-PROBE-OTHER-AXIS",
+          "kind": "operator_observation",
+          "estimated_duration_seconds": 300,
+          "feasibility": {
+            "hydraulic_model_current": true,
+            "topology_current": true,
+            "operating_window_valid": true,
+            "telemetry_time_valid": true,
+            "calibration_current": true,
+            "pressure_floor_margin_kpa": 30,
+            "required_pressure_margin_kpa": 15,
+            "fire_flow_margin_lps": 25,
+            "required_fire_flow_margin_lps": 10,
+            "maximum_transient_kpa": 100,
+            "allowed_maximum_transient_kpa": 150,
+            "quality_hazard_clear": true,
+            "isolation_conflict_clear": true,
+            "reversible_rollback_defined": true,
+            "operator_authorized": true,
+            "permit_approved": true,
+            "action_timeout_clear": true,
+            "valve_identity_verified": null,
+            "valve_position_verified": null
+          },
+          "observations": [
+            {
+              "hypothesis_id": "LEAK-A",
+              "features": [
+                {
+                  "feature_id": "MANUAL-PROBE-OTHER-AXIS_response",
+                  "lower": 0,
+                  "upper": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-B",
+              "features": [
+                {
+                  "feature_id": "MANUAL-PROBE-OTHER-AXIS_response",
+                  "lower": 8,
+                  "upper": 9
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-C",
+              "features": [
+                {
+                  "feature_id": "MANUAL-PROBE-OTHER-AXIS_response",
+                  "lower": 0,
+                  "upper": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-D",
+              "features": [
+                {
+                  "feature_id": "MANUAL-PROBE-OTHER-AXIS_response",
+                  "lower": 8,
+                  "upper": 9
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "ACTOBS-T0-012-input-order-permutation-invariance",
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "max_sequence_length": 2,
+      "hypotheses": [
+        {
+          "hypothesis_id": "LEAK-D",
+          "ground_truth_ref": "SYNTH-LEAK-D"
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "ground_truth_ref": "SYNTH-LEAK-C"
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "ground_truth_ref": "SYNTH-LEAK-B"
+        },
+        {
+          "hypothesis_id": "LEAK-A",
+          "ground_truth_ref": "SYNTH-LEAK-A"
+        }
+      ],
+      "passive_observations": [
+        {
+          "hypothesis_id": "LEAK-D",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-A",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "TEMP-PRESSURE-1",
+          "kind": "temporary_sensor",
+          "estimated_duration_seconds": 300,
+          "feasibility": {
+            "hydraulic_model_current": true,
+            "topology_current": true,
+            "operating_window_valid": true,
+            "telemetry_time_valid": true,
+            "calibration_current": true,
+            "pressure_floor_margin_kpa": 30,
+            "required_pressure_margin_kpa": 15,
+            "fire_flow_margin_lps": 25,
+            "required_fire_flow_margin_lps": 10,
+            "maximum_transient_kpa": 100,
+            "allowed_maximum_transient_kpa": 150,
+            "quality_hazard_clear": true,
+            "isolation_conflict_clear": true,
+            "reversible_rollback_defined": true,
+            "operator_authorized": true,
+            "permit_approved": true,
+            "action_timeout_clear": true,
+            "valve_identity_verified": null,
+            "valve_position_verified": null
+          },
+          "observations": [
+            {
+              "hypothesis_id": "LEAK-D",
+              "features": [
+                {
+                  "feature_id": "TEMP-PRESSURE-1_response",
+                  "lower": 12,
+                  "upper": 13
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-C",
+              "features": [
+                {
+                  "feature_id": "TEMP-PRESSURE-1_response",
+                  "lower": 8,
+                  "upper": 9
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-B",
+              "features": [
+                {
+                  "feature_id": "TEMP-PRESSURE-1_response",
+                  "lower": 4,
+                  "upper": 5
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-A",
+              "features": [
+                {
+                  "feature_id": "TEMP-PRESSURE-1_response",
+                  "lower": 0,
+                  "upper": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "ACTOBS-T0-013-operator-authorization-missing",
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "max_sequence_length": 2,
+      "hypotheses": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "ground_truth_ref": "SYNTH-LEAK-A"
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "ground_truth_ref": "SYNTH-LEAK-B"
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "ground_truth_ref": "SYNTH-LEAK-C"
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "ground_truth_ref": "SYNTH-LEAK-D"
+        }
+      ],
+      "passive_observations": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "TEMP-PROBE-NO-AUTH",
+          "kind": "temporary_sensor",
+          "estimated_duration_seconds": 300,
+          "feasibility": {
+            "hydraulic_model_current": true,
+            "topology_current": true,
+            "operating_window_valid": true,
+            "telemetry_time_valid": true,
+            "calibration_current": true,
+            "pressure_floor_margin_kpa": 30,
+            "required_pressure_margin_kpa": 15,
+            "fire_flow_margin_lps": 25,
+            "required_fire_flow_margin_lps": 10,
+            "maximum_transient_kpa": 100,
+            "allowed_maximum_transient_kpa": 150,
+            "quality_hazard_clear": true,
+            "isolation_conflict_clear": true,
+            "reversible_rollback_defined": true,
+            "operator_authorized": false,
+            "permit_approved": true,
+            "action_timeout_clear": true,
+            "valve_identity_verified": null,
+            "valve_position_verified": null
+          },
+          "observations": [
+            {
+              "hypothesis_id": "LEAK-A",
+              "features": [
+                {
+                  "feature_id": "TEMP-PROBE-NO-AUTH_response",
+                  "lower": 0,
+                  "upper": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-B",
+              "features": [
+                {
+                  "feature_id": "TEMP-PROBE-NO-AUTH_response",
+                  "lower": 4,
+                  "upper": 5
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-C",
+              "features": [
+                {
+                  "feature_id": "TEMP-PROBE-NO-AUTH_response",
+                  "lower": 8,
+                  "upper": 9
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-D",
+              "features": [
+                {
+                  "feature_id": "TEMP-PROBE-NO-AUTH_response",
+                  "lower": 12,
+                  "upper": 13
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "ACTOBS-T0-014-no-feasible-probe-abstention",
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "max_sequence_length": 2,
+      "hypotheses": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "ground_truth_ref": "SYNTH-LEAK-A"
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "ground_truth_ref": "SYNTH-LEAK-B"
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "ground_truth_ref": "SYNTH-LEAK-C"
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "ground_truth_ref": "SYNTH-LEAK-D"
+        }
+      ],
+      "passive_observations": [
+        {
+          "hypothesis_id": "LEAK-A",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-B",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-C",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        },
+        {
+          "hypothesis_id": "LEAK-D",
+          "features": [
+            {
+              "feature_id": "passive_pressure_residual",
+              "lower": -1,
+              "upper": 1
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "VALVE-PROBE-NO-PERMIT",
+          "kind": "simulated_valve_perturbation",
+          "estimated_duration_seconds": 300,
+          "feasibility": {
+            "hydraulic_model_current": true,
+            "topology_current": true,
+            "operating_window_valid": true,
+            "telemetry_time_valid": true,
+            "calibration_current": true,
+            "pressure_floor_margin_kpa": 30,
+            "required_pressure_margin_kpa": 15,
+            "fire_flow_margin_lps": 25,
+            "required_fire_flow_margin_lps": 10,
+            "maximum_transient_kpa": 100,
+            "allowed_maximum_transient_kpa": 150,
+            "quality_hazard_clear": true,
+            "isolation_conflict_clear": true,
+            "reversible_rollback_defined": true,
+            "operator_authorized": true,
+            "permit_approved": false,
+            "action_timeout_clear": true,
+            "valve_identity_verified": true,
+            "valve_position_verified": true
+          },
+          "observations": [
+            {
+              "hypothesis_id": "LEAK-A",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-NO-PERMIT_response",
+                  "lower": 0,
+                  "upper": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-B",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-NO-PERMIT_response",
+                  "lower": 4,
+                  "upper": 5
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-C",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-NO-PERMIT_response",
+                  "lower": 8,
+                  "upper": 9
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-D",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-NO-PERMIT_response",
+                  "lower": 12,
+                  "upper": 13
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "probe_id": "VALVE-PROBE-NO-ROLLBACK",
+          "kind": "simulated_valve_perturbation",
+          "estimated_duration_seconds": 300,
+          "feasibility": {
+            "hydraulic_model_current": true,
+            "topology_current": true,
+            "operating_window_valid": true,
+            "telemetry_time_valid": true,
+            "calibration_current": true,
+            "pressure_floor_margin_kpa": 30,
+            "required_pressure_margin_kpa": 15,
+            "fire_flow_margin_lps": 25,
+            "required_fire_flow_margin_lps": 10,
+            "maximum_transient_kpa": 100,
+            "allowed_maximum_transient_kpa": 150,
+            "quality_hazard_clear": true,
+            "isolation_conflict_clear": true,
+            "reversible_rollback_defined": false,
+            "operator_authorized": true,
+            "permit_approved": true,
+            "action_timeout_clear": true,
+            "valve_identity_verified": true,
+            "valve_position_verified": true
+          },
+          "observations": [
+            {
+              "hypothesis_id": "LEAK-A",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-NO-ROLLBACK_response",
+                  "lower": 0,
+                  "upper": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-B",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-NO-ROLLBACK_response",
+                  "lower": 4,
+                  "upper": 5
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-C",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-NO-ROLLBACK_response",
+                  "lower": 8,
+                  "upper": 9
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "LEAK-D",
+              "features": [
+                {
+                  "feature_id": "VALVE-PROBE-NO-ROLLBACK_response",
+                  "lower": 12,
+                  "upper": 13
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
