@@ -20,9 +20,9 @@ The graphs are linked by proposal identity/revision and explicit task/output IDs
 - Action ontology bindings must be mapped and their provenance reference must equal the explicit action-resolution reference. Natural-language descriptions are never action commands.
 - All quantities use positive integer coefficients, explicit dimensions/units and decimal scale. No density conversion, stock inference, or zero-filling is performed.
 - Each explicitly quantified ingredient must be fully allocated across task inputs and/or explicit planned loss outputs. Under-allocation is indeterminate; over-allocation or contradictory bindings are conflicted.
-- Every task output has explicit ingredient-origin lineage and exactly one outgoing edge. V1 intentionally does not infer splitting; splitting requires explicitly declared child materials in a future schema.
+- Every task output has explicit per-ingredient fixed-point contributions and exactly one outgoing edge. Contributions must share the output dimension and sum exactly to the declared output quantity. Per-task, per-ingredient input contributions must equal all planned outputs plus explicit planned-loss outputs; material cannot disappear between task boundaries. V1 intentionally does not infer splitting; splitting requires explicitly declared child materials in a future schema.
 - Price and availability facts require exact product-SKU or supplier-lot scope, a market reference and an explicit validity end. Generic ingredient pricing is not promoted to SKU/lot pricing. Allergen declarations require a known ingredient reference and product-SKU or supplier-lot scope. This does not establish allergen safety.
-- Every output quantity is a *planned* value. It is not measured yield, residue, evaporation, accepted edible mass or sensory acceptance.
+- Every output quantity and contribution is a *planned* value. Conservation only proves the submitted plan accounts arithmetically for declared inputs as planned outputs/losses; it is not measured yield, residue, evaporation, accepted edible mass or sensory acceptance.
 
 ## System boundary
 
