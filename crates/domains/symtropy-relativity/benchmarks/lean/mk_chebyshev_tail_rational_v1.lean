@@ -20,9 +20,26 @@ theorem sqrt2_upper_square :
     2 < (sqrt2Lower + 1 / scale) ^ 2 := by
   norm_num [sqrt2Lower, scale]
 
+theorem sqrt2_lower_lt_real_sqrt_two :
+    (sqrt2Lower : ℝ) < Real.sqrt 2 := by
+  apply Real.lt_sqrt_of_sq_lt
+  norm_num [sqrt2Lower]
+
+theorem real_sqrt_two_lt_sqrt2_upper :
+    Real.sqrt 2 < ((sqrt2Lower + 1 / scale : ℚ) : ℝ) := by
+  apply (Real.sqrt_lt (by norm_num : 0 ≤ (2 : ℝ)) (by positivity)).2
+  norm_num [sqrt2Lower, scale]
+
 def qUpper : ℚ := 3 - 2 * sqrt2Lower
 def qNuUpper : ℚ := 2 * qUpper
 def prefactorUpper : ℚ := 17 / (15 * sqrt2Lower)
+
+def qNuExact : ℝ := 6 - 4 * Real.sqrt 2
+
+theorem qNuExact_lt_qNuUpper :
+    qNuExact < (qNuUpper : ℝ) := by
+  unfold qNuExact qNuUpper qUpper
+  nlinarith [sqrt2_lower_lt_real_sqrt_two]
 
 theorem qNuUpper_positive : 0 < qNuUpper := by
   norm_num [qNuUpper, qUpper, sqrt2Lower]
