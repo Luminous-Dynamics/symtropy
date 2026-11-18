@@ -1,0 +1,265 @@
+{
+  "schemaVersion": "0.1.0",
+  "caseId": "SYNTHETIC-SA-TRANSMISSION-CORRIDOR-01",
+  "caseMaturity": "synthetic_fixture",
+  "jurisdiction": {
+    "jurisdictionCode": "ZA",
+    "authoritySources": [
+      "https://www.dffe.gov.za/sites/default/files/docs/electricitytransmission_standard2024feb.pdf"
+    ]
+  },
+  "route": {
+    "routeId": "SA-CORRIDOR-SYNTHETIC",
+    "alternativeId": "ALT-03",
+    "deliveredServiceMw": 500,
+    "voltageKv": 400,
+    "routeLengthKm": 120
+  },
+  "stakeholders": [
+    {
+      "stakeholderId": "SH-PRIVATE-OWNER-GROUP",
+      "category": "private_landowner",
+      "identityStatus": "partially_verified",
+      "representationBasis": "documented_mandate",
+      "disclosureLevel": "aggregate_only"
+    },
+    {
+      "stakeholderId": "SH-COMMUNAL-TENURE-GROUP",
+      "category": "communal_customary_holder",
+      "identityStatus": "unverified",
+      "representationBasis": "customary_or_collective_process",
+      "disclosureLevel": "aggregate_only"
+    },
+    {
+      "stakeholderId": "SH-FARM-WORKER-GROUP",
+      "category": "farm_worker",
+      "identityStatus": "partially_verified",
+      "representationBasis": "self_represented",
+      "disclosureLevel": "aggregate_only"
+    },
+    {
+      "stakeholderId": "SH-LOCAL-RESIDENT-GROUP",
+      "category": "local_resident",
+      "identityStatus": "verified",
+      "representationBasis": "self_represented",
+      "disclosureLevel": "public_safe"
+    }
+  ],
+  "evidenceRecords": [
+    {
+      "evidenceId": "EV-JURISDICTION",
+      "evidenceClass": "synthetic_fixture",
+      "description": "Synthetic record that a jurisdiction profile source was identified; no legal applicability determination.",
+      "sourceUri": null,
+      "asOfDate": "2026-11-18"
+    },
+    {
+      "evidenceId": "EV-RIGHTS-REGISTER",
+      "evidenceClass": "synthetic_fixture",
+      "description": "Synthetic anonymised rights-holder category inventory with unresolved identity and representation gaps.",
+      "sourceUri": null,
+      "asOfDate": "2026-11-18"
+    },
+    {
+      "evidenceId": "EV-ENGAGEMENT-NOTICE",
+      "evidenceClass": "synthetic_fixture",
+      "description": "Synthetic public notice and accessibility plan; no real consultation occurred.",
+      "sourceUri": null,
+      "asOfDate": "2026-11-18"
+    },
+    {
+      "evidenceId": "EV-ENV-SCREEN",
+      "evidenceClass": "synthetic_fixture",
+      "description": "Synthetic environmental and cultural review placeholder; specialist study not completed.",
+      "sourceUri": null,
+      "asOfDate": "2026-11-18"
+    }
+  ],
+  "decisions": [
+    {
+      "decisionId": "DEC-ENV-01",
+      "decisionType": "environmental_authorisation",
+      "status": "submitted",
+      "scope": "Synthetic route alternative ALT-03; pending decision",
+      "partyStakeholderIds": [
+        "SH-LOCAL-RESIDENT-GROUP"
+      ],
+      "effectiveFrom": null,
+      "expiresOn": null,
+      "evidenceIds": [
+        "EV-ENV-SCREEN"
+      ]
+    },
+    {
+      "decisionId": "DEC-SERVITUDE-01",
+      "decisionType": "servitude",
+      "status": "unknown",
+      "scope": "Synthetic land access corridor; tenure and instruments unverified",
+      "partyStakeholderIds": [
+        "SH-PRIVATE-OWNER-GROUP",
+        "SH-COMMUNAL-TENURE-GROUP"
+      ],
+      "effectiveFrom": null,
+      "expiresOn": null,
+      "evidenceIds": []
+    },
+    {
+      "decisionId": "DEC-COMMUNITY-01",
+      "decisionType": "community_agreement",
+      "status": "unknown",
+      "scope": "No community agreement is asserted",
+      "partyStakeholderIds": [
+        "SH-COMMUNAL-TENURE-GROUP",
+        "SH-LOCAL-RESIDENT-GROUP"
+      ],
+      "effectiveFrom": null,
+      "expiresOn": null,
+      "evidenceIds": []
+    },
+    {
+      "decisionId": "DEC-CONSULT-01",
+      "decisionType": "consultation_record",
+      "status": "submitted",
+      "scope": "Synthetic public participation notice; outcome not determined",
+      "partyStakeholderIds": [
+        "SH-PRIVATE-OWNER-GROUP",
+        "SH-COMMUNAL-TENURE-GROUP",
+        "SH-FARM-WORKER-GROUP",
+        "SH-LOCAL-RESIDENT-GROUP"
+      ],
+      "effectiveFrom": null,
+      "expiresOn": null,
+      "evidenceIds": [
+        "EV-ENGAGEMENT-NOTICE"
+      ]
+    }
+  ],
+  "gates": [
+    {
+      "gateId": "GATE-JURISDICTION",
+      "gateType": "jurisdiction_and_authority",
+      "status": "complete",
+      "accountableRole": "synthetic_research_fixture",
+      "evidenceIds": [
+        "EV-JURISDICTION"
+      ]
+    },
+    {
+      "gateId": "GATE-RIGHTS-HOLDERS",
+      "gateType": "rights_holder_identification",
+      "status": "in_progress",
+      "accountableRole": "land_tenure_review",
+      "evidenceIds": [
+        "EV-RIGHTS-REGISTER"
+      ]
+    },
+    {
+      "gateId": "GATE-PARTICIPATION",
+      "gateType": "public_participation",
+      "status": "in_progress",
+      "accountableRole": "public_participation_lead",
+      "requiredDecisionType": "consultation_record",
+      "decisionId": "DEC-CONSULT-01",
+      "evidenceIds": [
+        "EV-ENGAGEMENT-NOTICE"
+      ]
+    },
+    {
+      "gateId": "GATE-ENVIRONMENT",
+      "gateType": "environmental_water_cultural_review",
+      "status": "in_progress",
+      "accountableRole": "qualified_environmental_specialists",
+      "requiredDecisionType": "environmental_authorisation",
+      "decisionId": "DEC-ENV-01",
+      "evidenceIds": [
+        "EV-ENV-SCREEN"
+      ]
+    },
+    {
+      "gateId": "GATE-LAND-ACCESS",
+      "gateType": "land_access_and_servitude",
+      "status": "blocked",
+      "accountableRole": "land_access_legal_team",
+      "requiredDecisionType": "servitude",
+      "decisionId": "DEC-SERVITUDE-01",
+      "evidenceIds": []
+    }
+  ],
+  "engagements": [
+    {
+      "engagementId": "ENG-01",
+      "stakeholderIds": [
+        "SH-PRIVATE-OWNER-GROUP",
+        "SH-COMMUNAL-TENURE-GROUP",
+        "SH-FARM-WORKER-GROUP",
+        "SH-LOCAL-RESIDENT-GROUP"
+      ],
+      "noticeMethod": "synthetic_multichannel_notice",
+      "language": "locally confirmed languages required before real engagement",
+      "accessibilityPlan": "provide accessible formats and separate representation channels; verify locally",
+      "windowStart": "2026-12-01",
+      "windowEnd": "2027-01-15",
+      "status": "planned",
+      "noticeEvidenceIds": [
+        "EV-ENGAGEMENT-NOTICE"
+      ],
+      "concerns": [
+        {
+          "concernId": "ISSUE-LIVELIHOOD",
+          "topic": "synthetic placeholder: agricultural livelihood/access impact",
+          "status": "unresolved",
+          "responseEvidenceIds": []
+        },
+        {
+          "concernId": "ISSUE-CUSTOMARY-TENURE",
+          "topic": "synthetic placeholder: verify customary/collective decision process",
+          "status": "unresolved",
+          "responseEvidenceIds": []
+        }
+      ]
+    }
+  ],
+  "impacts": [
+    {
+      "impactId": "IMP-LAND-AREA",
+      "category": "land_footprint",
+      "measure": null,
+      "unit": "hectares",
+      "scope": "unknown until route survey and rights-holder verification",
+      "evidenceIds": []
+    },
+    {
+      "impactId": "IMP-LIVELIHOOD",
+      "category": "livelihood",
+      "measure": null,
+      "unit": "not quantified",
+      "scope": "unknown; no survey or compensation determination",
+      "evidenceIds": []
+    },
+    {
+      "impactId": "IMP-BIODIVERSITY",
+      "category": "biodiversity",
+      "measure": null,
+      "unit": "not quantified",
+      "scope": "specialist review pending",
+      "evidenceIds": [
+        "EV-ENV-SCREEN"
+      ]
+    }
+  ],
+  "workfronts": [
+    {
+      "workfrontId": "WF-SEGMENT-001",
+      "routeSegmentId": "SEGMENT-001",
+      "status": "not_released",
+      "requiredGateIds": [
+        "GATE-JURISDICTION",
+        "GATE-RIGHTS-HOLDERS",
+        "GATE-PARTICIPATION",
+        "GATE-ENVIRONMENT",
+        "GATE-LAND-ACCESS"
+      ],
+      "releaseEvidenceIds": []
+    }
+  ]
+}
