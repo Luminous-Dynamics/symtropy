@@ -1218,6 +1218,66 @@ mod tests {
     }
 
     #[test]
+    fn time_averaged_msd_matches_straight_run_displacement() {
+        let profile = steering_profile();
+        let initial = AgentState::new(0.0, 0.0, 0.0);
+        let trajectories: Vec<_> = (1..=3)
+            .map(|seed| simulate(&profile, initial, 0.0, 2, seed).expect("valid trajectory"))
+            .collect();
+
+        let estimates =
+            mean_squared_displacement(&trajectories, &[0.25, 0.0], 10.0)
+                .expect("valid MSD request");
+
+        assert_eq!(estimates[0].trajectory_count, 3);
+        assert!((estimates[0].mean_squared_displacement_um2 - 25.0).abs() < 1.0e-10);
+        assert_eq!(estimates[0].between_trajectory_sd_um2, Some(0.0));
+        assert_eq!(estimates[1].mean_squared_displacement_um2, 0.0);
+    }
+
+    #[test]
+    fn msd_rejects_invalid_lags_and_empty_ensembles() {
+        assert_eq!(
+            mean_squared_displacement(&[], &[0.1], 0.1),
+            Err(MsdError::EmptyEnsemble)
+        );
+
+        let trajectory = simulate(
+            &steering_profile(),
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            2,
+            5,
+        )
+        .expect("valid trajectory");
+
+        assert_eq!(
+            mean_squared_displacement(&[trajectory.clone()], &[-0.1], 0.1),
+            Err(MsdError::InvalidLagTime)
+        );
+        assert_eq!(
+            mean_squared_displacement(&[trajectory], &[0.1], 0.0),
+            Err(MsdError::InvalidTimeOriginStep)
+        );
+    }
+
+    #[test]
+    fn msd_reports_when_no_trajectory_covers_the_requested_lag() {
+        let trajectory = simulate(
+            &steering_profile(),
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            1,
+            5,
+        )
+        .expect("valid trajectory");
+        assert_eq!(
+            mean_squared_displacement(&[trajectory], &[100.0], 0.1),
+            Err(MsdError::NoTrajectorySupportsLag(100.0))
+        );
+    }
+
+    #[test]
     fn no_event_summary_is_explicitly_undefined_not_zero() {
         let result = simulate(
             &steering_profile(),
