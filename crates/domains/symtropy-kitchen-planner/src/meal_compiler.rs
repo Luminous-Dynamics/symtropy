@@ -1862,6 +1862,12 @@ fn validate_food_flows(
     }
 
     for task in &proposal.tasks {
+        // Without a task binding there is no declared output set to qualify.
+        // Missing bindings remain indeterminate and must not be promoted to
+        // a lineage violation by attempting to validate absent outputs.
+        if !bindings.contains_key(&task.task_id) {
+            continue;
+        }
         let expected: BTreeSet<String> = task.ingredient_refs.iter().cloned().collect();
         let actual = task_output_origins
             .get(&task.task_id)
@@ -2531,7 +2537,9 @@ mod tests {
         let report = compile_meal(&request);
         assert_eq!(
             report.disposition,
-            MealCompilationDispositionV1::Indeterminate
+            MealCompilationDispositionV1::Indeterminate,
+            "{:?}",
+            report.issues
         );
         assert!(report.recipe_graph.is_none());
     }
@@ -2547,6 +2555,7 @@ mod tests {
             impact: UncertaintyImpactV1::PlanningBlocker,
         });
         request.proposal_sha256 = proposal_digest(&request.proposal).unwrap();
+        request.acceptance.proposal_sha256 = request.proposal_sha256.clone();
         let report = compile_meal(&request);
         assert_eq!(
             report.disposition,
