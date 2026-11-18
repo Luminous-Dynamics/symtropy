@@ -102,6 +102,24 @@ pub struct ExpectedRow {
 pub struct Evaluation {
     pub scenario_id: String,
     pub profile_id: String,
+    pub standard_id: String,
+    pub edition: String,
+    pub publication_state: String,
+    pub standard_source_ref: String,
+    pub catalog_snapshot_date: String,
+    pub assessment_as_of: String,
+    pub product_family: String,
+    pub test_family: String,
+    pub seat_family: String,
+    pub fluid_profile: String,
+    pub facility_profile: String,
+    pub includes_fittings: bool,
+    pub fitting_agreement_ref: String,
+    pub product_standard_ref: String,
+    pub purchaser_agreement_ref: String,
+    pub acceptance_grade: String,
+    pub evidence_status: String,
+    pub claim_kind: String,
     pub disposition: Disposition,
     pub reason: String,
 }
@@ -484,6 +502,24 @@ pub fn evaluate(
         results.push(Evaluation {
             scenario_id: scenario.scenario_id.clone(),
             profile_id: scenario.profile_id.clone(),
+            standard_id: profile.standard_id.clone(),
+            edition: profile.edition.clone(),
+            publication_state: profile.publication_state.clone(),
+            standard_source_ref: profile.source_ref.clone(),
+            catalog_snapshot_date: profile.catalog_snapshot_date.clone(),
+            assessment_as_of: scenario.assessment_as_of.clone(),
+            product_family: scenario.product_family.clone(),
+            test_family: scenario.test_family.clone(),
+            seat_family: scenario.seat_family.clone(),
+            fluid_profile: scenario.fluid_profile.clone(),
+            facility_profile: scenario.facility_profile.clone(),
+            includes_fittings: scenario.includes_fittings,
+            fitting_agreement_ref: scenario.fitting_agreement_ref.clone(),
+            product_standard_ref: scenario.product_standard_ref.clone(),
+            purchaser_agreement_ref: scenario.purchaser_agreement_ref.clone(),
+            acceptance_grade: scenario.acceptance_grade.clone(),
+            evidence_status: scenario.evidence_status.clone(),
+            claim_kind: scenario.claim_kind.clone(),
             disposition,
             reason: reason.to_owned(),
         });
@@ -753,12 +789,32 @@ pub fn evaluate_corpus(
 }
 
 pub fn render_report(results: &[Evaluation]) -> String {
-    let mut report = String::from("scenario_id\tprofile_id\tdisposition\treason\n");
+    let mut report = String::from(
+        "scenario_id\tprofile_id\tstandard_id\tedition\tpublication_state\tstandard_source_ref\tcatalog_snapshot_date\tassessment_as_of\tproduct_family\ttest_family\tseat_family\tfluid_profile\tfacility_profile\tincludes_fittings\tfitting_agreement_ref\tproduct_standard_ref\tpurchaser_agreement_ref\tacceptance_grade\tevidence_status\tclaim_kind\tdisposition\treason\n",
+    );
     for row in results {
         report.push_str(&format!(
-            "{}\t{}\t{}\t{}\n",
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
             row.scenario_id,
             row.profile_id,
+            row.standard_id,
+            row.edition,
+            row.publication_state,
+            row.standard_source_ref,
+            row.catalog_snapshot_date,
+            row.assessment_as_of,
+            row.product_family,
+            row.test_family,
+            row.seat_family,
+            row.fluid_profile,
+            row.facility_profile,
+            if row.includes_fittings { "YES" } else { "NO" },
+            row.fitting_agreement_ref,
+            row.product_standard_ref,
+            row.purchaser_agreement_ref,
+            row.acceptance_grade,
+            row.evidence_status,
+            row.claim_kind,
             row.disposition.as_str(),
             row.reason
         ));
@@ -775,6 +831,17 @@ mod tests {
             parse_profiles(PROFILES).unwrap(),
             parse_scenarios(SCENARIOS).unwrap(),
         )
+    }
+
+    #[test]
+    fn report_binds_exact_standard_snapshot_and_contract_references() {
+        let results = evaluate_corpus(PROFILES, SCENARIOS, EXPECTED).unwrap();
+        let report = render_report(&results);
+        assert!(report.contains("catalog_snapshot_date"));
+        assert!(report.contains("assessment_as_of"));
+        assert!(report.contains("standard_source_ref"));
+        assert!(report.contains("standardref:product:valve_iso5208_metallic_gate"));
+        assert!(report.contains("agreement:fittings:pump_hi146_fittings_agreed"));
     }
 
     #[test]
