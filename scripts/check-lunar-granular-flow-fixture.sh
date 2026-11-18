@@ -178,6 +178,24 @@ jq -e '
            - ($o.accepted_target_size_mass_kg.value / $o.delivered_mass_kg.value) ) | abs) < 0.0001
 ' "$cal" >/dev/null || fail "synthetic fixture mass balance or derived efficiencies are inconsistent"
 
+jq -e '
+  .material.adhesion_characterization_status == "synthetic"
+  and (.material.adhesion_by_size_class | length) == 1
+  and (.derived_coordinates.adhesion_bond_by_size_class | length) == 1
+  and (.material.adhesion_by_size_class[0].adhesion_force_p05_n.value
+       <= .material.adhesion_by_size_class[0].adhesion_force_p50_n.value)
+  and (.material.adhesion_by_size_class[0].adhesion_force_p50_n.value
+       <= .material.adhesion_by_size_class[0].adhesion_force_p95_n.value)
+  and (.material.adhesion_by_size_class[0].adhesion_force_p95_n.value
+       <= .material.adhesion_by_size_class[0].adhesion_force_p99_n.value)
+  and (.derived_coordinates.adhesion_bond_by_size_class[0].bo_p05.value
+       <= .derived_coordinates.adhesion_bond_by_size_class[0].bo_p50.value)
+  and (.derived_coordinates.adhesion_bond_by_size_class[0].bo_p50.value
+       <= .derived_coordinates.adhesion_bond_by_size_class[0].bo_p95.value)
+  and (.derived_coordinates.adhesion_bond_by_size_class[0].bo_p95.value
+       <= .derived_coordinates.adhesion_bond_by_size_class[0].bo_p99.value)
+' "$cal" >/dev/null || fail "synthetic size-resolved adhesion quantile fixture invalid"
+
 bash scripts/validate-lunar-granular-flow-dataset.sh \
   --allow-synthetic-placeholders \
   "$manifest" "$cal" "$val" "$blind" \
@@ -251,6 +269,66 @@ if bash scripts/validate-lunar-granular-flow-dataset.sh \
   "$negative_root/examples/validation.json" \
   "$negative_root/examples/blind-test.json"; then
   fail "negative control accepted a dimensionless coordinate inconsistent with its primitives"
+fi
+
+# Negative control 5: a confinement/tensile-strength ratio cannot be
+# populated while either primitive measurement is unknown.
+jq '
+  .derived_coordinates.confinement_to_tensile_strength_ratio = {
+    "value": 1.0,
+    "standard_uncertainty": 0.01,
+    "unit": "dimensionless",
+    "status": "synthetic",
+    "source_artifact_id": null,
+    "calibration_record_id": null,
+    "derivation_method_id": "synthetic-invalid",
+    "calculation_version": "0.0.0"
+  }
+' "$negative_root/examples/calibration.json" > "$negative_root/examples/calibration-fabricated-sigma-star.json"
+if bash scripts/validate-lunar-granular-flow-dataset.sh \
+  --allow-synthetic-placeholders \
+  "$negative_root/examples/manifest.json" \
+  "$negative_root/examples/calibration-fabricated-sigma-star.json" \
+  "$negative_root/examples/validation.json" \
+  "$negative_root/examples/blind-test.json"; then
+  fail "negative control accepted Sigma-star when its primitive measurements are unknown"
+fi
+
+# Negative control 6: breakage/segregation timescale ratio is unknown until all
+# four physical primitives have been measured.
+jq '
+  .derived_coordinates.breakage_segregation_timescale_ratio = {
+    "value": 1.0,
+    "standard_uncertainty": 0.01,
+    "unit": "dimensionless",
+    "status": "synthetic",
+    "source_artifact_id": null,
+    "calibration_record_id": null,
+    "derivation_method_id": "synthetic-invalid",
+    "calculation_version": "0.0.0"
+  }
+' "$negative_root/examples/calibration.json" > "$negative_root/examples/calibration-fabricated-breakage-ratio.json"
+if bash scripts/validate-lunar-granular-flow-dataset.sh \
+  --allow-synthetic-placeholders \
+  "$negative_root/examples/manifest.json" \
+  "$negative_root/examples/calibration-fabricated-breakage-ratio.json" \
+  "$negative_root/examples/validation.json" \
+  "$negative_root/examples/blind-test.json"; then
+  fail "negative control accepted breakage/segregation ratio with unknown primitives"
+fi
+
+# Negative control 7: a size-resolved adhesion bond quantile must reconcile
+# with that size class's adhesion-force quantile, representative mass and g.
+jq '
+  .derived_coordinates.adhesion_bond_by_size_class[0].bo_p95.value = 999.0
+' "$negative_root/examples/calibration.json" > "$negative_root/examples/calibration-tampered-size-bond.json"
+if bash scripts/validate-lunar-granular-flow-dataset.sh \
+  --allow-synthetic-placeholders \
+  "$negative_root/examples/manifest.json" \
+  "$negative_root/examples/calibration-tampered-size-bond.json" \
+  "$negative_root/examples/validation.json" \
+  "$negative_root/examples/blind-test.json"; then
+  fail "negative control accepted size-resolved Bo quantile inconsistent with primitives"
 fi
 
 printf 'lunar granular-flow fixture check: PASS (synthetic fixtures and planned DOE only)\n'
