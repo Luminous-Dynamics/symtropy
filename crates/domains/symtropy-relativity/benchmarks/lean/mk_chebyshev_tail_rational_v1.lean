@@ -27,7 +27,7 @@ theorem sqrt2_lower_lt_real_sqrt_two :
 
 theorem real_sqrt_two_lt_sqrt2_upper :
     Real.sqrt 2 < ((sqrt2Lower + 1 / scale : ℚ) : ℝ) := by
-  apply (Real.sqrt_lt (by norm_num : 0 ≤ (2 : ℝ)) (by positivity)).2
+  apply (Real.sqrt_lt' (by positivity)).2
   norm_num [sqrt2Lower, scale]
 
 def qUpper : ℚ := 3 - 2 * sqrt2Lower
