@@ -38,6 +38,7 @@ pub struct AvailabilityCase {
     pub inputs: AvailabilityInputs,
     pub maintenance_policy: MaintenancePolicy,
     pub scenarios: Vec<AvailabilityScenario>,
+    pub source_evidence_refs: Option<Vec<String>>,
     pub assumptions: Vec<String>,
 }
 
