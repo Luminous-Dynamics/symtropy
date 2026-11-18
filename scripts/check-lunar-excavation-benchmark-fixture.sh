@@ -69,6 +69,7 @@ printf '%s  %s\n' \
 # Recompute peak, trapezoidal impulse, and time-mean force from the force trace.
 read -r peak impulse mean_force < <(
   awk -F, '
+    BEGIN { first = 1 }
     NR == 1 { next }
     {
       t = $1 + 0
@@ -108,7 +109,7 @@ close_enough() {
   awk -v actual="$1" -v expected="$2" '
     function abs(x) { return x < 0 ? -x : x }
     BEGIN {
-      scale = abs(expected) > 1 ? abs(expected) : 1
+      scale = abs(expected) > 1e-12 ? abs(expected) : 1
       exit (abs(actual - expected) <= 1e-9 * scale ? 0 : 1)
     }
   '
