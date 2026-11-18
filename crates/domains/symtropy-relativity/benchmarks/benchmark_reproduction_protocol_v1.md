@@ -230,3 +230,39 @@ The existing Symtropy public relativity crate currently has a 4x4 metric represe
 5. Only then compare discovery algorithms and add independent interval/operator/tail qualification.
 
 If the paper provides no raw solution arrays, digitized curves must carry explicit digitization error and cannot be promoted to exact reference data. Akribeia's residual-threshold “certification”, a full-domain residual enclosure, and a radii-polynomial existence theorem remain three different evidence levels.
+
+
+## 12. Second radial first integral: time-sector equation (2010 Eq. 2.14)
+
+The 2010 source also states that a particular EGB field-equation combination is a total radial derivative:
+\[
+R_t{}^t+\frac{\alpha}{4}\left(H_t{}^t+\frac12L_{GB}\right)
+=\frac{1}{2r^2}\sqrt{\frac{f}{bh}}\,
+\frac{d}{dr}\left[
+\sqrt{\frac{fh}{b}}r^2(hww'-b')\right].
+\]
+For a full EGB solution, this gives the constant radial quantity
+\[
+P_t=\sqrt{\frac{fh}{b}}r^2(hww'-b')=2\mathcal U,
+\]
+where \(\mathcal U\) is the \(1/r^2\) coefficient of the asymptotic lapse. The regular horizon limit is
+\[
+P_t=r_H^2\sqrt{\frac{f_1h_H}{b_1}}
+(h_H\Omega_Hw_1-b_1).
+\]
+
+This is not a second cyclic Noether momentum. It is a first integral of a particular field-equation combination. Use it as a separate constraint and independent residual diagnostic, not as a replacement for the complete EGB equations.
+
+Where \(r^2\sqrt{fh/b}\) is resolved and nonzero,
+\[
+b'=hww'-\frac{2\mathcal U}{r^2\sqrt{fh/b}}.
+\]
+Together with the angular flux equation this offers a three-profile formulation: candidate functions \(f,h\) plus an integrated \(w\) profile and the lapse \(b\) recovered from the time-sector relation. More precisely, the primary unknown profiles can be reduced to \(f,h\) with two radial quadratures for \(w\) and \(b\), subject to the remaining EGB equations and global charges \((\mathcal U,\mathcal W)\). This is a candidate architecture to benchmark, not a proved reduction of the full nonlinear BVP.
+
+For exact 5D equal-spin Myers–Perry at alpha=0, independently verify both
+\[
+P_w=-4\mathcal W,\qquad P_t=2\mathcal U
+\]
+at held-out exterior radii and using analytic horizon limits. The Rust crate now has separate time-sector flux and b-prime reconstruction helpers. Their floating-point denominator guards prevent obvious singular division but are not rigorous enclosures.
+
+The complete 5D first-integral exact fixture is located at crates/domains/symtropy-lovelock5d/benchmarks/akribiea_5d_mp_exact_fixture_v1.json.
