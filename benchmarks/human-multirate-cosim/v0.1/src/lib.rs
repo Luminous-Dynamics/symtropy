@@ -21,6 +21,7 @@ pub mod trust_region;
 pub mod total_kl_trust_region;
 pub mod sensor_design;
 pub mod selective_risk;
+pub mod simple_hypothesis_eprocess;
 pub mod sequential_evidence;
 
 /// Arbitrary two-compartment exchange system:
