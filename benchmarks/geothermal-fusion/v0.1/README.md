@@ -40,7 +40,9 @@ Evidence class is not a confidence score. A newer or more precise value does not
 7. Geothermal + heat pump versus direct heat / resistive electric heating.
 8. EGS chronological decline, pump power, reinjection and downtime.
 9. Superhot geothermal state-aware fluid properties above 375 °C and 22 MPa.
-10. Superhot well integrity, thermal cycling, chemistry, materials and sensor degradation.
+10. Reservoir-to-wellhead pressure / enthalpy / phase-path benchmark: include near-isenthalpic expansion, wellbore pressure drop, mass-flow sensitivity, transmissivity and wellhead state; never substitute reservoir temperature for delivered temperature.
+11. Superhot well integrity, thermal cycling, chemistry, materials and sensor degradation, including subcritical phase-transition windows and corrosion sensitivity around 300–350 °C where supported by the fluid chemistry.
+12. Superhot performance sensitivity: compare temperature-only ranking against a joint pressure–transmissivity–mass-flow–wellhead-exergy ranking.
 11. ORC / flash / steam / indirect sCO₂ comparisons at matched source state and service boundary.
 12. Fusion facility load breakdown by plasma heating/current drive, magnets, cryogenics, vacuum, tritium, cooling, control and buildings.
 13. Concept-dependent fusion blanket / divertor / vessel heat streams with independently sourced temperature / pressure / coolant data.
