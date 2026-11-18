@@ -1046,6 +1046,234 @@ mod tests {
     }
 
     #[test]
+    fn matched_window_comparison_scores_censored_likelihood_and_information_criteria() {
+        let observations = [
+            SurvivalObservation {
+                duration_s: 1.0,
+                outcome: SurvivalOutcome::EventObserved,
+            },
+            SurvivalObservation {
+                duration_s: 2.0,
+                outcome: SurvivalOutcome::RightCensored,
+            },
+            SurvivalObservation {
+                duration_s: 3.0,
+                outcome: SurvivalOutcome::EventObserved,
+            },
+        ];
+        let exponential = WaitingTimeLaw::Exponential { mean_s: 1.0 };
+        let candidates = [WaitingTimeCandidate {
+            name: "exponential",
+            law: &exponential,
+        }];
+        let comparison =
+            compare_waiting_time_models(&observations, &[0.0, 1.0, 2.0, 3.0], &candidates)
+                .expect("valid matched-window comparison");
+
+        assert_eq!(
+            comparison.reference_survival_probabilities,
+            vec![1.0, 2.0 / 3.0, 2.0 / 3.0, 0.0]
+        );
+        assert_eq!(comparison.scores.len(), 1);
+        let score = &comparison.scores[0];
+        assert_eq!(score.name, "exponential");
+        assert_eq!(score.parameter_count, Some(1));
+        assert!((score.censored_log_likelihood.unwrap() + 6.0).abs() < 1.0e-12);
+        assert!((score.akaike_information_criterion.unwrap() - 14.0).abs() < 1.0e-12);
+        assert!(
+            (score.bayesian_information_criterion.unwrap() - (12.0 + 3.0_f64.ln())).abs()
+                < 1.0e-12
+        );
+        assert_eq!(score.survival_probabilities.len(), 4);
+        assert!(score.integrated_squared_survival_error.is_finite());
+        assert_eq!(comparison.reference_curve.right_censored_count, 1);
+    }
+
+    #[test]
+    fn matched_window_comparison_keeps_candidates_on_one_reference_and_grid() {
+        let observations = [
+            SurvivalObservation {
+                duration_s: 0.5,
+                outcome: SurvivalOutcome::EventObserved,
+            },
+            SurvivalObservation {
+                duration_s: 1.0,
+                outcome: SurvivalOutcome::EventObserved,
+            },
+            SurvivalObservation {
+                duration_s: 2.0,
+                outcome: SurvivalOutcome::EventObserved,
+            },
+        ];
+        let exponential = WaitingTimeLaw::Exponential { mean_s: 1.0 };
+        let double_exponential = WaitingTimeLaw::DoubleExponential {
+            fast_weight: 0.5,
+            fast_mean_s: 0.5,
+            slow_mean_s: 1.5,
+        };
+        let candidates = [
+            WaitingTimeCandidate {
+                name: "exp",
+                law: &exponential,
+            },
+            WaitingTimeCandidate {
+                name: "double-exp",
+                law: &double_exponential,
+            },
+        ];
+        let grid = [0.0, 0.5, 1.0, 1.5, 2.0];
+        let comparison =
+            compare_waiting_time_models(&observations, &grid, &candidates)
+                .expect("valid candidates");
+
+        assert_eq!(comparison.time_grid_s, grid);
+        assert_eq!(comparison.reference_survival_probabilities.len(), grid.len());
+        assert!(comparison
+            .scores
+            .iter()
+            .all(|score| score.survival_probabilities.len() == grid.len()));
+        assert_eq!(comparison.scores[0].parameter_count, Some(1));
+        assert_eq!(comparison.scores[1].parameter_count, Some(3));
+        assert!(comparison.scores[0].integrated_squared_survival_error >= 0.0);
+        assert!(comparison.scores[1].integrated_squared_survival_error >= 0.0);
+    }
+
+    #[test]
+    fn matched_window_comparison_rejects_completed_only_empirical_law_with_censoring() {
+        let observations = [
+            SurvivalObservation {
+                duration_s: 1.0,
+                outcome: SurvivalOutcome::EventObserved,
+            },
+            SurvivalObservation {
+                duration_s: 2.0,
+                outcome: SurvivalOutcome::RightCensored,
+            },
+        ];
+        let empirical = WaitingTimeLaw::empirical(vec![1.0]);
+        let candidates = [WaitingTimeCandidate {
+            name: "empirical-completed-only",
+            law: &empirical,
+        }];
+        assert_eq!(
+            compare_waiting_time_models(&observations, &[0.0, 1.0, 2.0], &candidates),
+            Err(WaitingTimeComparisonError::EmpiricalCandidateWithRightCensoring)
+        );
+    }
+
+    #[test]
+    fn uncensored_empirical_baseline_has_curve_error_but_no_parametric_criteria() {
+        let observations = [
+            SurvivalObservation {
+                duration_s: 1.0,
+                outcome: SurvivalOutcome::EventObserved,
+            },
+            SurvivalObservation {
+                duration_s: 2.0,
+                outcome: SurvivalOutcome::EventObserved,
+            },
+        ];
+        let empirical = WaitingTimeLaw::empirical(vec![1.0, 2.0]);
+        let candidates = [WaitingTimeCandidate {
+            name: "empirical",
+            law: &empirical,
+        }];
+        let comparison =
+            compare_waiting_time_models(&observations, &[0.0, 1.0, 2.0], &candidates)
+                .expect("uncensored empirical reference");
+        let score = &comparison.scores[0];
+
+        assert_eq!(score.parameter_count, None);
+        assert_eq!(score.censored_log_likelihood, None);
+        assert_eq!(score.akaike_information_criterion, None);
+        assert_eq!(score.bayesian_information_criterion, None);
+        assert_eq!(score.integrated_squared_survival_error, 0.0);
+    }
+
+    #[test]
+    fn matched_window_comparison_rejects_extrapolation_invalid_grids_and_duplicate_names() {
+        let observations = [
+            SurvivalObservation {
+                duration_s: 1.0,
+                outcome: SurvivalOutcome::EventObserved,
+            },
+            SurvivalObservation {
+                duration_s: 2.0,
+                outcome: SurvivalOutcome::EventObserved,
+            },
+        ];
+        let law = WaitingTimeLaw::Exponential { mean_s: 1.0 };
+        let candidates = [WaitingTimeCandidate {
+            name: "same",
+            law: &law,
+        }];
+
+        assert_eq!(
+            compare_waiting_time_models(&observations, &[0.0, 1.0, 3.0], &candidates),
+            Err(WaitingTimeComparisonError::TimeGridBeyondObservedSupport)
+        );
+        assert_eq!(
+            compare_waiting_time_models(&observations, &[0.1, 1.0, 2.0], &candidates),
+            Err(WaitingTimeComparisonError::InvalidTimeGrid)
+        );
+        let duplicate_candidates = [
+            WaitingTimeCandidate {
+                name: "same",
+                law: &law,
+            },
+            WaitingTimeCandidate {
+                name: "same",
+                law: &law,
+            },
+        ];
+        assert_eq!(
+            compare_waiting_time_models(
+                &observations,
+                &[0.0, 1.0, 2.0],
+                &duplicate_candidates
+            ),
+            Err(WaitingTimeComparisonError::DuplicateCandidateName)
+        );
+    }
+
+    #[test]
+    fn zero_density_candidate_has_negative_infinite_likelihood_not_nan() {
+        let observations = [
+            SurvivalObservation {
+                duration_s: 0.1,
+                outcome: SurvivalOutcome::EventObserved,
+            },
+            SurvivalObservation {
+                duration_s: 1.0,
+                outcome: SurvivalOutcome::EventObserved,
+            },
+        ];
+        let power_law = WaitingTimeLaw::PiecewisePowerLaw {
+            alpha: 0.79,
+            beta: 2.63,
+            min_s: 0.5,
+            crossover_s: 2.0,
+        };
+        let candidates = [WaitingTimeCandidate {
+            name: "unsupported-early-event",
+            law: &power_law,
+        }];
+        let comparison =
+            compare_waiting_time_models(&observations, &[0.0, 0.1, 1.0], &candidates)
+                .expect("valid comparison inputs");
+        let score = &comparison.scores[0];
+        assert_eq!(score.censored_log_likelihood, Some(f64::NEG_INFINITY));
+        assert_eq!(
+            score.akaike_information_criterion,
+            Some(f64::INFINITY)
+        );
+        assert_eq!(
+            score.bayesian_information_criterion,
+            Some(f64::INFINITY)
+        );
+    }
+
+    #[test]
     fn kaplan_meier_rejects_empty_or_invalid_durations() {
         assert_eq!(kaplan_meier(&[]), Err(SurvivalError::EmptyObservations));
         assert_eq!(
