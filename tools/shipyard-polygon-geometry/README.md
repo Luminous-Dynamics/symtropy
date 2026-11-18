@@ -38,9 +38,11 @@ These are shape-representation deltas, not the paper's yard-utilization scores. 
 
 The appendix does not supply a complete machine-readable Case9_50_4 corpus in the article download; the associated simulation data are available from the corresponding author upon request. Do not substitute the current synthetic orthogonal shapes for a paper reproduction. The source-authorized profile set and exact aisle/yard assumptions must be pinned first.
 
-## Oblique-shape controls
+## Independent arbitrary-polygon reference
 
-In addition to the orthogonal raster corpus, the unit suite has explicit non-axis-aligned triangle cases: proper-crossing overlap with no strictly contained input vertices, disjoint interiors whose AABBs overlap, and diagonal boundary-only contact. These expected-relation tests complement the raster oracle; they are not yet a full independent arbitrary-polygon differential corpus.
+The unit suite now includes a separately implemented exact segment/interior reference for a frozen 144-placement oblique/concave corpus (20,736 ordered polygon pairs). The reference does not call production orientation, segment-intersection, point-location, or relation functions. It uses bounded integer cross products, inclusive segment intersection, doubled-coordinate ray casting and exact edge-midpoint probes; a separate cycle canonicalizer handles rotation, winding and redundant collinear vertices. This differential corpus complements the independent unit-cell raster oracle for orthogonal polygons.
+
+The corpus includes proper crossings without strictly contained vertices, concave L/U-like profiles, nested shapes, an inscribed diamond, diagonal boundary-only contact, shared/collinear edges, and AABB-overlapping disjoint triangles. Positive-area overlap, boundary contact and disjointness are asserted as separate outcomes, and symmetry is checked for every pair. These remain synthetic, bounded-domain tests and do not constitute a formal proof for arbitrary i64 inputs.
 
 ## Limits
 
