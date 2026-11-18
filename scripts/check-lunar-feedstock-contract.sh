@@ -150,9 +150,9 @@ jq -e '
           and ($event.mass_closure_residual_kg.status == "unknown")
         else
           ([$event.input_stream_ids[] as $id | stream_mass($r; $id)] | add) as $input_mass
-          | ([$event.output_stream_ids[] as $id | stream_mass($id)] | add) as $output_mass
-          | ([$event.input_stream_ids[] as $id | (stream_uncertainty($r; $id) * stream_uncertainty($id))] | add | sqrt) as $input_uncertainty
-          | ([$event.output_stream_ids[] as $id | (stream_uncertainty($id) * stream_uncertainty($id))] | add | sqrt) as $output_uncertainty
+          | ([$event.output_stream_ids[] as $id | stream_mass($r; $id)] | add) as $output_mass
+          | ([$event.input_stream_ids[] as $id | (stream_uncertainty($r; $id) * stream_uncertainty($r; $id))] | add | sqrt) as $input_uncertainty
+          | ([$event.output_stream_ids[] as $id | (stream_uncertainty($r; $id) * stream_uncertainty($r; $id))] | add | sqrt) as $output_uncertainty
           | ($input_mass - $output_mass) as $residual
           | sqrt(($input_uncertainty * $input_uncertainty) + ($output_uncertainty * $output_uncertainty)) as $residual_uncertainty
           | ($event.mass_closure_residual_kg.value - $residual | abs) <= ([1e-9, ($input_mass * 0.0001)] | max)
