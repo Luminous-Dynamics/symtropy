@@ -33,7 +33,12 @@
     "B1_minus_B2_from_tensor": "4*B_theta_theta/r^2",
     "B1_plus_B2_matches_published_expression": true,
     "B1_minus_B2_matches_published_expression": true,
-    "comparison_scope": "Exact symbolic equality for generic F(r), not only the vacuum zero set."
+    "comparison_scope": "Exact symbolic equality for generic F(r), not only the vacuum zero set.",
+    "factorized_B1_plus_B2": "-B(r)*(r*B''''(r)+4*B'''(r))/(3*r)",
+    "generic_factorization_symbolically_verified": true,
+    "first_equation_equivalent_on_static_domain": "(r^4*B'''(r))'=0 for r>0 and B(r)>0",
+    "complete_local_solution_of_first_equation": "c_inverse/r+c_constant+c_linear*r+c_quadratic*r^2",
+    "second_equation_for_four_term_family": "4*(c_constant^2-3*c_linear*c_inverse-1)/(3*r^4)"
   },
   "four_term_ansatz": {
     "metric_function": "F(r)=c_inverse/r+c_constant+c_linear*r+c_quadratic*r^2",
@@ -241,5 +246,55 @@
     "minimum_metric_derivative_order_for_components": 4,
     "minimum_metric_derivative_order_for_full_result": 4,
     "static_radial_divergence_check_uses_fourth_metric_derivative": true
+  },
+  "static_solution_family_kernel": {
+    "coefficients": {
+      "c_inverse": "-17/10",
+      "c_constant": "7/10",
+      "c_linear": "1/10",
+      "c_quadratic": "-1/100"
+    },
+    "tangent_constraint": "14*delta_c_constant-3*delta_c_inverse+51*delta_c_linear=0",
+    "coefficient_order": [
+      "delta_c_inverse",
+      "delta_c_constant",
+      "delta_c_linear",
+      "delta_c_quadratic"
+    ],
+    "tangent_basis": [
+      [
+        "1",
+        "3/14",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "-51/14",
+        "1",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "0",
+        "1"
+      ]
+    ],
+    "profile_basis": [
+      "1/r+3/14",
+      "r-51/14",
+      "r^2"
+    ],
+    "dimension": 3,
+    "c_quadratic_is_free": true,
+    "directions_are_gauge": false
+  },
+  "rust_factorized_sum_reference": {
+    "path": "crates/domains/symtropy-relativity/src/bach_static.rs",
+    "api": "static_spherical_bach_sum_factorized(radius,lapse_jet)",
+    "formula": "-B*(r*B''''+4*B''')/(3*r)",
+    "derivative_order": 4,
+    "tests_authored_not_executed": true
   }
 }
