@@ -19,7 +19,7 @@ Provide the JSON path as the first argument or pipe JSON to stdin.
 - Cohesion-to-particle-weight (granular Bond): Bo_m = F_adh/(m_particle g).
 - Wall-adhesion-to-particle-weight: Aw = F_wall_adhesion/(m_particle g).
 - Inertial number: I = γdot d / sqrt(P/ρ).
-- Signed electrostatic number: El = qE/(m_particle g); polarity is compared as well as magnitude because its direction can drive species apart or together.
+- Signed electrostatic projection: El_s = (q/m) E_axis/g, where E_axis is the measured signed field component along the declared electrostatic reference axis. This is the signed projection of the paper's magnitude ratio El = |q|E/(mg); the reference axis is an exact-match categorical boundary. Do not compare signs unless the same axis convention is recorded.
 - Particle-to-drum size: d50/R.
 - Wall-roughness-to-particle size: Ra/d50.
 - Fill fraction, gravity and chamber pressure.
