@@ -169,66 +169,6 @@ theorem exact_tail_le_upper_expression (N : ℕ) :
 def tailUpper (N : ℕ) : ℚ :=
   prefactorUpper * qNuUpper ^ (N + 1) / (1 - qNuUpper)
 
-/-- The geometric remainder x^(N+1)/(1-x) is monotone on [0,1). -/
-theorem geometricTail_mono {x y : ℝ} (hx : 0 ≤ x) (hxy : x ≤ y)
-    (hy : y < 1) (N : ℕ) :
-    x ^ (N + 1) / (1 - x) ≤ y ^ (N + 1) / (1 - y) := by
-  have hx_lt : x < 1 := lt_of_le_of_lt hxy hy
-  have hxd : 0 < 1 - x := by linarith
-  have hyd : 0 < 1 - y := by linarith
-  have hpow : x ^ (N + 1) ≤ y ^ (N + 1) := by
-    gcongr
-  have hfactor : 1 - y ≤ 1 - x := by linarith
-  have hprod :
-      x ^ (N + 1) * (1 - y) ≤ y ^ (N + 1) * (1 - x) :=
-    mul_le_mul hpow hfactor (by positivity) (by positivity)
-  exact (div_le_div_iff₀ hxd hyd).2 hprod
-
-/-- The tail of a geometric power sequence is exactly its first omitted
-    power times the usual geometric-series factor. -/
-theorem tsum_geometric_tail {q : ℝ} (hq0 : 0 ≤ q) (hq1 : q < 1)
-    (N : ℕ) :
-    (∑' n : ℕ, q ^ (N + 1 + n)) = q ^ (N + 1) / (1 - q) := by
-  calc
-    (∑' n : ℕ, q ^ (N + 1 + n))
-        = ∑' n : ℕ, q ^ (N + 1) * q ^ n := by
-          congr 1
-          funext n
-          rw [pow_add]
-    _ = q ^ (N + 1) * (∑' n : ℕ, q ^ n) := by
-          rw [tsum_mul_left]
-    _ = q ^ (N + 1) / (1 - q) := by
-          rw [tsum_geometric_of_lt_one hq0 hq1]
-          ring
-
-/-- The exact analytic geometric tail is enclosed by the rational
-    upper-bound formula generated from the sqrt(2) integer witness. -/
-theorem exact_geometric_tail_le_rational_upper (N : ℕ) :
-    prefactorExact * qNuExact ^ (N + 1) / (1 - qNuExact)
-      ≤ (tailUpper N : ℝ) := by
-  have hratio := geometricTail_mono qNuExact_positive.le
-    qNuExact_lt_qNuUpper.le qNuUpper_lt_one N
-  have hgeom_nonneg :
-      0 ≤ qNuExact ^ (N + 1) / (1 - qNuExact) := by
-    positivity
-  have hpref := le_of_lt prefactorExact_lt_upper
-  have hfirst := mul_le_mul_of_nonneg_right hpref hgeom_nonneg
-  have hsecond := mul_le_mul_of_nonneg_left hratio (by positivity : 0 ≤ (prefactorUpper : ℝ))
-  have hcast :
-      (tailUpper N : ℝ) =
-        (prefactorUpper : ℝ) * (qNuUpper : ℝ) ^ (N + 1)
-          / (1 - (qNuUpper : ℝ)) := by
-    simp [tailUpper]
-  calc
-    prefactorExact * qNuExact ^ (N + 1) / (1 - qNuExact)
-        = prefactorExact * (qNuExact ^ (N + 1) / (1 - qNuExact)) := by ring
-    _ ≤ (prefactorUpper : ℝ) * (qNuExact ^ (N + 1) / (1 - qNuExact)) :=
-      hfirst
-    _ ≤ (prefactorUpper : ℝ) * (qNuUpper ^ (N + 1) / (1 - qNuUpper)) :=
-      hsecond
-    _ = (tailUpper N : ℝ) := by rw [hcast]
-
-
 theorem upper_expression_eq_rational (N : ℕ) :
     prefactorUpperReal * qNuUpperReal ^ (N + 1) / (1 - qNuUpperReal)
       = (tailUpper N : ℝ) := by
@@ -300,8 +240,5 @@ theorem exact_tail_le_upper_N32 : exactTail 32 ≤ (tailUpper 32 : ℝ) :=
 #print axioms tail_upper_N16
 #print axioms tail_upper_N24
 #print axioms tail_upper_N32
-#print axioms geometricTail_mono
-#print axioms tsum_geometric_tail
-#print axioms exact_geometric_tail_le_rational_upper
 
 end SymtropyMKChebyshevTail
