@@ -1036,16 +1036,19 @@ impl SiteStateLedger {
                 release_receipt_sha256,
             } => {
                 for claim in &claims {
-                    let index = self
-                        .active_resource_windows
-                        .get_mut(&claim.resource_id)
-                        .expect("prepared active resource index remains present");
-                    let removed = index.remove(&claim.start_tick);
-                    debug_assert!(
-                        removed.as_ref().is_some_and(|(_, id)| id == &reservation_id),
-                        "active resource index must point to the released reservation"
-                    );
-                    if index.is_empty() {
+                    let remove_resource_index = {
+                        let index = self
+                            .active_resource_windows
+                            .get_mut(&claim.resource_id)
+                            .expect("prepared active resource index remains present");
+                        let removed = index.remove(&claim.start_tick);
+                        debug_assert!(
+                            removed.as_ref().is_some_and(|(_, id)| id == &reservation_id),
+                            "active resource index must point to the released reservation"
+                        );
+                        index.is_empty()
+                    };
+                    if remove_resource_index {
                         self.active_resource_windows.remove(&claim.resource_id);
                     }
                 }
