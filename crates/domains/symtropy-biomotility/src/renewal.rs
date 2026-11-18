@@ -710,9 +710,9 @@ pub fn compare_waiting_time_models(
         let censored_log_likelihood =
             censored_log_likelihood(candidate.law, observations);
         let akaike_information_criterion =
-            information_criterion(censored_log_likelihood, parameter_count, false);
+            information_criterion(censored_log_likelihood, parameter_count, observations.len(), false);
         let bayesian_information_criterion =
-            information_criterion(censored_log_likelihood, parameter_count, true);
+            information_criterion(censored_log_likelihood, parameter_count, observations.len(), true);
 
         scores.push(WaitingTimeCandidateScore {
             name: candidate.name.to_owned(),
@@ -775,22 +775,17 @@ fn censored_log_likelihood(
 fn information_criterion(
     log_likelihood: Option<f64>,
     parameter_count: Option<usize>,
+    observation_count: usize,
     use_bic: bool,
 ) -> Option<f64> {
     let log_likelihood = log_likelihood?;
     let parameter_count = parameter_count? as f64;
     let penalty = if use_bic {
-        parameter_count
-            * (log_likelihood_observation_count_placeholder() as f64).ln()
+        parameter_count * (observation_count as f64).ln()
     } else {
         2.0 * parameter_count
     };
     Some(penalty - 2.0 * log_likelihood)
-}
-
-fn log_likelihood_observation_count_placeholder() -> usize {
-    // Replaced by the caller-specific observation count before release.
-    1
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
