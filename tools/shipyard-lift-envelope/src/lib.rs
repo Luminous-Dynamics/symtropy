@@ -1300,6 +1300,7 @@ pub struct InvalidationMatch {
 /// report equality, but deliberately does not implement or authenticate hashing.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PreflightReceipt {
+    pub profile_version: String,
     pub input_sha256: String,
     pub report_sha256: String,
     pub evaluator_revision: String,
@@ -1344,6 +1345,7 @@ impl PreflightReceipt {
         }
 
         Ok(Self {
+            profile_version: CONTRACT_VERSION.to_owned(),
             input_sha256: input_sha256.to_ascii_lowercase(),
             report_sha256: report_sha256.to_ascii_lowercase(),
             evaluator_revision: evaluator_revision.to_owned(),
@@ -1357,10 +1359,18 @@ impl PreflightReceipt {
     /// A receipt is reusable only for the exact canonical input digest and while
     /// within its declared operation interval. A current digest must be computed
     /// by the host from the current canonical input bytes.
-    pub fn is_current_for(&self, current_input_sha256: &str, now_tick: u64) -> bool {
+    pub fn is_current_for(
+        &self,
+        current_input_sha256: &str,
+        current_profile_version: &str,
+        current_evaluator_revision: &str,
+        now_tick: u64,
+    ) -> bool {
         self.disposition == Disposition::ReadyForHumanReview
             && is_sha256(current_input_sha256)
             && self.input_sha256.eq_ignore_ascii_case(current_input_sha256)
+            && self.profile_version == current_profile_version
+            && self.evaluator_revision == current_evaluator_revision
             && now_tick >= self.issued_at_tick
             && now_tick < self.valid_until_tick
     }
@@ -1403,7 +1413,8 @@ impl PreflightReceipt {
             .collect::<Vec<_>>()
             .join(",");
         format!(
-            "{{\"receipt_contract_version\":\"shipyard-lift-preflight-receipt-v0\",\"input_sha256\":{},\"report_sha256\":{},\"evaluator_revision\":{},\"issued_at_tick\":{},\"valid_until_tick\":{},\"clock_domain_id\":{},\"disposition\":{},\"operation_start_tick\":{},\"operation_end_tick\":{},\"evidence_dependencies\":[{}],\"subject_dependencies\":[{}]}}",
+            "{{\"receipt_contract_version\":\"shipyard-lift-preflight-receipt-v0\",\"profile_version\":{},\"input_sha256\":{},\"report_sha256\":{},\"evaluator_revision\":{},\"issued_at_tick\":{},\"valid_until_tick\":{},\"clock_domain_id\":{},\"disposition\":{},\"operation_start_tick\":{},\"operation_end_tick\":{},\"evidence_dependencies\":[{}],\"subject_dependencies\":[{}]}}",
+            json_quote(&self.profile_version),
             json_quote(&self.input_sha256),
             json_quote(&self.report_sha256),
             json_quote(&self.evaluator_revision),
@@ -1999,11 +2010,48 @@ mod tests {
     fn preflight_receipt_reuses_only_exact_input_digest_inside_operation_window() {
         let plan = baseline();
         let receipt = synthetic_receipt(&plan);
-        assert!(receipt.is_current_for(&"c".repeat(64), plan.start_tick));
-        assert!(receipt.is_current_for(&"C".repeat(64), plan.start_tick));
-        assert!(!receipt.is_current_for(&"e".repeat(64), plan.start_tick));
-        assert!(!receipt.is_current_for(&"c".repeat(64), receipt.issued_at_tick - 1));
-        assert!(!receipt.is_current_for(&"c".repeat(64), receipt.valid_until_tick));
+        assert!(receipt.is_current_for(
+            &"c".repeat(64),
+            CONTRACT_VERSION,
+            "synthetic-evaluator-rev-01",
+            plan.start_tick
+        ));
+        assert!(receipt.is_current_for(
+            &"C".repeat(64),
+            CONTRACT_VERSION,
+            "synthetic-evaluator-rev-01",
+            plan.start_tick
+        ));
+        assert!(!receipt.is_current_for(
+            &"e".repeat(64),
+            CONTRACT_VERSION,
+            "synthetic-evaluator-rev-01",
+            plan.start_tick
+        ));
+        assert!(!receipt.is_current_for(
+            &"c".repeat(64),
+            CONTRACT_VERSION,
+            "synthetic-evaluator-rev-02",
+            plan.start_tick
+        ));
+        assert!(!receipt.is_current_for(
+            &"c".repeat(64),
+            "shipyard-lift-envelope-v0.2",
+            "synthetic-evaluator-rev-01",
+            plan.start_tick
+        ));
+        assert!(!receipt.is_current_for(
+            &"c".repeat(64),
+            CONTRACT_VERSION,
+            "synthetic-evaluator-rev-01",
+            receipt.issued_at_tick - 1
+        ));
+        assert!(!receipt.is_current_for(
+            &"c".repeat(64),
+            CONTRACT_VERSION,
+            "synthetic-evaluator-rev-01",
+            receipt.valid_until_tick
+        ));
     }
 
     #[test]
