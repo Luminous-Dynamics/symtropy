@@ -390,7 +390,19 @@
           "w"
         ],
         "gauge": "g(r)=r^2",
-        "invariant_frame": "Hopf frame on S^3; normalization and Maurer-Cartan data must be transcribed from source/supplement"
+        "invariant_frame": "Hopf frame on S^3; normalization and Maurer-Cartan data must be transcribed from source/supplement",
+        "coordinate_metric_2010": "ds^2=-b dt^2+dr^2/f+g dtheta^2+h sin(theta)^2(dphi_1-w dt)^2+h cos(theta)^2(dphi_2-w dt)^2+(g-h) sin(theta)^2 cos(theta)^2(dphi_1-dphi_2)^2",
+        "left_invariant_metric_2010": "ds^2=-b dt^2+dr^2/f+g/4*(sigma_1^2+sigma_2^2)+h/4*(sigma_3+2*w*dt)^2",
+        "left_invariant_one_forms": {
+          "sigma_1": "cos(psi)*d(bar_theta)+sin(psi)*sin(bar_theta)*d(phi)",
+          "sigma_2": "-sin(psi)*d(bar_theta)+cos(psi)*sin(bar_theta)*d(phi)",
+          "sigma_3": "d(psi)+cos(bar_theta)*d(phi)",
+          "coordinate_map": {
+            "bar_theta": "2*theta",
+            "phi": "phi_1-phi_2",
+            "psi": "phi_1+phi_2"
+          }
+        }
       },
       "horizon": {
         "radius": "1",
@@ -490,7 +502,8 @@
         "time_sector_identity_full_alpha_terms_extracted": true,
         "time_sector_source_balance_verified_against_bd": true,
         "time_sector_finite_alpha_conserved": false,
-        "rotating_egb_solution_executed": false
+        "rotating_egb_solution_executed": false,
+        "full_coordinate_metric_cross_term_pinned": true
       },
       "purpose": [
         "matched neural-spectral discovery/refinement comparison",
@@ -525,7 +538,7 @@
         "full_profile": "solve b,f,h,w with g=r^2",
         "angular_noether_reduction": "use only the true conserved P_w=-4W to reconstruct w' where K is interval-certified away from zero; retain b,f,h as remaining profiles",
         "source_balanced_reduction": "use full Eq. (2.14) current plus L_GB source balance to constrain/reconstruct b' only where -r^2+alpha*C_b is interval-certified away from zero",
-        "status": "prospective architectures to benchmark; no dual-conserved-flux or two-global-charge reduction is claimed",
+        "status": "three alternative formulations are benchmark hypotheses; no dual conserved time-sector flux or two-global-charge reduction is claimed",
         "fallback": "retain the full four-profile system whenever K or the b-prime coefficient is unresolved"
       },
       "time_sector_radial_identity": {
