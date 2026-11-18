@@ -50,7 +50,7 @@ def main() -> None:
         bp * gp
         + g * bp * hp / (2 * h)
         + b * gp**2 / (2 * g)
-        + b * gp * hp / g
+        + b * gp * hp / h
         + g * h * wp**2 / 2
         + 2 * b / f * (4 - h / g)
     )
