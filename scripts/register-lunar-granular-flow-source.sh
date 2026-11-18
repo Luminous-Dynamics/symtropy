@@ -57,7 +57,7 @@ if [[ "$expected" != "null" ]]; then
   publisher_md5_status="verified"
 elif [[ "$filename" == *.zip ]]; then
   command -v unzip >/dev/null 2>&1 || fail "unzip is required to validate ZIP structure when no publisher checksum is provided"
-  unzip -tqq -- "$canonical_path" || fail "ZIP structure validation failed"
+  unzip -tqq "$canonical_path" || fail "ZIP structure validation failed"
 fi
 
 actual_sha256="$(sha256sum -- "$canonical_path" | awk '{print $1}')"
