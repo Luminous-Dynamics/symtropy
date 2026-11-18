@@ -248,6 +248,7 @@ fn validate(case: &Case) -> Vec<String> {
 
         let mut stages = BTreeSet::new();
         let mut task_ids = BTreeSet::new();
+        let mut stage_by_task = BTreeMap::new();
         for task in &plan.tasks {
             stages.insert(task.stage.as_str());
             if !allowed_stages.contains(task.stage.as_str()) {
@@ -259,6 +260,7 @@ fn validate(case: &Case) -> Vec<String> {
             if !task_ids.insert(task.task_id.clone()) {
                 errors.push(format!("{} has duplicate taskId {}", event.event_id, task.task_id));
             }
+            stage_by_task.insert(task.task_id.clone(), task.stage.clone());
 
             match (&task.resource_id, task.resource_units) {
                 (Some(_), Some(units)) if units > 0 => {}
@@ -283,6 +285,34 @@ fn validate(case: &Case) -> Vec<String> {
         for stage in required_stages {
             if !stages.contains(stage) {
                 errors.push(format!("{} missing required stage {}", event.event_id, stage));
+            }
+        }
+
+        let is_depot_stock = matches!(plan.part_source, PartSource::DepotStock { .. });
+        for task in &plan.tasks {
+            let dependency_has_stage = |required_stage: &str| {
+                task.depends_on.iter().any(|dependency| {
+                    stage_by_task.get(dependency).map(String::as_str) == Some(required_stage)
+                })
+            };
+            let required_predecessors: &[&str] = match task.stage.as_str() {
+                "diagnose" => &["detect_and_isolate"],
+                "source_part" | "crew_mobilise" => &["diagnose"],
+                "transport" => &["source_part"],
+                "repair_or_replace" if is_depot_stock => {
+                    &["source_part", "transport", "crew_mobilise"]
+                }
+                "repair_or_replace" => &["source_part", "crew_mobilise"],
+                "test_and_commission" => &["repair_or_replace"],
+                _ => &[],
+            };
+            for predecessor in required_predecessors {
+                if !dependency_has_stage(predecessor) {
+                    errors.push(format!(
+                        "{} task {} must depend on stage {}",
+                        event.event_id, task.task_id, predecessor
+                    ));
+                }
             }
         }
 
@@ -636,5 +666,12 @@ mod tests {
         value["events"][0]["selectedPlan"]["tasks"][0]["dependsOn"] =
             json!(["test-commission"]);
         assert!(check(&value).iter().any(|x| x.contains("cycle")));
+    }
+
+    #[test]
+    fn rejects_missing_essential_stage_dependency() {
+        let mut value = fixture();
+        value["events"][0]["selectedPlan"]["tasks"][1]["dependsOn"] = json!([]);
+        assert!(check(&value).iter().any(|x| x.contains("must depend on stage detect_and_isolate")));
     }
 }
