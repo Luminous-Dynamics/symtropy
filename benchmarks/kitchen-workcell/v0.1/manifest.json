@@ -2817,5 +2817,105 @@
       "dataset_ref": "https://behavior.stanford.edu/challenge/index.html",
       "evaluation_role": "External long-horizon household benchmark. Match the 100-task, seven-scene release, Galaxea R1Pro, RGB+depth+proprioception, time budget and BDDL score. Report kitchen-adjacent subset separately; no direct aggregate comparison with RoboCasa365 or Kitchen-R."
     }
-  ]
+  ],
+  "analysis_plan": {
+    "design_status": "proposed_not_preregistered",
+    "primary_endpoints": [
+      "accepted_servings",
+      "energy_wh_per_accepted_serving",
+      "water_l_per_accepted_serving",
+      "meal_actual_cost_per_accepted_serving",
+      "user_present_time_per_accepted_meal",
+      "sensory_liking_9pt"
+    ],
+    "hard_gates": [
+      "Any applicable physical appliance safety or independent conformity failure blocks that configuration; no mean score can compensate.",
+      "Any successful-but-unsafe episode is counted as a hard failure, not a successful accepted meal.",
+      "Unqualified food-contact surfaces, unresolved allergen cross-contact, or invalid cleaning assay evidence block the relevant food task.",
+      "A failed or unknown critical measurement remains failed/unknown and cannot be imputed as zero.",
+      "A user-declared exclusion, consent withdrawal, or declined substitution cannot be overridden by model scoring."
+    ],
+    "randomization": {
+      "design": "Randomized matched crossover comparison of the same frozen meal/task basket across comparator conditions.",
+      "allocation_unit": "Matched run block within meal family, operator and environmental stratum; randomize order within each block.",
+      "order_randomization": true,
+      "randomization_method": "Generate and commit a seed and condition order before each trial block; retain the allocation artifact digest.",
+      "blinding": "Blind consumer sensory samples with random codes and counterbalanced presentation order; operators cannot be blinded to hardware identity.",
+      "operator_cross_over": "Each trained operator uses every comparator in balanced order; model operator and period effects separately.",
+      "protocol_ref": null
+    },
+    "matching": {
+      "matched_inputs": [
+        "ingredient identity and exact product/lot where available",
+        "starting ingredient mass and physical state",
+        "serving count and frozen task graph",
+        "recipe revision and accepted user constraints",
+        "container, utensil and accessory revisions"
+      ],
+      "matched_conditions": [
+        "ambient temperature and relative humidity",
+        "declared electrical supply and power envelope",
+        "water source/temperature and metering boundary",
+        "operator training and observation procedure",
+        "cleaning soil load and post-task protocol"
+      ],
+      "comparator_identity": "exact_type_plate_model_revision_firmware_accessory_kit_and_market_sku",
+      "operator_effects": "Use balanced crossover blocks and include operator/period as predeclared effects; report operator-specific deviations and no post-hoc exclusions."
+    },
+    "sample_size": {
+      "status": "not_calculated",
+      "power_analysis_required": true,
+      "alpha": 0.05,
+      "target_power": 0.8,
+      "minimum_repetitions_per_condition": null,
+      "consumer_panel_size_per_sample": null,
+      "power_analysis_ref": null
+    },
+    "estimands": {
+      "primary_contrast": "Within matched blocks, estimate the paired difference or ratio for each endpoint separately; do not compute a single kitchen composite.",
+      "paired_unit": "Matched meal/task/operator/environment block with exact input and equipment revision identities.",
+      "quality_noninferiority": "The sensory liking margin remains exploratory until a domain-qualified reviewer approves a power calculation and a protocol-specific consumer study; instrumental quality and hygiene are separately assessed.",
+      "no_composite_score": true
+    },
+    "analysis": {
+      "effect_estimates": [
+        "paired mean difference and paired ratio where dimensionally valid",
+        "median paired difference and interquartile range",
+        "accepted-serving count and failure/abandonment rate",
+        "energy, water and actual cost component decomposition"
+      ],
+      "intervals": "Report two-sided 95% confidence intervals and raw per-block values; use a prespecified clustered bootstrap or suitable paired model after the power-analysis reviewer selects it.",
+      "clustering": [
+        "meal family",
+        "matched run block",
+        "operator",
+        "trial day",
+        "exact comparator revision"
+      ],
+      "multiple_comparisons": "Identify primary endpoints before confirmatory runs; label all other metrics exploratory and control/report family-wise or false-discovery risk where inferential claims are made.",
+      "uncertainty_propagation": "Propagate calibrated meter, balance, probe and assay uncertainty through derived ratios; if denominator or uncertainty is unknown, derived value remains unknown.",
+      "independent_adjudication": "Blinded sensory adjudication and independent review of safety, hygiene and physical acceptance evidence; reviewers receive raw evidence and fixed rubrics."
+    },
+    "missing_data": {
+      "failed_runs": "retain_in_all_attempted_run_denominators",
+      "aborted_runs": "retain_with_reason_and_partial_evidence",
+      "unknown_measurements": "remain_unknown_never_zero_filled",
+      "withdrawals": "honor_consent_and_report_counts_without_sensitive_reason",
+      "denominator_policy": "Publish attempted, completed, failed, aborted, excluded and indeterminate counts per comparator/task; predeclare exclusion rules and retain a sensitivity analysis."
+    },
+    "protocol_parity": {
+      "same_inputs": true,
+      "same_task_graph": true,
+      "same_environment": true,
+      "same_instrumentation": true,
+      "external_benchmark_parity": "RoboCasa365, BEHAVIOR-1K and Kitchen-R results remain on separate benchmark tables; only compare official matched splits, evaluator, embodiment, sensors, seeds and allowed training data. A kitchen workcell physical trial is never numerically compared with a simulator leaderboard."
+    },
+    "reporting": {
+      "report_per_condition": true,
+      "report_distribution": true,
+      "report_worst_case": true,
+      "report_all_failed_attempts": true,
+      "forbid_metric_compensation": true
+    }
+  }
 }
