@@ -156,20 +156,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         report.decision_cutoff_micros
     );
     println!(
-        "summary,,visible_preference_events,{},",
-        snapshot.visible_event_count
-    );
-    println!(
-        "summary,,active_stakeholders,{},",
-        report.active_stakeholder_count
-    );
-    println!(
-        "summary,,anonymous_stakeholders,{},",
-        report.anonymous_stakeholder_count
-    );
-    println!(
-        "summary,,excluded_profiles,{},",
-        report.excluded_profile_count
+        "summary,,anonymous_group_minimum,{},qualified",
+        holofrac_spatial_retrieval::pluralistic::MIN_ANONYMOUS_GROUP_SIZE
     );
 
     for (method, ranking) in [
