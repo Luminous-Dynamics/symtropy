@@ -1,0 +1,474 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminousdynamics:aero:haps-edge-placement-case:v1",
+  "title": "HAPS edge placement case v1",
+  "description": "Synthetic-first, provenance-bound task placement case across HAPS, drone, terrestrial gateway and remote-cloud compute. It models declared task response, compute, electrical power, waste heat and backhaul inputs; it is not a radio, thermal-fluid or flight dynamics solver.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "revision",
+    "evidence_class",
+    "claim_ceiling",
+    "source",
+    "measurement_window_s",
+    "objective",
+    "nodes",
+    "system_limits",
+    "workloads",
+    "expected_oracle",
+    "assumptions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "haps-edge-placement-case/v1"
+    },
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,95}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "replayed_telemetry",
+        "measured_bench"
+      ]
+    },
+    "claim_ceiling": {
+      "enum": [
+        "synthetic_edge_placement_oracle",
+        "offline_edge_trace_replay",
+        "component_bench_research"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_kind",
+        "trace_ref",
+        "source_digest",
+        "rights_or_license_ref",
+        "available_at_decision_time",
+        "reanalysis_not_used_as_live_forecast"
+      ],
+      "properties": {
+        "source_kind": {
+          "enum": [
+            "synthetic_generator",
+            "operator_telemetry",
+            "measured_bench",
+            "task_forecast",
+            "reanalysis"
+          ]
+        },
+        "trace_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rights_or_license_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "available_at_decision_time": {
+          "type": "boolean"
+        },
+        "reanalysis_not_used_as_live_forecast": {
+          "const": true
+        }
+      }
+    },
+    "measurement_window_s": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "objective": {
+      "enum": [
+        "minimum_total_system_power_w",
+        "minimum_total_system_energy_wh",
+        "minimum_priority_weighted_latency_ms"
+      ]
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "node_id",
+          "node_class",
+          "compute_capacity_tops",
+          "power_budget_w",
+          "heat_rejection_budget_w",
+          "availability_fraction"
+        ],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "node_class": {
+            "enum": [
+              "platform_edge",
+              "drone_edge",
+              "terrestrial_gateway_edge",
+              "satellite_edge",
+              "remote_cloud"
+            ]
+          },
+          "compute_capacity_tops": {
+            "type": "number",
+            "minimum": 0
+          },
+          "power_budget_w": {
+            "type": "number",
+            "minimum": 0
+          },
+          "heat_rejection_budget_w": {
+            "type": "number",
+            "minimum": 0
+          },
+          "availability_fraction": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "system_limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "haps_incremental_power_budget_w",
+        "haps_heat_rejection_budget_w",
+        "haps_backhaul_capacity_mbps"
+      ],
+      "properties": {
+        "haps_incremental_power_budget_w": {
+          "type": "number",
+          "minimum": 0
+        },
+        "haps_heat_rejection_budget_w": {
+          "type": "number",
+          "minimum": 0
+        },
+        "haps_backhaul_capacity_mbps": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "workloads": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workload_id",
+          "workload_class",
+          "priority_weight",
+          "criticality",
+          "compute_demand_tops",
+          "input_data_rate_mbps",
+          "max_response_ms",
+          "response_metric_basis",
+          "required_completion_fraction",
+          "placement_options"
+        ],
+        "properties": {
+          "workload_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workload_class": {
+            "enum": [
+              "emergency_alert_fusion",
+              "drone_telemetry_control",
+              "wildfire_video_analytics",
+              "remote_sensing_preprocessing",
+              "ran_core_processing",
+              "environmental_event_detection",
+              "other"
+            ]
+          },
+          "priority_weight": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "criticality": {
+            "enum": [
+              "safety_critical",
+              "emergency_critical",
+              "mission_critical",
+              "best_effort"
+            ]
+          },
+          "compute_demand_tops": {
+            "type": "number",
+            "minimum": 0
+          },
+          "input_data_rate_mbps": {
+            "type": "number",
+            "minimum": 0
+          },
+          "max_response_ms": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "response_metric_basis": {
+            "enum": [
+              "processing_only",
+              "application_round_trip",
+              "one_way_network",
+              "control_loop_round_trip"
+            ]
+          },
+          "required_completion_fraction": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "stateful": {
+            "type": "boolean"
+          },
+          "fallback_policy": {
+            "enum": [
+              "drone_local_safe_mode",
+              "route_to_terrestrial_gateway",
+              "store_and_forward",
+              "degrade_service",
+              "drop_noncritical",
+              "unknown"
+            ]
+          },
+          "placement_options": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node_id",
+                "response_ms",
+                "node_power_w",
+                "node_waste_heat_w",
+                "haps_network_power_w",
+                "haps_network_waste_heat_w",
+                "haps_backhaul_mbps"
+              ],
+              "properties": {
+                "node_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "response_ms": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "node_power_w": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "node_waste_heat_w": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "haps_network_power_w": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "haps_network_waste_heat_w": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "haps_backhaul_mbps": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "expected_oracle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "oracle_status",
+        "all_platform_baseline",
+        "lowest_latency_feasible",
+        "minimum_system_power_feasible",
+        "minimum_system_power_objective_value_w",
+        "optimality_verified_by_exhaustive_enumeration"
+      ],
+      "properties": {
+        "oracle_status": {
+          "enum": [
+            "independently_calculated",
+            "not_evaluated"
+          ]
+        },
+        "all_platform_baseline": {
+          "$ref": "#/$defs/policy_result"
+        },
+        "lowest_latency_feasible": {
+          "$ref": "#/$defs/policy_result"
+        },
+        "minimum_system_power_feasible": {
+          "$ref": "#/$defs/policy_result"
+        },
+        "minimum_system_power_objective_value_w": {
+          "type": "number",
+          "minimum": 0
+        },
+        "optimality_verified_by_exhaustive_enumeration": {
+          "type": "boolean"
+        }
+      }
+    },
+    "source_evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "uniqueItems": true
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "assignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workload_id",
+        "node_id",
+        "response_ms"
+      ],
+      "properties": {
+        "workload_id": {
+          "type": "string"
+        },
+        "node_id": {
+          "type": "string"
+        },
+        "response_ms": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "node_usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "compute_tops",
+        "power_w",
+        "waste_heat_w"
+      ],
+      "properties": {
+        "node_id": {
+          "type": "string"
+        },
+        "compute_tops": {
+          "type": "number",
+          "minimum": 0
+        },
+        "power_w": {
+          "type": "number",
+          "minimum": 0
+        },
+        "waste_heat_w": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "policy_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "feasible",
+        "assignments",
+        "node_usage",
+        "haps_incremental_power_w",
+        "haps_total_waste_heat_w",
+        "haps_backhaul_mbps",
+        "total_system_power_w",
+        "priority_weighted_response_ms",
+        "violations"
+      ],
+      "properties": {
+        "feasible": {
+          "type": "boolean"
+        },
+        "assignments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/assignment"
+          }
+        },
+        "node_usage": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/node_usage"
+          }
+        },
+        "haps_incremental_power_w": {
+          "type": "number",
+          "minimum": 0
+        },
+        "haps_total_waste_heat_w": {
+          "type": "number",
+          "minimum": 0
+        },
+        "haps_backhaul_mbps": {
+          "type": "number",
+          "minimum": 0
+        },
+        "total_system_power_w": {
+          "type": "number",
+          "minimum": 0
+        },
+        "priority_weighted_response_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "violations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$comment": "Semantic invariants: workload IDs and node IDs are unique; each workload has at most one option per node; each option's node_id exists; response_ms <= max_response_ms for each assignment; per-node summed compute, power and heat remain within node limits; HAPS incremental power equals platform-edge node power plus HAPS network power for all selected non-platform paths; HAPS heat equals platform-edge heat plus HAPS network waste heat; HAPS backhaul is within capacity; every workload's completion fraction is met; the exact objective minimizes the declared scalar only after hard constraints are applied. A system marked feasible has zero violations. All W/Wh inputs are synthetic unless the evidence_class and provenance explicitly say otherwise."
+}
