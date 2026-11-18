@@ -670,7 +670,7 @@ pub fn evaluate(
         let mut owned_points: Vec<CurvePoint> = curves_by_case
             .get(case.case_id.as_str())
             .into_iter()
-            .flat_map(|rows| rows.iter().map(|row| (*row).clone()))
+            .flat_map(|rows| rows.iter().map(|row| (**row).clone()))
             .collect();
         owned_points.sort_by_key(|row| row.point_index);
         results.push(eval_one(case, &owned_points));
