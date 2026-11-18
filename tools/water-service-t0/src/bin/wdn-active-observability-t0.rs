@@ -817,7 +817,7 @@ mod tests {
         let result = evaluate_all(&input, &schema, &oracle).unwrap();
         assert_eq!(result["matched_case_count"], 14, "mismatches: {}", result["mismatches"]);
         assert_eq!(result["mismatch_count"], 0);
-        assert_eq!(result["execution_authorized"], false);
+        assert!(!result["execution_authorized"].as_bool().unwrap());
         assert_eq!(result["physical_qualification_status"], "NotRun");
     }
 
