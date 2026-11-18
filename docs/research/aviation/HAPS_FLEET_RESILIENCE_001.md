@@ -125,3 +125,26 @@ The general fleet reliability tool has a dedicated path-scoped workflow for rust
 - Mission electro-thermal model: [Symthaea #11411](https://github.com/Luminous-Dynamics/symthaea/issues/11411).
 
 No flight authority, network service authorization, physical HAPS operation or measured reliability claim is implied by these files.
+
+
+## Cross-layer common-cause stress case — 18 November 2026
+
+Added [synthetic_haps_fleet_regional_cross_layer_common_cause_v1.json](examples/synthetic_haps_fleet_regional_cross_layer_common_cause_v1.json) as a paired stress case to the original five-provider fixture.
+
+The original fixture contains five provider nodes, a shared HAPS-weather event (p=0.03) affecting the three HAPS, and a separate shared external event (p=0.01) affecting the terrestrial gateway and LEO backhaul. It treats those two event variables as independent. The new case adds one synthetic cross-layer regional event (p=0.005) affecting all five providers simultaneously.
+
+The exact evaluator enumerates 5 node-state bits + 3 common-cause event bits = **256 states**. The independently reproduced results are:
+
+| Metric | Two-cause control | Added cross-layer stress |
+|---|---:|---:|
+| HAPS-A single-node availability | 95.06% | 94.5847% |
+| Fleet service availability | 99.9698437% | 99.4699945% |
+| Naïve independent-provider comparator | 99.99999996% | 99.99999996% |
+| Independence overstatement | 0.0301563 percentage points | 0.5300055 percentage points |
+| Meets illustrative 99.99% target | No | No |
+
+The new event reduces the two-cause fleet availability by exactly its event-survival factor (0.995), because when this event occurs it disables every provider. The result is intentionally severe: it shows that excellent per-layer marginal reliability cannot protect the service against a truly shared cross-layer dependency.
+
+This is a synthetic sensitivity case, not an empirically estimated 0.5% disaster probability. Its event probability is per declared analysis window; the static Bernoulli model still does not represent duration, recurrence, seasonality, hazard geography, repair, or time-dependent recovery. The temporal fleet event replay remains the owner for supplied outage-duration traces; the Semi-Markov/HAPS reliability literature remains the baseline for non-exponential sojourn times.
+
+The Rust exact enumerator adds two tests: (1) the 256-state oracle and (2) the paired survival-factor relationship. The dedicated workflow now includes the new fixture. No probability parameter is sourced from operator telemetry.
