@@ -388,7 +388,9 @@
     "handover_success_fraction": 0.985,
     "handover_p95_interruption_s_max": 4.2,
     "handover_maximum_interruption_s_max": 24,
-    "state_transfer_failures": 30
+    "state_transfer_failures": 30,
+    "demand_weighted_capacity_satisfaction_units_hours": 756,
+    "demand_weighted_capacity_satisfaction_fraction": 1
   },
   "source_evidence_refs": [
     "https://sceye.com/press-releases/sceye-softbank-sign-agreement-for-fleet-of-stratospheric-platforms/",
