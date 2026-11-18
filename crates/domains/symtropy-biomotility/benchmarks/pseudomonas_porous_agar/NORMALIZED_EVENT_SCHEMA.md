@@ -36,7 +36,13 @@ One normalized record represents one observed interruption between two tracked r
 | agar_percent | percent w/v | Preserve source and normalized values |
 | frame_rate_hz | Hz | Source cadence, not guessed from nominal camera settings |
 | gradient_heading_rad | rad | Direction of increasing attractant in the declared image/world frame |
-| preceding_run_duration_s | s | Detected run start/end duration |
+| intrinsic_motor_persistence_time_s | s | Estimated/modelled motor persistence time before any geometric truncation; unknown in real data unless separately identified |
+| effective_free_path_length_um | µm | Geometry-derived or model-sampled effective free-path budget along the run |
+| realised_run_duration_s | s | Actual run duration after competing motor and geometry limits |
+| realised_run_arc_length_um | µm | Swimming speed multiplied by realised duration; distinct from net displacement |
+| run_termination_cause | INTRINSIC_MOTOR_SWITCH, GEOMETRY_LIMITED_FREE_PATH, UNRESOLVED | Why the run ended; retain inference/evidence provenance |
+| run_termination_evidence_status | DIRECTLY_OBSERVED, ALGORITHM_INFERRED, MODEL_LATENT, UNRESOLVED | Evidence class for termination-cause assignment |
+| preceding_run_duration_s | s | Source-observed duration; do not overwrite with a modelled latent duration |
 | preceding_run_start_heading_rad | rad | Initial orientation at run start |
 | preceding_run_displacement_heading_rad | rad | First-to-last displacement vector; published run-orientation observable |
 | preceding_run_displacement_um | µm | Magnitude of that vector |
@@ -48,6 +54,23 @@ One normalized record represents one observed interruption between two tracked r
 | event_direction_change_rad | rad | Direction change feature used by source segmentation, if available |
 
 Do not substitute the endpoint tangent for the net run-displacement vector. Keep run-start heading (causal model input), realized displacement direction (published analysis observable), incoming tangent (physical state estimate), and following-run displacement direction separate.
+
+## Run termination cause (independent of the subsequent event mechanism)
+
+| Field | Values / meaning |
+|---|---|
+| run_termination_cause | INTRINSIC_MOTOR_SWITCH, GEOMETRY_LIMITED_FREE_PATH, UNRESOLVED |
+| intrinsic_motor_persistence_time_s | Estimated motor-selected persistence time before spatial truncation; may be latent |
+| effective_free_path_length_um | Effective geometric free-path limit along the run, from measured/computed geometry or a declared model law |
+| realised_run_arc_length_um | Swimming speed × realised run duration; keep distinct from net displacement |
+| run_termination_evidence_status | DIRECTLY_OBSERVED, ALGORITHM_INFERRED, MODEL_LATENT, UNRESOLVED |
+| geometry_source_reference | Exact microstructure image, reconstruction, geometry manifest or simulation-law receipt |
+
+In the coarse-grained model, the realised run duration is the minimum of intrinsic motor persistence time and effective free path divided by swimming speed. The model samples the free-path length in micrometres and motor persistence time in seconds; these are dimensionally distinct laws. Exact ties are assigned to the motor-switch cause by the current reference convention.
+
+Do not infer GEOMETRY_LIMITED_FREE_PATH from short duration alone. Real-data assignment needs evidence from trajectory/geometry alignment or an independently validated event-classification method. The subsequent event mechanism (active motor turn, passive trap, unresolved) remains separate from run termination cause.
+
+V0.1's empirical/exponential free-path law is an effective-length approximation, not a pore-resolved graph or contact-mechanics model. A model-latent sampled free path must not be copied into an empirical data field.
 
 ## Physical mechanism (independent of duration)
 
