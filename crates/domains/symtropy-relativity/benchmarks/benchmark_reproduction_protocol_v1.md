@@ -198,3 +198,35 @@ The generic static sum equation factors as
 `B1_plus_B2=-B(r)*(r*B''''+4*B''')/(3r)`. On a static annulus with r>0 and B>0 it integrates to the complete four-term profile. The difference equation imposes the remaining Q=0 constraint. This factorization and its three-dimensional MK tangent kernel are documented in `bach_static_reduction_factorization_v1.md`.
 
 For every four-term case, record both equations separately. The off-shell c0 mutation must still have B1_plus_B2=0 and B1_minus_B2!=0. In a radii-polynomial setup, the three exact MK parameter directions must be projected or augmented; an unhandled approximate inverse is singular.
+
+
+## 11. Akribeia matched 5D equal-spin EGB reproduction
+
+Owner: [BH-AKRIBEIA-REPRO-001 #6063](https://github.com/Luminous-Dynamics/symtropy/issues/6063).
+
+The first matched higher-curvature discovery case is the paper's 5D equal-angular-momentum Einstein–Gauss–Bonnet family. This is selected because it has both an exact Myers–Perry GR-limit control and an independent published EGB numerical branch at alpha=3.
+
+Freeze the paper convention:
+- alpha_1=(16*pi*G)^-1, alpha_0=0, alpha=4*alpha_2/alpha_1;
+- cohomogeneity-one U(2)-symmetric Hopf-frame metric with functions b,f,g,h,w;
+- areal/hopf-base gauge g(r)=r^2;
+- r_H=1, Omega_H=0.33;
+- alpha from 0 to 3 in steps 0.01;
+- horizon regularity f(r_H)=b(r_H)=0, w(r_H)=Omega_H, h(r_H)=Theta_H plus the full near-horizon series from the supplement;
+- asymptotically flat conditions using r-r_H=tan(x), with the exact compactified domain and endpoint map taken from the pinned supplement.
+
+The paper uses a 3x20 Swish neural architecture for this case, 10^4–10^5 training steps (Adam stages followed by L-BFGS), then Chebyshev pseudo-spectral Gauss–Newton refinement in extended precision. The published ~1e-160 relative L2 difference at 300 digits applies to the exact Myers–Perry GR-limit recovery, not to all EGB residuals.
+
+### Architecture gate
+
+The existing Symtropy public relativity crate currently has a 4x4 metric representation. Do not pass its 4D tensors into a 5D solver. The first implementation should be a dedicated 5D Hopf-frame/cohomogeneity-one Lovelock system with a frozen basis and a separate field-equation derivation. General dense 5D tensors are not required if the invariant reduction is independently derived and checked against the action variation.
+
+### Execution order
+
+1. Extract and hash the paper's Supplemental Material, near-horizon expansions, asymptotic series, one-form normalizations and exact reference data.
+2. Reconstruct exact 5D Myers–Perry functions in the paper's gauge; check horizon quantities, asymptotic charges and the alpha=0 field equations.
+3. Reproduce the 2010 alpha=3 EGB solution and compare all five metric functions/observables.
+4. Reproduce the full alpha sweep with matched branch and compactification.
+5. Only then compare discovery algorithms and add independent interval/operator/tail qualification.
+
+If the paper provides no raw solution arrays, digitized curves must carry explicit digitization error and cannot be promoted to exact reference data. Akribeia's residual-threshold “certification”, a full-domain residual enclosure, and a radii-polynomial existence theorem remain three different evidence levels.
