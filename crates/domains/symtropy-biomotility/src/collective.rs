@@ -224,6 +224,7 @@ pub struct CollisionResponseSummary {
     pub non_reversal_count: usize,
     pub observation_time_s: f64,
     pub contact_incidence_rate_hz: Option<f64>,
+    pub evidence_qualified_contact_incidence_rate_hz: Option<f64>,
     pub per_contact_reversal_fraction: Option<f64>,
     pub population_reversal_rate_hz: Option<f64>,
 }
@@ -263,9 +264,17 @@ impl CollisionResponseSummary {
 
         let contact_incidence_rate_hz =
             Some(observations.len() as f64 / observation_time_s);
+        let evidence_qualified_contact_incidence_rate_hz =
+            Some(evidence_qualified_contact_count as f64 / observation_time_s);
         let per_contact_reversal_fraction = (evidence_qualified_contact_count > 0)
             .then(|| reversal_count as f64 / evidence_qualified_contact_count as f64);
-        let population_reversal_rate_hz = Some(reversal_count as f64 / observation_time_s);
+        let population_reversal_rate_hz = if evidence_qualified_contact_count > 0
+            || observations.is_empty()
+        {
+            Some(reversal_count as f64 / observation_time_s)
+        } else {
+            None
+        };
 
         Ok(Self {
             total_contact_count: observations.len(),
@@ -275,6 +284,7 @@ impl CollisionResponseSummary {
             non_reversal_count,
             observation_time_s,
             contact_incidence_rate_hz,
+            evidence_qualified_contact_incidence_rate_hz,
             per_contact_reversal_fraction,
             population_reversal_rate_hz,
         })
@@ -517,6 +527,25 @@ mod tests {
         assert_eq!(summary.contact_incidence_rate_hz, Some(0.75));
         assert_eq!(summary.per_contact_reversal_fraction, Some(0.5));
         assert_eq!(summary.population_reversal_rate_hz, Some(0.25));
+    }
+
+    #[test]
+    fn unresolved_contact_outcomes_do_not_become_non_reversals() {
+        let observations = [CollisionResponseObservation {
+            contact: CollisionContact {
+                contact_angle_rad: FRAC_PI_2,
+                contact_duration_s: 2.0,
+            },
+            reversal_observed: false,
+            evidence_status: EventEvidenceStatus::Unresolved,
+        }];
+        let summary =
+            CollisionResponseSummary::from_observations(&observations, 2.0).unwrap();
+        assert_eq!(summary.total_contact_count, 1);
+        assert_eq!(summary.excluded_contact_count, 1);
+        assert_eq!(summary.evidence_qualified_contact_count, 0);
+        assert_eq!(summary.per_contact_reversal_fraction, None);
+        assert_eq!(summary.population_reversal_rate_hz, None);
     }
 
     #[test]
