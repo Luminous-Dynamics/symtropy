@@ -1,0 +1,657 @@
+// Copyright (C) 2024-2026 Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+//! Deterministic, read-only carrier/UAV sortie co-availability screen.
+//!
+//! This evaluator checks declared capability and timing envelopes. It is not
+//! a route optimizer, flight controller, airspace authority, battery model,
+//! road-vehicle dynamics model, or operational dispatch authorization.
+
+use std::collections::BTreeSet;
+
+use serde::{Deserialize, Serialize};
+
+pub const COAVAILABILITY_SCHEMA_VERSION: u16 = 1;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EvidenceStatus {
+    FreshInDomain,
+    Unknown,
+    Stale,
+    Conflicted,
+    Revoked,
+    Unsupported,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AirspaceStatus {
+    Approved,
+    Prohibited,
+    Unknown,
+    Expired,
+    Revoked,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FeasibilityVerdict {
+    Feasible,
+    Infeasible,
+    Indeterminate,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CarrierStop {
+    pub node_id: String,
+    /// Earliest supported carrier arrival at this stop, in Unix-relative ms.
+    pub arrival_earliest_ms: u64,
+    /// Latest supported carrier departure from this stop, in Unix-relative ms.
+    pub departure_latest_ms: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CarrierEnvelope {
+    pub carrier_id: String,
+    pub route_stops: Vec<CarrierStop>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AircraftEnvelope {
+    pub aircraft_id: String,
+    pub capability_evidence: EvidenceStatus,
+    pub maximum_payload_mass_g: u64,
+    /// Usable battery energy at the stated operating conditions, Wh.
+    pub usable_energy_wh: u64,
+    /// Required protected reserve, Wh, supplied by the aircraft owner.
+    pub reserve_energy_wh: u64,
+    pub maximum_peak_power_w: u64,
+    pub maximum_continuous_power_w: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SortieProposal {
+    pub sortie_id: String,
+    pub payload_mass_g: u64,
+    pub launch_node_id: String,
+    pub recovery_node_id: String,
+    pub launch_pad_resource_id: String,
+    pub recovery_pad_resource_id: String,
+    /// Half-open service windows; service must finish no later than close.
+    pub launch_window_open_ms: u64,
+    pub launch_window_close_ms: u64,
+    pub recovery_window_open_ms: u64,
+    pub recovery_window_close_ms: u64,
+    pub launch_service_ms: u64,
+    pub recovery_service_ms: u64,
+    pub flight_duration_ms: u64,
+    /// Battery-terminal mission energy, excluding the protected reserve.
+    pub flight_energy_wh: u64,
+    pub peak_power_w: u64,
+    pub continuous_power_w: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OperatingDomainEnvelope {
+    pub permission: AirspaceStatus,
+    pub weather_evidence: EvidenceStatus,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResourceReservation {
+    pub reservation_id: String,
+    pub resource_id: String,
+    /// Half-open occupied interval [start_ms, end_ms).
+    pub start_ms: u64,
+    pub end_ms: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CoAvailabilityInput {
+    pub schema_version: u16,
+    pub scenario_id: String,
+    pub carrier: CarrierEnvelope,
+    pub aircraft: AircraftEnvelope,
+    pub sortie: SortieProposal,
+    pub operating_domain: OperatingDomainEnvelope,
+    pub existing_reservations: Vec<ResourceReservation>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CoAvailabilityReport {
+    pub schema_version: u16,
+    pub scenario_id: String,
+    pub sortie_id: String,
+    pub verdict: FeasibilityVerdict,
+    pub selected_launch_time_ms: Option<u64>,
+    pub selected_recovery_time_ms: Option<u64>,
+    pub payload_margin_g: Option<u64>,
+    pub energy_margin_wh: Option<u64>,
+    pub peak_power_margin_w: Option<u64>,
+    pub continuous_power_margin_w: Option<u64>,
+    pub findings: Vec<String>,
+    pub energy_boundary: String,
+    pub dispatch_authorized: bool,
+    pub physical_command_emitted: bool,
+    pub claim_ceiling: String,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct StopWindow {
+    index: usize,
+    arrival_earliest_ms: u64,
+    departure_latest_ms: u64,
+}
+
+fn structural_errors(input: &CoAvailabilityInput) -> Vec<String> {
+    let mut errors = Vec::new();
+    if input.schema_version != COAVAILABILITY_SCHEMA_VERSION {
+        errors.push(format!(
+            "schema_version: expected {}, got {}",
+            COAVAILABILITY_SCHEMA_VERSION, input.schema_version
+        ));
+    }
+    if input.scenario_id.trim().is_empty()
+        || input.carrier.carrier_id.trim().is_empty()
+        || input.aircraft.aircraft_id.trim().is_empty()
+        || input.sortie.sortie_id.trim().is_empty()
+        || input.sortie.launch_node_id.trim().is_empty()
+        || input.sortie.recovery_node_id.trim().is_empty()
+        || input.sortie.launch_pad_resource_id.trim().is_empty()
+        || input.sortie.recovery_pad_resource_id.trim().is_empty()
+    {
+        errors.push("scenario, asset, sortie, node and resource identifiers must be non-empty".into());
+    }
+    if input.carrier.route_stops.is_empty() {
+        errors.push("carrier.route_stops: must not be empty".into());
+    }
+    let mut stop_ids = BTreeSet::new();
+    for (index, stop) in input.carrier.route_stops.iter().enumerate() {
+        if stop.node_id.trim().is_empty() {
+            errors.push(format!("carrier.route_stops[{index}].node_id: must be non-empty"));
+        }
+        if !stop_ids.insert(stop.node_id.as_str()) {
+            errors.push(format!(
+                "carrier.route_stops[{index}].node_id: duplicate physical node identity"
+            ));
+        }
+        if stop.arrival_earliest_ms >= stop.departure_latest_ms {
+            errors.push(format!(
+                "carrier.route_stops[{index}]: arrival must precede departure"
+            ));
+        }
+    }
+    let sortie = &input.sortie;
+    if sortie.launch_window_open_ms >= sortie.launch_window_close_ms {
+        errors.push("sortie.launch_window: must be a non-empty half-open interval".into());
+    }
+    if sortie.recovery_window_open_ms >= sortie.recovery_window_close_ms {
+        errors.push("sortie.recovery_window: must be a non-empty half-open interval".into());
+    }
+    if sortie.launch_service_ms == 0
+        || sortie.recovery_service_ms == 0
+        || sortie.flight_duration_ms == 0
+    {
+        errors.push("sortie service and flight durations must be non-zero".into());
+    }
+    if sortie.payload_mass_g == 0
+        || sortie.flight_energy_wh == 0
+        || sortie.peak_power_w == 0
+        || sortie.continuous_power_w == 0
+    {
+        errors.push("sortie payload, energy and power requirements must be non-zero".into());
+    }
+    if sortie.continuous_power_w > sortie.peak_power_w {
+        errors.push("sortie.continuous_power_w: cannot exceed peak power".into());
+    }
+    if input.aircraft.maximum_payload_mass_g == 0
+        || input.aircraft.usable_energy_wh == 0
+        || input.aircraft.maximum_peak_power_w == 0
+        || input.aircraft.maximum_continuous_power_w == 0
+    {
+        errors.push("aircraft capability limits must be non-zero".into());
+    }
+    if input.aircraft.maximum_continuous_power_w > input.aircraft.maximum_peak_power_w {
+        errors.push("aircraft continuous power limit cannot exceed peak power limit".into());
+    }
+    let mut reservation_ids = BTreeSet::new();
+    for (index, reservation) in input.existing_reservations.iter().enumerate() {
+        if reservation.reservation_id.trim().is_empty() || reservation.resource_id.trim().is_empty() {
+            errors.push(format!("existing_reservations[{index}]: identifiers must be non-empty"));
+        }
+        if reservation.start_ms >= reservation.end_ms {
+            errors.push(format!("existing_reservations[{index}]: interval must be non-empty"));
+        }
+        if !reservation_ids.insert(reservation.reservation_id.as_str()) {
+            errors.push(format!("existing_reservations[{index}].reservation_id: duplicate identity"));
+        }
+    }
+    if input.carrier.route_stops.iter().any(|stop| {
+        stop.arrival_earliest_ms > input.sortie.launch_window_close_ms.max(input.sortie.recovery_window_close_ms)
+    }) {
+        errors.push("carrier route contains a stop outside the declared sortie time horizon".into());
+    }
+    errors
+}
+
+fn find_stop(input: &CoAvailabilityInput, node_id: &str) -> Option<StopWindow> {
+    input.carrier.route_stops.iter().enumerate().find_map(|(index, stop)| {
+        (stop.node_id == node_id).then_some(StopWindow {
+            index,
+            arrival_earliest_ms: stop.arrival_earliest_ms,
+            departure_latest_ms: stop.departure_latest_ms,
+        })
+    })
+}
+
+fn interval_conflict(
+    reservations: &[ResourceReservation],
+    resource_id: &str,
+    start_ms: u64,
+    end_ms: u64,
+) -> Option<&ResourceReservation> {
+    reservations.iter().find(|reservation| {
+        reservation.resource_id == resource_id
+            && start_ms < reservation.end_ms
+            && reservation.start_ms < end_ms
+    })
+}
+
+/// Evaluate whether one proposed sortie can fit the carrier's supported stop
+/// windows and the supplied capability / operating-domain envelopes.
+///
+/// A FEASIBLE result is only a contract-level result over declared inputs.
+/// It does not authorize flight, reserve a resource, or emit a command.
+pub fn evaluate_coavailability(
+    input: &CoAvailabilityInput,
+) -> Result<CoAvailabilityReport, Vec<String>> {
+    let errors = structural_errors(input);
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+
+    let mut findings = Vec::new();
+    let mut known_infeasible = false;
+    let mut indeterminate = false;
+
+    let sortie = &input.sortie;
+    let aircraft = &input.aircraft;
+
+    let payload_margin = aircraft.maximum_payload_mass_g.checked_sub(sortie.payload_mass_g);
+    if payload_margin.is_none() {
+        known_infeasible = true;
+        findings.push("INFEASIBLE: payload exceeds aircraft maximum".into());
+    }
+
+    let required_energy = sortie.flight_energy_wh.checked_add(aircraft.reserve_energy_wh);
+    let energy_margin = required_energy.and_then(|required| aircraft.usable_energy_wh.checked_sub(required));
+    match (required_energy, energy_margin) {
+        (None, _) => {
+            known_infeasible = true;
+            findings.push("INFEASIBLE: flight energy plus reserve overflows".into());
+        }
+        (Some(_), None) => {
+            known_infeasible = true;
+            findings.push("INFEASIBLE: usable aircraft energy does not cover mission plus reserve".into());
+        }
+        (Some(_), Some(_)) => {}
+    }
+
+    let peak_margin = aircraft.maximum_peak_power_w.checked_sub(sortie.peak_power_w);
+    if peak_margin.is_none() {
+        known_infeasible = true;
+        findings.push("INFEASIBLE: peak power demand exceeds aircraft capability".into());
+    }
+    let continuous_margin = aircraft.maximum_continuous_power_w.checked_sub(sortie.continuous_power_w);
+    if continuous_margin.is_none() {
+        known_infeasible = true;
+        findings.push("INFEASIBLE: continuous power demand exceeds aircraft capability".into());
+    }
+
+    match input.operating_domain.permission {
+        AirspaceStatus::Approved => {}
+        AirspaceStatus::Prohibited | AirspaceStatus::Revoked => {
+            known_infeasible = true;
+            findings.push("INFEASIBLE: operating permission is prohibited or revoked".into());
+        }
+        AirspaceStatus::Unknown | AirspaceStatus::Expired => {
+            indeterminate = true;
+            findings.push("INDETERMINATE: current operating permission is not established".into());
+        }
+    }
+    match aircraft.capability_evidence {
+        EvidenceStatus::FreshInDomain => {}
+        status => {
+            indeterminate = true;
+            findings.push(format!("INDETERMINATE: aircraft capability evidence is {status:?}"));
+        }
+    }
+    match input.operating_domain.weather_evidence {
+        EvidenceStatus::FreshInDomain => {}
+        status => {
+            indeterminate = true;
+            findings.push(format!("INDETERMINATE: weather evidence is {status:?}"));
+        }
+    }
+
+    let launch_stop = find_stop(input, &sortie.launch_node_id);
+    let recovery_stop = find_stop(input, &sortie.recovery_node_id);
+    let mut selected_launch = None;
+    let mut selected_recovery = None;
+
+    match (launch_stop, recovery_stop) {
+        (None, _) => {
+            known_infeasible = true;
+            findings.push("INFEASIBLE: launch node is not a carrier route stop".into());
+        }
+        (_, None) => {
+            known_infeasible = true;
+            findings.push("INFEASIBLE: recovery node is not a carrier route stop".into());
+        }
+        (Some(launch), Some(recovery)) => {
+            if launch.index > recovery.index {
+                known_infeasible = true;
+                findings.push("INFEASIBLE: recovery stop precedes launch stop on carrier route".into());
+            } else {
+                let launch_latest_from_window = sortie
+                    .launch_window_close_ms
+                    .checked_sub(sortie.launch_service_ms);
+                let launch_latest_from_stop = launch
+                    .departure_latest_ms
+                    .checked_sub(sortie.launch_service_ms);
+                let recovery_latest_from_window = sortie
+                    .recovery_window_close_ms
+                    .checked_sub(sortie.recovery_service_ms);
+                let recovery_latest_from_stop = recovery
+                    .departure_latest_ms
+                    .checked_sub(sortie.recovery_service_ms);
+
+                match (
+                    launch_latest_from_window,
+                    launch_latest_from_stop,
+                    recovery_latest_from_window,
+                    recovery_latest_from_stop,
+                ) {
+                    (Some(launch_window_hi), Some(launch_stop_hi), Some(recovery_window_hi), Some(recovery_stop_hi)) => {
+                        let launch_lo = sortie.launch_window_open_ms.max(launch.arrival_earliest_ms);
+                        let launch_hi = launch_window_hi.min(launch_stop_hi);
+                        let recovery_lo = sortie.recovery_window_open_ms.max(recovery.arrival_earliest_ms);
+                        let recovery_hi = recovery_window_hi.min(recovery_stop_hi);
+
+                        let recovery_launch_lo = recovery_lo.saturating_sub(sortie.flight_duration_ms);
+                        let recovery_launch_hi = recovery_hi.checked_sub(sortie.flight_duration_ms);
+
+                        if let Some(recovery_launch_hi) = recovery_launch_hi {
+                            let feasible_launch_lo = launch_lo.max(recovery_launch_lo);
+                            let feasible_launch_hi = launch_hi.min(recovery_launch_hi);
+                            if feasible_launch_lo <= feasible_launch_hi {
+                                let launch_time = feasible_launch_lo;
+                                let recovery_time = launch_time.checked_add(sortie.flight_duration_ms);
+                                if let Some(recovery_time) = recovery_time {
+                                    selected_launch = Some(launch_time);
+                                    selected_recovery = Some(recovery_time);
+                                } else {
+                                    known_infeasible = true;
+                                    findings.push("INFEASIBLE: launch plus flight duration overflows".into());
+                                }
+                            } else {
+                                known_infeasible = true;
+                                findings.push("INFEASIBLE: no launch time can meet both carrier stop windows and sortie recovery window".into());
+                            }
+                        } else {
+                            known_infeasible = true;
+                            findings.push("INFEASIBLE: recovery window closes before the proposed flight can return".into());
+                        }
+                    }
+                    _ => {
+                        known_infeasible = true;
+                        findings.push("INFEASIBLE: service duration does not fit the carrier or site window".into());
+                    }
+                }
+            }
+        }
+    }
+
+    if let (Some(launch_time), Some(recovery_time)) = (selected_launch, selected_recovery) {
+        let launch_end = launch_time.checked_add(sortie.launch_service_ms);
+        let recovery_end = recovery_time.checked_add(sortie.recovery_service_ms);
+        match (launch_end, recovery_end) {
+            (Some(launch_end), Some(recovery_end)) => {
+                if interval_conflict(
+                    &input.existing_reservations,
+                    &sortie.launch_pad_resource_id,
+                    launch_time,
+                    launch_end,
+                ).is_some() {
+                    known_infeasible = true;
+                    findings.push("INFEASIBLE: launch pad is occupied during the required interval".into());
+                }
+                if interval_conflict(
+                    &input.existing_reservations,
+                    &sortie.recovery_pad_resource_id,
+                    recovery_time,
+                    recovery_end,
+                ).is_some() {
+                    known_infeasible = true;
+                    findings.push("INFEASIBLE: recovery pad is occupied during the required interval".into());
+                }
+            }
+            _ => {
+                known_infeasible = true;
+                findings.push("INFEASIBLE: service interval end overflows".into());
+            }
+        }
+    }
+
+    if findings.is_empty() {
+        findings.push("FEASIBLE: declared capability, permission and timing envelopes admit this sortie".into());
+    }
+    let verdict = if known_infeasible {
+        FeasibilityVerdict::Infeasible
+    } else if indeterminate {
+        FeasibilityVerdict::Indeterminate
+    } else {
+        FeasibilityVerdict::Feasible
+    };
+
+    Ok(CoAvailabilityReport {
+        schema_version: COAVAILABILITY_SCHEMA_VERSION,
+        scenario_id: input.scenario_id.clone(),
+        sortie_id: sortie.sortie_id.clone(),
+        verdict,
+        selected_launch_time_ms: selected_launch,
+        selected_recovery_time_ms: selected_recovery,
+        payload_margin_g: payload_margin,
+        energy_margin_wh: energy_margin,
+        peak_power_margin_w: peak_margin,
+        continuous_power_margin_w: continuous_margin,
+        findings,
+        energy_boundary: "UAV battery-terminal sortie energy plus protected reserve; excludes carrier traction, charger input and upstream site losses".into(),
+        dispatch_authorized: false,
+        physical_command_emitted: false,
+        claim_ceiling: "Deterministic contract-level feasibility against supplied envelopes and time windows only; not flight authorization, airworthiness, physical safety or measured performance".into(),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn input() -> CoAvailabilityInput {
+        CoAvailabilityInput {
+            schema_version: 1,
+            scenario_id: "synthetic-carrier-uav-v1".into(),
+            carrier: CarrierEnvelope {
+                carrier_id: "carrier-01".into(),
+                route_stops: vec![
+                    CarrierStop {
+                        node_id: "depot".into(),
+                        arrival_earliest_ms: 0,
+                        departure_latest_ms: 1_000_000,
+                    },
+                    CarrierStop {
+                        node_id: "hub-b".into(),
+                        arrival_earliest_ms: 1_300_000,
+                        departure_latest_ms: 1_900_000,
+                    },
+                ],
+            },
+            aircraft: AircraftEnvelope {
+                aircraft_id: "uav-01".into(),
+                capability_evidence: EvidenceStatus::FreshInDomain,
+                maximum_payload_mass_g: 2_000,
+                usable_energy_wh: 500,
+                reserve_energy_wh: 100,
+                maximum_peak_power_w: 1_500,
+                maximum_continuous_power_w: 800,
+            },
+            sortie: SortieProposal {
+                sortie_id: "sortie-01".into(),
+                payload_mass_g: 1_000,
+                launch_node_id: "depot".into(),
+                recovery_node_id: "hub-b".into(),
+                launch_pad_resource_id: "pad-depot-1".into(),
+                recovery_pad_resource_id: "pad-hub-b-1".into(),
+                launch_window_open_ms: 100_000,
+                launch_window_close_ms: 300_000,
+                recovery_window_open_ms: 1_300_000,
+                recovery_window_close_ms: 1_700_000,
+                launch_service_ms: 60_000,
+                recovery_service_ms: 60_000,
+                flight_duration_ms: 1_200_000,
+                flight_energy_wh: 300,
+                peak_power_w: 1_200,
+                continuous_power_w: 600,
+            },
+            operating_domain: OperatingDomainEnvelope {
+                permission: AirspaceStatus::Approved,
+                weather_evidence: EvidenceStatus::FreshInDomain,
+            },
+            existing_reservations: vec![],
+        }
+    }
+
+    #[test]
+    fn accepts_synthetic_sortie_with_overlapping_carrier_windows() {
+        let report = evaluate_coavailability(&input()).expect("valid input");
+        assert_eq!(report.verdict, FeasibilityVerdict::Feasible);
+        assert_eq!(report.selected_launch_time_ms, Some(100_000));
+        assert_eq!(report.selected_recovery_time_ms, Some(1_300_000));
+        assert_eq!(report.energy_margin_wh, Some(100));
+        assert!(!report.dispatch_authorized);
+        assert!(!report.physical_command_emitted);
+    }
+
+    #[test]
+    fn rejects_payload_over_limit() {
+        let mut test = input();
+        test.sortie.payload_mass_g = 2_001;
+        let report = evaluate_coavailability(&test).expect("valid structure");
+        assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
+    }
+
+    #[test]
+    fn rejects_mission_that_consumes_protected_reserve() {
+        let mut test = input();
+        test.sortie.flight_energy_wh = 401;
+        let report = evaluate_coavailability(&test).expect("valid structure");
+        assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
+    }
+
+    #[test]
+    fn rejects_peak_and_continuous_power_excess() {
+        let mut test = input();
+        test.sortie.peak_power_w = 1_501;
+        let report = evaluate_coavailability(&test).expect("valid structure");
+        assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
+        assert!(report.findings.iter().any(|finding| finding.contains("peak power")));
+    }
+
+    #[test]
+    fn unknown_permission_is_indeterminate_not_allowed() {
+        let mut test = input();
+        test.operating_domain.permission = AirspaceStatus::Unknown;
+        let report = evaluate_coavailability(&test).expect("valid structure");
+        assert_eq!(report.verdict, FeasibilityVerdict::Indeterminate);
+    }
+
+    #[test]
+    fn stale_weather_is_indeterminate() {
+        let mut test = input();
+        test.operating_domain.weather_evidence = EvidenceStatus::Stale;
+        let report = evaluate_coavailability(&test).expect("valid structure");
+        assert_eq!(report.verdict, FeasibilityVerdict::Indeterminate);
+    }
+
+    #[test]
+    fn rejects_recovery_window_without_possible_rendezvous() {
+        let mut test = input();
+        test.sortie.recovery_window_open_ms = 1_800_000;
+        test.sortie.recovery_window_close_ms = 1_900_000;
+        let report = evaluate_coavailability(&test).expect("valid structure");
+        assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
+    }
+
+    #[test]
+    fn rejects_launch_pad_conflict() {
+        let mut test = input();
+        test.existing_reservations.push(ResourceReservation {
+            reservation_id: "other-sortie".into(),
+            resource_id: "pad-depot-1".into(),
+            start_ms: 120_000,
+            end_ms: 180_000,
+        });
+        let report = evaluate_coavailability(&test).expect("valid structure");
+        assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
+        assert!(report.findings.iter().any(|finding| finding.contains("launch pad")));
+    }
+
+    #[test]
+    fn rejects_recovery_before_launch_in_carrier_route() {
+        let mut test = input();
+        test.sortie.launch_node_id = "hub-b".into();
+        test.sortie.recovery_node_id = "depot".into();
+        let report = evaluate_coavailability(&test).expect("valid structure");
+        assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
+    }
+
+    #[test]
+    fn rejects_duplicate_route_node_identity() {
+        let mut test = input();
+        test.carrier.route_stops.push(CarrierStop {
+            node_id: "depot".into(),
+            arrival_earliest_ms: 2_000_000,
+            departure_latest_ms: 3_000_000,
+        });
+        assert!(evaluate_coavailability(&test).is_err());
+    }
+
+    #[test]
+    fn rejects_unknown_json_fields() {
+        let json = serde_json::to_value(input()).expect("serialize");
+        let mut object = json.as_object().expect("object").clone();
+        object.insert("optimistic_guess".into(), serde_json::json!(true));
+        assert!(serde_json::from_value::<CoAvailabilityInput>(object.into()).is_err());
+    }
+
+    #[test]
+    fn half_open_reservations_allow_exact_adjacency() {
+        let mut test = input();
+        test.existing_reservations.push(ResourceReservation {
+            reservation_id: "completed-before-launch".into(),
+            resource_id: "pad-depot-1".into(),
+            start_ms: 40_000,
+            end_ms: 100_000,
+        });
+        let report = evaluate_coavailability(&test).expect("valid structure");
+        assert_eq!(report.verdict, FeasibilityVerdict::Feasible);
+    }
+}
