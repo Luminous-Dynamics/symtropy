@@ -835,6 +835,34 @@ mod tests {
     }
 
     #[test]
+    fn short_turn_bias_uses_heading_after_run_phase_rotational_diffusion() {
+        let mut profile = steering_profile();
+        profile.rotational_diffusion_rad2_s = 0.8;
+        profile.short_turn_angle_rad = directional(
+            vec![0.0],
+            vec![0.1],
+            vec![0.2],
+        );
+        let result = simulate(
+            &profile,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            3,
+            1234,
+        )
+        .expect("valid simulation");
+
+        let first = result.events[0];
+        assert_eq!(first.direction_before_run, DirectionClass::UpGradient);
+        let expected_angle = match first.direction_before_event {
+            DirectionClass::UpGradient => 0.0,
+            DirectionClass::CrossGradient => 0.1,
+            DirectionClass::DownGradient => 0.2,
+        };
+        assert_eq!(first.turn_angle_rad, expected_angle);
+    }
+
+    #[test]
     fn invalid_rotational_diffusion_and_step_are_rejected() {
         let mut profile = steering_profile();
         profile.rotational_diffusion_rad2_s = -0.1;
