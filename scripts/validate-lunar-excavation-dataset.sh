@@ -7,6 +7,9 @@
 
 set -euo pipefail
 
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+
 usage() {
   cat >&2 <<'USAGE'
 Usage:
@@ -94,19 +97,23 @@ for run_path in "\${run_paths[@]}"; do
     [.. | objects | select(has("status") and has("unit"))] as $measurements
     | all($measurements[];
         if .status == "unknown" then
-          (.value == null and .standard_uncertainty == null)
+          (has("value") and has("standard_uncertainty")
+           and .value == null and .standard_uncertainty == null)
         elif .status == "measured" then
           ((.value | type) == "number")
-          and ((.standard_uncertainty | type) == "number")
+          and ((.standard_uncertainty | type) == "number" and .standard_uncertainty >= 0)
+          and (.unit | type == "string" and length > 0)
           and ((.source_artifact_id | type) == "string" and length > 0)
           and ((.calibration_record_id | type) == "string" and length > 0)
         elif .status == "published" or .status == "estimated" then
           ((.value | type) == "number")
-          and ((.standard_uncertainty | type) == "number")
+          and ((.standard_uncertainty | type) == "number" and .standard_uncertainty >= 0)
+          and (.unit | type == "string" and length > 0)
           and ((.source_artifact_id | type) == "string" and length > 0)
         elif .status == "synthetic" then
           ((.value | type) == "number")
-          and ((.standard_uncertainty | type) == "number")
+          and ((.standard_uncertainty | type) == "number" and .standard_uncertainty >= 0)
+          and (.unit | type == "string" and length > 0)
         else false end)
   ' "$run_path" >/dev/null || fail "measurement status/value/provenance rule failed: $run_path"
 
