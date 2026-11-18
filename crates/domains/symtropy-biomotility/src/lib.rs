@@ -1795,6 +1795,10 @@ mod tests {
             run_displacement_heading_rad: Some(0.0),
             run_displacement_um: 1.0,
             incoming_heading_rad: 0.0,
+            intrinsic_motor_persistence_time_s: 0.25,
+            geometry_free_path_um: None,
+            run_termination_cause: RunTerminationCause::IntrinsicMotorSwitch,
+            run_arc_length_um: 0.25,
             run_duration_s: 0.25,
             mechanism,
             evidence_status,
@@ -1828,6 +1832,7 @@ mod tests {
             integration_step_s: 0.05,
             run_duration_s: directional_times(vec![0.25], vec![0.25], vec![0.25]),
             run_duration_unconditional_s: empirical_time(vec![0.25]),
+            geometry_free_path_um: None,
             mechanism_probabilities: MechanismProbabilities {
                 active_motor: 1.0,
                 passive_trap: 0.0,
@@ -2032,6 +2037,131 @@ mod tests {
         let first = simulate(&profile, initial, 0.0, 100, 7).expect("valid simulation");
         let second = simulate(&profile, initial, 0.0, 100, 7).expect("valid simulation");
         assert_eq!(first, second);
+    }
+
+    #[test]
+    fn geometry_free_path_truncates_a_long_motor_run() {
+        let mut profile = steering_profile();
+        profile.run_duration_s = directional_times(vec![10.0], vec![10.0], vec![10.0]);
+        profile.run_duration_unconditional_s = empirical_time(vec![10.0]);
+        profile.geometry_free_path_um = Some(FreePathLaw::empirical(vec![2.0]));
+
+        let result = simulate(
+            &profile,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            1,
+            9,
+        )
+        .expect("geometry-limited run");
+
+        let event = result.events[0];
+        assert_eq!(event.intrinsic_motor_persistence_time_s, 10.0);
+        assert_eq!(event.geometry_free_path_um, Some(2.0));
+        assert_eq!(
+            event.run_termination_cause,
+            RunTerminationCause::GeometryLimitedFreePath
+        );
+        assert!((event.run_duration_s - 0.1).abs() < 1.0e-12);
+        assert!((event.run_arc_length_um - 2.0).abs() < 1.0e-12);
+        assert!((event.run_displacement_um - 2.0).abs() < 1.0e-10);
+
+        let summary = summarize(&result);
+        assert_eq!(summary.geometry_limited_run_count, 1);
+        assert_eq!(summary.intrinsic_motor_terminated_run_count, 0);
+    }
+
+    #[test]
+    fn motor_switch_wins_when_free_path_is_longer_than_intrinsic_persistence() {
+        let mut profile = steering_profile();
+        profile.geometry_free_path_um = Some(FreePathLaw::empirical(vec![100.0]));
+
+        let result = simulate(
+            &profile,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            1,
+            11,
+        )
+        .expect("motor-limited run");
+        let event = result.events[0];
+
+        assert_eq!(event.intrinsic_motor_persistence_time_s, 0.25);
+        assert_eq!(event.geometry_free_path_um, Some(100.0));
+        assert_eq!(
+            event.run_termination_cause,
+            RunTerminationCause::IntrinsicMotorSwitch
+        );
+        assert_eq!(event.run_duration_s, 0.25);
+        assert_eq!(event.run_arc_length_um, 5.0);
+
+        let summary = summarize(&result);
+        assert_eq!(summary.intrinsic_motor_terminated_run_count, 1);
+        assert_eq!(summary.geometry_limited_run_count, 0);
+    }
+
+    #[test]
+    fn fixed_free_path_preserves_run_length_when_motor_speed_changes() {
+        let mut slower = steering_profile();
+        slower.swimming_speed_um_s = 10.0;
+        slower.run_duration_s = directional_times(vec![100.0], vec![100.0], vec![100.0]);
+        slower.run_duration_unconditional_s = empirical_time(vec![100.0]);
+        slower.geometry_free_path_um = Some(FreePathLaw::empirical(vec![5.0]));
+
+        let mut faster = slower.clone();
+        faster.swimming_speed_um_s = 20.0;
+
+        let slow_result = simulate(
+            &slower,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            1,
+            123,
+        )
+        .expect("slower geometry-limited run");
+        let fast_result = simulate(
+            &faster,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            1,
+            123,
+        )
+        .expect("faster geometry-limited run");
+
+        let slow = slow_result.events[0];
+        let fast = fast_result.events[0];
+        assert!((slow.run_arc_length_um - 5.0).abs() < 1.0e-12);
+        assert!((fast.run_arc_length_um - 5.0).abs() < 1.0e-12);
+        assert!((slow.run_duration_s - 0.5).abs() < 1.0e-12);
+        assert!((fast.run_duration_s - 0.25).abs() < 1.0e-12);
+        assert_eq!(
+            slow.run_termination_cause,
+            RunTerminationCause::GeometryLimitedFreePath
+        );
+        assert_eq!(
+            fast.run_termination_cause,
+            RunTerminationCause::GeometryLimitedFreePath
+        );
+    }
+
+    #[test]
+    fn geometry_disabled_retains_intrinsic_run_time_and_no_free_path_claim() {
+        let profile = steering_profile();
+        assert_eq!(profile.geometry_free_path_um, None);
+
+        let result = simulate(
+            &profile,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            2,
+            19,
+        )
+        .expect("unconfined reference run");
+        assert!(result.events.iter().all(|event| {
+            event.geometry_free_path_um.is_none()
+                && event.run_termination_cause == RunTerminationCause::IntrinsicMotorSwitch
+                && event.run_duration_s == event.intrinsic_motor_persistence_time_s
+        }));
     }
 
     #[test]
