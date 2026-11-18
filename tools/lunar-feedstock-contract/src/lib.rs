@@ -67,6 +67,37 @@ fn compare_measurements(from: &Value, to: &Value) -> (Value, bool) {
         );
     };
 
+    let from_unit = from.get("unit").and_then(Value::as_str);
+    let to_unit = to.get("unit").and_then(Value::as_str);
+    if from_unit.is_none() || to_unit.is_none() {
+        return (
+            json!({
+                "from": from_value,
+                "to": to_value,
+                "delta": null,
+                "combined_standard_uncertainty": null,
+                "interval_1sigma": null,
+                "status": "unknown_missing_unit",
+            }),
+            false,
+        );
+    }
+    if from_unit != to_unit {
+        return (
+            json!({
+                "from": from_value,
+                "to": to_value,
+                "from_unit": from_unit,
+                "to_unit": to_unit,
+                "delta": null,
+                "combined_standard_uncertainty": null,
+                "interval_1sigma": null,
+                "status": "incompatible_units",
+            }),
+            false,
+        );
+    }
+
     let delta = to_value - from_value;
     let combined_u = (from_u.powi(2) + to_u.powi(2)).sqrt();
     let lower = delta - combined_u;
@@ -77,6 +108,7 @@ fn compare_measurements(from: &Value, to: &Value) -> (Value, bool) {
         json!({
             "from": from_value,
             "to": to_value,
+            "unit": from_unit,
             "delta": delta,
             "combined_standard_uncertainty": combined_u,
             "interval_1sigma": {"lower": lower, "upper": upper},
@@ -118,14 +150,21 @@ fn phase_map(sample: &Value) -> Result<Vec<(String, Value)>, String> {
 }
 
 fn size_bin_key(entry: &Value) -> Result<(f64, f64), String> {
-    let low = entry
+    let low_measurement = entry
         .get("d_min_um")
-        .and_then(measurement)
+        .ok_or_else(|| "size bin has no d_min_um".to_owned())?;
+    let high_measurement = entry
+        .get("d_max_um")
+        .ok_or_else(|| "size bin has no d_max_um".to_owned())?;
+    if low_measurement.get("unit").and_then(Value::as_str) != Some("um")
+        || high_measurement.get("unit").and_then(Value::as_str) != Some("um")
+    {
+        return Err("size-bin bounds must use micrometres (um)".to_owned());
+    }
+    let low = measurement(low_measurement)
         .map(|pair| pair.0)
         .ok_or_else(|| "size bin has unknown/invalid d_min_um".to_owned())?;
-    let high = entry
-        .get("d_max_um")
-        .and_then(measurement)
+    let high = measurement(high_measurement)
         .map(|pair| pair.0)
         .ok_or_else(|| "size bin has unknown/invalid d_max_um".to_owned())?;
     if low <= 0.0 || high <= low {
@@ -267,10 +306,25 @@ pub fn compare_quality_samples(
                 == Some(DeltaStatus::UnknownMissingMeasurement.as_str())
     });
 
+    let has_incompatible_units = phase_results.iter().any(|entry| {
+        entry.get("mass_fraction_change")
+            .and_then(|change| change.get("status"))
+            .and_then(Value::as_str) == Some("incompatible_units")
+    }) || target_size.get("status").and_then(Value::as_str) == Some("incompatible_units")
+        || size_bins.get("bins").and_then(Value::as_array).is_some_and(|bins| {
+            bins.iter().any(|entry| {
+                entry.get("mass_fraction_change")
+                    .and_then(|change| change.get("status"))
+                    .and_then(Value::as_str) == Some("incompatible_units")
+            })
+        });
+
     let report_status = if size_bins.get("status").and_then(Value::as_str)
         == Some("incompatible_bin_partitions")
     {
         "indeterminate_incompatible_size_bins"
+    } else if has_incompatible_units {
+        "indeterminate_incompatible_units"
     } else if has_unknown_phase || !target_size_available || !size_bins_available {
         "indeterminate_missing_quality_measurement"
     } else {
@@ -314,28 +368,28 @@ mod tests {
               "stream_id": "S-A",
               "sample_point": "separator_outlet",
               "phase_fractions": [
-                {"phase_id":"plagioclase","mass_fraction":{"value":0.70,"standard_uncertainty":0.01,"status":"synthetic"}},
-                {"phase_id":"pyroxene","mass_fraction":{"value":0.20,"standard_uncertainty":0.01,"status":"synthetic"}}
+                {"phase_id":"plagioclase","mass_fraction":{"value":0.70,"standard_uncertainty":0.01,"unit":"kg/kg","status":"synthetic"}},
+                {"phase_id":"pyroxene","mass_fraction":{"value":0.20,"standard_uncertainty":0.01,"unit":"kg/kg","status":"synthetic"}}
               ],
               "size_bins": [
-                {"d_min_um":{"value":20,"standard_uncertainty":0.1,"status":"synthetic"},"d_max_um":{"value":200,"standard_uncertainty":0.1,"status":"synthetic"},"mass_fraction":{"value":0.9,"standard_uncertainty":0.01,"status":"synthetic"}},
-                {"d_min_um":{"value":3,"standard_uncertainty":0.1,"status":"synthetic"},"d_max_um":{"value":20,"standard_uncertainty":0.1,"status":"synthetic"},"mass_fraction":{"value":0.1,"standard_uncertainty":0.01,"status":"synthetic"}}
+                {"d_min_um":{"value":20,"standard_uncertainty":0.1,"unit":"um","status":"synthetic"},"d_max_um":{"value":200,"standard_uncertainty":0.1,"unit":"um","status":"synthetic"},"mass_fraction":{"value":0.9,"standard_uncertainty":0.01,"unit":"kg/kg","status":"synthetic"}},
+                {"d_min_um":{"value":3,"standard_uncertainty":0.1,"unit":"um","status":"synthetic"},"d_max_um":{"value":20,"standard_uncertainty":0.1,"unit":"um","status":"synthetic"},"mass_fraction":{"value":0.1,"standard_uncertainty":0.01,"unit":"kg/kg","status":"synthetic"}}
               ],
-              "target_size_mass_fraction":{"value":0.9,"standard_uncertainty":0.01,"status":"synthetic"}
+              "target_size_mass_fraction":{"value":0.9,"standard_uncertainty":0.01,"unit":"kg/kg","status":"synthetic"}
             },
             {
               "sample_id": "B",
               "stream_id": "S-B",
               "sample_point": "reactor_inlet",
               "phase_fractions": [
-                {"phase_id":"plagioclase","mass_fraction":{"value":0.73,"standard_uncertainty":0.01,"status":"synthetic"}},
-                {"phase_id":"pyroxene","mass_fraction":{"value":0.17,"standard_uncertainty":0.01,"status":"synthetic"}}
+                {"phase_id":"plagioclase","mass_fraction":{"value":0.73,"standard_uncertainty":0.01,"unit":"kg/kg","status":"synthetic"}},
+                {"phase_id":"pyroxene","mass_fraction":{"value":0.17,"standard_uncertainty":0.01,"unit":"kg/kg","status":"synthetic"}}
               ],
               "size_bins": [
-                {"d_min_um":{"value":20,"standard_uncertainty":0.1,"status":"synthetic"},"d_max_um":{"value":200,"standard_uncertainty":0.1,"status":"synthetic"},"mass_fraction":{"value":0.85,"standard_uncertainty":0.01,"status":"synthetic"}},
-                {"d_min_um":{"value":3,"standard_uncertainty":0.1,"status":"synthetic"},"d_max_um":{"value":20,"standard_uncertainty":0.1,"status":"synthetic"},"mass_fraction":{"value":0.15,"standard_uncertainty":0.01,"status":"synthetic"}}
+                {"d_min_um":{"value":20,"standard_uncertainty":0.1,"unit":"um","status":"synthetic"},"d_max_um":{"value":200,"standard_uncertainty":0.1,"unit":"um","status":"synthetic"},"mass_fraction":{"value":0.85,"standard_uncertainty":0.01,"unit":"kg/kg","status":"synthetic"}},
+                {"d_min_um":{"value":3,"standard_uncertainty":0.1,"unit":"um","status":"synthetic"},"d_max_um":{"value":20,"standard_uncertainty":0.1,"unit":"um","status":"synthetic"},"mass_fraction":{"value":0.15,"standard_uncertainty":0.01,"unit":"kg/kg","status":"synthetic"}}
               ],
-              "target_size_mass_fraction":{"value":0.85,"standard_uncertainty":0.01,"status":"synthetic"}
+              "target_size_mass_fraction":{"value":0.85,"standard_uncertainty":0.01,"unit":"kg/kg","status":"synthetic"}
             }
           ]
         })
@@ -377,6 +431,18 @@ mod tests {
         let report = compare_quality_samples(&run, "A", "B").unwrap();
         assert_eq!(report["overall_status"], "indeterminate_incompatible_size_bins");
         assert_eq!(report["size_bin_changes"]["status"], "incompatible_bin_partitions");
+    }
+
+    #[test]
+    fn refuses_to_subtract_measurements_with_different_units() {
+        let mut run = run_fixture();
+        run["quality_samples"][1]["phase_fractions"][0]["mass_fraction"]["unit"] = json!("g/kg");
+        let report = compare_quality_samples(&run, "A", "B").unwrap();
+        assert_eq!(report["overall_status"], "indeterminate_incompatible_units");
+        assert_eq!(
+            report["phase_fraction_changes"][0]["mass_fraction_change"]["status"],
+            "incompatible_units"
+        );
     }
 
     #[test]
