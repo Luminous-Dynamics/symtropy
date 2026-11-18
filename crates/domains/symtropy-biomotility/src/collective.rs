@@ -44,11 +44,11 @@ impl CollisionContact {
 
 /// Characteristic collision-response time for a declared phenotype / condition.
 ///
-/// The exponential-hazard interpolation is a model choice constrained by the
-/// literature anchor: at a perpendicular contact (pi/2), contact duration
-/// equal to characteristic_time_s gives exactly 0.5 reversal probability.
-/// The source describes that anchor and an angle dependence, but does not make
-/// this interpolation a universal biological response law.
+/// The duration response is an exponential saturation, scaled by a
+/// probability-linear angular gate. At a perpendicular contact (pi/2),
+/// contact duration equal to characteristic_time_s gives exactly 0.5
+/// reversal probability. The continuous duration interpolation is a model
+/// assumption constrained by the source anchor, not a fully fitted law.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CollisionReversalLaw {
     pub characteristic_time_s: f64,
@@ -64,9 +64,9 @@ impl CollisionReversalLaw {
 
     /// Probability of reversal for one measured/modelled contact.
     ///
-    /// The angular gate is zero at or below pi/6, rises linearly, and reaches
-    /// one at pi/2. The duration response uses a constant hazard whose
-    /// half-probability time at pi/2 is characteristic_time_s.
+    /// The angular gate scales probability linearly from zero at/below pi/6
+    /// to one at pi/2. The duration response is 1 - exp(-ln(2) * t / tau),
+    /// so at pi/2 and t=tau the probability is exactly 0.5.
     pub fn reversal_probability(
         &self,
         contact: CollisionContact,
@@ -81,9 +81,9 @@ impl CollisionReversalLaw {
             return Ok(0.0);
         }
 
-        let cumulative_hazard =
-            LN_2 * (contact.contact_duration_s / self.characteristic_time_s) * angle_gate;
-        Ok(-(-cumulative_hazard).exp_m1())
+        let duration_response =
+            -(-LN_2 * (contact.contact_duration_s / self.characteristic_time_s)).exp_m1();
+        Ok((angle_gate * duration_response).clamp(0.0, 1.0))
     }
 
     /// Draw one reversal outcome using a deterministic local seed.
@@ -446,7 +446,7 @@ mod tests {
             })
             .unwrap();
         assert_eq!(at_cutoff, 0.0);
-        assert!((at_midpoint - (1.0 - 2.0_f64.powf(-0.5))).abs() < 1.0e-12);
+        assert!((at_midpoint - 0.25).abs() < 1.0e-12);
         assert!((at_perpendicular - 0.5).abs() < 1.0e-12);
     }
 
