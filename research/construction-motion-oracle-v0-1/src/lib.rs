@@ -11,6 +11,13 @@ pub use ifc_ids_preflight::{
     IdsRequirementEvaluation, SourceEntityBinding, preflight_ifc_ids_work_package,
 };
 pub mod site_state_ledger;
+pub mod change_impact;
+pub use change_impact::{
+    ArtifactImpact, ArtifactPersistence, ChangeImpactError, ChangeImpactReport,
+    ConstructionArtifact, ConstructionArtifactGraph, ConstructionArtifactKind,
+    ConstructionChangeSet, DependencyDomain, DependencyKey, DependencyTransition,
+    VersionedDependency, compile_change_impact,
+};
 pub mod dispatch_readiness;
 pub use dispatch_readiness::{
     DispatchEnvelopeBinding, DispatchReadinessFailure, DispatchReadinessReceipt,
