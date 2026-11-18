@@ -139,7 +139,15 @@
         "transitions": [],
         "evidence_ids": [
           "fixture-assumption-0001"
-        ]
+        ],
+        "source_boundary": {
+          "boundary_id": "toy-source-ac-boundary",
+          "carrier": "electricity_ac",
+          "evidence_ids": [
+            "fixture-assumption-0001"
+          ],
+          "notes": "Synthetic input boundary only; generation and upstream conversion are outside this route fixture."
+        }
       },
       {
         "design_id": "design-dc-hybrid",
@@ -172,7 +180,15 @@
         ],
         "evidence_ids": [
           "fixture-assumption-0001"
-        ]
+        ],
+        "source_boundary": {
+          "boundary_id": "toy-source-dc-boundary",
+          "carrier": "electricity_dc",
+          "evidence_ids": [
+            "fixture-assumption-0001"
+          ],
+          "notes": "Synthetic input boundary only; source-side generation and any upstream AC/DC conversion are outside this route fixture."
+        }
       }
     ]
   },
