@@ -7,6 +7,9 @@ description = "Living Basin OS primitives for coupled ecology, infrastructure, a
 
 [dependencies]
 arrow-array = "59.0.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
 symtropy-colony = { path = "../symtropy-colony" }
 symtropy-lifesim-core = { path = "../symtropy-lifesim-core" }
 symtropy-mycelium = { path = "../symtropy-mycelium" }
