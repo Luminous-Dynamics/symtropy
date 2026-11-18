@@ -14,8 +14,18 @@
   "derivation_scope": "The full covariant Bach tensor is derived for generic symbolic F(r) before specializing to the four-term ansatz. This is independent of the published symmetry-reduced B1+B2 and B1-B2 expressions.",
   "generic_metric_identities": {
     "bach_trace_identically_zero": true,
-    "covariant_divergence_components_identically_zero": [true, true, true, true],
-    "nonzero_covariant_bach_components": ["B_tt", "B_rr", "B_theta_theta", "B_phi_phi"],
+    "covariant_divergence_components_identically_zero": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "nonzero_covariant_bach_components": [
+      "B_tt",
+      "B_rr",
+      "B_theta_theta",
+      "B_phi_phi"
+    ],
     "off_diagonal_components_zero": true
   },
   "published_static_reduction": {
@@ -111,5 +121,122 @@
     ],
     "off_shell_residual_ratio_r3_over_r6": "16"
   },
-  "claim_ceiling": "Independent symbolic verification of the full static-spherical Bach tensor for generic F(r), its trace/divergence identities, and its four-term specialization. This is not a general arbitrary-metric numerical evaluator, not a compiled Rust test, and not rotating-solution or observational validation."
+  "claim_ceiling": "Independent symbolic verification of the full static-spherical Bach tensor for generic F(r), its trace/divergence identities, and its four-term specialization. This is not a general arbitrary-metric numerical evaluator, not a compiled Rust test, and not rotating-solution or observational validation.",
+  "rust_static_component_reference": {
+    "module": "crates/domains/symtropy-relativity/src/bach_static.rs",
+    "api": "static_spherical_bach(radius, lapse_jet)",
+    "coordinate_order": [
+      "t",
+      "r",
+      "theta",
+      "phi"
+    ],
+    "radial_coordinate_index": 1,
+    "metric": "ds^2=-B(r)dt^2+dr^2/B(r)+r^2 dOmega^2",
+    "signature": "(-+++)",
+    "units": "radius and coefficients use one consistent geometric length unit; B(r) is dimensionless; covariant component units follow the declared coordinate basis",
+    "minimum_metric_derivative_order": 4,
+    "static_radial_divergence_check_uses_fifth_metric_derivative": false,
+    "general_arbitrary_metric_bach_divergence_requires_fifth_metric_derivative": true,
+    "azimuthal_component_representation": "B_phi_phi divided by sin(theta)^2",
+    "chart_scope": "static chart only where r>0 and B(r)>0",
+    "chart_identity_carried_by_scalar_jet": false,
+    "rust_tests_authored_not_executed": true,
+    "test_cases": {
+      "schwarzschild": {
+        "coefficients": {
+          "c_inverse": "-2",
+          "c_constant": "1",
+          "c_linear": "0",
+          "c_quadratic": "0"
+        },
+        "radius": "8",
+        "B": "3/4",
+        "B_tt": "0",
+        "B_rr": "0",
+        "B_theta_theta": "0",
+        "B_phi_phi_over_sin_squared": "0",
+        "B1_plus_B2": "0",
+        "B1_minus_B2": "0",
+        "trace": "0",
+        "radial_covariant_divergence": "0"
+      },
+      "mannheim_kazanas_on_shell": {
+        "coefficients": {
+          "c_inverse": "-17/10",
+          "c_constant": "7/10",
+          "c_linear": "1/10",
+          "c_quadratic": "-1/100"
+        },
+        "radius": "3",
+        "B": "103/300",
+        "B_tt": "0",
+        "B_rr": "0",
+        "B_theta_theta": "0",
+        "B_phi_phi_over_sin_squared": "0",
+        "B1_plus_B2": "0",
+        "B1_minus_B2": "0",
+        "trace": "0",
+        "radial_covariant_divergence": "0"
+      },
+      "off_shell_r3": {
+        "coefficients": {
+          "c_inverse": "-17/10",
+          "c_constant": "11/10",
+          "c_linear": "1/10",
+          "c_quadratic": "-1/100"
+        },
+        "Q": "18/25",
+        "radius": "3",
+        "B": "223/300",
+        "B_tt": "223/101250",
+        "B_rr": "-8/2007",
+        "B_theta_theta": "2/75",
+        "B_phi_phi_over_sin_squared": "2/75",
+        "B1_plus_B2": "0",
+        "B1_minus_B2": "8/675",
+        "trace": "0",
+        "radial_covariant_divergence": "0"
+      },
+      "off_shell_r6": {
+        "coefficients": {
+          "c_inverse": "-17/10",
+          "c_constant": "11/10",
+          "c_linear": "1/10",
+          "c_quadratic": "-1/100"
+        },
+        "Q": "18/25",
+        "radius": "6",
+        "B": "317/300",
+        "B_tt": "317/1620000",
+        "B_rr": "-1/5706",
+        "B_theta_theta": "1/150",
+        "B_phi_phi_over_sin_squared": "1/150",
+        "B1_plus_B2": "0",
+        "B1_minus_B2": "1/1350",
+        "trace": "0",
+        "radial_covariant_divergence": "0"
+      },
+      "generic_degree_five_lapse": {
+        "polynomial_coefficients_ascending": [
+          "7/5",
+          "3/100",
+          "-1/500",
+          "1/10000",
+          "-1/100000",
+          "1/1000000"
+        ],
+        "radius": "2",
+        "B": "22698/15625",
+        "B_tt": "3505247452863/122070312500000",
+        "B_rr": "-314307107/22698000000",
+        "B_theta_theta": "311583347/3906250000",
+        "B_phi_phi_over_sin_squared": "311583347/3906250000",
+        "B1_plus_B2": "-34047/97656250",
+        "B1_minus_B2": "311583347/3906250000",
+        "trace": "0",
+        "radial_covariant_divergence": "0"
+      }
+    }
+  }
 }
