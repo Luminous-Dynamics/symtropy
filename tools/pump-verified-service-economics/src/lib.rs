@@ -253,8 +253,8 @@ pub fn parse_cases(input: &str) -> Result<Vec<Case>, String> {
                 return Err(format!("cases:{}: invalid {field}", i + 2));
             }
         }
-        if !valid_currency(r[11]) || !valid_money_unit(r[11], r[12]) {
-            return Err(format!("cases:{}: currency/amount-unit mismatch", i + 2));
+        if !valid_currency(r[11]) {
+            return Err(format!("cases:{}: malformed currency code", i + 2));
         }
         if !matches!(
             r[5],
@@ -313,8 +313,8 @@ fn validate_case(c: &Case) -> Result<(), String> {
     {
         return Err(format!("case {}: invalid direct date", c.case_id));
     }
-    if !valid_currency(&c.currency) || !valid_money_unit(&c.currency, &c.amount_unit) {
-        return Err(format!("case {}: currency/amount-unit mismatch", c.case_id));
+    if !valid_currency(&c.currency) || !valid_ref(&c.amount_unit) {
+        return Err(format!("case {}: malformed direct currency/amount unit", c.case_id));
     }
     if c.required_area_count == 0 {
         return Err(format!("case {}: required_area_count must be positive", c.case_id));
@@ -421,6 +421,9 @@ fn eval_one(case: &Case, areas: &[ServiceArea]) -> Evaluation {
 
     if case.potable_claim {
         finish!(Disposition::UnsupportedClaim, "hydraulic service evidence does not establish potable-water quality");
+    }
+    if !valid_ref(&case.transferability_ref) {
+        finish!(Disposition::EvidenceIncomplete, "pump transferability receipt reference is missing");
     }
     if case.transferability_disposition == "NOT_TRANSFERABLE" {
         finish!(Disposition::NotTransferable, "exact pump acceptance-to-service owner rejected this asset/duty");
@@ -685,6 +688,15 @@ mod tests{
     }
     #[test] fn cost_period_must_match_service_horizon(){
         assert_eq!(one("cost_period_mismatch").disposition,Disposition::EvidenceIncomplete);
+    }
+    #[test] fn currency_unit_mismatch_is_a_case_disposition_not_a_corpus_parse_abort(){
+        assert_eq!(one("currency_unit_mismatch").disposition,Disposition::ProfileIncomplete);
+    }
+    #[test] fn missing_transfer_receipt_reference_is_evidence_incomplete(){
+        assert_eq!(
+            one("transfer_receipt_missing").disposition,
+            Disposition::EvidenceIncomplete
+        );
     }
     #[test] fn currency_and_unit_prefix_must_match(){
         assert_eq!(one("currency_unit_mismatch").disposition,Disposition::ProfileIncomplete);
