@@ -4,15 +4,21 @@ CPU-first reference models and benchmark analysis for biological movement.
 
 ## First slice: porous bacterial chemotaxis
 
-The first executable model represents a run/event process with distinct:
+The first executable model represents a run/event process with independent physical-mechanism and observed-duration axes.
 
-- run durations conditioned on the preceding run direction;
-- short reorientation events around a declared 1-second cut, with turn-angle samples conditioned on incoming direction;
-- long mechanical-trap events around the same cut, with a pooled turn-angle distribution.
+**Physical mechanisms**
+- `ActiveMotorEvent`: a motor-driven event. Only this mechanism receives the directional turn-angle-bias policy in the current model.
+- `PassiveMechanicalTrap`: externally constrained/trapped motion with its own duration and escape-angle distributions; it never receives active chemotactic turn control.
+- `Unresolved`: mechanism remains unknown and is preserved rather than coerced into active or passive.
 
-The exact 1.0-second boundary is a versioned `ThresholdBoundaryPolicy`. The 2026 paper uses <=1 s in the Figure 3/4 descriptions but also uses <1 s in other prose; the 2025 paper describes short <1 s and long >1 s. The default test fixture selects `ShortInclusive` for reproducing the 2026 figure caption convention. A source reproduction must also run `LongInclusive` and `ExcludeExactBoundary` sensitivity cases. Do not silently treat this boundary policy as a biological truth.
+**Observed duration bins**
+- `Short`
+- `Long`
+- `ExactBoundaryExcluded`
 
-This separation is important for the Pseudomonas putida porous-agar evidence base. A passive trap is not an active motor turn, and a model that pools them can erase the directional mechanism under investigation.
+The versioned `ThresholdBoundaryPolicy` determines only the duration bin. It does **not** determine the physical cause. An active motor event may last longer than one second; a passive trap may last less than one second. The model and tests explicitly allow both.
+
+The cited papers use different descriptions at exactly 1.0 s: the 2026 figure captions use <=1 s for short, while other prose uses <1 s; the 2025 paper describes a strict short/long split. Therefore the equality convention is a source-pinned analysis choice, with inclusive, long-inclusive and exact-boundary-excluded sensitivity cases. Never interpret that threshold as a biological boundary.
 
 The code is an **event-based reference kernel**, not a validated flagellar motor model, hydrodynamic solver, pore-resolved simulator, growth model or biological prediction system. It includes seeded rotational diffusion during runs (Euler–Maruyama-style heading increments), sampled event durations/angles, and a trajectory-level time-origin-averaged MSD evaluator. It does not yet resolve agar pore geometry, cell-body hydrodynamics, flagellar motor states, nutrient diffusion or population growth.
 
@@ -20,7 +26,7 @@ The code is an **event-based reference kernel**, not a validated flagellar motor
 
 Beier et al., "Dual chemotaxis strategy of bacteria in porous media: Run-time and turn-angle bias", *Biophysical Journal* 125(14), 3570–3579 (2026), DOI [10.1016/j.bpj.2026.06.002](https://doi.org/10.1016/j.bpj.2026.06.002).
 
-The paper reports that P. putida uses both run-time and turn-angle bias in porous agar, with turn-angle bias making the larger contribution in the studied conditions. It distinguishes short motor-induced reorientation events from longer passive traps.
+The paper reports that P. putida uses both run-time and turn-angle bias in porous agar, with turn-angle bias making the larger contribution in the studied conditions. It examines duration-stratified next-run orientations and interprets short events as more likely motor-induced, while longer events are dominated by passive trapping. The simulator represents mechanism and duration independently so this interpretation remains testable rather than hard-coded.
 
 Analyzed trajectories: [Zenodo DOI 10.5281/zenodo.17592316](https://doi.org/10.5281/zenodo.17592316). The deposit description identifies wild-type 0.25% and 0.3% agar trajectories and MotAB/MotCD mutant datasets.
 
@@ -49,16 +55,33 @@ cargo test --manifest-path crates/domains/symtropy-biomotility/Cargo.toml
 
 The model uses only the Rust standard library. The seeded generator is for deterministic research fixtures only; it is not cryptographic.
 
+## Event semantics and evidence status
+
+Every simulated event records:
+- physical mechanism (`ACTIVE_MOTOR_EVENT`, `PASSIVE_MECHANICAL_TRAP`, or `UNRESOLVED`);
+- mechanism evidence status (`MODEL_LATENT` in controlled simulation; real-data adapters must preserve `DIRECTLY_OBSERVED`, `ALGORITHM_INFERRED`, or `UNRESOLVED`);
+- observed duration and its independently derived duration bin.
+
+A real observation must not receive an active/passive mechanism label just because its duration falls on one side of the one-second cut. The 2025 study's run/event segmentation uses k-means on speed and change-of-direction features; high-speed fluorescence measurements are a separate line of evidence for flagellar modes. The normalized data contract retains the original source label and the method used to infer any mechanism.
+
+## Circular orientation statistics and uncertainty
+
+`summarize_orientations` calculates up/down/cross fractions and the first circular Fourier harmonic of realized run-displacement headings relative to the gradient. The Fourier coefficient magnitude and phase preserve angular information that a binary up-gradient fraction discards.
+
+`cluster_bootstrap_orientations` resamples whole independent recording clusters (e.g. plate/day/recording), preserving every run within a selected cluster. Its percentile intervals target recording-level uncertainty. It is not a substitute for a source-specific hierarchical bootstrap if the data contain multiple nested levels (day -> plate -> recording -> trajectory). The caller must supply independent clusters, not tracks or frames mislabeled as independent replicates.
+
 ## Mechanistic ablations
 
 `simulate_with_bias_mode` exposes four matched experiment arms:
 
-| Mode | Run-time distribution | Short-event turn-angle distribution |
+| Mode | Run-time distribution | Active motor-event turn-angle distribution |
 |---|---|---|
 | `None` | Pooled / direction-independent | Pooled / direction-independent |
-| `RunTimeOnly` | Conditioned on preceding-run direction | Pooled / direction-independent |
-| `TurnAngleOnly` | Pooled / direction-independent | Conditioned on preceding-run direction |
-| `Combined` | Conditioned on preceding-run direction | Conditioned on preceding-run direction |
+| `RunTimeOnly` | Conditioned on run-start direction | Pooled / direction-independent |
+| `TurnAngleOnly` | Pooled / direction-independent | Conditioned on completed-run displacement direction |
+| `Combined` | Conditioned on run-start direction | Conditioned on completed-run displacement direction |
+
+Passive-trap and unresolved-event angle distributions remain pooled in all four modes. The mechanism probabilities, event-duration distributions and angle distributions must be fitted/admitted from the same declared condition; ablation comparisons must not refit each arm on different data splits.
 
 The unconditional sample sets must be derived from the same admitted condition and observation protocol as the directional distributions. Do not substitute arbitrary constants or fit each ablation on a different split. The convenience `simulate` function uses `Combined`.
 
