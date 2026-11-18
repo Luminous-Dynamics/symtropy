@@ -340,8 +340,14 @@ impl DecisionProblem {
                 observation_probability * posterior_best_value;
         }
 
+        let conditional_entropy_bits = self
+            .prior
+            .iter()
+            .zip(experiment.likelihoods.iter())
+            .map(|(probability, likelihoods)| probability * entropy_bits(likelihoods))
+            .sum::<f64>();
         let mutual_information_bits =
-            entropy_bits(&self.prior) - entropy_bits(&observation_probabilities);
+            (entropy_bits(&observation_probabilities) - conditional_entropy_bits).max(0.0);
         let expected_value_improvement =
             expected_value_after_observation - baseline_expected_value;
         let net_expected_decision_value =
@@ -542,6 +548,13 @@ mod tests {
         );
         assert!(
             information.mutual_information_bits > decision_value.mutual_information_bits
+        );
+        assert!((information.mutual_information_bits - 1.0).abs() < 1.0e-12);
+        assert!(
+            (decision_value.mutual_information_bits - 1.0 + 0.9_f64.log2() * 0.9
+                + 0.1_f64.log2() * 0.1)
+                .abs()
+                < 1.0e-12
         );
         assert!(
             decision_value.net_expected_decision_value
