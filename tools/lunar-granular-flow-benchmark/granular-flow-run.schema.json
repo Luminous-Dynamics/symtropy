@@ -200,6 +200,34 @@
               }
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "derived"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "derivation_method_id",
+              "calculation_version"
+            ],
+            "properties": {
+              "derivation_method_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "calculation_version": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
         }
       ]
     },
