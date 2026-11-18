@@ -26,6 +26,9 @@ pub struct CapacityAvailabilityWindow {
     pub resource_id: String,
     pub resource_definition_sha256: String,
     pub site_snapshot_sha256: String,
+    /// Every tick is interpreted in this explicit clock domain; it must match
+    /// the base capacity scenario exactly.
+    pub site_clock_domain_id: String,
     pub capacity_owner_id: String,
     pub evidence_receipt_sha256: String,
     /// Half-open interval [start_tick, end_tick) in the scenario site clock.
@@ -119,6 +122,8 @@ pub enum RobustCapacityError {
     EmptyCapacityOwner(String),
     InvalidEvidenceReceipt(String),
     InvalidSiteSnapshotBinding(String),
+    SiteClockDomainMismatch(String),
+    CapacityOwnerMismatch(String),
     UnknownResource(String),
     ResourceDefinitionMismatch(String),
     InvalidCapacityWindow(String),
@@ -179,6 +184,11 @@ pub fn evaluate_robust_cumulative_resource_capacity(
                 window.resource_id.clone(),
             ));
         }
+        if window.site_clock_domain_id != scenario.base.site_clock_domain_id {
+            errors.push(RobustCapacityError::SiteClockDomainMismatch(
+                window.resource_id.clone(),
+            ));
+        }
         let Some(definition) = definitions.get(window.resource_id.as_str()) else {
             errors.push(RobustCapacityError::UnknownResource(
                 window.resource_id.clone(),
@@ -187,6 +197,11 @@ pub fn evaluate_robust_cumulative_resource_capacity(
         };
         if definition.definition_sha256 != window.resource_definition_sha256 {
             errors.push(RobustCapacityError::ResourceDefinitionMismatch(
+                window.resource_id.clone(),
+            ));
+        }
+        if definition.capacity_owner_id != window.capacity_owner_id {
+            errors.push(RobustCapacityError::CapacityOwnerMismatch(
                 window.resource_id.clone(),
             ));
         }
@@ -470,6 +485,7 @@ mod tests {
     fn definition(id: &str, capacity: u64) -> CapacityResourceDefinition {
         CapacityResourceDefinition {
             resource_id: id.into(),
+            capacity_owner_id: format!("{id}-owner"),
             definition_sha256: digest('a'),
             capacity_units: capacity,
             unit_label: "units".into(),
@@ -507,6 +523,7 @@ mod tests {
             resource_id: "hoist".into(),
             resource_definition_sha256: digest('a'),
             site_snapshot_sha256: digest('d'),
+            site_clock_domain_id: "site-clock-1".into(),
             capacity_owner_id: "hoist-owner".into(),
             evidence_receipt_sha256: digest('e'),
             start_tick: start,
@@ -649,6 +666,7 @@ mod tests {
                 resource_id: "power".into(),
                 resource_definition_sha256: digest('a'),
                 site_snapshot_sha256: digest('d'),
+                site_clock_domain_id: "site-clock-1".into(),
                 capacity_owner_id: "power-owner".into(),
                 evidence_receipt_sha256: digest('f'),
                 start_tick: 5,
@@ -733,6 +751,7 @@ mod tests {
                     resource_id: "temporary-power".into(),
                     resource_definition_sha256: digest('f'),
                     site_snapshot_sha256: snapshot.clone(),
+                    site_clock_domain_id: "site-clock-1".into(),
                     capacity_owner_id: "power-owner".into(),
                     evidence_receipt_sha256: digest('e'),
                     start_tick: 15,
@@ -894,6 +913,39 @@ mod tests {
                 vec!["one-reservation".to_owned()]
             );
         }
+    }
+
+
+    #[test]
+    fn availability_window_must_match_the_scenario_clock_domain() {
+        let mut invalid = window(10, 20, 2, 3, 4);
+        invalid.site_clock_domain_id = "other-site-clock".into();
+        assert!(
+            evaluate_robust_cumulative_resource_capacity(
+                &RobustCumulativeCapacityScenario {
+                    base: base(),
+                    availability_windows: vec![invalid],
+                }
+            )
+            .unwrap_err()
+            .contains(&RobustCapacityError::SiteClockDomainMismatch("hoist".into()))
+        );
+    }
+
+    #[test]
+    fn availability_window_owner_must_match_the_resource_catalog_owner() {
+        let mut invalid = window(10, 20, 2, 3, 4);
+        invalid.capacity_owner_id = "untrusted-claimant".into();
+        assert!(
+            evaluate_robust_cumulative_resource_capacity(
+                &RobustCumulativeCapacityScenario {
+                    base: base(),
+                    availability_windows: vec![invalid],
+                }
+            )
+            .unwrap_err()
+            .contains(&RobustCapacityError::CapacityOwnerMismatch("hoist".into()))
+        );
     }
 
 }
