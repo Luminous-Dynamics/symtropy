@@ -8,13 +8,15 @@ const RANDOM_SEEDS: [u64; 10] = [11, 23, 37, 41, 53, 67, 79, 89, 101, 113];
 
 fn print_outcome(outcome: &PolicyOutcome) {
     println!(
-        "{policy},{seed},{selected},{mutual_information:.8},{cost:.8},{expected_value:.8},{net_value:.8},{regret:.8},{decision}",
+        "{policy},{seed},{selected},{mutual_information:.8},{cost:.8},{baseline_value:.8},{expected_value:.8},{value_improvement:.8},{net_value:.8},{regret:.8},{decision}",
         policy = outcome.policy.as_str(),
         seed = outcome.seed,
         selected = outcome.selected_experiment_id.as_deref().unwrap_or("none"),
         mutual_information = outcome.mutual_information_bits,
         cost = outcome.experiment_cost,
+        baseline_value = outcome.baseline_expected_value,
         expected_value = outcome.expected_value_after_observation,
+        value_improvement = outcome.expected_value_improvement,
         net_value = outcome.net_expected_decision_value,
         regret = outcome.expected_decision_regret,
         decision = outcome.decision_without_measurement
@@ -29,7 +31,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("# target_os={}", env::consts::OS);
     println!("# random_seed_replicates={}", RANDOM_SEEDS.len());
     println!(
-        "policy,seed,selected_experiment,mutual_information_bits,experiment_cost,expected_value_after_observation,net_expected_decision_value,expected_decision_regret,decision_without_measurement"
+        "policy,seed,selected_experiment,mutual_information_bits,experiment_cost,baseline_expected_value,expected_value_after_observation,expected_value_improvement,net_expected_decision_value,expected_decision_regret,decision_without_measurement"
     );
 
     let problem = synthetic_voi_problem();
