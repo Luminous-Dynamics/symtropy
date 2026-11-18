@@ -126,12 +126,20 @@ mod tests {
                     output_ref: "prepared-onion".to_owned(),
                     quantity: qty(240, QuantityUnitV1::Gram),
                     ingredient_origins: vec!["onion".to_owned()],
+                    ingredient_contributions: vec![PlannedIngredientContributionV1 {
+                        ingredient_id: "onion".to_owned(),
+                        quantity: qty(240, QuantityUnitV1::Gram),
+                    }],
                     quantity_basis_ref: "model:trim-yield-v1".to_owned(),
                 },
                 PlannedTaskOutputV1 {
                     output_ref: "onion-trim".to_owned(),
                     quantity: qty(10, QuantityUnitV1::Gram),
                     ingredient_origins: vec!["onion".to_owned()],
+                    ingredient_contributions: vec![PlannedIngredientContributionV1 {
+                        ingredient_id: "onion".to_owned(),
+                        quantity: qty(10, QuantityUnitV1::Gram),
+                    }],
                     quantity_basis_ref: "model:trim-yield-v1".to_owned(),
                 },
             ],
@@ -161,12 +169,28 @@ mod tests {
             schedule_resolution_ref: "schedule:hob-zone-1-v1".to_owned(),
             resource_resolution_ref: "resolution:hob-zone-1-v1".to_owned(),
             instruction_ref: Some("instruction:step-2".to_owned()),
-            outputs: vec![PlannedTaskOutputV1 {
-                output_ref: "sauteed-onion".to_owned(),
-                quantity: qty(200, QuantityUnitV1::Gram),
-                ingredient_origins: vec!["onion".to_owned()],
-                quantity_basis_ref: "model:cooking-yield-v1".to_owned(),
-            }],
+            outputs: vec![
+                PlannedTaskOutputV1 {
+                    output_ref: "sauteed-onion".to_owned(),
+                    quantity: qty(200, QuantityUnitV1::Gram),
+                    ingredient_origins: vec!["onion".to_owned()],
+                    ingredient_contributions: vec![PlannedIngredientContributionV1 {
+                        ingredient_id: "onion".to_owned(),
+                        quantity: qty(200, QuantityUnitV1::Gram),
+                    }],
+                    quantity_basis_ref: "model:cooking-yield-v1".to_owned(),
+                },
+                PlannedTaskOutputV1 {
+                    output_ref: "saute-loss".to_owned(),
+                    quantity: qty(40, QuantityUnitV1::Gram),
+                    ingredient_origins: vec!["onion".to_owned()],
+                    ingredient_contributions: vec![PlannedIngredientContributionV1 {
+                        ingredient_id: "onion".to_owned(),
+                        quantity: qty(40, QuantityUnitV1::Gram),
+                    }],
+                    quantity_basis_ref: "model:cooking-loss-v1".to_owned(),
+                },
+            ],
         };
 
         MealCompilationRequestV1 {
@@ -230,6 +254,20 @@ mod tests {
                     },
                     quantity: qty(10, QuantityUnitV1::Gram),
                     evidence_ref: "allocation:onion-trim-v1".to_owned(),
+                },
+                FoodFlowEdgeV1 {
+                    edge_id: "edge:saute-to-planned-loss".to_owned(),
+                    material_ref: "material:saute-loss".to_owned(),
+                    source: FoodFlowSourceV1::TaskOutput {
+                        task_id: "saute-onion".to_owned(),
+                        output_ref: "saute-loss".to_owned(),
+                    },
+                    destination: FoodFlowDestinationV1::PlannedLossOutput {
+                        output_ref: "planned-loss:saute-residue".to_owned(),
+                        loss_kind: PlannedLossKindV1::ExpectedEvaporation,
+                    },
+                    quantity: qty(40, QuantityUnitV1::Gram),
+                    evidence_ref: "allocation:saute-loss-v1".to_owned(),
                 },
                 FoodFlowEdgeV1 {
                     edge_id: "edge:saute-to-edible-output".to_owned(),
