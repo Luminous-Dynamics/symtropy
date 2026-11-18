@@ -257,15 +257,33 @@ pub enum ProfileError {
 impl fmt::Display for ProfileError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::EmptySamples(name) => write!(formatter, "{name} must contain at least one sample"),
-            Self::NonFiniteSample(name) => write!(formatter, "{name} contains a non-finite sample"),
-            Self::NonPositiveSample(name) => write!(formatter, "{name} must contain positive samples"),
-            Self::InvalidSwimmingSpeed => write!(formatter, "swimming_speed_um_s must be finite and positive"),
-            Self::InvalidRotationalDiffusion => write!(formatter, "rotational_diffusion_rad2_s must be finite and non-negative"),
-            Self::InvalidIntegrationStep => write!(formatter, "integration_step_s must be finite and positive"),
-            Self::InvalidShortEventProbability => write!(formatter, "short_event_probability must be in [0, 1]"),
-            Self::ShortEventExceedsThreshold => write!(formatter, "short-event duration exceeds the one-second class threshold"),
-            Self::LongTrapDoesNotExceedThreshold => write!(formatter, "long-trap duration must exceed the one-second class threshold"),
+            Self::EmptySamples(name) => {
+                write!(formatter, "{name} must contain at least one sample")
+            }
+            Self::NonFiniteSample(name) => {
+                write!(formatter, "{name} contains a non-finite sample")
+            }
+            Self::NonPositiveSample(name) => {
+                write!(formatter, "{name} must contain positive samples")
+            }
+            Self::InvalidSwimmingSpeed => {
+                write!(formatter, "swimming_speed_um_s must be finite and positive")
+            }
+            Self::InvalidRotationalDiffusion => {
+                write!(formatter, "rotational_diffusion_rad2_s must be finite and non-negative")
+            }
+            Self::InvalidIntegrationStep => {
+                write!(formatter, "integration_step_s must be finite and positive")
+            }
+            Self::InvalidShortEventProbability => {
+                write!(formatter, "short_event_probability must be in [0, 1]")
+            }
+            Self::ShortEventExceedsThreshold => {
+                write!(formatter, "short-event duration exceeds the one-second class threshold")
+            }
+            Self::LongTrapDoesNotExceedThreshold => {
+                write!(formatter, "long-trap duration must exceed the one-second class threshold")
+            }
         }
     }
 }
@@ -365,12 +383,22 @@ pub enum SimulationError {
 impl fmt::Display for SimulationError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidProfile(error) => write!(formatter, "invalid motility profile: {error}"),
-            Self::InvalidInitialState => write!(formatter, "initial agent state must be finite with non-negative elapsed time"),
+            Self::InvalidProfile(error) => {
+                write!(formatter, "invalid motility profile: {error}")
+            }
+            Self::InvalidInitialState => {
+                write!(formatter, "initial agent state must be finite with non-negative elapsed time")
+            }
             Self::InvalidGradientHeading => write!(formatter, "gradient heading must be finite"),
-            Self::NonFiniteTrajectory => write!(formatter, "simulation produced a non-finite state; check profile magnitudes"),
-            Self::IntegrationStepBudgetExceeded => write!(formatter, "run exceeded the maximum integration-step budget"),
-            Self::IntegrationStepDidNotAdvance => write!(formatter, "integration step is too small to advance the remaining run time"),
+            Self::NonFiniteTrajectory => {
+                write!(formatter, "simulation produced a non-finite state; check profile magnitudes")
+            }
+            Self::IntegrationStepBudgetExceeded => {
+                write!(formatter, "run exceeded the maximum integration-step budget")
+            }
+            Self::IntegrationStepDidNotAdvance => {
+                write!(formatter, "integration step is too small to advance the remaining run time")
+            }
         }
     }
 }
