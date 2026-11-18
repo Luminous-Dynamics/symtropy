@@ -249,6 +249,51 @@ impl DenseSpdCovariance {
         Ok(value)
     }
 
+    /// Apply the dense precision matrix without materializing it:
+    /// solve L y = r and L^T x = y for Sigma = L L^T.
+    pub fn gaussian_precision_apply(
+        &self,
+        residual: &[f64],
+    ) -> Result<Vec<f64>, CovarianceError> {
+        let dimension = self.dimension();
+        if residual.len() != dimension {
+            return Err(CovarianceError::DimensionMismatch {
+                expected: dimension,
+                actual: residual.len(),
+            });
+        }
+        for (index, value) in residual.iter().enumerate() {
+            if !value.is_finite() {
+                return Err(CovarianceError::NonFiniteResidual { index });
+            }
+        }
+
+        let mut forward = vec![0.0; dimension];
+        #[allow(clippy::needless_range_loop)]
+        for row in 0..dimension {
+            let mut value = residual[row];
+            for column in 0..row {
+                value -= self.cholesky_lower[row][column] * forward[column];
+            }
+            forward[row] = value / self.cholesky_lower[row][row];
+        }
+
+        let mut solution = vec![0.0; dimension];
+        #[allow(clippy::needless_range_loop)]
+        for row in (0..dimension).rev() {
+            let mut value = forward[row];
+            for column in (row + 1)..dimension {
+                value -= self.cholesky_lower[column][row] * solution[column];
+            }
+            solution[row] = value / self.cholesky_lower[row][row];
+        }
+        if solution.iter().all(|value| value.is_finite()) {
+            Ok(solution)
+        } else {
+            Err(CovarianceError::NonFiniteResult)
+        }
+    }
+
     /// Evaluate 0.5 * r^T Sigma^-1 r by triangular whitening.
     /// This avoids explicitly forming the inverse covariance.
     pub fn gaussian_quadratic_form_half(
@@ -402,6 +447,74 @@ impl Ar1KroneckerCovariance {
         Ok(value)
     }
 
+    /// Apply (K_AR1^-1 kron R_sensor^-1) without forming the joint
+    /// precision matrix. Complexity is O(T*m^2) for T times and m sensors.
+    pub fn gaussian_precision_apply(
+        &self,
+        residual: &[f64],
+    ) -> Result<Vec<f64>, CovarianceError> {
+        let time_count = self.sample_count;
+        let sensor_count = self.sensor_count();
+        let dimension = self.dimension();
+        if residual.len() != dimension {
+            return Err(CovarianceError::DimensionMismatch {
+                expected: dimension,
+                actual: residual.len(),
+            });
+        }
+        for (index, value) in residual.iter().enumerate() {
+            if !value.is_finite() {
+                return Err(CovarianceError::NonFiniteResidual { index });
+            }
+        }
+
+        let mut sensor_precision_blocks = vec![0.0; dimension];
+        for time_index in 0..time_count {
+            let offset = time_index * sensor_count;
+            let block = self
+                .sensor_covariance
+                .gaussian_precision_apply(
+                    &residual[offset..offset + sensor_count],
+                )?;
+            sensor_precision_blocks[offset..offset + sensor_count]
+                .copy_from_slice(&block);
+        }
+
+        if time_count == 1 {
+            return Ok(sensor_precision_blocks);
+        }
+
+        let denominator = 1.0 - self.rho * self.rho;
+        let mut result = vec![0.0; dimension];
+        for sensor_index in 0..sensor_count {
+            result[sensor_index] = (
+                sensor_precision_blocks[sensor_index]
+                    - self.rho * sensor_precision_blocks[sensor_count + sensor_index]
+            ) / denominator;
+            for time_index in 1..(time_count - 1) {
+                let offset = time_index * sensor_count + sensor_index;
+                result[offset] = (
+                    (1.0 + self.rho * self.rho)
+                        * sensor_precision_blocks[offset]
+                        - self.rho
+                            * (sensor_precision_blocks[offset - sensor_count]
+                                + sensor_precision_blocks[offset + sensor_count])
+                ) / denominator;
+            }
+            let last_offset = (time_count - 1) * sensor_count + sensor_index;
+            result[last_offset] = (
+                sensor_precision_blocks[last_offset]
+                    - self.rho
+                        * sensor_precision_blocks[last_offset - sensor_count]
+            ) / denominator;
+        }
+        if result.iter().all(|value| value.is_finite()) {
+            Ok(result)
+        } else {
+            Err(CovarianceError::NonFiniteResult)
+        }
+    }
+
     /// Exact joint Gaussian quadratic form via the same AR(1) innovations.
     pub fn gaussian_quadratic_form_half(
         &self,
@@ -511,6 +624,18 @@ impl ObservationCovarianceModelV1 {
         }
     }
 
+    pub fn gaussian_precision_apply(
+        &self,
+        residual: &[f64],
+    ) -> Result<Vec<f64>, CovarianceError> {
+        match self {
+            Self::Dense(covariance) => covariance.gaussian_precision_apply(residual),
+            Self::Ar1Kronecker(covariance) => {
+                covariance.gaussian_precision_apply(residual)
+            }
+        }
+    }
+
     pub fn gaussian_quadratic_form_half(
         &self,
         residual: &[f64],
@@ -615,6 +740,13 @@ impl ObservationCovarianceV1 {
         right: &[f64],
     ) -> Result<f64, CovarianceError> {
         self.covariance.gaussian_bilinear_form(left, right)
+    }
+
+    pub fn gaussian_precision_apply(
+        &self,
+        residual: &[f64],
+    ) -> Result<Vec<f64>, CovarianceError> {
+        self.covariance.gaussian_precision_apply(residual)
     }
 
     pub fn gaussian_quadratic_form_half(
@@ -2103,6 +2235,39 @@ mod tests {
         let quadratic = structured.gaussian_quadratic_form_half(&left).unwrap();
         let bilinear = structured.gaussian_bilinear_form(&left, &left).unwrap();
         assert!((bilinear - 2.0 * quadratic).abs() < 1.0e-11);
+    }
+
+    #[test]
+    fn structured_ar1_precision_action_matches_dense_inverse() {
+        let sensor = DenseSpdCovariance::new(vec![
+            vec![1.0, 0.2],
+            vec![0.2, 1.5],
+        ])
+        .unwrap();
+        let structured = Ar1KroneckerCovariance::new(5, 0.6, sensor).unwrap();
+        let dense = structured.to_dense().unwrap();
+        let residual = [
+            0.2, -0.5, 1.0, 0.25, -0.4, 0.75, 0.6, -0.2, 0.3, -0.9,
+        ];
+        let structured_precision = structured
+            .gaussian_precision_apply(&residual)
+            .unwrap();
+        let dense_precision = dense.gaussian_precision_apply(&residual).unwrap();
+        for (actual, expected) in structured_precision
+            .iter()
+            .zip(dense_precision.iter())
+        {
+            assert!((actual - expected).abs() < 1.0e-10);
+        }
+        let bilinear = structured
+            .gaussian_bilinear_form(&residual, &residual)
+            .unwrap();
+        let applied = residual
+            .iter()
+            .zip(structured_precision.iter())
+            .map(|(left, right)| left * right)
+            .sum::<f64>();
+        assert!((bilinear - applied).abs() < 1.0e-10);
     }
 
     #[test]

@@ -1237,6 +1237,60 @@ mod tests {
     }
 
     #[test]
+    fn nested_piecewise_constant_bases_have_non_decreasing_total_kl_optimum() {
+        let mut fixture = scenario(2.0);
+        fixture.observation_times = vec![0.4, 0.8, 1.2, 1.6, 2.0];
+        let covariance = ObservationCovarianceV1::new(
+            "covariance:nested-mesh-ar1-v1".to_owned(),
+            "process:ar1-rho-0.6".to_owned(),
+            "sampling:uniform-five-times".to_owned(),
+            "operator:sensors-10-11".to_owned(),
+            "cutoff:all-observations".to_owned(),
+            vec![10, 11],
+            fixture.observation_times.clone(),
+            Ar1KroneckerCovariance::new(
+                fixture.observation_times.len(),
+                0.6,
+                DenseSpdCovariance::new(fixture.noise_covariance.clone()).unwrap(),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let request_identity = identity(
+            "covariance:nested-mesh-ar1-v1",
+            "process:ar1-rho-0.6",
+            "sampling:uniform-five-times",
+            "operator:sensors-10-11",
+            "cutoff:all-observations",
+        );
+        let mut previous_total_kl = 0.0;
+        for segment_count in [1_usize, 2, 4, 8] {
+            let boundaries: Vec<f64> = (0..=segment_count)
+                .map(|index| 2.0 * index as f64 / segment_count as f64)
+                .collect();
+            let report = optimize_pairwise_total_kl_trust_region_with_covariance(
+                &fixture,
+                1,
+                2,
+                &[10, 11],
+                &[0, 2],
+                &boundaries,
+                &covariance,
+                &request_identity,
+            )
+            .unwrap();
+            assert_eq!(report.basis_dimension, segment_count * 2);
+            assert!(!report.peak_constraint_active);
+            assert!(
+                report.achieved_total_gaussian_kl + 1.0e-9 >= previous_total_kl,
+                "nested basis with {segment_count} segments reduced total KL"
+            );
+            assert!(report.replay_total_kl_abs_error < 1.0e-8);
+            previous_total_kl = report.achieved_total_gaussian_kl;
+        }
+    }
+
+    #[test]
     fn total_kl_design_dominates_incremental_design_on_total_kl() {
         let fixture = scenario(2.0);
         let incremental = crate::energy_optimal_control::optimize_pairwise_energy_ball_control(

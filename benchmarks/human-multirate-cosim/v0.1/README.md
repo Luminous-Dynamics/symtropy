@@ -569,3 +569,90 @@ The IID-assumed optimum differs materially from the AR(1)-qualified optimum
 on this fixture. The covariance misspecification is therefore decision-
 relevant, not merely a small score adjustment. These values are independent
 mathematical reproductions, not Rust runner output or CI qualification.
+## Nested continuous-control basis convergence
+
+The `continuous_control_convergence` runner evaluates nested piecewise-
+constant control spaces with 1, 2, 4 and 8 temporal segments and actuators
+at graph nodes 0 and 2. All levels use the same chain-versus-bypass models,
+selected sensors, five uniform observation times, AR(1) rho 0.6 covariance
+identity, integrated-energy budget and peak cap.
+
+The partitions are nested: every coarse feasible control is representable
+on each finer partition by copying its segment value to child segments.
+With an inactive peak cap, the globally optimized total-KL objective must
+therefore be non-decreasing. Both the runner and a frozen unit test reject a
+decrease beyond numerical tolerance.
+
+The scorecard reports basis dimension, total/passive/incremental KL, energy,
+peak, multiplier, stationarity and replay residuals, objective gain over the
+previous mesh, normalized L2 control difference on the refined comparison
+grid, and elapsed wall time. Wall time is diagnostic, not a portable
+performance claim.
+
+Run with:
+
+    cargo run --manifest-path benchmarks/human-multirate-cosim/v0.1/Cargo.toml --release --bin continuous_control_convergence
+
+This is still a sequence of exact optima over finite piecewise-constant
+spaces, not a proof of convergence to the arbitrary-waveform L2 optimum.
+The #6121 implementation adds an independent sampled-observation adjoint and
+KKT consistency check. Direct collocation and arbitrary-waveform PMP remain
+future qualification work under matched constraints. Liu, Maini and Baker (2026) explicitly formulate control-based
+model discrimination with Pontryagin's Maximum Principle
+([DOI 10.1016/j.mbs.2026.109710](https://doi.org/10.1016/j.mbs.2026.109710));
+Pagnier et al. (2026) present a closed-loop optimal-control discrimination
+framework with an electrophysiology experiment
+([arXiv:2603.00709](https://arxiv.org/abs/2603.00709)).
+## Independent sampled-observation adjoint
+
+The `adjoint_reference` module derives the control gradient for the fixed
+linear graph pair independently of the trust-region Gram matrix. For each
+candidate model the dynamics are
+
+    C x_dot = -L x + u(t)
+
+and the total controlled Gaussian KL is
+
+    J(u) = 0.5 * d(u)^T Sigma^-1 d(u)
+
+where d stacks all selected-sensor output differences at the declared
+sample times. The covariance precision is applied through the new
+`gaussian_precision_apply` operation; the adjoint receives an observation
+jump H^T Sigma^-1 d at each sample time. Between samples, it propagates
+backward under the transpose graph dynamics. The segment gradient is the
+exact integral of C^-1 p over that segment, evaluated with the spectral graph
+oracle rather than a finite-step adjoint integrator.
+
+The energy-ball KKT check compares the adjoint gradient with
+
+    grad J(u) - lambda * W * u = 0
+
+under the same trust-region multiplier and integrated-energy metric.
+A frozen test compares every coefficient against central finite differences
+under the structured AR(1) covariance and checks that the adjoint objective
+replays the total-KL trust-region result.
+
+The convergence runner now emits both the trust-region spectral residual
+and the independent adjoint stationarity residual at each nested basis
+level. This is a finite-dimensional adjoint/PMP consistency reference for
+the fixed linear graph model and sampled Gaussian objective. It is not yet
+a nonlinear PDE adjoint, an arbitrary-waveform solver, or a general-purpose
+PMP implementation.
+### Independent nested-mesh reference values (not Rust execution)
+
+A separate dense matrix-exponential/secular-equation reproduction of the
+same AR(1) rho 0.6 fixture gives the following total-KL sequence:
+
+| Time segments | Basis dimension | Total KL | Gain over prior mesh |
+| ---: | ---: | ---: | ---: |
+| 1 | 2 | 0.3302503226 | — |
+| 2 | 4 | 0.3483219996 | 0.0180716770 |
+| 4 | 8 | 0.3604974498 | 0.0121754502 |
+| 8 | 16 | 0.3639492430 | 0.0034517932 |
+
+Energy is `0.5` at each level and peak amplitudes remain below the `2.0`
+cap. The diminishing gains are consistent with convergence on this fixture,
+but four basis levels do not prove convergence to the infinite-dimensional
+L2 optimum. The normalized L2 profile differences on each refined grid were
+`0.2882868509`, `0.2063312872` and `0.1044940718` for 1→2, 2→4 and 4→8.
+These are independent mathematical reference values, not Rust runner output.
