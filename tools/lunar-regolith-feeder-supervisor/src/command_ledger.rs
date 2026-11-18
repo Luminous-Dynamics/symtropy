@@ -126,6 +126,7 @@ pub struct ActuatorCommand {
     pub command_id: String,
     pub commissioning_profile_id: String,
     pub commissioning_profile_revision: String,
+    pub previous_acknowledged_sequence: u64,
     pub previous_acknowledged: FeederSetpoints,
     pub requested: FeederSetpoints,
 }
@@ -242,6 +243,7 @@ impl CommandLedger {
             command_id: format!("feeder-command-{sequence:016}"),
             commissioning_profile_id: self.envelope.profile_id.clone(),
             commissioning_profile_revision: self.envelope.profile_revision.clone(),
+            previous_acknowledged_sequence: acknowledged.sequence,
             previous_acknowledged: acknowledged.setpoints.clone(),
             requested,
         };
@@ -255,14 +257,16 @@ impl CommandLedger {
         &mut self,
         response: ActuatorResponse,
     ) -> Result<LedgerResolution, String> {
-        let (command, previous_acknowledged, was_unknown) = match &self.state {
+        let (command, previous_acknowledged_sequence, previous_acknowledged, was_unknown) = match &self.state {
             LedgerState::CommandPending { command } => (
                 command.clone(),
+                command.previous_acknowledged_sequence,
                 command.previous_acknowledged.clone(),
                 false,
             ),
             LedgerState::UnknownOutcome { command, .. } => (
                 command.clone(),
+                command.previous_acknowledged_sequence,
                 command.previous_acknowledged.clone(),
                 true,
             ),
@@ -359,16 +363,8 @@ impl CommandLedger {
                     return Ok(LedgerResolution::OutcomeUnknown);
                 }
 
-                let previous_sequence = match &self.state {
-                    LedgerState::CommandPending { .. } => command.sequence.saturating_sub(1),
-                    LedgerState::UnknownOutcome { .. } => {
-                        // The acknowledged sequence is retained in the pending command's prior state.
-                        command.sequence.saturating_sub(1)
-                    }
-                    LedgerState::Acknowledged(_) => 0,
-                };
                 self.state = LedgerState::Acknowledged(AcknowledgedState {
-                    sequence: previous_sequence,
+                    sequence: previous_acknowledged_sequence,
                     setpoints: readback.setpoints,
                     resolution: AcknowledgedResolution::RejectedWithNoEffect,
                 });
@@ -567,6 +563,36 @@ mod tests {
         );
         let next = ledger.propose(points(6.0, 0.5)).unwrap();
         assert_eq!(next.sequence, cmd.sequence + 1);
+    }
+
+    #[test]
+    fn repeated_no_effect_rejections_preserve_the_last_acknowledged_sequence() {
+        let mut ledger = ledger();
+        let first = ledger.propose(points(5.0, 0.5)).unwrap();
+        ledger
+            .apply_response(response(
+                &first,
+                ActuatorResponseStatus::RejectedNoEffect,
+                Some(readback(4.0, 0.5)),
+            ))
+            .unwrap();
+
+        let second = ledger.propose(points(6.0, 0.5)).unwrap();
+        assert_eq!(second.sequence, 2);
+        assert_eq!(second.previous_acknowledged_sequence, 0);
+        ledger
+            .apply_response(response(
+                &second,
+                ActuatorResponseStatus::RejectedNoEffect,
+                Some(readback(4.0, 0.5)),
+            ))
+            .unwrap();
+
+        assert!(matches!(
+            &ledger.state,
+            LedgerState::Acknowledged(AcknowledgedState { sequence: 0, .. })
+        ));
+        assert_eq!(ledger.next_sequence(), 3);
     }
 
     #[test]
