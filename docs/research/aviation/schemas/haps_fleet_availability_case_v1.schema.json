@@ -84,8 +84,9 @@
           "required": [
             "haps_platforms_independent_conditioned_on_no_common_mode",
             "terrestrial_independent_of_haps_weather",
-            "leo_independent_of_haps_weather_and_terrestrial",
-            "availability_includes_planned_maintenance"
+            "availability_includes_planned_maintenance",
+            "external_common_mode_independent_of_haps_weather",
+            "terrestrial_and_leo_independent_conditioned_on_no_external_common_mode"
           ],
           "properties": {
             "haps_platforms_independent_conditioned_on_no_common_mode": {
@@ -94,10 +95,13 @@
             "terrestrial_independent_of_haps_weather": {
               "const": true
             },
-            "leo_independent_of_haps_weather_and_terrestrial": {
+            "availability_includes_planned_maintenance": {
               "const": true
             },
-            "availability_includes_planned_maintenance": {
+            "external_common_mode_independent_of_haps_weather": {
+              "const": true
+            },
+            "terrestrial_and_leo_independent_conditioned_on_no_external_common_mode": {
               "const": true
             }
           }
