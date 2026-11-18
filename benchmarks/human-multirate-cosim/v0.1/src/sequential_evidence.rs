@@ -472,12 +472,35 @@ pub fn choose_greedy_information_action(
     actions: &[SequentialActionV1],
     prior: &[ModelPriorV1],
     history: &[ActionObservationV1],
+    maximum_total_cost: f64,
     replicates_per_model: usize,
     seed: u64,
 ) -> Result<ExpectedInformationGainV1, SequentialEvidenceError> {
+    validate_action_catalogue(scenario, actions, prior)?;
+    if !maximum_total_cost.is_finite() || maximum_total_cost <= 0.0 {
+        return Err(SequentialEvidenceError::InvalidCampaignCost);
+    }
     let used: HashSet<u32> = history.iter().map(|entry| entry.action_id).collect();
+    let spent_cost: f64 = history
+        .iter()
+        .map(|observation| {
+            actions
+                .iter()
+                .find(|action| action.action_id == observation.action_id)
+                .map(|action| action.cost)
+                .ok_or(SequentialEvidenceError::UnknownAction(observation.action_id))
+        })
+        .collect::<Result<Vec<_>, _>>()?
+        .iter()
+        .sum();
+    if spent_cost > maximum_total_cost + TOLERANCE {
+        return Err(SequentialEvidenceError::InvalidCampaignCost);
+    }
     let mut best: Option<ExpectedInformationGainV1> = None;
-    for action in actions.iter().filter(|action| !used.contains(&action.action_id)) {
+    for action in actions.iter().filter(|action| {
+        !used.contains(&action.action_id)
+            && spent_cost + action.cost <= maximum_total_cost + TOLERANCE
+    }) {
         let score = estimate_action_expected_information_gain(
             scenario,
             actions,

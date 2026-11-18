@@ -293,6 +293,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         &actions,
         &prior,
         &[],
+        config.maximum_total_cost,
         config.eig_replicates_per_model,
         config.eig_seed,
     )?
@@ -359,6 +360,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 &actions,
                 &prior,
                 &adaptive_history,
+                config.maximum_total_cost,
                 config.eig_replicates_per_model,
                 trial_seed ^ config.eig_seed,
             )?
