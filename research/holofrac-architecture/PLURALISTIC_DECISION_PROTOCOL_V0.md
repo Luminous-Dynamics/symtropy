@@ -4,7 +4,7 @@
 **Implementation:** research/holofrac-retrieval/src/pluralistic.rs  
 **Executable:** research/holofrac-retrieval/src/bin/pluralistic_decision_sweep.rs  
 **Workflow output:** pluralistic-decisions.csv  
-**Related:** [#6011 — occupant agency](https://github.com/Luminous-Dynamics/symtropy/issues/6011), [#6007 — external qualification](https://github.com/Luminous-Dynamics/symtropy/issues/6007), [#5961 — budgeted experiment selection](https://github.com/Luminous-Dynamics/symtropy/issues/5961)
+**Related:** [#6011 — occupant agency](https://github.com/Luminous-Dynamics/symtropy/issues/6011), [#6034 — anonymous preference privacy red-team](https://github.com/Luminous-Dynamics/symtropy/issues/6034), [#6007 — external qualification](https://github.com/Luminous-Dynamics/symtropy/issues/6007), [#5961 — budgeted experiment selection](https://github.com/Luminous-Dynamics/symtropy/issues/5961)
 
 ## 1. Purpose
 
@@ -38,9 +38,9 @@ The fixture distinguishes:
 
 Non-response is not consent. A missing profile is not assigned neutral weights. A withdrawn or out-of-scope profile cannot remain in a later aggregate snapshot.
 
-The ledger retains source IDs and raw inputs for revision tracking inside the owning module. The group-decision API keeps raw snapshot profiles, weights, veto thresholds and exact cohort counts private. Individual satisfaction rows are emitted only for NamedAggregate participants. Anonymous vetoes collapse to criteria-only blockers: no individual identity, threshold, observed value or count is emitted.
+The ledger accepts events through PreferenceLedger::from_events, which takes ownership and validates the event stream. The raw event vector is private; the ledger, snapshot and assessment types have no derived Debug output, and raw snapshot/ledger state has no public Clone/equality surface. The group-decision API keeps raw snapshot profiles, weights, veto thresholds and exact cohort counts private. Individual satisfaction rows are emitted only for NamedAggregate participants. The original event producer still knows the input it created; this API cannot prevent a caller from retaining its own duplicate copy before transferring ownership. Anonymous vetoes collapse to criteria-only blockers: no individual identity, threshold, observed value or count is emitted.
 
-This is output minimization at the module/API boundary. It is not an encrypted ledger, secure enclave, access-control system or protection against another part of the owning process reading the source ledger.
+This is output minimization at the module/API boundary. It is not an encrypted ledger, secure enclave, access-control system or protection against another part of the owning process reading the source ledger. A raw event may also contain an ID in validation errors while being constructed; error messages must be treated as owner-context diagnostics, not shared anonymous outputs.
 
 ## 4. Minimum anonymous cohort and privacy limitations
 
