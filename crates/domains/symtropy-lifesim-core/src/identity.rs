@@ -322,7 +322,13 @@ fn require_non_empty(value: &str, field: &'static str) -> Result<(), LivingSyste
 mod tests {
     use super::*;
 
-    fn taxon(authority: &str, dataset: &str, release: &str, id: &str, name: &str) -> TaxonConceptRef {
+    fn taxon(
+        authority: &str,
+        dataset: &str,
+        release: &str,
+        id: &str,
+        name: &str,
+    ) -> TaxonConceptRef {
         TaxonConceptRef {
             authority: authority.to_owned(),
             dataset_id: dataset.to_owned(),
@@ -342,7 +348,11 @@ mod tests {
         }
     }
 
-    fn node(id: &str, level: LivingSystemLevel, members: Vec<LivingSystemMember>) -> LivingSystemNode {
+    fn node(
+        id: &str,
+        level: LivingSystemLevel,
+        members: Vec<LivingSystemMember>,
+    ) -> LivingSystemNode {
         LivingSystemNode { node_id: id.to_owned(), level, members }
     }
 
@@ -368,7 +378,13 @@ mod tests {
     #[test]
     fn taxon_identity_is_scoped_by_authority_dataset_release_and_concept() {
         let col = bacterium();
-        let gbif = taxon("GBIF Backbone", "gbif-backbone", "2023-08-28", "12345", "Bacterium example");
+        let gbif = taxon(
+            "GBIF Backbone",
+            "gbif-backbone",
+            "2023-08-28",
+            "12345",
+            "Bacterium example",
+        );
         let older_col = taxon(
             "Catalogue of Life",
             "7ddf754f-d193-4cc9-b351-99906754a03b",
@@ -420,9 +436,27 @@ mod tests {
             "holobiont-1",
             LivingSystemLevel::Holobiont,
             vec![
-                member("host", taxon("NCBI", "taxonomy", "test-ncbi-snapshot", "NCBI:TEST-9606", "Homo sapiens")),
+                member(
+                    "host",
+                    taxon(
+                        "NCBI",
+                        "taxonomy",
+                        "test-ncbi-snapshot",
+                        "NCBI:TEST-9606",
+                        "Homo sapiens",
+                    ),
+                ),
                 member("microbe", bacterium()),
-                member("fungus", taxon("Catalogue of Life", "7ddf754f-d193-4cc9-b351-99906754a03b", "COL26.10-XR", "col:EXAMPLE-FUNGUS", "Fungus example")),
+                member(
+                    "fungus",
+                    taxon(
+                        "Catalogue of Life",
+                        "7ddf754f-d193-4cc9-b351-99906754a03b",
+                        "COL26.10-XR",
+                        "col:EXAMPLE-FUNGUS",
+                        "Fungus example",
+                    ),
+                ),
             ],
         );
         assert!(holobiont.validate().is_ok());
@@ -465,7 +499,11 @@ mod tests {
         let graph = LivingSystemGraph {
             nodes: vec![
                 node("host", LivingSystemLevel::Individual, vec![member("host", bacterium())]),
-                node("symbiont", LivingSystemLevel::Individual, vec![member("symbiont", bacterium())]),
+                node(
+                    "symbiont",
+                    LivingSystemLevel::Individual,
+                    vec![member("symbiont", bacterium())],
+                ),
             ],
             edges: vec![
                 edge("sym-a", "host", "symbiont", LivingSystemRelation::SymbioticWith),
@@ -517,6 +555,57 @@ mod tests {
         assert_eq!(
             unknown_edge.validate(),
             Err(LivingSystemIdentityError::UnknownNodeReference("missing".to_owned()))
+        );
+    }
+
+    #[test]
+    fn empty_graph_duplicate_member_ids_and_duplicate_edge_ids_fail_closed() {
+        assert_eq!(
+            LivingSystemGraph::default().validate(),
+            Err(LivingSystemIdentityError::EmptyGraph)
+        );
+
+        let duplicate_members = LivingSystemGraph {
+            nodes: vec![node(
+                "community",
+                LivingSystemLevel::Community,
+                vec![
+                    member("same-member", bacterium()),
+                    member("same-member", bacterium()),
+                ],
+            )],
+            edges: vec![],
+        };
+        assert_eq!(
+            duplicate_members.validate(),
+            Err(LivingSystemIdentityError::DuplicateMemberId(
+                "same-member".to_owned()
+            ))
+        );
+
+        let duplicate_edges = LivingSystemGraph {
+            nodes: vec![
+                node(
+                    "a",
+                    LivingSystemLevel::Individual,
+                    vec![member("a", bacterium())],
+                ),
+                node(
+                    "b",
+                    LivingSystemLevel::Individual,
+                    vec![member("b", bacterium())],
+                ),
+            ],
+            edges: vec![
+                edge("same-edge", "a", "b", LivingSystemRelation::InteractsWith),
+                edge("same-edge", "b", "a", LivingSystemRelation::InteractsWith),
+            ],
+        };
+        assert_eq!(
+            duplicate_edges.validate(),
+            Err(LivingSystemIdentityError::DuplicateEdgeId(
+                "same-edge".to_owned()
+            ))
         );
     }
 
