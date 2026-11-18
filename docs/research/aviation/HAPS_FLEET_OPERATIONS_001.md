@@ -31,7 +31,7 @@ The case has three heterogeneous HAPS nodes, terrestrial and LEO fallback, plann
 - A shared event is represented once, names its shared-cause ID, and applies to all listed affected nodes/dependencies in the same intervals.
 - Service is adequate when total HAPS plus fallback capacity is at least 2.0 declared service units.
 - Degraded service is adequate service with less than 0.75 units of spare capacity over the requirement.
-- Demand-weighted availability counts each hour using its declared demand weight. It is not a substitute for strict time availability or latency/SLA evidence.
+- Demand-weighted availability counts each hour using its declared demand weight. It is not a substitute for strict time availability or latency/SLA evidence. Demand-weighted capacity satisfaction separately credits the fraction of required capacity served in each hour, capped at 100%; it does not promote a partial-capacity hour to fully available.
 - Maintenance, launch, recovery, reposition and handover pools have maximum concurrent-operation limits. Conflicts are surfaced in the result even when service capacity remains adequate.
 - Handover session counts and interruption percentiles are measured separately from fleet capacity; one cannot infer the other.
 
@@ -46,6 +46,7 @@ The 30-day fixture has 3 HAPS × 1 service unit, 0.5 units from a terrestrial ga
 | Strict service-adequate hours | 708 / 720 |
 | Strict availability | 98.333% |
 | Demand-weighted availability | 93.651% |
+| Demand-weighted capacity satisfaction | 98.413% (partial 75% capacity during the 12-hour emergency outage) |
 | Outage episodes | 1 |
 | Total / maximum contiguous outage | 12 h / 12 h |
 | Degraded-but-adequate service | 10 h |
