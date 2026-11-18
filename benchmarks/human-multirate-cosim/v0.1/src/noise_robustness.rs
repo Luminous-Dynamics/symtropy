@@ -20,6 +20,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 const MAX_DENSE_DIMENSION: usize = 4096;
+const MAX_STRUCTURED_DIMENSION: usize = 1_000_000;
 const MAX_MONTE_CARLO_TRIALS: usize = 1_000_000;
 const MAX_TOTAL_NOISE_CALIBRATION_SAMPLES: usize = 100_000;
 const SPLITMIX_INCREMENT: u64 = 0x9E37_79B9_7F4A_7C15;
@@ -252,6 +253,226 @@ impl DenseSpdCovariance {
     }
 }
 
+/// Exact AR(1)-time x sensor covariance represented without materializing
+/// the full (time * sensor) dense matrix.
+///
+/// For time-major residual blocks e_t, the Gaussian innovations are:
+///   z_0 = e_0
+///   z_t = (e_t - rho * e_(t-1)) / sqrt(1 - rho^2), t > 0
+/// Each z_t is whitened by the sensor Cholesky factor. This gives the same
+/// Mahalanobis score as K_AR1(rho) kron R_sensor, but costs O(T*m^2) rather
+/// than a dense O((T*m)^3) Cholesky factorization.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Ar1KroneckerCovariance {
+    sample_count: usize,
+    rho: f64,
+    sensor_covariance: DenseSpdCovariance,
+}
+
+impl Ar1KroneckerCovariance {
+    pub fn new(
+        sample_count: usize,
+        rho: f64,
+        sensor_covariance: DenseSpdCovariance,
+    ) -> Result<Self, CovarianceError> {
+        if sample_count == 0 {
+            return Err(CovarianceError::Empty);
+        }
+        if !rho.is_finite() || rho.abs() >= 1.0 || 1.0 - rho * rho <= 0.0 {
+            return Err(CovarianceError::InvalidCorrelation);
+        }
+        let dimension = sample_count
+            .checked_mul(sensor_covariance.dimension())
+            .ok_or(CovarianceError::DimensionTooLarge)?;
+        if dimension > MAX_STRUCTURED_DIMENSION {
+            return Err(CovarianceError::DimensionTooLarge);
+        }
+        Ok(Self {
+            sample_count,
+            rho,
+            sensor_covariance,
+        })
+    }
+
+    pub fn sample_count(&self) -> usize {
+        self.sample_count
+    }
+
+    pub fn sensor_count(&self) -> usize {
+        self.sensor_covariance.dimension()
+    }
+
+    pub fn rho(&self) -> f64 {
+        self.rho
+    }
+
+    pub fn dimension(&self) -> usize {
+        self.sample_count * self.sensor_count()
+    }
+
+    /// Exact joint Gaussian quadratic form via AR(1) innovations.
+    pub fn gaussian_quadratic_form_half(
+        &self,
+        residual: &[f64],
+    ) -> Result<f64, CovarianceError> {
+        let time_count = self.sample_count;
+        let sensor_count = self.sensor_count();
+        let dimension = self.dimension();
+        if residual.len() != dimension {
+            return Err(CovarianceError::DimensionMismatch {
+                expected: dimension,
+                actual: residual.len(),
+            });
+        }
+        for (index, value) in residual.iter().enumerate() {
+            if !value.is_finite() {
+                return Err(CovarianceError::NonFiniteResidual { index });
+            }
+        }
+
+        let mut whitened = vec![0.0; sensor_count];
+        let mut score = 0.0;
+        let temporal_innovation_variance = 1.0 - self.rho * self.rho;
+        #[allow(clippy::needless_range_loop)]
+        for time_index in 0..time_count {
+            for sensor_row in 0..sensor_count {
+                let flat_index = time_index * sensor_count + sensor_row;
+                let mut value = residual[flat_index];
+                if time_index > 0 {
+                    value -= self.rho * residual[flat_index - sensor_count];
+                }
+                for sensor_column in 0..sensor_row {
+                    value -= self.sensor_covariance.cholesky_lower[sensor_row][sensor_column]
+                        * whitened[sensor_column];
+                }
+                whitened[sensor_row] =
+                    value / self.sensor_covariance.cholesky_lower[sensor_row][sensor_row];
+            }
+            let block_norm = whitened.iter().map(|value| value * value).sum::<f64>();
+            let innovation_variance = if time_index == 0 {
+                1.0
+            } else {
+                temporal_innovation_variance
+            };
+            score += 0.5 * block_norm / innovation_variance;
+        }
+        if !score.is_finite() {
+            return Err(CovarianceError::NonFiniteResult);
+        }
+        Ok(score.max(0.0))
+    }
+
+    /// Sample the exact separable Gaussian process using the AR(1) recurrence.
+    pub fn sample_gaussian(
+        &self,
+        rng: &mut SplitMix64,
+    ) -> Result<Vec<f64>, CovarianceError> {
+        let time_count = self.sample_count;
+        let sensor_count = self.sensor_count();
+        let mut sample = vec![0.0; self.dimension()];
+        let innovation_scale = (1.0 - self.rho * self.rho).sqrt();
+        let mut standard = vec![0.0; sensor_count];
+        let mut sensor_noise = vec![0.0; sensor_count];
+
+        for time_index in 0..time_count {
+            for value in &mut standard {
+                *value = rng.standard_normal();
+            }
+            #[allow(clippy::needless_range_loop)]
+            for sensor_row in 0..sensor_count {
+                let mut value = 0.0;
+                for sensor_column in 0..=sensor_row {
+                    value += self.sensor_covariance.cholesky_lower[sensor_row][sensor_column]
+                        * standard[sensor_column];
+                }
+                sensor_noise[sensor_row] = value;
+            }
+            for sensor_index in 0..sensor_count {
+                let flat_index = time_index * sensor_count + sensor_index;
+                sample[flat_index] = if time_index == 0 {
+                    sensor_noise[sensor_index]
+                } else {
+                    self.rho * sample[flat_index - sensor_count]
+                        + innovation_scale * sensor_noise[sensor_index]
+                };
+                if !sample[flat_index].is_finite() {
+                    return Err(CovarianceError::NonFiniteResult);
+                }
+            }
+        }
+        Ok(sample)
+    }
+
+    /// Expand to a dense covariance for tiny-instance differential oracles.
+    /// The full materialization retains the dense dimension safety limit.
+    pub fn to_dense(&self) -> Result<DenseSpdCovariance, CovarianceError> {
+        if self.dimension() > MAX_DENSE_DIMENSION {
+            return Err(CovarianceError::DimensionTooLarge);
+        }
+        let time_covariance = ar1_time_covariance(self.sample_count, self.rho)?;
+        kronecker_time_sensor_covariance(&time_covariance, &self.sensor_covariance)
+    }
+}
+
+/// Covariance implementation selected for one observation-process identity.
+/// Dense is the general correctness reference; structured AR(1) is an exact
+/// matrix-free path for a declared separable process, not an approximation.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ObservationCovarianceModelV1 {
+    Dense(DenseSpdCovariance),
+    Ar1Kronecker(Ar1KroneckerCovariance),
+}
+
+impl From<DenseSpdCovariance> for ObservationCovarianceModelV1 {
+    fn from(covariance: DenseSpdCovariance) -> Self {
+        Self::Dense(covariance)
+    }
+}
+
+impl From<Ar1KroneckerCovariance> for ObservationCovarianceModelV1 {
+    fn from(covariance: Ar1KroneckerCovariance) -> Self {
+        Self::Ar1Kronecker(covariance)
+    }
+}
+
+impl ObservationCovarianceModelV1 {
+    pub fn dimension(&self) -> usize {
+        match self {
+            Self::Dense(covariance) => covariance.dimension(),
+            Self::Ar1Kronecker(covariance) => covariance.dimension(),
+        }
+    }
+
+    pub fn kind_label(&self) -> &'static str {
+        match self {
+            Self::Dense(_) => "DENSE_SPD",
+            Self::Ar1Kronecker(_) => "AR1_KRONECKER",
+        }
+    }
+
+    pub fn gaussian_quadratic_form_half(
+        &self,
+        residual: &[f64],
+    ) -> Result<f64, CovarianceError> {
+        match self {
+            Self::Dense(covariance) => covariance.gaussian_quadratic_form_half(residual),
+            Self::Ar1Kronecker(covariance) => {
+                covariance.gaussian_quadratic_form_half(residual)
+            }
+        }
+    }
+
+    pub fn sample_gaussian(
+        &self,
+        rng: &mut SplitMix64,
+    ) -> Result<Vec<f64>, CovarianceError> {
+        match self {
+            Self::Dense(covariance) => covariance.sample_gaussian(rng),
+            Self::Ar1Kronecker(covariance) => covariance.sample_gaussian(rng),
+        }
+    }
+}
+
 /// Versioned binding between an admitted covariance matrix and the exact
 /// observation process, sensor ordering and sample schedule that give its
 /// dimensions meaning. IDs are caller-supplied registry/digest references;
@@ -265,7 +486,7 @@ pub struct ObservationCovarianceV1 {
     pub availability_cutoff_id: String,
     pub sensor_ids: Vec<u32>,
     pub times: Vec<f64>,
-    covariance: DenseSpdCovariance,
+    covariance: ObservationCovarianceModelV1,
 }
 
 impl ObservationCovarianceV1 {
@@ -277,8 +498,9 @@ impl ObservationCovarianceV1 {
         availability_cutoff_id: String,
         sensor_ids: Vec<u32>,
         times: Vec<f64>,
-        covariance: DenseSpdCovariance,
+        covariance: impl Into<ObservationCovarianceModelV1>,
     ) -> Result<Self, CovarianceError> {
+        let covariance = covariance.into();
         if covariance_id.trim().is_empty()
             || observation_process_id.trim().is_empty()
             || sampling_policy_id.trim().is_empty()
@@ -322,7 +544,7 @@ impl ObservationCovarianceV1 {
         })
     }
 
-    pub fn covariance(&self) -> &DenseSpdCovariance {
+    pub fn covariance(&self) -> &ObservationCovarianceModelV1 {
         &self.covariance
     }
 
@@ -400,6 +622,7 @@ pub struct ObservationProcessAdequacyReportV1 {
     pub sensor_ids: Vec<u32>,
     pub times: Vec<f64>,
     pub covariance_dimension: usize,
+    pub covariance_kind: &'static str,
     pub adequacy: ModelFamilyAdequacyScore,
 }
 
@@ -766,6 +989,7 @@ pub fn evaluate_model_family_adequacy_full_covariance(
         sensor_ids: covariance.sensor_ids.clone(),
         times: covariance.times.clone(),
         covariance_dimension: covariance.covariance().dimension(),
+        covariance_kind: covariance.covariance().kind_label(),
         adequacy: ModelFamilyAdequacyScore {
             profile_id: base_score.profile_id,
             maximum_gaussian_residual: policy.maximum_gaussian_residual,
@@ -923,6 +1147,7 @@ pub struct NoiseAdequacyCalibrationReportV1 {
     pub sensor_ids: Vec<u32>,
     pub times: Vec<f64>,
     pub covariance_dimension: usize,
+    pub covariance_kind: &'static str,
     pub threshold: f64,
     pub target_in_family_coverage: f64,
     pub calibration_samples: usize,
@@ -1305,6 +1530,7 @@ pub fn calibrate_model_family_adequacy_full_covariance(
         sensor_ids: covariance.sensor_ids.clone(),
         times: covariance.times.clone(),
         covariance_dimension: covariance.covariance().dimension(),
+        covariance_kind: covariance.covariance().kind_label(),
         threshold,
         target_in_family_coverage: config.target_in_family_coverage,
         calibration_samples,
