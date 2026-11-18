@@ -75,6 +75,10 @@ ARPA-E's SUPERHOT programme defines its target regime as greater than 375 °C an
 
 Supercritical CO₂ may be considered as an **indirect surface power-cycle working fluid**. It must be separated from the geothermal reservoir fluid by a qualified heat exchanger and pressure boundary.
 
+A November 2026 *Geothermics* study adds a critical optimization result: under its calibrated reservoir–wellbore model, reservoir pressure and transmissivity can dominate temperature alone. Near-isenthalpic expansion produced a modeled 50–150 °C reservoir-to-wellhead temperature drop. The study found >30 MWe/well only in cases with very high transmissivity (approximately >1,000 md·m at 30 MPa); that transmissivity has not yet been deliberately engineered in deep superhot rock. Its modeled output maxima were around 450–500 °C for the higher-pressure cases, not at the largest temperature. These are calibrated model results, not demonstrated commercial well outputs ([Scott, 2026](https://doi.org/10.1016/j.geothermics.2026.103784)).
+
+The benchmark must therefore track the whole state path: reservoir pressure / temperature / composition / transmissivity → wellbore pressure, enthalpy and phase path → wellhead mass flow and usable heat → surface conversion and parasitics → net useful service. Do not use reservoir temperature as a proxy for plant inlet temperature or power. A second 2026 materials review finds corrosion can be most severe in the subcritical region around 300–350 °C, depending on chemistry and phase state; material qualification must include transients and phase crossings, not merely the maximum-temperature rating ([Meng et al., 2026](https://pangea.stanford.edu/ERE/db/IGAstandard/record_detail.php?id=38347)).
+
 ## Model ownership and integration
 
 | Responsibility | Existing owner to compose |
