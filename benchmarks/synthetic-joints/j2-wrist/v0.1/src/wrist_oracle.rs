@@ -7,6 +7,7 @@
 
 const CONDITION_LIMIT: f64 = 1.0e8;
 const RELATIVE_EPSILON: f64 = 1.0e-12;
+const MIN_EIGENVALUE_RATIO: f64 = 1.0e-20;
 
 type Matrix2 = [[f64; 2]; 2];
 type Vector2 = [f64; 2];
@@ -71,7 +72,7 @@ fn jacobian_singular_values(matrix: Matrix2) -> Option<(f64, f64)> {
     // Avoid catastrophic cancellation in (trace - discriminant) / 2 for
     // ill-conditioned matrices: lambda_max * lambda_min = det(J)^2.
     let lambda_min = det.powi(2) / lambda_max;
-    if !lambda_min.is_finite() || lambda_min <= RELATIVE_EPSILON * lambda_max {
+    if !lambda_min.is_finite() || lambda_min <= MIN_EIGENVALUE_RATIO * lambda_max {
         return None;
     }
 
