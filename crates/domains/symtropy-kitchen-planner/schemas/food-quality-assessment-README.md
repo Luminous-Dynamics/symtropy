@@ -28,6 +28,14 @@ A high liking score cannot cancel a failed physical quality limit. Neither can c
 - A complete-block assignment digest binds each participant's exact sample order. The assessor requires one response per declared sample and contiguous presentation positions; it rejects a response that does not match the recorded randomized sequence. This validates assignment/response consistency, not the honesty of the randomizer or actual participant compliance.
 - Respondent tokens are intended to be one-time and study-scoped, not global identities.
 
+## Randomized complete-block evidence (V1)
+
+V1 supports a complete-block sensory design only. Every study-scoped respondent token has one presentation assignment containing each declared sample exactly once. The assignment carries the ordered sample references, the frozen randomization-protocol reference and a SHA-256 over those exact fields. Each response references that assignment and must match its assigned sample and contiguous position (1..sample_count).
+
+A missing response or incomplete participant block remains indeterminate; it is not imputed. Duplicate assignments, digest mismatches, or responses that disagree with the assigned order are conflicts. The report retains valid assignment digests without publishing respondent tokens.
+
+This validates consistency of the supplied assignment artifact and submitted responses. It does not prove that the randomizer was independent, that the allocation was generated before the trial, or that a participant followed the presentation order. Those require external study execution controls and an independently retained randomization receipt. Incomplete-block and unpaired consumer designs are outside V1; they require a separately specified schema/method rather than being silently treated as complete blocks.
+
 ## Standards references
 
 Use ISO 11136:2014 (controlled-area consumer hedonic tests; ISO reports it was reviewed and confirmed current in 2025) as a starting point for consumer liking methodology. Use ISO 13299:2016 for sensory profiling (reviewed and confirmed current in 2026). These are methodological references, not a universal recipe score or a replacement for a competent sensory-science review.
