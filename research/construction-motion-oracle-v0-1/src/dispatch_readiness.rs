@@ -79,6 +79,7 @@ pub struct DispatchReadinessReceipt {
     pub occupancy_assessment_receipt_sha256: String,
     pub site_ledger_sequence: u64,
     pub site_ledger_event_sha256: String,
+    pub site_clock_domain_id: String,
     pub checked_at_tick: u64,
     pub valid_until_tick: u64,
 }
@@ -103,6 +104,7 @@ pub enum DispatchReadinessFailure {
     OccupancyTimeWindowInvalid,
     OccupancyAssessmentExpired,
     OccupancyAssessmentFromFuture,
+    OccupancyAssessmentPredatesEnvelope,
     IncompletePrimitiveCoverage,
     IncompleteDynamicActorCoverage,
     IncompleteBroadphaseCoverage,
@@ -220,6 +222,9 @@ pub fn check_dispatch_readiness(
     }
     if occupancy.valid_until_tick <= occupancy.checked_at_tick {
         return Err(DispatchReadinessFailure::OccupancyTimeWindowInvalid);
+    }
+    if occupancy.checked_at_tick < envelope.generated_at_tick {
+        return Err(DispatchReadinessFailure::OccupancyAssessmentPredatesEnvelope);
     }
     if request.now_tick < occupancy.checked_at_tick {
         return Err(DispatchReadinessFailure::OccupancyAssessmentFromFuture);
