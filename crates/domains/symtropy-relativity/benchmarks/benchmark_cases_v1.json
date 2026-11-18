@@ -451,7 +451,19 @@
           "equivalent_f": "1-mu/r^2+mu*a^2/r^4",
           "equivalent_h": "r^2+mu*a^2/r^2",
           "mu": "r_H^2/(1-q)",
-          "a": "r_H^2*Omega_H"
+          "a": "r_H^2*Omega_H",
+          "derivatives": {
+            "b_prime": "2*u*(1-q-q*u^2)/(r*D^2)",
+            "f_prime": "2*u*(1-2*q*u)/(r*(1-q))",
+            "g_prime": "2*r",
+            "h_prime": "2*r-2*r_H^2*q*u/((1-q)*r)",
+            "w_prime": "-4*Omega_H*u^2*(1-q)/(r*D^2)",
+            "b_second": "d^2/dr^2[1-u/D]",
+            "f_second": "2*(-3*u+10*q*u^2)/((1-q)*r^2)",
+            "h_second": "2+6*r_H^2*q*u/((1-q)*r^2)",
+            "w_second": "w_prime*(-5+8*q*u^2/D)/r"
+          },
+          "second_derivatives_in_symbolic_fixture": true
         },
         "nonextremal_domain": "0<=q<1/2",
         "horizon_data": {
@@ -584,6 +596,27 @@
           "rust_tests_executed": false
         },
         "claim_ceiling": "A sourced radial identity and asymptotic endpoint, not a finite-alpha conserved charge and not a second independent Noether momentum."
+      },
+      "action_equation_oracle": {
+        "source": "Brihaye et al. (2010), Eqs. (2.10)-(2.12)",
+        "reduced_action": "L_eff=L_E+alpha*L_GB/4",
+        "equations": [
+          "E_b",
+          "E_f",
+          "E_g",
+          "E_h",
+          "E_w"
+        ],
+        "gauge_order": "vary with g unfixed; then impose g=r^2, g'=2r, g''=2; retain the E_g radial consistency residual",
+        "angular_identity": "dL_eff/dw'=P_w; E_w=-dP_w/dr",
+        "rust_module": "crates/domains/symtropy-lovelock5d/src/reduced_action.rs",
+        "differentiation": "second-order 10-variable forward-mode jet (gradient/Hessian-vector)",
+        "exact_controls": {
+          "alpha_zero_equal_spin_myers_perry": "all five gauge-sliced residuals identically zero",
+          "finite_alpha_static_boulware_deser": "all five gauge-sliced residuals identically zero"
+        },
+        "known_transcription_gate": "The fourth Einstein-Hilbert term is b*g'*h'/h, not b*g'*h'/g; exact BD/MP controls reject the latter.",
+        "implementation_status": "Rust evaluator and four tests authored, not compiled or executed."
       }
     }
   ],
@@ -608,6 +641,8 @@
     "The full time-sector Eq. (2.14) radial current includes alpha-dependent terms; the Einstein-only current r^2(h*w*w'-b') is incomplete at finite alpha.",
     "The time-sector current is sourced: P_t'=(alpha/6)*r^2*sqrt(b*h/f)*L_GB. Its asymptotic endpoint is 2U, but it is not a conserved charge at finite alpha.",
     "Only the angular P_w current is the conserved Noether current in this two-current discussion. Do not construct a dual-conserved-flux reduction.",
-    "A source-balanced b-prime reconstruction must use the full alpha-dependent coefficient and the local P_t(r), not the asymptotic constant 2U at every radius."
+    "A source-balanced b-prime reconstruction must use the full alpha-dependent coefficient and the local P_t(r), not the asymptotic constant 2U at every radius.",
+    "The 5D radial-action oracle must be varied before g=r² is substituted; retain E_g after gauge slicing and check all five residuals on exact MP and BD branches.",
+    "The fourth Einstein-Hilbert radial-action term is b*g'*h'/h; exact branch controls reject b*g'*h'/g."
   ]
 }
