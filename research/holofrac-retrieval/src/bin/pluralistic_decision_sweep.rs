@@ -164,6 +164,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         report.active_stakeholder_count
     );
     println!(
+        "summary,,anonymous_stakeholders,{},",
+        report.anonymous_stakeholder_count
+    );
+    println!(
         "summary,,excluded_profiles,{},",
         report.excluded_profile_count
     );
@@ -201,7 +205,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "participant,{al},satisfaction,{satisfaction:.8},{id}",
                 al = assessment.alternative_id,
                 satisfaction = stakeholder.satisfaction,
-                id = stakeholder.stakeholder_id.as_deref().unwrap_or("anonymous")
+                id = stakeholder.stakeholder_id
             );
         }
     }
@@ -218,8 +222,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 id = rejected.alternative_id,
                 criterion = violation.criterion.as_str(),
                 observed = violation.observed_outcome,
-                stakeholder = violation.stakeholder_id.as_deref().unwrap_or("anonymous"),
+                stakeholder = violation.stakeholder_id,
                 minimum = violation.minimum_outcome
+            );
+        }
+        for criterion in &rejected.anonymous_veto_criteria {
+            println!(
+                "anonymous-veto,{id},{criterion},blocked,threshold-redacted",
+                id = rejected.alternative_id,
+                criterion = criterion.as_str()
             );
         }
     }
