@@ -407,8 +407,9 @@ pub fn canonical_coverage_bundle_json(coverage: &[StreamCoverage]) -> String {
 impl ReconciliationPolicy {
     pub fn canonical_json(&self) -> String {
         let mut channels = self.required_channels.clone();
-        // Preserve duplicates in the bytes: reconcile() rejects them, and
+        // Sort but preserve duplicates: reconcile() rejects them, and
         // canonical input must not erase an invalid caller-supplied policy.
+        channels.sort();
         let names = channels
             .iter()
             .map(|channel| json_quote(channel_name(*channel)))
@@ -1090,10 +1091,19 @@ pub fn reconcile(
                 sequence_records.remove(&prior_key);
                 conflicted_sequences.insert(prior_key.clone());
                 conflicted_sequences.insert(sequence_key.clone());
+
+                // A conflicting event ID can also point at a sequence already
+                // occupied by another event. Quarantine that record too, so
+                // no arrival order can decide which payload reaches metrics.
+                if let Some(occupied) = sequence_records.remove(&sequence_key) {
+                    event_ids.remove(&occupied.event_id);
+                    conflicted_event_ids.insert(occupied.event_id.clone());
+                    if let Some(items) = events_by_channel.get_mut(&sequence_key.0) {
+                        items.retain(|item| item.event_id != occupied.event_id);
+                    }
+                }
                 if let Some(items) = events_by_channel.get_mut(&prior_key.0) {
-                    items.retain(|item| {
-                        item.event_id != existing.event_id
-                    });
+                    items.retain(|item| item.event_id != existing.event_id);
                 }
                 if let Some(items) = events_by_channel.get_mut(&channel) {
                     items.retain(|item| item.event_id != event.event_id);
