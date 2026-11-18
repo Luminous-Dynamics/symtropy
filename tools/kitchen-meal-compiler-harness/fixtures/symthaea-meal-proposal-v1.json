@@ -7,7 +7,9 @@
     "head_sha": "146c70d73315067efca35cf14c9916d340e7fee7",
     "schema_path": "crates/domains/symthaea-culinary/schemas/MealProposalV1.schema.json",
     "schema_id": "https://luminousdynamics.io/schemas/culinary/MealProposalV1.schema.json",
-    "production_source_path": "crates/domains/symthaea-culinary/src/meal_proposal.rs"
+    "production_source_path": "crates/domains/symthaea-culinary/src/meal_proposal.rs",
+    "schema_blob_sha": "df69f8b120524a74c4fbd9f73badf26984845767",
+    "fixture_bundle_blob_sha": "dfbb25fef5f10822bfa5cb08f5b6ce4b267e6a20"
   },
   "expected_wire_contract": "MealProposalV1",
   "proposal": {
@@ -27,9 +29,13 @@
       "time_budget_ms": 3600000,
       "budget_minor_units": 20000,
       "currency_code": "ZAR",
-      "preferred_cuisine_tags": ["south_african_inspired"],
+      "preferred_cuisine_tags": [
+        "south_african_inspired"
+      ],
       "user_declared_exclusions": [],
-      "user_declared_preferences": ["mild"]
+      "user_declared_preferences": [
+        "mild"
+      ]
     },
     "ingredients": [
       {
@@ -61,18 +67,27 @@
         "task_id": "prepare",
         "description": "Rinse and prepare the ingredients",
         "action_label": "prepare",
-        "ingredient_refs": ["rice", "beans"],
+        "ingredient_refs": [
+          "rice",
+          "beans"
+        ],
         "depends_on": [],
         "estimated_duration_min_ms": 300000,
         "estimated_duration_max_ms": 600000,
-        "fact_refs": ["fixture:recipe"]
+        "fact_refs": [
+          "fixture:recipe"
+        ]
       },
       {
         "task_id": "cook",
         "description": "Cook the rice and combine with vegetables",
         "action_label": "cook",
-        "ingredient_refs": ["rice"],
-        "depends_on": ["prepare"],
+        "ingredient_refs": [
+          "rice"
+        ],
+        "depends_on": [
+          "prepare"
+        ],
         "estimated_duration_min_ms": 900000,
         "estimated_duration_max_ms": 1500000,
         "fact_refs": []
