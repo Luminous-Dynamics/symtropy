@@ -354,7 +354,7 @@ fn weighted_cg(
         result[axis] = i64::try_from(coordinate)
             .map_err(|_| "combined CG exceeds supported coordinate range".to_string())?;
     }
-    Ok(result)
+    Ok((result, weighted, denominator))
 }
 
 fn check_accessibility(
@@ -514,9 +514,9 @@ pub fn evaluate_cargo_loading(
     }
 
     let total_mass = gross_vehicle_mass_g.unwrap_or(0);
-    let combined_cg_mm = if total_mass > 0 {
+    let weighted_cg_result = if total_mass > 0 {
         match weighted_cg(&input.bay, &placed, total_mass) {
-            Ok(cg) => Some(cg),
+            Ok(result) => Some(result),
             Err(error) => {
                 known_infeasible = true;
                 findings.push(format!("INFEASIBLE: {error}"));
@@ -526,18 +526,26 @@ pub fn evaluate_cargo_loading(
     } else {
         None
     };
+    let combined_cg_mm = weighted_cg_result.map(|(cg, _, _)| cg);
 
-    if let Some(cg) = combined_cg_mm {
+    if let Some((_, weighted_twice_mm_g, denominator)) = weighted_cg_result {
         let limits = &input.bay.combined_cg_bounds_mm;
-        if cg[0] < limits.x_min_mm
-            || cg[0] > limits.x_max_mm
-            || cg[1] < limits.y_min_mm
-            || cg[1] > limits.y_max_mm
-            || cg[2] < limits.z_min_mm
-            || cg[2] > limits.z_max_mm
-        {
+        let lower = [limits.x_min_mm, limits.y_min_mm, limits.z_min_mm];
+        let upper = [limits.x_max_mm, limits.y_max_mm, limits.z_max_mm];
+        let outside = (0..3).any(|axis| {
+            i128::from(lower[axis])
+                .checked_mul(denominator)
+                .is_none_or(|bound| weighted_twice_mm_g[axis] < bound)
+                || i128::from(upper[axis])
+                    .checked_mul(denominator)
+                    .is_none_or(|bound| weighted_twice_mm_g[axis] > bound)
+        });
+        if outside {
             known_infeasible = true;
-            findings.push("INFEASIBLE: combined vehicle centre of gravity is outside supplied envelope".into());
+            findings.push(
+                "INFEASIBLE: combined vehicle centre of gravity is outside supplied envelope"
+                    .into(),
+            );
         }
     }
 
@@ -769,6 +777,14 @@ mod tests {
         let second_report = evaluate_cargo_loading(&second).expect("permuted input");
         assert_eq!(first_report.input_digest_sha256, second_report.input_digest_sha256);
         assert_eq!(first_report, second_report);
+    }
+
+    #[test]
+    fn rejects_fractional_cg_just_outside_integer_limit() {
+        let mut test = input();
+        test.bay.combined_cg_bounds_mm.x_max_mm = 1_413;
+        let report = evaluate_cargo_loading(&test).expect("valid input");
+        assert_eq!(report.verdict, CargoFeasibilityVerdict::Infeasible);
     }
 
     #[test]
