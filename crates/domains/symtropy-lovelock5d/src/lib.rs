@@ -386,6 +386,58 @@ pub fn egb_angular_momentum_flux(
     }
 }
 
+/// Evaluate the time-sector radial first integral implied by
+/// Brihaye et al. (2010), Eq. (2.14):
+///
+/// P_t = sqrt(f*h/b) * r^2 * (h*w*w' - b').
+///
+/// On an asymptotically flat EGB solution this constant equals 2*U, where
+/// U is the 1/r^2 coefficient of the asymptotic lapse. The identity is a
+/// field-equation consequence, not an additional independent equation.
+pub fn time_sector_radial_flux(
+    sample: RadialMetricSample5D,
+) -> Result<f64, ReferenceError> {
+    sample.validate_exterior()?;
+    let value = (sample.f * sample.h / sample.b).sqrt()
+        * sample.radius.powi(2)
+        * (sample.h * sample.w * sample.w_prime - sample.b_prime);
+    if value.is_finite() {
+        Ok(value)
+    } else {
+        Err(ReferenceError::NonFiniteResult("time_sector_radial_flux"))
+    }
+}
+
+/// Reconstruct b'(r) from the constant time-sector radial flux.
+///
+/// This is an exploratory reduction only. A certified implementation must
+/// enclose the denominator over the full radial subdomain rather than rely
+/// on this pointwise floating-point positivity check.
+pub fn reconstruct_b_prime_from_time_flux(
+    sample: RadialMetricSample5D,
+    conserved_flux: f64,
+) -> Result<f64, ReferenceError> {
+    if !conserved_flux.is_finite() {
+        return Err(ReferenceError::NonFiniteParameter("conserved_flux"));
+    }
+    sample.validate_exterior()?;
+    let radial_factor = (sample.f * sample.h / sample.b).sqrt();
+    let denominator = sample.radius.powi(2) * radial_factor;
+    let scale = sample.radius.powi(2).abs() * radial_factor.abs() + 1.0;
+    if !denominator.is_finite() || denominator.abs() <= 64.0 * f64::EPSILON * scale {
+        return Err(ReferenceError::FluxDenominatorNearZero {
+            denominator,
+            scale,
+        });
+    }
+    let result = sample.h * sample.w * sample.w_prime - conserved_flux / denominator;
+    if result.is_finite() {
+        Ok(result)
+    } else {
+        Err(ReferenceError::NonFiniteResult("reconstructed_b_prime"))
+    }
+}
+
 /// Recover w'(r) from the conserved EGB rotational flux. This is permitted
 /// only when K(r) is numerically separated from zero. A rigorous verifier
 /// must replace this floating-point guard with an interval enclosure of K.
@@ -584,6 +636,42 @@ mod tests {
                 2e-14,
             );
         }
+    }
+
+    #[test]
+    fn time_sector_first_integral_is_constant_on_exact_mp_solution() {
+        let solution = mp();
+        let expected = 2.0 * solution.asymptotic_parameters().u_mass;
+        for radius in [1.01, 1.1, 1.5, 2.0, 3.0, 10.0, 100.0] {
+            let profile = solution.evaluate(radius).unwrap();
+            let flux = time_sector_radial_flux(sample(profile)).unwrap();
+            close(flux, expected, 3e-12);
+            close(
+                reconstruct_b_prime_from_time_flux(sample(profile), expected).unwrap(),
+                profile.b_prime,
+                3e-14,
+            );
+        }
+
+        let horizon = solution.horizon_data();
+        let horizon_flux = solution.horizon_radius().powi(2)
+            * (horizon.f1 * horizon.h_horizon / horizon.b1).sqrt()
+            * (horizon.h_horizon
+                * horizon.omega_horizon
+                * horizon.w1
+                - horizon.b1);
+        close(horizon_flux, expected, 3e-14);
+    }
+
+    #[test]
+    fn time_sector_flux_detects_a_mutated_lapse_derivative() {
+        let solution = mp();
+        let profile = solution.evaluate(2.0).unwrap();
+        let mut mutated = sample(profile);
+        mutated.b_prime += 0.01;
+        let correct = 2.0 * solution.asymptotic_parameters().u_mass;
+        let residual = time_sector_radial_flux(mutated).unwrap() - correct;
+        assert!(residual.abs() > 1e-3);
     }
 
     #[test]
