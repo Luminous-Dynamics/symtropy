@@ -36,7 +36,7 @@ This is deliberately constructed to expose the failure of uncertainty-only selec
 - MaximumInformationGain: choose the affordable test with the greatest mutual information.
 - ExpectedDecisionValue: choose the affordable test maximizing expected value of sample information (EVSI) minus experiment cost; choose no test when every net value is non-positive.
 
-The benchmark keeps information gain, expected posterior decision value, net decision value and expected decision regret as separate metrics.
+The benchmark keeps baseline expected value, expected posterior decision value, gross expected value improvement (EVSI), experiment cost, net decision value (EVSI minus cost), mutual information and expected decision regret as separate metrics. The raw sweep reports each quantity explicitly so an improvement in decision quality cannot be confused with an economically worthwhile measurement.
 
 ## 4. Exact calculations
 
@@ -81,7 +81,7 @@ The implementation evaluates these quantities by explicit summation over every w
 - No experiment above the budget may be selected.
 - Decision-value policy must select no test when every affordable experiment has non-positive net expected value.
 - The uncertainty-only policy must not be labelled decision-optimal solely because it maximizes mutual information.
-- Raw per-policy/per-seed results must include selected action, information gain, cost, expected posterior value, net decision value and regret.
+- Raw per-policy/per-seed results must include selected action, information gain, baseline expected value, cost, expected posterior value, gross improvement, net decision value and regret.
 
 ## 6. Next benchmark extensions
 
