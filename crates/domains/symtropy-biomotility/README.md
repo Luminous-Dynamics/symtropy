@@ -70,7 +70,7 @@ The v0.1 model samples an **effective path-length budget**; it is not an explici
 
 ## Contact mechanosensing and collective order
 
-`CollisionReversalLaw` models the response to an **already identified** cell-cell contact. It consumes contact angle and duration; it does not generate collisions or derive them from density. A characteristic response time `tau_CR` is defined so a perpendicular contact (`pi/2)) lasting `tau_CR` gives 0.5 reversal probability. The angular gate decreases linearly to zero at/below `pi/6`. The continuous duration response uses an exponential-hazard interpolation; this is an explicit model assumption constrained by the published anchor, not claimed as the paper's complete fitted response curve.
+`CollisionReversalLaw` models the response to an **already identified** cell-cell contact. It consumes contact angle and duration; it does not generate collisions or derive them from density. A characteristic response time `tau_CR` is defined so a perpendicular contact (`pi/2`) lasting `tau_CR` gives 0.5 reversal probability. The angular gate decreases linearly to zero at/below `pi/6`. The continuous duration response uses an exponential-hazard interpolation; this is an explicit model assumption constrained by the published anchor, not claimed as the paper's complete fitted response curve.
 
 `CollisionResponseSummary` keeps contact incidence, per-contact reversal fraction and population reversal rate separate. This supports the key hypothesis that a fixed sensory response law can yield density-dependent population reversal frequency because density changes contact incidence—not because the per-contact probability is forced to depend on density.
 
@@ -79,6 +79,26 @@ The v0.1 model samples an **effective path-length budget**; it is not an explici
 The 6 October 2026 *Nature Microbiology* study on *P. aeruginosa* surface twitching reports contact-induced reversal through type-IV-pilus mechanosensing, with wild-type reversal frequency increasing with density while per-contact reversal probability is largely constant. It reports a non-reversing `Delta pilH` phenotype and a constitutive-reversal `Delta pilG` control. This is not the same mechanism as *P. putida* flagellar swimming in porous agar; do not transfer parameters or event labels across these benchmark lanes. <Link url="https://www.nature.com/articles/s41564-026-02505-1" title="Le Blanc et al. (2026), Nature Microbiology"/> <Cite refs={["turn386658view0","turn971273view1","turn971273view2"]}/>
 
 The source lists data and simulation-code records at Zenodo DOIs 10.5281/zenodo.20430747 and 10.5281/zenodo.22231353. The exact record versions, per-file rights, checksums and schemas are not yet verified; no raw data or code has been ingested. The response model is synthetic and the characteristic time remains uncalibrated.
+
+## Algal kinematic reference analyses
+
+The `algal` module contains analysis baselines, not molecular or hydrodynamic simulations.
+
+### Diatom raphe-curvature calibration
+
+`RapheCurvatureObservation` keeps the active raphe-contact mode, local signed raphe curvature, observed signed path curvature, time and evidence status together. `fit_raphe_curvature_model` fits separate affine calibration maps for one-branch and two-branch contact states. Parameters are estimated from the supplied source calibration set; there are no hard-coded biological gains. A contact mode with fewer than two observations or no raphe-curvature variation remains unidentifiable (`None`), rather than being assigned a zero slope.
+
+Only `DIRECTLY_OBSERVED` and `MODEL_LATENT` rows enter calibration and held-out score denominators. `ALGORITHM_INFERRED`, `UNRESOLVED` and no-contact observations are counted separately. `score_raphe_curvature_model` is a held-out scoring path and reports mode-specific MAE, RMSE and bias. This is a simple geometric baseline, not a reproduction of the source-authored actomyosin/adhesion model.
+
+### Chlamydomonas track mixtures
+
+`ChlamydomonasTrack` accepts path length, net displacement, duration and optional trajectory heading plus the experiment-defined **positive phototactic response axis**. The axis must be defined by the experiment's coordinate/stimulus convention; it is not automatically the direction of photon propagation.
+
+`ChlamydomonasClassificationPolicy` carries explicit, dataset-versioned thresholds for stationary/local, confined/circling and directional track strata. Directional tracks are labelled positive, negative, weak/ambiguous or unresolved relative to the declared axis. Non-directional tracks are `NOT_ASSESSED`, not “non-phototactic”; missing stimulus/heading information remains `UNRESOLVED`. The policy is an operational kinematic classifier, not a molecular photoreceptor model.
+
+`summarize_chlamydomonas_tracks` preserves subgroup counts, source-rejected track counts, mean directional alignment and directional polar/nematic order. A balanced mixture of opposing directions may have near-zero mean alignment while still containing two large coherent subgroups; the summary keeps these counts rather than relying on the global vector.
+
+The 2026 *Craspedostauros australis* study motivates raphe-contact-conditioned curvature; the 2026 *Chlamydomonas* single-cell study motivates explicit track-level mixture analysis, circular statistics and time-windowed MSD. Their data rights and parameter fit status remain separate from the source article licences. The associated source-bounded benchmark is in `benchmarks/living-systems/algal-motility/`. <Link url="https://doi.org/10.1073/pnas.2506122123" title="Diatom raphe-contact switching (2026)"/> <Link url="https://doi.org/10.3389/fphbi.2026.1800988" title="Chlamydomonas single-cell phototaxis (2026)"/> <Cite refs={["turn781369view1","turn437061view1","turn902275view0"]}/>
 
 ## Duration-as-mechanism diagnostic
 
