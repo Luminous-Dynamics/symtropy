@@ -26,6 +26,14 @@ pub enum SimpleHypothesisEProcessDecisionV1 {
 #[derive(Debug, Clone, PartialEq)]
 pub struct SimpleHypothesisEProcessPrefixV1 {
     pub action_id: u32,
+    pub selected_sensor_ids: Vec<u32>,
+    pub observation_times: Vec<f64>,
+    pub covariance_id: String,
+    pub observation_process_id: String,
+    pub sampling_policy_id: String,
+    pub observation_operator_id: String,
+    pub availability_cutoff_id: String,
+    pub covariance_kind: &'static str,
     /// log p_1(y_t | action_t) - log p_0(y_t | action_t)
     pub log_likelihood_ratio_increment: f64,
     pub cumulative_log_e_alternative_over_null: f64,
@@ -188,8 +196,17 @@ pub fn evaluate_simple_hypothesis_eprocess(
                 log_crossing_threshold,
             );
         }
+        let covariance = action.covariance();
         prefixes.push(SimpleHypothesisEProcessPrefixV1 {
             action_id: observation.action_id,
+            selected_sensor_ids: action.selected_sensor_ids().to_vec(),
+            observation_times: scenario.observation_times.clone(),
+            covariance_id: covariance.covariance_id.clone(),
+            observation_process_id: covariance.observation_process_id.clone(),
+            sampling_policy_id: covariance.sampling_policy_id.clone(),
+            observation_operator_id: covariance.observation_operator_id.clone(),
+            availability_cutoff_id: covariance.availability_cutoff_id.clone(),
+            covariance_kind: covariance.covariance().kind_label(),
             log_likelihood_ratio_increment,
             cumulative_log_e_alternative_over_null,
             cumulative_log_e_null_over_alternative,
@@ -449,8 +466,8 @@ mod tests {
         let fixture = scenario();
         let first = action(&fixture, 1, 0, 1.0);
         let second = action(&fixture, 2, 2, -1.0);
-        let first_trace = scaled_trace(&first, &fixture, 1, 2, 20.0);
-        let second_trace = scaled_trace(&second, &fixture, 1, 2, -20.0);
+        let first_trace = scaled_trace(&first, &fixture, 1, 2, 100.0);
+        let second_trace = scaled_trace(&second, &fixture, 1, 2, -100.0);
         let first_only = evaluate_simple_hypothesis_eprocess(
             &fixture,
             &[first.clone(), second.clone()],
@@ -480,6 +497,11 @@ mod tests {
             with_later_opposing_evidence.prefixes[0].decision,
             SimpleHypothesisEProcessDecisionV1::SupportAlternative
         );
+        assert!(
+            with_later_opposing_evidence.prefixes[1]
+                .cumulative_log_e_alternative_over_null
+                < with_later_opposing_evidence.log_crossing_threshold
+        );
         assert_eq!(
             with_later_opposing_evidence.prefixes[1].decision,
             SimpleHypothesisEProcessDecisionV1::SupportAlternative
@@ -487,6 +509,85 @@ mod tests {
         assert_eq!(
             with_later_opposing_evidence.final_decision,
             SimpleHypothesisEProcessDecisionV1::SupportAlternative
+        );
+    }
+
+    #[test]
+    fn dense_and_structured_ar1_covariance_give_identical_eprocess_updates() {
+        let fixture = scenario();
+        let structured_action = action(&fixture, 1, 0, 1.0);
+        let structured_covariance = Ar1KroneckerCovariance::new(
+            fixture.observation_times.len(),
+            0.6,
+            DenseSpdCovariance::new(fixture.noise_covariance.clone()).unwrap(),
+        )
+        .unwrap();
+        let dense = structured_covariance.to_dense().unwrap();
+        let covariance_id = "covariance:eprocess-dense-equivalent".to_owned();
+        let process_id = "process:eprocess-ar1-rho-0.6".to_owned();
+        let sampling_id = "sampling:eprocess-uniform-five".to_owned();
+        let operator_id = "operator:eprocess-sensors".to_owned();
+        let cutoff_id = "availability:eprocess-all-observations".to_owned();
+        let dense_binding = ObservationCovarianceV1::new(
+            covariance_id.clone(),
+            process_id.clone(),
+            sampling_id.clone(),
+            operator_id.clone(),
+            cutoff_id.clone(),
+            vec![10, 11],
+            fixture.observation_times.clone(),
+            dense,
+        )
+        .unwrap();
+        let dense_identity = ObservationDesignIdentityV1 {
+            covariance_id,
+            observation_process_id: process_id,
+            sampling_policy_id: sampling_id,
+            observation_operator_id: operator_id,
+            availability_cutoff_id: cutoff_id,
+        };
+        let dense_action = prepare_sequential_action(
+            &fixture,
+            1,
+            structured_action.profile().clone(),
+            vec![10, 11],
+            dense_binding,
+            dense_identity,
+            1.0,
+        )
+        .unwrap();
+        let structured_observation = trace(&structured_action, 1, &fixture);
+        let dense_observation = trace(&dense_action, 1, &fixture);
+        let structured_report = evaluate_simple_hypothesis_eprocess(
+            &fixture,
+            &[structured_action],
+            &prior(),
+            &[structured_observation],
+            1,
+            2,
+            0.05,
+        )
+        .unwrap();
+        let dense_report = evaluate_simple_hypothesis_eprocess(
+            &fixture,
+            &[dense_action],
+            &prior(),
+            &[dense_observation],
+            1,
+            2,
+            0.05,
+        )
+        .unwrap();
+        assert_eq!(
+            structured_report.prefixes[0].covariance_kind,
+            "AR1_KRONECKER"
+        );
+        assert_eq!(dense_report.prefixes[0].covariance_kind, "DENSE_SPD");
+        assert!(
+            (structured_report.prefixes[0].log_likelihood_ratio_increment
+                - dense_report.prefixes[0].log_likelihood_ratio_increment)
+                .abs()
+                < 1.0e-10
         );
     }
 
