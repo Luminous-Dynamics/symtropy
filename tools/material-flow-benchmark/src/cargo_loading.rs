@@ -163,10 +163,14 @@ struct Aabb {
 
 impl Aabb {
     fn overlaps(self, other: Self) -> bool {
-        (0..3).all(|axis| {
-            self.minimum[axis] < other.maximum[axis]
-                && other.minimum[axis] < self.maximum[axis]
-        })
+        self.minimum
+            .iter()
+            .zip(self.maximum.iter())
+            .zip(other.minimum.iter())
+            .zip(other.maximum.iter())
+            .all(|(((left_min, left_max), right_min), right_max)| {
+                *left_min < *right_max && *right_min < *left_max
+            })
     }
 
     fn intersects_access_corridor(self, corridor: Self) -> bool {
@@ -317,29 +321,33 @@ fn weighted_cg(
     // Doubled coordinates preserve half-millimetre package centres while
     // signed arithmetic permits the vehicle tare CG below the cargo floor.
     let mut weighted = [0_i128; 3];
-    for axis in 0..3 {
-        let doubled_tare_cg = i128::from(bay.vehicle_tare_cg_mm[axis])
+    for (weighted_axis, tare_cg_mm) in
+        weighted.iter_mut().zip(bay.vehicle_tare_cg_mm.iter())
+    {
+        let doubled_tare_cg = i128::from(*tare_cg_mm)
             .checked_mul(2)
             .ok_or_else(|| "tare CG doubled-coordinate overflow".to_string())?;
-        weighted[axis] = i128::from(bay.vehicle_tare_mass_g)
+        *weighted_axis = i128::from(bay.vehicle_tare_mass_g)
             .checked_mul(doubled_tare_cg)
             .ok_or_else(|| "tare CG weighted-mass overflow".to_string())?;
     }
 
     for package in placed {
-        for axis in 0..3 {
-            let doubled_center = i128::from(package.bounds.minimum[axis])
+        for (weighted_axis, (minimum, maximum)) in weighted.iter_mut().zip(
+            package
+                .bounds
+                .minimum
+                .iter()
+                .zip(package.bounds.maximum.iter()),
+        ) {
+            let doubled_center = i128::from(*minimum)
                 .checked_mul(2)
-                .and_then(|value| {
-                    value.checked_add(i128::from(
-                        package.bounds.maximum[axis] - package.bounds.minimum[axis],
-                    ))
-                })
+                .and_then(|value| value.checked_add(i128::from(*maximum - *minimum)))
                 .ok_or_else(|| "package CG coordinate overflow".to_string())?;
             let contribution = i128::from(package.mass_g)
                 .checked_mul(doubled_center)
                 .ok_or_else(|| "package weighted-mass overflow".to_string())?;
-            weighted[axis] = weighted[axis]
+            *weighted_axis = weighted_axis
                 .checked_add(contribution)
                 .ok_or_else(|| "combined weighted-mass overflow".to_string())?;
         }
@@ -349,9 +357,9 @@ fn weighted_cg(
         .checked_mul(2)
         .ok_or_else(|| "combined mass denominator overflow".to_string())?;
     let mut result = [0_i64; 3];
-    for axis in 0..3 {
-        let coordinate = weighted[axis] / denominator;
-        result[axis] = i64::try_from(coordinate)
+    for (result_axis, weighted_axis) in result.iter_mut().zip(weighted.iter()) {
+        let coordinate = *weighted_axis / denominator;
+        *result_axis = i64::try_from(coordinate)
             .map_err(|_| "combined CG exceeds supported coordinate range".to_string())?;
     }
     Ok((result, weighted, denominator))
@@ -449,7 +457,12 @@ pub fn evaluate_cargo_loading(
 
         match package_bounds(package) {
             Ok(bounds) => {
-                if (0..3).any(|axis| bounds.maximum[axis] > bay_dimensions[axis]) {
+                if bounds
+                    .maximum
+                    .iter()
+                    .zip(bay_dimensions.iter())
+                    .any(|(maximum, limit)| maximum > limit)
+                {
                     known_infeasible = true;
                     findings.push(format!(
                         "INFEASIBLE: package {} is outside the cargo bay",
@@ -478,16 +491,15 @@ pub fn evaluate_cargo_loading(
         }
     }
 
-    for left_index in 0..placed.len() {
-        for right_index in (left_index + 1)..placed.len() {
-            if placed[left_index].bounds.overlaps(placed[right_index].bounds) {
+    for (left_index, left) in placed.iter().enumerate() {
+        for right in placed.iter().skip(left_index + 1) {
+            if left.bounds.overlaps(right.bounds) {
                 known_infeasible = true;
-                let (first_id, second_id) =
-                    if placed[left_index].package_id <= placed[right_index].package_id {
-                        (&placed[left_index].package_id, &placed[right_index].package_id)
-                    } else {
-                        (&placed[right_index].package_id, &placed[left_index].package_id)
-                    };
+                let (first_id, second_id) = if left.package_id <= right.package_id {
+                    (&left.package_id, &right.package_id)
+                } else {
+                    (&right.package_id, &left.package_id)
+                };
                 findings.push(format!(
                     "INFEASIBLE: packages {first_id} and {second_id} overlap"
                 ));
@@ -536,14 +548,18 @@ pub fn evaluate_cargo_loading(
         let limits = &input.bay.combined_cg_bounds_mm;
         let lower = [limits.x_min_mm, limits.y_min_mm, limits.z_min_mm];
         let upper = [limits.x_max_mm, limits.y_max_mm, limits.z_max_mm];
-        let outside = (0..3).any(|axis| {
-            i128::from(lower[axis])
-                .checked_mul(denominator)
-                .is_none_or(|bound| weighted_twice_mm_g[axis] < bound)
-                || i128::from(upper[axis])
+        let outside = weighted_twice_mm_g
+            .iter()
+            .zip(lower.iter())
+            .zip(upper.iter())
+            .any(|((weighted, minimum), maximum)| {
+                i128::from(*minimum)
                     .checked_mul(denominator)
-                    .is_none_or(|bound| weighted_twice_mm_g[axis] > bound)
-        });
+                    .is_none_or(|bound| *weighted < bound)
+                    || i128::from(*maximum)
+                        .checked_mul(denominator)
+                        .is_none_or(|bound| *weighted > bound)
+            });
         if outside {
             known_infeasible = true;
             findings.push(
