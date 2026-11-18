@@ -465,7 +465,7 @@
       "thermal_properties_artifact_id": null,
       "charge_profile_artifact_id": null,
       "shape_profile_artifact_id": null,
-      "uncertainty_budget_artifact_id": "stream-mass-fixture"
+      "uncertainty_budget_artifact_id": null
     },
     {
       "sample_id": "Q-REACTOR-001",
@@ -621,7 +621,7 @@
       "thermal_properties_artifact_id": null,
       "charge_profile_artifact_id": null,
       "shape_profile_artifact_id": null,
-      "uncertainty_budget_artifact_id": "stream-mass-fixture"
+      "uncertainty_budget_artifact_id": null
     }
   ],
   "artifacts": [
