@@ -386,10 +386,14 @@ fn evaluate_one(profile: &StandardProfile, scenario: &Scenario) -> (Disposition,
         );
     }
 
-    if scenario.claim_kind == "PRESSURE_TEST_SAFETY" && profile.excludes_pressure_test_safety {
+    if scenario.claim_kind == "PRESSURE_TEST_SAFETY" {
         return (
             Disposition::UnsupportedClaim,
-            "the selected standard profile explicitly excludes pressure-test safety",
+            if profile.excludes_pressure_test_safety {
+                "the selected standard profile explicitly excludes pressure-test safety"
+            } else {
+                "the selected test standard does not qualify a pressure-test safety case"
+            },
         );
     }
     if scenario.claim_kind != "TEST_APPLICABILITY" {
@@ -771,6 +775,22 @@ mod tests {
             .find(|row| row.scenario_id == "valve_iso5208_draft_amendment")
             .unwrap();
         assert_eq!(row.disposition, Disposition::StaleOrSuperseded);
+    }
+
+    #[test]
+    fn api_598_pressure_test_does_not_establish_test_safety() {
+        let (profiles, mut scenarios) = parsed();
+        let row = scenarios
+            .iter_mut()
+            .find(|row| row.scenario_id == "valve_api598_gate_referenced")
+            .unwrap();
+        row.claim_kind = "PRESSURE_TEST_SAFETY".into();
+        let result = evaluate(&profiles, &scenarios).unwrap();
+        let evaluated = result
+            .iter()
+            .find(|row| row.scenario_id == "valve_api598_gate_referenced")
+            .unwrap();
+        assert_eq!(evaluated.disposition, Disposition::UnsupportedClaim);
     }
 
     #[test]
