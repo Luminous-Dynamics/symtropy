@@ -1,0 +1,7 @@
+{
+  "solver_family": "dem",
+  "model_name": "synthetic-fixture-dem",
+  "model_version": "0.0.0-fixture",
+  "random_seed": 17,
+  "notes": "Synthetic data only; not a physical model."
+}
