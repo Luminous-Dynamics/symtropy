@@ -17,6 +17,8 @@ use crate::sensor_design::principal_submatrix;
 use std::fmt;
 
 const SPLITMIX_INCREMENT: u64 = 0x9E37_79B9_7F4A_7C15;
+const MAX_TOTAL_MONTE_CARLO_SAMPLES: usize = 100_000;
+const WILSON_Z_95: f64 = 1.959_963_984_540_054;
 
 /// Independent deterministic Monte Carlo streams for threshold fitting and holdout.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -44,11 +46,14 @@ pub struct AdequacyCalibrationReport {
     pub calibration_samples: usize,
     pub calibration_in_family_accepts: usize,
     pub calibration_in_family_coverage: f64,
+    pub calibration_in_family_coverage_ci_95: [f64; 2],
     pub validation_samples: usize,
     pub validation_in_family_accepts: usize,
     pub validation_in_family_coverage: f64,
+    pub validation_in_family_coverage_ci_95: [f64; 2],
     pub validation_false_out_of_model_set_count: usize,
     pub validation_false_out_of_model_set_rate: f64,
+    pub validation_false_out_of_model_set_ci_95: [f64; 2],
     pub validation_wrong_family_preference_count: usize,
     pub validation_wrong_family_preference_rate: f64,
     pub validation_ambiguous_count: usize,
@@ -56,6 +61,7 @@ pub struct AdequacyCalibrationReport {
     pub out_of_family_samples: usize,
     pub out_of_family_rejections: usize,
     pub out_of_family_rejection_rate: f64,
+    pub out_of_family_rejection_ci_95: [f64; 2],
     pub calibration_seed: u64,
     pub validation_seed: u64,
     pub assumptions: Vec<&'static str>,
@@ -66,6 +72,8 @@ pub enum AdequacyCalibrationError {
     Profiled(ProfiledDiscriminationError),
     Experiment(ExcitationDesignError),
     InvalidReplicateCount,
+    ExcessiveSampleCount,
+    DuplicateHiddenTruthId(u32),
     InvalidTargetCoverage,
     SeedsMustDiffer,
     CovarianceNotPositiveDefinite,
@@ -85,6 +93,12 @@ impl fmt::Display for AdequacyCalibrationError {
             Self::Experiment(error) => write!(f, "base experiment invalid: {error}"),
             Self::InvalidReplicateCount => {
                 write!(f, "replicates per model must be positive")
+            }
+            Self::ExcessiveSampleCount => {
+                write!(f, "calibration request exceeds the bounded Monte Carlo sample limit")
+            }
+            Self::DuplicateHiddenTruthId(id) => {
+                write!(f, "duplicate hidden out-of-family evaluator ID {id}")
             }
             Self::InvalidTargetCoverage => {
                 write!(f, "target in-family coverage must be finite and strictly between zero and one")
@@ -181,6 +195,24 @@ pub fn calibrate_model_family_adequacy(
     }
     if config.calibration_seed == config.validation_seed {
         return Err(AdequacyCalibrationError::SeedsMustDiffer);
+    }
+    let requested_sample_count = scenario
+        .experiment
+        .models
+        .len()
+        .checked_add(hidden_out_of_family_truths.len())
+        .and_then(|count| count.checked_mul(config.replicates_per_model))
+        .ok_or(AdequacyCalibrationError::ExcessiveSampleCount)?;
+    if requested_sample_count > MAX_TOTAL_MONTE_CARLO_SAMPLES {
+        return Err(AdequacyCalibrationError::ExcessiveSampleCount);
+    }
+    let mut hidden_truth_ids = std::collections::HashSet::new();
+    for hidden in hidden_out_of_family_truths {
+        if !hidden_truth_ids.insert(hidden.evaluator_id) {
+            return Err(AdequacyCalibrationError::DuplicateHiddenTruthId(
+                hidden.evaluator_id,
+            ));
+        }
     }
 
     let base_score = evaluate_input_profile(
@@ -387,11 +419,23 @@ pub fn calibrate_model_family_adequacy(
         calibration_samples,
         calibration_in_family_accepts: calibration_accepts,
         calibration_in_family_coverage: rate(calibration_accepts, calibration_samples),
+        calibration_in_family_coverage_ci_95: wilson_interval(
+            calibration_accepts,
+            calibration_samples,
+        ),
         validation_samples,
         validation_in_family_accepts,
         validation_in_family_coverage,
+        validation_in_family_coverage_ci_95: wilson_interval(
+            validation_in_family_accepts,
+            validation_samples,
+        ),
         validation_false_out_of_model_set_count,
         validation_false_out_of_model_set_rate: rate(
+            validation_false_out_of_model_set_count,
+            validation_samples,
+        ),
+        validation_false_out_of_model_set_ci_95: wilson_interval(
             validation_false_out_of_model_set_count,
             validation_samples,
         ),
@@ -405,6 +449,10 @@ pub fn calibrate_model_family_adequacy(
         out_of_family_samples,
         out_of_family_rejections,
         out_of_family_rejection_rate: rate(out_of_family_rejections, out_of_family_samples),
+        out_of_family_rejection_ci_95: wilson_interval(
+            out_of_family_rejections,
+            out_of_family_samples,
+        ),
         calibration_seed: config.calibration_seed,
         validation_seed: config.validation_seed,
         assumptions: vec![
@@ -423,6 +471,24 @@ fn rate(numerator: usize, denominator: usize) -> f64 {
     } else {
         numerator as f64 / denominator as f64
     }
+}
+
+/// Wilson score interval for an empirical Bernoulli rate. These intervals
+/// summarize finite-sample Monte Carlo uncertainty; they do not imply that the
+/// synthetic noise model or candidate-family specification is correct.
+fn wilson_interval(successes: usize, samples: usize) -> [f64; 2] {
+    if samples == 0 {
+        return [0.0, 0.0];
+    }
+    let n = samples as f64;
+    let p = successes as f64 / n;
+    let z2 = WILSON_Z_95 * WILSON_Z_95;
+    let denominator = 1.0 + z2 / n;
+    let centre = (p + z2 / (2.0 * n)) / denominator;
+    let half_width = WILSON_Z_95
+        * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt())
+        / denominator;
+    [(centre - half_width).max(0.0), (centre + half_width).min(1.0)]
 }
 
 fn selected_covariance_indices(
