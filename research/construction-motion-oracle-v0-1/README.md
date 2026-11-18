@@ -113,3 +113,8 @@ The IDS engine build digest and per-entity applicability/evaluation receipts are
 
 
 The separate interruption replay fixture is \`examples/site-state-interruption-replay-synthetic-v0.1.json\`. It contains a frozen package, station qualification, robot attempt, explicit power-loss interruption, and independent referee NO_MARK_FOUND receipt. The correct projection is EXECUTION_IN_PROGRESS → AWAITING_INDEPENDENT_MEASUREMENT(UNKNOWN) → PHYSICALLY_ABSENT. None of the robot events can accept the entity. The repeated digest strings are synthetic placeholders; the fixture is not a signed or cryptographically verified event stream.
+
+
+### Actor-role registry and replay
+
+SiteStateLedger now requires a caller-supplied SiteActorRegistry. The default constructor is deliberately deny-all; event payloads cannot self-assert a role that the trusted registry has not granted. Persisted-history replay takes the same registry, so replay cannot bypass role authorization. The registry must be constructed from an authenticated identity/role source; grant() is a policy-building method, not a credential or signature verifier. Production deployments should pin and attest the registry version in their site governance configuration, and enforce separation-of-duty rules for design approval, survey qualification, robot execution, referee inspection and waivers.
