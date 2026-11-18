@@ -136,6 +136,11 @@ impl DirectionalSamples {
 pub struct PorousMotilityProfile {
     /// Swimming speed in micrometres per second.
     pub swimming_speed_um_s: f64,
+    /// Rotational diffusion coefficient during runs, in radians squared per second.
+    /// Set to zero for the straight-run ablation.
+    pub rotational_diffusion_rad2_s: f64,
+    /// Maximum Euler-Maruyama integration step during a run, in seconds.
+    pub integration_step_s: f64,
     /// Empirical run-duration samples by preceding-run direction, in seconds.
     pub run_duration_s: DirectionalSamples,
     /// Fraction of interruptions represented by short reorientation events.
@@ -158,6 +163,14 @@ impl PorousMotilityProfile {
     pub fn validate(&self) -> Result<(), ProfileError> {
         if !self.swimming_speed_um_s.is_finite() || self.swimming_speed_um_s <= 0.0 {
             return Err(ProfileError::InvalidSwimmingSpeed);
+        }
+        if !self.rotational_diffusion_rad2_s.is_finite()
+            || self.rotational_diffusion_rad2_s < 0.0
+        {
+            return Err(ProfileError::InvalidRotationalDiffusion);
+        }
+        if !self.integration_step_s.is_finite() || self.integration_step_s <= 0.0 {
+            return Err(ProfileError::InvalidIntegrationStep);
         }
         if !self.short_event_probability.is_finite()
             || !(0.0..=1.0).contains(&self.short_event_probability)
@@ -201,6 +214,8 @@ pub enum ProfileError {
     NonFiniteSample(&'static str),
     NonPositiveSample(&'static str),
     InvalidSwimmingSpeed,
+    InvalidRotationalDiffusion,
+    InvalidIntegrationStep,
     InvalidShortEventProbability,
     ShortEventExceedsThreshold,
     LongTrapDoesNotExceedThreshold,
@@ -213,6 +228,8 @@ impl fmt::Display for ProfileError {
             Self::NonFiniteSample(name) => write!(formatter, "{name} contains a non-finite sample"),
             Self::NonPositiveSample(name) => write!(formatter, "{name} must contain positive samples"),
             Self::InvalidSwimmingSpeed => write!(formatter, "swimming_speed_um_s must be finite and positive"),
+            Self::InvalidRotationalDiffusion => write!(formatter, "rotational_diffusion_rad2_s must be finite and non-negative"),
+            Self::InvalidIntegrationStep => write!(formatter, "integration_step_s must be finite and positive"),
             Self::InvalidShortEventProbability => write!(formatter, "short_event_probability must be in [0, 1]"),
             Self::ShortEventExceedsThreshold => write!(formatter, "short-event duration exceeds the one-second class threshold"),
             Self::LongTrapDoesNotExceedThreshold => write!(formatter, "long-trap duration must exceed the one-second class threshold"),
@@ -383,12 +400,21 @@ pub fn simulate(
         .expect("validated finite headings produce a direction class");
 
         let run_duration = profile.run_duration_s.sample(direction, &mut rng);
-        let distance = profile.swimming_speed_um_s * run_duration;
-        state.x_um += distance * state.heading_rad.cos();
-        state.y_um += distance * state.heading_rad.sin();
-        state.elapsed_s += run_duration;
-        if !state.is_valid() {
-            return Err(SimulationError::NonFiniteTrajectory);
+        let mut remaining_run_s = run_duration;
+        while remaining_run_s > 0.0 {
+            let step_s = remaining_run_s.min(profile.integration_step_s);
+            let angular_std = (2.0 * profile.rotational_diffusion_rad2_s * step_s).sqrt();
+            let angular_increment = angular_std * rng.next_standard_normal();
+            let midpoint_heading = wrap_angle(state.heading_rad + 0.5 * angular_increment);
+            let distance = profile.swimming_speed_um_s * step_s;
+            state.x_um += distance * midpoint_heading.cos();
+            state.y_um += distance * midpoint_heading.sin();
+            state.heading_rad = wrap_angle(state.heading_rad + angular_increment);
+            state.elapsed_s += step_s;
+            if !state.is_valid() {
+                return Err(SimulationError::NonFiniteTrajectory);
+            }
+            remaining_run_s -= step_s;
         }
 
         let (event_class, event_duration, turn_angle) =
@@ -514,6 +540,13 @@ impl SeededRng {
         debug_assert!(length > 0);
         ((self.next_unit_f64() * length as f64) as usize).min(length - 1)
     }
+
+    fn next_standard_normal(&mut self) -> f64 {
+        // Box-Muller transform. Clamp only the logarithm input away from zero.
+        let u1 = self.next_unit_f64().max(f64::MIN_POSITIVE);
+        let u2 = self.next_unit_f64();
+        (-2.0 * u1.ln()).sqrt() * (TAU * u2).cos()
+    }
 }
 
 #[cfg(test)]
@@ -531,6 +564,8 @@ mod tests {
     fn steering_profile() -> PorousMotilityProfile {
         PorousMotilityProfile {
             swimming_speed_um_s: 20.0,
+            rotational_diffusion_rad2_s: 0.0,
+            integration_step_s: 0.05,
             run_duration_s: directional(vec![0.25], vec![0.25], vec![0.25]),
             short_event_probability: 1.0,
             short_event_duration_s: SampleSet::new(vec![0.25]),
@@ -637,6 +672,40 @@ mod tests {
 
         assert!(wrap_angle(rightward.final_state.heading_rad).abs() < 1.0e-12);
         assert!((wrap_angle(leftward.final_state.heading_rad - PI)).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn rotational_diffusion_is_seeded_and_changes_heading() {
+        let mut profile = steering_profile();
+        profile.rotational_diffusion_rad2_s = 0.8;
+        profile.short_turn_angle_rad = directional(
+            vec![0.0],
+            vec![0.0],
+            vec![0.0],
+        );
+        let initial = AgentState::new(0.0, 0.0, 0.0);
+
+        let first = simulate(&profile, initial, 0.0, 40, 1234).expect("valid noisy simulation");
+        let replay = simulate(&profile, initial, 0.0, 40, 1234).expect("valid noisy simulation");
+        assert_eq!(first, replay);
+        assert_ne!(first.final_state.heading_rad, initial.heading_rad);
+    }
+
+    #[test]
+    fn invalid_rotational_diffusion_and_step_are_rejected() {
+        let mut profile = steering_profile();
+        profile.rotational_diffusion_rad2_s = -0.1;
+        assert_eq!(
+            profile.validate(),
+            Err(ProfileError::InvalidRotationalDiffusion)
+        );
+
+        let mut profile = steering_profile();
+        profile.integration_step_s = 0.0;
+        assert_eq!(
+            profile.validate(),
+            Err(ProfileError::InvalidIntegrationStep)
+        );
     }
 
     #[test]
