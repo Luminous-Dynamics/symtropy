@@ -2758,16 +2758,20 @@ mod tests {
         let mut ledger = SiteStateLedger::new();
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
+        let first_reservation =
+            reservation_for(&ledger, "reservation-1", 130, 300, 120, 100, 450);
         commit_reservation_event(
             &mut ledger,
-            reservation_for(&ledger, "reservation-1", 130, 300, 120, 100, 450),
+            first_reservation,
             "event-reservation-1",
             '3',
         )
         .unwrap();
+        let second_reservation =
+            reservation_for(&ledger, "reservation-2", 300, 400, 200, 160, 450);
         commit_reservation_event(
             &mut ledger,
-            reservation_for(&ledger, "reservation-2", 300, 400, 200, 160, 450),
+            second_reservation,
             "event-reservation-2",
             '4',
         )
@@ -2798,10 +2802,12 @@ mod tests {
             150
         );
         assert_eq!(ledger.active_space_time_reservations().count(), 1);
+        let second_reservation =
+            reservation_for(&ledger, "reservation-2", 200, 250, 200, 160, 450);
         assert!(matches!(
             commit_reservation_event(
                 &mut ledger,
-                reservation_for(&ledger, "reservation-2", 200, 250, 200, 160, 450),
+                second_reservation,
                 "event-reservation-2",
                 '4'
             ),
@@ -2848,9 +2854,11 @@ mod tests {
         assert_eq!(replay.active_space_time_reservations().count(), 0);
 
         // A fresh reservation can use the cleared resource.
+        let second_reservation =
+            reservation_for(&ledger, "reservation-2", 240, 300, 230, 225, 450);
         commit_reservation_event(
             &mut ledger,
-            reservation_for(&ledger, "reservation-2", 240, 300, 230, 225, 450),
+            second_reservation,
             "event-reservation-2",
             '7',
         )
