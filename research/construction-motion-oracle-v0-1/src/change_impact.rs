@@ -1068,7 +1068,7 @@ mod tests {
 
     #[test]
     fn unmatched_change_keys_are_reported_not_silently_ignored() {
-        let graph = graph(vec![artifact(
+        let mut graph = graph(vec![artifact(
             "motion:A",
             ConstructionArtifactKind::MotionEnvelope,
             ArtifactPersistence::Recomputable,
@@ -1076,6 +1076,10 @@ mod tests {
             &[],
             'a',
         )]);
+        graph.current_dependencies.push(VersionedDependency {
+            key: key(DependencyDomain::MaterialLot, "lot:LOT-44"),
+            observed_sha256: digest('1'),
+        });
         let report = compile_change_impact(
             &graph,
             &change_set(vec![change(
@@ -1550,6 +1554,35 @@ mod tests {
             Err(ChangeImpactError::ChangeTargetMissingCurrentState(key(
                 DependencyDomain::MaterialLot,
                 "lot:LOT-44"
+            )))
+        );
+    }
+
+
+    #[test]
+    fn duplicate_authoritative_current_dependency_keys_fail_closed() {
+        let mut graph = graph(vec![artifact(
+            "motion:A",
+            ConstructionArtifactKind::MotionEnvelope,
+            ArtifactPersistence::Recomputable,
+            vec![dependency(DependencyDomain::EntityGeometry, "entity:A", '1')],
+            &[],
+            'a',
+        )]);
+        graph.current_dependencies.push(graph.current_dependencies[0].clone());
+        assert_eq!(
+            compile_change_impact(
+                &graph,
+                &change_set(vec![change(
+                    DependencyDomain::EntityGeometry,
+                    "entity:A",
+                    '1',
+                    '2'
+                )])
+            ),
+            Err(ChangeImpactError::DuplicateCurrentDependencyVersion(key(
+                DependencyDomain::EntityGeometry,
+                "entity:A"
             )))
         );
     }
