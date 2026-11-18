@@ -62,7 +62,7 @@ A gust observation and a crane's permitted wind limit are different claims. V0 b
 
 ## Evidence and authority boundaries
 
-An `EvidenceRef` binds a record ID, owner ID, document revision, exact subject ID/revision, digest and validity interval. Reusing a source record is allowed only when the complete reference metadata is identical; the same record ID with conflicting metadata is indeterminate.
+An `EvidenceRef` binds a record ID, owner ID, document revision, exact subject ID/revision, digest, validity interval and the clock domain used by its validity ticks. The validity interval must use the exact lift-plan clock domain; wall-clock timestamps must be converted by the authoritative time-binding layer before admission. Reusing a source record is allowed only when the complete reference metadata is identical; the same record ID with conflicting metadata is indeterminate.
 
 The implementation checks that a digest *looks like* SHA-256, binds each evidence record to its exact subject ID/revision, and checks that the declared record state/validity covers the lift interval. `LiftPlan::canonical_json()` and `PreflightReport::canonical_json()` provide separate stable input and result bytes for caller-side hashing and replay comparison. It does **not** authenticate the digest, signer, issuing authority, certificate, measured value, OEM chart, engineering calculation or physical truth. A caller-provided `Current` state is not proof of authenticity.
 
@@ -88,6 +88,7 @@ The dependency-free unit suite currently contains 27 tests and covers:
 - rigging WLL, missing share bounds and conservative over-coverage;
 - stale/revoked/malformed/conflicting evidence;
 - exact subject/revision binding for blocks and rigging components;
+- evidence-validity clock-domain matching;
 - independent weather-observation and crane-limit provenance, plus motion/occupancy binding;
 - deterministic canonical input and result JSON bytes under input permutation, with input digest and crane-configuration changes reflected in the input bytes;
 - upward rounding, overflow and invalid time intervals.
