@@ -14,7 +14,7 @@ pub const CASES: &str = include_str!("../fixtures/cases-v0.1.tsv");
 pub const CURVES: &str = include_str!("../fixtures/curve-points-v0.1.tsv");
 pub const EXPECTED: &str = include_str!("../fixtures/expected-v0.1.tsv");
 
-const CASE_HEADER: &str = "case_id\tserial\tconfig_ref\ttest_speed_rpm\ttest_fluid\ttest_boundary_ref\tunit_profile\tapplicability_ref\tapplicability_disposition\tstandard_ref\tstandard_edition\tcatalog_snapshot_date\tassessment_as_of\tfacility_ref\tacceptance_grade\ttest_report_ref\tcalibration_ref\tnpsh3_source_ref\tnpsh3_low_mm\tnpsh3_high_mm\tmanufacturer_curve_ref\tmanufacturer_serial\tmanufacturer_config_ref\tmanufacturer_speed_rpm\tmanufacturer_npshr_low_mm\tmanufacturer_npshr_high_mm\tsite_serial\tsite_config_ref\tsite_speed_rpm\tsite_fluid\tsite_boundary_ref\tflow_ml_s\trequired_head_low_mm\trequired_head_high_mm\tnpsha_source_ref\tnpsha_method_ref\tnpsha_low_mm\tnpsha_high_mm\tmargin_profile_ref\tmargin_required_mm\trepair_state\tsite_evidence_state";
+const CASE_HEADER: &str = "case_id\tserial\tconfig_ref\ttest_speed_rpm\ttest_fluid\ttest_boundary_ref\tunit_profile\tapplicability_ref\tapplicability_disposition\tstandard_ref\tstandard_edition\tcatalog_snapshot_date\tassessment_as_of\tfacility_ref\tacceptance_grade\ttest_report_ref\tcalibration_ref\tnpsh3_source_ref\tnpsh3_low_mm\tnpsh3_high_mm\tmanufacturer_curve_ref\tmanufacturer_serial\tmanufacturer_config_ref\tmanufacturer_speed_rpm\tmanufacturer_npshr_low_mm\tmanufacturer_npshr_high_mm\tsite_serial\tsite_config_ref\tsite_speed_rpm\tsite_fluid\tsite_boundary_ref\tflow_ml_s\trequired_head_low_mm\trequired_head_high_mm\tnpsha_source_ref\tnpsha_method_ref\tnpsha_calibration_ref\tnpsha_low_mm\tnpsha_high_mm\tmargin_profile_ref\tmargin_required_mm\trepair_state\tsite_evidence_state";
 const CURVE_HEADER: &str = "case_id\tpoint_index\tflow_ml_s\thead_mm\thead_uncertainty_mm";
 const EXPECTED_HEADER: &str = "case_id\texpected_disposition";
 
@@ -56,6 +56,7 @@ pub struct Case {
     pub required_head_high_mm: Option<u64>,
     pub npsha_source_ref: String,
     pub npsha_method_ref: String,
+    pub npsha_calibration_ref: String,
     pub npsha_low_mm: Option<u64>,
     pub npsha_high_mm: Option<u64>,
     pub margin_profile_ref: String,
@@ -136,10 +137,14 @@ pub struct Evaluation {
     pub interpolated_head_low_mm: Option<u64>,
     pub interpolated_head_high_mm: Option<u64>,
     pub npsh3_source_ref: String,
+    pub npsh3_low_mm: Option<u64>,
+    pub npsh3_high_mm: Option<u64>,
     pub manufacturer_curve_ref: String,
     pub manufacturer_npshr_low_mm: Option<u64>,
     pub manufacturer_npshr_high_mm: Option<u64>,
     pub npsha_source_ref: String,
+    pub npsha_method_ref: String,
+    pub npsha_calibration_ref: String,
     pub npsha_low_mm: Option<u64>,
     pub npsha_high_mm: Option<u64>,
     pub margin_profile_ref: String,
@@ -225,7 +230,7 @@ pub fn parse_cases(input: &str) -> Result<Vec<Case>, String> {
     let mut ids = BTreeSet::new();
     for (index, line) in lines.enumerate() {
         if line.is_empty() { continue; }
-        let row = split_row(line, 42, "cases", index + 2)?;
+        let row = split_row(line, 43, "cases", index + 2)?;
         for (field, value) in [
             ("case_id", row[0]), ("serial", row[1]), ("config_ref", row[2]),
             ("test_fluid", row[4]), ("test_boundary_ref", row[5]),
@@ -245,7 +250,8 @@ pub fn parse_cases(input: &str) -> Result<Vec<Case>, String> {
             ("manufacturer_serial", row[21]), ("manufacturer_config_ref", row[22]),
             ("site_serial", row[26]), ("site_config_ref", row[27]),
             ("site_boundary_ref", row[30]), ("npsha_source_ref", row[34]),
-            ("npsha_method_ref", row[35]), ("margin_profile_ref", row[38]),
+            ("npsha_method_ref", row[35]), ("npsha_calibration_ref", row[36]),
+            ("margin_profile_ref", row[39]),
         ] {
             if !valid_optional_ref(value) {
                 return Err(format!("cases:{}: invalid {field}", index + 2));
@@ -298,12 +304,13 @@ pub fn parse_cases(input: &str) -> Result<Vec<Case>, String> {
             required_head_high_mm: parse_optional_u64(row[33], "cases", index + 2, "required_head_high_mm")?,
             npsha_source_ref: row[34].to_owned(),
             npsha_method_ref: row[35].to_owned(),
-            npsha_low_mm: parse_optional_u64(row[36], "cases", index + 2, "npsha_low_mm")?,
-            npsha_high_mm: parse_optional_u64(row[37], "cases", index + 2, "npsha_high_mm")?,
-            margin_profile_ref: row[38].to_owned(),
-            margin_required_mm: parse_optional_u64(row[39], "cases", index + 2, "margin_required_mm")?,
-            repair_state: row[40].to_owned(),
-            site_evidence_state: row[41].to_owned(),
+            npsha_calibration_ref: row[36].to_owned(),
+            npsha_low_mm: parse_optional_u64(row[37], "cases", index + 2, "npsha_low_mm")?,
+            npsha_high_mm: parse_optional_u64(row[38], "cases", index + 2, "npsha_high_mm")?,
+            margin_profile_ref: row[39].to_owned(),
+            margin_required_mm: parse_optional_u64(row[40], "cases", index + 2, "margin_required_mm")?,
+            repair_state: row[41].to_owned(),
+            site_evidence_state: row[42].to_owned(),
         };
         validate_case(&case)?;
         cases.push(case);
@@ -341,6 +348,7 @@ fn validate_case(case: &Case) -> Result<(), String> {
         || !valid_optional_ref(&case.manufacturer_curve_ref)
         || !valid_optional_ref(&case.npsha_source_ref)
         || !valid_optional_ref(&case.npsha_method_ref)
+        || !valid_optional_ref(&case.npsha_calibration_ref)
         || !valid_optional_ref(&case.margin_profile_ref)
     {
         return Err(format!("case {}: malformed direct evidence reference", case.case_id));
@@ -480,10 +488,14 @@ fn eval_one(case: &Case, points: &[CurvePoint]) -> Evaluation {
         interpolated_head_low_mm: None,
         interpolated_head_high_mm: None,
         npsh3_source_ref: case.npsh3_source_ref.clone(),
+        npsh3_low_mm: case.npsh3_low_mm,
+        npsh3_high_mm: case.npsh3_high_mm,
         manufacturer_curve_ref: case.manufacturer_curve_ref.clone(),
         manufacturer_npshr_low_mm: case.manufacturer_npshr_low_mm,
         manufacturer_npshr_high_mm: case.manufacturer_npshr_high_mm,
         npsha_source_ref: case.npsha_source_ref.clone(),
+        npsha_method_ref: case.npsha_method_ref.clone(),
+        npsha_calibration_ref: case.npsha_calibration_ref.clone(),
         npsha_low_mm: case.npsha_low_mm,
         npsha_high_mm: case.npsha_high_mm,
         margin_profile_ref: case.margin_profile_ref.clone(),
@@ -587,8 +599,11 @@ fn eval_one(case: &Case, points: &[CurvePoint]) -> Evaluation {
         (Some(_), Some(_)) => finish!(Disposition::ProfileIncomplete, "site NPSHa interval is malformed"),
         _ => finish!(Disposition::EvidenceIncomplete, "site-specific NPSHa interval is missing"),
     };
-    if !valid_ref(&case.npsha_source_ref) || !valid_ref(&case.npsha_method_ref) {
-        finish!(Disposition::EvidenceIncomplete, "site NPSHa requires an exact source and method reference");
+    if !valid_ref(&case.npsha_source_ref)
+        || !valid_ref(&case.npsha_method_ref)
+        || !valid_ref(&case.npsha_calibration_ref)
+    {
+        finish!(Disposition::EvidenceIncomplete, "site NPSHa requires an exact source, method and site-side calibration reference");
     }
     let margin = match case.margin_required_mm {
         Some(value) => value,
@@ -714,20 +729,24 @@ pub fn evaluate_corpus(
 
 pub fn render_report(results: &[Evaluation]) -> String {
     let mut output = String::from(
-        "case_id\tdisposition\treason\tserial\tconfig_ref\tapplicability_ref\tstandard_ref\tstandard_edition\ttest_report_ref\tcalibration_ref\tflow_ml_s\tpump_head_low_mm\tpump_head_high_mm\tnpsh3_source_ref\tmanufacturer_curve_ref\tnpshr_low_mm\tnpshr_high_mm\tnpsha_source_ref\tnpsha_low_mm\tnpsha_high_mm\tmargin_profile_ref\tmargin_required_mm\n",
+        "case_id\tdisposition\treason\tserial\tconfig_ref\tapplicability_ref\tstandard_ref\tstandard_edition\ttest_report_ref\ttest_calibration_ref\tflow_ml_s\tpump_head_low_mm\tpump_head_high_mm\tnpsh3_source_ref\tnpsh3_low_mm\tnpsh3_high_mm\tmanufacturer_curve_ref\tnpshr_low_mm\tnpshr_high_mm\tnpsha_source_ref\tnpsha_method_ref\tnpsha_calibration_ref\tnpsha_low_mm\tnpsha_high_mm\tmargin_profile_ref\tmargin_required_mm\n",
     );
     for row in results {
         output.push_str(&format!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
             row.case_id, row.disposition.as_str(), row.reason, row.serial, row.config_ref,
             row.applicability_ref, row.standard_ref, row.standard_edition, row.test_report_ref,
             row.calibration_ref, row.flow_ml_s,
             row.interpolated_head_low_mm.map_or("-".into(), |x| x.to_string()),
             row.interpolated_head_high_mm.map_or("-".into(), |x| x.to_string()),
-            row.npsh3_source_ref, row.manufacturer_curve_ref,
+            row.npsh3_source_ref,
+            row.npsh3_low_mm.map_or("-".into(), |x| x.to_string()),
+            row.npsh3_high_mm.map_or("-".into(), |x| x.to_string()),
+            row.manufacturer_curve_ref,
             row.manufacturer_npshr_low_mm.map_or("-".into(), |x| x.to_string()),
             row.manufacturer_npshr_high_mm.map_or("-".into(), |x| x.to_string()),
-            row.npsha_source_ref, row.npsha_low_mm.map_or("-".into(), |x| x.to_string()),
+            row.npsha_source_ref, row.npsha_method_ref, row.npsha_calibration_ref,
+            row.npsha_low_mm.map_or("-".into(), |x| x.to_string()),
             row.npsha_high_mm.map_or("-".into(), |x| x.to_string()),
             row.margin_profile_ref, row.margin_required_mm.map_or("-".into(), |x| x.to_string())
         ));
@@ -875,6 +894,14 @@ mod tests {
     }
 
     #[test]
+    fn missing_site_npsha_calibration_cannot_pass() {
+        assert_eq!(
+            one("site_npsha_calibration_missing").disposition,
+            Disposition::EvidenceIncomplete
+        );
+    }
+
+    #[test]
     fn npsh3_interval_must_be_separately_present_and_ordered() {
         assert_eq!(one("invalid_npsh3_interval").disposition, Disposition::ProfileIncomplete);
     }
@@ -900,6 +927,8 @@ mod tests {
         assert!(report.contains("npsh3_source_ref"));
         assert!(report.contains("manufacturer_curve_ref"));
         assert!(report.contains("npsha_source_ref"));
+        assert!(report.contains("npsha_method_ref"));
+        assert!(report.contains("npsha_calibration_ref"));
         assert!(report.contains("applicability:positive_bracketed_curve"));
     }
 
@@ -907,7 +936,7 @@ mod tests {
     fn all_report_rows_have_same_tsv_width() {
         let report = render_report(&run());
         let widths: BTreeSet<usize> = report.lines().map(|line| line.split('\t').count()).collect();
-        assert_eq!(widths, BTreeSet::from([22]));
+        assert_eq!(widths, BTreeSet::from([26]));
     }
 
     #[test]
