@@ -134,6 +134,13 @@ struct ProbeResponseV1 {
     failure: Option<ProbePublicFailureV1>,
 }
 
+// Kept on the evaluator side. Do not serialize/return this container to the
+// learner: its private record includes evaluator manifest and scenario identity.
+struct ProbeDispatchChannelsV1 {
+    learner_response: ProbeResponseV1,
+    evaluator_record: ProbeResultRecordV1,
+}
+
 // Versioned, compact records for the D2D adapter fixture. The fingerprints
 // below are deterministic fixture identifiers, not cryptographic commitments.
 // Mycelix #5900 remains the authority for durable/content-addressed attestations.
@@ -613,42 +620,79 @@ fn execute_probe_with_record(
 /// Evaluator dispatcher. It consumes hidden scenario truth internally and returns
 /// only the learner-facing response DTO. This helper still runs in-process;
 /// actual evaluator isolation requires a process/permission boundary.
+fn failed_evaluator_record(
+    branch_id: &str,
+    request: ProbeRequestV1,
+    scenario: EvaluatorScenarioV1,
+) -> ProbeResultRecordV1 {
+    let manifest = ProbeManifestV1::from_request_and_scenario(request, scenario);
+    let scenario_fingerprint = manifest.fingerprint();
+    let mut record = ProbeResultRecordV1 {
+        schema_version: 1,
+        branch_id: branch_id.to_string(),
+        manifest,
+        disposition: ProbeDispositionV1::Failed,
+        completed_steps: 0,
+        collision_event_count: 0,
+        scenario_fingerprint,
+        // Zero is reserved here for a tape/trace that was not produced.
+        replay_tape_fingerprint: 0,
+        trajectory_fingerprint: 0,
+        outcome_fingerprint: 0,
+        record_fingerprint: 0,
+    };
+    record.record_fingerprint = record_fingerprint(&record);
+    record
+}
+
+/// Evaluator dispatcher. The learner response and evaluator record are
+/// returned in separate, typed channels. This helper still runs in-process;
+/// actual evaluator isolation requires a process/permission boundary.
 fn dispatch_probe_request(
     branch_id: &str,
     request: ProbeRequestV1,
     scenario: EvaluatorScenarioV1,
-) -> ProbeResponseV1 {
+) -> ProbeDispatchChannelsV1 {
     let request_fingerprint = request.fingerprint();
     if request.validate().is_err() {
-        return ProbeResponseV1 {
-            schema_version: 1,
-            branch_id: branch_id.to_string(),
-            request_fingerprint,
-            disposition: ProbeDispositionV1::Failed,
-            completed_steps: 0,
-            observation: None,
-            failure: Some(ProbePublicFailureV1::InvalidRequest),
+        return ProbeDispatchChannelsV1 {
+            learner_response: ProbeResponseV1 {
+                schema_version: 1,
+                branch_id: branch_id.to_string(),
+                request_fingerprint,
+                disposition: ProbeDispositionV1::Failed,
+                completed_steps: 0,
+                observation: None,
+                failure: Some(ProbePublicFailureV1::InvalidRequest),
+            },
+            evaluator_record: failed_evaluator_record(branch_id, request, scenario),
         };
     }
 
     match execute_probe_with_record(branch_id, request, scenario) {
-        Ok((snapshots, outcome, _private_record)) => ProbeResponseV1 {
-            schema_version: 1,
-            branch_id: branch_id.to_string(),
-            request_fingerprint,
-            disposition: ProbeDispositionV1::Completed,
-            completed_steps: snapshots.len(),
-            observation: Some(outcome.into()),
-            failure: None,
+        Ok((snapshots, outcome, evaluator_record)) => ProbeDispatchChannelsV1 {
+            learner_response: ProbeResponseV1 {
+                schema_version: 1,
+                branch_id: branch_id.to_string(),
+                request_fingerprint,
+                disposition: ProbeDispositionV1::Completed,
+                completed_steps: snapshots.len(),
+                observation: Some(outcome.into()),
+                failure: None,
+            },
+            evaluator_record,
         },
-        Err(_private_error) => ProbeResponseV1 {
-            schema_version: 1,
-            branch_id: branch_id.to_string(),
-            request_fingerprint,
-            disposition: ProbeDispositionV1::Failed,
-            completed_steps: 0,
-            observation: None,
-            failure: Some(ProbePublicFailureV1::ExecutionFailed),
+        Err(_private_error) => ProbeDispatchChannelsV1 {
+            learner_response: ProbeResponseV1 {
+                schema_version: 1,
+                branch_id: branch_id.to_string(),
+                request_fingerprint,
+                disposition: ProbeDispositionV1::Failed,
+                completed_steps: 0,
+                observation: None,
+                failure: Some(ProbePublicFailureV1::ExecutionFailed),
+            },
+            evaluator_record: failed_evaluator_record(branch_id, request, scenario),
         },
     }
 }
@@ -668,14 +712,17 @@ fn learner_response_contains_only_authorized_observation_and_request_identity() 
     let request = ProbeRequestV1 {
         tangential_impulse: 3.0,
     };
-    let response = dispatch_probe_request(
+    let channels = dispatch_probe_request(
         "learner-visible-branch-1",
         request,
         EvaluatorScenarioV1 {
             surface_friction: 0.05,
         },
     );
+    let response = channels.learner_response;
 
+    assert_eq!(channels.evaluator_record.disposition, ProbeDispositionV1::Completed);
+    assert_ne!(channels.evaluator_record.scenario_fingerprint, 0);
     assert_eq!(response.schema_version, 1);
     assert_eq!(response.branch_id, "learner-visible-branch-1");
     assert_eq!(response.request_fingerprint, request.fingerprint());
@@ -694,14 +741,18 @@ fn failed_evaluator_attempt_returns_visible_failure_disposition_not_dropped_erro
     let request = ProbeRequestV1 {
         tangential_impulse: 1.0,
     };
-    let response = dispatch_probe_request(
+    let channels = dispatch_probe_request(
         "expected-branch-invalid-world",
         request,
         EvaluatorScenarioV1 {
             surface_friction: f64::NAN,
         },
     );
+    let response = channels.learner_response;
 
+    assert_eq!(channels.evaluator_record.branch_id, "expected-branch-invalid-world");
+    assert_eq!(channels.evaluator_record.disposition, ProbeDispositionV1::Failed);
+    assert_eq!(channels.evaluator_record.completed_steps, 0);
     assert_eq!(response.branch_id, "expected-branch-invalid-world");
     assert_eq!(response.request_fingerprint, request.fingerprint());
     assert_eq!(response.disposition, ProbeDispositionV1::Failed);
@@ -718,14 +769,16 @@ fn invalid_learner_request_is_rejected_before_evaluator_dispatch() {
     let invalid_request = ProbeRequestV1 {
         tangential_impulse: f64::INFINITY,
     };
-    let response = dispatch_probe_request(
+    let channels = dispatch_probe_request(
         "invalid-learner-request",
         invalid_request,
         EvaluatorScenarioV1 {
             surface_friction: 0.5,
         },
     );
+    let response = channels.learner_response;
 
+    assert_eq!(channels.evaluator_record.disposition, ProbeDispositionV1::Failed);
     assert_eq!(response.disposition, ProbeDispositionV1::Failed);
     assert_eq!(
         response.failure,
