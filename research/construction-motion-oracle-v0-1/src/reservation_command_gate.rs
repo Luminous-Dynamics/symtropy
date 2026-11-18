@@ -375,7 +375,23 @@ fn validate_readiness_receipt_binding(
     if receipt.schema_version != DISPATCH_READINESS_RECEIPT_SCHEMA_VERSION {
         return Err(ReservationCommandFailure::ReadinessReceiptSchemaMismatch);
     }
-    if receipt.package_sha256 != reservation.package_sha256
+    for digest in [
+        receipt.package_sha256.as_str(),
+        receipt.design_revision_sha256.as_str(),
+        receipt.envelope_sha256.as_str(),
+        receipt.site_snapshot_sha256.as_str(),
+        receipt.occupancy_assessment_receipt_sha256.as_str(),
+        receipt.occupancy_engine_build_sha256.as_str(),
+        receipt.clearance_policy_sha256.as_str(),
+        receipt.site_ledger_event_sha256.as_str(),
+    ] {
+        if !is_sha256(digest) {
+            return Err(ReservationCommandFailure::ReadinessReceiptBindingMismatch);
+        }
+    }
+    if receipt.valid_until_tick <= receipt.checked_at_tick
+        || receipt.site_ledger_sequence == 0
+        || receipt.package_sha256 != reservation.package_sha256
         || receipt.design_revision_sha256 != reservation.design_revision_sha256
         || receipt.entity_id != reservation.entity_id
         || receipt.robot_id != reservation.robot_id
@@ -1020,4 +1036,39 @@ mod tests {
         restored.authorize(&ledger, &second).unwrap();
         assert_eq!(restored.last_sequence("reservation-1"), Some(2));
     }
+
+    #[test]
+    fn command_id_reuse_with_a_different_digest_is_rejected() {
+        let mut ledger = initial_ledger();
+        let (readiness, reservation) = commit_one_reservation(&mut ledger);
+        let mut guard = CommandReplayGuard::new();
+        let first = command_request(&ledger, &readiness, &reservation, "cmd-1", 1);
+        guard.authorize(&ledger, &first).unwrap();
+
+        let mut changed = command_request(&ledger, &readiness, &reservation, "cmd-1", 2);
+        changed.command_sha256 = digest('9');
+        assert_eq!(
+            guard.authorize(&ledger, &changed),
+            Err(ReservationCommandFailure::CommandIdDigestMismatch(
+                "cmd-1".into()
+            ))
+        );
+        assert_eq!(guard.last_sequence("reservation-1"), Some(1));
+    }
+
+    #[test]
+    fn malformed_persisted_replay_snapshot_is_rejected() {
+        let snapshot = CommandReplaySnapshot {
+            last_sequence_by_reservation: BTreeMap::from([(
+                "reservation-1".into(),
+                (0, 1),
+            )]),
+            command_digests_by_id: BTreeMap::new(),
+        };
+        assert_eq!(
+            CommandReplayGuard::from_snapshot(snapshot).unwrap_err(),
+            CommandReplayGuardError::InvalidSnapshot
+        );
+    }
+
 }
