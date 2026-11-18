@@ -879,14 +879,13 @@ mod tests {
             ],
         };
         let snapshot = ledger.snapshot_as_of(10).unwrap();
-        let report = evaluate_group(
-            &[
-                alternative("majority-favoured", 0.4, 1.0, 1.0),
-                alternative("balanced", 0.7, 0.7, 0.7),
-            ],
-            &snapshot,
-        )
-        .unwrap();
+        let mut majority = alternative("majority-favoured", 0.4, 1.0, 1.0);
+        majority.outcomes[3] = 1.0;
+        majority.outcomes[4] = 1.0;
+        let mut balanced = alternative("balanced", 0.7, 0.7, 0.7);
+        balanced.outcomes[3] = 0.7;
+        balanced.outcomes[4] = 0.7;
+        let report = evaluate_group(&[majority, balanced], &snapshot).unwrap();
 
         assert_eq!(
             report.rank_by_mean(),
