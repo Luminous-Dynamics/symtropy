@@ -356,6 +356,12 @@ impl SiteStateLedger {
             .map(|package| package.superseded_by.is_none())
     }
 
+    pub fn work_package(&self, package_sha256: &str) -> Option<&SiteWorkPackage> {
+        self.packages
+            .get(package_sha256)
+            .map(|projection| &projection.package)
+    }
+
     pub fn package_superseded_by(&self, package_sha256: &str) -> Option<&str> {
         self.packages
             .get(package_sha256)
