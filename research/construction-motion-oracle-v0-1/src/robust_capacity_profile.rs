@@ -61,6 +61,9 @@ pub struct RobustCapacitySegment {
     pub nominal_capacity_units: u64,
     pub upper_capacity_units: u64,
     pub unit_label: String,
+    /// Stable reservation IDs whose demand contributes to this non-robust
+    /// resource/time segment. This is impact lineage, not actor authorization.
+    pub contributing_reservation_ids: Vec<String>,
     pub assessment: RobustCapacityAssessment,
 }
 
@@ -97,6 +100,19 @@ pub struct RobustCumulativeCapacityReport {
     pub non_robust_segments: Vec<RobustCapacitySegment>,
 }
 
+
+impl RobustCumulativeCapacityReport {
+    /// Return a stable, deduplicated list of reservations touched by any
+    /// indeterminate or definitely-over-capacity interval.
+    pub fn impacted_reservation_ids(&self) -> Vec<String> {
+        let mut impacted = std::collections::BTreeSet::new();
+        for segment in &self.non_robust_segments {
+            impacted.extend(segment.contributing_reservation_ids.iter().cloned());
+        }
+        impacted.into_iter().collect()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RobustCapacityError {
     InvalidBaseScenario(Vec<CumulativeCapacityError>),
@@ -116,6 +132,8 @@ pub enum RobustCapacityError {
 struct BoundaryDemand {
     starts: u128,
     ends: u128,
+    reservations_starting: BTreeMap<String, u64>,
+    reservations_ending: BTreeMap<String, u64>,
 }
 
 #[derive(Clone, Debug)]
@@ -232,10 +250,25 @@ pub fn evaluate_robust_cumulative_resource_capacity(
                 .starts
                 .checked_add(u128::from(claim.demand_units))
                 .ok_or_else(|| vec![RobustCapacityError::ArithmeticOverflow])?;
+            let start_count = start
+                .reservations_starting
+                .entry(reservation.reservation_id.clone())
+                .or_default();
+            *start_count = start_count
+                .checked_add(1)
+                .ok_or_else(|| vec![RobustCapacityError::ArithmeticOverflow])?;
+
             let end = sweep.boundaries.entry(claim.end_tick).or_default();
             end.ends = end
                 .ends
                 .checked_add(u128::from(claim.demand_units))
+                .ok_or_else(|| vec![RobustCapacityError::ArithmeticOverflow])?;
+            let end_count = end
+                .reservations_ending
+                .entry(reservation.reservation_id.clone())
+                .or_default();
+            *end_count = end_count
+                .checked_add(1)
                 .ok_or_else(|| vec![RobustCapacityError::ArithmeticOverflow])?;
         }
     }
@@ -274,6 +307,7 @@ pub fn evaluate_robust_cumulative_resource_capacity(
             .unwrap_or(&[]);
         let mut window_index = 0_usize;
         let mut current_load = 0_u128;
+        let mut active_reservations = BTreeMap::<String, u64>::new();
         let mut peak_load = 0_u128;
         let mut minimum_lower = sweep.definition_capacity;
         let mut minimum_nominal = sweep.definition_capacity;
@@ -287,9 +321,31 @@ pub fn evaluate_robust_cumulative_resource_capacity(
             current_load = current_load
                 .checked_sub(demand.ends)
                 .ok_or_else(|| vec![RobustCapacityError::ArithmeticOverflow])?;
+            for (reservation_id, ending_count) in &demand.reservations_ending {
+                let should_remove = {
+                    let active_count = active_reservations
+                        .get_mut(reservation_id)
+                        .ok_or_else(|| vec![RobustCapacityError::ArithmeticOverflow])?;
+                    *active_count = active_count
+                        .checked_sub(*ending_count)
+                        .ok_or_else(|| vec![RobustCapacityError::ArithmeticOverflow])?;
+                    *active_count == 0
+                };
+                if should_remove {
+                    active_reservations.remove(reservation_id);
+                }
+            }
             current_load = current_load
                 .checked_add(demand.starts)
                 .ok_or_else(|| vec![RobustCapacityError::ArithmeticOverflow])?;
+            for (reservation_id, starting_count) in &demand.reservations_starting {
+                let active_count = active_reservations
+                    .entry(reservation_id.clone())
+                    .or_default();
+                *active_count = active_count
+                    .checked_add(*starting_count)
+                    .ok_or_else(|| vec![RobustCapacityError::ArithmeticOverflow])?;
+            }
             peak_load = peak_load.max(current_load);
             if next_tick <= tick {
                 continue;
@@ -356,6 +412,7 @@ pub fn evaluate_robust_cumulative_resource_capacity(
                     nominal_capacity_units: nominal_capacity,
                     upper_capacity_units: upper_capacity,
                     unit_label: sweep.unit_label.clone(),
+                    contributing_reservation_ids: active_reservations.keys().cloned().collect(),
                     assessment,
                 });
             }
@@ -755,6 +812,87 @@ mod tests {
                 }
             }
             assert_eq!(report.is_robustly_feasible, expected_robust);
+        }
+    }
+
+
+    #[test]
+    fn non_robust_segments_report_exact_active_reservation_contributors() {
+        let base = CumulativeCapacityScenario {
+            scenario_id: "contributor-test".into(),
+            resource_catalog_sha256: digest('c'),
+            site_snapshot_sha256: digest('d'),
+            site_clock_domain_id: "site-clock-1".into(),
+            resources: vec![definition("hoist", 4)],
+            reservations: vec![
+                reservation("robot-a", "hoist", 10, 20, 2),
+                reservation("robot-b", "hoist", 15, 25, 2),
+                reservation("unrelated", "hoist", 30, 40, 1),
+            ],
+        };
+        let report = evaluate_robust_cumulative_resource_capacity(
+            &RobustCumulativeCapacityScenario {
+                base,
+                availability_windows: vec![window(10, 25, 2, 3, 4)],
+            },
+        )
+        .unwrap();
+        assert_eq!(report.non_robust_segments.len(), 1);
+        assert_eq!(report.non_robust_segments[0].start_tick, 15);
+        assert_eq!(report.non_robust_segments[0].end_tick, 20);
+        assert_eq!(
+            report.non_robust_segments[0].contributing_reservation_ids,
+            vec!["robot-a".to_owned(), "robot-b".to_owned()]
+        );
+        assert_eq!(
+            report.impacted_reservation_ids(),
+            vec!["robot-a".to_owned(), "robot-b".to_owned()]
+        );
+    }
+
+    #[test]
+    fn overlapping_claims_from_one_reservation_keep_contributor_until_last_claim_ends() {
+        let base = CumulativeCapacityScenario {
+            scenario_id: "multi-claim-same-reservation".into(),
+            resource_catalog_sha256: digest('c'),
+            site_snapshot_sha256: digest('d'),
+            site_clock_domain_id: "site-clock-1".into(),
+            resources: vec![definition("hoist", 4)],
+            reservations: vec![CapacityReservation {
+                reservation_id: "one-reservation".into(),
+                reservation_receipt_sha256: digest('b'),
+                site_clock_domain_id: "site-clock-1".into(),
+                claims: vec![
+                    CapacityDemandClaim {
+                        resource_id: "hoist".into(),
+                        resource_definition_sha256: digest('a'),
+                        start_tick: 10,
+                        end_tick: 20,
+                        demand_units: 2,
+                    },
+                    CapacityDemandClaim {
+                        resource_id: "hoist".into(),
+                        resource_definition_sha256: digest('a'),
+                        start_tick: 15,
+                        end_tick: 25,
+                        demand_units: 2,
+                    },
+                ],
+            }],
+        };
+        let report = evaluate_robust_cumulative_resource_capacity(
+            &RobustCumulativeCapacityScenario {
+                base,
+                availability_windows: vec![window(10, 25, 2, 3, 4)],
+            },
+        )
+        .unwrap();
+        assert_eq!(report.non_robust_segments.len(), 2);
+        for segment in &report.non_robust_segments {
+            assert_eq!(
+                segment.contributing_reservation_ids,
+                vec!["one-reservation".to_owned()]
+            );
         }
     }
 
