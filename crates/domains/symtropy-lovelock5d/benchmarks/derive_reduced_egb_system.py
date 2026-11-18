@@ -130,8 +130,7 @@ def main() -> None:
     # Euler-Lagrange equation is absent. This explicitly records the lost
     # radial equation rather than pretending a gauge-fixed action produced it.
     L_gauge_fixed = sp.factor(L_eff.subs(gauge))
-    gauge_fixed_variables = (b, f, h, w)
-    assert g not in gauge_fixed_variables
+    assert not L_gauge_fixed.has(g, gp, gpp)
 
     fixture = {
         "schema_version": 1,
