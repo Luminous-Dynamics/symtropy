@@ -756,3 +756,115 @@ Primary comparison metric: experiment cost per independently supported
 family decision at a preregistered selective-risk target, with Brier/log loss,
 coverage, OOD abstention, false-commit rate and lower-tail results reported
 separately. Do not compress these into one intelligence score.
+## Selective-risk evaluation and held-out model false acceptance
+
+The `selective_risk` module adds an evaluator-only Monte Carlo layer around
+the finite-action sequential policy. It reports model-stratified Wilson
+intervals for wrong model commits, wrong family commits, in-family OOD
+rejection, parameter non-identifiability, other abstention and correct model
+commits, plus Brier score and log loss.
+
+The separate held-out evaluator accepts two scenarios:
+
+- the candidate scenario, which is passed to the policy and contains the
+  registered candidate models only;
+- the evaluator scenario, which must contain those exact candidate models
+  unchanged plus exactly one held-out model.
+
+The held-out model is used only to generate synthetic observations under the
+action's covariance. The policy receives the original candidate scenario,
+registered model means, and candidate-visible observations. The result
+estimates false acceptance of any registered model or family, correct
+OUT_OF_MODEL_SET abstention, and other abstention. A duplicate held-out
+model negative control demonstrates that a system can commit a declared
+family even when the evaluator truth is outside the registered set.
+
+Run the matched selective-risk scorecard with:
+
+    cargo run --manifest-path benchmarks/human-multirate-cosim/v0.1/Cargo.toml --release --bin selective_risk
+
+The runner evaluates three bounded pulse actions with 1,000 Monte Carlo
+replicates per registered/held-out truth, AR(1) rho 0.6, two sensors and five
+observation times. It emits per-action EIG, false model/family commits,
+95% Wilson limits, in-family OOD rejection, parameter non-identifiability,
+Brier/log loss, and held-out structural false acceptance. It also sweeps a
+user-declared false-family-commit penalty. This penalty is a transparent
+decision utility for Pareto analysis; it is not the exact evidential-bias
+criterion proposed by Chen et al.
+
+### Statistical limitations
+
+Each model/held-out model is sampled in a separate stratum, then registered
+models are prior-weighted. The Wilson intervals are fixed-sample, per-truth
+binomial intervals. They are not sequentially valid confidence sequences,
+and this one-step estimator does not calibrate posterior/residual thresholds
+or provide an anytime false-commit guarantee. Cross-action covariance and
+prior shift are not yet covered by this initial evaluator. These must be
+separate, explicit benchmark dimensions.
+
+### Evidence-risk comparison
+
+The comparator set includes EIG per cost, nuisance-profiled maximin family
+separation, posterior-predictive Bayes risk, an explicitly penalized EIG
+utility, and the published evidential-bias criterion when its exact
+definition is implemented. Report the Pareto frontier of information gain
+versus selective risk and cost; do not collapse them into one opaque score.
+
+Chen et al. (2026), *Deep adaptive design with an evidential bias criterion*
+(arXiv:2608.16466), argue that EIG alone may reward misleading evidence and
+propose an evidential-bias criterion. Shen, Dong and Huan's vsOED already
+covers sequential Bayesian design with nuisance parameters and multiple
+models (DOI 10.1016/j.cma.2025.118068). Our claim is the explicit coupling
+of these experiment policies with declared model-set adequacy,
+identity-bound covariance, held-out structural false-acceptance evaluation
+and auditable selective abstention—not the invention of sequential OED.
+## Held-out structural false-acceptance evaluator
+
+The `estimate_held_out_model_false_acceptance_evaluator_only` function
+separates a candidate scenario from an evaluator scenario. The evaluator
+scenario must contain the exact candidate models unchanged plus exactly
+one extra held-out graph. It must preserve sensor definitions, full
+independent per-sensor covariance, observation times, sensor budget, input
+budget and forcing cap.
+
+The held-out model is used only to generate the synthetic trace. The policy
+receives the original candidate scenario, its registered actions, the
+candidate-visible trace and the existing prior. A commit to any candidate
+model or family is counted as false candidate acceptance;
+`OUT_OF_MODEL_SET` abstention is counted separately from other abstentions.
+
+The negative control duplicates a registered graph under a new held-out
+model ID while the candidate prior maps registered variants to the same
+family. With a permissive residual threshold, the policy can commit the
+registered family even though the evaluator truth is not registered. This
+is intentional: posterior certainty conditional on the model set cannot
+substitute for model-set adequacy.
+
+The `selective_risk` runner reports three actions, 1,000 evaluator replicates
+per in-family or held-out truth, per-model Wilson intervals, held-out
+false-candidate-acceptance intervals, OOD abstention, Brier/log loss, and
+risk-adjusted utilities over false-family-commit penalties
+`[0, 0.25, 0.5, 1, 2]`.
+
+Run with:
+
+    cargo run --manifest-path benchmarks/human-multirate-cosim/v0.1/Cargo.toml --release --bin selective_risk
+
+Risk estimator guardrails:
+
+- A request is rejected if the next action would exceed the maximum number
+  of experiments or the total campaign cost.
+- Candidate/evaluator model copies must match exactly; the held-out ID must
+  be absent from the candidate set.
+- Wilson intervals are fixed-sample, per-truth binomial intervals. They are
+  not confidence sequences and do not remain valid under optional stopping.
+- Risk estimates are conditional on the supplied candidate prior, action
+  covariance, noise process and held-out evaluator distribution.
+- The linear false-commit penalty is a transparent user-specified decision
+  utility. It is not the exact evidential-bias criterion in Chen et al.
+
+Next extensions: covariance misspecification, prior shift, multiple held-out
+families, contamination/heavy-tailed noise, drift, missingness, action-
+dependent cross-campaign noise, and sequentially valid e-processes. These
+must be evaluated separately rather than inferred from the current one-step
+Monte Carlo scorecard.
