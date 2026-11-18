@@ -1,0 +1,449 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/grid-transmission-portfolio/data/lifecycle-economics-v0.1.schema.json",
+  "title": "Grid Transmission Lifecycle Economics v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "analysis_id",
+    "project_context",
+    "valuation",
+    "study_horizon_years",
+    "discounting",
+    "service_denominator",
+    "local_decision_case",
+    "global_normalisation",
+    "cost_items",
+    "evidence",
+    "claim_boundary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "analysis_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "region_profile_id",
+        "route_design_id",
+        "service_boundary_id"
+      ],
+      "properties": {
+        "region_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route_design_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "service_boundary_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "valuation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "currency_code",
+        "price_year",
+        "price_basis",
+        "tax_treatment"
+      ],
+      "properties": {
+        "currency_code": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "price_year": {
+          "type": "integer",
+          "minimum": 1900,
+          "maximum": 2200
+        },
+        "price_basis": {
+          "enum": [
+            "real",
+            "nominal"
+          ]
+        },
+        "tax_treatment": {
+          "enum": [
+            "pre_tax",
+            "post_tax",
+            "taxes_separately_reported",
+            "unknown"
+          ]
+        },
+        "local_currency_description": {
+          "type": "string"
+        }
+      }
+    },
+    "study_horizon_years": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 150
+    },
+    "discounting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "annual_rate",
+        "rate_basis",
+        "source_or_method",
+        "evidence_ids"
+      ],
+      "properties": {
+        "annual_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "rate_basis": {
+          "enum": [
+            "real",
+            "nominal"
+          ]
+        },
+        "source_or_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "service_denominator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric",
+        "value",
+        "unit",
+        "service_boundary_id",
+        "evaluation_period_years"
+      ],
+      "properties": {
+        "metric": {
+          "enum": [
+            "delivered_energy",
+            "firm_capacity_year",
+            "delivered_service_units",
+            "other"
+          ]
+        },
+        "value": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "service_boundary_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evaluation_period_years": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "local_decision_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "currency_code",
+        "price_year",
+        "price_basis",
+        "fx_not_required_for_local_decision"
+      ],
+      "properties": {
+        "currency_code": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "price_year": {
+          "type": "integer",
+          "minimum": 1900,
+          "maximum": 2200
+        },
+        "price_basis": {
+          "enum": [
+            "real",
+            "nominal"
+          ]
+        },
+        "fx_not_required_for_local_decision": {
+          "const": true
+        },
+        "local_context_notes": {
+          "type": "string"
+        }
+      }
+    },
+    "global_normalisation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "included",
+        "comparison_currency",
+        "comparison_price_year",
+        "fx_basis",
+        "ppp_adjustment"
+      ],
+      "properties": {
+        "included": {
+          "type": "boolean"
+        },
+        "comparison_currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "comparison_price_year": {
+          "type": "integer",
+          "minimum": 1900,
+          "maximum": 2200
+        },
+        "fx_basis": {
+          "enum": [
+            "spot_at_declared_date",
+            "annual_average",
+            "project_specific_hedged_rate",
+            "not_applicable"
+          ]
+        },
+        "fx_rate_base_per_local": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "fx_as_of_date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        },
+        "fx_source_uri": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "inflation_index_uri": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "ppp_adjustment": {
+          "enum": [
+            "not_used",
+            "reported_separately",
+            "used_for_sensitivity_only"
+          ]
+        },
+        "ppp_source_uri": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "normalisation_notes": {
+          "type": "string"
+        }
+      }
+    },
+    "cost_items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "cost_item_id",
+          "category",
+          "direction",
+          "period_year",
+          "amount_minor_units",
+          "currency_code",
+          "local_or_imported",
+          "evidence_class",
+          "evidence_ids",
+          "inclusion_boundary"
+        ],
+        "properties": {
+          "cost_item_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "enum": [
+              "design_and_engineering",
+              "equipment",
+              "materials",
+              "fabrication",
+              "transport_and_logistics",
+              "civil_works",
+              "installation_and_erection",
+              "commissioning",
+              "land_and_wayleave",
+              "permitting",
+              "energy_losses",
+              "auxiliary_energy",
+              "maintenance",
+              "inspection",
+              "replacement",
+              "outage_and_unserved_energy",
+              "insurance",
+              "taxes",
+              "financing_fee",
+              "environmental_mitigation",
+              "decommissioning",
+              "residual_value",
+              "other"
+            ]
+          },
+          "direction": {
+            "enum": [
+              "cost",
+              "credit"
+            ]
+          },
+          "period_year": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "amount_minor_units": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "currency_code": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "local_or_imported": {
+            "enum": [
+              "local",
+              "imported",
+              "mixed",
+              "not_applicable",
+              "unknown"
+            ]
+          },
+          "evidence_class": {
+            "enum": [
+              "analyst_scenario",
+              "modelled",
+              "published_literature",
+              "manufacturer_declared",
+              "measured",
+              "independently_verified",
+              "field_qualified",
+              "unknown"
+            ]
+          },
+          "evidence_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "quantity": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "quantity_unit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "inclusion_boundary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidence_id",
+          "classification",
+          "claim_scope"
+        ],
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "classification": {
+            "enum": [
+              "analyst_scenario",
+              "modelled",
+              "published_literature",
+              "manufacturer_declared",
+              "measured",
+              "independently_verified",
+              "field_qualified"
+            ]
+          },
+          "source_uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "publisher": {
+            "type": "string"
+          },
+          "retrieved_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "claim_scope": {
+            "type": "string",
+            "minLength": 1
+          },
+          "applicability": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "claim_boundary": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
