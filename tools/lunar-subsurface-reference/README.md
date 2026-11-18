@@ -47,6 +47,29 @@ Apollo regolith entries from NASA/TM-20240011783 Table 15 and laboratory simulan
 
 For a stated bank volume V and source-bounded bulk-density range [rho_min, rho_max], the screen reports [V × rho_min, V × rho_max]. It does **not** infer loose spoil density or swell. These require distinct bank and loose states, measurements, and a declared handling process.
 
+
+
+## As-built geometry and material-flow closure
+
+The report includes synthetic data-contract examples for two separate reconciliation problems:
+- planned versus measured as-built excavation volume, with scan coverage, calibration freshness, and measurement uncertainty;
+- input material mass versus measured disposition streams tied to the same material batch.
+
+A caller supplies the acceptance tolerance and minimum scan coverage. Results are classified as within declared tolerance, outside declared tolerance, indeterminate where uncertainty crosses the tolerance boundary, or unknown where evidence is missing, stale, uncalibrated, or incomplete. These are algorithm examples, not lunar acceptance standards.
+
+All reconciliation fixtures are synthetic. They are not evidence that any tunnel has been surveyed or excavated. The module fails closed for missing/stale calibration, missing disposition measurements, material-batch mismatches, and duplicate stream identifiers.
+
+## Claim ceiling
+
+The report does **not** estimate:
+- loose-spoil volume, swell or transport bulk volume without measured loose density/handling data;
+- excavation energy, advance rate, tool wear or construction duration;
+- support/lining quantities or structural adequacy;
+- ground stability, seismic response, radiation shielding or thermal behavior;
+- cost, lifecycle economics or lunar construction feasibility.
+
+The synthetic as-built and mass-flow records do not constitute physical construction acceptance.
+
 ## Claim ceiling
 
 The report does **not** estimate:
