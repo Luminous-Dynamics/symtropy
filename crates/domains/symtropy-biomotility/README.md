@@ -1,0 +1,59 @@
+# symtropy-biomotility
+
+CPU-first reference models and benchmark analysis for biological movement.
+
+## First slice: porous bacterial chemotaxis
+
+The first executable model represents a run/event process with distinct:
+
+- run durations conditioned on the preceding run direction;
+- short reorientation events (operationally <= 1 second), with turn-angle samples conditioned on the preceding direction;
+- long mechanical-trap events (> 1 second), with a pooled turn-angle distribution.
+
+This separation is important for the Pseudomonas putida porous-agar evidence base. A passive trap is not an active motor turn, and a model that pools them can erase the directional mechanism under investigation.
+
+The code is an **event-based reference kernel**, not a validated flagellar motor model, hydrodynamic solver, pore-resolved simulator, growth model or biological prediction system. It advances a cell at constant speed between sampled events. It does not yet simulate agar geometry, pore networks, cell-body hydrodynamics, motor torque, nutrient diffusion or population growth.
+
+## Research anchor
+
+Beier et al., "Dual chemotaxis strategy of bacteria in porous media: Run-time and turn-angle bias", *Biophysical Journal* 125(14), 3570–3579 (2026), DOI [10.1016/j.bpj.2026.06.002](https://doi.org/10.1016/j.bpj.2026.06.002).
+
+The paper reports that P. putida uses both run-time and turn-angle bias in porous agar, with turn-angle bias making the larger contribution in the studied conditions. It distinguishes short motor-induced reorientation events from longer passive traps.
+
+Analyzed trajectories: [Zenodo DOI 10.5281/zenodo.17592316](https://doi.org/10.5281/zenodo.17592316). The deposit description identifies wild-type 0.25% and 0.3% agar trajectories and MotAB/MotCD mutant datasets.
+
+**Rights status:** the Zenodo file-level licence, record version, file list and checksums must be verified before copying or redistributing its data. The 2026 article states that raw data and original analysis/simulation code are available from the authors upon reasonable request; its analysed trajectory data are deposited separately. Until dataset rights and schema are verified, the crate contains no downloaded, embedded or redistributed biological data.
+
+## Literature-reported reference values
+
+These are reported by the paper and are not the output of this crate:
+
+| Quantity | 0.25% agar | 0.3% agar |
+|---|---:|---:|
+| Wild-type tracks | 17,703 | 18,714 |
+| Mean run duration | 0.299 s | 0.232 s |
+| Runs up-gradient after short events | 56.7% | 55.6% |
+| Runs up-gradient after long events | 44.9% | 46.8% |
+
+The paper's agent-based simulation found that, in agar, turn-angle-bias-only produced about 72% of the combined-strategy drift, while run-time-bias-only produced about 25%. These are results from the authors' simulation protocol, not experimental measurements or results reproduced here.
+
+## Build and test
+
+This is an isolated Cargo workspace so it can be built without the full Symtropy workspace:
+
+~~~bash
+cargo test --manifest-path crates/domains/symtropy-biomotility/Cargo.toml
+~~~
+
+The model uses only the Rust standard library. The seeded generator is for deterministic research fixtures only; it is not cryptographic.
+
+## Next qualification gates
+
+1. Verify dataset rights, exact version, file listing, checksums, schemas and experimental-unit metadata.
+2. Map source event data into a documented, versioned normalized record format.
+3. Reproduce the reported conditional statistics with replicate-aware uncertainty, keeping plate/day/track grouping intact.
+4. Compare no-bias, run-time-only, turn-angle-only and combined models under identical seeds and parameter/data budgets.
+5. Add geometry-resolved pore obstruction and passive trapping as an independent physical process.
+6. Generalize only after held-out validation across media conditions and other organisms.
+
+No wet-lab work, bacterial culture, ecological release, or physical intervention is authorized by this software.
