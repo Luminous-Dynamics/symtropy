@@ -42,9 +42,7 @@ fn calculate_excavation(case: ExcavationCase) -> Result<ExcavationEstimate, Stri
     if case.bore_count == 0 {
         return Err("bore count must be at least one".to_owned());
     }
-    if !case.overbreak_fraction.is_finite()
-        || !(0.0..=1.0).contains(&case.overbreak_fraction)
-    {
+    if !case.overbreak_fraction.is_finite() || !(0.0..=1.0).contains(&case.overbreak_fraction) {
         return Err("overbreak fraction must be finite and in [0, 1]".to_owned());
     }
 
@@ -53,7 +51,10 @@ fn calculate_excavation(case: ExcavationCase) -> Result<ExcavationEstimate, Stri
         case.ancillary.caverns_m3,
         case.ancillary.cross_passages_m3,
     ];
-    if ancillary.iter().any(|volume| !volume.is_finite() || *volume < 0.0) {
+    if ancillary
+        .iter()
+        .any(|volume| !volume.is_finite() || *volume < 0.0)
+    {
         return Err("ancillary volumes must be finite and non-negative".to_owned());
     }
 
@@ -61,9 +62,8 @@ fn calculate_excavation(case: ExcavationCase) -> Result<ExcavationEstimate, Stri
     let design_bore_volume_m3 =
         circumference_m * case.excavated_section_m2 * f64::from(case.bore_count);
     let overbreak_volume_m3 = design_bore_volume_m3 * case.overbreak_fraction;
-    let ancillary_volume_m3 = case.ancillary.shafts_m3
-        + case.ancillary.caverns_m3
-        + case.ancillary.cross_passages_m3;
+    let ancillary_volume_m3 =
+        case.ancillary.shafts_m3 + case.ancillary.caverns_m3 + case.ancillary.cross_passages_m3;
     let total_excavation_volume_m3 =
         design_bore_volume_m3 + overbreak_volume_m3 + ancillary_volume_m3;
 
@@ -73,7 +73,10 @@ fn calculate_excavation(case: ExcavationCase) -> Result<ExcavationEstimate, Stri
         ancillary_volume_m3,
         total_excavation_volume_m3,
     ];
-    if derived.iter().any(|value| !value.is_finite() || *value < 0.0) {
+    if derived
+        .iter()
+        .any(|value| !value.is_finite() || *value < 0.0)
+    {
         return Err("derived excavation volume is non-finite or negative".to_owned());
     }
 
