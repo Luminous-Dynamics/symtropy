@@ -608,8 +608,10 @@ fn validate_evidence(
     valid_from: u64,
     valid_until: u64,
     seen_evidence: &mut BTreeMap<String, EvidenceRef>,
+    conflicted_evidence_ids: &mut BTreeSet<String>,
     diagnostics: &mut Vec<Diagnostic>,
-) {
+) -> bool {
+    let diagnostic_start = diagnostics.len();
     let id = evidence.source_record_id.as_str();
     if !nonblank(id)
         || !nonblank(&evidence.owner_id)
@@ -690,20 +692,24 @@ fn validate_evidence(
     }
     if nonblank(id) {
         match seen_evidence.get(id) {
-            Some(existing) if existing != evidence => add_diagnostic(
-                diagnostics,
-                "EVIDENCE_ID_CONFLICT",
-                DiagnosticSeverity::Indeterminate,
-                None,
-                Some(id),
-                "one evidence record ID was supplied with conflicting metadata",
-            ),
+            Some(existing) if existing != evidence => {
+                conflicted_evidence_ids.insert(id.to_owned());
+                add_diagnostic(
+                    diagnostics,
+                    "EVIDENCE_ID_CONFLICT",
+                    DiagnosticSeverity::Indeterminate,
+                    None,
+                    Some(id),
+                    "one evidence record ID was supplied with conflicting metadata",
+                );
+            }
             Some(_) => {}
             None => {
                 seen_evidence.insert(id.to_owned(), evidence.clone());
             }
         }
     }
+    diagnostics.len() == diagnostic_start
 }
 
 fn disposition_for(diagnostics: &[Diagnostic]) -> Disposition {
@@ -892,7 +898,8 @@ pub fn reconcile(
     let mut sequence_records: BTreeMap<(Channel, String, u64), TelemetryEvent> = BTreeMap::new();
     let mut conflicted_sequences: BTreeSet<(Channel, String, u64)> = BTreeSet::new();
     let mut seen_evidence: BTreeMap<String, EvidenceRef> = BTreeMap::new();
-    validate_evidence(
+    let mut conflicted_evidence_ids: BTreeSet<String> = BTreeSet::new();
+    let authorisation_evidence_valid = validate_evidence(
         &binding.authorisation_evidence,
         &binding.plan_id,
         &binding.plan_revision,
@@ -900,9 +907,10 @@ pub fn reconcile(
         binding.start_tick,
         binding.end_tick,
         &mut seen_evidence,
+        &mut conflicted_evidence_ids,
         &mut diagnostics,
     );
-    validate_evidence(
+    let hook_load_limit_evidence_valid = validate_evidence(
         &binding.hook_load_limit_evidence,
         &binding.crane_id,
         &binding.crane_configuration_revision,
@@ -910,9 +918,10 @@ pub fn reconcile(
         binding.start_tick,
         binding.end_tick,
         &mut seen_evidence,
+        &mut conflicted_evidence_ids,
         &mut diagnostics,
     );
-    validate_evidence(
+    let gust_limit_evidence_valid = validate_evidence(
         &binding.gust_limit_evidence,
         &binding.gust_limit_profile_id,
         &binding.gust_limit_profile_revision,
@@ -920,6 +929,7 @@ pub fn reconcile(
         binding.start_tick,
         binding.end_tick,
         &mut seen_evidence,
+        &mut conflicted_evidence_ids,
         &mut diagnostics,
     );
     let mut matched_event_count = 0_usize;
@@ -1036,7 +1046,7 @@ pub fn reconcile(
             }
         }
 
-        validate_evidence(
+        let calibration_evidence_valid = validate_evidence(
             &event.calibration_or_source_evidence,
             &event.source_id,
             &event.source_revision,
@@ -1044,9 +1054,10 @@ pub fn reconcile(
             event.event_time_lower_tick,
             event.event_time_upper_tick.saturating_add(1),
             &mut seen_evidence,
+            &mut conflicted_evidence_ids,
             &mut diagnostics,
         );
-        validate_evidence(
+        let clock_mapping_evidence_valid = validate_evidence(
             &event.clock_mapping_evidence,
             &event.clock_mapping_id,
             &event.clock_mapping_revision,
@@ -1054,10 +1065,20 @@ pub fn reconcile(
             event.event_time_lower_tick,
             event.event_time_upper_tick.saturating_add(1),
             &mut seen_evidence,
+            &mut conflicted_evidence_ids,
             &mut diagnostics,
         );
-
         let channel = event.observation.channel();
+        if !calibration_evidence_valid || !clock_mapping_evidence_valid {
+            add_unknown(
+                &mut unknown_intervals,
+                channel,
+                event.event_time_lower_tick,
+                event.event_time_upper_tick.saturating_add(1),
+                "event_calibration_or_clock_mapping_evidence_invalid",
+            );
+            continue;
+        }
         let sequence_key = (channel, event.source_id.clone(), event.sequence);
 
         if conflicted_event_ids.contains(&event.event_id) {
@@ -1212,7 +1233,7 @@ pub fn reconcile(
                 "coverage_incomplete",
             );
         }
-        validate_evidence(
+        let _coverage_evidence_valid = validate_evidence(
             &stream.evidence,
             &stream.source_id,
             &stream.source_revision,
@@ -1220,6 +1241,7 @@ pub fn reconcile(
             binding.start_tick,
             binding.end_tick,
             &mut seen_evidence,
+            &mut conflicted_evidence_ids,
             &mut diagnostics,
         );
 
@@ -1249,7 +1271,22 @@ pub fn reconcile(
             }
         }
         channel_events.retain(|event| {
-            event.source_id == stream.source_id
+            let evidence_conflicted = conflicted_evidence_ids.contains(
+                &event.calibration_or_source_evidence.source_record_id,
+            ) || conflicted_evidence_ids.contains(
+                &event.clock_mapping_evidence.source_record_id,
+            );
+            if evidence_conflicted {
+                add_unknown(
+                    &mut unknown_intervals,
+                    *channel,
+                    event.event_time_lower_tick,
+                    event.event_time_upper_tick.saturating_add(1),
+                    "conflicting_event_source_evidence",
+                );
+            }
+            !evidence_conflicted
+                && event.source_id == stream.source_id
                 && event.source_revision == stream.source_revision
         });
         matched_event_count += channel_events.len();
