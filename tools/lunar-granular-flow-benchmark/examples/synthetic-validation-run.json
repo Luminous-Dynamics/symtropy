@@ -379,7 +379,8 @@
       "status": "synthetic",
       "source_artifact_id": null,
       "calibration_record_id": null
-    }
+    },
+    "vibration_profile_id": "SYN-VIBRATION-B"
   },
   "observations": {
     "raw_observation_artifact_id": "flow-trace-fixture",
