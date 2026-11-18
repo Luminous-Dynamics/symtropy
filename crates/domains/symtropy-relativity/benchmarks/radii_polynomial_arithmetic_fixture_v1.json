@@ -26,9 +26,11 @@
     "contraction_bound_less_than_one": true
   },
   "expected_lean_kernel_obligation": {
-    "proposition": "generalRadiiPolynomial Y0 Z0 Z1 (fun _ => Z2) r0 < 0",
-    "tactic": "norm_num [RadiiPolynomial.generalRadiiPolynomial]",
-    "note": "Illustrative tactic shape; exact imports/namespaced module should be checked in the pinned Lake project."
+    "import": "RadiiPolynomial.Certification.RadiiPolynomialQ",
+    "theorem": "RadiiPolynomial.generalRadiiPolynomial_neg_of_Q_const",
+    "lean_source": "crates/domains/symtropy-relativity/benchmarks/lean/radii_polynomial_arithmetic_fixture_v1.lean",
+    "rational_precondition": "Z2*q^2-(1-Z0-Z1)*q+Y0<0",
+    "note": "This is the exact adapter theorem found in the pinned upstream revision. The committed Lean example is authored but has not been compiled."
   },
   "validation": {
     "exact_rational_arithmetic_reproduced_by_independent_fraction_calculation": true,
@@ -37,7 +39,9 @@
     "Z0_derived_from_verified_inverse": false,
     "Z1_derived_from_operator_bound": false,
     "Z2_derived_from_nonlinear_remainder": false,
-    "black_hole_existence_claim": false
+    "black_hole_existence_claim": false,
+    "lean_source_authored": true,
+    "lean_source_compiled": false
   },
   "claim_ceiling": "This is a rational inequality plumbing fixture only. It does not verify any BVP operator bounds, solution existence, or black-hole physics."
 }
