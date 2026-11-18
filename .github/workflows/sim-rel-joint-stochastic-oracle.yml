@@ -2,12 +2,12 @@ name: SIM-REL-013 Joint Stochastic Oracle
 
 on:
   push:
-    branches: ["main", "research/sim-rel-013-*"]
+    branches: ["main", "research/sim-rel-013-*", "research/sim-rel-017-*"]
     paths:
       - "tools/sim-rel-joint-stochastic-oracle/**"
       - ".github/workflows/sim-rel-joint-stochastic-oracle.yml"
   pull_request:
-    branches: ["main", "research/sim-rel-012-stateful-frontier", "research/sim-rel-014-eig-baselines"]
+    branches: ["main", "research/sim-rel-012-stateful-frontier", "research/sim-rel-014-eig-baselines", "research/sim-rel-013-scientific-world-episode-adapter-v0-1"]
     paths:
       - "tools/sim-rel-joint-stochastic-oracle/**"
       - ".github/workflows/sim-rel-joint-stochastic-oracle.yml"
@@ -37,9 +37,9 @@ jobs:
       - name: Formatting
         run: cargo fmt --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml -- --check
       - name: Unit and exact joint-state tests
-        run: cargo test --locked --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml --lib
+        run: cargo test --locked --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml --all-targets
       - name: Strict Clippy
-        run: cargo clippy --locked --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml --lib -- -D warnings
+        run: cargo clippy --locked --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml --all-targets -- -D warnings
       - name: Verify exact checkout identity
         env:
           EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
