@@ -409,6 +409,8 @@ mod tests {
             PresenceReading::Absent,
         );
         stale_negative.observed_at_unix_ms = 100;
+        let mut stale_policy = policy();
+        stale_policy.maximum_observation_age_ms = 500;
         let report = adjudicate_receiver_presence(
             &[
                 observation(
@@ -419,7 +421,7 @@ mod tests {
                 ),
                 stale_negative,
             ],
-            &policy(),
+            &stale_policy,
         )
         .expect("well-formed observations");
         assert_eq!(report.verdict, PresenceVerdict::Stale);
@@ -435,7 +437,9 @@ mod tests {
             PresenceReading::Present,
         );
         stale.observed_at_unix_ms = 100;
-        let report = adjudicate_receiver_presence(&[stale], &policy())
+        let mut stale_policy = policy();
+        stale_policy.maximum_observation_age_ms = 500;
+        let report = adjudicate_receiver_presence(&[stale], &stale_policy)
             .expect("well-formed stale observation");
         assert_eq!(report.verdict, PresenceVerdict::Stale);
         assert_eq!(report.stale_observation_count, 1);
