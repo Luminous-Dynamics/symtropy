@@ -323,3 +323,45 @@ The tool intentionally does not calculate spoil mass, swell, excavation power, t
 Tracked implementation: [#5980 LUNAR-EXCAVATION-ACCOUNTING-001](https://github.com/Luminous-Dynamics/symtropy/issues/5980).  
 Observability work: [#5983 LUNAR-SUBSURFACE-OBSERVABILITY-001](https://github.com/Luminous-Dynamics/symtropy/issues/5983).
 Terrestrial physical analogue: [#5988 LUNAR-SUBSURFACE-EARTH-ANALOG-001](https://github.com/Luminous-Dynamics/symtropy/issues/5988).
+
+
+## 13. Source-scoped bulk-mass accounting — new executable layer
+
+The standalone Rust reference now includes a separate material-accounting object. It uses literature-scoped **bulk density** only where the material class matches:
+
+- Feldspathic highland crust: 2,200–2,600 kg/m³.
+- Impact-basin ejecta: 2,350–2,600 kg/m³.
+
+Kiefer et al. (2012) reports these as bulk-density intervals for those specific lunar geological classes, not as a universal density for every potential tunnel corridor: https://doi.org/10.1029/2012GL051319.
+
+For the 100 km × 30 m² × one-bore geometry reference (3,000,000 m³), the highland-crust interval gives 6.6–7.8 billion kg of in-situ bulk mass; the impact-basin-ejecta interval gives 7.05–7.8 billion kg. For the two-bore, 20% overbreak reference (7,200,000 m³), the corresponding intervals are 15.84–18.72 billion kg and 16.92–18.72 billion kg. These are conditional material-class scenarios, not site-specific mass estimates or transport loads.
+
+The report separately catalogs:
+- Apollo regolith source rows from NASA/TM-20240011783 Table 15, preserving mission and underlying publication;
+- terrestrial lunar-regolith simulant ranges from the same guide's Table 16, preserving simulant and regionality;
+- a separate loose_spoil_and_swell status of not_calculated because no loose-spoil density or handling-specific bank-to-loose ratio is supplied.
+
+NASA's guide shows why the provenance must remain granular: Apollo mission and source rows can differ substantially, including multiple source rows for the same mission. Do not collapse these into one universal lunar regolith value. The 2026 open database likewise preserves mission, test location, environment, method and multiple reported values: https://doi.org/10.1002/nag.70432.
+
+This material-accounting layer is deliberately not applied to the 72 geometry-only ring scenarios as a site-selected material. It exposes reference calculations and preserves the material-domain mismatch. Follow-on issue: [#6004 LUNAR-MATERIAL-ACCOUNTING-001](https://github.com/Luminous-Dynamics/symtropy/issues/6004).
+
+## 14. New closed-loop benchmark: planned excavation to accepted as-built asset
+
+A further paradigm shift is to measure **accepted construction output**, not only planned tunnel volume or machine-reported spoil.
+
+The new [#6006 LUNAR-ASBUILT-CLOSURE-001](https://github.com/Luminous-Dynamics/symtropy/issues/6006) defines the evidence chain:
+survey and calibration → geology/material assignment → planned segment → machine action → measured post-cut geometry → material mass/volume observations → spoil disposition → installed support → independent inspection and acceptance.
+
+Required metrics include:
+- planned versus measured volume and spatially resolved overbreak;
+- excavated mass versus transported, disposed and reused material closure;
+- kWh per independently accepted m³;
+- cutting, mucking, support, inspection and repair time shares;
+- accepted metres per mission-hour;
+- support mass/length and as-built coverage;
+- survey uncertainty, calibration drift and defect closure;
+- fraction of accepted asset with complete source-to-as-built evidence.
+
+Missing sensors, stale calibration, unit mismatches, duplicate IDs, conflicting measurements or incomplete mass balance produce UNKNOWN / RECONCILIATION_REQUIRED. They do not silently create accepted construction.
+
+This creates an evidence-carrying construction method that can be benchmarked on Earth now, and later adapted to lunar conditions without pretending a terrestrial result is flight qualification.
