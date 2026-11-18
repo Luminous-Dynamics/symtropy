@@ -671,6 +671,7 @@ mod tests {
     fn blank_and_duplicate_access_window_identities_are_rejected() {
         let mut plan = baseline();
         plan.access_windows.push(plan.access_windows[0].clone());
+        plan.access_windows.push(plan.access_windows[0].clone());
         plan.access_windows[0].access_id = " ".to_owned();
 
         let result = verify(&plan);
