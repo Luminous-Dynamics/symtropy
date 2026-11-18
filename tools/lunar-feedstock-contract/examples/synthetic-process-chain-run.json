@@ -629,7 +629,7 @@
       "artifact_id": "stage-settings-fixture",
       "role": "stage_settings",
       "path": "synthetic-stage-settings.json",
-      "sha256": "f6862796696ede185ee95960afc32d605b95f26eb9b283a9d0f0a11cd701f968"
+      "sha256": "894253ef04f40acde0f0cc800f122bb244c04bb0354ac833fb3a4c2f280c1f21"
     },
     {
       "artifact_id": "quality-assays-fixture",
