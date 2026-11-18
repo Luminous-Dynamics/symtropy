@@ -126,6 +126,49 @@ def main() -> None:
     )
     assert sp.simplify(gauge_P_w - expected_gauge_P_w) == 0
 
+    # Exact finite-alpha static Boulware-Deser control. All five equations,
+    # including the retained post-gauge E_g constraint, must vanish.
+    r_h = sp.symbols("r_H", positive=True, finite=True)
+    amplitude = alpha + 2 * r_h**2
+    radical = sp.sqrt(1 + alpha * amplitude / r**4)
+    F_bd = sp.factor(1 - amplitude / (r**2 * (1 + radical)))
+    bd_substitution = {
+        b: F_bd, f: F_bd, h: r**2, w: sp.Integer(0),
+        bp: sp.diff(F_bd, r), fp: sp.diff(F_bd, r),
+        hp: 2 * r, wp: sp.Integer(0),
+        bpp: sp.diff(F_bd, r, 2), fpp: sp.diff(F_bd, r, 2),
+        hpp: sp.Integer(2), wpp: sp.Integer(0),
+    }
+    bd_residuals = {
+        name: sp.factor(expression.subs(bd_substitution))
+        for name, expression in gauge_equations.items()
+    }
+    assert all(expression == 0 for expression in bd_residuals.values())
+
+    # Exact alpha=0 equal-spin Myers-Perry control in the same g=r^2 gauge.
+    omega_h = sp.symbols("Omega_H", positive=True, finite=True)
+    q_mp = r_h**2 * omega_h**2
+    u_mp = (r_h / r)**2
+    D_mp = 1 - q_mp + q_mp * u_mp**2
+    b_mp = sp.factor(1 - u_mp / D_mp)
+    f_mp = sp.factor(
+        (1 - u_mp) * (1 - q_mp * (1 + u_mp)) / (1 - q_mp)
+    )
+    h_mp = sp.factor(r**2 + r_h**2 * q_mp * u_mp / (1 - q_mp))
+    w_mp = sp.factor(omega_h * u_mp**2 / D_mp)
+    mp_substitution = {
+        b: b_mp, f: f_mp, h: h_mp, w: w_mp, alpha: sp.Integer(0),
+        bp: sp.diff(b_mp, r), fp: sp.diff(f_mp, r),
+        hp: sp.diff(h_mp, r), wp: sp.diff(w_mp, r),
+        bpp: sp.diff(b_mp, r, 2), fpp: sp.diff(f_mp, r, 2),
+        hpp: sp.diff(h_mp, r, 2), wpp: sp.diff(w_mp, r, 2),
+    }
+    mp_residuals = {
+        name: sp.factor(expression.subs(mp_substitution))
+        for name, expression in gauge_equations.items()
+    }
+    assert all(expression == 0 for expression in mp_residuals.values())
+
     # If one substitutes g=r^2 into the action before variation, the g
     # Euler-Lagrange equation is absent. This explicitly records the lost
     # radial equation rather than pretending a gauge-fixed action produced it.
