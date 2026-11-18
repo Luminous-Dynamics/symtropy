@@ -90,9 +90,9 @@ pub struct PreferenceEvent {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PreferenceLedger {
-    /// Append-only per-stakeholder revision events. Events may be interleaved
-    /// across stakeholders; each individual history must remain revision ordered.
-    pub events: Vec<PreferenceEvent>,
+    /// Raw preference/consent records remain encapsulated after ownership is
+    /// transferred into the ledger. No public getter exposes this collection.
+    events: Vec<PreferenceEvent>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -351,6 +351,15 @@ fn validate_preference_payload(event: &PreferenceEvent) -> Result<(), Preference
 }
 
 impl PreferenceLedger {
+    /// Take ownership of preference/consent records and validate their
+    /// append-only identity/revision/chronology contract before storage.
+    /// Callers should not retain duplicate raw copies when using this API.
+    pub fn from_events(events: Vec<PreferenceEvent>) -> Result<Self, PreferenceError> {
+        let ledger = Self { events };
+        ledger.validate()?;
+        Ok(ledger)
+    }
+
     pub fn validate(&self) -> Result<(), PreferenceError> {
         let mut event_ids = HashSet::with_capacity(self.events.len());
         let mut progress: BTreeMap<String, StakeholderProgress> = BTreeMap::new();
