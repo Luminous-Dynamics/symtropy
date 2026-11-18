@@ -107,6 +107,7 @@ pub enum RobustCapacityError {
     ResourceDefinitionMismatch(String),
     InvalidCapacityWindow(String),
     InvalidCapacityBounds(String),
+    CapacityWindowExceedsDeclaredMaximum(String),
     OverlappingCapacityWindows(String),
     ArithmeticOverflow,
 }
@@ -175,6 +176,14 @@ pub fn evaluate_robust_cumulative_resource_capacity(
             || window.nominal_capacity_units > window.upper_capacity_units
         {
             errors.push(RobustCapacityError::InvalidCapacityBounds(
+                window.resource_id.clone(),
+            ));
+        }
+        // This profile models time-varying derating/availability, not a
+        // unilateral increase in installed resource capacity. An increase
+        // requires a new owner-approved resource definition/catalog digest.
+        if window.upper_capacity_units > definition.capacity_units {
+            errors.push(RobustCapacityError::CapacityWindowExceedsDeclaredMaximum(
                 window.resource_id.clone(),
             ));
         }
@@ -601,4 +610,20 @@ mod tests {
             evaluate_robust_cumulative_resource_capacity(&reverse).unwrap()
         );
     }
+
+    #[test]
+    fn derating_profile_cannot_increase_declared_installed_capacity() {
+        let invalid = RobustCumulativeCapacityScenario {
+            base: base(),
+            availability_windows: vec![window(10, 20, 4, 5, 5)],
+        };
+        assert!(
+            evaluate_robust_cumulative_resource_capacity(&invalid)
+                .unwrap_err()
+                .contains(&RobustCapacityError::CapacityWindowExceedsDeclaredMaximum(
+                    "hoist".into()
+                ))
+        );
+    }
+
 }
