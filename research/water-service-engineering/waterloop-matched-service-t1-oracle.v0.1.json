@@ -1633,8 +1633,8 @@
       "control_energy_observed_block_count": 6,
       "net_energy_delta_kwh": 0.09000000000000001,
       "net_energy_observed_block_count": 6,
-      "energy_kwh_per_1000l_lower_credit": 0.3246753246753247,
-      "net_energy_kwh_per_1000l_lower_credit": 0.19480519480519484,
+      "energy_kwh_per_1000l_lower_credit": 0.38961038961038963,
+      "net_energy_kwh_per_1000l_lower_credit": 0.2337662337662338,
       "block_dispositions": [
         {
           "block_id": "B1",
@@ -1741,8 +1741,8 @@
       "control_energy_observed_block_count": 6,
       "net_energy_delta_kwh": 0.09000000000000001,
       "net_energy_observed_block_count": 6,
-      "energy_kwh_per_1000l_lower_credit": 0.3246753246753247,
-      "net_energy_kwh_per_1000l_lower_credit": 0.19480519480519484,
+      "energy_kwh_per_1000l_lower_credit": 0.38961038961038963,
+      "net_energy_kwh_per_1000l_lower_credit": 0.2337662337662338,
       "block_dispositions": [
         {
           "block_id": "B1",
@@ -1849,8 +1849,8 @@
       "control_energy_observed_block_count": 6,
       "net_energy_delta_kwh": 0.09000000000000001,
       "net_energy_observed_block_count": 6,
-      "energy_kwh_per_1000l_lower_credit": 0.3246753246753247,
-      "net_energy_kwh_per_1000l_lower_credit": 0.19480519480519484,
+      "energy_kwh_per_1000l_lower_credit": 0.38961038961038963,
+      "net_energy_kwh_per_1000l_lower_credit": 0.2337662337662338,
       "block_dispositions": [
         {
           "block_id": "B1",
@@ -1957,8 +1957,8 @@
       "control_energy_observed_block_count": 6,
       "net_energy_delta_kwh": 0.09000000000000001,
       "net_energy_observed_block_count": 6,
-      "energy_kwh_per_1000l_lower_credit": 0.3246753246753247,
-      "net_energy_kwh_per_1000l_lower_credit": 0.19480519480519484,
+      "energy_kwh_per_1000l_lower_credit": 0.38961038961038963,
+      "net_energy_kwh_per_1000l_lower_credit": 0.2337662337662338,
       "block_dispositions": [
         {
           "block_id": "B1",
