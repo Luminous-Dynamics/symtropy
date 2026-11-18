@@ -40,6 +40,7 @@ pub enum CovarianceError {
     InvalidCorrelationScale,
     DimensionMismatch { expected: usize, actual: usize },
     NonFiniteResidual { index: usize },
+    NonFiniteObservedValue { index: usize },
     NonFiniteResult,
     NoObservedValues,
     InvalidObservationIdentity,
@@ -72,9 +73,10 @@ impl fmt::Display for CovarianceError {
                 write!(f, "dimension mismatch: expected {expected}, received {actual}")
             }
             Self::NonFiniteResidual { index } => write!(f, "residual entry {index} must be finite"),
+            Self::NonFiniteObservedValue { index } => write!(f, "observed entry {index} must be finite"),
             Self::NonFiniteResult => write!(f, "covariance operation produced a non-finite result"),
             Self::NoObservedValues => write!(f, "at least one observed component is required"),
-            Self::InvalidObservationIdentity => write!(f, "covariance, process and sampling policy IDs must be non-empty"),
+            Self::InvalidObservationIdentity => write!(f, "covariance, process, sampling, operator and availability IDs must be non-empty"),
             Self::InvalidSensorOrder => write!(f, "sensor IDs must be non-empty and unique"),
             Self::TraceSensorOrderMismatch => write!(f, "bound covariance sensor order does not match the observation trace"),
             Self::TraceTimeScheduleMismatch => write!(f, "bound covariance time schedule does not match the observation trace"),
@@ -208,6 +210,8 @@ pub struct ObservationCovarianceV1 {
     pub covariance_id: String,
     pub observation_process_id: String,
     pub sampling_policy_id: String,
+    pub observation_operator_id: String,
+    pub availability_cutoff_id: String,
     pub sensor_ids: Vec<u32>,
     pub times: Vec<f64>,
     covariance: DenseSpdCovariance,
@@ -218,6 +222,8 @@ impl ObservationCovarianceV1 {
         covariance_id: String,
         observation_process_id: String,
         sampling_policy_id: String,
+        observation_operator_id: String,
+        availability_cutoff_id: String,
         sensor_ids: Vec<u32>,
         times: Vec<f64>,
         covariance: DenseSpdCovariance,
@@ -225,6 +231,8 @@ impl ObservationCovarianceV1 {
         if covariance_id.trim().is_empty()
             || observation_process_id.trim().is_empty()
             || sampling_policy_id.trim().is_empty()
+            || observation_operator_id.trim().is_empty()
+            || availability_cutoff_id.trim().is_empty()
         {
             return Err(CovarianceError::InvalidObservationIdentity);
         }
@@ -255,6 +263,8 @@ impl ObservationCovarianceV1 {
             covariance_id,
             observation_process_id,
             sampling_policy_id,
+            observation_operator_id,
+            availability_cutoff_id,
             sensor_ids,
             times,
             covariance,
@@ -284,6 +294,8 @@ pub struct ObservationProcessAdequacyReportV1 {
     pub covariance_id: String,
     pub observation_process_id: String,
     pub sampling_policy_id: String,
+    pub observation_operator_id: String,
+    pub availability_cutoff_id: String,
     pub sensor_ids: Vec<u32>,
     pub times: Vec<f64>,
     pub covariance_dimension: usize,
@@ -435,6 +447,13 @@ pub fn select_observed_subspace(
         return Err(CovarianceError::NoObservedValues);
     }
     let selected_values: Vec<f64> = indices.iter().map(|index| values[*index]).collect();
+    for (selected_index, value) in selected_values.iter().enumerate() {
+        if !value.is_finite() {
+            return Err(CovarianceError::NonFiniteObservedValue {
+                index: indices[selected_index],
+            });
+        }
+    }
     let selected_matrix: Vec<Vec<f64>> = indices
         .iter()
         .map(|row| {
@@ -640,6 +659,8 @@ pub fn evaluate_model_family_adequacy_full_covariance(
         covariance_id: covariance.covariance_id.clone(),
         observation_process_id: covariance.observation_process_id.clone(),
         sampling_policy_id: covariance.sampling_policy_id.clone(),
+        observation_operator_id: covariance.observation_operator_id.clone(),
+        availability_cutoff_id: covariance.availability_cutoff_id.clone(),
         sensor_ids: covariance.sensor_ids.clone(),
         times: covariance.times.clone(),
         covariance_dimension: covariance.covariance().dimension(),
@@ -934,6 +955,8 @@ mod tests {
             "covariance-sha256:fixture".to_owned(),
             "noise-process:ar1-rho-0.8".to_owned(),
             "sampling-policy:two-evenly-spaced-times".to_owned(),
+            "operator:scalar-node-sensor".to_owned(),
+            "availability:cutoff-v1".to_owned(),
             vec![7],
             vec![0.25, 0.5],
             covariance,
@@ -1053,6 +1076,8 @@ mod tests {
             "covariance:ar1-fixture".to_owned(),
             "process:gaussian-ar1-rho-0.8".to_owned(),
             "sampling:two-times".to_owned(),
+            "operator:node-0-sensor".to_owned(),
+            "availability:fixture-cutoff".to_owned(),
             vec![10],
             vec![0.25, 0.5],
             ar1_time_covariance(2, 0.8).unwrap(),
@@ -1081,6 +1106,8 @@ mod tests {
         assert_eq!(report.covariance_id, "covariance:ar1-fixture");
         assert_eq!(report.observation_process_id, "process:gaussian-ar1-rho-0.8");
         assert_eq!(report.sampling_policy_id, "sampling:two-times");
+        assert_eq!(report.observation_operator_id, "operator:node-0-sensor");
+        assert_eq!(report.availability_cutoff_id, "availability:fixture-cutoff");
         assert_eq!(report.covariance_dimension, 2);
     }
 
