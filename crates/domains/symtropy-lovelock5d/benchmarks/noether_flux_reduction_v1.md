@@ -16,14 +16,25 @@ I=\frac{1}{16\pi G}\int d^5x\sqrt{-g}
 \]
 The coupling convention is the Akribeia convention \(\alpha=4\alpha_2/\alpha_1\), with \(\alpha_1=(16\pi G)^{-1}\) and \(\alpha_0=0\).
 
-Use the equal-spin cohomogeneity-one ansatz
+Use the complete equal-spin cohomogeneity-one coordinate ansatz of Brihaye et al., Eq. (2.8):
 \[
-ds^2=-b(r)dt^2+\frac{dr^2}{f(r)}
-+g(r)d\theta^2
-+h(r)\sin^2\theta(d\phi_1-w(r)dt)^2
-+h(r)\cos^2\theta(d\phi_2-w(r)dt)^2.
+\begin{aligned}
+ds^2={}&-b(r)dt^2+\frac{dr^2}{f(r)}+g(r)d\theta^2\\
+&+h(r)\sin^2\theta(d\phi_1-w(r)dt)^2
++h(r)\cos^2\theta(d\phi_2-w(r)dt)^2\\
+&+(g(r)-h(r))\sin^2\theta\cos^2\theta
+(d\phi_1-d\phi_2)^2.
+\end{aligned}
 \]
-The Hopf/left-invariant frame is another representation of this ansatz. Its exact one-form normalization and orientation must be mapped explicitly before exchanging coefficients. Do not identify the forms by name alone.
+The final angular cross-term is essential whenever \(g\ne h\). Omitting it changes the metric and invalidates a full tensor derivation.
+
+The equivalent left-invariant Hopf-frame form is
+\[
+ds^2=-b\,dt^2+\frac{dr^2}{f}
++\frac g4(\sigma_1^2+\sigma_2^2)
++\frac h4(\sigma_3+2w\,dt)^2.
+\]
+The exact one-form normalization and orientation must be mapped explicitly before exchanging coefficients. Do not identify the forms by name alone.
 
 The reduced radial action must be varied before imposing \(g=r^2\), following Brihaye et al. (2010), arXiv:1010.0860. The gauge-fixed flux expression below may only be applied after the variation and after the areal-base gauge is imposed.
 
