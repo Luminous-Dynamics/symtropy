@@ -1,0 +1,399 @@
+{
+  "schema_version": "haps-fleet-service-availability/v1",
+  "case_id": "synthetic.haps.fleet.30day.airborne-holding-reserve.001",
+  "revision": 1,
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_fleet_availability_oracle",
+  "evaluation_window_h": 720,
+  "service_contract": {
+    "required_service_capacity_units": 3,
+    "service_interval_h": 1,
+    "strict_availability_rule": "effective_capacity_units >= required_service_capacity_units",
+    "capacity_adequacy_rule": "sum(min(effective_capacity / demand, 1) * interval_hours) / evaluation_window_hours"
+  },
+  "fleet_policy": {
+    "policy_id": "three_required_units_plus_one_airborne_holding_reserve",
+    "primary_platform_ids": [
+      "HAPS-A",
+      "HAPS-B",
+      "HAPS-C"
+    ],
+    "reserve_platform_ids": [
+      "HAPS-D"
+    ],
+    "reserve_activation_lead_time_h": 2,
+    "maintenance_rotation_policy": "staggered_one_at_a_time",
+    "reserve_ready_state": "airborne_holding"
+  },
+  "platforms": [
+    {
+      "platform_id": "HAPS-A",
+      "platform_family": "solar_fixed_wing_haps",
+      "role": "primary",
+      "service_capacity_units": 1,
+      "segments": [
+        {
+          "start_h": 0,
+          "end_h": 240,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 240,
+          "end_h": 264,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "scheduled_inspection"
+        },
+        {
+          "start_h": 264,
+          "end_h": 720,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        }
+      ]
+    },
+    {
+      "platform_id": "HAPS-B",
+      "platform_family": "solar_fixed_wing_haps",
+      "role": "primary",
+      "service_capacity_units": 1,
+      "segments": [
+        {
+          "start_h": 0,
+          "end_h": 480,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 480,
+          "end_h": 504,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "scheduled_inspection"
+        },
+        {
+          "start_h": 504,
+          "end_h": 720,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        }
+      ]
+    },
+    {
+      "platform_id": "HAPS-C",
+      "platform_family": "solar_fixed_wing_haps",
+      "role": "primary",
+      "service_capacity_units": 1,
+      "segments": [
+        {
+          "start_h": 0,
+          "end_h": 360,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 360,
+          "end_h": 384,
+          "state": "unscheduled_repair",
+          "capacity_fraction": 0,
+          "cause": "propulsion_fault"
+        },
+        {
+          "start_h": 384,
+          "end_h": 720,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        }
+      ]
+    },
+    {
+      "platform_id": "HAPS-D",
+      "platform_family": "solar_fixed_wing_haps",
+      "role": "reserve",
+      "service_capacity_units": 1,
+      "segments": [
+        {
+          "start_h": 0,
+          "end_h": 238,
+          "state": "airborne_holding",
+          "capacity_fraction": 0,
+          "cause": "airborne_holding_pool"
+        },
+        {
+          "start_h": 238,
+          "end_h": 240,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "cover_HAPS_A_maintenance"
+        },
+        {
+          "start_h": 240,
+          "end_h": 264,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": "cover_HAPS_A_maintenance"
+        },
+        {
+          "start_h": 264,
+          "end_h": 266,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "return_to_holding_area"
+        },
+        {
+          "start_h": 266,
+          "end_h": 358,
+          "state": "airborne_holding",
+          "capacity_fraction": 0,
+          "cause": "airborne_holding_pool"
+        },
+        {
+          "start_h": 358,
+          "end_h": 360,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "replace_HAPS_C_fault"
+        },
+        {
+          "start_h": 360,
+          "end_h": 384,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": "cover_HAPS_C_repair"
+        },
+        {
+          "start_h": 384,
+          "end_h": 386,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "return_to_holding_area"
+        },
+        {
+          "start_h": 386,
+          "end_h": 478,
+          "state": "airborne_holding",
+          "capacity_fraction": 0,
+          "cause": "airborne_holding_pool"
+        },
+        {
+          "start_h": 478,
+          "end_h": 480,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "cover_HAPS_B_maintenance"
+        },
+        {
+          "start_h": 480,
+          "end_h": 504,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": "cover_HAPS_B_maintenance"
+        },
+        {
+          "start_h": 504,
+          "end_h": 506,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "return_to_holding_area"
+        },
+        {
+          "start_h": 506,
+          "end_h": 720,
+          "state": "airborne_holding",
+          "capacity_fraction": 0,
+          "cause": "airborne_holding_pool"
+        }
+      ]
+    }
+  ],
+  "common_cause_events": [
+    {
+      "event_id": "weather-regime-common-cause-001",
+      "start_h": 600,
+      "end_h": 624,
+      "event_class": "stratospheric_weather",
+      "affected_platform_ids": [
+        "HAPS-A",
+        "HAPS-B",
+        "HAPS-C",
+        "HAPS-D"
+      ],
+      "service_capacity_multiplier": 0.7,
+      "launch_site_open": false,
+      "recovery_site_open": false
+    }
+  ],
+  "launch_recovery_events": [
+    {
+      "event_id": "reserve-reposition-1",
+      "platform_id": "HAPS-D",
+      "operation": "reposition",
+      "start_h": 238,
+      "end_h": 240,
+      "purpose": "move from holding area to HAPS-A service region",
+      "site_available": true
+    },
+    {
+      "event_id": "reserve-reposition-2",
+      "platform_id": "HAPS-D",
+      "operation": "reposition",
+      "start_h": 264,
+      "end_h": 266,
+      "purpose": "return to holding area after HAPS-A maintenance",
+      "site_available": true
+    },
+    {
+      "event_id": "reserve-reposition-3",
+      "platform_id": "HAPS-D",
+      "operation": "reposition",
+      "start_h": 358,
+      "end_h": 360,
+      "purpose": "move from holding area to cover HAPS-C repair",
+      "site_available": true
+    },
+    {
+      "event_id": "reserve-reposition-4",
+      "platform_id": "HAPS-D",
+      "operation": "reposition",
+      "start_h": 384,
+      "end_h": 386,
+      "purpose": "return to holding area after HAPS-C repair",
+      "site_available": true
+    },
+    {
+      "event_id": "reserve-reposition-5",
+      "platform_id": "HAPS-D",
+      "operation": "reposition",
+      "start_h": 478,
+      "end_h": 480,
+      "purpose": "move from holding area to HAPS-B service region",
+      "site_available": true
+    },
+    {
+      "event_id": "reserve-reposition-6",
+      "platform_id": "HAPS-D",
+      "operation": "reposition",
+      "start_h": 504,
+      "end_h": 506,
+      "purpose": "return to holding area after HAPS-B maintenance",
+      "site_available": true
+    }
+  ],
+  "logistics_limits": {
+    "simultaneous_launch_capacity": 0,
+    "simultaneous_recovery_capacity": 0,
+    "maintenance_bays": 1,
+    "ground_ready_spares": 0,
+    "launch_lead_time_h": 12,
+    "recovery_duration_h": 12,
+    "reposition_duration_h": 2,
+    "airborne_holding_slots": 1,
+    "simultaneous_reposition_capacity": 1
+  },
+  "expected_oracle": {
+    "oracle_status": "independently_calculated",
+    "spare_rotation": {
+      "strict_service_available_h": 696,
+      "strict_availability_fraction": 0.9666666666666667,
+      "capacity_adequate_h": 712.8,
+      "capacity_adequacy_fraction": 0.99,
+      "unserved_service_equivalent_h": 7.2,
+      "strict_outage_h": 24,
+      "maximum_contiguous_outage_h": 24,
+      "reserve_strategy_energy_wh": 366000,
+      "outage_intervals": [
+        {
+          "start_h": 600,
+          "end_h": 624,
+          "duration_h": 24,
+          "minimum_effective_capacity_units": 2.1
+        }
+      ]
+    },
+    "three_platform_no_spare_baseline": {
+      "strict_service_available_h": 624,
+      "strict_availability_fraction": 0.8666666666666667,
+      "capacity_adequate_h": 688.8,
+      "capacity_adequacy_fraction": 0.9566666666666667,
+      "unserved_service_equivalent_h": 31.2,
+      "strict_outage_h": 96,
+      "maximum_contiguous_outage_h": 24,
+      "outage_intervals": [
+        {
+          "start_h": 240,
+          "end_h": 264,
+          "duration_h": 24,
+          "minimum_effective_capacity_units": 2
+        },
+        {
+          "start_h": 360,
+          "end_h": 384,
+          "duration_h": 24,
+          "minimum_effective_capacity_units": 2
+        },
+        {
+          "start_h": 480,
+          "end_h": 504,
+          "duration_h": 24,
+          "minimum_effective_capacity_units": 2
+        },
+        {
+          "start_h": 600,
+          "end_h": 624,
+          "duration_h": 24,
+          "minimum_effective_capacity_units": 2.1
+        }
+      ],
+      "reserve_strategy_energy_wh": 0
+    },
+    "comparison": {
+      "strict_availability_gain_percentage_points": 9.999999999999998,
+      "capacity_adequacy_gain_percentage_points": 3.3333333333333437,
+      "spare_activation_events": 3,
+      "launch_operations": 0,
+      "recovery_operations": 0,
+      "reposition_operations": 6,
+      "maintenance_overlap_violations": 0,
+      "reserve_strategy_energy_wh": 366000
+    }
+  },
+  "source_evidence_refs": [
+    "https://doi.org/10.1016/j.ress.2025.111450",
+    "https://doi.org/10.1016/j.ress.2024.110419",
+    "https://doi.org/10.3390/a19100879",
+    "https://doi.org/10.1016/j.ress.2026.112775"
+  ],
+  "assumptions": [
+    "This is a synthetic deterministic 720-hour service schedule; it is not a measured airborne reserve policy or provider reliability estimate.",
+    "Three primary platforms are required for the service. HAPS-D is a single airborne holding reserve that contributes zero service while holding or repositioning.",
+    "The reserve uses a synthetic two-hour reposition lead time to a service region; this is an illustrative control/route assumption, not measured performance.",
+    "The three replacement missions each keep HAPS-D on station for 24 hours to cover HAPS-A maintenance, HAPS-C repair, and HAPS-B maintenance respectively.",
+    "The reserve returns to a designated airborne holding region after each coverage mission; no takeoff or landing occurs in this synthetic variant.",
+    "The primary platform maintenance/repair schedule, common-cause weather event, required service capacity and 30-day horizon are identical to the ground-ready-spare comparator.",
+    "The common-cause weather event from hour 600 to 624 derates all affected airborne HAPS service contribution by 0.7, reducing three primary units to 2.1 effective service-capacity units and causing a strict outage despite the airborne reserve being in its holding region.",
+    "Reserve state power values are synthetic total electrical power assumptions for the reserve platform in each declared state. The computed reserve strategy energy is the integral of those state powers over 720 hours; it is not measured aircraft power, and it excludes primary-platform energy and any unrepresented payload/thermal/communications loads.",
+    "The event replay computes 636 h airborne holding at 500 W, 12 h repositioning at 1,000 W, and 72 h on station at 500 W, for 366,000 Wh reserve strategy energy.",
+    "Capacity adequacy is capped at the full service requirement; extra HAPS capacity above three units does not earn additional availability credit.",
+    "This fixture does not model flight dynamics, wind forecast, station-keeping energy, airworthiness, launch/recovery, battery ageing, thermal coupling, radio capacity, cross-layer fallback, or legal permission.",
+    "A ground-ready reserve and an airborne holding reserve are distinct operational strategies. Their activation times, energy costs, weather exposure, maintenance requirements and safety constraints must be assessed using measured platform data before any engineering recommendation."
+  ],
+  "reserve_state_power_w": {
+    "ground_ready_power_w": 15,
+    "airborne_holding_power_w": 500,
+    "launching_power_w": 1500,
+    "repositioning_power_w": 1000,
+    "on_station_power_w": 500,
+    "recovering_power_w": 1200,
+    "planned_maintenance_power_w": 200,
+    "unscheduled_repair_power_w": 200,
+    "grounded_weather_power_w": 0,
+    "inactive_power_w": 0
+  }
+}
