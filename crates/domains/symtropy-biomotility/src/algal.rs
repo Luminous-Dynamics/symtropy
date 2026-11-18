@@ -260,6 +260,7 @@ pub enum PhototaxisAlignment {
     Negative,
     WeakOrAmbiguous,
     Unresolved,
+    NotAssessed,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -369,7 +370,7 @@ pub fn classify_chlamydomonas_track(
     let stimulus_alignment_cosine = match (
         kinematic_class,
         track.net_displacement_heading_rad,
-        track.stimulus_axis_heading_rad,
+        track.positive_phototaxis_axis_heading_rad,
     ) {
         (
             ChlamydomonasKinematicClass::Directional,
@@ -379,7 +380,7 @@ pub fn classify_chlamydomonas_track(
         _ => None,
     };
     let phototaxis_alignment = if kinematic_class != ChlamydomonasKinematicClass::Directional {
-        PhototaxisAlignment::Unresolved
+        PhototaxisAlignment::NotAssessed
     } else if let Some(alignment) = stimulus_alignment_cosine {
         if alignment >= policy.phototaxis_alignment_threshold {
             PhototaxisAlignment::Positive
@@ -413,6 +414,7 @@ pub struct ChlamydomonasPopulationSummary {
     pub negative_phototaxis_count: usize,
     pub weak_or_ambiguous_alignment_count: usize,
     pub unresolved_alignment_count: usize,
+    pub not_assessed_alignment_count: usize,
     pub positive_fraction_among_aligned_directional: Option<f64>,
     pub negative_fraction_among_aligned_directional: Option<f64>,
     pub mean_directional_alignment: Option<f64>,
@@ -434,6 +436,7 @@ pub fn summarize_chlamydomonas_tracks(
     let mut negative_phototaxis_count = 0;
     let mut weak_or_ambiguous_alignment_count = 0;
     let mut unresolved_alignment_count = 0;
+    let mut not_assessed_alignment_count = 0;
     let mut directional_headings = Vec::new();
     let mut directional_alignments = Vec::new();
 
@@ -461,6 +464,7 @@ pub fn summarize_chlamydomonas_tracks(
             PhototaxisAlignment::Negative => negative_phototaxis_count += 1,
             PhototaxisAlignment::WeakOrAmbiguous => weak_or_ambiguous_alignment_count += 1,
             PhototaxisAlignment::Unresolved => unresolved_alignment_count += 1,
+            PhototaxisAlignment::NotAssessed => not_assessed_alignment_count += 1,
         }
     }
 
@@ -484,6 +488,7 @@ pub fn summarize_chlamydomonas_tracks(
         negative_phototaxis_count,
         weak_or_ambiguous_alignment_count,
         unresolved_alignment_count,
+        not_assessed_alignment_count,
         positive_fraction_among_aligned_directional: (aligned_directional_count > 0)
             .then(|| positive_phototaxis_count as f64 / aligned_directional_count as f64),
         negative_fraction_among_aligned_directional: (aligned_directional_count > 0)
@@ -518,19 +523,39 @@ impl fmt::Display for AlgalKinematicsError {
         match self {
             Self::EmptySampleId => write!(formatter, "raphe sample ID must be non-empty"),
             Self::EmptyTrackId => write!(formatter, "track ID must be non-empty"),
-            Self::InvalidObservationTime => write!(formatter, "observation time must be finite and non-negative"),
-            Self::InvalidTrackDuration => write!(formatter, "track duration must be finite and positive"),
-            Self::InvalidTrackMeasurement => write!(formatter, "track path/displacement must be finite and non-negative"),
-            Self::InvalidClassificationPolicy => write!(formatter, "classification thresholds must be finite, ordered and in range"),
+            Self::InvalidObservationTime => {
+                write!(formatter, "observation time must be finite and non-negative")
+            }
+            Self::InvalidTrackDuration => {
+                write!(formatter, "track duration must be finite and positive")
+            }
+            Self::InvalidTrackMeasurement => {
+                write!(formatter, "track path/displacement must be finite and non-negative")
+            }
+            Self::InvalidClassificationPolicy => {
+                write!(formatter, "classification thresholds must be finite, ordered and in range")
+            }
             Self::NonFiniteMeasurement => write!(formatter, "curvature measurement must be finite"),
-            Self::NonFiniteHeading => write!(formatter, "track and stimulus headings must be finite"),
-            Self::NonFiniteDerivedValue => write!(formatter, "derived kinematic value is non-finite"),
-            Self::DisplacementExceedsPath => write!(formatter, "net displacement cannot exceed path length"),
-            Self::MissingRapheMeasurement => write!(formatter, "one/two-raphe contact needs raphe and path curvature measurements"),
+            Self::NonFiniteHeading => {
+                write!(formatter, "track and stimulus headings must be finite")
+            }
+            Self::NonFiniteDerivedValue => {
+                write!(formatter, "derived kinematic value is non-finite")
+            }
+            Self::DisplacementExceedsPath => {
+                write!(formatter, "net displacement cannot exceed path length")
+            }
+            Self::MissingRapheMeasurement => {
+                write!(formatter, "one/two-raphe contact needs raphe and path curvature measurements")
+            }
             Self::DuplicateSampleId => write!(formatter, "duplicate raphe sample ID"),
             Self::DuplicateTrackId => write!(formatter, "duplicate track ID"),
-            Self::NoEligibleRapheSamples => write!(formatter, "no evidence-qualified raphe observations for calibration"),
-            Self::MissingRapheModeCalibration => write!(formatter, "held-out sample uses a raphe mode without fitted calibration"),
+            Self::NoEligibleRapheSamples => {
+                write!(formatter, "no evidence-qualified raphe observations for calibration")
+            }
+            Self::MissingRapheModeCalibration => {
+                write!(formatter, "held-out sample uses a raphe mode without fitted calibration")
+            }
             Self::NonFinitePrediction => write!(formatter, "curvature prediction is non-finite"),
         }
     }
@@ -544,13 +569,62 @@ mod tests {
 
     fn raphe_samples() -> Vec<RapheCurvatureObservation<'static>> {
         vec![
-            RapheCurvatureObservation { sample_id: "one-1", time_s: 0.0, contact_mode: RapheContactMode::OneRapheBranch, active_raphe_curvature_inv_um: Some(0.1), observed_path_curvature_inv_um: Some(0.25), evidence_status: EventEvidenceStatus::DirectlyObserved },
-            RapheCurvatureObservation { sample_id: "one-2", time_s: 1.0, contact_mode: RapheContactMode::OneRapheBranch, active_raphe_curvature_inv_um: Some(0.2), observed_path_curvature_inv_um: Some(0.45), evidence_status: EventEvidenceStatus::DirectlyObserved },
-            RapheCurvatureObservation { sample_id: "one-3", time_s: 2.0, contact_mode: RapheContactMode::OneRapheBranch, active_raphe_curvature_inv_um: Some(0.3), observed_path_curvature_inv_um: Some(0.65), evidence_status: EventEvidenceStatus::ModelLatent },
-            RapheCurvatureObservation { sample_id: "two-1", time_s: 0.0, contact_mode: RapheContactMode::TwoRapheBranches, active_raphe_curvature_inv_um: Some(0.1), observed_path_curvature_inv_um: Some(0.12), evidence_status: EventEvidenceStatus::DirectlyObserved },
-            RapheCurvatureObservation { sample_id: "two-2", time_s: 1.0, contact_mode: RapheContactMode::TwoRapheBranches, active_raphe_curvature_inv_um: Some(0.2), observed_path_curvature_inv_um: Some(0.22), evidence_status: EventEvidenceStatus::DirectlyObserved },
-            RapheCurvatureObservation { sample_id: "inferred", time_s: 1.0, contact_mode: RapheContactMode::OneRapheBranch, active_raphe_curvature_inv_um: Some(0.4), observed_path_curvature_inv_um: Some(0.85), evidence_status: EventEvidenceStatus::AlgorithmInferred },
-            RapheCurvatureObservation { sample_id: "unresolved", time_s: 1.0, contact_mode: RapheContactMode::Unresolved, active_raphe_curvature_inv_um: None, observed_path_curvature_inv_um: None, evidence_status: EventEvidenceStatus::Unresolved },
+            RapheCurvatureObservation {
+                sample_id: "one-1",
+                time_s: 0.0,
+                contact_mode: RapheContactMode::OneRapheBranch,
+                active_raphe_curvature_inv_um: Some(0.1),
+                observed_path_curvature_inv_um: Some(0.25),
+                evidence_status: EventEvidenceStatus::DirectlyObserved,
+            },
+            RapheCurvatureObservation {
+                sample_id: "one-2",
+                time_s: 1.0,
+                contact_mode: RapheContactMode::OneRapheBranch,
+                active_raphe_curvature_inv_um: Some(0.2),
+                observed_path_curvature_inv_um: Some(0.45),
+                evidence_status: EventEvidenceStatus::DirectlyObserved,
+            },
+            RapheCurvatureObservation {
+                sample_id: "one-3",
+                time_s: 2.0,
+                contact_mode: RapheContactMode::OneRapheBranch,
+                active_raphe_curvature_inv_um: Some(0.3),
+                observed_path_curvature_inv_um: Some(0.65),
+                evidence_status: EventEvidenceStatus::ModelLatent,
+            },
+            RapheCurvatureObservation {
+                sample_id: "two-1",
+                time_s: 0.0,
+                contact_mode: RapheContactMode::TwoRapheBranches,
+                active_raphe_curvature_inv_um: Some(0.1),
+                observed_path_curvature_inv_um: Some(0.12),
+                evidence_status: EventEvidenceStatus::DirectlyObserved,
+            },
+            RapheCurvatureObservation {
+                sample_id: "two-2",
+                time_s: 1.0,
+                contact_mode: RapheContactMode::TwoRapheBranches,
+                active_raphe_curvature_inv_um: Some(0.2),
+                observed_path_curvature_inv_um: Some(0.22),
+                evidence_status: EventEvidenceStatus::DirectlyObserved,
+            },
+            RapheCurvatureObservation {
+                sample_id: "inferred",
+                time_s: 1.0,
+                contact_mode: RapheContactMode::OneRapheBranch,
+                active_raphe_curvature_inv_um: Some(0.4),
+                observed_path_curvature_inv_um: Some(0.85),
+                evidence_status: EventEvidenceStatus::AlgorithmInferred,
+            },
+            RapheCurvatureObservation {
+                sample_id: "unresolved",
+                time_s: 1.0,
+                contact_mode: RapheContactMode::Unresolved,
+                active_raphe_curvature_inv_um: None,
+                observed_path_curvature_inv_um: None,
+                evidence_status: EventEvidenceStatus::Unresolved,
+            },
         ]
     }
 
@@ -573,9 +647,30 @@ mod tests {
     fn raphe_holdout_scoring_keeps_modes_and_exclusions_separate() {
         let calibration = fit_raphe_curvature_model(&raphe_samples()).unwrap();
         let held_out = [
-            RapheCurvatureObservation { sample_id: "holdout-one", time_s: 3.0, contact_mode: RapheContactMode::OneRapheBranch, active_raphe_curvature_inv_um: Some(0.5), observed_path_curvature_inv_um: Some(1.05), evidence_status: EventEvidenceStatus::DirectlyObserved },
-            RapheCurvatureObservation { sample_id: "holdout-two", time_s: 3.0, contact_mode: RapheContactMode::TwoRapheBranches, active_raphe_curvature_inv_um: Some(0.4), observed_path_curvature_inv_um: Some(0.42), evidence_status: EventEvidenceStatus::ModelLatent },
-            RapheCurvatureObservation { sample_id: "holdout-inferred", time_s: 3.0, contact_mode: RapheContactMode::OneRapheBranch, active_raphe_curvature_inv_um: Some(0.6), observed_path_curvature_inv_um: Some(1.25), evidence_status: EventEvidenceStatus::AlgorithmInferred },
+            RapheCurvatureObservation {
+                sample_id: "holdout-one",
+                time_s: 3.0,
+                contact_mode: RapheContactMode::OneRapheBranch,
+                active_raphe_curvature_inv_um: Some(0.5),
+                observed_path_curvature_inv_um: Some(1.05),
+                evidence_status: EventEvidenceStatus::DirectlyObserved,
+            },
+            RapheCurvatureObservation {
+                sample_id: "holdout-two",
+                time_s: 3.0,
+                contact_mode: RapheContactMode::TwoRapheBranches,
+                active_raphe_curvature_inv_um: Some(0.4),
+                observed_path_curvature_inv_um: Some(0.42),
+                evidence_status: EventEvidenceStatus::ModelLatent,
+            },
+            RapheCurvatureObservation {
+                sample_id: "holdout-inferred",
+                time_s: 3.0,
+                contact_mode: RapheContactMode::OneRapheBranch,
+                active_raphe_curvature_inv_um: Some(0.6),
+                observed_path_curvature_inv_um: Some(1.25),
+                evidence_status: EventEvidenceStatus::AlgorithmInferred,
+            },
         ];
         let score = score_raphe_curvature_model(&held_out, calibration).unwrap();
         assert_eq!(score.eligible_sample_count, 2);
@@ -592,14 +687,31 @@ mod tests {
         samples[0].observed_path_curvature_inv_um = Some(-0.15);
         assert!(fit_raphe_curvature_model(&samples).is_ok());
         samples[1].sample_id = "one-1";
-        assert_eq!(fit_raphe_curvature_model(&samples), Err(AlgalKinematicsError::DuplicateSampleId));
+        assert_eq!(
+            fit_raphe_curvature_model(&samples),
+            Err(AlgalKinematicsError::DuplicateSampleId)
+        );
     }
 
     #[test]
     fn raphe_mode_with_no_curvature_variation_is_unidentifiable() {
         let samples = [
-            RapheCurvatureObservation { sample_id: "constant-one", time_s: 0.0, contact_mode: RapheContactMode::OneRapheBranch, active_raphe_curvature_inv_um: Some(0.2), observed_path_curvature_inv_um: Some(0.3), evidence_status: EventEvidenceStatus::DirectlyObserved },
-            RapheCurvatureObservation { sample_id: "constant-two", time_s: 1.0, contact_mode: RapheContactMode::OneRapheBranch, active_raphe_curvature_inv_um: Some(0.2), observed_path_curvature_inv_um: Some(0.4), evidence_status: EventEvidenceStatus::DirectlyObserved },
+            RapheCurvatureObservation {
+                sample_id: "constant-one",
+                time_s: 0.0,
+                contact_mode: RapheContactMode::OneRapheBranch,
+                active_raphe_curvature_inv_um: Some(0.2),
+                observed_path_curvature_inv_um: Some(0.3),
+                evidence_status: EventEvidenceStatus::DirectlyObserved,
+            },
+            RapheCurvatureObservation {
+                sample_id: "constant-two",
+                time_s: 1.0,
+                contact_mode: RapheContactMode::OneRapheBranch,
+                active_raphe_curvature_inv_um: Some(0.2),
+                observed_path_curvature_inv_um: Some(0.4),
+                evidence_status: EventEvidenceStatus::DirectlyObserved,
+            },
         ];
         let fit = fit_raphe_curvature_model(&samples).unwrap();
         assert_eq!(fit.one_branch, None);
@@ -639,8 +751,18 @@ mod tests {
         let stationary = track("stationary", 0.5, 0.2, 2.0, None, None);
         let confined = track("confined", 20.0, 4.0, 5.0, Some(0.5), Some(0.0));
         let directional = track("directional", 20.0, 18.0, 5.0, Some(0.0), Some(0.0));
-        assert_eq!(classify_chlamydomonas_track(&stationary, policy()).unwrap().kinematic_class, ChlamydomonasKinematicClass::StationaryOrLocal);
-        assert_eq!(classify_chlamydomonas_track(&confined, policy()).unwrap().kinematic_class, ChlamydomonasKinematicClass::ConfinedOrCircling);
+        assert_eq!(
+            classify_chlamydomonas_track(&stationary, policy())
+                .unwrap()
+                .kinematic_class,
+            ChlamydomonasKinematicClass::StationaryOrLocal
+        );
+        assert_eq!(
+            classify_chlamydomonas_track(&confined, policy())
+                .unwrap()
+                .kinematic_class,
+            ChlamydomonasKinematicClass::ConfinedOrCircling
+        );
         let result = classify_chlamydomonas_track(&directional, policy()).unwrap();
         assert_eq!(result.kinematic_class, ChlamydomonasKinematicClass::Directional);
         assert_eq!(result.phototaxis_alignment, PhototaxisAlignment::Positive);
@@ -663,21 +785,44 @@ mod tests {
         assert_eq!(summary.negative_phototaxis_count, 2);
         assert!(summary.mean_directional_alignment.unwrap().abs() < 1.0e-12);
         assert!(summary.directional_orientation_order.polar_order.unwrap() < 1.0e-12);
-        assert!((summary.directional_orientation_order.nematic_order.unwrap() - 1.0).abs() < 1.0e-12);
+        assert!(
+            (summary.directional_orientation_order.nematic_order.unwrap() - 1.0).abs()
+                < 1.0e-12
+        );
     }
 
     #[test]
     fn missing_or_ambiguous_stimulus_alignment_remains_unresolved() {
         let missing = track("missing-stimulus", 20.0, 18.0, 5.0, Some(0.0), None);
-        let ambiguous = track("ambiguous", 20.0, 18.0, 5.0, Some(std::f64::consts::FRAC_PI_2), Some(0.0));
-        assert_eq!(classify_chlamydomonas_track(&missing, policy()).unwrap().phototaxis_alignment, PhototaxisAlignment::Unresolved);
-        assert_eq!(classify_chlamydomonas_track(&ambiguous, policy()).unwrap().phototaxis_alignment, PhototaxisAlignment::WeakOrAmbiguous);
+        let ambiguous = track(
+            "ambiguous",
+            20.0,
+            18.0,
+            5.0,
+            Some(std::f64::consts::FRAC_PI_2),
+            Some(0.0),
+        );
+        assert_eq!(
+            classify_chlamydomonas_track(&missing, policy())
+                .unwrap()
+                .phototaxis_alignment,
+            PhototaxisAlignment::Unresolved
+        );
+        assert_eq!(
+            classify_chlamydomonas_track(&ambiguous, policy())
+                .unwrap()
+                .phototaxis_alignment,
+            PhototaxisAlignment::WeakOrAmbiguous
+        );
     }
 
     #[test]
     fn invalid_tracks_and_duplicate_ids_fail_closed() {
         let invalid = track("invalid", 2.0, 3.0, 1.0, Some(0.0), Some(0.0));
-        assert_eq!(classify_chlamydomonas_track(&invalid, policy()), Err(AlgalKinematicsError::DisplacementExceedsPath));
+        assert_eq!(
+            classify_chlamydomonas_track(&invalid, policy()),
+            Err(AlgalKinematicsError::DisplacementExceedsPath)
+        );
         let duplicate = track("same", 20.0, 18.0, 5.0, Some(0.0), Some(0.0));
         assert_eq!(
             summarize_chlamydomonas_tracks(&[duplicate.clone(), duplicate], policy(), 0),
