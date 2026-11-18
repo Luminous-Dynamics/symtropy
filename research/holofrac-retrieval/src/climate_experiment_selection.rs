@@ -299,6 +299,23 @@ mod tests {
     }
 
     #[test]
+    fn no_test_is_selected_when_climate_measurements_cost_more_than_their_value() {
+        let mut request = synthetic_climate_voi_request();
+        request.experiment_budget = 2.0;
+        for experiment in &mut request.experiments {
+            experiment.cost = 0.5;
+        }
+
+        let report = request
+            .evaluate_policy(ExperimentSelectionPolicy::ExpectedDecisionValue, 7)
+            .unwrap();
+        assert_eq!(report.policy_outcome.selected_experiment_id, None);
+        assert_eq!(report.policy_outcome.experiment_cost, 0.0);
+        assert_eq!(report.policy_outcome.expected_value_improvement, 0.0);
+        assert_eq!(report.policy_outcome.net_expected_decision_value, 0.0);
+    }
+
+    #[test]
     fn report_binds_probability_basis_objective_and_authority() {
         let request = synthetic_climate_voi_request();
         let report = request
