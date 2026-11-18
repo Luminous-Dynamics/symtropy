@@ -110,7 +110,8 @@
         "policy",
         "max_simultaneous_planned_maintenance",
         "maintenance_already_accounted_in_individual_availability",
-        "maintenance_windows_staggered"
+        "maintenance_windows_staggered",
+        "baseline_fleet_size"
       ],
       "properties": {
         "policy": {
@@ -129,6 +130,11 @@
         },
         "maintenance_windows_staggered": {
           "type": "boolean"
+        },
+        "baseline_fleet_size": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Fleet size for which the staggered maintenance policy is specified; sensitivity rows may explore other counts."
         }
       }
     },
