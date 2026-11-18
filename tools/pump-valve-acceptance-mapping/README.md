@@ -23,17 +23,17 @@ It deliberately separates the submersible mechanical/electrical scope in HI 11.6
 - PROFILE_INCOMPLETE — purchaser grade, fitting boundary, product-standard link, facility or seat information is missing.
 - EVIDENCE_INCOMPLETE — evidence such as calibration/test record is missing or stale.
 - STALE_OR_SUPERSEDED — selected profile is draft or withdrawn.
-- UNSUPPORTED_CLAIM — a test-applicability profile is used to claim product release or pressure-test safety.
+- UNSUPPORTED_CLAIM — a test-applicability profile is used to claim product release or pressure-test safety, regardless of whether the selected test standard expressly excludes safety.
 
 An APPLICABLE result is not a test pass, conformity finding, safety case, certification, or production release.
 
 ## Frozen corpus
 
 - 6 standard profiles.
-- 30 synthetic applicability scenarios.
-- Separate 29-row expected-disposition file.
-- 19 Rust unit tests.
-- Expected disposition totals: 11 APPLICABLE, 8 NOT_APPLICABLE, 6 PROFILE_INCOMPLETE, 1 EVIDENCE_INCOMPLETE, 1 STALE_OR_SUPERSEDED and 2 UNSUPPORTED_CLAIM.
+- 31 synthetic applicability scenarios.
+- Separate 31-row expected-disposition file.
+- 21 Rust unit tests.
+- Expected disposition totals: 11 APPLICABLE, 8 NOT_APPLICABLE, 7 PROFILE_INCOMPLETE, 1 EVIDENCE_INCOMPLETE, 1 STALE_OR_SUPERSEDED and 3 UNSUPPORTED_CLAIM.
 
 The public metadata fields are linked in the profile fixture and the research note. No copyrighted normative clauses, numerical test limits or acceptance tolerances are encoded.
 
