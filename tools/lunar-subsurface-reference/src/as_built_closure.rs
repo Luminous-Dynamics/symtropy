@@ -42,10 +42,7 @@ fn validate_fraction(value: f64, name: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn classify_residual(
-    residual: ReconciliationInterval,
-    tolerance: f64,
-) -> &'static str {
+fn classify_residual(residual: ReconciliationInterval, tolerance: f64) -> &'static str {
     if residual.lower >= -tolerance && residual.upper <= tolerance {
         "within_declared_tolerance"
     } else if residual.lower > tolerance || residual.upper < -tolerance {
@@ -65,10 +62,7 @@ fn reconcile_volume(
         return Err("planned volume must be finite and positive".to_owned());
     }
     validate_fraction(tolerance_fraction, "volume tolerance fraction")?;
-    validate_fraction(
-        minimum_coverage_fraction,
-        "minimum coverage fraction",
-    )?;
+    validate_fraction(minimum_coverage_fraction, "minimum coverage fraction")?;
 
     let Some(measured) = measured else {
         return Ok(ClosureResult {
@@ -395,11 +389,7 @@ pub(super) fn render_report_json() -> Result<String, String> {
 mod tests {
     use super::*;
 
-    fn measurement(
-        batch_id: &str,
-        mass_kg: f64,
-        uncertainty_kg: f64,
-    ) -> MassMeasurement {
+    fn measurement(batch_id: &str, mass_kg: f64, uncertainty_kg: f64) -> MassMeasurement {
         MassMeasurement {
             batch_id: batch_id.to_owned(),
             mass_kg,
