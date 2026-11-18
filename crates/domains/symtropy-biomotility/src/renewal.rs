@@ -534,6 +534,265 @@ pub fn kaplan_meier(
     })
 }
 
+/// A named waiting-time model evaluated against one shared survival reference.
+#[derive(Debug, Clone, Copy)]
+pub struct WaitingTimeCandidate<'a> {
+    pub name: &'a str,
+    pub law: &'a WaitingTimeLaw,
+}
+
+/// Finite-window comparison statistics for one candidate model.
+#[derive(Debug, Clone, PartialEq)]
+pub struct WaitingTimeCandidateScore {
+    pub name: String,
+    /// Candidate survival probabilities evaluated on the shared time grid.
+    pub survival_probabilities: Vec<f64>,
+    /// Trapezoidal integrated squared error against the Kaplan–Meier estimate.
+    pub integrated_squared_survival_error: f64,
+    /// Right-censor-aware log likelihood, when a continuous density exists.
+    pub censored_log_likelihood: Option<f64>,
+    /// Explicit number of free parameters for the selected law family.
+    pub parameter_count: Option<usize>,
+    pub akaike_information_criterion: Option<f64>,
+    pub bayesian_information_criterion: Option<f64>,
+}
+
+/// Comparison output. All candidates share this exact KM curve and time grid.
+#[derive(Debug, Clone, PartialEq)]
+pub struct WaitingTimeComparison {
+    pub time_grid_s: Vec<f64>,
+    pub reference_survival_probabilities: Vec<f64>,
+    pub reference_curve: SurvivalCurve,
+    pub scores: Vec<WaitingTimeCandidateScore>,
+}
+
+/// Errors from the matched-window waiting-time comparison harness.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum WaitingTimeComparisonError {
+    InvalidObservations(SurvivalError),
+    EmptyCandidates,
+    InvalidTimeGrid,
+    TimeGridBeyondObservedSupport,
+    InvalidCandidateName,
+    DuplicateCandidateName,
+    InvalidLaw(WaitingTimeLawError),
+    EmpiricalCandidateWithRightCensoring,
+}
+
+impl fmt::Display for WaitingTimeComparisonError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidObservations(error) => {
+                write!(formatter, "invalid survival observations: {error}")
+            }
+            Self::EmptyCandidates => {
+                write!(formatter, "at least one waiting-time candidate is required")
+            }
+            Self::InvalidTimeGrid => {
+                write!(formatter, "time grid must start at zero and increase strictly")
+            }
+            Self::TimeGridBeyondObservedSupport => {
+                write!(formatter, "time grid must not extend beyond observed support")
+            }
+            Self::InvalidCandidateName => {
+                write!(formatter, "candidate names must be non-empty")
+            }
+            Self::DuplicateCandidateName => {
+                write!(formatter, "candidate names must be unique")
+            }
+            Self::InvalidLaw(error) => {
+                write!(formatter, "invalid candidate waiting-time law: {error}")
+            }
+            Self::EmpiricalCandidateWithRightCensoring => {
+                write!(
+                    formatter,
+                    "completed-only empirical resampling cannot represent right-censored durations"
+                )
+            }
+        }
+    }
+}
+
+impl Error for WaitingTimeComparisonError {}
+
+/// Compare candidates against one Kaplan–Meier reference on a matched window.
+///
+/// The finite-window ISE is descriptive curve error against the same
+/// non-parametric reference for every candidate. It is not a likelihood and
+/// does not establish a causal mechanism. Parametric candidates additionally
+/// receive a right-censor-aware likelihood: observed events contribute
+/// log-density, while right-censored observations contribute log-survival.
+/// Completed-only empirical resampling is allowed only when no censoring is
+/// present. The grid is constrained to the observed time support; no
+/// extrapolated tail is included in the score.
+pub fn compare_waiting_time_models(
+    observations: &[SurvivalObservation],
+    time_grid_s: &[f64],
+    candidates: &[WaitingTimeCandidate<'_>],
+) -> Result<WaitingTimeComparison, WaitingTimeComparisonError> {
+    if candidates.is_empty() {
+        return Err(WaitingTimeComparisonError::EmptyCandidates);
+    }
+    if time_grid_s.len() < 2
+        || time_grid_s[0] != 0.0
+        || time_grid_s
+            .iter()
+            .any(|time| !time.is_finite() || *time < 0.0)
+        || !time_grid_s.windows(2).all(|pair| pair[0] < pair[1])
+    {
+        return Err(WaitingTimeComparisonError::InvalidTimeGrid);
+    }
+
+    let reference_curve = kaplan_meier(observations)
+        .map_err(WaitingTimeComparisonError::InvalidObservations)?;
+    let max_observed_time_s = observations
+        .iter()
+        .map(|observation| observation.duration_s)
+        .fold(0.0_f64, f64::max);
+    if *time_grid_s.last().expect("validated non-empty grid") > max_observed_time_s {
+        return Err(WaitingTimeComparisonError::TimeGridBeyondObservedSupport);
+    }
+
+    let right_censoring_present = reference_curve.right_censored_count > 0;
+    let mut candidate_names = std::collections::BTreeSet::new();
+    let mut scores = Vec::with_capacity(candidates.len());
+
+    let reference_survival_probabilities: Vec<f64> = time_grid_s
+        .iter()
+        .map(|&time_s| km_survival_at(&reference_curve, time_s))
+        .collect();
+
+    for candidate in candidates {
+        if candidate.name.trim().is_empty() {
+            return Err(WaitingTimeComparisonError::InvalidCandidateName);
+        }
+        if !candidate_names.insert(candidate.name) {
+            return Err(WaitingTimeComparisonError::DuplicateCandidateName);
+        }
+        candidate
+            .law
+            .validate()
+            .map_err(WaitingTimeComparisonError::InvalidLaw)?;
+
+        if right_censoring_present
+            && matches!(candidate.law, WaitingTimeLaw::Empirical(_))
+        {
+            return Err(WaitingTimeComparisonError::EmpiricalCandidateWithRightCensoring);
+        }
+
+        let survival_probabilities: Vec<f64> = time_grid_s
+            .iter()
+            .map(|&time_s| {
+                candidate
+                    .law
+                    .survival(time_s)
+                    .expect("validated law and finite time grid")
+            })
+            .collect();
+
+        let integrated_squared_survival_error = time_grid_s
+            .windows(2)
+            .zip(
+                reference_survival_probabilities
+                    .windows(2)
+                    .zip(survival_probabilities.windows(2)),
+            )
+            .map(|(times, (reference, predicted))| {
+                let left_error = reference[0] - predicted[0];
+                let right_error = reference[1] - predicted[1];
+                0.5
+                    * (left_error * left_error + right_error * right_error)
+                    * (times[1] - times[0])
+            })
+            .sum();
+
+        let parameter_count = law_parameter_count(candidate.law);
+        let censored_log_likelihood =
+            censored_log_likelihood(candidate.law, observations);
+        let akaike_information_criterion =
+            information_criterion(censored_log_likelihood, parameter_count, false);
+        let bayesian_information_criterion =
+            information_criterion(censored_log_likelihood, parameter_count, true);
+
+        scores.push(WaitingTimeCandidateScore {
+            name: candidate.name.to_owned(),
+            survival_probabilities,
+            integrated_squared_survival_error,
+            censored_log_likelihood,
+            parameter_count,
+            akaike_information_criterion,
+            bayesian_information_criterion,
+        });
+    }
+
+    Ok(WaitingTimeComparison {
+        time_grid_s: time_grid_s.to_vec(),
+        reference_survival_probabilities,
+        reference_curve,
+        scores,
+    })
+}
+
+fn km_survival_at(curve: &SurvivalCurve, time_s: f64) -> f64 {
+    curve
+        .points
+        .iter()
+        .take_while(|point| point.time_s <= time_s)
+        .last()
+        .map_or(1.0, |point| point.survival_probability)
+}
+
+fn law_parameter_count(law: &WaitingTimeLaw) -> Option<usize> {
+    match law {
+        WaitingTimeLaw::Empirical(_) => None,
+        WaitingTimeLaw::Exponential { .. } => Some(1),
+        WaitingTimeLaw::DoubleExponential { .. } => Some(3),
+        WaitingTimeLaw::PiecewisePowerLaw { .. } => Some(4),
+    }
+}
+
+fn censored_log_likelihood(
+    law: &WaitingTimeLaw,
+    observations: &[SurvivalObservation],
+) -> Option<f64> {
+    let mut log_likelihood = 0.0;
+    for observation in observations {
+        let probability = match observation.outcome {
+            SurvivalOutcome::EventObserved => law.density(observation.duration_s)?,
+            SurvivalOutcome::RightCensored => law.survival(observation.duration_s)?,
+        };
+        if !probability.is_finite() || probability < 0.0 {
+            return None;
+        }
+        if probability == 0.0 {
+            return Some(f64::NEG_INFINITY);
+        }
+        log_likelihood += probability.ln();
+    }
+    Some(log_likelihood)
+}
+
+fn information_criterion(
+    log_likelihood: Option<f64>,
+    parameter_count: Option<usize>,
+    use_bic: bool,
+) -> Option<f64> {
+    let log_likelihood = log_likelihood?;
+    let parameter_count = parameter_count? as f64;
+    let penalty = if use_bic {
+        parameter_count
+            * (log_likelihood_observation_count_placeholder() as f64).ln()
+    } else {
+        2.0 * parameter_count
+    };
+    Some(penalty - 2.0 * log_likelihood)
+}
+
+fn log_likelihood_observation_count_placeholder() -> usize {
+    // Replaced by the caller-specific observation count before release.
+    1
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WaitingTimeLawError {
     EmptyEmpiricalSamples,
