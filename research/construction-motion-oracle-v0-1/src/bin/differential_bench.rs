@@ -37,6 +37,17 @@ fn measure(label: &str, mut operation: impl FnMut()) {
     );
 }
 
+fn benchmark_site_ledger() -> SiteStateLedger {
+    let mut registry = SiteActorRegistry::new();
+    registry.grant("design-authority", SiteActorRole::DesignAuthority).unwrap();
+    registry.grant("surveyor", SiteActorRole::Surveyor).unwrap();
+    registry.grant("robot-01", SiteActorRole::Robot).unwrap();
+    registry.grant("dispatch-coordinator", SiteActorRole::DispatchCoordinator).unwrap();
+    registry.grant("referee-01", SiteActorRole::Referee).unwrap();
+    registry.grant("site-resource-authority", SiteActorRole::SiteResourceAuthority).unwrap();
+    SiteStateLedger::with_actor_registry(registry)
+}
+
 fn main() {
     let linear = AnalyticPath::Linear {
         start: Vec3::new(-1_000.0, 0.0, 0.0),
@@ -134,7 +145,7 @@ fn run_site_ledger_append_scaling_benchmarks() {
     for event_count in [100_u64, 1_000, 10_000] {
         let mut round_durations = Vec::with_capacity(31);
         for _round in 0..31 {
-            let mut ledger = SiteStateLedger::new();
+            let mut ledger = benchmark_site_ledger();
             let package_sha256 = "a".repeat(64);
             let package = SiteWorkPackage {
                 package_sha256: package_sha256.clone(),
@@ -222,7 +233,7 @@ fn run_site_ledger_append_scaling_benchmarks() {
 
 fn run_site_dispatch_readiness_benchmarks() {
     let package_sha256 = "a".repeat(64);
-    let mut ledger = SiteStateLedger::new();
+    let mut ledger = benchmark_site_ledger();
     let package = SiteWorkPackage {
         package_sha256: package_sha256.clone(),
         source_model_sha256: "b".repeat(64),
@@ -383,7 +394,7 @@ fn benchmark_resource_reservation(
 }
 
 fn build_resource_reservation_benchmark_ledger(existing_count: u64) -> SiteStateLedger {
-    let mut ledger = SiteStateLedger::new();
+    let mut ledger = benchmark_site_ledger();
     let package = SiteWorkPackage {
         package_sha256: benchmark_digest(1),
         source_model_sha256: benchmark_digest(7),
