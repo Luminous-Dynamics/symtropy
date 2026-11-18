@@ -218,8 +218,6 @@ impl ReducedActionResiduals5D {
 
         let two = Jet2::constant(2.0);
         let four = Jet2::constant(4.0);
-        let sixteen = Jet2::constant(16.0);
-        let twelve = Jet2::constant(12.0);
         let alpha_j = Jet2::constant(alpha);
         let measure = (f * h / b).sqrt();
 
@@ -267,7 +265,6 @@ impl ReducedActionResiduals5D {
             residual[q] = l_eff.gradient[q] - radial_momentum_derivative;
         }
 
-        let radius_sq = sample.radius * sample.radius;
         let p_w_closed_form = sample.w_prime
             * sample.h
             * (sample.f * sample.h / sample.b).sqrt()
@@ -418,5 +415,113 @@ impl Div for Jet2 {
     type Output = Self;
     fn div(self, rhs: Self) -> Self::Output {
         self * rhs.reciprocal()
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{BoulwareDeser5D, MyersPerry5D};
+
+    fn close_zero(value: f64, tolerance: f64) {
+        assert!(
+            value.abs() <= tolerance,
+            "residual {value:.16e} exceeds tolerance {tolerance:.3e}"
+        );
+    }
+
+    fn mp_jet(radius: f64) -> RadialMetricJet5D {
+        let profile = MyersPerry5D::new(1.0, 0.33)
+            .expect("valid exact 5D MP control")
+            .evaluate(radius)
+            .expect("radius is outside the MP horizon");
+        RadialMetricJet5D::areal_base(
+            radius,
+            profile.b,
+            profile.f,
+            profile.h,
+            profile.w,
+            profile.b_prime,
+            profile.f_prime,
+            profile.h_prime,
+            profile.w_prime,
+            profile.b_second,
+            profile.f_second,
+            profile.h_second,
+            profile.w_second,
+        )
+        .expect("valid MP radial jet")
+    }
+
+    fn bd_jet(solution: BoulwareDeser5D, radius: f64) -> RadialMetricJet5D {
+        let data = solution
+            .curvature_data(radius)
+            .expect("radius is outside the BD horizon");
+        RadialMetricJet5D::areal_base(
+            radius,
+            data.lapse,
+            data.lapse,
+            radius * radius,
+            0.0,
+            data.lapse_prime,
+            data.lapse_prime,
+            2.0 * radius,
+            0.0,
+            data.lapse_second,
+            data.lapse_second,
+            2.0,
+            0.0,
+        )
+        .expect("valid BD radial jet")
+    }
+
+    #[test]
+    fn all_five_action_equations_vanish_on_exact_myers_perry_branch() {
+        let solution = MyersPerry5D::new(1.0, 0.33).unwrap();
+        for radius in [1.1, 1.25, 1.5, 2.0, 3.0, 5.0, 10.0] {
+            let sample = mp_jet(radius);
+            let residual = ReducedActionResiduals5D::evaluate(sample, 0.0).unwrap();
+            for value in residual.as_array() {
+                close_zero(value, 2.0e-8);
+            }
+            let expected_pw =
+                -4.0 * solution.asymptotic_parameters().w_angular;
+            close_zero(residual.p_w_canonical - expected_pw, 2.0e-12);
+            close_zero(residual.p_w_canonical - residual.p_w_closed_form, 2.0e-12);
+            close_zero(residual.f_prime_momentum, 0.0);
+        }
+    }
+
+    #[test]
+    fn all_five_action_equations_vanish_on_finite_alpha_boulware_deser_branch() {
+        let solution = BoulwareDeser5D::new(1.0, 0.7).unwrap();
+        for radius in [1.1, 1.25, 1.5, 2.0, 3.0, 5.0, 10.0] {
+            let sample = bd_jet(solution, radius);
+            let residual = ReducedActionResiduals5D::evaluate(sample, solution.alpha).unwrap();
+            for value in residual.as_array() {
+                close_zero(value, 3.0e-8);
+            }
+            close_zero(residual.p_w_canonical, 0.0, 1.0e-14);
+            close_zero(residual.p_w_canonical - residual.p_w_closed_form, 1.0e-14);
+            close_zero(residual.f_prime_momentum, 0.0);
+        }
+    }
+
+    #[test]
+    fn angular_canonical_momentum_matches_closed_form_for_off_shell_data() {
+        let mut sample = mp_jet(2.0);
+        sample.b_prime += 0.013;
+        sample.h_second -= 0.07;
+        let residual = ReducedActionResiduals5D::evaluate(sample, 0.37).unwrap();
+        close_zero(residual.p_w_canonical - residual.p_w_closed_form, 2.0e-13);
+    }
+
+    #[test]
+    fn action_equations_detect_a_mutated_exact_profile() {
+        let mut sample = bd_jet(BoulwareDeser5D::new(1.0, 0.7).unwrap(), 2.0);
+        sample.h_prime += 0.02;
+        let residual = ReducedActionResiduals5D::evaluate(sample, 0.7).unwrap();
+        assert!(residual.max_abs_equation_residual() > 1.0e-5);
     }
 }
