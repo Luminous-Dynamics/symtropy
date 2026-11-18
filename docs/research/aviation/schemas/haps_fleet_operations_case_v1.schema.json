@@ -1,0 +1,509 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminousdynamics:aero:haps-fleet-operations-case:v1",
+  "title": "HAPS fleet operations and service continuity case v1",
+  "description": "Deterministic event-trace contract for fleet capacity, maintenance, faults, common-cause weather, recovery, handover and fallback. It complements static Bernoulli fleet reliability and does not infer empirical failure probabilities.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "revision",
+    "evidence_class",
+    "claim_ceiling",
+    "horizon_hours",
+    "step_hours",
+    "required_service_capacity_units",
+    "degraded_margin_units",
+    "nodes",
+    "fallback_sources",
+    "events",
+    "demand_periods",
+    "resource_limits",
+    "handover_attempts",
+    "expected_oracle",
+    "assumptions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "haps-fleet-operations-case/v1"
+    },
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,95}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_deterministic_event_replay"
+    },
+    "horizon_hours": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "step_hours": {
+      "const": 1
+    },
+    "required_service_capacity_units": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "degraded_margin_units": {
+      "type": "number",
+      "minimum": 0
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "node_id",
+          "platform_class",
+          "service_region_ref",
+          "base_capacity_units"
+        ],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "platform_class": {
+            "enum": [
+              "solar_fixed_wing_haps",
+              "buoyant_airship",
+              "buoyant_free_balloon"
+            ]
+          },
+          "service_region_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "base_capacity_units": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "fallback_sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "source_class",
+          "service_region_ref",
+          "base_capacity_units",
+          "independence_domain"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_class": {
+            "enum": [
+              "terrestrial_gateway",
+              "leo_backhaul",
+              "geo_backhaul",
+              "fiber_core",
+              "other"
+            ]
+          },
+          "service_region_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "base_capacity_units": {
+            "type": "number",
+            "minimum": 0
+          },
+          "independence_domain": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event_id",
+          "event_type",
+          "event_class",
+          "start_hour",
+          "end_hour",
+          "capacity_factor",
+          "affected_node_ids",
+          "affected_fallback_ids",
+          "shared_cause_id",
+          "resource_pool"
+        ],
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "event_type": {
+            "enum": [
+              "launch_transit",
+              "reposition",
+              "planned_maintenance",
+              "unplanned_fault",
+              "recovery_transit",
+              "shared_weather_derate",
+              "shared_weather_outage",
+              "shared_infrastructure_outage",
+              "group_handover"
+            ]
+          },
+          "event_class": {
+            "enum": [
+              "planned_operation",
+              "independent_asset",
+              "shared_weather",
+              "shared_infrastructure",
+              "service_handover"
+            ]
+          },
+          "start_hour": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end_hour": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "capacity_factor": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "affected_node_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "affected_fallback_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "shared_cause_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resource_pool": {
+            "enum": [
+              "maintenance_bay",
+              "launch_pad",
+              "recovery_slot",
+              "reposition_slot",
+              "handover_channel",
+              "none"
+            ]
+          }
+        }
+      }
+    },
+    "demand_periods": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "start_hour",
+          "end_hour",
+          "demand_weight",
+          "demand_class"
+        ],
+        "properties": {
+          "start_hour": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end_hour": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "demand_weight": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "demand_class": {
+            "enum": [
+              "baseline",
+              "emergency_surge",
+              "critical_infrastructure",
+              "other"
+            ]
+          }
+        }
+      }
+    },
+    "resource_limits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "resource_pool",
+          "maximum_concurrent_operations"
+        ],
+        "properties": {
+          "resource_pool": {
+            "enum": [
+              "maintenance_bay",
+              "launch_pad",
+              "recovery_slot",
+              "reposition_slot",
+              "handover_channel"
+            ]
+          },
+          "maximum_concurrent_operations": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "handover_attempts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "handover_id",
+          "source_node_id",
+          "target_node_id",
+          "offered_sessions",
+          "prepared_sessions",
+          "accepted_sessions",
+          "completed_sessions",
+          "timed_out_sessions",
+          "p95_interruption_s",
+          "maximum_interruption_s",
+          "state_transfer_failures"
+        ],
+        "properties": {
+          "handover_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_node_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target_node_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "offered_sessions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "prepared_sessions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "accepted_sessions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "completed_sessions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "timed_out_sessions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "p95_interruption_s": {
+            "type": "number",
+            "minimum": 0
+          },
+          "maximum_interruption_s": {
+            "type": "number",
+            "minimum": 0
+          },
+          "state_transfer_failures": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "expected_oracle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "oracle_status",
+        "total_hours",
+        "service_adequate_hours",
+        "strict_service_availability_fraction",
+        "demand_weighted_available_hours",
+        "demand_weighted_total_hours",
+        "demand_weighted_service_availability_fraction",
+        "outage_episode_count",
+        "total_outage_hours",
+        "maximum_contiguous_outage_hours",
+        "degraded_service_hours",
+        "minimum_service_capacity_units",
+        "capacity_deficit_units_hours",
+        "capacity_surplus_units_hours",
+        "maximum_resource_concurrency",
+        "resource_limit_violations",
+        "handover_offered_sessions",
+        "handover_prepared_sessions",
+        "handover_accepted_sessions",
+        "handover_completed_sessions",
+        "handover_success_fraction",
+        "handover_p95_interruption_s_max",
+        "handover_maximum_interruption_s_max",
+        "state_transfer_failures"
+      ],
+      "properties": {
+        "oracle_status": {
+          "enum": [
+            "independently_calculated",
+            "not_evaluated"
+          ]
+        },
+        "total_hours": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "service_adequate_hours": {
+          "type": "number",
+          "minimum": 0
+        },
+        "strict_service_availability_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "demand_weighted_available_hours": {
+          "type": "number",
+          "minimum": 0
+        },
+        "demand_weighted_total_hours": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "demand_weighted_service_availability_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "outage_episode_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_outage_hours": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_contiguous_outage_hours": {
+          "type": "number",
+          "minimum": 0
+        },
+        "degraded_service_hours": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minimum_service_capacity_units": {
+          "type": "number",
+          "minimum": 0
+        },
+        "capacity_deficit_units_hours": {
+          "type": "number",
+          "minimum": 0
+        },
+        "capacity_surplus_units_hours": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_resource_concurrency": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "resource_limit_violations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "handover_offered_sessions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "handover_prepared_sessions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "handover_accepted_sessions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "handover_completed_sessions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "handover_success_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "handover_p95_interruption_s_max": {
+          "type": "number",
+          "minimum": 0
+        },
+        "handover_maximum_interruption_s_max": {
+          "type": "number",
+          "minimum": 0
+        },
+        "state_transfer_failures": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "source_evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "uniqueItems": true
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  },
+  "$comment": "Semantic invariants: node and fallback IDs unique; event IDs unique; each event has nonempty affected target lists; start_hour < end_hour <= horizon_hours; event target references exist; overlapping capacity factors multiply; each hour belongs to exactly one demand period; resource-pool concurrency does not exceed declared limit in any hour; handover counts satisfy completed <= accepted <= prepared <= offered and timed_out <= accepted-completed only when explicitly defined by this case; service adequate iff summed HAPS plus fallback capacity >= required_service_capacity_units; downtime is exact whole-hour replay, not empirical probability. Correlated/shared event IDs are applied once per event to all declared targets."
+}
