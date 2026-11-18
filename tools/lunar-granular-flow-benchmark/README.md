@@ -184,3 +184,47 @@ Symtropy owns immutable input records, dataset manifests, replay and receipts. S
 ## Claim ceiling
 
 The checked-in run examples and design matrix are synthetic/planned. No rotating-drum, hopper, vacuum or returned-sample experiment has been executed by this PR. Earth-g simulant results do not automatically qualify lunar gravity, vacuum electrostatics, full-scale hopper flow, excavation throughput or flight hardware.
+
+## New 2026 hopper/feeder benchmark and active-flow control
+
+Stepanova, Dreyer & Garvey, *Vibration-assisted granular flow under simulated lunar conditions: parabolic flight validation of lunar regolith feed system* (9 November 2026), DOI [10.1007/s44461-026-00021-y](https://doi.org/10.1007/s44461-026-00021-y), provides a useful operational baseline:
+
+- Eight parallel hopper–feeder assemblies represented four conical outlet geometries: 11, 17.5, 30 and 45 mm, with 46.5°, 55°, 72° and 90° hopper wall angles, each duplicated.
+- Across 60 lunar-gravity parabolas (480 assembly/parabola observations), sustained hopper supply to the rotary pocket feeders occurred in all 330 vibration-on observations with functioning feeders, with measured Γ = 3.4–23.8. Flow arrested within seconds in 80 of 84 vibration-off observations.
+- The test used ICN-LHT-1, an 800-g initial fill with a roughly 300-mm material column, no replenishment during flight, 0.16 g, and 27–60 Pa. The hoppers retained about 20% of initial fill after the 30-parabola sequence.
+- The vibration system operated at measured 37–53 Hz and 0.16–0.78 mm peak-to-peak displacement. Load cells sampled at 5 Hz, accelerometers at 500 Hz, and video at 30 fps.
+- The delivered 0.3–1.0 g/s rate was controlled primarily by pocket-feeder speed. Rate was about 21% lower at 0.16 g than in 1-g ground tests with identical commands.
+- Important boundary: this was **hopper supply to a rotary pocket feeder**, not free gravity discharge. The study also did not test vibration levels between Γ = 0 and 3.4, so it only bounds Γ_cr ≤ 3.4 for ICN-LHT-1 and that apparatus; it does not identify the exact threshold.
+- Supplementary agglutinate tests observed vibration-induced upward size segregation and fragmentation during repeated handling. Thus anti-jam operation must be scored together with composition drift and particle damage.
+
+The new advanced-doe-v0.json contains:
+- 480 source-record slots mirroring the paper's two flights × six high/low/off-vibration and high/low feeder-speed conditions × eight assemblies × five per-flight repeats. These are source-record placeholders, not reproduced measurements; exact condition schedules and numeric settings must be imported from the publication/source data before a matched-reproduction claim.
+- 800 proposed threshold-screen cells spanning four outlet geometries, two gravity levels, two pressure levels, nine Γ settings (including values below 3.4), three frequencies for vibration-on tests, and two feeder-speed fractions. Every cell is planned/not run and each derived actuator stroke must be checked against hardware limits.
+- 90 proposed annular vacuum shear-cell cells spanning a 3-decade granular Bond-number range, three inertial-number levels and three analyst-selected confining-pressure levels at fixed size ratio. These values are screening choices, not measured lunar thresholds.
+
+### Supervisory control paradigm
+
+The Rust crate at tools/lunar-regolith-feeder-supervisor implements an advisory stateful policy:
+1. Use accelerometer-measured Γ rather than commanded motor settings; the paper reports resonance/isolator coupling that made command settings an unreliable proxy for actual displacement.
+2. Regulate **hopper continuity** with vibration, subject to per-material/per-apparatus commissioned Γ bounds.
+3. Regulate **delivered mass rate** with the rotary feeder when pocket filling is adequate. Do not use vibration as a substitute for feeder metering.
+4. Pause the feeder during no-flow/intermittent-flow recovery, and require an observed return to continuous flow before resuming.
+5. Stop on stale/failed critical sensors, unobserved material-quality metrics required by the feed specification, excessive segregation, excessive agglutinate fragmentation, or actuator values outside the commissioned envelope.
+6. Reduce vibration only after repeated stable windows and only when vibration power is actually measured.
+
+This is a reference supervisory policy and test target, not actuator firmware or safety-certified control. The published Γ ≤ 3.4 result is not a default for another simulant, wall, fill, vacuum, gravity or hopper geometry.
+
+## Segregation is a separate physics and product-quality problem
+
+Nakagawa & Kioka, *Segregation in Granular Flow Under Lunar Conditions*, Fluids 11(11), 279 (4 November 2026), DOI [10.3390/fluids11110279](https://doi.org/10.3390/fluids11110279), argues that granular Bond number Bo_m = F_adh/(m g) and inertial number I = γdot d/sqrt(P/rho) organize the lunar regime better than gravity alone. Its review explicitly states that the internal composition field of dense, sheared, cohesive, polydisperse flow has not yet been resolved under reduced gravity. It proposes a vacuum annular shear-cell experiment varying Bo_m over at least three decades at fixed size ratio, while varying confining pressure independently and measuring composition by tomography or registered sectioning.
+
+That is tracked separately in [#6070](https://github.com/Luminous-Dynamics/symtropy/issues/6070). The run record now has fields for size-fraction/composition profile artifacts, out-of-spec mass and duration, agglomerate fragmentation, and flow continuity. A flow system can be jam-free and still produce unacceptable reactor feed. Preserve the time- and position-dependent composition field; a single bulk average can hide segregation.
+
+## Rust tools
+
+- tools/lunar-granular-flow-similarity: fail-closed similarity-envelope comparison across Fr, cohesion/weight, wall-adhesion/weight, particle/vessel ratio, roughness/particle ratio, fill, gravity, pressure and categorical boundaries. Missing coordinates return indeterminate. This screens claimed similitude; it does not establish physical equivalence.
+- tools/lunar-regolith-feeder-supervisor: advisory, stateful hopper/rotary-feeder supervisory policy with sensor-health checks, flow recovery, metering control, quality holds and power-aware vibration trimming.
+- scripts/validate-lunar-granular-flow-dataset.sh: dataset/run semantic and provenance admission checks.
+- scripts/check-lunar-granular-flow-fixture.sh: synthetic fixture tests, DOE count checks and partition/digest negative controls.
+
+The Linux CI explicitly formats, tests, Clippy-checks and executes both standalone Rust tools. These crates are not implicitly compiled by the root workspace.
