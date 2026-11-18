@@ -55,6 +55,8 @@ pub struct CarrierStop {
     pub departure_earliest_ms: u64,
     /// Latest possible carrier departure, in scenario-relative ms.
     pub departure_latest_ms: u64,
+    /// Pad resources physically available at this exact route stop.
+    pub available_pad_resource_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -199,6 +201,14 @@ fn structural_errors(input: &CoAvailabilityInput) -> Vec<String> {
             errors.push(format!(
                 "carrier.route_stops[{index}]: require arrival_early <= arrival_late < depart_early <= depart_late"
             ));
+        }
+        let mut pad_ids = BTreeSet::new();
+        for (pad_index, pad_id) in stop.available_pad_resource_ids.iter().enumerate() {
+            if pad_id.trim().is_empty() || !pad_ids.insert(pad_id.as_str()) {
+                errors.push(format!(
+                    "carrier.route_stops[{index}].available_pad_resource_ids[{pad_index}]: empty or duplicate pad identity"
+                ));
+            }
         }
     }
     for (index, pair) in input.carrier.route_stops.windows(2).enumerate() {
@@ -390,6 +400,27 @@ pub fn evaluate_coavailability(
                     "INFEASIBLE: recovery stop precedes launch stop on carrier route".into(),
                 );
             } else {
+                let launch_pad_available = input.carrier.route_stops[launch.index]
+                    .available_pad_resource_ids
+                    .iter()
+                    .any(|pad_id| pad_id == &sortie.launch_pad_resource_id);
+                let recovery_pad_available = input.carrier.route_stops[recovery.index]
+                    .available_pad_resource_ids
+                    .iter()
+                    .any(|pad_id| pad_id == &sortie.recovery_pad_resource_id);
+                if !launch_pad_available {
+                    known_infeasible = true;
+                    findings.push(
+                        "INFEASIBLE: launch pad is not declared at the launch route stop".into(),
+                    );
+                }
+                if !recovery_pad_available {
+                    known_infeasible = true;
+                    findings.push(
+                        "INFEASIBLE: recovery pad is not declared at the recovery route stop"
+                            .into(),
+                    );
+                }
                 let launch_latest_from_window = sortie
                     .launch_window_close_ms
                     .checked_sub(sortie.launch_service_ms);
@@ -560,6 +591,7 @@ mod tests {
                         arrival_latest_ms: 0,
                         departure_earliest_ms: 1_000_000,
                         departure_latest_ms: 1_000_000,
+                        available_pad_resource_ids: vec!["pad-depot-1".into()],
                     },
                     CarrierStop {
                         stop_id: "stop-02".into(),
@@ -568,6 +600,7 @@ mod tests {
                         arrival_latest_ms: 1_300_000,
                         departure_earliest_ms: 1_900_000,
                         departure_latest_ms: 1_900_000,
+                        available_pad_resource_ids: vec!["pad-hub-b-1".into()],
                     },
                 ],
             },
@@ -665,6 +698,15 @@ mod tests {
         test.sortie.recovery_window_close_ms = 1_900_000;
         let report = evaluate_coavailability(&test).expect("valid structure");
         assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
+    }
+
+    #[test]
+    fn rejects_pad_resource_not_attached_to_the_selected_stop() {
+        let mut test = input();
+        test.sortie.recovery_pad_resource_id = "pad-at-another-site".into();
+        let report = evaluate_coavailability(&test).expect("valid structure");
+        assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
+        assert!(report.findings.iter().any(|finding| finding.contains("not declared")));
     }
 
     #[test]
@@ -799,6 +841,7 @@ mod tests {
             arrival_latest_ms: 2_000_000,
             departure_earliest_ms: 3_000_000,
             departure_latest_ms: 3_000_000,
+            available_pad_resource_ids: vec!["pad-depot-1".into()],
         });
         assert!(evaluate_coavailability(&test).is_err());
     }
