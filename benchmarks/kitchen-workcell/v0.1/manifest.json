@@ -812,10 +812,34 @@
         "meal_compiler_decision_evidence_coverage",
         "meal_compiler_exact_acceptance_binding_rate",
         "meal_compiler_deterministic_replay_rate",
-        "meal_compiler_p95_latency_ms"
+        "meal_compiler_p95_latency_ms",
+        "meal_intent_fidelity_rate"
       ],
       "safety_boundary": "Software-only deterministic compilation; no pantry retrieval, schedule feasibility, module admission, food-safety approval, appliance control, physical execution or actuation authority.",
       "control_condition": "Run exact same typed proposal, acceptance and resolution bundle on the fixed compiler revision; keep adversarial negative controls and all failed/indeterminate cases in the denominator."
+    },
+    {
+      "task_id": "meal-intent-adjudication",
+      "domain": "workflow",
+      "operation": "Independently adjudicate whether the compiled proposal and final meal preserve the household's original intent and any explicitly approved revisions.",
+      "input_manifest_required": [
+        "exact human intent and non-negotiable exclusion record",
+        "explicit user-approved amendments and consent receipts",
+        "exact Symthaea MealProposalV1 revision and digest",
+        "exact Symtropy RecipeTaskGraphV1 and FoodFlowGraphV1 digests",
+        "Mycelix lot/receipt resolution claim ceilings and privacy scope",
+        "measured final ingredient/output and accepted-serving record",
+        "food-quality assay and blinded consumer acceptance protocol",
+        "independent adjudicator identity/scope and frozen scoring rubric"
+      ],
+      "primary_metrics": [
+        "meal_intent_fidelity_rate",
+        "meal_hard_constraint_violation_count",
+        "meal_user_substitution_acceptance_rate",
+        "accepted_servings"
+      ],
+      "safety_boundary": "Independent human-intent adjudication only. It does not establish food safety, allergen absence, physical appliance conformity or authorization to actuate.",
+      "control_condition": "Adjudicate exact original intent and explicitly approved changes before revealing system identity; preserve disagreement, missing evidence and withdrawn consent as separate outcomes."
     }
   ],
   "metrics": [
@@ -1834,6 +1858,23 @@
       "method": "Measure wall-clock compile duration separately from setup and report validation; freeze host CPU, memory, toolchain, build mode, workload generator and sample count.",
       "evidence_class": "declared",
       "notes": "Research target p95 below 50 ms. Report full distribution; performance never compensates for correctness, provenance or safety failures."
+    },
+    {
+      "metric_id": "meal_intent_fidelity_rate",
+      "unit": "fraction",
+      "denominator": "all independently adjudicated accepted user constraints and declared meal outcomes across the frozen household trial set",
+      "method": "Blind an independent adjudicator to system/comparator identity; compare the original human intent and each explicitly consented revision against the compiled plan and final measured meal. Separate non-negotiable exclusions/constraints from soft preferences; report both components and all disagreements.",
+      "evidence_class": "assayed",
+      "target_ratio_min": 0.98,
+      "notes": "Research hypothesis only. Do not average across households or constraint classes to hide a critical constraint violation. Final food acceptance is separately measured."
+    },
+    {
+      "metric_id": "meal_hard_constraint_violation_count",
+      "unit": "count",
+      "denominator": "one accepted meal proposal and its final meal outcome",
+      "method": "Count any violation of a non-negotiable exclusion, allergen restriction, serving count floor, consent boundary or other user-designated hard constraint; only a specific human-approved amendment can revise the original intent.",
+      "evidence_class": "assayed",
+      "notes": "Non-compensatory hard gate: target zero. A high liking score, lower cost, lower energy or higher throughput cannot offset an unapproved hard-constraint violation."
     }
   ],
   "target_hypotheses": [
@@ -2604,6 +2645,14 @@
         "host/compiler/input workload is changed between systems",
         "optimizations cause any correctness or provenance regression"
       ]
+    },
+    {
+      "hypothesis_id": "H-MEAL-INTENT-FIDELITY-98",
+      "metric_id": "meal_intent_fidelity_rate",
+      "target_value": 0.98,
+      "comparator": "matched household meal/task baseline with original user constraints frozen",
+      "status": "unverified_hypothesis",
+      "rationale": "A meal system should preserve user intent, not merely satisfy its own task graph or simulator predicates."
     }
   ],
   "instruments": [
@@ -2826,14 +2875,16 @@
       "water_l_per_accepted_serving",
       "meal_actual_cost_per_accepted_serving",
       "user_present_time_per_accepted_meal",
-      "sensory_liking_9pt"
+      "sensory_liking_9pt",
+      "meal_intent_fidelity_rate"
     ],
     "hard_gates": [
       "Any applicable physical appliance safety or independent conformity failure blocks that configuration; no mean score can compensate.",
       "Any successful-but-unsafe episode is counted as a hard failure, not a successful accepted meal.",
       "Unqualified food-contact surfaces, unresolved allergen cross-contact, or invalid cleaning assay evidence block the relevant food task.",
       "A failed or unknown critical measurement remains failed/unknown and cannot be imputed as zero.",
-      "A user-declared exclusion, consent withdrawal, or declined substitution cannot be overridden by model scoring."
+      "A user-declared exclusion, consent withdrawal, or declined substitution cannot be overridden by model scoring.",
+      "Any unapproved violation of a non-negotiable household exclusion or user-defined constraint blocks that meal outcome regardless of taste, time, cost, water, energy or task-success score."
     ],
     "randomization": {
       "design": "Randomized matched crossover comparison of the same frozen meal/task basket across comparator conditions.",
