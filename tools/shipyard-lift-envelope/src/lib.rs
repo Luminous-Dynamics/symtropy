@@ -1139,13 +1139,61 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_rigging_leg_identity_is_indeterminate() {
+        let mut plan = baseline();
+        plan.rigging_legs[1].leg_id = plan.rigging_legs[0].leg_id.clone();
+        plan.rigging_legs[1].component_revision =
+            plan.rigging_legs[0].component_revision.clone();
+        plan.rigging_legs[1].wll_evidence = plan.rigging_legs[0].wll_evidence.clone();
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "RIGGING_LEG_ID_DUPLICATE"));
+    }
+
+    #[test]
+    fn crane_capacity_equal_to_conservative_demand_is_accepted_for_human_review() {
+        let mut plan = baseline();
+        plan.crane_chart.net_capacity_mn = 431_508_000;
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::ReadyForHumanReview);
+        assert!(!has_code(&report, "CRANE_CHART_CAPACITY_EXCEEDED"));
+    }
+
+    #[test]
+    fn crane_capacity_one_millinewton_below_demand_is_rejected() {
+        let mut plan = baseline();
+        plan.crane_chart.net_capacity_mn = 431_507_999;
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Rejected);
+        assert!(has_code(&report, "CRANE_CHART_CAPACITY_EXCEEDED"));
+    }
+
+    #[test]
+    fn rigging_wll_equal_to_conservative_tension_is_accepted_for_human_review() {
+        let mut plan = baseline();
+        plan.rigging_legs[0].working_load_limit_mn = 305_122_139;
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::ReadyForHumanReview);
+        assert!(!has_code(&report, "RIGGING_WLL_EXCEEDED"));
+    }
+
+    #[test]
+    fn rigging_wll_one_millinewton_below_conservative_tension_is_rejected() {
+        let mut plan = baseline();
+        plan.rigging_legs[0].working_load_limit_mn = 305_122_138;
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Rejected);
+        assert!(has_code(&report, "RIGGING_WLL_EXCEEDED"));
+    }
+
+    #[test]
     fn missing_load_share_is_not_replaced_with_equal_sharing() {
         let mut plan = baseline();
         plan.rigging_legs[0].maximum_vertical_share_ppm = 0;
         let report = evaluate(&plan);
         assert_eq!(report.disposition, Disposition::Indeterminate);
         assert!(has_code(&report, "RIGGING_LEG_BOUNDS_INVALID"));
-        assert!(has_code(&report, "RIGGING_SHARES_DO_NOT_SUM_TO_ONE"));
+        assert!(has_code(&report, "RIGGING_SHARE_BOUNDS_DO_NOT_COVER_LOAD"));
     }
 
     #[test]
