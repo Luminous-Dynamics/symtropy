@@ -65,14 +65,13 @@ for run in "$cal" "$val" "$blind"; do
 done
 
 jq -e '
-  .observations.input_mass_kg.value
-  == (.observations.delivered_mass_kg.value
-      + .observations.residual_mass_kg.value
-      + .observations.dust_and_fines_mass_kg.value)
-  and (.observations.transfer_efficiency.value
-       - (.observations.delivered_mass_kg.value / .observations.input_mass_kg.value) | fabs) < 0.0001
-  and (.observations.beneficiation_yield.value
-       - (.observations.accepted_target_size_mass_kg.value / .observations.delivered_mass_kg.value) | fabs) < 0.0001
+  .observations as $o
+  | $o.input_mass_kg.value
+    == ($o.delivered_mass_kg.value + $o.residual_mass_kg.value + $o.dust_and_fines_mass_kg.value)
+    and (( $o.transfer_efficiency.value
+           - ($o.delivered_mass_kg.value / $o.input_mass_kg.value) ) | abs) < 0.0001
+    and (( $o.beneficiation_yield.value
+           - ($o.accepted_target_size_mass_kg.value / $o.delivered_mass_kg.value) ) | abs) < 0.0001
 ' "$cal" >/dev/null || fail "synthetic fixture mass balance or derived efficiencies are inconsistent"
 
 bash scripts/validate-lunar-granular-flow-dataset.sh \
