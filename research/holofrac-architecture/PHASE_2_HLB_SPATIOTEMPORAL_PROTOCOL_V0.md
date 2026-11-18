@@ -510,6 +510,8 @@ Targets on the finite synthetic corpus:
 - 100% historical snapshot agreement at frozen knowledge cutoffs;
 - per-stakeholder outcomes and unmet preferences always visible; group averages alone are insufficient.
 
+The current implementation hardens the anonymous output boundary: raw preference/consent events transfer through a validating constructor into a private ledger; raw snapshot fields, cohort counts and private leximin vectors are not exposed through public fields, Debug, Clone or equality output. Anonymous stable IDs, per-person satisfaction rows and numeric veto details are not emitted. The synthetic shared-aggregation policy requires at least five anonymous participants; one through four fail closed. This is identity-redacted minimum-cohort aggregation, not differential privacy, and aggregate mean/minimum, rankings and criterion-only anonymous veto signals remain possible query side channels. Repeated-query reconstruction and membership inference are tracked separately in #6034: https://github.com/Luminous-Dynamics/symtropy/issues/6034.
+
 No camera, biometrics, psychological-state inference or demographic proxy should be a default input. Preference data is supplied explicitly, revocable and limited to the participant-authorized scope. Real deployments require informed consent, data minimization, accessible participation, appropriate ethics review and human control.
 
 
@@ -550,3 +552,38 @@ Report selected actions, mutual information, expected posterior value, EVSI, net
 Prospective target from #5961: at least 20% fewer high-fidelity solver evaluations than the strongest matched baseline at non-inferior feasible Pareto quality, with a predeclared 2% relative hypervolume non-inferiority margin. The target must be frozen before evaluation and measured across held-out problem families, not selected after observing results.
 
 The synthetic fixture proves only exact finite arithmetic and policy behavior for its declared likelihoods. It does not establish calibrated real-world solver value, causal truth, or real engineering-cost savings. The integrated path must wait for #5959 source/solver receipts and #5961 request admission/execution before making such claims.
+
+
+## 18. Cross-scenario climate robustness, Pareto persistence and regret
+
+Symtropy issue #6025 owns the external research and scenario-robustness programme:
+https://github.com/Luminous-Dynamics/symtropy/issues/6025
+
+The first executable finite-scenario slice is now on the HoloFrac implementation branch:
+- research/holofrac-retrieval/src/climate_robustness.rs
+- research/holofrac-retrieval/src/bin/climate_robustness_sweep.rs
+- research/holofrac-architecture/CLIMATE_ROBUSTNESS_PROTOCOL_V0.md
+
+It computes scenario-specific Pareto frontiers, their union and intersection, mean pairwise Jaccard persistence, worst-case objective vectors, weighted feasibility coverage, per-criterion weighted regret, maximum regret and a robust Pareto frontier restricted to candidates feasible in every declared scenario.
+
+The first synthetic scenarios are present-TMY, future-hot and compound heat/grid stress. They use explicitly declared **analytical decision weights**, not probabilities. The fixture deliberately includes a present-day specialist that is infeasible under later scenarios; it must not be called guaranteed-feasible or appear on the robust frontier.
+
+### T14 hypotheses
+
+- T14.1 — Pareto persistence: candidate rankings/frontiers change materially across future-climate, microclimate, occupancy and supply scenarios; report the changes rather than optimize against one TMY.
+- T14.2 — Feasibility robustness: candidates called guaranteed-feasible pass every declared hard scenario constraint.
+- T14.3 — Regret: a balanced cross-scenario design can reduce maximum regret relative to a present-day-only specialist under a matched solver budget.
+- T14.4 — Uncertainty-directed sampling: Symthaea proposes the next climate/occupancy/compound stress experiment by expected decision value; Symtropy validates and executes it under a budget and exact solver receipt.
+- T14.5 — Out-of-domain honesty: scenario coverage, surrogate error and missing future conditions are explicit unknowns, not extrapolated certainty.
+
+### T14 baselines and metrics
+
+Compare present-TMY-only optimization, independent optimization per scenario, union/intersection of scenario Pareto sets, robust maximin, minimax regret and weighted utility only when probability weights are independently justified. At higher fidelity, include matched NSGA-II/III, MOPSO and surrogate-assisted methods under equal variables, constraints, solver fidelity and evaluation budgets.
+
+Report scenario-specific feasible frontiers, union/intersection, pairwise Jaccard, robust worst-case frontier, weighted feasibility coverage, guaranteed-feasibility flag, worst-case objective vectors, weighted/max regret, feasibility-margin erosion, solver calls, wall-clock, surrogate error and all infeasible/unknown cases.
+
+The finite fixture targets 100% independent-oracle agreement for scenario/robust frontiers and regret, and zero candidates labelled guaranteed-feasible if any scenario fails a hard constraint. Real climate studies require source-versioned future weather, local microclimate, occupancy, tariff/grid/water assumptions, calibrated first-principles simulation and held-out scenarios.
+
+SSP narratives are not probability distributions by default. The initial analytical decision weights are decision priorities only; do not describe weighted outcomes or feasibility coverage as expected values or probabilities.
+
+The initial synthetic fixture does not prove climate resilience, future-climate likelihood, energy savings, comfort, net-zero status, safety, code compliance or adaptation certification.
