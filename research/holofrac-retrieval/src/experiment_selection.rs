@@ -76,7 +76,9 @@ pub struct PolicyOutcome {
     pub selected_experiment_id: Option<String>,
     pub mutual_information_bits: f64,
     pub experiment_cost: f64,
+    pub baseline_expected_value: f64,
     pub expected_value_after_observation: f64,
+    pub expected_value_improvement: f64,
     pub net_expected_decision_value: f64,
     pub expected_decision_regret: f64,
     pub decision_without_measurement: String,
@@ -438,7 +440,9 @@ impl DecisionProblem {
                 selected_experiment_id: Some(metrics.experiment_id),
                 mutual_information_bits: metrics.mutual_information_bits,
                 experiment_cost: metrics.cost,
+                baseline_expected_value: metrics.baseline_expected_value,
                 expected_value_after_observation: metrics.expected_value_after_observation,
+                expected_value_improvement: metrics.expected_value_improvement,
                 net_expected_decision_value: metrics.net_expected_decision_value,
                 expected_decision_regret: metrics.expected_decision_regret,
                 decision_without_measurement,
@@ -450,7 +454,9 @@ impl DecisionProblem {
                 selected_experiment_id: None,
                 mutual_information_bits: 0.0,
                 experiment_cost: 0.0,
+                baseline_expected_value: baseline_value,
                 expected_value_after_observation: baseline_value,
+                expected_value_improvement: 0.0,
                 net_expected_decision_value: 0.0,
                 expected_decision_regret: perfect_information_value - baseline_value,
                 decision_without_measurement,
@@ -626,7 +632,9 @@ mod tests {
 
         assert!((baseline - 0.5).abs() < 1.0e-12);
         assert!((perfect - 1.0).abs() < 1.0e-12);
+        assert!((test_a.baseline_expected_value - 0.5).abs() < 1.0e-12);
         assert!((test_a.expected_value_after_observation - 0.9).abs() < 1.0e-12);
+        assert!((test_a.expected_value_improvement - 0.4).abs() < 1.0e-12);
         assert!((test_a.expected_value_improvement - 0.4).abs() < 1.0e-12);
         assert!((test_a.net_expected_decision_value - 0.25).abs() < 1.0e-12);
         assert!((test_b.expected_value_after_observation - 0.5).abs() < 1.0e-12);
