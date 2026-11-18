@@ -3,8 +3,9 @@ use std::time::{Duration, Instant};
 
 use construction_motion_oracle::{
     AnalyticPath, DesignIntentEntity, DispatchEnvelopeBinding, DispatchReadinessRequest,
-    FieldAcceptanceProfile, FieldLayoutEntityType, OccupancyAssessmentReceipt, SiteActorRole,
-    SiteEventEnvelope, SiteEventPayload, SiteStateLedger, SiteWorkPackage, Vec3,
+    ExclusiveResourceClaim, FieldAcceptanceProfile, FieldLayoutEntityType,
+    OccupancyAssessmentReceipt, SiteActorRole, SiteEventEnvelope, SiteEventPayload,
+    SiteResourceDefinition, SiteStateLedger, SiteWorkPackage, SpaceTimeReservation, Vec3,
     chord_collision, check_dispatch_readiness, endpoints_only_collision,
     verify_dispatch_readiness_receipt_current,
 };
@@ -124,6 +125,7 @@ fn main() {
     });
     run_site_ledger_append_scaling_benchmarks();
     run_site_dispatch_readiness_benchmarks();
+    run_exclusive_resource_reservation_index_benchmarks();
 }
 
 
@@ -330,4 +332,227 @@ fn run_site_dispatch_readiness_benchmarks() {
             .expect("consume-time revalidation remains valid"),
         );
     });
+}
+
+
+fn benchmark_digest(value: u64) -> String {
+    format!("{value:064x}")
+}
+
+fn benchmark_resource_reservation(
+    ledger: &SiteStateLedger,
+    reservation_id: String,
+    start_tick: u64,
+    end_tick: u64,
+    committed_at_tick: u64,
+    event_salt: u64,
+) -> SpaceTimeReservation {
+    SpaceTimeReservation {
+        reservation_id,
+        resource_catalog_sha256: benchmark_digest(2),
+        resource_claim_manifest_sha256: benchmark_digest(event_salt + 10),
+        claims: vec![ExclusiveResourceClaim {
+            resource_id: "crane-zone-1".into(),
+            definition_sha256: benchmark_digest(3),
+            start_tick,
+            end_tick,
+        }],
+        package_sha256: benchmark_digest(1),
+        design_revision_sha256: benchmark_digest(4),
+        entity_id: "ifc4x3:0000000000000000000001".into(),
+        robot_id: format!("robot-{event_salt:08}"),
+        envelope_sha256: benchmark_digest(event_salt + 20),
+        readiness_receipt_sha256: benchmark_digest(event_salt + 30),
+        occupancy_assessment_receipt_sha256: benchmark_digest(event_salt + 40),
+        occupancy_engine_build_sha256: benchmark_digest(5),
+        clearance_policy_sha256: benchmark_digest(6),
+        site_snapshot_sha256: benchmark_digest(event_salt + 50),
+        site_ledger_sequence: ledger.last_sequence(),
+        site_ledger_event_sha256: ledger
+            .last_event_sha256()
+            .expect("benchmark ledger has a head")
+            .to_owned(),
+        site_clock_domain_id: "benchmark-site-clock".into(),
+        checked_at_tick: 100,
+        valid_until_tick: 1_000_000,
+        committed_at_tick,
+        start_tick,
+        end_tick,
+        lease_valid_until_tick: 999_000,
+    }
+}
+
+fn build_resource_reservation_benchmark_ledger(existing_count: u64) -> SiteStateLedger {
+    let mut ledger = SiteStateLedger::new();
+    let package = SiteWorkPackage {
+        package_sha256: benchmark_digest(1),
+        source_model_sha256: benchmark_digest(7),
+        source_schema_release: "IFC4X3_ADD2".into(),
+        ids_spec_sha256: benchmark_digest(8),
+        ids_version: "1.0".into(),
+        ids_engine_build_sha256: benchmark_digest(9),
+        design_revision_sha256: benchmark_digest(4),
+        frame_id: "benchmark-site-frame".into(),
+        frame_sha256: benchmark_digest(10),
+        transform_sha256: benchmark_digest(11),
+        entity_manifest_sha256: benchmark_digest(12),
+        acceptance_profile_sha256: benchmark_digest(13),
+        entities: vec![DesignIntentEntity {
+            design_entity_id: "ifc4x3:0000000000000000000001".into(),
+            entity_type: FieldLayoutEntityType::Point,
+        }],
+        acceptance_profile: FieldAcceptanceProfile {
+            max_abs_xy_residual_mm: 1.0,
+            max_reference_u95_xy_mm: 0.25,
+            max_abs_z_residual_mm: None,
+            max_reference_u95_z_mm: None,
+            max_abs_endpoint_residual_mm: None,
+        },
+    };
+    ledger
+        .apply(SiteEventEnvelope {
+            event_id: "reservation-benchmark-package".into(),
+            sequence: 1,
+            previous_event_sha256: None,
+            event_sha256: benchmark_digest(101),
+            actor_id: "design-authority".into(),
+            actor_role: SiteActorRole::DesignAuthority,
+            payload: SiteEventPayload::WorkPackagePublished { package },
+        })
+        .expect("benchmark package publication must be valid");
+    ledger
+        .apply(SiteEventEnvelope {
+            event_id: "reservation-benchmark-catalog".into(),
+            sequence: 2,
+            previous_event_sha256: ledger.last_event_sha256().map(str::to_owned),
+            event_sha256: benchmark_digest(102),
+            actor_id: "resource-authority".into(),
+            actor_role: SiteActorRole::SiteResourceAuthority,
+            payload: SiteEventPayload::ResourceCatalogPublished {
+                catalog_sha256: benchmark_digest(2),
+                resources: vec![SiteResourceDefinition {
+                    resource_id: "crane-zone-1".into(),
+                    definition_sha256: benchmark_digest(3),
+                }],
+            },
+        })
+        .expect("benchmark resource catalog must publish");
+
+    for index in 0..existing_count {
+        let start_tick = 10_000 + index * 10;
+        let reservation = benchmark_resource_reservation(
+            &ledger,
+            format!("existing-{index:08}"),
+            start_tick,
+            start_tick + 5,
+            100,
+            index + 1_000,
+        );
+        let sequence = ledger.last_sequence() + 1;
+        ledger
+            .apply(SiteEventEnvelope {
+                event_id: format!("reservation-commit-{sequence:08}"),
+                sequence,
+                previous_event_sha256: ledger.last_event_sha256().map(str::to_owned),
+                event_sha256: benchmark_digest(sequence + 10_000),
+                actor_id: "dispatch-coordinator".into(),
+                actor_role: SiteActorRole::DispatchCoordinator,
+                payload: SiteEventPayload::SpaceTimeReservationCommitted { reservation },
+            })
+            .expect("pre-generated non-overlapping reservation must commit");
+    }
+    assert_eq!(
+        ledger.active_resource_claim_count(),
+        existing_count as usize
+    );
+    ledger
+}
+
+fn run_exclusive_resource_reservation_index_benchmarks() {
+    println!(
+        "exclusive_resource_index,existing_reservations,successful_commit_p50_ns,successful_commit_p95_ns,successful_commit_p99_ns,conflict_reject_p50_ns,conflict_reject_p95_ns,conflict_reject_p99_ns,active_claims"
+    );
+    for existing_count in [100_u64, 1_000, 10_000] {
+        let mut ledger = build_resource_reservation_benchmark_ledger(existing_count);
+
+        let mut successful_commit_durations = Vec::with_capacity(31);
+        for sample in 0..31_u64 {
+            let sequence = ledger.last_sequence() + 1;
+            let start_tick = 500_000 + (existing_count + sample) * 10;
+            let reservation = benchmark_resource_reservation(
+                &ledger,
+                format!("success-{existing_count}-{sample}"),
+                start_tick,
+                start_tick + 5,
+                200,
+                existing_count + sample + 50_000,
+            );
+            let event = SiteEventEnvelope {
+                event_id: format!("success-event-{existing_count}-{sample}"),
+                sequence,
+                previous_event_sha256: ledger.last_event_sha256().map(str::to_owned),
+                event_sha256: benchmark_digest(1_000_000 + existing_count + sample),
+                actor_id: "dispatch-coordinator".into(),
+                actor_role: SiteActorRole::DispatchCoordinator,
+                payload: SiteEventPayload::SpaceTimeReservationCommitted { reservation },
+            };
+            let start = Instant::now();
+            black_box(
+                ledger
+                    .apply(event)
+                    .expect("non-overlapping reservation append must succeed"),
+            );
+            successful_commit_durations.push(start.elapsed());
+        }
+
+        let target_index = existing_count / 2;
+        let conflict_start = 10_000 + target_index * 10 + 1;
+        let conflict_reservation = benchmark_resource_reservation(
+            &ledger,
+            format!("conflict-{existing_count}"),
+            conflict_start,
+            conflict_start + 2,
+            200,
+            existing_count + 80_000,
+        );
+        let conflict_sequence = ledger.last_sequence() + 1;
+        let conflict_event = SiteEventEnvelope {
+            event_id: format!("conflict-event-{existing_count}"),
+            sequence: conflict_sequence,
+            previous_event_sha256: ledger.last_event_sha256().map(str::to_owned),
+            event_sha256: benchmark_digest(2_000_000 + existing_count),
+            actor_id: "dispatch-coordinator".into(),
+            actor_role: SiteActorRole::DispatchCoordinator,
+            payload: SiteEventPayload::SpaceTimeReservationCommitted {
+                reservation: conflict_reservation,
+            },
+        };
+        let mut conflict_durations = Vec::with_capacity(101);
+        for _ in 0..101 {
+            let attempted_event = conflict_event.clone();
+            let start = Instant::now();
+            let result = ledger.apply(attempted_event);
+            conflict_durations.push(start.elapsed());
+            assert!(matches!(
+                result,
+                Err(construction_motion_oracle::SiteLedgerError::SpaceTimeReservationConflict {
+                    ..
+                })
+            ));
+        }
+
+        successful_commit_durations.sort_unstable();
+        conflict_durations.sort_unstable();
+        println!(
+            "{},{},{},{},{},{},{},{},{}",
+            existing_count,
+            percentile(&successful_commit_durations, 50).as_nanos(),
+            percentile(&successful_commit_durations, 95).as_nanos(),
+            percentile(&successful_commit_durations, 99).as_nanos(),
+            percentile(&conflict_durations, 50).as_nanos(),
+            percentile(&conflict_durations, 95).as_nanos(),
+            percentile(&conflict_durations, 99).as_nanos(),
+            ledger.active_resource_claim_count(),
+        );
+    }
 }
