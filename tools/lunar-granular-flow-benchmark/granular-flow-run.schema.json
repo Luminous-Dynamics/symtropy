@@ -1115,7 +1115,8 @@
             "flow_regime_map",
             "velocity_field",
             "stagnant_zone_mask",
-            "hopper_occupancy_map"
+            "hopper_occupancy_map",
+            "adhesion_characterization"
           ]
         },
         "path": {
