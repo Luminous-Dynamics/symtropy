@@ -1457,7 +1457,7 @@ mod tests {
         let (input, schema, mut oracle) = fixture();
         oracle["cases"][0]["point_credit_l"] = json!(999.0);
         let output = evaluate_all(&input, &schema, &oracle).unwrap();
-        assert_eq!(output["matched_case_count"], 14);
+        assert_eq!(output["matched_case_count"], 18);
         assert_eq!(output["mismatch_count"], 1);
     }
 
@@ -1482,5 +1482,14 @@ mod tests {
                 .unwrap_err()
                 .contains("duplicate run_id")
         );
+    }
+
+    #[test]
+    fn utc_parser_rejects_invalid_calendar_dates_and_accepts_leap_days() {
+        assert!(valid_canonical_utc("2024-02-29T23:59:59Z"));
+        assert!(!valid_canonical_utc("2023-02-29T12:00:00Z"));
+        assert!(!valid_canonical_utc("2026-13-01T12:00:00Z"));
+        assert!(!valid_canonical_utc("2026-01-01T24:00:00Z"));
+        assert!(!valid_canonical_utc("2026-04-31T12:00:00Z"));
     }
 }
