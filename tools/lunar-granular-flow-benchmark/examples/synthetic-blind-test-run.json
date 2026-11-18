@@ -106,6 +106,14 @@
       "status": "unknown",
       "source_artifact_id": null,
       "calibration_record_id": null
+    },
+    "initial_charge_mass_kg": {
+      "value": 0.06,
+      "standard_uncertainty": 0.001,
+      "unit": "kg",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
     }
   },
   "environment": {
@@ -267,7 +275,24 @@
       "status": "synthetic",
       "source_artifact_id": null,
       "calibration_record_id": null
-    }
+    },
+    "hopper_outlet_diameter_m": {
+      "value": null,
+      "standard_uncertainty": null,
+      "unit": "m",
+      "status": "unknown",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "hopper_column_height_m": {
+      "value": null,
+      "standard_uncertainty": null,
+      "unit": "m",
+      "status": "unknown",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "vibration_mount_profile_id": null
   },
   "operation": {
     "operation_type": "rotating_drum",
@@ -593,7 +618,17 @@
       "status": "synthetic",
       "source_artifact_id": null,
       "calibration_record_id": null
-    }
+    },
+    "flow_regime_classification": "slumping",
+    "flow_regime_confidence": {
+      "value": 0.9,
+      "standard_uncertainty": 0.05,
+      "unit": "fraction",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "flow_regime_observation_artifact_id": "video-summary-fixture"
   },
   "model": {
     "solver_family": "force_balance",
