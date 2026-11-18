@@ -57,7 +57,7 @@ jobs:
           sed -n '1p' "$out/combined.jsonl" > "$out/lift-input.json"
           sed -n '2p' "$out/combined.jsonl" > "$out/preflight-report.json"
           jq -e '.contract_version == "shipyard-lift-envelope-v0.1" and .lift_id == "synthetic-lift-001" and .block_revision == "block-r7" and .crane_configuration_revision == "gantry-config-r4" and .weather.observation_subject_id == "synthetic-weather-station-01" and .weather.limit_profile_id == "synthetic-wind-limit-profile-01"' "$out/lift-input.json"
-          jq -e '.contract_version == "shipyard-lift-envelope-v0.1" and .disposition == "ready_for_human_review" and .design_load_upper_mn == 431508000 and .diagnostics == [] and all(.leg_assessments[]; .within_working_load_limit == true)' "$out/preflight-report.json"
+          jq -e '.contract_version == "shipyard-lift-envelope-v0.1" and .disposition == "ready_for_human_review" and .design_load_upper_mn == 431508000 and (.leg_assessments | length) == 2 and all(.leg_assessments[]; .tension_upper_mn == 305122139 and .within_working_load_limit == true) and .diagnostics == []' "$out/preflight-report.json"
           input_sha=$(sha256sum "$out/lift-input.json" | cut -d ' ' -f 1)
           report_sha=$(sha256sum "$out/preflight-report.json" | cut -d ' ' -f 1)
           printf '{"receipt_contract_version":"shipyard-lift-preflight-receipt-v0","input_sha256":"%s","report_sha256":"%s"}\n' "$input_sha" "$report_sha" > "$out/preflight-receipt.json"
