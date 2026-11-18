@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/shipyard-lift-reconciliation-conformance-v0.1.schema.json",
+  "title": "Shipyard Lift Reconciliation Conformance V0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "vector_set_id",
+    "status",
+    "description",
+    "claim_ceiling",
+    "vectors"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "shipyard-lift-reconciliation-v0.1"
+    },
+    "vector_set_id": {
+      "const": "SHIPYARD-LIFT-RECONCILIATION-CONFORMANCE-V0.1"
+    },
+    "status": {
+      "const": "FROZEN_SYNTHETIC_TEST_CONTRACT_NOT_PHYSICAL_QUALIFICATION"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "vectors": {
+      "type": "array",
+      "minItems": 42,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "mode",
+          "test_name",
+          "expected_disposition",
+          "required_diagnostic_codes",
+          "assertion",
+          "synthetic_only"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^REC-[A-Z]+-[0-9]{3}$"
+          },
+          "mode": {
+            "enum": [
+              "evaluation",
+              "metamorphic",
+              "serialization"
+            ]
+          },
+          "test_name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]+$"
+          },
+          "expected_disposition": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "conforming_to_declared_envelope",
+              "deviation_observed",
+              "indeterminate",
+              null
+            ]
+          },
+          "required_diagnostic_codes": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]+$"
+            }
+          },
+          "assertion": {
+            "type": "string",
+            "minLength": 1
+          },
+          "synthetic_only": {
+            "const": true
+          }
+        }
+      }
+    }
+  }
+}
