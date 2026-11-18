@@ -699,7 +699,7 @@ mod tests {
                 if *time <= segment.start_time {
                     break;
                 }
-                let elapsed = time.min(&segment.end_time) - segment.start_time;
+                let elapsed = (*time).min(segment.end_time) - segment.start_time;
                 if elapsed > 0.0 {
                     state = oracle
                         .state_after_constant_forcing(&state, &segment.forcing, elapsed)
