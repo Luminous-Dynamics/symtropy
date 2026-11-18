@@ -1215,7 +1215,7 @@ mod tests {
         }
     }
 
-    fn request() -> KitchenOutcomeAccountingRequestV1 {
+    fn request_fixture() -> KitchenOutcomeAccountingRequestV1 {
         KitchenOutcomeAccountingRequestV1 {
             schema_version: KITCHEN_OUTCOME_ACCOUNTING_SCHEMA_VERSION,
             run_id: "fixture:meal-001".to_owned(),
@@ -1327,7 +1327,7 @@ mod tests {
 
     #[test]
     fn complete_meal_accounting_is_exact_and_claim_eligible() {
-        let report = evaluate_kitchen_outcome_accounting(&request());
+        let report = evaluate_kitchen_outcome_accounting(&request_fixture());
         assert_eq!(
             report.disposition,
             KitchenOutcomeDispositionV1::CompleteClaimEligible
@@ -1355,7 +1355,7 @@ mod tests {
 
     #[test]
     fn report_json_round_trip_preserves_exact_integer_totals() {
-        let report = evaluate_kitchen_outcome_accounting(&request());
+        let report = evaluate_kitchen_outcome_accounting(&request_fixture());
         let encoded = serde_json::to_vec(&report).expect("bounded report must serialize");
         let decoded: KitchenOutcomeAccountingReportV1 =
             serde_json::from_slice(&encoded).expect("report must deserialize exactly");
@@ -1364,7 +1364,7 @@ mod tests {
 
     #[test]
     fn unknown_water_is_not_silently_zero() {
-        let mut request = request();
+        let mut request = request_fixture();
         request.water_terms[1].observation = KitchenFlowObservationV1::Unknown {
             reason: "meter unavailable".to_owned(),
         };
@@ -1385,7 +1385,7 @@ mod tests {
 
     #[test]
     fn not_applicable_requires_a_reason() {
-        let mut request = request();
+        let mut request = request_fixture();
         request.water_terms[0].observation = KitchenFlowObservationV1::NotApplicable {
             justification: "no preparation water is used in this declared process".to_owned(),
         };
@@ -1398,7 +1398,7 @@ mod tests {
                 .any(|value| value == "water:Preparation")
         );
 
-        let mut invalid_request = request();
+        let mut invalid_request = request_fixture();
         invalid_request.water_terms[0].observation = KitchenFlowObservationV1::NotApplicable {
             justification: " ".to_owned(),
         };
@@ -1410,7 +1410,7 @@ mod tests {
 
     #[test]
     fn simulated_evidence_is_exploratory_not_claim_eligible() {
-        let mut request = request();
+        let mut request = request_fixture();
         if let KitchenFlowObservationV1::Observed { evidence, .. } =
             &mut request.electricity_terms[0].observation
         {
@@ -1426,7 +1426,7 @@ mod tests {
 
     #[test]
     fn outputs_above_inputs_are_blocked() {
-        let mut request = request();
+        let mut request = request_fixture();
         if let KitchenFlowObservationV1::Observed { quantity, .. } =
             &mut request.mass_terms[1].observation
         {
@@ -1440,7 +1440,7 @@ mod tests {
 
     #[test]
     fn missing_expected_mass_term_is_indeterminate() {
-        let mut request = request();
+        let mut request = request_fixture();
         request.mass_terms.pop();
         let report = evaluate_kitchen_outcome_accounting(&request);
         assert_eq!(
@@ -1453,14 +1453,14 @@ mod tests {
 
     #[test]
     fn duplicate_mass_ids_and_stages_are_blocked() {
-        let mut request = request();
+        let mut request = request_fixture();
         request.mass_terms.push(request.mass_terms[0].clone());
         assert_eq!(
             evaluate_kitchen_outcome_accounting(&request).disposition,
             KitchenOutcomeDispositionV1::Blocked
         );
 
-        let mut repeated_stage_request = request();
+        let mut repeated_stage_request = request_fixture();
         repeated_stage_request
             .water_terms
             .push(repeated_stage_request.water_terms[0].clone());
@@ -1503,7 +1503,7 @@ mod tests {
 
     #[test]
     fn measured_evidence_requires_calibration() {
-        let mut request = request();
+        let mut request = request_fixture();
         if let KitchenFlowObservationV1::Observed { evidence, .. } =
             &mut request.mass_terms[0].observation
         {
@@ -1517,7 +1517,7 @@ mod tests {
 
     #[test]
     fn report_carries_sorted_deduplicated_evidence_references() {
-        let report = evaluate_kitchen_outcome_accounting(&request());
+        let report = evaluate_kitchen_outcome_accounting(&request_fixture());
         assert!(
             report
                 .evidence_refs
@@ -1546,7 +1546,7 @@ mod tests {
 
     #[test]
     fn rejected_batch_can_be_complete_without_per_serving_ratios() {
-        let mut request = request();
+        let mut request = request_fixture();
         request.accepted_servings = 0;
         if let KitchenFlowObservationV1::Observed { quantity, .. } =
             &mut request.mass_terms[1].observation
@@ -1568,7 +1568,7 @@ mod tests {
 
     #[test]
     fn positive_servings_require_positive_accepted_mass() {
-        let mut request = request();
+        let mut request = request_fixture();
         if let KitchenFlowObservationV1::Observed { quantity, .. } =
             &mut request.mass_terms[1].observation
         {
@@ -1582,7 +1582,7 @@ mod tests {
 
     #[test]
     fn mass_value_outside_u64_report_range_is_indeterminate() {
-        let mut request = request();
+        let mut request = request_fixture();
         if let KitchenFlowObservationV1::Observed { quantity, .. } =
             &mut request.mass_terms[0].observation
         {
