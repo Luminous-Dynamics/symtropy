@@ -697,6 +697,64 @@ mod tests {
     }
 
     #[test]
+    fn stronger_dense_shear_exposes_conditioning_error_without_changing_physical_step() {
+        let masses = [1.3, 2.1, 0.8];
+        let lengths = [1.0_f64, 1.25_f64.sqrt()];
+        let q0 = initial_position();
+        let v0 = initial_velocity();
+        let state = state_from_flat(&q0, &v0);
+        let chain = super::super::CartesianRattleChain::new(masses, lengths).unwrap();
+        let reference = chain
+            .step(
+                state,
+                0.0025,
+                super::super::SolverOptions::default(),
+            )
+            .unwrap();
+
+        let (basis_i, inverse_i) = basis_pair(3);
+        let basis = to_float(&basis_i);
+        let inverse = to_float(&inverse_i);
+        let transformed_metric = multiply(
+            &transpose(&basis),
+            &multiply(&mass_metric_with_masses(masses), &basis),
+        );
+        assert!(cholesky_positive_definite(&transformed_metric));
+
+        let (dense_q, dense_v, _, _, residuals) =
+            dense_coordinate_rattle_step(&basis, &inverse, masses, lengths, &q0, &v0, 0.0025);
+        let (reference_q, reference_v) = flatten_state(&reference.after);
+        let position_error = vector_max_abs(&dense_q, &reference_q);
+        let velocity_error = vector_max_abs(&dense_v, &reference_v);
+        let maximum_residual = residuals
+            .iter()
+            .map(|residual| residual.abs())
+            .fold(0.0_f64, f64::max);
+        let endpoint_jacobian = constraint_jacobian_at(&dense_q);
+        let maximum_tangency = jacobian_vec(&endpoint_jacobian, &dense_v)
+            .iter()
+            .map(|value| value.abs())
+            .fold(0.0_f64, f64::max);
+
+        assert!(
+            position_error <= 2.0e-5,
+            "scale=3, position error={position_error:e}"
+        );
+        assert!(
+            velocity_error <= 2.0e-5,
+            "scale=3, velocity error={velocity_error:e}"
+        );
+        assert!(
+            maximum_residual <= 2.0e-12,
+            "scale=3, link residual={maximum_residual:e}"
+        );
+        assert!(
+            maximum_tangency <= 2.0e-7,
+            "scale=3, endpoint tangency={maximum_tangency:e}"
+        );
+    }
+
+    #[test]
     fn dense_coordinate_rattle_tracks_cartesian_over_refinement_and_longer_horizon() {
         let masses = [1.3, 2.1, 0.8];
         let lengths = [1.0_f64, 1.25_f64.sqrt()];
