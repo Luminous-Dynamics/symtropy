@@ -168,9 +168,9 @@ for run_path in "\${run_paths[@]}"; do
   done < <(jq -r '.artifacts[] | [.artifact_id,.path,.sha256] | @tsv' "$run_path")
 done
 
-printf '%s\n' "\${provided_run_ids[@]}" | LC_ALL=C sort > provided-ids.tmp
-provided_sorted="provided-ids.tmp"
+provided_sorted="$(mktemp)"
 trap 'rm -f "$provided_sorted"' EXIT
+printf '%s\n' "${provided_run_ids[@]}" | LC_ALL=C sort > "$provided_sorted"
 [[ "$(uniq -d "$provided_sorted")" == "" ]] || fail "duplicate run_id supplied across run files"
 [[ "$(cat "$provided_sorted")" == "$manifest_run_ids" ]] || fail "provided run files do not exactly match manifest run assignments"
 
