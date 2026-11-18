@@ -90,6 +90,13 @@
       "toLocationId": "SITE-NORTH",
       "transitHours": 12,
       "maxCargoKg": 100000
+    },
+    {
+      "routeId": "ROUTE-EAST-LOCAL",
+      "fromLocationId": "WAREHOUSE-EAST",
+      "toLocationId": "SITE-EAST",
+      "transitHours": 2,
+      "maxCargoKg": 40000
     }
   ],
   "evidenceRecords": [
@@ -188,6 +195,59 @@
           {
             "stage": "source_part",
             "durationHours": 1200
+          },
+          {
+            "stage": "crew_mobilise",
+            "durationHours": 4
+          },
+          {
+            "stage": "repair_or_replace",
+            "durationHours": 10,
+            "resourceId": "CREW-HV-TX",
+            "resourceUnits": 1
+          },
+          {
+            "stage": "test_and_commission",
+            "durationHours": 4
+          }
+        ]
+      }
+    },
+    {
+      "eventId": "OUTAGE-003",
+      "assetId": "TX-B1",
+      "startHour": 72,
+      "failureMode": "synthetic_local_profile_B_failure",
+      "firmCapacityLostMw": 35,
+      "selectedPlan": {
+        "planId": "RECOVERY-003",
+        "partSource": {
+          "kind": "depot_stock",
+          "depotId": "DEPOT-EAST",
+          "partId": "SPARE-B",
+          "quantity": 1
+        },
+        "logisticsRouteId": "ROUTE-EAST-LOCAL",
+        "transportMassKg": 18000,
+        "alternativeFirmCapacityMw": 10,
+        "claimedRestorationHours": 26,
+        "expectedUnservedEnergyMwh": 650,
+        "tasks": [
+          {
+            "stage": "detect_and_isolate",
+            "durationHours": 2
+          },
+          {
+            "stage": "diagnose",
+            "durationHours": 3
+          },
+          {
+            "stage": "source_part",
+            "durationHours": 1
+          },
+          {
+            "stage": "transport",
+            "durationHours": 2
           },
           {
             "stage": "crew_mobilise",
