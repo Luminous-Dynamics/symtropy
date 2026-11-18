@@ -1026,7 +1026,6 @@ mod tests {
             dynamic_factor_ppm: 1_100_000,
             dynamic_factor_profile_id: "dynamic-factor-profile-01".to_owned(),
             dynamic_factor_profile_revision: "r1".to_owned(),
-            weather_profile_revision: "r1".to_owned(),
             mass_evidence: evidence_for("mass-record-001", "block-001", "block-r7"),
             centre_of_gravity_envelope_evidence: evidence_for("cog-envelope-001", "block-001", "block-r7"),
             pick_point_and_load_share_evidence: evidence_for("pick-load-share-001", "block-001", "block-r7"),
