@@ -111,12 +111,12 @@ fn parse_canonical_utc_seconds(value: &str) -> Option<i64> {
     if day < 1 || day > days_in_month {
         return None;
     }
-    let adjusted_year = year - if month <= 2 { 1 } else { 0 };
-    let era = if adjusted_year >= 0 {
+    let adjusted_year = year - (if month <= 2 { 1 } else { 0 });
+    let era = (if adjusted_year >= 0 {
         adjusted_year
     } else {
         adjusted_year - 399
-    } / 400;
+    }) / 400;
     let year_of_era = adjusted_year - era * 400;
     let adjusted_month = month + if month > 2 { -3 } else { 9 };
     let day_of_year = (153 * adjusted_month + 2) / 5 + day - 1;
