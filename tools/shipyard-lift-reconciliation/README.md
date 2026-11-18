@@ -18,7 +18,7 @@ Keep distinct:
 - a measured value and its uncertainty/conservative upper bound;
 - a complete session and a session with missing/unobserved intervals.
 
-The evaluator never treats missing events as normal operation.
+The evaluator never treats missing events as normal operation. Conflicting event-ID or source-sequence records are quarantined as a set: neither payload contributes to peaks or summaries, and the affected channel interval becomes unknown.
 
 ## V0.1 input contract
 
@@ -73,7 +73,7 @@ A complete execution with no alarms is not established by the absence of alarm r
 
 ## Canonical receipts
 
-- `canonical_event_ledger_json()` sorts events by channel/source/sequence/ID, preserving retransmissions.
+- `canonical_event_ledger_json()` sorts complete canonical event bytes and preserves retransmissions, even when duplicate IDs/sequences carry conflicting payloads.
 - `canonical_coverage_bundle_json()` sorts channel coverage attestations.
 - `ReconciliationPolicy::canonical_json()` pins required channels and timing limits.
 - `ReconciliationReport::canonical_json()` emits deterministic result bytes and echoes the plan, preflight, authorisation, policy, event-ledger and coverage-bundle digests.
