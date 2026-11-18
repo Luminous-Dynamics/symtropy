@@ -8,6 +8,11 @@
 
 use crate::site_state_ledger::{SiteEntityState, SiteStateLedger};
 
+pub const DISPATCH_READINESS_REQUEST_SCHEMA_VERSION: &str =
+    "construction-dispatch-readiness-request/0.1";
+pub const DISPATCH_READINESS_RECEIPT_SCHEMA_VERSION: &str =
+    "construction-dispatch-readiness-receipt/0.1";
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DispatchEnvelopeBinding {
     pub package_sha256: String,
@@ -63,6 +68,7 @@ pub struct OccupancyAssessmentReceipt {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DispatchReadinessRequest {
+    pub schema_version: String,
     pub envelope: DispatchEnvelopeBinding,
     /// Owner-approved immutable occupancy engine build and clearance policy.
     pub trusted_occupancy_engine_build_sha256: String,
@@ -75,6 +81,7 @@ pub struct DispatchReadinessRequest {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DispatchReadinessReceipt {
+    pub schema_version: String,
     pub package_sha256: String,
     pub design_revision_sha256: String,
     pub entity_id: String,
@@ -93,7 +100,10 @@ pub struct DispatchReadinessReceipt {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DispatchReadinessFailure {
+    UnsupportedSchemaVersion,
     InvalidDigest(&'static str),
+    ReadinessReceiptNotYetValid,
+    ReadinessReceiptExpired,
     UnknownOrInactivePackage,
     DesignRevisionMismatch,
     FrameMismatch,
@@ -122,6 +132,7 @@ pub enum DispatchReadinessFailure {
         conflicts: u64,
         unresolved_pairs: u64,
         invalid_bounds: u64,
+        unqualified_bounds: u64,
         stale_actors: u64,
         unmodelled_occupants: u64,
     },
@@ -133,6 +144,9 @@ pub fn check_dispatch_readiness(
     ledger: &SiteStateLedger,
     request: &DispatchReadinessRequest,
 ) -> Result<DispatchReadinessReceipt, DispatchReadinessFailure> {
+    if request.schema_version != DISPATCH_READINESS_REQUEST_SCHEMA_VERSION {
+        return Err(DispatchReadinessFailure::UnsupportedSchemaVersion);
+    }
     let envelope = &request.envelope;
     let occupancy = &request.occupancy;
 
@@ -259,7 +273,7 @@ pub fn check_dispatch_readiness(
         return Err(DispatchReadinessFailure::IncompleteBroadphaseCoverage);
     }
     if !occupancy.narrowphase_coverage_complete
-        || occupancy.narrowphase_evaluated_pair_count < occupancy.candidate_pair_count
+        || occupancy.narrowphase_evaluated_pair_count != occupancy.candidate_pair_count
     {
         return Err(DispatchReadinessFailure::IncompleteNarrowphaseCoverage);
     }
@@ -273,9 +287,8 @@ pub fn check_dispatch_readiness(
         return Err(DispatchReadinessFailure::OccupancyNotClear {
             conflicts: occupancy.conflict_count,
             unresolved_pairs: occupancy.unresolved_pair_count,
-            invalid_bounds: occupancy
-                .invalid_bound_count
-                .saturating_add(occupancy.unqualified_bound_count),
+            invalid_bounds: occupancy.invalid_bound_count,
+            unqualified_bounds: occupancy.unqualified_bound_count,
             stale_actors: occupancy.stale_actor_count,
             unmodelled_occupants: occupancy.unmodelled_occupant_count,
         });
@@ -283,6 +296,7 @@ pub fn check_dispatch_readiness(
 
     let valid_until_tick = envelope.valid_until_tick.min(occupancy.valid_until_tick);
     Ok(DispatchReadinessReceipt {
+        schema_version: DISPATCH_READINESS_RECEIPT_SCHEMA_VERSION.to_owned(),
         package_sha256: envelope.package_sha256.clone(),
         design_revision_sha256: envelope.design_revision_sha256.clone(),
         entity_id: envelope.entity_id.clone(),
@@ -301,6 +315,84 @@ pub fn check_dispatch_readiness(
         checked_at_tick: request.now_tick,
         valid_until_tick,
     })
+}
+
+/// Revalidate a readiness receipt immediately before passing it to a
+/// separate authorization authority. Any ledger change, entity-state change
+/// or expiry between readiness calculation and consumption invalidates it.
+pub fn verify_dispatch_readiness_receipt_current(
+    ledger: &SiteStateLedger,
+    receipt: &DispatchReadinessReceipt,
+    now_tick: u64,
+) -> Result<(), DispatchReadinessFailure> {
+    if receipt.schema_version != DISPATCH_READINESS_RECEIPT_SCHEMA_VERSION {
+        return Err(DispatchReadinessFailure::UnsupportedSchemaVersion);
+    }
+    for (label, digest) in [
+        ("package", receipt.package_sha256.as_str()),
+        ("design revision", receipt.design_revision_sha256.as_str()),
+        ("motion envelope", receipt.envelope_sha256.as_str()),
+        ("site snapshot", receipt.site_snapshot_sha256.as_str()),
+        (
+            "occupancy assessment receipt",
+            receipt.occupancy_assessment_receipt_sha256.as_str(),
+        ),
+        ("occupancy engine build", receipt.occupancy_engine_build_sha256.as_str()),
+        ("clearance policy", receipt.clearance_policy_sha256.as_str()),
+        ("site ledger head", receipt.site_ledger_event_sha256.as_str()),
+    ] {
+        if !is_sha256(digest) {
+            return Err(DispatchReadinessFailure::InvalidDigest(label));
+        }
+    }
+    if receipt.robot_id.trim().is_empty()
+        || receipt.entity_id.trim().is_empty()
+        || receipt.site_clock_domain_id.trim().is_empty()
+    {
+        return Err(DispatchReadinessFailure::OccupancyClockDomainMismatch);
+    }
+    if receipt.valid_until_tick <= receipt.checked_at_tick {
+        return Err(DispatchReadinessFailure::OccupancyTimeWindowInvalid);
+    }
+    if now_tick < receipt.checked_at_tick {
+        return Err(DispatchReadinessFailure::ReadinessReceiptNotYetValid);
+    }
+    if now_tick >= receipt.valid_until_tick {
+        return Err(DispatchReadinessFailure::ReadinessReceiptExpired);
+    }
+    if ledger.active_package_sha256() != Some(receipt.package_sha256.as_str())
+        || ledger.package_is_current(&receipt.package_sha256) != Some(true)
+    {
+        return Err(DispatchReadinessFailure::UnknownOrInactivePackage);
+    }
+    if ledger.last_sequence() != receipt.site_ledger_sequence {
+        return Err(DispatchReadinessFailure::SiteSnapshotSequenceMismatch);
+    }
+    if ledger.last_event_sha256() != Some(receipt.site_ledger_event_sha256.as_str()) {
+        return Err(DispatchReadinessFailure::SiteSnapshotHeadMismatch);
+    }
+    let package = ledger
+        .work_package(&receipt.package_sha256)
+        .ok_or(DispatchReadinessFailure::UnknownOrInactivePackage)?;
+    if package.design_revision_sha256 != receipt.design_revision_sha256 {
+        return Err(DispatchReadinessFailure::DesignRevisionMismatch);
+    }
+    if !package
+        .entities
+        .iter()
+        .any(|entity| entity.design_entity_id == receipt.entity_id)
+    {
+        return Err(DispatchReadinessFailure::UnknownDesignEntity);
+    }
+    match ledger.entity_state(&receipt.package_sha256, &receipt.entity_id) {
+        Some(
+            SiteEntityState::NotAttempted
+            | SiteEntityState::Rejected { .. }
+            | SiteEntityState::PhysicallyAbsent { .. },
+        ) => Ok(()),
+        Some(_) => Err(DispatchReadinessFailure::EntityNotDispatchable),
+        None => Err(DispatchReadinessFailure::UnknownDesignEntity),
+    }
 }
 
 fn is_sha256(value: &str) -> bool {
@@ -364,6 +456,7 @@ mod tests {
     fn make_request(ledger: &SiteStateLedger) -> DispatchReadinessRequest {
         let package_sha256 = ledger.active_package_sha256().unwrap().to_owned();
         DispatchReadinessRequest {
+            schema_version: DISPATCH_READINESS_REQUEST_SCHEMA_VERSION.into(),
             envelope: DispatchEnvelopeBinding {
                 package_sha256,
                 design_revision_sha256: digest('e'),
