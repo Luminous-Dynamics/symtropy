@@ -216,7 +216,7 @@ pub struct ReconciliationReport {
     pub policy_id: String,
     pub policy_revision: String,
     pub policy_sha256: String,
-    pub verified_event_count: usize,
+    pub matched_event_count: usize,
     pub exact_retransmission_count: usize,
     pub maximum_hook_load_upper_mn: Option<u64>,
     pub maximum_wind_gust_upper_mm_per_s: Option<u64>,
@@ -479,7 +479,7 @@ impl ReconciliationReport {
             .collect::<Vec<_>>()
             .join(",");
         format!(
-            "{{\"contract_version\":{},\"disposition\":{},\"session_id\":{},\"plan_id\":{},\"plan_revision\":{},\"plan_input_sha256\":{},\"preflight_report_sha256\":{},\"event_ledger_sha256\":{},\"coverage_bundle_sha256\":{},\"authorisation_id\":{},\"policy_id\":{},\"policy_revision\":{},\"policy_sha256\":{},\"verified_event_count\":{},\"exact_retransmission_count\":{},\"maximum_hook_load_upper_mn\":{},\"maximum_wind_gust_upper_mm_per_s\":{},\"maximum_ingest_lateness_ticks\":{},\"unknown_intervals\":[{}],\"diagnostics\":[{}]}}",
+            "{{\"contract_version\":{},\"disposition\":{},\"session_id\":{},\"plan_id\":{},\"plan_revision\":{},\"plan_input_sha256\":{},\"preflight_report_sha256\":{},\"event_ledger_sha256\":{},\"coverage_bundle_sha256\":{},\"authorisation_id\":{},\"policy_id\":{},\"policy_revision\":{},\"policy_sha256\":{},\"matched_event_count\":{},\"exact_retransmission_count\":{},\"maximum_hook_load_upper_mn\":{},\"maximum_wind_gust_upper_mm_per_s\":{},\"maximum_ingest_lateness_ticks\":{},\"unknown_intervals\":[{}],\"diagnostics\":[{}]}}",
             json_quote(self.contract_version),
             json_quote(disposition_name(self.disposition)),
             json_quote(&self.session_id),
@@ -493,7 +493,7 @@ impl ReconciliationReport {
             json_quote(&self.policy_id),
             json_quote(&self.policy_revision),
             json_quote(&self.policy_sha256.to_ascii_lowercase()),
-            self.verified_event_count,
+            self.matched_event_count,
             self.exact_retransmission_count,
             self.maximum_hook_load_upper_mn
                 .map(|value| value.to_string())
@@ -871,7 +871,7 @@ pub fn reconcile(
         &mut seen_evidence,
         &mut diagnostics,
     );
-    let mut verified_event_count = 0_usize;
+    let mut matched_event_count = 0_usize;
     let mut sequence_records: BTreeMap<(Channel, String, u64), TelemetryEvent> = BTreeMap::new();
     let mut exact_retransmissions = 0_usize;
 
@@ -1083,7 +1083,7 @@ pub fn reconcile(
             event.source_id == stream.source_id
                 && event.source_revision == stream.source_revision
         });
-        verified_event_count += channel_events.len();
+        matched_event_count += channel_events.len();
 
         let unique_sequences: BTreeSet<u64> = channel_events.iter().map(|e| e.sequence).collect();
         let expected_sequence_count = stream
@@ -1395,7 +1395,7 @@ pub fn reconcile(
         policy_id: policy.policy_id.clone(),
         policy_revision: policy.policy_revision.clone(),
         policy_sha256: policy.policy_sha256.clone(),
-        verified_event_count,
+        matched_event_count,
         exact_retransmission_count: exact_retransmissions,
         maximum_hook_load_upper_mn: maximum_hook_load,
         maximum_wind_gust_upper_mm_per_s: maximum_wind_gust,
@@ -1783,11 +1783,34 @@ mod tests {
     }
 
     #[test]
+    fn canonical_event_and_coverage_bundles_ignore_transport_order() {
+        let (_binding, policy, coverage, events) = baseline();
+        let event_bytes = canonical_event_ledger_json(&events);
+        let coverage_bytes = canonical_coverage_bundle_json(&coverage);
+        let mut reversed_events = events.clone();
+        reversed_events.reverse();
+        let mut reversed_coverage = coverage.clone();
+        reversed_coverage.reverse();
+        assert_eq!(event_bytes, canonical_event_ledger_json(&reversed_events));
+        assert_eq!(coverage_bytes, canonical_coverage_bundle_json(&reversed_coverage));
+        assert_eq!(policy.canonical_json(), policy.canonical_json());
+    }
+
+    #[test]
+    fn malformed_raw_evidence_bundle_digest_is_indeterminate() {
+        let (mut binding, policy, coverage, events) = baseline();
+        binding.event_ledger_sha256 = "not-a-digest".to_owned();
+        let report = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "PLAN_OR_REPORT_DIGEST_INVALID"));
+    }
+
+    #[test]
     fn complete_bounded_session_is_conforming_to_declared_envelope() {
         let (binding, policy, coverage, events) = baseline();
         let report = reconcile(&binding, &policy, &coverage, &events);
         assert_eq!(report.disposition, Disposition::ConformingToDeclaredEnvelope);
-        assert_eq!(report.verified_event_count, events.len());
+        assert_eq!(report.matched_event_count, events.len());
         assert_eq!(report.maximum_hook_load_upper_mn, Some(410_000_000));
         assert_eq!(report.maximum_wind_gust_upper_mm_per_s, Some(9_000));
         assert!(report.diagnostics.is_empty());
@@ -1868,7 +1891,7 @@ mod tests {
         let report = reconcile(&binding, &policy, &coverage, &events);
         assert_eq!(report.disposition, Disposition::ConformingToDeclaredEnvelope);
         assert_eq!(report.exact_retransmission_count, 1);
-        assert_eq!(report.verified_event_count, events.len() - 1);
+        assert_eq!(report.matched_event_count, events.len() - 1);
     }
 
     #[test]
