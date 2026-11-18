@@ -175,3 +175,25 @@ The robust-discrimination module now accepts an explicit candidate-visible obser
 The evaluator uses the exact declared sensor order, sample times and full covariance submatrix. A trace with a different sensor order, time schedule, shape or non-finite value rejects before scoring. OUT_OF_MODEL_SET means no registered finite-grid variant passes the declared residual threshold; it does not identify the missing physical cause.
 
 The threshold is an explicit protocol input, not an automatically calibrated chi-square quantile or false-alarm guarantee. These controls are deterministic synthetic software checks only.
+
+### Empirical adequacy-threshold calibration
+
+The `adequacy_calibration` module generates additive zero-mean Gaussian observation noise using the full admitted channel covariance and independent time blocks. It selects an empirical nearest-rank residual threshold on a calibration PRNG seed, then evaluates it on a distinct validation seed. Hidden out-of-family graph truths are evaluated only on the validation stream. The Monte Carlo PRNG is deterministic and explicitly non-cryptographic.
+
+The report includes counts, empirical rates and 95% Wilson intervals for:
+- calibration/validation true-family coverage;
+- false OUT_OF_MODEL_SET disposition on registered in-family truths;
+- wrong-family preference and ambiguous outcomes;
+- rejection of declared held-out out-of-family systems.
+
+Registered reference fixture:
+- candidate families: chain, bypass conductance 0.5 and bypass-family zero limit;
+- selected pulse and node-2 sensor;
+- calibration/validation seeds: 0xCA11_BA7E / 0xB01D_5EED;
+- 128 replicates per candidate model, target calibration coverage 95%;
+- covariance 1e-5 for the threshold-calibration sub-experiment;
+- hidden held-out bypass conductance 0.75.
+
+Independent reproduction of this fixed setup yielded 365/384 calibration in-family accepts (95.05%), 358/384 validation accepts (93.23%), 26/384 false OUT_OF_MODEL_SET (6.77%), and 128/128 rejection of the held-out bypass 0.75 (100%). The corresponding validation Wilson 95% intervals were approximately 90.26–95.34% for in-family coverage, 4.66–9.74% for false OUT_OF_MODEL_SET, and 97.09–100% for held-out rejection.
+
+These are deterministic synthetic Monte Carlo results for one declared fixture, not a calibrated real-world OOD detector or a general guarantee. The Gaussian/noise covariance model is assumed correct. The test does not establish robustness to covariance misspecification, non-Gaussian noise, temporal correlation, hidden MNAR missingness or arbitrary omitted model structures.
