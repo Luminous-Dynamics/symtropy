@@ -683,6 +683,106 @@ mod tests {
         jacobian
     }
 
+    fn integrate_cartesian(
+        chain: &super::super::CartesianRattleChain,
+        mut state: super::super::State,
+        dt: f64,
+        steps: usize,
+        options: super::super::SolverOptions,
+    ) -> super::super::State {
+        for _ in 0..steps {
+            state = chain.step(state, dt, options).unwrap().after;
+        }
+        state
+    }
+
+    #[test]
+    fn dense_coordinate_rattle_tracks_cartesian_over_refinement_and_longer_horizon() {
+        let masses = [1.3, 2.1, 0.8];
+        let lengths = [1.0_f64, 1.25_f64.sqrt()];
+        let horizon = 0.32_f64;
+        let chain = super::super::CartesianRattleChain::new(masses, lengths).unwrap();
+        let options = super::super::SolverOptions::default();
+        let q0 = initial_position();
+        let v0 = initial_velocity();
+        let initial = state_from_flat(&q0, &v0);
+
+        // The Cartesian implementation is independently stepped at three
+        // resolutions over the same physical horizon.
+        let coarse = integrate_cartesian(&chain, initial, 0.01, 32, options);
+        let fine = integrate_cartesian(&chain, initial, 0.005, 64, options);
+        let reference = integrate_cartesian(&chain, initial, 0.000625, 512, options);
+        let (coarse_q, coarse_v) = flatten_state(&coarse);
+        let (fine_q, fine_v) = flatten_state(&fine);
+        let (reference_q, reference_v) = flatten_state(&reference);
+        let coarse_error = vector_max_abs(&coarse_q, &reference_q)
+            .max(vector_max_abs(&coarse_v, &reference_v));
+        let fine_error = vector_max_abs(&fine_q, &reference_q)
+            .max(vector_max_abs(&fine_v, &reference_v));
+        assert!(coarse_error > 1.0e-12, "refinement fixture must be nontrivial");
+        assert!(
+            fine_error < coarse_error * 0.4,
+            "expected second-order refinement: coarse={coarse_error:e}, fine={fine_error:e}"
+        );
+
+        // Independently execute the dense-coordinate step for the longer,
+        // finer trajectory. Both dense bases must track the Cartesian oracle.
+        let dt = horizon / 64.0;
+        for scale in [1_i64, 2_i64] {
+            let (basis_i, inverse_i) = basis_pair(scale);
+            let basis = to_float(&basis_i);
+            let inverse = to_float(&inverse_i);
+            let mut dense_q = q0;
+            let mut dense_v = v0;
+            let mut cartesian_state = initial;
+            let mut maximum_position_error = 0.0_f64;
+            let mut maximum_velocity_error = 0.0_f64;
+            let mut maximum_position_residual = 0.0_f64;
+            let mut maximum_endpoint_tangency = 0.0_f64;
+
+            for _step in 0..64 {
+                let reference_step = chain.step(cartesian_state, dt, options).unwrap();
+                let (dense_q_next, dense_v_next, _, _, residuals) =
+                    dense_coordinate_rattle_step(
+                        &basis, &inverse, masses, lengths, &dense_q, &dense_v, dt,
+                    );
+                let (reference_q, reference_v) = flatten_state(&reference_step.after);
+                maximum_position_error =
+                    maximum_position_error.max(vector_max_abs(&dense_q_next, &reference_q));
+                maximum_velocity_error =
+                    maximum_velocity_error.max(vector_max_abs(&dense_v_next, &reference_v));
+                for residual in residuals {
+                    maximum_position_residual = maximum_position_residual.max(residual.abs());
+                }
+                let endpoint_jacobian = constraint_jacobian_at(&dense_q_next);
+                for tangent in jacobian_vec(&endpoint_jacobian, &dense_v_next) {
+                    maximum_endpoint_tangency =
+                        maximum_endpoint_tangency.max(tangent.abs());
+                }
+                dense_q = dense_q_next;
+                dense_v = dense_v_next;
+                cartesian_state = reference_step.after;
+            }
+
+            assert!(
+                maximum_position_error <= 3.0e-7,
+                "scale={scale}, 64-step position error={maximum_position_error:e}"
+            );
+            assert!(
+                maximum_velocity_error <= 3.0e-7,
+                "scale={scale}, 64-step velocity error={maximum_velocity_error:e}"
+            );
+            assert!(
+                maximum_position_residual <= 3.0e-12,
+                "scale={scale}, link residual={maximum_position_residual:e}"
+            );
+            assert!(
+                maximum_endpoint_tangency <= 3.0e-9,
+                "scale={scale}, tangent defect={maximum_endpoint_tangency:e}"
+            );
+        }
+    }
+
     #[test]
     fn both_dense_integer_basis_changes_have_exact_inverse_witnesses() {
         for scale in [1_i64, 2_i64] {
