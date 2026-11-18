@@ -20,6 +20,7 @@ pub mod energy_optimal_control;
 pub mod trust_region;
 pub mod total_kl_trust_region;
 pub mod sensor_design;
+pub mod sequential_evidence;
 
 /// Arbitrary two-compartment exchange system:
 ///
