@@ -555,17 +555,25 @@ fn disposition(issues: &[MealCompilationIssueV1]) -> MealCompilationDispositionV
     MealCompilationDispositionV1::Indeterminate
 }
 
-fn proposal_digest(proposal: &MealProposalV1) -> Result<String, ()> {
-    let bytes = serde_json::to_vec(proposal).map_err(|_| ())?;
+fn proposal_digest(proposal: &MealProposalV1) -> serde_json::Result<String> {
+    let bytes = serde_json::to_vec(proposal)?;
     let digest = Sha256::digest(bytes);
     Ok(digest.iter().map(|byte| format!("{byte:02x}")).collect::<Vec<_>>().join(""))
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum QuantityConversionError {
+    InvalidQuantity,
+    UnsupportedUnit,
+    InvalidScale,
+    Overflow,
+}
+
 fn quantity_to_base(
     quantity: &ExactIngredientQuantityV1,
-) -> Result<(QuantityDimensionV1, u128), ()> {
+) -> Result<(QuantityDimensionV1, u128), QuantityConversionError> {
     if !quantity.is_valid() {
-        return Err(());
+        return Err(QuantityConversionError::InvalidQuantity);
     }
     let factor = match (quantity.dimension, quantity.unit) {
         (QuantityDimensionV1::Mass, QuantityUnitV1::Milligram) => 1_000_000_u128,
@@ -576,7 +584,7 @@ fn quantity_to_base(
         (QuantityDimensionV1::Count, QuantityUnitV1::Piece | QuantityUnitV1::Count) => {
             1_000_000_u128
         }
-        _ => return Err(()),
+        _ => return Err(QuantityConversionError::UnsupportedUnit),
     };
     let divisor = 10_u128
         .checked_pow(u32::from(quantity.decimal_places))
@@ -1245,7 +1253,7 @@ fn validate_task_bindings(
                 .any(|origin| {
                     !nonempty(origin)
                         || !origins.insert(origin.as_str())
-                        || !task.ingredient_refs.iter().any(|input| input == origin)
+                        || !task.ingredient_refs.iter().any(|input| input.as_str() == origin.as_str())
                 })
             {
                 add_issue(
@@ -1437,10 +1445,28 @@ fn validate_food_flows(
                 FoodFlowSourceV1::TaskOutput { task_id: producer, output_ref },
                 FoodFlowDestinationV1::TaskInput { task_id: consumer },
             ) => {
-                let (Some(producer_task), Some(consumer_task)) = (
-                    tasks.get(producer.as_str()),
-                    tasks.get(consumer.as_str()),
-                ) else {
+                let Some(consumer_task) = tasks.get(consumer.as_str()) else {
+                    add_issue(
+                        issues,
+                        MealCompilationIssueCodeV1::UnknownFlowTask,
+                        Some(&edge.edge_id),
+                        "intermediate flow references an unknown consumer task",
+                    );
+                    continue;
+                };
+                if !tasks.contains_key(producer.as_str()) {
+                    add_issue(
+                        issues,
+                        MealCompilationIssueCodeV1::UnknownFlowTask,
+                        Some(&edge.edge_id),
+                        "intermediate flow references an unknown producer task",
+                    );
+                    continue;
+                }
+                let Some(consumer_task) = Some(*consumer_task) else {
+                    unreachable!();
+                };
+                let Some(consumer_task) = Some(consumer_task) else {
                     add_issue(
                         issues,
                         MealCompilationIssueCodeV1::UnknownFlowTask,
