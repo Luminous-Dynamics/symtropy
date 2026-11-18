@@ -25133,5 +25133,86 @@
         "execution_status": "planned_not_run"
       }
     ]
+  },
+  "polydisperse_agglutinate_breakage_screen": {
+    "unique_cells": 36,
+    "cells_per_profile": 36,
+    "factors": {
+      "grading_profiles": [
+        {
+          "id": "narrow_bidisperse_diagnostic",
+          "basis": "analyst-selected baseline; exact 4:1 large/small diameter ratio consistent with the first-stage shear-cell design",
+          "source_anchors": null
+        },
+        {
+          "id": "trimodal_size_distribution",
+          "basis": "analyst-selected intermediate bridge; bin edges and mass fractions measured and frozen before execution",
+          "source_anchors": null
+        },
+        {
+          "id": "broad_apollo_like_grading",
+          "basis": "Apollo compilation anchor from Nakagawa & Kioka 2026: D5=3.3 um, D50=72 um, D95=1370 um; actual source curves and site/batch must be recovered",
+          "source_anchors": {
+            "d5_um": 3.3,
+            "d50_um": 72,
+            "d95_um": 1370
+          }
+        }
+      ],
+      "density_contrast_modes": [
+        {
+          "id": "matched_density",
+          "description": "Use mineral or proxy fractions matched in measured particle density to isolate size/shape effects",
+          "source_values": null
+        },
+        {
+          "id": "contrasting_density",
+          "description": "Use independently characterized high-density ilmenite-bearing and lower-density silicate fractions; measure actual lot density and mineralogy",
+          "source_anchor_density_g_cm3": {
+            "ilmenite_approx": 4.7,
+            "plagioclase_pyroxene_matrix_approx": [
+              2.7,
+              3.3
+            ]
+          }
+        }
+      ],
+      "agglutinate_volume_fractions": [
+        {
+          "fraction": 0.1,
+          "basis": "lower end of the review's reported volume-fraction range"
+        },
+        {
+          "fraction": 0.3,
+          "basis": "near the review's reported average agglutinate volume fraction"
+        },
+        {
+          "fraction": 0.6,
+          "basis": "upper end of the review's reported volume-fraction range"
+        }
+      ],
+      "electrostatic_boundaries": [
+        {
+          "id": "grounded_contact_system",
+          "description": "Grounded conductive apparatus surfaces; measure size-resolved charge and decay"
+        },
+        {
+          "id": "isolated_contact_system",
+          "description": "Electrically isolated apparatus surfaces; measure size-resolved charge retention and local electric field"
+        }
+      ]
+    },
+    "design_policy": "This is stage two after the first-stage fixed-size-ratio Bo_m/I/shear-cell screen. The 36 cells test interaction of broad grading, density contrast, agglutinate inventory and electrical boundary. The Apollo-like D5/D50/D95 values are source anchors, not a substitute for obtaining a site-specific grading curve. Each actual size/mineral class requires its own particle density, shape distribution, adhesion quantiles and signed q/m measurement. Grounding/isolation are boundary conditions, not proxies for a known El; measure El by class. Recondition and randomize between repeats.",
+    "primary_outputs": [
+      "C_i(x,z,t) by particle size and mineral species",
+      "size_class_mass_fraction_before_and_after",
+      "agglutinate_breakage_rate_by_shear_history",
+      "fragment_size_kernel_and_mass_conservation",
+      "size_resolved_adhesion_and_Bo_m_quantiles",
+      "signed_size_resolved_charge_and_El",
+      "segregation_timescale_and_breakage_ratio_R",
+      "mass_closure_and_off_spec_product_mass"
+    ],
+    "claim_ceiling": "No realistic multi-species segregation test is represented as completed. The 36 cells are planned only; all mixture properties and actual factor settings must be measured per batch."
   }
 }
