@@ -509,6 +509,13 @@ pub fn evaluate_group(
                 profile.stakeholder_id.clone(),
             ));
         }
+        for threshold in profile.veto_thresholds.iter().flatten() {
+            if !threshold.is_finite() || !(0.0..=1.0).contains(threshold) {
+                return Err(PreferenceError::InvalidVetoThreshold(
+                    profile.stakeholder_id.clone(),
+                ));
+            }
+        }
         active_profiles.push(profile);
     }
 
@@ -707,14 +714,12 @@ mod tests {
         .snapshot_as_of(10)
         .unwrap();
 
-        let report = evaluate_group(
-            &[
-                alternative("private-enough", 0.7, 0.7, 0.7),
-                alternative("privacy-violating", 0.9, 0.9, 0.9),
-            ],
-            &snapshot,
-        )
-        .unwrap();
+        let mut private_enough = alternative("private-enough", 0.7, 0.7, 0.7);
+        private_enough.outcomes[5] = 0.9;
+        let mut privacy_violating = alternative("privacy-violating", 0.9, 0.9, 0.9);
+        privacy_violating.outcomes[5] = 0.5;
+
+        let report = evaluate_group(&[private_enough, privacy_violating], &snapshot).unwrap();
 
         assert_eq!(report.assessments.len(), 1);
         assert_eq!(
@@ -803,7 +808,7 @@ mod tests {
 
     #[test]
     fn local_only_and_withdrawn_profiles_are_excluded_from_shared_aggregation() {
-        let mut withdrawn_weights = [0.0; CRITERION_COUNT];
+        let withdrawn_weights = [0.0; CRITERION_COUNT];
         let mut events = vec![
             granted_event(
                 "local-person",
