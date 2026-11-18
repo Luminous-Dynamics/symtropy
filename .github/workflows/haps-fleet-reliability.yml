@@ -12,6 +12,8 @@ on:
       - "docs/research/aviation/examples/synthetic_haps_fleet_30day_airborne_reserve_availability_v1.json"
       - "docs/research/aviation/schemas/haps_fleet_service_availability_v1.schema.json"
       - "docs/research/aviation/schemas/haps_fleet_reliability_case_v1.schema.json"
+      - "docs/research/aviation/examples/synthetic_haps_fleet_rotation_capacity_v1.json"
+      - "docs/research/aviation/schemas/haps_fleet_rotation_capacity_v1.schema.json"
 
 permissions:
   contents: read
