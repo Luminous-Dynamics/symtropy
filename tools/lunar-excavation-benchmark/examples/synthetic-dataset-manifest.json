@@ -1,0 +1,86 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "lunar-excavation-model-validation-v0",
+  "dataset_id": "SYNTHETIC-DATASET-THREE-PARTITIONS",
+  "created_at": "2026-11-18T00:00:00Z",
+  "source_class": "synthetic_fixture",
+  "split_policy": {
+    "isolation_axes": [
+      "material_batch_id",
+      "preparation_protocol_id",
+      "tool_geometry_id",
+      "operating_regime_id"
+    ],
+    "partition_order": [
+      "calibration",
+      "validation",
+      "blind_test"
+    ],
+    "blind_test_access": {
+      "hidden_from_model": true,
+      "revealed_after_freeze": true,
+      "freeze_required": [
+        "executable_sha256",
+        "source_revision",
+        "configuration_artifact_id",
+        "parameters_artifact_id",
+        "prediction_artifacts"
+      ]
+    }
+  },
+  "group_assignments": {
+    "material_batch_id": {
+      "SYN-BATCH-A": "calibration",
+      "SYN-BATCH-B": "validation",
+      "SYN-BATCH-C": "blind_test"
+    },
+    "preparation_protocol_id": {
+      "SYN-PREP-A": "calibration",
+      "SYN-PREP-B": "validation",
+      "SYN-PREP-C": "blind_test"
+    },
+    "tool_geometry_id": {
+      "SYN-TOOL-A": "calibration",
+      "SYN-TOOL-B": "validation",
+      "SYN-TOOL-C": "blind_test"
+    },
+    "operating_regime_id": {
+      "SYN-REGIME-A": "calibration",
+      "SYN-REGIME-B": "validation",
+      "SYN-REGIME-C": "blind_test"
+    }
+  },
+  "run_assignments": [
+    {
+      "run_id": "SYN-RUN-CAL-001",
+      "partition": "calibration",
+      "group_keys": {
+        "material_batch_id": "SYN-BATCH-A",
+        "preparation_protocol_id": "SYN-PREP-A",
+        "tool_geometry_id": "SYN-TOOL-A",
+        "operating_regime_id": "SYN-REGIME-A"
+      }
+    },
+    {
+      "run_id": "SYN-RUN-VAL-001",
+      "partition": "validation",
+      "group_keys": {
+        "material_batch_id": "SYN-BATCH-B",
+        "preparation_protocol_id": "SYN-PREP-B",
+        "tool_geometry_id": "SYN-TOOL-B",
+        "operating_regime_id": "SYN-REGIME-B"
+      }
+    },
+    {
+      "run_id": "SYN-RUN-BLIND-001",
+      "partition": "blind_test",
+      "group_keys": {
+        "material_batch_id": "SYN-BATCH-C",
+        "preparation_protocol_id": "SYN-PREP-C",
+        "tool_geometry_id": "SYN-TOOL-C",
+        "operating_regime_id": "SYN-REGIME-C"
+      }
+    }
+  ],
+  "notes": "NON-PHYSICAL SYNTHETIC SPLIT FIXTURE. Group assignments demonstrate partition isolation only; they are not material, tool or experiment data."
+}
