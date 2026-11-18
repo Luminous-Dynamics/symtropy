@@ -20,7 +20,8 @@ use std::f64::consts::{PI, TAU};
 use std::fmt;
 
 pub const EVENT_CLASS_THRESHOLD_S: f64 = 1.0;
-pub const DIRECTION_CONE_HALF_ANGLE_DEG: f64 = 36.0;
+/// Numerical deadband around a mathematically cross-gradient direction.
+pub const DIRECTION_ALIGNMENT_EPSILON: f64 = 1.0e-12;
 /// Hard guard against non-advancing or unreasonably fine integration loops.
 pub const MAX_INTEGRATION_STEPS_PER_RUN: usize = 1_000_000;
 const DEFAULT_RNG_SEED: u64 = 0x9E37_79B9_7F4A_7C15;
@@ -523,30 +524,27 @@ impl From<ProfileError> for SimulationError {
     }
 }
 
-/// Classify a heading relative to the gradient using a symmetric cone.
+/// Classify a heading by the sign of its projection onto the gradient axis.
 ///
-/// The default cone is 36 degrees, matching the directional grouping used in
-/// the 2026 P. putida porous-agar analysis. The transverse class includes all
-/// directions outside the up/down cones.
+/// Up-gradient and down-gradient are the two opposing half-planes. A narrow
+/// numerical deadband only catches effectively perpendicular headings; it is
+/// not a biological angular cone. The cited paper reports up/down-gradient
+/// groups and angular distributions, but the precise classification rule must
+/// still be confirmed against its data-analysis supplement before reproduction.
 pub fn classify_direction(
     heading_rad: f64,
     gradient_heading_rad: f64,
-    half_angle_deg: f64,
 ) -> Option<DirectionClass> {
-    if !heading_rad.is_finite()
-        || !gradient_heading_rad.is_finite()
-        || !half_angle_deg.is_finite()
-        || !(0.0..90.0).contains(&half_angle_deg)
-    {
+    if !heading_rad.is_finite() || !gradient_heading_rad.is_finite() {
         return None;
     }
 
-    let relative = wrap_angle(heading_rad - gradient_heading_rad).abs();
-    let half_angle = half_angle_deg.to_radians();
+    let relative = wrap_angle(heading_rad - gradient_heading_rad);
+    let gradient_alignment = relative.cos();
 
-    if relative <= half_angle {
+    if gradient_alignment > DIRECTION_ALIGNMENT_EPSILON {
         Some(DirectionClass::UpGradient)
-    } else if relative >= PI - half_angle {
+    } else if gradient_alignment < -DIRECTION_ALIGNMENT_EPSILON {
         Some(DirectionClass::DownGradient)
     } else {
         Some(DirectionClass::CrossGradient)
@@ -615,11 +613,7 @@ pub fn simulate_with_bias_mode(
     }];
 
     for _ in 0..event_count {
-        let direction = classify_direction(
-            state.heading_rad,
-            gradient_heading_rad,
-            DIRECTION_CONE_HALF_ANGLE_DEG,
-        )
+        let direction = classify_direction(state.heading_rad, gradient_heading_rad)
         .expect("validated finite headings produce a direction class");
 
         let run_duration = if bias_mode.uses_run_time_bias() {
@@ -670,11 +664,7 @@ pub fn simulate_with_bias_mode(
             integration_steps += 1;
         }
 
-        let direction_before_event = classify_direction(
-            state.heading_rad,
-            gradient_heading_rad,
-            DIRECTION_CONE_HALF_ANGLE_DEG,
-        )
+        let direction_before_event = classify_direction(state.heading_rad, gradient_heading_rad)
         .expect("validated finite headings produce a direction class");
 
         let (event_class, event_duration, turn_angle) =
@@ -1066,21 +1056,26 @@ mod tests {
     #[test]
     fn classifies_directions_with_the_paper_cone() {
         assert_eq!(
-            classify_direction(0.0, 0.0, DIRECTION_CONE_HALF_ANGLE_DEG),
+            classify_direction(0.0, 0.0),
             Some(DirectionClass::UpGradient)
         );
         assert_eq!(
-            classify_direction(PI, 0.0, DIRECTION_CONE_HALF_ANGLE_DEG),
+            classify_direction(PI / 4.0, 0.0),
+            Some(DirectionClass::UpGradient)
+        );
+        assert_eq!(
+            classify_direction(PI, 0.0),
             Some(DirectionClass::DownGradient)
         );
         assert_eq!(
-            classify_direction(PI / 2.0, 0.0, DIRECTION_CONE_HALF_ANGLE_DEG),
-            Some(DirectionClass::CrossGradient)
+            classify_direction(PI * 3.0 / 4.0, 0.0),
+            Some(DirectionClass::DownGradient)
         );
         assert_eq!(
-            classify_direction(0.0, 0.0, 90.0),
-            None
+            classify_direction(PI / 2.0, 0.0),
+            Some(DirectionClass::CrossGradient)
         );
+        assert_eq!(classify_direction(f64::NAN, 0.0), None);
     }
 
     #[test]
