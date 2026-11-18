@@ -476,6 +476,29 @@ mod tests {
         ));
 
         let json = serde_json::to_string(&export).expect("serialize export");
+        let json_value: serde_json::Value =
+            serde_json::from_str(&json).expect("inspect export JSON");
+        let frames = json_value["body"]["frames"]
+            .as_array()
+            .expect("frame array");
+        assert_eq!(frames.len(), 6);
+        for frame in frames {
+            assert_eq!(
+                frame["observation_frame"]["schema_version"],
+                PLASMA_OBSERVATION_FRAME_SCHEMA
+            );
+            assert_eq!(
+                frame["observation_frame"]["expected_channel_ids"][0],
+                "density"
+            );
+            let status = frame["observation_frame"]["channels"][0]["disposition"]["status"]
+                .as_str()
+                .expect("disposition status");
+            assert!(matches!(status, "synthetic" | "unavailable" | "invalid"));
+            assert_ne!(status, "measured");
+            assert_ne!(status, "delayed");
+            assert_ne!(status, "degraded");
+        }
         let restored: SyntheticObservationExport =
             serde_json::from_str(&json).expect("roundtrip export");
         assert_eq!(restored, export);
