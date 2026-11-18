@@ -34,7 +34,7 @@ Probe types:
 - `operator_observation`: a manual meter, valve-state, acoustic or field observation;
 - `simulated_valve_perturbation`: a counterfactual pressure-response observation only.
 
-v0.1 evaluates every feasible single probe and every pair of feasible probes. Sequential probe features are concatenated as independent, namespaced observations. The output is a counterfactual recommendation only; the evaluator emits no valve command, setting, setpoint or actuation payload.
+v0.1 evaluates every feasible single probe and every pair of feasible *non-mutating* observations (temporary sensing and operator observation). Their features are concatenated as independent, namespaced observations. A simulated valve perturbation is evaluated only as a single probe: combining it with another probe would require a validated hydraulic state-transition model and conditional response signatures, which v0.1 does not claim. The output is a counterfactual recommendation only; the evaluator emits no valve command, setting, setpoint or actuation payload.
 
 ## 4. Safety/feasibility gates
 
