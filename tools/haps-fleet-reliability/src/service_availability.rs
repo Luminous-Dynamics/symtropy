@@ -807,6 +807,9 @@ mod tests {
     const AIRBORNE_CASE: &str = include_str!(
         "../../../docs/research/aviation/examples/synthetic_haps_fleet_30day_airborne_reserve_availability_v1.json"
     );
+    const CYCLIC_CASE: &str = include_str!(
+        "../../../docs/research/aviation/examples/synthetic_haps_fleet_220day_cyclic_rotation_v1.json"
+    );
 
     fn parse() -> FleetServiceAvailabilityCase {
         parse_service_availability_case_json(CASE.as_bytes()).expect("synthetic fleet case is valid")
@@ -857,6 +860,44 @@ mod tests {
             airborne.spare_rotation.reserve_strategy_energy_wh
                 > ground.spare_rotation.reserve_strategy_energy_wh
         );
+    }
+
+    #[test]
+    fn five_platform_cyclic_rotation_meets_three_unit_demand_with_one_bay() {
+        let case = parse_service_availability_case_json(CYCLIC_CASE.as_bytes()).unwrap();
+        let report = evaluate_service_availability(&case).unwrap();
+
+        close(report.spare_rotation.strict_availability_fraction, 1.0);
+        close(report.spare_rotation.capacity_adequacy_fraction, 1.0);
+        close(report.spare_rotation.strict_outage_h, 0.0);
+        close(report.spare_rotation.maximum_contiguous_outage_h, 0.0);
+        assert!(report.spare_rotation.outage_intervals.is_empty());
+        assert_eq!(report.launch_operations, 25);
+        assert_eq!(report.recovery_operations, 25);
+        assert_eq!(report.reposition_operations, 25);
+        assert_eq!(report.maintenance_overlap_violations, 0);
+        assert_eq!(report.spare_rotation.reserve_strategy_energy_wh, 16_896_000.0);
+
+        // This is the three-platform subset of the five-platform phase plan,
+        // not an independently optimized three-platform schedule.
+        close(
+            report.primary_only_baseline.strict_availability_fraction,
+            0.28181818181818197,
+        );
+        close(
+            report.primary_only_baseline.capacity_adequacy_fraction,
+            0.6818181818181821,
+        );
+    }
+
+    #[test]
+    fn cyclic_rotation_fails_closed_if_one_reserve_has_no_service_capacity() {
+        let mut case =
+            parse_service_availability_case_json(CYCLIC_CASE.as_bytes()).unwrap();
+        case.platforms[4].service_capacity_units = 0.0;
+        let report = evaluate_service_availability(&case).unwrap();
+        assert!(report.spare_rotation.strict_availability_fraction < 1.0);
+        assert!(report.spare_rotation.strict_outage_h > 0.0);
     }
 
     #[test]
