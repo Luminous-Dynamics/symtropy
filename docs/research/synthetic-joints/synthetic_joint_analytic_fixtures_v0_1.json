@@ -1,0 +1,400 @@
+{
+  "schema": "luminous.synthetic_joint_analytic_fixtures",
+  "version": "0.1.2",
+  "status": "synthetic_analytic_reference_only",
+  "created_utc": "2026-11-18",
+  "workstream": "https://github.com/Luminous-Dynamics/symtropy/issues/6037",
+  "units": {
+    "angle": "rad",
+    "angular_velocity": "rad/s",
+    "torque": "N*m",
+    "stiffness": "N*m/rad",
+    "linear_force": "N",
+    "linear_stiffness": "N/m",
+    "length": "m",
+    "mass": "kg",
+    "inertia": "kg*m^2",
+    "power": "W",
+    "energy": "J"
+  },
+  "fixtures": [
+    {
+      "id": "SJ-ANALYTIC-001",
+      "name": "linear_torsion_spring",
+      "family": "series_elastic_or_passive_joint",
+      "inputs": {
+        "stiffness_nm_per_rad": 12,
+        "angle_rad": 0.25,
+        "angular_velocity_rad_s": 2
+      },
+      "equations": {
+        "restoring_torque_nm": "-k * theta",
+        "stored_energy_j": "0.5 * k * theta^2",
+        "actuator_input_power_w_for_increasing_theta": "k * theta * omega"
+      },
+      "expected": {
+        "restoring_torque_nm": -3,
+        "stored_energy_j": 0.375,
+        "actuator_input_power_w_for_increasing_theta": 6
+      },
+      "assumptions": [
+        "linear, lossless, zero-preload spring",
+        "positive theta and omega increase spring displacement",
+        "actuator input torque balances spring restoring torque"
+      ],
+      "claim_ceiling": "analytic spring semantics only; no real spring hysteresis, fatigue, creep, damping or passivity qualification"
+    },
+    {
+      "id": "SJ-ANALYTIC-002",
+      "name": "antagonistic_tendon_pair",
+      "family": "musculoskeletal_or_variable_stiffness_joint",
+      "inputs": {
+        "moment_arm_m": 0.04,
+        "flexor_tension_n": 110,
+        "extensor_tension_n": 50,
+        "each_tendon_linear_stiffness_n_per_m": 8000
+      },
+      "equations": {
+        "net_joint_torque_nm": "r * (T_flexor - T_extensor)",
+        "local_joint_stiffness_nm_per_rad": "2 * k_tendon * r^2"
+      },
+      "expected": {
+        "net_joint_torque_nm": 2.4,
+        "local_joint_stiffness_nm_per_rad": 25.6
+      },
+      "assumptions": [
+        "equal, constant moment arms",
+        "two equal linear tendon stiffnesses",
+        "small angular perturbation around the declared configuration",
+        "no pulley friction, tendon routing hysteresis or slack"
+      ],
+      "claim_ceiling": "ideal tendon pair statics; does not establish tendon lifetime, force-sensing accuracy or achievable variable-stiffness bandwidth"
+    },
+    {
+      "id": "SJ-ANALYTIC-003",
+      "name": "sensorized_tendon_extension",
+      "family": "tendon_proprioception",
+      "inputs": {
+        "tension_n": 100,
+        "axial_stiffness_n_per_m": 20000
+      },
+      "equations": {
+        "extension_m": "T / k",
+        "stored_energy_j": "0.5 * T * extension"
+      },
+      "expected": {
+        "extension_m": 0.005,
+        "stored_energy_j": 0.25
+      },
+      "assumptions": [
+        "linear axial elasticity",
+        "quasistatic loading",
+        "zero initial extension and no preload"
+      ],
+      "claim_ceiling": "extension-to-tension equation only; sensor calibration, hysteresis, creep and temperature compensation are unqualified"
+    },
+    {
+      "id": "SJ-ANALYTIC-004",
+      "name": "gear_reflected_rotor_inertia",
+      "family": "geared_or_quasi_direct_drive_joint",
+      "inputs": {
+        "gear_ratio_motor_over_output": 10,
+        "motor_rotor_inertia_kg_m2": 0.0002,
+        "motor_torque_nm": 1,
+        "motor_speed_rad_s": 100
+      },
+      "equations": {
+        "output_reflected_inertia_kg_m2": "N^2 * J_motor",
+        "ideal_output_torque_nm": "N * tau_motor",
+        "ideal_output_speed_rad_s": "omega_motor / N",
+        "input_power_w": "tau_motor * omega_motor",
+        "output_power_w": "tau_output * omega_output"
+      },
+      "expected": {
+        "output_reflected_inertia_kg_m2": 0.02,
+        "ideal_output_torque_nm": 10,
+        "ideal_output_speed_rad_s": 10,
+        "input_power_w": 100,
+        "output_power_w": 100
+      },
+      "assumptions": [
+        "ideal rigid lossless gear",
+        "N = motor angular speed / output angular speed",
+        "no gearbox inertia, backlash, compliance, friction or motor/drive losses"
+      ],
+      "claim_ceiling": "ideal gear kinematics and reflected inertia; not an actuator efficiency or torque-density result"
+    },
+    {
+      "id": "SJ-ANALYTIC-005",
+      "name": "signed_joint_mechanical_work",
+      "family": "energy_accounting",
+      "inputs": {
+        "torque_nm": 2,
+        "angular_velocity_rad_s": 3,
+        "duration_s": 0.5
+      },
+      "equations": {
+        "mechanical_power_w": "tau * omega",
+        "mechanical_work_j": "tau * omega * duration"
+      },
+      "expected": {
+        "mechanical_power_w": 6,
+        "mechanical_work_j": 3
+      },
+      "negative_control": {
+        "torque_nm": -2,
+        "angular_velocity_rad_s": 3,
+        "duration_s": 0.5,
+        "expected_mechanical_power_w": -6,
+        "expected_mechanical_work_j": -3
+      },
+      "assumptions": [
+        "constant torque and angular velocity over the interval",
+        "positive power means mechanical energy enters the joint output port"
+      ],
+      "claim_ceiling": "mechanical port work only; negative work is not evidence of electrical regeneration"
+    },
+    {
+      "id": "SJ-ANALYTIC-006",
+      "name": "coupled_two_axis_stiffness_matrix",
+      "family": "parallel_or_multi_axis_joint",
+      "inputs": {
+        "stiffness_matrix_nm_per_rad": [
+          [
+            4,
+            1
+          ],
+          [
+            1,
+            9
+          ]
+        ],
+        "displacement_rad": [
+          0.1,
+          -0.2
+        ]
+      },
+      "equations": {
+        "joint_torque_vector_nm": "K * q",
+        "stored_energy_j": "0.5 * transpose(q) * K * q",
+        "positive_definite_condition_for_symmetric_2x2": "K11 > 0 and determinant(K) > 0"
+      },
+      "expected": {
+        "joint_torque_vector_nm": [
+          0.2,
+          -1.7
+        ],
+        "stored_energy_j": 0.18,
+        "matrix_determinant": 35,
+        "positive_definite": true
+      },
+      "assumptions": [
+        "linear symmetric stiffness matrix",
+        "small displacement about one declared operating configuration",
+        "no stiffness modulation during the sample"
+      ],
+      "claim_ceiling": "local linear stiffness semantics; no proof of full-workspace stability, modulation passivity or actual parallel-mechanism kinematics"
+    },
+    {
+      "id": "SJ-ANALYTIC-007",
+      "name": "unilateral_tendon_slack_and_engagement",
+      "family": "tendon_driven_joint",
+      "inputs": {
+        "axial_stiffness_n_per_m": 50000,
+        "total_extension_m": 0.005,
+        "slack_length_m": 0.002
+      },
+      "equations": {
+        "engaged_extension_m": "max(0, total_extension - slack_length)",
+        "tendon_tension_n": "k * engaged_extension",
+        "stored_energy_j": "0.5 * k * engaged_extension^2"
+      },
+      "expected": {
+        "engaged_extension_m": 0.003,
+        "tendon_tension_n": 150,
+        "stored_energy_j": 0.225
+      },
+      "negative_control": {
+        "total_extension_m": 0.0015,
+        "expected_tendon_tension_n": 0,
+        "expected_stored_energy_j": 0
+      },
+      "assumptions": [
+        "unilateral tension-only tendon",
+        "linear axial stiffness after slack is taken up",
+        "no friction, hysteresis, creep, pretension or routing compliance"
+      ],
+      "claim_ceiling": "ideal slack and engagement semantics; not a tendon fatigue, routing or sensor-calibration model"
+    },
+    {
+      "id": "SJ-ANALYTIC-008",
+      "name": "cubic_strain_stiffening_joint_spring",
+      "family": "nonlinear_compliant_joint",
+      "inputs": {
+        "linear_stiffness_nm_per_rad": 8,
+        "cubic_stiffness_nm_per_rad3": 40,
+        "angle_rad": 0.4
+      },
+      "equations": {
+        "restoring_torque_nm": "-(k1 * theta + k3 * theta^3)",
+        "stored_energy_j": "0.5 * k1 * theta^2 + 0.25 * k3 * theta^4",
+        "incremental_stiffness_nm_per_rad": "k1 + 3 * k3 * theta^2"
+      },
+      "expected": {
+        "restoring_torque_nm": -5.76,
+        "stored_energy_j": 0.896,
+        "incremental_stiffness_nm_per_rad": 27.2
+      },
+      "assumptions": [
+        "conservative odd-symmetric cubic spring law",
+        "positive k1 and non-negative k3",
+        "no rate dependence, hysteresis, fatigue or preload"
+      ],
+      "claim_ceiling": "nonlinear conservative restoring law only; no evidence that any material follows this law over a useful load/temperature/lifetime envelope"
+    },
+    {
+      "id": "SJ-ANALYTIC-009",
+      "name": "transmission_backlash_deadband",
+      "family": "geared_or_cable_transmission",
+      "inputs": {
+        "torsional_stiffness_nm_per_rad": 100,
+        "total_backlash_width_rad": 0.02,
+        "relative_twist_rad": 0.05
+      },
+      "equations": {
+        "half_deadband_rad": "total_backlash_width / 2",
+        "engaged_twist_rad": "sign(relative_twist) * max(0, abs(relative_twist) - half_deadband)",
+        "transmitted_torque_nm": "k * engaged_twist",
+        "stored_energy_j": "0.5 * k * engaged_twist^2"
+      },
+      "expected": {
+        "engaged_twist_rad": 0.04,
+        "transmitted_torque_nm": 4,
+        "stored_energy_j": 0.08
+      },
+      "negative_control": {
+        "relative_twist_rad": 0.005,
+        "expected_transmitted_torque_nm": 0,
+        "expected_stored_energy_j": 0
+      },
+      "assumptions": [
+        "symmetric backlash deadband",
+        "linear torsional stiffness after tooth/cable engagement",
+        "no impact dynamics, tooth compliance hysteresis or friction"
+      ],
+      "claim_ceiling": "quasistatic deadband semantics; no dynamic impact or gear life qualification"
+    },
+    {
+      "id": "SJ-ANALYTIC-010",
+      "name": "coulomb_viscous_friction_dissipation",
+      "family": "actuator_and_joint_losses",
+      "inputs": {
+        "coulomb_friction_nm": 0.8,
+        "viscous_coefficient_nm_s_per_rad": 0.1,
+        "angular_velocity_rad_s": -2
+      },
+      "equations": {
+        "friction_torque_nm": "-(Fc + B * abs(omega)) * sign(omega) for omega != 0",
+        "mechanical_port_power_w": "friction_torque * omega",
+        "dissipation_rate_w": "-mechanical_port_power"
+      },
+      "expected": {
+        "friction_torque_nm": 1,
+        "mechanical_port_power_w": -2,
+        "dissipation_rate_w": 2
+      },
+      "negative_control": {
+        "angular_velocity_rad_s": 0,
+        "static_friction_capacity_nm": 1.2,
+        "applied_torque_nm": 0.7,
+        "expected_static_friction_reaction_nm": -0.7,
+        "expected_angular_velocity_rad_s": 0
+      },
+      "assumptions": [
+        "Coulomb plus viscous kinetic friction away from zero speed",
+        "at zero speed static friction is set-valued and balances applied torque up to declared capacity",
+        "no temperature or direction-dependent friction"
+      ],
+      "claim_ceiling": "ideal friction sign and dissipation; zero-speed static friction is not modeled by sign(0)=0 and requires a set-valued solver rule"
+    },
+    {
+      "id": "SJ-ANALYTIC-011",
+      "name": "corrected_compliance_deflection_torque_uncertainty",
+      "family": "compliant_transmission_proprioception",
+      "inputs": {
+        "effective_transmission_stiffness_nm_per_rad": 800,
+        "corrected_encoder_deflection_rad": 0.003,
+        "deflection_standard_uncertainty_rad": 0.0001,
+        "stiffness_standard_uncertainty_nm_per_rad": 10
+      },
+      "equations": {
+        "estimated_torque_nm": "k * delta_theta",
+        "first_order_standard_uncertainty_nm": "sqrt((delta_theta * sigma_k)^2 + (k * sigma_delta_theta)^2) assuming independent inputs",
+        "relative_standard_uncertainty_percent": "100 * sigma_tau / abs(tau_hat)"
+      },
+      "expected": {
+        "estimated_torque_nm": 2.4,
+        "first_order_standard_uncertainty_nm": 0.08544003745317531,
+        "relative_standard_uncertainty_percent": 3.5600015605489714
+      },
+      "assumptions": [
+        "small elastic deflection in a calibrated compliant transmission",
+        "encoder deflection is transmission-error-compensated",
+        "stiffness and deflection uncertainties are independent and standard deviations",
+        "no hysteresis, temperature drift, preload uncertainty or cross-axis coupling"
+      ],
+      "claim_ceiling": "first-order estimator uncertainty under stated assumptions; not proof that embedded sensing can replace an external torque transducer"
+    },
+    {
+      "id": "SJ-ANALYTIC-012",
+      "name": "dual_encoder_deflection_and_torque_uncertainty",
+      "family": "compliant_transmission_proprioception",
+      "inputs": {
+        "gear_ratio_motor_to_output": 10,
+        "motor_encoder_angle_rad": 12.6,
+        "output_encoder_angle_rad": 1.2,
+        "calibrated_zero_offset_rad": 0.01,
+        "effective_transmission_stiffness_nm_per_rad": 100,
+        "motor_encoder_standard_uncertainty_rad": 0.002,
+        "output_encoder_standard_uncertainty_rad": 0.0003,
+        "zero_offset_standard_uncertainty_rad": 0.0004,
+        "stiffness_standard_uncertainty_nm_per_rad": 2
+      },
+      "equations": {
+        "motor_angle_at_output_rad": "theta_motor / gear_ratio",
+        "raw_deflection_rad": "theta_motor / gear_ratio - theta_output",
+        "corrected_deflection_rad": "raw_deflection - calibrated_zero_offset",
+        "torque_estimate_nm": "k * corrected_deflection",
+        "deflection_variance_rad2": "(sigma_motor_encoder / gear_ratio)^2 + sigma_output_encoder^2 + sigma_zero_offset^2",
+        "torque_variance_nm2": "(corrected_deflection * sigma_stiffness)^2 + k^2 * deflection_variance, assuming independent inputs",
+        "relative_standard_uncertainty_percent": "100 * sigma_tau / abs(tau_hat)"
+      },
+      "expected": {
+        "motor_angle_at_output_rad": 1.26,
+        "raw_deflection_rad": 0.06,
+        "corrected_deflection_rad": 0.05,
+        "torque_estimate_nm": 5,
+        "torque_standard_uncertainty_nm": 0.11357816691600547,
+        "relative_standard_uncertainty_percent": 2.2715633383201093
+      },
+      "assumptions": [
+        "motor and output encoder angles are expressed in compatible frames and gear direction conventions",
+        "gear ratio is exact for this oracle",
+        "zero offset is calibrated and its stated uncertainty is independent",
+        "encoder and stiffness standard uncertainties are independent",
+        "linear elastic transmission torque equals stiffness times corrected differential deflection",
+        "no hysteresis, backlash, temperature drift, preload uncertainty or cross-axis coupling"
+      ],
+      "claim_ceiling": "analytic dual-encoder torque and first-order uncertainty oracle only; not validation of actual encoder hardware or a safety-rated torque sensor"
+    }
+  ],
+  "validation_rules": [
+    "Reject non-finite inputs and outputs.",
+    "Reject non-positive stiffness, inertia and gear-ratio parameters.",
+    "Reject incompatible dimensions and unit declarations.",
+    "Do not infer measured torque from tendon strain without a calibrated, configuration-specific sensor model.",
+    "Do not infer battery regeneration from negative mechanical work.",
+    "Do not treat a stored angle limit as an enforced runtime constraint.",
+    "Report analytic fixture PASS separately from simulator, HIL and physical evidence."
+  ]
+}
