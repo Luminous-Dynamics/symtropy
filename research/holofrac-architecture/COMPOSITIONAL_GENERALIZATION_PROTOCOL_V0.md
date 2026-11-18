@@ -23,7 +23,7 @@ The first finite fixture deliberately holds out a four-module configuration that
 Each module declares:
 - stable module ID;
 - module family;
-- spatial scale;
+- spatial scale (metadata only in v0; no hierarchy/containment oracle is implemented yet);
 - typed ports.
 
 Each port declares:
@@ -48,7 +48,7 @@ The current exact oracle checks:
 - finite alignment error within both port tolerances;
 - every required port connected.
 
-Units and coordinate frames must match exactly in v0. Unit conversion and coordinate transforms must be represented as explicit, separately validated adapters in a later version; silent conversion is not permitted.
+Units and coordinate frames must match exactly in v0. Unit conversion and coordinate transforms must be represented as explicit, separately validated adapters in a later version; silent conversion is not permitted. The current fixture does not check spatial containment, structural load-path continuity, service-network reachability/flow conservation, geometric intersections or physical solver outcomes. Its capacities, units and tolerances are synthetic contract values.
 
 ## 3. Held-out split
 
@@ -59,7 +59,7 @@ Training contains three independent two-module examples:
 
 The held-out case composes all four modules and all three pairwise connections together. It is therefore a new complete composition signature, even though each pairwise interface rule has been observed in the training set.
 
-This is a finite grammar-oracle fixture, not a trained HLB result. It verifies that the exact rules are sufficiently composable and that the split is genuinely held out at the whole-composition level.
+This is a finite grammar-oracle fixture, not a trained HLB result. It verifies that the exact rules are sufficiently composable and that the split is genuinely held out at the whole-composition level. The v0 held-out graph is a single star topology: it tests multi-interface composition in one room, not arbitrary graph topology, recursion depth or cross-scale network routing.
 
 ## 4. Falsification controls
 
