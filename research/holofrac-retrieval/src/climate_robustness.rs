@@ -365,8 +365,8 @@ pub fn evaluate_climate_robustness(
 
         let mut ideal = [0.0_f64; CLIMATE_CRITERION_COUNT];
         for (_, outcomes) in &feasible {
-            for index in 0..CLIMATE_CRITERION_COUNT {
-                ideal[index] = ideal[index].max(outcomes[index]);
+            for (ideal_value, outcome) in ideal.iter_mut().zip(outcomes.iter()) {
+                *ideal_value = ideal_value.max(*outcome);
             }
         }
 
@@ -418,15 +418,20 @@ pub fn evaluate_climate_robustness(
                 guaranteed_feasible = false;
             }
 
-            for index in 0..CLIMATE_CRITERION_COUNT {
-                weighted_mean[index] += scenario.decision_weight * result.outcomes[index];
-                worst_case[index] = worst_case[index].min(result.outcomes[index]);
+            let ideal_outcomes = scenario_ideal_by_id
+                .get(&scenario.scenario_id)
+                .expect("scenario ideal was calculated");
+            for (((mean, worst), weighted_regret_value), (outcome, ideal)) in weighted_mean
+                .iter_mut()
+                .zip(worst_case.iter_mut())
+                .zip(weighted_regret.iter_mut())
+                .zip(result.outcomes.iter().zip(ideal_outcomes.iter()))
+            {
+                *mean += scenario.decision_weight * outcome;
+                *worst = worst.min(*outcome);
 
-                let ideal = scenario_ideal_by_id
-                    .get(&scenario.scenario_id)
-                    .expect("scenario ideal was calculated")[index];
-                let regret = (ideal - result.outcomes[index]).max(0.0);
-                weighted_regret[index] += scenario.decision_weight * regret;
+                let regret = (ideal - outcome).max(0.0);
+                *weighted_regret_value += scenario.decision_weight * regret;
                 maximum_regret = maximum_regret.max(regret);
             }
 
@@ -697,12 +702,16 @@ mod tests {
             for (candidate, row) in &feasible {
                 let dominated = feasible.iter().any(|(other_candidate, other_row)| {
                     other_candidate.candidate_id != candidate.candidate_id
-                        && (0..CLIMATE_CRITERION_COUNT).all(|index| {
-                            other_row.outcomes[index] >= row.outcomes[index]
-                        })
-                        && (0..CLIMATE_CRITERION_COUNT).any(|index| {
-                            other_row.outcomes[index] > row.outcomes[index]
-                        })
+                        && other_row
+                            .outcomes
+                            .iter()
+                            .zip(row.outcomes.iter())
+                            .all(|(other, own)| other >= own)
+                        && other_row
+                            .outcomes
+                            .iter()
+                            .zip(row.outcomes.iter())
+                            .any(|(other, own)| other > own)
                 });
                 if !dominated {
                     oracle.push(candidate.candidate_id.clone());
@@ -732,8 +741,8 @@ mod tests {
                     if !row.feasible {
                         return None;
                     }
-                    for index in 0..CLIMATE_CRITERION_COUNT {
-                        worst[index] = worst[index].min(row.outcomes[index]);
+                    for (worst_value, outcome) in worst.iter_mut().zip(row.outcomes.iter()) {
+                        *worst_value = worst_value.min(*outcome);
                     }
                 }
                 Some((candidate, worst))
@@ -746,10 +755,14 @@ mod tests {
                 .iter()
                 .any(|(other_candidate, other_outcomes)| {
                     other_candidate.candidate_id != candidate.candidate_id
-                        && (0..CLIMATE_CRITERION_COUNT)
-                            .all(|index| other_outcomes[index] >= outcomes[index])
-                        && (0..CLIMATE_CRITERION_COUNT)
-                            .any(|index| other_outcomes[index] > outcomes[index])
+                        && other_outcomes
+                            .iter()
+                            .zip(outcomes.iter())
+                            .all(|(other, own)| other >= own)
+                        && other_outcomes
+                            .iter()
+                            .zip(outcomes.iter())
+                            .any(|(other, own)| other > own)
                 });
             if !dominated {
                 oracle_robust.push(candidate.candidate_id.clone());
