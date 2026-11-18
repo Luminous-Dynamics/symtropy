@@ -716,9 +716,9 @@ mod tests {
     }
 
     #[test]
-    fn frozen_thirty_one_case_oracle_matches() {
+    fn frozen_thirty_five_case_oracle_matches() {
         let result = evaluate_corpus(PROFILES, SCENARIOS, EXPECTED).unwrap();
-        assert_eq!(result.len(), 31);
+        assert_eq!(result.len(), 35);
         assert_eq!(
             result
                 .iter()
@@ -814,6 +814,79 @@ mod tests {
             .find(|row| row.scenario_id == "submersible_hi116_field_agreed")
             .unwrap();
         assert_eq!(row.disposition, Disposition::Applicable);
+    }
+
+    #[test]
+    fn historical_as_of_requires_a_matching_catalogue_snapshot() {
+        let (profiles, mut scenarios) = parsed();
+        let row = scenarios
+            .iter_mut()
+            .find(|row| row.scenario_id == "valve_api598_gate_referenced")
+            .unwrap();
+        row.assessment_as_of = "2025-11-18".into();
+        let result = evaluate(&profiles, &scenarios).unwrap();
+        let evaluated = result
+            .iter()
+            .find(|row| row.scenario_id == "valve_api598_gate_referenced")
+            .unwrap();
+        assert_eq!(evaluated.disposition, Disposition::EvidenceIncomplete);
+    }
+
+    #[test]
+    fn declared_product_standard_requires_exact_reference() {
+        let (profiles, mut scenarios) = parsed();
+        let row = scenarios
+            .iter_mut()
+            .find(|row| row.scenario_id == "valve_iso5208_metallic_gate")
+            .unwrap();
+        row.product_standard_ref = "-".into();
+        assert_eq!(
+            evaluate(&profiles, &scenarios)
+                .unwrap()
+                .into_iter()
+                .find(|row| row.scenario_id == "valve_iso5208_metallic_gate")
+                .unwrap()
+                .disposition,
+            Disposition::ProfileIncomplete
+        );
+    }
+
+    #[test]
+    fn fitting_agreement_requires_exact_reference() {
+        let (profiles, mut scenarios) = parsed();
+        let row = scenarios
+            .iter_mut()
+            .find(|row| row.scenario_id == "pump_hi146_fittings_agreed")
+            .unwrap();
+        row.fitting_agreement_ref = "-".into();
+        assert_eq!(
+            evaluate(&profiles, &scenarios)
+                .unwrap()
+                .into_iter()
+                .find(|row| row.scenario_id == "pump_hi146_fittings_agreed")
+                .unwrap()
+                .disposition,
+            Disposition::ProfileIncomplete
+        );
+    }
+
+    #[test]
+    fn purchaser_agreement_requires_exact_reference() {
+        let (profiles, mut scenarios) = parsed();
+        let row = scenarios
+            .iter_mut()
+            .find(|row| row.scenario_id == "valve_api598_other_type_agreed")
+            .unwrap();
+        row.purchaser_agreement_ref = "-".into();
+        assert_eq!(
+            evaluate(&profiles, &scenarios)
+                .unwrap()
+                .into_iter()
+                .find(|row| row.scenario_id == "valve_api598_other_type_agreed")
+                .unwrap()
+                .disposition,
+            Disposition::ProfileIncomplete
+        );
     }
 
     #[test]
