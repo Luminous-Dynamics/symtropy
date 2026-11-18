@@ -2,7 +2,7 @@ name: Construction Motion Oracle v0.1
 
 on:
   pull_request:
-    branches: [research/construction-motion-envelope-v0-1, research/construction-motion-oracle-bench-v0-1, research/construction-field-independent-acceptance-scorer-v0-1, research/construction-site-state-ledger-v0-1, research/construction-space-time-dispatch-gate-v0-1, research/construction-space-time-resource-reservation-v0-1]
+    branches: [research/construction-motion-envelope-v0-1, research/construction-motion-oracle-bench-v0-1, research/construction-field-independent-acceptance-scorer-v0-1, research/construction-site-state-ledger-v0-1, research/construction-space-time-dispatch-gate-v0-1, research/construction-space-time-resource-reservation-v0-1, research/construction-cumulative-resource-capacity-v0-1, research/construction-robust-capacity-derating-v0-1]
     paths:
       - "research/construction-motion-oracle-v0-1/**"
       - ".github/workflows/construction-motion-oracle-v0-1.yml"
