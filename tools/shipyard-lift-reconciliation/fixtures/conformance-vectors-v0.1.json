@@ -452,6 +452,39 @@
       ],
       "assertion": "Both records sharing one source sequence are quarantined; their measurements cannot affect maxima, and reconciliation output is invariant to arrival order.",
       "synthetic_only": true
+    },
+    {
+      "id": "REC-CAL-003",
+      "mode": "evaluation",
+      "test_name": "revoked_over_limit_sensor_event_is_not_promoted_to_deviation",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_REVOKED"
+      ],
+      "assertion": "A reading above the supplied load limit with revoked calibration is excluded from peaks and cannot create a formal limit-deviation disposition.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-LIMIT-004",
+      "mode": "evaluation",
+      "test_name": "expired_limit_evidence_does_not_produce_formal_limit_deviation",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_NOT_VALID_FOR_EXECUTION"
+      ],
+      "assertion": "A reading above a limit whose evidence expires before execution cannot create a formal limit-deviation disposition; the limit interval remains unknown.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-EVID-005",
+      "mode": "evaluation",
+      "test_name": "later_evidence_id_conflict_retroactively_quarantines_prior_sensor_event",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_ID_CONFLICT"
+      ],
+      "assertion": "A later conflicting reference to one source evidence ID retroactively invalidates earlier events that used that ID, preventing their values from affecting peak summaries.",
+      "synthetic_only": true
     }
   ]
 }
