@@ -66,7 +66,12 @@
     "second_projection_constraint_checked": true,
     "independent_full_component_controls_checked": true,
     "Lean_formalization_written": false,
-    "Lean_formalization_executed": false
+    "Lean_formalization_executed": false,
+    "lean_static_coefficient_fixture_authored": true,
+    "lean_static_coefficient_fixture_executed": false,
+    "static_mk_annulus_positive_proved_by_exact_factorization": true,
+    "full_static_classification_formalized_in_lean": false
   },
-  "claim_ceiling": "Exact symbolic classification on the declared static domain; no horizon, rotating, stability, EFT or observational claim."
+  "claim_ceiling": "Exact symbolic classification on the declared static domain; no horizon, rotating, stability, EFT or observational claim.",
+  "lean_arithmetic_fixture": "crates/domains/symtropy-relativity/benchmarks/lean/static_bach_vacuum_coefficients_v1.lean"
 }
