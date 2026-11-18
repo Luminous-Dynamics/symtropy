@@ -1,0 +1,192 @@
+{
+  "schema_version": "0.1.0",
+  "scenario_id": "SYNTHETIC-LUNAR-SITE-DECISION-001",
+  "source_class": "synthetic_fixture",
+  "decision_context": "Choose the next site-characterization / host-architecture pathway from uncertain subsurface hypotheses",
+  "utility_unit": "synthetic_decision_utility_point",
+  "prior_hypotheses": [
+    {
+      "hypothesis_id": "lava_tube_corridor",
+      "description": "A potentially usable tube-adjacent corridor exists; stability and entry remain separately unqualified",
+      "prior_probability": 0.25,
+      "evidence_status": "synthetic_assumption",
+      "source_refs": []
+    },
+    {
+      "hypothesis_id": "competent_rock_corridor",
+      "description": "A continuous competent-rock corridor is available but no useful natural void is assumed",
+      "prior_probability": 0.5,
+      "evidence_status": "synthetic_assumption",
+      "source_refs": []
+    },
+    {
+      "hypothesis_id": "no_suitable_host",
+      "description": "Neither candidate subsurface host option is suitable within the notional search region",
+      "prior_probability": 0.25,
+      "evidence_status": "synthetic_assumption",
+      "source_refs": []
+    }
+  ],
+  "decisions": [
+    {
+      "decision_id": "surface_berm",
+      "description": "Continue with a surface / bermed architecture study",
+      "utility_by_hypothesis": {
+        "lava_tube_corridor": 10,
+        "competent_rock_corridor": 20,
+        "no_suitable_host": 25
+      },
+      "utility_status": "synthetic_assumption",
+      "utility_refs": []
+    },
+    {
+      "decision_id": "engineered_rock_tunnel",
+      "description": "Continue with a purpose-built competent-rock corridor study",
+      "utility_by_hypothesis": {
+        "lava_tube_corridor": 30,
+        "competent_rock_corridor": 80,
+        "no_suitable_host": -30
+      },
+      "utility_status": "synthetic_assumption",
+      "utility_refs": []
+    },
+    {
+      "decision_id": "tube_adjacent_corridor",
+      "description": "Continue with a tube-adjacent hybrid study, without assuming entry or structural safety",
+      "utility_by_hypothesis": {
+        "lava_tube_corridor": 100,
+        "competent_rock_corridor": 20,
+        "no_suitable_host": -100
+      },
+      "utility_status": "synthetic_assumption",
+      "utility_refs": []
+    }
+  ],
+  "survey_options": [
+    {
+      "survey_id": "passive_seismic_fusion",
+      "modality": "passive_seismic",
+      "description": "Synthetic multi-component passive seismic survey with cavity-like, competent-rock-like, or ambiguous outcomes",
+      "cost_utility": 8,
+      "resources": {
+        "instrument_mass_kg": 18,
+        "energy_wh": 240,
+        "duration_h": 4
+      },
+      "likelihood_status": "synthetic_assumption",
+      "likelihood_refs": [],
+      "outcomes": [
+        {
+          "outcome_id": "cavity_like_response",
+          "description": "A cavity-like response is recovered",
+          "likelihood_by_hypothesis": {
+            "lava_tube_corridor": 0.8,
+            "competent_rock_corridor": 0.15,
+            "no_suitable_host": 0.05
+          }
+        },
+        {
+          "outcome_id": "competent_rock_response",
+          "description": "A competent-rock corridor response is recovered",
+          "likelihood_by_hypothesis": {
+            "lava_tube_corridor": 0.1,
+            "competent_rock_corridor": 0.7,
+            "no_suitable_host": 0.1
+          }
+        },
+        {
+          "outcome_id": "ambiguous_response",
+          "description": "The response is ambiguous or does not resolve the host",
+          "likelihood_by_hypothesis": {
+            "lava_tube_corridor": 0.1,
+            "competent_rock_corridor": 0.15,
+            "no_suitable_host": 0.85
+          }
+        }
+      ]
+    },
+    {
+      "survey_id": "orbital_radar_sounding",
+      "modality": "radar_sounding",
+      "description": "Synthetic radar-sounding outcome classes for a notional orbital / surface radar observation",
+      "cost_utility": 5,
+      "resources": {
+        "instrument_mass_kg": 4,
+        "energy_wh": 80,
+        "duration_h": 2
+      },
+      "likelihood_status": "synthetic_assumption",
+      "likelihood_refs": [],
+      "outcomes": [
+        {
+          "outcome_id": "cavity_reflector",
+          "description": "A cavity-related reflector is observed",
+          "likelihood_by_hypothesis": {
+            "lava_tube_corridor": 0.7,
+            "competent_rock_corridor": 0.25,
+            "no_suitable_host": 0.1
+          }
+        },
+        {
+          "outcome_id": "layering_signature",
+          "description": "Layering or competent-rock structure dominates",
+          "likelihood_by_hypothesis": {
+            "lava_tube_corridor": 0.2,
+            "competent_rock_corridor": 0.6,
+            "no_suitable_host": 0.2
+          }
+        },
+        {
+          "outcome_id": "no_strong_reflector",
+          "description": "No strong diagnostic reflector is recovered",
+          "likelihood_by_hypothesis": {
+            "lava_tube_corridor": 0.1,
+            "competent_rock_corridor": 0.15,
+            "no_suitable_host": 0.7
+          }
+        }
+      ]
+    },
+    {
+      "survey_id": "uninformative_sensor_control",
+      "modality": "other",
+      "description": "Negative control: two outcomes have identical likelihood under every hypothesis and therefore convey no information",
+      "cost_utility": 0.5,
+      "resources": {
+        "instrument_mass_kg": 0.1,
+        "energy_wh": 0.5,
+        "duration_h": 0.25
+      },
+      "likelihood_status": "synthetic_assumption",
+      "likelihood_refs": [],
+      "outcomes": [
+        {
+          "outcome_id": "control_outcome_a",
+          "description": "Uninformative outcome A",
+          "likelihood_by_hypothesis": {
+            "lava_tube_corridor": 0.5,
+            "competent_rock_corridor": 0.5,
+            "no_suitable_host": 0.5
+          }
+        },
+        {
+          "outcome_id": "control_outcome_b",
+          "description": "Uninformative outcome B",
+          "likelihood_by_hypothesis": {
+            "lava_tube_corridor": 0.5,
+            "competent_rock_corridor": 0.5,
+            "no_suitable_host": 0.5
+          }
+        }
+      ]
+    }
+  ],
+  "assumptions": [
+    "All priors, likelihoods, utility values and survey resource figures are synthetic arithmetic fixtures; they are not measured lunar geology or sensor performance.",
+    "The hypothesis classes are mutually exclusive and collectively exhaustive for this toy example.",
+    "For each survey option and hypothesis, its outcome likelihoods sum to one.",
+    "Survey utility cost is expressed in the same synthetic utility unit as architecture decision utility; resource figures are reported separately and are not converted into utility.",
+    "A missing, stale, uncalibrated or otherwise invalid observation must produce no posterior update; it is not a negative detection.",
+    "A cavity detection does not establish roof stability, safe access, entry clearance or construction approval."
+  ]
+}
