@@ -1,0 +1,7 @@
+{
+  "evidence_class": "synthetic_video_segmentation_fixture",
+  "frame_count": 7,
+  "mean_surface_angle_deg": 37.0,
+  "avalanche_event_count": 2,
+  "notes": "Generated arithmetic fixture only; not captured from a physical rotating drum."
+}
