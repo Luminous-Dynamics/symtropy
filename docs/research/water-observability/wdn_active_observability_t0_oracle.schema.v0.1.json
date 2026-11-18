@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WDN active observability T0 oracle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "benchmark_id",
+    "cases"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "wdn-active-observability-t0-oracle-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WDN-ACTIVE-OBSERVABILITY-T0-001"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 14,
+      "maxItems": 14,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "passive_max_clique_size",
+          "passive_maximum_ambiguity_sets",
+          "passive_indistinguishability_edges",
+          "feasible_probe_count",
+          "option_count",
+          "options",
+          "decision_status",
+          "recommended_sequence",
+          "recommended_post_max_clique_size",
+          "minimum_worst_case_ambiguity_reduction",
+          "execution_authorized",
+          "probability_interpretation",
+          "claim_eligibility"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "passive_max_clique_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+          },
+          "passive_maximum_ambiguity_sets": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 8,
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "passive_indistinguishability_edges": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "feasible_probe_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "option_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10
+          },
+          "options": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "sequence",
+                "feasible",
+                "reason_codes",
+                "post_max_clique_size",
+                "worst_case_reduction",
+                "estimated_duration_seconds",
+                "ambiguity_sets_after",
+                "indistinguishability_edges_after"
+              ],
+              "properties": {
+                "sequence": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "feasible": {
+                  "type": "boolean"
+                },
+                "reason_codes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "post_max_clique_size": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1,
+                  "maximum": 8
+                },
+                "worst_case_reduction": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 7
+                },
+                "estimated_duration_seconds": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "ambiguity_sets_after": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "indistinguishability_edges_after": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "decision_status": {
+            "enum": [
+              "counterfactual_probe_sequence_recommended",
+              "abstain_no_feasible_probe",
+              "abstain_no_probe_meets_worst_case_reduction"
+            ]
+          },
+          "recommended_sequence": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "minItems": 1,
+            "maxItems": 2,
+            "items": {
+              "type": "string"
+            }
+          },
+          "recommended_post_max_clique_size": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 8
+          },
+          "minimum_worst_case_ambiguity_reduction": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 7
+          },
+          "execution_authorized": {
+            "const": false
+          },
+          "probability_interpretation": {
+            "const": "none_unweighted_interval_compatibility"
+          },
+          "claim_eligibility": {
+            "const": "NotEligible"
+          }
+        }
+      }
+    }
+  }
+}
