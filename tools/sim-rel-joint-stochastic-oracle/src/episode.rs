@@ -49,6 +49,58 @@ impl Default for EpisodeConfig {
 /// initial-state realizations must not be included here.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+/// Public description of one candidate mechanism in a closed-family identification task.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublicHypothesis {
+    /// Exact candidate ID shared with the evaluator kernel; never identifies the sampled truth.
+    pub hypothesis_id: String,
+    /// Declared structural family used for grouped discovery/transfer metrics.
+    pub structural_family: String,
+    /// Plain-language candidate mechanism description.
+    pub description: String,
+}
+
+/// Public meaning and cost of one intervention; no transition probabilities or hidden state.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublicActionDescription {
+    /// Action ID shared with the evaluator kernel.
+    pub action_id: String,
+    /// What the instrument/intervention does from the policy's point of view.
+    pub description: String,
+    /// Declared target of the intervention, e.g. sensor, process, or observation.
+    pub target: String,
+}
+
+/// Public meaning of one categorical observation returned by the model.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublicObservationDescription {
+    /// Observation ID shared with the evaluator kernel.
+    pub observation_id: String,
+    /// Public channel identity.
+    pub channel_id: String,
+    /// Human-readable interpretation of this category.
+    pub description: String,
+    /// Measurement unit or categorical scale name.
+    pub unit: String,
+}
+
+/// Public task/profile information visible to the research policy.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublicResearchProfile {
+    /// Research objective and task scope.
+    pub task_description: String,
+    /// The declared finite candidate family. No generating-truth label is included.
+    pub candidate_hypotheses: Vec<PublicHypothesis>,
+    /// Public action descriptions and semantics.
+    pub actions: Vec<PublicActionDescription>,
+    /// Public observation-channel/category meanings.
+    pub observations: Vec<PublicObservationDescription>,
+}
+
 pub struct EpisodeManifest {
     /// Digest of the public episode contract and admissible action/observation surface.
     pub contract_sha256: String,
@@ -62,6 +114,8 @@ pub struct EpisodeManifest {
     pub clock_profile_sha256: String,
     /// Digest of the episode's time-origin definition.
     pub time_origin_sha256: String,
+    /// Policy-visible task semantics and finite candidate/action/observation catalogue.
+    pub public_profile: PublicResearchProfile,
 }
 
 impl EpisodeManifest {
@@ -82,6 +136,88 @@ impl EpisodeManifest {
                 return Err(EpisodeError::InvalidManifest);
             }
         }
+        let profile = &self.public_profile;
+        if profile.task_description.trim().is_empty() || profile.task_description.len() > 4096 {
+            return Err(EpisodeError::InvalidManifest);
+        }
+        if profile.candidate_hypotheses.is_empty()
+            || profile.actions.is_empty()
+            || profile.observations.is_empty()
+        {
+            return Err(EpisodeError::InvalidManifest);
+        }
+        let mut hypothesis_ids = BTreeSet::new();
+        for hypothesis in &profile.candidate_hypotheses {
+            if hypothesis.hypothesis_id.trim().is_empty()
+                || hypothesis.structural_family.trim().is_empty()
+                || hypothesis.description.trim().is_empty()
+                || hypothesis.description.len() > 2048
+                || !hypothesis_ids.insert(hypothesis.hypothesis_id.as_str())
+            {
+                return Err(EpisodeError::InvalidManifest);
+            }
+        }
+        let mut action_ids = BTreeSet::new();
+        for action in &profile.actions {
+            if action.action_id.trim().is_empty()
+                || action.description.trim().is_empty()
+                || action.target.trim().is_empty()
+                || action.description.len() > 2048
+                || !action_ids.insert(action.action_id.as_str())
+            {
+                return Err(EpisodeError::InvalidManifest);
+            }
+        }
+        let mut observation_ids = BTreeSet::new();
+        for observation in &profile.observations {
+            if observation.observation_id.trim().is_empty()
+                || observation.channel_id.trim().is_empty()
+                || observation.description.trim().is_empty()
+                || observation.unit.trim().is_empty()
+                || observation.description.len() > 2048
+                || !observation_ids.insert(observation.observation_id.as_str())
+            {
+                return Err(EpisodeError::InvalidManifest);
+            }
+        }
+        Ok(())
+    }
+
+    fn validate_against_kernel(&self, kernel: &JointKernel) -> Result<(), EpisodeError> {
+        let profile = &self.public_profile;
+        let candidate_ids: Vec<&str> = profile
+            .candidate_hypotheses
+            .iter()
+            .map(|item| item.hypothesis_id.as_str())
+            .collect();
+        let action_ids: Vec<&str> = profile
+            .actions
+            .iter()
+            .map(|item| item.action_id.as_str())
+            .collect();
+        let observation_ids: Vec<&str> = profile
+            .observations
+            .iter()
+            .map(|item| item.observation_id.as_str())
+            .collect();
+        if candidate_ids.len() != kernel.hypothesis_ids.len()
+            || candidate_ids
+                .iter()
+                .zip(&kernel.hypothesis_ids)
+                .any(|(public, owner)| *public != owner)
+            || action_ids.len() != kernel.action_ids.len()
+            || action_ids
+                .iter()
+                .zip(&kernel.action_ids)
+                .any(|(public, owner)| *public != owner)
+            || observation_ids.len() != kernel.observation_ids.len()
+            || observation_ids
+                .iter()
+                .zip(&kernel.observation_ids)
+                .any(|(public, owner)| *public != owner)
+        {
+            return Err(EpisodeError::InvalidManifest);
+        }
         Ok(())
     }
 }
@@ -92,6 +228,10 @@ impl EpisodeManifest {
 pub struct PublicAction {
     /// Stable action identity from the admitted model profile.
     pub action_id: String,
+    /// Policy-visible description of this intervention.
+    pub description: String,
+    /// Target instrument or system boundary.
+    pub target: String,
     /// Declared cost for an accepted intervention.
     pub cost_units: u64,
 }
@@ -102,6 +242,10 @@ pub struct PublicAction {
 pub struct EpisodeObservation {
     /// Stable observation identity from the admitted model profile.
     pub observation_id: String,
+    /// Public description of the observed category.
+    pub description: String,
+    /// Measurement unit or categorical scale.
+    pub unit: String,
     /// Discrete world step at which the modeled phenomenon occurred.
     pub event_step: u64,
     /// Discrete world step at which the model's observation channel acquired it.
@@ -221,6 +365,8 @@ pub enum EpisodeFinishDisposition {
 pub struct EpisodeFinish {
     /// Agent-reported epistemic status.
     pub disposition: EpisodeFinishDisposition,
+    /// Exact candidate IDs the agent judges compatible with the visible evidence.
+    pub compatible_hypothesis_ids: Vec<String>,
     /// Bounded rationale supplied by the policy.
     pub rationale: String,
 }
@@ -273,6 +419,12 @@ pub struct EpisodeEvaluation {
     pub reported_disposition: EpisodeFinishDisposition,
     /// Exact compatible candidate IDs computed by the trusted evaluator.
     pub compatible_hypotheses: Vec<String>,
+    /// Candidate IDs reported by the policy.
+    pub claimed_compatible_hypotheses: Vec<String>,
+    /// Exact equality between the reported candidate set and the evaluator version space.
+    pub version_space_exact_match: bool,
+    /// Number of correctly reported candidates.
+    pub correct_candidate_count: usize,
     /// Whether the sampled generating hypothesis remains in the exact version space.
     pub generating_hypothesis_retained: bool,
     /// Whether the evidence identifies exactly one candidate.
@@ -378,6 +530,7 @@ impl EpisodeProvider {
         kernel
             .validate()
             .map_err(EpisodeError::InvalidKernel)?;
+        manifest.validate_against_kernel(&kernel)?;
 
         let mut rng = SplitMix64::new(seed);
         let selected = sample_index(
@@ -421,8 +574,11 @@ impl EpisodeProvider {
             .action_ids
             .iter()
             .zip(self.kernel.action_costs.iter())
-            .map(|(action_id, cost_units)| PublicAction {
+            .zip(self.manifest.public_profile.actions.iter())
+            .map(|((action_id, cost_units), description)| PublicAction {
                 action_id: action_id.clone(),
+                description: description.description.clone(),
+                target: description.target.clone(),
                 cost_units: *cost_units,
             })
             .collect();
@@ -735,8 +891,17 @@ impl EpisodeProvider {
 
                     match observation_id {
                         Some(observation_id) => {
+                            let description = self
+                                .manifest
+                                .public_profile
+                                .observations
+                                .iter()
+                                .find(|item| item.observation_id == observation_id)
+                                .ok_or(EpisodeError::MissingTransitionData)?;
                             self.observations.push(EpisodeObservation {
                                 observation_id: observation_id.clone(),
+                                description: description.description.clone(),
+                                unit: description.unit.clone(),
                                 event_step: self.current_step,
                                 acquisition_step: self.current_step,
                                 available_at_step: self.current_step,
