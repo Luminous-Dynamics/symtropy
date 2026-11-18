@@ -1,3 +1,6 @@
+mod scheduler;
+
+use scheduler::{TaskSpec, schedule};
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -137,18 +140,13 @@ enum PartSource {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Task {
+    task_id: String,
     stage: String,
+    #[serde(default)]
+    depends_on: Vec<String>,
     duration_hours: f64,
     resource_id: Option<String>,
     resource_units: Option<u32>,
-}
-
-#[derive(Clone, Debug)]
-struct Allocation {
-    start: f64,
-    end: f64,
-    units: u32,
-    event_id: String,
 }
 
 fn unique_ids<'a>(ids: impl Iterator<Item = &'a str>, label: &str, errors: &mut Vec<String>) {
@@ -202,7 +200,12 @@ fn validate(case: &Case) -> Vec<String> {
     let evidence: BTreeMap<_, _> = case.evidence_records.iter().map(|x| (x.evidence_record_id.as_str(), x)).collect();
 
     let mut stock_demand: BTreeMap<(String, String), u32> = BTreeMap::new();
-    let mut resource_allocations: BTreeMap<String, Vec<Allocation>> = BTreeMap::new();
+    let mut schedule_tasks = Vec::new();
+    let capacities: BTreeMap<String, u32> = case
+        .resources
+        .iter()
+        .map(|x| (x.resource_id.clone(), x.available_units))
+        .collect();
     let required_stages = [
         "detect_and_isolate",
         "diagnose",
@@ -211,6 +214,10 @@ fn validate(case: &Case) -> Vec<String> {
         "repair_or_replace",
         "test_and_commission",
     ];
+    let allowed_stages: BTreeSet<&str> = required_stages
+        .into_iter()
+        .chain(["transport"])
+        .collect();
 
     for event in &case.events {
         let Some(asset) = assets.get(event.asset_id.as_str()) else {
@@ -232,48 +239,45 @@ fn validate(case: &Case) -> Vec<String> {
         if plan.plan_id.trim().is_empty() {
             errors.push(format!("{} has empty planId", event.event_id));
         }
+        if plan.alternative_firm_capacity_mw < 0.0
+            || !plan.alternative_firm_capacity_mw.is_finite()
+            || plan.alternative_firm_capacity_mw > event.firm_capacity_lost_mw
+        {
+            errors.push(format!("{} has invalid alternative firm capacity", event.event_id));
+        }
+
         let mut stages = BTreeSet::new();
-        let mut elapsed = 0.0;
+        let mut task_ids = BTreeSet::new();
         for task in &plan.tasks {
             stages.insert(task.stage.as_str());
-            if task.duration_hours <= 0.0 || !task.duration_hours.is_finite() {
-                errors.push(format!("{} has non-positive or non-finite task duration", event.event_id));
-                continue;
+            if !allowed_stages.contains(task.stage.as_str()) {
+                errors.push(format!("{} has unsupported task stage {}", event.event_id, task.stage));
             }
-            let task_start = event.start_hour + elapsed;
-            let task_end = task_start + task.duration_hours;
+            if task.task_id.trim().is_empty() {
+                errors.push(format!("{} has empty taskId", event.event_id));
+            }
+            if !task_ids.insert(task.task_id.clone()) {
+                errors.push(format!("{} has duplicate taskId {}", event.event_id, task.task_id));
+            }
 
             match (&task.resource_id, task.resource_units) {
-                (Some(resource_id), Some(units)) => {
-                    if let Some(resource) = resources.get(resource_id.as_str()) {
-                        if units == 0 || units > resource.available_units {
-                            errors.push(format!(
-                                "{} over-allocates resource {}: requested {}, available {}",
-                                event.event_id, resource_id, units, resource.available_units
-                            ));
-                        }
-                        resource_allocations
-                            .entry(resource_id.clone())
-                            .or_default()
-                            .push(Allocation {
-                                start: task_start,
-                                end: task_end,
-                                units,
-                                event_id: event.event_id.clone(),
-                            });
-                    } else {
-                        errors.push(format!("{} references unknown resource {}", event.event_id, resource_id));
-                    }
-                }
-                (Some(_), None) | (None, Some(_)) => {
-                    errors.push(format!(
-                        "{} task {} must declare resourceId and resourceUnits together",
-                        event.event_id, task.stage
-                    ));
-                }
+                (Some(_), Some(units)) if units > 0 => {}
                 (None, None) => {}
+                _ => errors.push(format!(
+                    "{} task {} must declare resourceId and positive resourceUnits together",
+                    event.event_id, task.task_id
+                )),
             }
-            elapsed += task.duration_hours;
+
+            schedule_tasks.push(TaskSpec {
+                event_id: event.event_id.clone(),
+                task_id: task.task_id.clone(),
+                depends_on: task.depends_on.clone(),
+                release_hour: event.start_hour,
+                duration_hours: task.duration_hours,
+                resource_id: task.resource_id.clone(),
+                resource_units: task.resource_units.unwrap_or(0),
+            });
         }
 
         for stage in required_stages {
@@ -282,26 +286,7 @@ fn validate(case: &Case) -> Vec<String> {
             }
         }
 
-        if (elapsed - plan.claimed_restoration_hours).abs() > 1e-6 {
-            errors.push(format!(
-                "{} claimed restoration {}h but tasks sum to {}h",
-                event.event_id, plan.claimed_restoration_hours, elapsed
-            ));
-        }
-
-        let net_shortfall = (event.firm_capacity_lost_mw - plan.alternative_firm_capacity_mw).max(0.0);
-        let expected_energy = net_shortfall * elapsed;
-        if (expected_energy - plan.expected_unserved_energy_mwh).abs() > 1e-5 {
-            errors.push(format!(
-                "{} expected unserved energy {} MWh but arithmetic gives {} MWh",
-                event.event_id, plan.expected_unserved_energy_mwh, expected_energy
-            ));
-        }
-        if plan.alternative_firm_capacity_mw > event.firm_capacity_lost_mw {
-            errors.push(format!("{} alternate capacity exceeds the declared lost capacity", event.event_id));
-        }
-
-        let part_id = match &plan.part_source {
+        match &plan.part_source {
             PartSource::DepotStock {
                 depot_id,
                 part_id,
@@ -311,8 +296,7 @@ fn validate(case: &Case) -> Vec<String> {
                     errors.push(format!("{} references unknown depot {}", event.event_id, depot_id));
                     continue;
                 };
-                let inventory = depot.inventory.iter().find(|x| x.part_id == *part_id);
-                let Some(inventory) = inventory else {
+                let Some(inventory) = depot.inventory.iter().find(|x| x.part_id == *part_id) else {
                     errors.push(format!("{} part {} is absent from depot {}", event.event_id, part_id, depot_id));
                     continue;
                 };
@@ -322,7 +306,7 @@ fn validate(case: &Case) -> Vec<String> {
                     errors.push(format!("{} depot {} has inconsistent inventory counts", event.event_id, depot_id));
                 }
                 let available = inventory.quantity_serviceable.saturating_sub(inventory.quantity_reserved);
-                if *quantity > available {
+                if *quantity == 0 || *quantity > available {
                     errors.push(format!(
                         "{} requests {} of {}, but only {} serviceable unreserved unit(s) exist",
                         event.event_id, quantity, part_id, available
@@ -342,14 +326,14 @@ fn validate(case: &Case) -> Vec<String> {
                             {
                                 errors.push(format!("{} logistics route does not connect depot to asset", event.event_id));
                             }
-                            if mass > route.max_cargo_kg {
+                            if !mass.is_finite() || mass <= 0.0 || mass > route.max_cargo_kg {
                                 errors.push(format!(
-                                    "{} cargo mass {}kg exceeds route limit {}kg",
+                                    "{} cargo mass {}kg is invalid or exceeds route limit {}kg",
                                     event.event_id, mass, route.max_cargo_kg
                                 ));
                             }
-                            let transport_stage = plan.tasks.iter().find(|x| x.stage == "transport");
-                            if let Some(task) = transport_stage {
+                            let transport_task = plan.tasks.iter().find(|x| x.stage == "transport");
+                            if let Some(task) = transport_task {
                                 if task.duration_hours + 1e-6 < route.transit_hours {
                                     errors.push(format!("{} transport task is shorter than route transit time", event.event_id));
                                 }
@@ -362,7 +346,6 @@ fn validate(case: &Case) -> Vec<String> {
                     }
                     _ => errors.push(format!("{} depot-stock recovery requires route and cargo mass", event.event_id)),
                 }
-                part_id.as_str()
             }
             PartSource::OemProcurement { supplier_id, part_id } => {
                 if supplier_id.trim().is_empty() {
@@ -371,52 +354,64 @@ fn validate(case: &Case) -> Vec<String> {
                 if plan.logistics_route_id.is_some() || plan.transport_mass_kg.is_some() {
                     errors.push(format!("{} OEM procurement cannot silently reuse a depot route allocation", event.event_id));
                 }
-                part_id.as_str()
+                if !stages.contains("source_part") {
+                    errors.push(format!("{} OEM procurement is missing source_part duration", event.event_id));
+                }
+                if !parts.contains_key(part_id.as_str()) {
+                    errors.push(format!("{} references unknown procured part {}", event.event_id, part_id));
+                }
             }
-        };
+        }
 
-        let Some(part) = parts.get(part_id) else {
-            errors.push(format!("{} references unknown part {}", event.event_id, part_id));
-            continue;
+        let part_id = match &plan.part_source {
+            PartSource::DepotStock { part_id, .. } => part_id,
+            PartSource::OemProcurement { part_id, .. } => part_id,
         };
-        if part.part_class != asset.asset_class {
-            errors.push(format!(
-                "{} part {} class {} does not match asset class {}",
-                event.event_id, part.part_id, part.part_class, asset.asset_class
-            ));
-        }
-        if !part.approved_interface_profiles.iter().any(|x| x == &asset.interface_profile_id) {
-            errors.push(format!(
-                "{} part {} is not approved for interface profile {}",
-                event.event_id, part.part_id, asset.interface_profile_id
-            ));
-        }
-        let Some(record) = evidence.get(part.evidence_record_id.as_str()) else {
-            errors.push(format!(
-                "{} part {} references missing evidence {}",
-                event.event_id, part.part_id, part.evidence_record_id
-            ));
-            continue;
-        };
-        if case.case_maturity == "synthetic_fixture" {
-            if record.evidence_class != "synthetic_fixture" {
+        if let Some(part) = parts.get(part_id.as_str()) {
+            if part.part_class != asset.asset_class {
                 errors.push(format!(
-                    "{} synthetic case has non-synthetic evidence class {}",
-                    event.event_id, record.evidence_class
+                    "{} part {} class {} does not match asset class {}",
+                    event.event_id, part.part_id, part.part_class, asset.asset_class
                 ));
             }
-        } else if !matches!(record.evidence_class.as_str(), "site_qualified" | "independent_field_verified") {
-            errors.push(format!(
-                "{} operational case lacks site-qualified or independently field-verified part evidence",
-                event.event_id
-            ));
-        }
-        if record.description.trim().is_empty() {
-            errors.push(format!("{} evidence description is empty", event.event_id));
-        }
-        if let Some(uri) = &record.source_uri {
-            if !(uri.starts_with("https://") || uri.starts_with("http://")) {
-                errors.push(format!("{} evidence sourceUri is not an HTTP(S) URI", event.event_id));
+            if !part.approved_interface_profiles.iter().any(|x| x == &asset.interface_profile_id) {
+                errors.push(format!(
+                    "{} part {} is not approved for interface profile {}",
+                    event.event_id, part.part_id, asset.interface_profile_id
+                ));
+            }
+            if let Some(record) = evidence.get(part.evidence_record_id.as_str()) {
+                if case.case_maturity == "synthetic_fixture" {
+                    if record.evidence_class != "synthetic_fixture" {
+                        errors.push(format!(
+                            "{} synthetic case has non-synthetic evidence class {}",
+                            event.event_id, record.evidence_class
+                        ));
+                    }
+                } else if !matches!(record.evidence_class.as_str(), "site_qualified" | "independent_field_verified") {
+                    errors.push(format!(
+                        "{} operational case lacks site-qualified or independently field-verified part evidence",
+                        event.event_id
+                    ));
+                }
+                if record.description.trim().is_empty() {
+                    errors.push(format!("{} evidence description is empty", event.event_id));
+                }
+                if let Some(uri) = &record.source_uri {
+                    if !(uri.starts_with("https://") || uri.starts_with("http://")) {
+                        errors.push(format!("{} evidence sourceUri is not an HTTP(S) URI", event.event_id));
+                    }
+                }
+                if case.case_maturity != "synthetic_fixture"
+                    && record.source_uri.as_deref().is_none_or(str::is_empty)
+                {
+                    errors.push(format!("{} non-synthetic evidence requires sourceUri", event.event_id));
+                }
+            } else {
+                errors.push(format!(
+                    "{} part {} references missing evidence {}",
+                    event.event_id, part.part_id, part.evidence_record_id
+                ));
             }
         }
     }
@@ -434,54 +429,63 @@ fn validate(case: &Case) -> Vec<String> {
         }
     }
 
-    for (resource_id, allocations) in resource_allocations {
-        if let Some(resource) = resources.get(resource_id.as_str()) {
-            let mut boundaries = Vec::new();
-            for allocation in allocations {
-                boundaries.push((allocation.start, true, allocation.units, allocation.event_id.clone()));
-                boundaries.push((allocation.end, false, allocation.units, allocation.event_id));
-            }
-            boundaries.sort_by(|a, b| {
-                a.0.partial_cmp(&b.0)
-                    .unwrap_or(std::cmp::Ordering::Equal)
-                    .then_with(|| a.1.cmp(&b.1))
-            });
-            let mut used = 0u32;
-            for (time, is_start, units, event_id) in boundaries {
-                if is_start {
-                    used = used.saturating_add(units);
-                    if used > resource.available_units {
-                        errors.push(format!(
-                            "resource contention on {} at hour {} while serving {}: {} units demanded, {} available",
-                            resource_id, time, event_id, used, resource.available_units
-                        ));
-                    }
-                } else {
-                    used = used.saturating_sub(units);
+    match schedule(&schedule_tasks, &capacities) {
+        Ok(scheduled) => {
+            for event in &case.events {
+                let completion = scheduled
+                    .iter()
+                    .filter(|task| task.event_id == event.event_id)
+                    .map(|task| task.end_hour)
+                    .fold(event.start_hour, f64::max);
+                let elapsed = completion - event.start_hour;
+                let plan = &event.selected_plan;
+                if (elapsed - plan.claimed_restoration_hours).abs() > 1e-6 {
+                    errors.push(format!(
+                        "{} claimed restoration {}h but dependency/resource schedule gives {}h",
+                        event.event_id, plan.claimed_restoration_hours, elapsed
+                    ));
+                }
+                let net_shortfall =
+                    (event.firm_capacity_lost_mw - plan.alternative_firm_capacity_mw).max(0.0);
+                let expected_energy = net_shortfall * elapsed;
+                if (expected_energy - plan.expected_unserved_energy_mwh).abs() > 1e-5 {
+                    errors.push(format!(
+                        "{} expected unserved energy {} MWh but scheduled arithmetic gives {} MWh",
+                        event.event_id, plan.expected_unserved_energy_mwh, expected_energy
+                    ));
                 }
             }
         }
+        Err(schedule_errors) => errors.extend(schedule_errors),
     }
 
-    // Keep unused catalogue fields intentionally visible in the typed contract:
-    // their presence lets the schema and future validators retain asset/part class identity.
     for asset in &case.assets {
-        if asset.asset_class.trim().is_empty() || asset.variant_id.trim().is_empty() {
-            errors.push(format!("{} has incomplete class/variant identity", asset.asset_id));
+        if asset.asset_class.trim().is_empty()
+            || asset.variant_id.trim().is_empty()
+            || asset.interface_profile_id.trim().is_empty()
+        {
+            errors.push(format!("{} has incomplete class, variant or interface identity", asset.asset_id));
         }
     }
     for part in &case.parts {
         if part.part_class.trim().is_empty() || part.variant_id.trim().is_empty() {
             errors.push(format!("{} has incomplete class/variant identity", part.part_id));
         }
+        if part.approved_interface_profiles.is_empty() {
+            errors.push(format!("{} has no approved interface profiles", part.part_id));
+        }
     }
     for resource in &case.resources {
-        if resource.resource_type.trim().is_empty() {
-            errors.push(format!("{} has empty resourceType", resource.resource_id));
+        if resource.resource_type.trim().is_empty() || resource.available_units == 0 {
+            errors.push(format!("{} has invalid resource type or capacity", resource.resource_id));
         }
     }
     for route in &case.logistics_routes {
-        if route.transit_hours <= 0.0 || route.max_cargo_kg <= 0.0 {
+        if !route.transit_hours.is_finite()
+            || route.transit_hours <= 0.0
+            || !route.max_cargo_kg.is_finite()
+            || route.max_cargo_kg <= 0.0
+        {
             errors.push(format!("{} has invalid logistics parameters", route.route_id));
         }
     }
@@ -490,12 +494,9 @@ fn validate(case: &Case) -> Vec<String> {
     errors
 }
 
-fn parse_case(input: &str) -> Result<Case, serde_json::Error> {
-    serde_json::from_str(input)
-}
-
 fn run(input: &str) -> Result<(), Vec<String>> {
-    let case = parse_case(input).map_err(|error| vec![format!("JSON decode error: {error}")])?;
+    let case: Case =
+        serde_json::from_str(input).map_err(|error| vec![format!("JSON decode error: {error}")])?;
     let errors = validate(&case);
     if errors.is_empty() {
         Ok(())
@@ -527,7 +528,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::Value;
+    use serde_json::{Value, json};
 
     const FIXTURE: &str =
         include_str!("../../../docs/research/grid-asset-recovery/data/synthetic-asset-recovery-v0.1.json");
@@ -542,7 +543,7 @@ mod tests {
     }
 
     #[test]
-    fn accepts_hand_calculable_three_event_fixture() {
+    fn accepts_three_event_dag_recovery_fixture() {
         run(FIXTURE).expect("fixture should pass");
     }
 
@@ -556,7 +557,7 @@ mod tests {
     #[test]
     fn rejects_double_allocation_of_one_physical_spare() {
         let mut value = fixture();
-        value["events"][1]["selectedPlan"]["partSource"] = serde_json::json!({
+        value["events"][1]["selectedPlan"]["partSource"] = json!({
             "kind": "depot_stock",
             "depotId": "DEPOT-CENTRAL",
             "partId": "SPARE-A",
@@ -564,8 +565,15 @@ mod tests {
         });
         value["events"][1]["selectedPlan"]["logisticsRouteId"] = Value::String("ROUTE-CENTRAL-NORTH".to_string());
         value["events"][1]["selectedPlan"]["transportMassKg"] = Value::from(90000);
-        value["events"][1]["selectedPlan"]["tasks"].as_array_mut().unwrap()
-            .insert(3, serde_json::json!({"stage":"transport","durationHours":12}));
+        value["events"][1]["selectedPlan"]["tasks"].as_array_mut().unwrap().insert(
+            3,
+            json!({
+                "taskId": "transport",
+                "stage": "transport",
+                "dependsOn": ["source-part"],
+                "durationHours": 12
+            }),
+        );
         assert!(check(&value).iter().any(|x| x.contains("spare double-allocation")));
     }
 
@@ -586,32 +594,47 @@ mod tests {
     #[test]
     fn rejects_missing_commissioning() {
         let mut value = fixture();
-        value["events"][0]["selectedPlan"]["tasks"].as_array_mut().unwrap()
+        value["events"][0]["selectedPlan"]["tasks"]
+            .as_array_mut()
+            .unwrap()
             .retain(|task| task["stage"] != "test_and_commission");
-        assert!(check(&value).iter().any(|x| x.contains("missing required stage test_and_commission")));
+        assert!(check(&value)
+            .iter()
+            .any(|x| x.contains("missing required stage test_and_commission")));
     }
 
     #[test]
-    fn rejects_overlapping_single_crew_assignments() {
+    fn detects_resource_delay_in_claimed_restoration_time() {
         let mut value = fixture();
-        value["events"][1]["startHour"] = Value::from(15);
-        value["events"][1]["selectedPlan"]["tasks"][2]["durationHours"] = Value::from(1);
-        value["events"][1]["selectedPlan"]["claimedRestorationHours"] = Value::from(24);
-        value["events"][1]["selectedPlan"]["expectedUnservedEnergyMwh"] = Value::from(1200);
-        assert!(check(&value).iter().any(|x| x.contains("resource contention")));
+        value["events"][2]["startHour"] = Value::from(10);
+        assert!(check(&value)
+            .iter()
+            .any(|x| x.contains("dependency/resource schedule gives")));
     }
 
     #[test]
     fn rejects_synthetic_evidence_promotion() {
         let mut value = fixture();
         value["caseMaturity"] = Value::String("field_observed".to_string());
-        assert!(check(&value).iter().any(|x| x.contains("lacks site-qualified")));
+        assert!(check(&value)
+            .iter()
+            .any(|x| x.contains("lacks site-qualified")));
     }
 
     #[test]
     fn rejects_incorrect_unserved_energy_arithmetic() {
         let mut value = fixture();
         value["events"][0]["selectedPlan"]["expectedUnservedEnergyMwh"] = Value::from(1);
-        assert!(check(&value).iter().any(|x| x.contains("expected unserved energy")));
+        assert!(check(&value)
+            .iter()
+            .any(|x| x.contains("scheduled arithmetic")));
+    }
+
+    #[test]
+    fn rejects_dependency_cycle() {
+        let mut value = fixture();
+        value["events"][0]["selectedPlan"]["tasks"][0]["dependsOn"] =
+            json!(["test-commission"]);
+        assert!(check(&value).iter().any(|x| x.contains("cycle")));
     }
 }
