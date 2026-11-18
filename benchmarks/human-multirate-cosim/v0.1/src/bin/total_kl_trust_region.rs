@@ -3,9 +3,13 @@ use human_multirate_cosim::experiment_design::{
     evaluate_input_profile, ExperimentDesignScenario, ForcingSegment, InputProfile, ModelCandidate,
 };
 use human_multirate_cosim::network::{Edge, NetworkScenario};
+use human_multirate_cosim::noise_robustness::{
+    Ar1KroneckerCovariance, DenseSpdCovariance, ObservationCovarianceV1,
+};
 use human_multirate_cosim::sensor_design::SensorCandidate;
 use human_multirate_cosim::total_kl_trust_region::{
-    optimize_pairwise_total_kl_trust_region, TotalKlOptimalityDisposition,
+    optimize_pairwise_total_kl_trust_region, optimize_pairwise_total_kl_trust_region_with_covariance,
+    ObservationDesignIdentityV1, TotalKlOptimalityDisposition,
 };
 
 fn model(id: u32, label: &'static str, bypass: bool) -> ModelCandidate {
@@ -181,5 +185,125 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 / incremental.achieved_total_gaussian_kl.max(1.0e-300),
         );
     }
+
+    // Matched full space-time covariance lane. Use uniform time points because
+    // this AR(1) reference is indexed by observation step, not physical lag.
+    let mut correlated_scenario = scenario(2.0);
+    correlated_scenario.observation_times = vec![0.4, 0.8, 1.2, 1.6, 2.0];
+    let time_count = correlated_scenario.observation_times.len();
+    let sensor_covariance =
+        DenseSpdCovariance::new(correlated_scenario.noise_covariance.clone())?;
+    let structured_for_dense =
+        Ar1KroneckerCovariance::new(time_count, 0.6, sensor_covariance)?;
+    let dense_ar1 = structured_for_dense.to_dense()?;
+    let structured_ar1 = Ar1KroneckerCovariance::new(
+        time_count,
+        0.6,
+        DenseSpdCovariance::new(correlated_scenario.noise_covariance.clone())?,
+    )?;
+    let covariance_ids = (
+        "covariance:ar1-dense-rho-0.6-v1",
+        "covariance:ar1-structured-rho-0.6-v1",
+    );
+    let common_process = "observation-process:ar1-rho-0.6-v1";
+    let common_sampling = "sampling:uniform-five-times-v1";
+    let common_operator = "operator:selected-sensors-10-11-v1";
+    let common_cutoff = "availability:all-five-observations-v1";
+    let dense_binding = ObservationCovarianceV1::new(
+        covariance_ids.0.to_owned(),
+        common_process.to_owned(),
+        common_sampling.to_owned(),
+        common_operator.to_owned(),
+        common_cutoff.to_owned(),
+        vec![10, 11],
+        correlated_scenario.observation_times.clone(),
+        dense_ar1,
+    )?;
+    let structured_binding = ObservationCovarianceV1::new(
+        covariance_ids.1.to_owned(),
+        common_process.to_owned(),
+        common_sampling.to_owned(),
+        common_operator.to_owned(),
+        common_cutoff.to_owned(),
+        vec![10, 11],
+        correlated_scenario.observation_times.clone(),
+        structured_ar1,
+    )?;
+    let dense_identity = ObservationDesignIdentityV1 {
+        covariance_id: covariance_ids.0.to_owned(),
+        observation_process_id: common_process.to_owned(),
+        sampling_policy_id: common_sampling.to_owned(),
+        observation_operator_id: common_operator.to_owned(),
+        availability_cutoff_id: common_cutoff.to_owned(),
+    };
+    let structured_identity = ObservationDesignIdentityV1 {
+        covariance_id: covariance_ids.1.to_owned(),
+        observation_process_id: common_process.to_owned(),
+        sampling_policy_id: common_sampling.to_owned(),
+        observation_operator_id: common_operator.to_owned(),
+        availability_cutoff_id: common_cutoff.to_owned(),
+    };
+
+    let iid_on_same_schedule = optimize_pairwise_total_kl_trust_region(
+        &correlated_scenario,
+        1,
+        2,
+        &[10, 11],
+        &[0, 1, 2],
+        &boundaries,
+    )?;
+    let dense_report = optimize_pairwise_total_kl_trust_region_with_covariance(
+        &correlated_scenario,
+        1,
+        2,
+        &[10, 11],
+        &[0, 1, 2],
+        &boundaries,
+        &dense_binding,
+        &dense_identity,
+    )?;
+    let structured_report = optimize_pairwise_total_kl_trust_region_with_covariance(
+        &correlated_scenario,
+        1,
+        2,
+        &[10, 11],
+        &[0, 1, 2],
+        &boundaries,
+        &structured_binding,
+        &structured_identity,
+    )?;
+    println!(
+        "covariance,independent_time_assumption,total_kl,{:.12e},energy,{:.12e}",
+        iid_on_same_schedule.achieved_total_gaussian_kl,
+        iid_on_same_schedule.achieved_integrated_squared_input,
+    );
+    println!(
+        "covariance,dense_ar1,total_kl,{:.12e},incremental_kl,{:.12e},kind,{},multiplier,{:.12e},stationarity_residual,{:.12e},replay_abs_error,{:.12e}",
+        dense_report.achieved_total_gaussian_kl,
+        dense_report.achieved_incremental_control_gaussian_kl,
+        dense_report.covariance_kind,
+        dense_report.trust_region_multiplier,
+        dense_report.trust_region_stationarity_residual,
+        dense_report.replay_total_kl_abs_error,
+    );
+    println!(
+        "covariance,structured_ar1,total_kl,{:.12e},incremental_kl,{:.12e},kind,{},multiplier,{:.12e},stationarity_residual,{:.12e},replay_abs_error,{:.12e}",
+        structured_report.achieved_total_gaussian_kl,
+        structured_report.achieved_incremental_control_gaussian_kl,
+        structured_report.covariance_kind,
+        structured_report.trust_region_multiplier,
+        structured_report.trust_region_stationarity_residual,
+        structured_report.replay_total_kl_abs_error,
+    );
+    println!(
+        "covariance,dense_vs_structured,total_kl_abs_difference,{:.12e},upper_bound_abs_difference,{:.12e}",
+        (dense_report.achieved_total_gaussian_kl
+            - structured_report.achieved_total_gaussian_kl)
+            .abs(),
+        (dense_report.unconstrained_total_gaussian_kl_upper_bound
+            - structured_report.unconstrained_total_gaussian_kl_upper_bound)
+            .abs(),
+    );
+
     Ok(())
 }

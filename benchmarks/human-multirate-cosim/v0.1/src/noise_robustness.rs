@@ -200,12 +200,7 @@ impl DenseSpdCovariance {
         &self.matrix
     }
 
-    /// Evaluate 0.5 * r^T Sigma^-1 r by triangular whitening.
-    /// This avoids explicitly forming the inverse covariance.
-    pub fn gaussian_quadratic_form_half(
-        &self,
-        residual: &[f64],
-    ) -> Result<f64, CovarianceError> {
+    fn whiten(&self, residual: &[f64]) -> Result<Vec<f64>, CovarianceError> {
         let dimension = self.dimension();
         if residual.len() != dimension {
             return Err(CovarianceError::DimensionMismatch {
@@ -228,11 +223,39 @@ impl DenseSpdCovariance {
             }
             whitened[row] = value / self.cholesky_lower[row][row];
         }
-        let score = 0.5 * whitened.iter().map(|value| value * value).sum::<f64>();
-        if !score.is_finite() {
+        if whitened.iter().any(|value| !value.is_finite()) {
             return Err(CovarianceError::NonFiniteResult);
         }
-        Ok(score.max(0.0))
+        Ok(whitened)
+    }
+
+    /// Compute a^T Sigma^-1 b by whitening both vectors with the same
+    /// admitted Cholesky factor. No precision matrix is materialized.
+    pub fn gaussian_bilinear_form(
+        &self,
+        left: &[f64],
+        right: &[f64],
+    ) -> Result<f64, CovarianceError> {
+        let left_white = self.whiten(left)?;
+        let right_white = self.whiten(right)?;
+        let value = left_white
+            .iter()
+            .zip(right_white.iter())
+            .map(|(left, right)| left * right)
+            .sum::<f64>();
+        if !value.is_finite() {
+            return Err(CovarianceError::NonFiniteResult);
+        }
+        Ok(value)
+    }
+
+    /// Evaluate 0.5 * r^T Sigma^-1 r by triangular whitening.
+    /// This avoids explicitly forming the inverse covariance.
+    pub fn gaussian_quadratic_form_half(
+        &self,
+        residual: &[f64],
+    ) -> Result<f64, CovarianceError> {
+        Ok((0.5 * self.gaussian_bilinear_form(residual, residual)?).max(0.0))
     }
 
     /// Draw a zero-mean Gaussian vector with this covariance using the
@@ -314,11 +337,10 @@ impl Ar1KroneckerCovariance {
         self.sample_count * self.sensor_count()
     }
 
-    /// Exact joint Gaussian quadratic form via AR(1) innovations.
-    pub fn gaussian_quadratic_form_half(
+    fn whitened_innovations(
         &self,
         residual: &[f64],
-    ) -> Result<f64, CovarianceError> {
+    ) -> Result<Vec<f64>, CovarianceError> {
         let time_count = self.sample_count;
         let sensor_count = self.sensor_count();
         let dimension = self.dimension();
@@ -334,36 +356,58 @@ impl Ar1KroneckerCovariance {
             }
         }
 
-        let mut whitened = vec![0.0; sensor_count];
-        let mut score = 0.0;
-        let temporal_innovation_variance = 1.0 - self.rho * self.rho;
+        let mut whitened = vec![0.0; dimension];
+        let innovation_scale = (1.0 - self.rho * self.rho).sqrt();
         #[allow(clippy::needless_range_loop)]
         for time_index in 0..time_count {
+            let offset = time_index * sensor_count;
             for sensor_row in 0..sensor_count {
-                let flat_index = time_index * sensor_count + sensor_row;
+                let flat_index = offset + sensor_row;
                 let mut value = residual[flat_index];
                 if time_index > 0 {
-                    value -= self.rho * residual[flat_index - sensor_count];
+                    value = (value - self.rho * residual[flat_index - sensor_count])
+                        / innovation_scale;
                 }
                 for sensor_column in 0..sensor_row {
                     value -= self.sensor_covariance.cholesky_lower[sensor_row][sensor_column]
-                        * whitened[sensor_column];
+                        * whitened[offset + sensor_column];
                 }
-                whitened[sensor_row] =
+                whitened[flat_index] =
                     value / self.sensor_covariance.cholesky_lower[sensor_row][sensor_row];
             }
-            let block_norm = whitened.iter().map(|value| value * value).sum::<f64>();
-            let innovation_variance = if time_index == 0 {
-                1.0
-            } else {
-                temporal_innovation_variance
-            };
-            score += 0.5 * block_norm / innovation_variance;
         }
-        if !score.is_finite() {
+        if whitened.iter().any(|value| !value.is_finite()) {
             return Err(CovarianceError::NonFiniteResult);
         }
-        Ok(score.max(0.0))
+        Ok(whitened)
+    }
+
+    /// Exact covariance bilinear form via AR(1) innovations and sensor
+    /// Cholesky whitening. Memory is linear in time × sensor dimension.
+    pub fn gaussian_bilinear_form(
+        &self,
+        left: &[f64],
+        right: &[f64],
+    ) -> Result<f64, CovarianceError> {
+        let left_white = self.whitened_innovations(left)?;
+        let right_white = self.whitened_innovations(right)?;
+        let value = left_white
+            .iter()
+            .zip(right_white.iter())
+            .map(|(left, right)| left * right)
+            .sum::<f64>();
+        if !value.is_finite() {
+            return Err(CovarianceError::NonFiniteResult);
+        }
+        Ok(value)
+    }
+
+    /// Exact joint Gaussian quadratic form via the same AR(1) innovations.
+    pub fn gaussian_quadratic_form_half(
+        &self,
+        residual: &[f64],
+    ) -> Result<f64, CovarianceError> {
+        Ok((0.5 * self.gaussian_bilinear_form(residual, residual)?).max(0.0))
     }
 
     /// Sample the exact separable Gaussian process using the AR(1) recurrence.
@@ -451,6 +495,19 @@ impl ObservationCovarianceModelV1 {
         match self {
             Self::Dense(_) => "DENSE_SPD",
             Self::Ar1Kronecker(_) => "AR1_KRONECKER",
+        }
+    }
+
+    pub fn gaussian_bilinear_form(
+        &self,
+        left: &[f64],
+        right: &[f64],
+    ) -> Result<f64, CovarianceError> {
+        match self {
+            Self::Dense(covariance) => covariance.gaussian_bilinear_form(left, right),
+            Self::Ar1Kronecker(covariance) => {
+                covariance.gaussian_bilinear_form(left, right)
+            }
         }
     }
 
@@ -550,6 +607,21 @@ impl ObservationCovarianceV1 {
 
     pub fn covariance(&self) -> &ObservationCovarianceModelV1 {
         &self.covariance
+    }
+
+    pub fn gaussian_bilinear_form(
+        &self,
+        left: &[f64],
+        right: &[f64],
+    ) -> Result<f64, CovarianceError> {
+        self.covariance.gaussian_bilinear_form(left, right)
+    }
+
+    pub fn gaussian_quadratic_form_half(
+        &self,
+        residual: &[f64],
+    ) -> Result<f64, CovarianceError> {
+        self.covariance.gaussian_quadratic_form_half(residual)
     }
 
     fn validate_trace(&self, trace: &ObservationProcessTraceV1) -> Result<(), CovarianceError> {
@@ -2008,6 +2080,58 @@ mod tests {
             .gaussian_quadratic_form_half(&residual)
             .unwrap();
         assert!((dense_score - structured_score).abs() < 1.0e-11);
+    }
+
+    #[test]
+    fn structured_ar1_bilinear_matches_dense_joint_covariance() {
+        let sensor = DenseSpdCovariance::new(vec![
+            vec![1.0, 0.2],
+            vec![0.2, 1.5],
+        ])
+        .unwrap();
+        let structured = Ar1KroneckerCovariance::new(4, 0.65, sensor).unwrap();
+        let dense = structured.to_dense().unwrap();
+        let left = [0.2, -0.5, 1.0, 0.25, -0.4, 0.75, 0.6, -0.2];
+        let right = [-0.1, 0.4, 0.3, -0.8, 0.9, 0.2, -0.7, 0.1];
+
+        let dense_lr = dense.gaussian_bilinear_form(&left, &right).unwrap();
+        let structured_lr = structured.gaussian_bilinear_form(&left, &right).unwrap();
+        let structured_rl = structured.gaussian_bilinear_form(&right, &left).unwrap();
+        assert!((dense_lr - structured_lr).abs() < 1.0e-11);
+        assert!((structured_lr - structured_rl).abs() < 1.0e-11);
+
+        let quadratic = structured.gaussian_quadratic_form_half(&left).unwrap();
+        let bilinear = structured.gaussian_bilinear_form(&left, &left).unwrap();
+        assert!((bilinear - 2.0 * quadratic).abs() < 1.0e-11);
+    }
+
+    #[test]
+    fn versioned_observation_covariance_exposes_bound_bilinear_metric() {
+        let sensor = DenseSpdCovariance::new(vec![
+            vec![1.0, 0.1],
+            vec![0.1, 2.0],
+        ])
+        .unwrap();
+        let structured = Ar1KroneckerCovariance::new(3, 0.4, sensor).unwrap();
+        let covariance = ObservationCovarianceV1::new(
+            "covariance:bilinear-v1".to_owned(),
+            "process:ar1-v1".to_owned(),
+            "sampling:fixed-v1".to_owned(),
+            "operator:identity-v1".to_owned(),
+            "cutoff:finalized-v1".to_owned(),
+            vec![10, 11],
+            vec![0.25, 0.5, 1.0],
+            structured,
+        )
+        .unwrap();
+        let left = [0.1, 0.2, -0.4, 0.3, 0.7, -0.2];
+        let right = [-0.2, 0.5, 0.1, -0.1, 0.4, 0.6];
+        let from_binding = covariance.gaussian_bilinear_form(&left, &right).unwrap();
+        let from_model = covariance
+            .covariance()
+            .gaussian_bilinear_form(&left, &right)
+            .unwrap();
+        assert!((from_binding - from_model).abs() < 1.0e-12);
     }
 
     #[test]
