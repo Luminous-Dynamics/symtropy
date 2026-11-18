@@ -62,10 +62,15 @@ The model uses only the Rust standard library. The seeded generator is for deter
 
 The unconditional sample sets must be derived from the same admitted condition and observation protocol as the directional distributions. Do not substitute arbitrary constants or fit each ablation on a different split. The convenience `simulate` function uses `Combined`.
 
-The model distinguishes:
-- run-start orientation, used to select the run-time distribution;
-- incoming orientation immediately before an event, after run-phase rotational diffusion, used to select a short-event turn-angle distribution;
-- following-run start orientation, used for the post-event outcome statistic.
+The model distinguishes four directional observables:
+- run-start heading, used as the causal input to select the next run-time distribution;
+- realized run-displacement heading (first-to-last position vector), used to condition short-event turn-angle distributions;
+- instantaneous incoming tangent at the end of a run, retained as a separate physical state observation;
+- following-run displacement heading, used for post-event orientation statistics.
+
+The published analysis groups run duration and event-angle statistics using measured run orientations derived from trajectory displacements. This reference model uses the run-start heading as a causal policy input for run-time sampling. That is a declared modelling approximation; the dataset adapter and benchmark must preserve both quantities and measure the mismatch rather than relabel one as the other.
+
+Up/down direction classes use the sign of the displacement/heading projection onto the gradient axis. A tiny numerical deadband labels mathematically perpendicular directions as cross-gradient; there is no unsupported 36-degree cone.
 
 Rotational diffusion acts during runs and is controlled by a declared coefficient and integration step. The integration loop fails closed if a step cannot advance simulated time or exceeds the per-run step budget.
 
