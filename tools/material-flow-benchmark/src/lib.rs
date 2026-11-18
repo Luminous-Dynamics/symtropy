@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 pub mod campaign;
+pub mod coavailability;
 pub mod convergence;
 pub mod cross_channel;
 pub mod observation;
