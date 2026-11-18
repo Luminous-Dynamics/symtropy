@@ -20,7 +20,7 @@ The versioned `ThresholdBoundaryPolicy` determines only the duration bin. It doe
 
 The cited papers use different descriptions at exactly 1.0 s: the 2026 figure captions use <=1 s for short, while other prose uses <1 s; the 2025 paper describes a strict short/long split. Therefore the equality convention is a source-pinned analysis choice, with inclusive, long-inclusive and exact-boundary-excluded sensitivity cases. Never interpret that threshold as a biological boundary.
 
-The code is an **event-based reference kernel**, not a validated flagellar motor model, hydrodynamic solver, pore-resolved simulator, growth model or biological prediction system. It includes seeded rotational diffusion during runs, explicit renewal waiting-time laws, censor-aware survival estimates, and time-origin/age-dependent MSD evaluation. It does not yet resolve agar pore geometry, cell-body hydrodynamics, discrete flagellar motor state transitions, nutrient diffusion or population growth.
+The code is a **coarse-grained event and effective-free-path reference kernel**, not a validated flagellar motor model, pore-resolved simulator, hydrodynamic solver, growth model or biological prediction system. It includes seeded rotational diffusion, explicit renewal waiting-time laws, right-censor-aware survival estimates, finite-window survival comparison, age-dependent MSD, and an optional geometry-limited run-length budget. It does not resolve actual agar pore topology, cell-body/flagellum collision contact, hydrodynamics, discrete flagellar motor state transitions, nutrient diffusion or population growth.
 
 ## Research anchor
 
@@ -40,6 +40,7 @@ These are reported by the paper and are not the output of this crate:
 |---|---:|---:|
 | Wild-type tracks | 17,703 | 18,714 |
 | Mean run duration | 0.299 s | 0.232 s |
+| Mean run length | approximately 8 µm | approximately 5 µm |
 | Runs up-gradient after short events | 56.7% | 55.6% |
 | Runs up-gradient after long events | 44.9% | 46.8% |
 
@@ -54,6 +55,18 @@ cargo test --manifest-path crates/domains/symtropy-biomotility/Cargo.toml
 ~~~
 
 The model uses only the Rust standard library. The seeded generator is for deterministic research fixtures only; it is not cryptographic.
+
+## Geometry-limited run termination
+
+The optional `geometry_free_path_um` profile field accepts a `FreePathLaw` in micrometres (empirical or exponential). When enabled, every run samples two distinct limits:
+- intrinsic motor persistence time (seconds);
+- effective free-path length divided by swimming speed (seconds).
+
+The realized run duration is the minimum of those limits. Each `EventRecord` retains the intrinsic persistence time, sampled free path, realized duration, traversed arc length and `RunTerminationCause`. The cause that ended a run is independent of the subsequent event mechanism and the observed event-duration bin. With geometry disabled (`None`), the existing motor-time path is preserved and no geometry RNG draw is consumed.
+
+The 2025 Datta et al. paper reports mean run lengths of approximately 8 µm in 0.25% agar and 5 µm in 0.3% agar, with similar run-length distributions across WT and stator mutants despite speed differences. Those are source-reported geometry targets, not results reproduced by this kernel. The 2025 PRL study derives a broader relation between porous-medium free path, run time and dispersal; the 2023 *Communications Physics* study shows that an effective mean free path calculated from geometry can predict transport across multiple pore structures. <Link url="https://doi.org/10.1038/s41598-025-02741-1" title="Datta et al. (2025)"/> <Link url="https://doi.org/10.1103/PhysRevLett.134.188303" title="Universal Law for the Dispersal of Motile Microorganisms in Porous Media (2025)"/> <Link url="https://doi.org/10.1038/s42005-023-01136-w" title="Self-transport of swimming bacteria is impaired by porous microstructure (2023)"/> <Cite refs={["turn470855search0","turn470855search14","turn470855search15"]}/>
+
+The v0.1 model samples an **effective path-length budget**; it is not an explicit pore graph, microstructure reconstruction or collision solver. Free-path parameters remain uncalibrated until geometry and trajectory data are admitted. Speed-scaling and mutant-invariance tests are synthetic controls, not biological confirmation.
 
 ## Duration-as-mechanism diagnostic
 
