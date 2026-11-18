@@ -470,7 +470,8 @@
         "pressure_profile_id",
         "atmosphere",
         "electrostatic_field_v_m",
-        "surface_potential_v"
+        "surface_potential_v",
+        "electrostatic_field_axis_id"
       ],
       "properties": {
         "gravity_m_s2": {
@@ -513,10 +514,18 @@
           ]
         },
         "electrostatic_field_v_m": {
-          "$ref": "#/$defs/measurement"
+          "$ref": "#/$defs/measurement",
+          "description": "Signed electric-field component along electrostatic_field_axis_id, in V/m; not an unsigned field magnitude."
         },
         "surface_potential_v": {
           "$ref": "#/$defs/measurement"
+        },
+        "electrostatic_field_axis_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Reference axis for the signed electrostatic_field_v_m component; required whenever the field component is known."
         }
       }
     },
