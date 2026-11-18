@@ -19,7 +19,8 @@
     "launch_recovery_events",
     "logistics_limits",
     "expected_oracle",
-    "assumptions"
+    "assumptions",
+    "reserve_state_power_w"
   ],
   "properties": {
     "schema_version": {
@@ -121,8 +122,7 @@
         "reserve_ready_state": {
           "enum": [
             "ground_ready",
-            "on_station",
-            "not_declared"
+            "airborne_holding"
           ]
         }
       }
@@ -194,7 +194,9 @@
                     "planned_maintenance",
                     "unscheduled_repair",
                     "grounded_weather",
-                    "inactive"
+                    "inactive",
+                    "airborne_holding",
+                    "repositioning"
                   ]
                 },
                 "capacity_fraction": {
@@ -297,7 +299,8 @@
           "operation": {
             "enum": [
               "launch",
-              "recovery"
+              "recovery",
+              "reposition"
             ]
           },
           "start_h": {
@@ -326,7 +329,8 @@
         "maintenance_bays",
         "ground_ready_spares",
         "launch_lead_time_h",
-        "recovery_duration_h"
+        "recovery_duration_h",
+        "reposition_duration_h"
       ],
       "properties": {
         "simultaneous_launch_capacity": {
@@ -350,6 +354,10 @@
           "minimum": 0
         },
         "recovery_duration_h": {
+          "type": "number",
+          "minimum": 0
+        },
+        "reposition_duration_h": {
           "type": "number",
           "minimum": 0
         }
@@ -386,7 +394,8 @@
             "spare_activation_events",
             "launch_operations",
             "recovery_operations",
-            "maintenance_overlap_violations"
+            "maintenance_overlap_violations",
+            "reserve_strategy_energy_wh"
           ],
           "properties": {
             "strict_availability_gain_percentage_points": {
@@ -410,6 +419,10 @@
             "maintenance_overlap_violations": {
               "type": "integer",
               "minimum": 0
+            },
+            "reserve_strategy_energy_wh": {
+              "type": "number",
+              "minimum": 0
             }
           }
         }
@@ -429,6 +442,64 @@
         "type": "string"
       },
       "uniqueItems": true
+    },
+    "reserve_state_power_w": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ground_ready_power_w",
+        "airborne_holding_power_w",
+        "launching_power_w",
+        "repositioning_power_w",
+        "on_station_power_w",
+        "recovering_power_w",
+        "planned_maintenance_power_w",
+        "unscheduled_repair_power_w",
+        "grounded_weather_power_w",
+        "inactive_power_w"
+      ],
+      "properties": {
+        "ground_ready_power_w": {
+          "type": "number",
+          "minimum": 0
+        },
+        "airborne_holding_power_w": {
+          "type": "number",
+          "minimum": 0
+        },
+        "launching_power_w": {
+          "type": "number",
+          "minimum": 0
+        },
+        "repositioning_power_w": {
+          "type": "number",
+          "minimum": 0
+        },
+        "on_station_power_w": {
+          "type": "number",
+          "minimum": 0
+        },
+        "recovering_power_w": {
+          "type": "number",
+          "minimum": 0
+        },
+        "planned_maintenance_power_w": {
+          "type": "number",
+          "minimum": 0
+        },
+        "unscheduled_repair_power_w": {
+          "type": "number",
+          "minimum": 0
+        },
+        "grounded_weather_power_w": {
+          "type": "number",
+          "minimum": 0
+        },
+        "inactive_power_w": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
     }
   },
   "$defs": {
@@ -510,5 +581,5 @@
       }
     }
   },
-  "$comment": "Semantic validation: platform IDs unique; primary/reserve IDs exist and role matches; segment intervals are contiguous, non-overlapping and cover [0,evaluation_window_h]; on_station capacity_fraction > 0 and every non-on-station state contributes zero; event intervals are within the evaluation window and all affected platform IDs exist; event multipliers apply to the effective contribution of affected on-station platforms; launch/recovery durations match state segments and do not exceed logistics concurrency; launch_site_open/recovery_site_open must be true for the matching event; required service capacity is constant over each interval; expected results are independently recomputed by partitioning at every state and common-cause event boundary. A service availability claim must not be inferred from a platform endurance record."
+  "$comment": "Semantic validation: platform IDs unique; primary/reserve IDs exist and role matches; segment intervals are contiguous, non-overlapping and cover [0,evaluation_window_h]; on_station capacity_fraction > 0 and every non-on-station state contributes zero; event intervals are within the evaluation window and all affected platform IDs exist; event multipliers apply to the effective contribution of affected on-station platforms; launch/recovery durations match state segments and do not exceed logistics concurrency; launch_site_open/recovery_site_open must be true for the matching event; required service capacity is constant over each interval; expected results are independently recomputed by partitioning at every state and common-cause event boundary. A service availability claim must not be inferred from a platform endurance record. Reserve strategy energy is reported separately from primary-fleet energy. It is calculated from declared reserve-state power × state duration (Wh); it does not include unmodelled propulsion/avionics/payload loads or primary platform energy. `airborne_holding` and `repositioning` allow a synthetic airborne reserve/holding-region variant to be compared against a ground_ready spare."
 }
