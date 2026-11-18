@@ -235,6 +235,32 @@ impl Polygon {
         point_in_polygon(point, &self.vertices)
     }
 
+fn same_interior_side_on_shared_edge(
+    first_area: i128,
+    second_area: i128,
+    first_a: Point,
+    first_b: Point,
+    second_a: Point,
+    second_b: Point,
+) -> bool {
+    let first_dx = i128::from(first_b.x) - i128::from(first_a.x);
+    let first_dy = i128::from(first_b.y) - i128::from(first_a.y);
+    let second_dx = i128::from(second_b.x) - i128::from(second_a.x);
+    let second_dy = i128::from(second_b.y) - i128::from(second_a.y);
+
+    let same_direction = if first_dx != 0 {
+        (first_dx > 0) == (second_dx > 0)
+    } else {
+        (first_dy > 0) == (second_dy > 0)
+    };
+    let second_side_in_first_direction = if same_direction {
+        second_area.signum()
+    } else {
+        -second_area.signum()
+    };
+    first_area.signum() == second_side_in_first_direction
+}
+
     /// Classify footprint relationship. Boundary-only contact is distinct from
     /// positive-area overlap. Contact is still a conflict for conservative yard
     /// packing unless a separately declared clearance policy permits it.
@@ -248,18 +274,28 @@ impl Polygon {
             let first_next = (first_edge + 1) % self.vertices.len();
             for second_edge in 0..other.vertices.len() {
                 let second_next = (second_edge + 1) % other.vertices.len();
-                match segment_relation(
-                    self.vertices[first_edge],
-                    self.vertices[first_next],
-                    other.vertices[second_edge],
-                    other.vertices[second_next],
-                )? {
+                let first_a = self.vertices[first_edge];
+                let first_b = self.vertices[first_next];
+                let second_a = other.vertices[second_edge];
+                let second_b = other.vertices[second_next];
+                match segment_relation(first_a, first_b, second_a, second_b)? {
                     SegmentRelation::ProperCrossing => {
                         return Ok(PolygonRelation::PositiveAreaOverlap);
                     }
-                    SegmentRelation::Touch | SegmentRelation::CollinearOverlap => {
+                    SegmentRelation::CollinearOverlap => {
+                        if same_interior_side_on_shared_edge(
+                            self.twice_signed_area,
+                            other.twice_signed_area,
+                            first_a,
+                            first_b,
+                            second_a,
+                            second_b,
+                        ) {
+                            return Ok(PolygonRelation::PositiveAreaOverlap);
+                        }
                         boundary_contact = true;
                     }
+                    SegmentRelation::Touch => boundary_contact = true,
                     SegmentRelation::Disjoint => {}
                 }
             }
@@ -989,11 +1025,69 @@ mod tests {
         reference_canonical_boundary(first) == reference_canonical_boundary(second)
     }
 
+    fn reference_same_side_shared_segment(
+        first: &[(i64, i64)],
+        second: &[(i64, i64)],
+    ) -> bool {
+        let signed_area = |vertices: &[(i64, i64)]| -> i128 {
+            (0..vertices.len())
+                .map(|index| {
+                    let a = vertices[index];
+                    let b = vertices[(index + 1) % vertices.len()];
+                    i128::from(a.0) * i128::from(b.1)
+                        - i128::from(b.0) * i128::from(a.1)
+                })
+                .sum()
+        };
+        let first_side = signed_area(first).signum();
+        let second_side = signed_area(second).signum();
+
+        for first_index in 0..first.len() {
+            let a = first[first_index];
+            let b = first[(first_index + 1) % first.len()];
+            for second_index in 0..second.len() {
+                let c = second[second_index];
+                let d = second[(second_index + 1) % second.len()];
+                if reference_cross(a, b, c) != 0 || reference_cross(a, b, d) != 0 {
+                    continue;
+                }
+                let positive_length_overlap = if a.0 != b.0 {
+                    a.0.min(b.0).max(c.0.min(d.0))
+                        < a.0.max(b.0).min(c.0.max(d.0))
+                } else {
+                    a.1.min(b.1).max(c.1.min(d.1))
+                        < a.1.max(b.1).min(c.1.max(d.1))
+                };
+                if !positive_length_overlap {
+                    continue;
+                }
+                let same_direction = if a.0 != b.0 {
+                    ((i128::from(b.0) - i128::from(a.0)) > 0)
+                        == ((i128::from(d.0) - i128::from(c.0)) > 0)
+                } else {
+                    ((i128::from(b.1) - i128::from(a.1)) > 0)
+                        == ((i128::from(d.1) - i128::from(c.1)) > 0)
+                };
+                let second_in_first_direction = if same_direction {
+                    second_side
+                } else {
+                    -second_side
+                };
+                if first_side == second_in_first_direction {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
     fn exact_reference_relation(
         first: &[(i64, i64)],
         second: &[(i64, i64)],
     ) -> PolygonRelation {
-        if reference_same_boundary(first, second) {
+        if reference_same_boundary(first, second)
+            || reference_same_side_shared_segment(first, second)
+        {
             return PolygonRelation::PositiveAreaOverlap;
         }
 
@@ -1066,6 +1160,25 @@ mod tests {
             }
         }
         PolygonRelation::Disjoint
+    }
+
+    #[test]
+    fn same_side_collinear_boundary_overlap_is_positive_area_not_contact() {
+        let first = polygon(&[
+            (-1, -1), (3, -1), (3, 0), (0, 0), (0, 3), (-1, 3),
+        ]);
+        let second = polygon(&[
+            (-1, -1), (3, -1), (3, 3), (2, 3), (2, 0), (0, 0), (0, 3), (-1, 3),
+        ]);
+        assert_eq!(
+            first.relation(&second),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
+        assert_eq!(
+            second.relation(&first),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
+        assert!(first.conflicts_with(&second).unwrap());
     }
 
     #[test]
