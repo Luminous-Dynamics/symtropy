@@ -1256,15 +1256,18 @@ mod tests {
         );
         let result = simulate(
             &profile,
-            AgentState::new(0.0, 0.0, 0.0),
+            AgentState::new(0.0, 0.0, PI / 2.0),
             0.0,
             3,
-            1234,
+            1,
         )
         .expect("valid simulation");
 
         let first = result.events[0];
-        assert_eq!(first.direction_before_run, DirectionClass::UpGradient);
+        // The policy starts from a cross-gradient heading, but run-phase
+        // rotational diffusion makes the realized net run vector point down.
+        assert_eq!(first.direction_before_run, DirectionClass::CrossGradient);
+        assert_eq!(first.completed_run_direction, DirectionClass::DownGradient);
         let expected_angle = match first.completed_run_direction {
             DirectionClass::UpGradient => 0.0,
             DirectionClass::CrossGradient => 0.1,
