@@ -365,3 +365,36 @@ Required metrics include:
 Missing sensors, stale calibration, unit mismatches, duplicate IDs, conflicting measurements or incomplete mass balance produce UNKNOWN / RECONCILIATION_REQUIRED. They do not silently create accepted construction.
 
 This creates an evidence-carrying construction method that can be benchmarked on Earth now, and later adapted to lunar conditions without pretending a terrestrial result is flight qualification.
+
+
+## 15. Executable construction reconciliation reference
+
+The dependency-free Rust reference now composes three separately typed result families:
+1. geometric excavation-volume cases;
+2. literature-bounded in-situ bulk-mass examples with explicit material classes;
+3. synthetic as-built and material-flow reconciliation examples.
+
+The as-built module demonstrates:
+- planned versus measured geometry with an uncertainty interval;
+- caller-supplied tolerance and minimum scan coverage;
+- fail-closed states for missing, uncalibrated, stale, or insufficiently covered measurement;
+- mass-balance intervals between a measured input batch and separately measured disposition streams;
+- material-batch identity and unique stream IDs.
+
+A residual interval entirely inside the declared tolerance is marked within tolerance; an interval entirely outside is marked outside tolerance; one that straddles the boundary is indeterminate. Missing or stale evidence is unknown, not accepted. The acceptance thresholds are caller-supplied and are not lunar standards.
+
+The synthetic examples are deliberately labelled as such. No real tunnel survey, physical mass-flow record, or construction acceptance is claimed. The work is tracked under [#6006 LUNAR-ASBUILT-CLOSURE-001](https://github.com/Luminous-Dynamics/symtropy/issues/6006).
+
+The reference workflow now checks exact-known-answer bulk-mass intervals, material-domain catalogues, synthetic reconciliation outcomes and deterministic JSON on the same exact source head. It fingerprints both material-accounting and as-built-closure modules. Rust compilation / test / Clippy status is determined by repository CI; no local Rust environment is assumed.
+
+## 16. Updated programme map
+
+- [#5963 — subsurface megastructure architecture](https://github.com/Luminous-Dynamics/symtropy/issues/5963)
+- [#5964 — underground local-ring accelerator](https://github.com/Luminous-Dynamics/symtropy/issues/5964)
+- [#5980 — geometry-only excavation quantities](https://github.com/Luminous-Dynamics/symtropy/issues/5980)
+- [#5983 — multi-modal subsurface observability](https://github.com/Luminous-Dynamics/symtropy/issues/5983)
+- [#5988 — terrestrial excavation and geotechnical analogue](https://github.com/Luminous-Dynamics/symtropy/issues/5988)
+- [#6004 — source-scoped material mass accounting](https://github.com/Luminous-Dynamics/symtropy/issues/6004)
+- [#6006 — planned-to-as-built and mass-flow closure](https://github.com/Luminous-Dynamics/symtropy/issues/6006)
+
+The resulting engineering principle is: **no planned quantity, machine telemetry value, inferred material property, or model output silently becomes an accepted physical asset.** Each must retain its own identity, uncertainty, provenance and verification state.
