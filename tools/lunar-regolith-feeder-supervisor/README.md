@@ -54,3 +54,24 @@ The crate does not perform actuator I/O or implement a safety-rated state machin
 ## Claim ceiling
 
 This is a supervisory reference implementation and regression-test target. No hardware-in-loop test, actuator integration, closed-loop physical test, vibration safety qualification or lunar qualification is claimed.
+
+## Actuator command acknowledgement ledger
+
+The sibling module `command_ledger` is a pure Rust state machine for a future actuator adapter. It is not called by the advisory supervisor and does not send hardware commands.
+
+It models:
+- commissioning profile ID/revision and explicit Gamma/feeder-speed limits;
+- monotonic command sequence numbers and command IDs;
+- the previous acknowledged setpoints and sequence carried with every proposal;
+- at most one outstanding mutation;
+- explicit pending, unknown, applied, rejected-with-no-effect and partial response states;
+- applied acknowledgements accepted only with fresh, independent, current-calibration readback matching the requested setpoints;
+- rejected-with-no-effect accepted only when independent readback confirms the previous acknowledged state;
+- unknown/partial outcomes that block new proposals until a fresh independently calibrated readback reconciles the actual state;
+- stale/uncalibrated/invalid readbacks rejected, and observed state recorded as reconciled rather than falsely labelled as an applied command.
+
+The ledger has regression tests for pending blocking, unknown-outcome blocking, duplicate/mismatched identities, partial application, stale readback, no-effect rejection, repeated rejection sequence gaps, and independent reconciliation.
+
+**Still not implemented:** cryptographic command-payload digest, append-only durable journal, validated crash/restart recovery, actual network/fieldbus transport, device-side idempotency, heartbeat/watchdog and HIL testing. Command IDs are currently sequence-derived identifiers, not cryptographic digests. Do not connect this prototype to actuators or treat it as a safety interlock.
+
+The requirements and acceptance plan are tracked in [#6103](https://github.com/Luminous-Dynamics/symtropy/issues/6103).
