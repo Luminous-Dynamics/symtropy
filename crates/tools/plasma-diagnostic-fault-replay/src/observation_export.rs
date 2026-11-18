@@ -7,22 +7,19 @@
 //! Value-less dropout and invalid samples remain Unavailable or Invalid.
 //! The envelope retains the exact replay state and fault identity.
 
+use super::ReplayError;
 use super::digest_serialized;
 use super::waveform::{
-    WAVEFORM_CLAIM_CEILING, WAVEFORM_EVIDENCE_CLASS, WaveformReceipt,
-    WaveformSampleState, verify_waveform_receipt,
+    WAVEFORM_CLAIM_CEILING, WAVEFORM_EVIDENCE_CLASS, WaveformReceipt, WaveformSampleState,
+    verify_waveform_receipt,
 };
-use super::ReplayError;
 use serde::{Deserialize, Serialize};
 
-pub const OBSERVATION_EXPORT_SCHEMA: &str =
-    "luminous.plasma-synthetic-observation-export.v0.1";
-pub const PLASMA_OBSERVATION_FRAME_SCHEMA: &str =
-    "luminous.plasma-observation-frame.v0.1";
+pub const OBSERVATION_EXPORT_SCHEMA: &str = "luminous.plasma-synthetic-observation-export.v0.1";
+pub const PLASMA_OBSERVATION_FRAME_SCHEMA: &str = "luminous.plasma-observation-frame.v0.1";
 pub const SYNTHETIC_REPLAY_MODEL_ID: &str = "symtropy-plasma-waveform-fault-replay";
 pub const SYNTHETIC_REPLAY_MODEL_REVISION: &str = "0.1.0";
-pub const SYNTHETIC_REPLAY_DIAGNOSTIC_SYSTEM_ID: &str =
-    "symtropy.synthetic-waveform-replay";
+pub const SYNTHETIC_REPLAY_DIAGNOSTIC_SYSTEM_ID: &str = "symtropy.synthetic-waveform-replay";
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
@@ -151,9 +148,7 @@ fn disposition_for_sample(
         (WaveformSampleState::Delayed, None) => {
             let fault_id = active_fault_id.unwrap_or("unknown-delay-fault");
             Ok(ExportObservationDisposition::Unavailable {
-                reason: format!(
-                    "synthetic delay fault {fault_id} has no earlier source sample"
-                ),
+                reason: format!("synthetic delay fault {fault_id} has no earlier source sample"),
             })
         }
         (WaveformSampleState::Unavailable, None) => {
@@ -268,7 +263,10 @@ pub fn verify_synthetic_observation_export(
     for (digest, field) in [
         (body.input_sha256.as_str(), "input_sha256"),
         (body.fault_schedule_sha256.as_str(), "fault_schedule_sha256"),
-        (body.waveform_receipt_sha256.as_str(), "waveform_receipt_sha256"),
+        (
+            body.waveform_receipt_sha256.as_str(),
+            "waveform_receipt_sha256",
+        ),
     ] {
         if !valid_digest(digest) {
             return Err(export_error(format!(
@@ -351,10 +349,8 @@ pub fn verify_synthetic_observation_export(
                 WaveformSampleState::Unavailable,
                 ExportObservationDisposition::Unavailable { reason },
             ) if !reason.trim().is_empty() => {}
-            (
-                WaveformSampleState::Invalid,
-                ExportObservationDisposition::Invalid { reason },
-            ) if !reason.trim().is_empty() => {}
+            (WaveformSampleState::Invalid, ExportObservationDisposition::Invalid { reason })
+                if !reason.trim().is_empty() => {}
             _ => {
                 return Err(export_error(format!(
                     "synthetic frame {index} disposition can promote or misclassify the replay state"
@@ -363,21 +359,25 @@ pub fn verify_synthetic_observation_export(
         }
 
         if metadata.sample_state == WaveformSampleState::SyntheticNominal {
-            if metadata.active_fault_id.is_some()
-                || metadata.source_sample_index != Some(index)
-            {
+            if metadata.active_fault_id.is_some() || metadata.source_sample_index != Some(index) {
                 return Err(export_error(
                     "synthetic nominal frame has inconsistent source/fault metadata",
                 ));
             }
-        } else if metadata.active_fault_id.as_deref().is_none_or(str::is_empty) {
+        } else if metadata
+            .active_fault_id
+            .as_deref()
+            .is_none_or(str::is_empty)
+        {
             return Err(export_error(
                 "non-nominal synthetic frame must retain a non-empty fault identity",
             ));
         }
 
         if metadata.sample_state == WaveformSampleState::Delayed
-            && metadata.source_sample_index.is_some_and(|source| source >= index)
+            && metadata
+                .source_sample_index
+                .is_some_and(|source| source >= index)
         {
             return Err(export_error(
                 "synthetic delayed frame must reference an earlier sample",
@@ -395,8 +395,8 @@ pub fn verify_synthetic_observation_export(
 mod tests {
     use super::*;
     use crate::waveform::{
-        run_waveform_replay, WaveformFault, WaveformFaultMode, WaveformRequest,
-        WAVEFORM_SCHEMA_VERSION,
+        WAVEFORM_SCHEMA_VERSION, WaveformFault, WaveformFaultMode, WaveformRequest,
+        run_waveform_replay,
     };
 
     fn request_with_faults() -> WaveformRequest {
@@ -450,7 +450,12 @@ mod tests {
             export.body.frames[0].observation_frame.shot_id,
             "synthetic-shot:synthetic-observation-export-shot"
         );
-        assert!(export.body.frames[0].observation_frame.shot_id.starts_with("synthetic-shot:"));
+        assert!(
+            export.body.frames[0]
+                .observation_frame
+                .shot_id
+                .starts_with("synthetic-shot:")
+        );
         assert_eq!(export.body.evidence_class, WAVEFORM_EVIDENCE_CLASS);
         assert!(!export.body.physical_measurements);
         assert_eq!(export.body.waveform_receipt_sha256, receipt.receipt_sha256);
@@ -539,8 +544,7 @@ mod tests {
     fn export_verifier_rejects_measured_promotion_and_receipt_tampering() {
         let receipt =
             run_waveform_replay(&request_with_faults()).expect("synthetic waveform replay");
-        let export =
-            export_synthetic_observation_frames(&receipt).expect("synthetic export");
+        let export = export_synthetic_observation_frames(&receipt).expect("synthetic export");
         let mut tampered = export.clone();
         tampered.body.frames[0].observation_frame.channels[0].disposition =
             ExportObservationDisposition::Unavailable {
