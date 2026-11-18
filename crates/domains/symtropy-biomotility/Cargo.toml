@@ -1,0 +1,17 @@
+[package]
+name = "symtropy-biomotility"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "CPU-first event-based biological motility reference models and benchmark analysis"
+
+# Isolated workspace: this crate is independently buildable without pulling in
+# the full Symtropy workspace or its optional renderer / GPU dependencies.
+[workspace]
+
+[lib]
+path = "src/lib.rs"
+
+[lints.rust]
+unsafe_code = "forbid"
