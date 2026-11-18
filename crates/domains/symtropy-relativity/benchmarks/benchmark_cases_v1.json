@@ -510,6 +510,23 @@
         },
         "branch": "Einstein branch",
         "role": "separate static EGB exact control and alpha->0 Schwarzschild-Tangherlini limit"
+      },
+      "time_sector_first_integral": {
+        "source": "Brihaye et al. (2010), Eq. (2.14)",
+        "field_equation_combination": "R_t^t+alpha/4*(H_t^t+L_GB/2)",
+        "total_derivative_rhs": "(1/(2*r^2))*sqrt(f/(b*h))*d/dr[sqrt(f*h/b)*r^2*(h*w*w'-b')]",
+        "constant": "P_t=sqrt(f*h/b)*r^2*(h*w*w'-b')",
+        "asymptotic_relation": "P_t=2*U",
+        "horizon_limit": "r_H^2*sqrt(f1*h_H/b1)*(h_H*Omega_H*w1-b1)",
+        "role": "independent first-integral residual and optional b-prime reconstruction",
+        "caution": "This is a consequence of a field-equation combination, not an additional independent equation; all remaining EGB equations must still be checked."
+      },
+      "reduced_architecture_hypothesis": {
+        "five_field": "solve b,f,g,h,w with g=r^2 gauge",
+        "four_profile": "use P_w=-4W to reconstruct w' where K is certified nonzero",
+        "three_profile": "also use P_t=2U to reconstruct b', then integrate b and w; primary profiles f,h plus global U,W and boundary/remaining-field-equation constraints",
+        "status": "prospective architecture hypothesis, requires matched benchmark and interval qualification",
+        "fallback": "retain unreduced equations and four/five-profile solve whenever quadrature denominator is unresolved"
       }
     }
   ],
@@ -530,6 +547,8 @@
     "The 5D equal-spin MP control is expressed in the g=r^2 radial gauge; do not confuse r_H in this gauge with the Boyer-Lindquist radial horizon coordinate.",
     "The MP exact b,f,h,w profiles must all be checked; b,w alone are not a complete metric control.",
     "The EGB rotational Noether flux from the 2010 reduced action is a separate exact conserved quantity; quadrature reconstruction of w requires an interval proof that its radial denominator K(r) stays away from zero.",
-    "The 2010 action and gauge-fixed ansatz are used as an independent source for the Akribeia benchmark; no raw nonzero-alpha EGB profiles have yet been reproduced."
+    "The 2010 action and gauge-fixed ansatz are used as an independent source for the Akribeia benchmark; no raw nonzero-alpha EGB profiles have yet been reproduced.",
+    "For the 5D EGB benchmark, compare full-profile, angular-flux-reduced, and dual-flux-reduced architectures only under identical equations, domain, boundary data, norms and precision.",
+    "P_t=2U is a first integral of the time-sector field-equation combination (2010 Eq. 2.14), not a second cyclic Noether momentum; it must not replace the other EGB equations."
   ]
 }
