@@ -1513,11 +1513,10 @@ mod tests {
             contract_sha256: digest('c'),
             contracts: vec![ArtifactDependencyContract {
                 artifact_kind: ConstructionArtifactKind::MotionEnvelope,
-                required_domains: vec![
-                    DependencyDomain::EntityGeometry,
-                    DependencyDomain::CoordinateTransform,
-                    DependencyDomain::ToolConfiguration,
-                ],
+                required_domains: minimum_required_domains(
+                    ConstructionArtifactKind::MotionEnvelope,
+                )
+                .to_vec(),
             }],
         };
         let audit = audit_dependency_coverage(&graph, &contracts).unwrap();
@@ -1544,15 +1543,22 @@ mod tests {
 
     #[test]
     fn dependency_contract_marks_a_change_report_ready_only_after_full_coverage() {
+        let motion_dependencies: Vec<VersionedDependency> =
+            minimum_required_domains(ConstructionArtifactKind::MotionEnvelope)
+                .iter()
+                .map(|domain| dependency(*domain, &format!("motion:A:{domain:?}"), '1'))
+                .collect();
+        let readiness_dependencies: Vec<VersionedDependency> =
+            minimum_required_domains(ConstructionArtifactKind::DispatchReadiness)
+                .iter()
+                .map(|domain| dependency(*domain, &format!("readiness:A:{domain:?}"), '2'))
+                .collect();
         let graph = graph(vec![
             artifact(
                 "motion:A",
                 ConstructionArtifactKind::MotionEnvelope,
                 ArtifactPersistence::Recomputable,
-                vec![
-                    dependency(DependencyDomain::EntityGeometry, "entity:A", '1'),
-                    dependency(DependencyDomain::ToolConfiguration, "robot:A:tool", '2'),
-                ],
+                motion_dependencies,
                 &[],
                 'a',
             ),
@@ -1560,7 +1566,7 @@ mod tests {
                 "readiness:A",
                 ConstructionArtifactKind::DispatchReadiness,
                 ArtifactPersistence::Recomputable,
-                vec![dependency(DependencyDomain::AuthorityPolicy, "site", '3')],
+                readiness_dependencies,
                 &["motion:A"],
                 'b',
             ),
@@ -1570,14 +1576,17 @@ mod tests {
             contracts: vec![
                 ArtifactDependencyContract {
                     artifact_kind: ConstructionArtifactKind::MotionEnvelope,
-                    required_domains: vec![
-                        DependencyDomain::EntityGeometry,
-                        DependencyDomain::ToolConfiguration,
-                    ],
+                    required_domains: minimum_required_domains(
+                        ConstructionArtifactKind::MotionEnvelope,
+                    )
+                    .to_vec(),
                 },
                 ArtifactDependencyContract {
                     artifact_kind: ConstructionArtifactKind::DispatchReadiness,
-                    required_domains: vec![DependencyDomain::AuthorityPolicy],
+                    required_domains: minimum_required_domains(
+                        ConstructionArtifactKind::DispatchReadiness,
+                    )
+                    .to_vec(),
                 },
             ],
         };
@@ -2012,6 +2021,47 @@ mod tests {
                 }
             }
         }
+    }
+
+
+    #[test]
+    fn owner_contract_cannot_remove_a_builtin_minimum_dependency_domain() {
+        let graph = graph(vec![artifact(
+            "motion:A",
+            ConstructionArtifactKind::MotionEnvelope,
+            ArtifactPersistence::Recomputable,
+            vec![
+                dependency(DependencyDomain::EntityGeometry, "entity:A", '1'),
+                dependency(DependencyDomain::CoordinateTransform, "floor:02", '2'),
+                dependency(DependencyDomain::RobotConfiguration, "robot:A", '3'),
+                dependency(DependencyDomain::PayloadConfiguration, "robot:A:payload", '4'),
+                dependency(DependencyDomain::TrajectoryConfiguration, "robot:A:trajectory", '5'),
+                dependency(DependencyDomain::SiteClockMap, "site", '6'),
+            ],
+            &[],
+            'a',
+        )]);
+        let contracts = DependencyContractSet {
+            contract_sha256: digest('c'),
+            contracts: vec![ArtifactDependencyContract {
+                artifact_kind: ConstructionArtifactKind::MotionEnvelope,
+                required_domains: vec![
+                    DependencyDomain::EntityGeometry,
+                    DependencyDomain::CoordinateTransform,
+                    DependencyDomain::RobotConfiguration,
+                    DependencyDomain::PayloadConfiguration,
+                    DependencyDomain::TrajectoryConfiguration,
+                    DependencyDomain::SiteClockMap,
+                ],
+            }],
+        };
+        assert_eq!(
+            audit_dependency_coverage(&graph, &contracts),
+            Err(ChangeImpactError::ContractOmitsMinimumDependencyDomain {
+                artifact_kind: ConstructionArtifactKind::MotionEnvelope,
+                domain: DependencyDomain::ToolConfiguration,
+            })
+        );
     }
 
 }
