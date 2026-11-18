@@ -99,6 +99,10 @@ jobs:
         jq -e 'any(.scenarios[]; .circumference_km == 100 and .excavated_cross_section_m2 == 30 and .bore_count == 1 and .overbreak_fraction == 0 and .design_bore_volume_m3 == 3000000 and .total_excavation_volume_m3 == 3000000)' lunar-subsurface-reference.json >/dev/null
         jq -e 'any(.scenarios[]; .circumference_km == 100 and .excavated_cross_section_m2 == 30 and .bore_count == 2 and .overbreak_fraction == 0.2 and .total_excavation_volume_m3 == 7200000)' lunar-subsurface-reference.json >/dev/null
         jq -e 'any(.scenarios[]; .circumference_km == 150 and .excavated_cross_section_m2 == 40 and .bore_count == 2 and .overbreak_fraction == 0.2 and .total_excavation_volume_m3 == 14400000)' lunar-subsurface-reference.json >/dev/null
+        jq -e '.material_accounting.evidence_class == "literature_bounded_in_situ_bulk_mass_scenarios" and (.material_accounting.rock_mass_examples | length) == 2' lunar-subsurface-reference.json >/dev/null
+        jq -e 'any(.material_accounting.rock_mass_examples[]; .material_record_id == "LUNAR-HIGHLAND-CRUST-BULK-2012" and .single_bore_mass_min_kg == 6600000000 and .single_bore_mass_max_kg == 7800000000 and .two_bore_mass_min_kg == 15840000000 and .two_bore_mass_max_kg == 18720000000)' lunar-subsurface-reference.json >/dev/null
+        jq -e 'any(.material_accounting.rock_mass_examples[]; .material_record_id == "LUNAR-IMPACT-BASIN-EJECTA-BULK-2012" and .single_bore_mass_min_kg == 7050000000 and .single_bore_mass_max_kg == 7800000000 and .two_bore_mass_min_kg == 16920000000 and .two_bore_mass_max_kg == 18720000000)' lunar-subsurface-reference.json >/dev/null
+        jq -e '(.material_accounting.regolith_density_catalog | length) == 4 and (.material_accounting.simulant_density_catalog | length) == 3 and .material_accounting.loose_spoil_and_swell.status == "not_calculated"' lunar-subsurface-reference.json >/dev/null
         {
           echo "source_commit=$(git rev-parse HEAD)"
           echo "rustc=$(rustc --version)"
@@ -106,6 +110,7 @@ jobs:
           sha256sum tools/lunar-subsurface-reference/Cargo.toml
           sha256sum tools/lunar-subsurface-reference/README.md
           sha256sum tools/lunar-subsurface-reference/src/main.rs
+          sha256sum tools/lunar-subsurface-reference/src/material_accounting.rs
           sha256sum lunar-subsurface-reference.json
         } > lunar-subsurface-evidence-manifest.txt
 
