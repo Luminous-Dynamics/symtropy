@@ -11,6 +11,13 @@ pub use ifc_ids_preflight::{
     IdsRequirementEvaluation, SourceEntityBinding, preflight_ifc_ids_work_package,
 };
 pub mod site_state_ledger;
+pub mod cumulative_resource_capacity;
+pub use cumulative_resource_capacity::{
+    CapacityDemandClaim, CapacityReservation, CapacityResourceDefinition,
+    CapacityViolationSegment, CumulativeCapacityError, CumulativeCapacityReport,
+    CumulativeCapacityScenario, ResourceCapacitySummary,
+    evaluate_cumulative_resource_capacity,
+};
 pub mod dispatch_readiness;
 pub use dispatch_readiness::{
     DispatchEnvelopeBinding, DispatchReadinessFailure, DispatchReadinessReceipt,
