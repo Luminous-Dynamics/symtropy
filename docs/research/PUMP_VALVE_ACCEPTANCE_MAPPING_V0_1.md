@@ -37,13 +37,15 @@ These are evidence of project-specific procurement practice, not proof of univer
 
 ## Evaluator semantics
 
+Pressure-test safety is an unsupported claim under every mapped test profile. The classifier never interprets the absence of an explicit exclusion as permission to infer safe pressurization.
+
 The classifier reports only:
 - `APPLICABLE`: declared metadata passes this finite scope profile;
 - `NOT_APPLICABLE`: product/test/fluid/facility lies outside this profile;
 - `PROFILE_INCOMPLETE`: required grade, fitting agreement, product-standard link or test basis is missing;
 - `EVIDENCE_INCOMPLETE`: required evidence is missing/stale (for example calibration);
 - `STALE_OR_SUPERSEDED`: selected profile is draft or withdrawn;
-- `UNSUPPORTED_CLAIM`: applicability is being used to claim pressure-test safety or product release.
+- `UNSUPPORTED_CLAIM`: applicability is being used to claim pressure-test safety or product release, under any mapped standard.
 
 It does not compute conformance, test tolerances, uncertainty, pressure values or product release. A repeated source URL is not test evidence; the exact unit, revision, facility, measurement, calibration and external authority must be independently bound.
 
@@ -56,4 +58,4 @@ cargo test --locked --all-targets
 cargo run --locked -- --report
 ```
 
-The synthetic fixture corpus contains 30 cases with a separate expected-disposition file. The QUALIFIED_TEST_FACILITY prerequisite is imposed by this local profile; it is not presented as normative text from the referenced standards. All standard-status dates and source links are frozen; they must be refreshed against the official catalogue before a real contract or physical test.
+The synthetic fixture corpus contains 31 cases with a separate expected-disposition file. The QUALIFIED_TEST_FACILITY prerequisite is imposed by this local profile; it is not presented as normative text from the referenced standards. All standard-status dates and source links are frozen; they must be refreshed against the official catalogue before a real contract or physical test.
