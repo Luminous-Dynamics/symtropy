@@ -20,7 +20,9 @@ mod tests {
     fn qty(value: u64, unit: QuantityUnitV1) -> ExactIngredientQuantityV1 {
         ExactIngredientQuantityV1 {
             dimension: match unit {
-                QuantityUnitV1::Milligram | QuantityUnitV1::Gram | QuantityUnitV1::Kilogram => QuantityDimensionV1::Mass,
+                QuantityUnitV1::Milligram | QuantityUnitV1::Gram | QuantityUnitV1::Kilogram => {
+                    QuantityDimensionV1::Mass
+                }
                 QuantityUnitV1::Millilitre | QuantityUnitV1::Litre => QuantityDimensionV1::Volume,
                 QuantityUnitV1::Piece | QuantityUnitV1::Count => QuantityDimensionV1::Count,
             },
@@ -111,7 +113,8 @@ mod tests {
                 latest_finish_ms: Some(60_000),
             },
             ontology_binding: Some(rule_based_action_binding(
-                RecipeActionKindV1::Chop, RecipeEvidenceClassV1::Declared,
+                RecipeActionKindV1::Chop,
+                RecipeEvidenceClassV1::Declared,
             )),
             action_resolution_ref: "builtin:symtropy-kitchen-action-rules-v1".to_owned(),
             duration_method_ref: "method:manual-cutting-v1".to_owned(),
@@ -150,7 +153,8 @@ mod tests {
                 latest_finish_ms: None,
             },
             ontology_binding: Some(rule_based_action_binding(
-                RecipeActionKindV1::Saute, RecipeEvidenceClassV1::Declared,
+                RecipeActionKindV1::Saute,
+                RecipeEvidenceClassV1::Declared,
             )),
             action_resolution_ref: "builtin:symtropy-kitchen-action-rules-v1".to_owned(),
             duration_method_ref: "method:saute-v1".to_owned(),
@@ -191,23 +195,35 @@ mod tests {
                 FoodFlowEdgeV1 {
                     edge_id: "edge:raw-onion-to-chop".to_owned(),
                     material_ref: "material:raw-onion".to_owned(),
-                    source: FoodFlowSourceV1::Ingredient { ingredient_id: "onion".to_owned() },
-                    destination: FoodFlowDestinationV1::TaskInput { task_id: "chop-onion".to_owned() },
+                    source: FoodFlowSourceV1::Ingredient {
+                        ingredient_id: "onion".to_owned(),
+                    },
+                    destination: FoodFlowDestinationV1::TaskInput {
+                        task_id: "chop-onion".to_owned(),
+                    },
                     quantity: qty(250, QuantityUnitV1::Gram),
                     evidence_ref: "allocation:raw-onion-v1".to_owned(),
                 },
                 FoodFlowEdgeV1 {
                     edge_id: "edge:chop-to-saute".to_owned(),
                     material_ref: "material:prepared-onion".to_owned(),
-                    source: FoodFlowSourceV1::TaskOutput { task_id: "chop-onion".to_owned(), output_ref: "prepared-onion".to_owned() },
-                    destination: FoodFlowDestinationV1::TaskInput { task_id: "saute-onion".to_owned() },
+                    source: FoodFlowSourceV1::TaskOutput {
+                        task_id: "chop-onion".to_owned(),
+                        output_ref: "prepared-onion".to_owned(),
+                    },
+                    destination: FoodFlowDestinationV1::TaskInput {
+                        task_id: "saute-onion".to_owned(),
+                    },
                     quantity: qty(240, QuantityUnitV1::Gram),
                     evidence_ref: "allocation:prepared-onion-v1".to_owned(),
                 },
                 FoodFlowEdgeV1 {
                     edge_id: "edge:raw-onion-trim-loss".to_owned(),
                     material_ref: "material:onion-trim".to_owned(),
-                    source: FoodFlowSourceV1::TaskOutput { task_id: "chop-onion".to_owned(), output_ref: "onion-trim".to_owned() },
+                    source: FoodFlowSourceV1::TaskOutput {
+                        task_id: "chop-onion".to_owned(),
+                        output_ref: "onion-trim".to_owned(),
+                    },
                     destination: FoodFlowDestinationV1::PlannedLossOutput {
                         output_ref: "planned-loss:onion-trim".to_owned(),
                         loss_kind: PlannedLossKindV1::Trim,
@@ -218,8 +234,13 @@ mod tests {
                 FoodFlowEdgeV1 {
                     edge_id: "edge:saute-to-edible-output".to_owned(),
                     material_ref: "material:sauteed-onion".to_owned(),
-                    source: FoodFlowSourceV1::TaskOutput { task_id: "saute-onion".to_owned(), output_ref: "sauteed-onion".to_owned() },
-                    destination: FoodFlowDestinationV1::PlannedEdibleOutput { output_ref: "planned-edible:onion".to_owned() },
+                    source: FoodFlowSourceV1::TaskOutput {
+                        task_id: "saute-onion".to_owned(),
+                        output_ref: "sauteed-onion".to_owned(),
+                    },
+                    destination: FoodFlowDestinationV1::PlannedEdibleOutput {
+                        output_ref: "planned-edible:onion".to_owned(),
+                    },
                     quantity: qty(200, QuantityUnitV1::Gram),
                     evidence_ref: "allocation:sauteed-onion-v1".to_owned(),
                 },
@@ -243,9 +264,11 @@ mod tests {
         request.acceptance.proposal_revision = 2;
         let report = meal_compiler::compile_meal(&request);
         assert_eq!(report.disposition, MealCompilationDispositionV1::Conflicted);
-        assert!(report.issues.iter().any(|issue| {
-            issue.code == MealCompilationIssueCodeV1::ProposalAcceptanceMismatch
-        }));
+        assert!(
+            report.issues.iter().any(|issue| {
+                issue.code == MealCompilationIssueCodeV1::ProposalAcceptanceMismatch
+            })
+        );
     }
 
     #[test]
@@ -261,7 +284,10 @@ mod tests {
         request.proposal_sha256 = digest(&request.proposal);
         request.acceptance.proposal_sha256 = request.proposal_sha256.clone();
         let report = meal_compiler::compile_meal(&request);
-        assert_eq!(report.disposition, MealCompilationDispositionV1::Indeterminate);
+        assert_eq!(
+            report.disposition,
+            MealCompilationDispositionV1::Indeterminate
+        );
         assert!(report.recipe_graph.is_none());
     }
 
@@ -270,16 +296,24 @@ mod tests {
         let mut request = valid_request();
         request.as_of_time_evidence_ref.clear();
         let report = meal_compiler::compile_meal(&request);
-        assert_eq!(report.disposition, MealCompilationDispositionV1::Indeterminate);
-        assert!(report.issues.iter().any(|issue| {
-            issue.code == MealCompilationIssueCodeV1::MissingAsOfTimeEvidence
-        }));
+        assert_eq!(
+            report.disposition,
+            MealCompilationDispositionV1::Indeterminate
+        );
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|issue| { issue.code == MealCompilationIssueCodeV1::MissingAsOfTimeEvidence })
+        );
     }
 
     #[test]
     fn generic_ingredient_price_cannot_be_promoted_to_market_price() {
         let mut request = valid_request();
-        request.proposal.ingredients[0].fact_refs.push("price:onion".to_owned());
+        request.proposal.ingredients[0]
+            .fact_refs
+            .push("price:onion".to_owned());
         request.proposal.facts.push(CulinaryFactV1 {
             fact_id: "price:onion".to_owned(),
             ingredient_id: Some("onion".to_owned()),
@@ -301,9 +335,12 @@ mod tests {
         request.acceptance.proposal_sha256 = request.proposal_sha256.clone();
         let report = meal_compiler::compile_meal(&request);
         assert_eq!(report.disposition, MealCompilationDispositionV1::Blocked);
-        assert!(report.issues.iter().any(|issue| {
-            issue.code == MealCompilationIssueCodeV1::InvalidPriceFactScope
-        }));
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|issue| { issue.code == MealCompilationIssueCodeV1::InvalidPriceFactScope })
+        );
     }
 
     #[test]
@@ -311,7 +348,9 @@ mod tests {
         let mut request = valid_request();
         request.proposal.ingredients[0].product_lot_ref =
             Some("mycelix:food-lot:onion-lot-001".to_owned());
-        request.proposal.ingredients[0].fact_refs.push("price:onion".to_owned());
+        request.proposal.ingredients[0]
+            .fact_refs
+            .push("price:onion".to_owned());
         request.proposal.facts.push(CulinaryFactV1 {
             fact_id: "price:onion".to_owned(),
             ingredient_id: Some("onion".to_owned()),
@@ -332,7 +371,12 @@ mod tests {
         request.proposal_sha256 = digest(&request.proposal);
         request.acceptance.proposal_sha256 = request.proposal_sha256.clone();
         let report = meal_compiler::compile_meal(&request);
-        assert_eq!(report.disposition, MealCompilationDispositionV1::Compiled, "{:?}", report.issues);
+        assert_eq!(
+            report.disposition,
+            MealCompilationDispositionV1::Compiled,
+            "{:?}",
+            report.issues
+        );
         for reference in [
             "clock:fixture-as-of-v1",
             "mycelix:food-lot:onion-lot-001",
@@ -342,7 +386,10 @@ mod tests {
             "market:johannesburg",
             "license:catalogue-v1",
         ] {
-            assert!(report.resolution_refs.iter().any(|item| item == reference), "missing {reference}");
+            assert!(
+                report.resolution_refs.iter().any(|item| item == reference),
+                "missing {reference}"
+            );
         }
     }
 
@@ -361,7 +408,9 @@ mod tests {
     #[test]
     fn stale_price_fact_is_not_treated_as_current() {
         let mut request = valid_request();
-        request.proposal.ingredients[0].fact_refs.push("price:onion".to_owned());
+        request.proposal.ingredients[0]
+            .fact_refs
+            .push("price:onion".to_owned());
         request.proposal.facts.push(CulinaryFactV1 {
             fact_id: "price:onion".to_owned(),
             ingredient_id: Some("onion".to_owned()),
@@ -382,14 +431,24 @@ mod tests {
         request.proposal_sha256 = digest(&request.proposal);
         request.acceptance.proposal_sha256 = request.proposal_sha256.clone();
         let report = meal_compiler::compile_meal(&request);
-        assert_eq!(report.disposition, MealCompilationDispositionV1::Indeterminate);
-        assert!(report.issues.iter().any(|issue| issue.code == MealCompilationIssueCodeV1::StaleFact));
+        assert_eq!(
+            report.disposition,
+            MealCompilationDispositionV1::Indeterminate
+        );
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|issue| issue.code == MealCompilationIssueCodeV1::StaleFact)
+        );
     }
 
     #[test]
     fn generic_ingredient_allergen_fact_cannot_become_product_assurance() {
         let mut request = valid_request();
-        request.proposal.ingredients[0].fact_refs.push("allergen:onion".to_owned());
+        request.proposal.ingredients[0]
+            .fact_refs
+            .push("allergen:onion".to_owned());
         request.proposal.facts.push(CulinaryFactV1 {
             fact_id: "allergen:onion".to_owned(),
             ingredient_id: Some("onion".to_owned()),
@@ -411,9 +470,11 @@ mod tests {
         request.acceptance.proposal_sha256 = request.proposal_sha256.clone();
         let report = meal_compiler::compile_meal(&request);
         assert_eq!(report.disposition, MealCompilationDispositionV1::Blocked);
-        assert!(report.issues.iter().any(|issue| {
-            issue.code == MealCompilationIssueCodeV1::InvalidAllergenFactScope
-        }));
+        assert!(
+            report.issues.iter().any(|issue| {
+                issue.code == MealCompilationIssueCodeV1::InvalidAllergenFactScope
+            })
+        );
     }
 
     #[test]
@@ -422,9 +483,12 @@ mod tests {
         request.food_flow_edges[0].quantity = qty(250, QuantityUnitV1::Millilitre);
         let report = meal_compiler::compile_meal(&request);
         assert_eq!(report.disposition, MealCompilationDispositionV1::Conflicted);
-        assert!(report.issues.iter().any(|issue| {
-            issue.code == MealCompilationIssueCodeV1::FlowQuantityMismatch
-        }));
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|issue| { issue.code == MealCompilationIssueCodeV1::FlowQuantityMismatch })
+        );
     }
 
     #[test]
@@ -437,18 +501,23 @@ mod tests {
             .mapping
             .provenance_ref = Some("unrelated:ruleset".to_owned());
         let report = meal_compiler::compile_meal(&request);
-        assert_eq!(report.disposition, MealCompilationDispositionV1::Indeterminate);
-        assert!(report.issues.iter().any(|issue| {
-            issue.code == MealCompilationIssueCodeV1::MissingActionOntology
-        }));
+        assert_eq!(
+            report.disposition,
+            MealCompilationDispositionV1::Indeterminate
+        );
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|issue| { issue.code == MealCompilationIssueCodeV1::MissingActionOntology })
+        );
     }
 
     #[test]
     fn frozen_symthaea_proposal_contract_deserializes_without_inference() {
-        let bundle: serde_json::Value = serde_json::from_str(include_str!(
-            "../fixtures/symthaea-meal-proposal-v1.json"
-        ))
-        .expect("frozen Symthaea proposal fixture must parse");
+        let bundle: serde_json::Value =
+            serde_json::from_str(include_str!("../fixtures/symthaea-meal-proposal-v1.json"))
+                .expect("frozen Symthaea proposal fixture must parse");
         assert_eq!(bundle["source"]["repository"], "Luminous-Dynamics/symthaea");
         assert_eq!(bundle["source"]["pull_request"], 12715);
         assert_eq!(
@@ -456,9 +525,8 @@ mod tests {
             "146c70d73315067efca35cf14c9916d340e7fee7"
         );
 
-        let proposal: MealProposalV1 =
-            serde_json::from_value(bundle["proposal"].clone())
-                .expect("Symthaea MealProposalV1 wire shape must deserialize in Symtropy");
+        let proposal: MealProposalV1 = serde_json::from_value(bundle["proposal"].clone())
+            .expect("Symthaea MealProposalV1 wire shape must deserialize in Symtropy");
         assert_eq!(proposal.proposal_id, "fixture:meal-proposal-001");
         assert_eq!(proposal.constraints.currency_code.as_deref(), Some("ZAR"));
         assert_eq!(proposal.review_state, ProposalReviewStateV1::Proposed);
@@ -467,9 +535,12 @@ mod tests {
             IngredientQuantityStateV1::Unknown
         );
         assert!(proposal.ingredients[1].quantity.is_none());
-        assert!(proposal.ingredients.iter().all(|ingredient| {
-            ingredient.product_lot_ref.is_none()
-        }));
+        assert!(
+            proposal
+                .ingredients
+                .iter()
+                .all(|ingredient| { ingredient.product_lot_ref.is_none() })
+        );
         assert_eq!(
             proposal.uncertainties[0].impact,
             UncertaintyImpactV1::PlanningBlocker
@@ -495,17 +566,25 @@ mod tests {
             assert!(scenario["assert"].as_str().is_some());
         }
         assert_eq!(manifest["score_policy"]["false_compiled"], "hard_failure");
-        assert_eq!(manifest["target_hypotheses"]["false_compiled_adversarial_10000"], 0);
+        assert_eq!(
+            manifest["target_hypotheses"]["false_compiled_adversarial_10000"],
+            0
+        );
     }
 
     #[test]
     fn underallocated_ingredient_requires_explicit_residual_or_loss_path() {
         let mut request = valid_request();
-        request.food_flow_edges.retain(|edge| edge.edge_id != "edge:raw-onion-to-chop");
+        request
+            .food_flow_edges
+            .retain(|edge| edge.edge_id != "edge:raw-onion-to-chop");
         // The task has no raw input after this removal; the compiler must not
         // infer stock consumption from an output or a planned-yield estimate.
         let report = meal_compiler::compile_meal(&request);
-        assert_eq!(report.disposition, MealCompilationDispositionV1::Indeterminate);
+        assert_eq!(
+            report.disposition,
+            MealCompilationDispositionV1::Indeterminate
+        );
         assert!(report.issues.iter().any(|issue| {
             issue.code == MealCompilationIssueCodeV1::IngredientAllocationIncomplete
         }));
