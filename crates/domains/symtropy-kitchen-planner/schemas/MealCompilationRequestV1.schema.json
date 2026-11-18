@@ -9,6 +9,7 @@
     "schema_version",
     "request_id",
     "compiled_at_epoch_ms",
+    "as_of_time_evidence_ref",
     "proposal_sha256",
     "proposal",
     "acceptance",
@@ -21,6 +22,7 @@
     "schema_version": { "const": 1 },
     "request_id": { "type": "string", "minLength": 1 },
     "compiled_at_epoch_ms": { "type": "integer", "minimum": 1 },
+    "as_of_time_evidence_ref": { "type": "string", "minLength": 1 },
     "proposal_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "proposal": {
       "$ref": "https://luminousdynamics.io/schemas/culinary/MealProposalV1.schema.json"
