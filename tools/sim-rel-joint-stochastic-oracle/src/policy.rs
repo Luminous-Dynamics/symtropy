@@ -326,7 +326,7 @@ mod tests {
             response.command,
             EpisodeCommand::Finish { ref finish }
                 if finish.disposition == EpisodeFinishDisposition::Abstain
-                    && finish.compatible_hypothesis_ids == vec!["candidate-a", "candidate-b"]
+                    && finish.compatible_hypothesis_ids == vec!["candidate-a".to_owned(), "candidate-b".to_owned()]
         ));
     }
 
@@ -381,7 +381,7 @@ mod tests {
             response.command,
             EpisodeCommand::Finish { ref finish }
                 if finish.disposition == EpisodeFinishDisposition::Identified
-                    && finish.compatible_hypothesis_ids == vec!["candidate-a"]
+                    && finish.compatible_hypothesis_ids == vec!["candidate-a".to_owned()]
         ));
     }
 
