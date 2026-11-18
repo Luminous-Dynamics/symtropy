@@ -635,7 +635,7 @@
       "artifact_id": "quality-assays-fixture",
       "role": "mineral_assay",
       "path": "synthetic-quality-assays.json",
-      "sha256": "784643e583c8f440a52dc989434f0a149bf427ddd0c7d2504f946be11b2d2eea"
+      "sha256": "5ec6ec5ff2489b006b5bc5b49d28884c5ad5b25f87b2273ce584e1d0368a262b"
     },
     {
       "artifact_id": "stream-mass-fixture",
