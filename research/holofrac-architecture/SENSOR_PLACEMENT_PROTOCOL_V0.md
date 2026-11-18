@@ -41,7 +41,7 @@ For each policy and sensor count:
 - mean absolute error (MAE);
 - root-mean-square error (RMSE).
 
-The executable sweeps 4 / 8 / 16 / 24 sensors from a fixed 20×20 candidate grid, using a fixed query grid, 24 time samples and a fixed seed. Raw CSV records the exact source SHA and runtime target architecture/OS.
+The executable sweeps 4 / 8 / 16 / 24 sensors from a fixed 20×20 candidate grid, using a fixed query grid and 24 time samples. Regular-grid and greedy-maximin are each emitted once per sensor budget; random placement is replicated across ten predeclared seeds (11, 23, 37, 41, 53, 67, 79, 89, 101, 113). Raw CSV records each seed, exact source SHA and runtime target architecture/OS. This provides a distribution for random placement rather than a single potentially lucky draw; report mean, spread and individual runs from the raw rows.
 
 ## 4. Interpretation limits
 
