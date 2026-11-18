@@ -184,14 +184,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for assessment in &report.assessments {
         println!(
-            "candidate,{al},{:.8},mean_satisfaction,",
-            assessment.mean_satisfaction,
-            al = assessment.alternative_id
+            "candidate,{al},mean_satisfaction,{value:.8},",
+            al = assessment.alternative_id,
+            value = assessment.mean_satisfaction
         );
         println!(
-            "candidate,{al},{:.8},minimum_satisfaction,",
-            assessment.minimum_satisfaction,
-            al = assessment.alternative_id
+            "candidate,{al},minimum_satisfaction,{value:.8},",
+            al = assessment.alternative_id,
+            value = assessment.minimum_satisfaction
         );
         for stakeholder in &assessment.per_stakeholder_satisfaction {
             println!(
