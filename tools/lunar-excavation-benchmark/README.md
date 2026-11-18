@@ -199,7 +199,7 @@ bash scripts/validate-lunar-excavation-dataset.sh \
   runs/calibration-001.json runs/validation-001.json runs/blind-001.json
 ```
 
-The special `--allow-synthetic-placeholders` flag is only for the committed synthetic CI fixtures. It must not be used for physical or published datasets. The validator is a semantic/provenance gate, not a general JSON Schema implementation; use a Draft 2020-12 validator as a separate schema-conformance step when admitting external corpora. Blind-test custody and independent execution freeze still require an external custodian/process and cannot be proved by parsing files alone.
+The Linux fixture guard runs the reusable validator across all three synthetic partitions, then runs negative controls proving that a cross-partition group reassignment and a post-freeze artifact digest change are rejected. The special `--allow-synthetic-placeholders` flag is only for the committed synthetic CI fixtures. It must not be used for physical or published datasets. The validator is a semantic/provenance gate, not a general JSON Schema implementation; use a Draft 2020-12 validator as a separate schema-conformance step when admitting external corpora. Blind-test custody and independent execution freeze still require an external custodian/process and cannot be proved by parsing files alone.
 
 ## Authority boundaries
 
