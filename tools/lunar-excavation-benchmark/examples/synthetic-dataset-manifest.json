@@ -26,7 +26,11 @@
         "parameters_artifact_id",
         "prediction_artifacts"
       ]
-    }
+    },
+    "optional_isolation_axes": [
+      "laboratory_id",
+      "campaign_id"
+    ]
   },
   "group_assignments": {
     "material_batch_id": {
@@ -48,6 +52,16 @@
       "SYN-REGIME-A": "calibration",
       "SYN-REGIME-B": "validation",
       "SYN-REGIME-C": "blind_test"
+    },
+    "laboratory_id": {
+      "SYN-LAB-A": "calibration",
+      "SYN-LAB-B": "validation",
+      "SYN-LAB-C": "blind_test"
+    },
+    "campaign_id": {
+      "SYN-CAMPAIGN-A": "calibration",
+      "SYN-CAMPAIGN-B": "validation",
+      "SYN-CAMPAIGN-C": "blind_test"
     }
   },
   "run_assignments": [
@@ -58,7 +72,9 @@
         "material_batch_id": "SYN-BATCH-A",
         "preparation_protocol_id": "SYN-PREP-A",
         "tool_geometry_id": "SYN-TOOL-A",
-        "operating_regime_id": "SYN-REGIME-A"
+        "operating_regime_id": "SYN-REGIME-A",
+        "laboratory_id": "SYN-LAB-A",
+        "campaign_id": "SYN-CAMPAIGN-A"
       }
     },
     {
@@ -68,7 +84,9 @@
         "material_batch_id": "SYN-BATCH-B",
         "preparation_protocol_id": "SYN-PREP-B",
         "tool_geometry_id": "SYN-TOOL-B",
-        "operating_regime_id": "SYN-REGIME-B"
+        "operating_regime_id": "SYN-REGIME-B",
+        "laboratory_id": "SYN-LAB-B",
+        "campaign_id": "SYN-CAMPAIGN-B"
       }
     },
     {
@@ -78,7 +96,9 @@
         "material_batch_id": "SYN-BATCH-C",
         "preparation_protocol_id": "SYN-PREP-C",
         "tool_geometry_id": "SYN-TOOL-C",
-        "operating_regime_id": "SYN-REGIME-C"
+        "operating_regime_id": "SYN-REGIME-C",
+        "laboratory_id": "SYN-LAB-C",
+        "campaign_id": "SYN-CAMPAIGN-C"
       }
     }
   ],
