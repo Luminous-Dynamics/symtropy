@@ -45,6 +45,19 @@ Gasteiner, Murdoch and D'Angelo's 2026 open lunar-regolith database includes mor
 
 Every run must identify material batch, PSD, preparation/compaction history, morphology and evidence class. A simulant's name alone is insufficient.
 
+## Versioned dimensionless coordinate provenance
+
+The canonical formula set is `tools/lunar-granular-flow-benchmark/dimensionless-coordinate-formulas.json` (`lunar-granular-dimensionless-groups-v1`). Run records carry a `derived_coordinates` object with the formula-set ID, uncertainty-propagation method and source artifact IDs.
+
+The run-admission validator checks:
+- every dimensionless input dependency is present before accepting a derived value; if any required primitive is unknown, the coordinate must remain null/unknown;
+- all source artifact IDs used for derivation resolve in the run's artifact manifest;
+- the declared central value matches the versioned formula within a 1% tolerance for numeric serialization/rounding;
+- signed electrostatic number preserves sign;
+- synthetic fixtures independently recompute the known vibration, particle/drum and roughness ratios, and negative controls reject invented values and tampered derivations.
+
+The formula set includes granular Bond number (Bo_m), wall adhesion ratio (Aw), inertial number (I), signed electrostatic number (El), vibration acceleration ratio (Gamma), dimensionless vibration frequency, vibration displacement/particle size, particle/drum ratio and wall roughness/particle size. Real runs must additionally document uncertainty propagation and measurement covariance assumptions. Formula agreement verifies arithmetic, not whether the primitives were physically measured correctly.
+
 ## Paradigm shifts
 
 1. **Co-design material and contact surfaces.** Optimize wall material, roughness, conductivity, grounding, coatings and wear state with the granular material. Do not optimize only hopper shape or bulk material parameters.
