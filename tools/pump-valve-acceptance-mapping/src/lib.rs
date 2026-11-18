@@ -403,6 +403,39 @@ pub fn evaluate(
 
     let mut profiles_by_id = BTreeMap::new();
     for profile in profiles {
+        if !valid_ref(&profile.profile_id)
+            || profile.standard_id.trim().is_empty()
+            || !valid_ref(&profile.edition)
+            || !valid_date(&profile.catalog_snapshot_date)
+            || !profile.source_ref.starts_with("https://")
+            || profile.product_families.is_empty()
+            || profile.test_families.is_empty()
+            || profile.seat_families.is_empty()
+            || profile
+                .product_families
+                .iter()
+                .chain(profile.test_families.iter())
+                .chain(profile.seat_families.iter())
+                .any(|value| !valid_ref(value))
+        {
+            return Err(format!(
+                "profile {}: malformed direct evaluator input",
+                profile.profile_id
+            ));
+        }
+        if !matches!(
+            profile.publication_state.as_str(),
+            "PUBLISHED_UNDER_REVIEW"
+                | "PUBLISHED_CURRENT"
+                | "PUBLISHED_CONFIRMED_2025"
+                | "DRAFT_UNDER_DEVELOPMENT"
+                | "WITHDRAWN"
+        ) {
+            return Err(format!(
+                "profile {}: unsupported direct publication state",
+                profile.profile_id
+            ));
+        }
         if profiles_by_id.insert(profile.profile_id.as_str(), profile).is_some() {
             return Err(format!("duplicate profile_id: {}", profile.profile_id));
         }
@@ -411,6 +444,32 @@ pub fn evaluate(
     let mut seen_scenarios = BTreeSet::new();
     let mut results = Vec::with_capacity(scenarios.len());
     for scenario in scenarios {
+        if !valid_ref(&scenario.scenario_id)
+            || !valid_ref(&scenario.profile_id)
+            || !valid_ref(&scenario.product_family)
+            || !valid_ref(&scenario.test_family)
+            || (!valid_ref(&scenario.seat_family) && scenario.seat_family != "-")
+            || !valid_ref(&scenario.fluid_profile)
+            || !valid_ref(&scenario.facility_profile)
+            || (!valid_ref(&scenario.acceptance_grade) && scenario.acceptance_grade != "-")
+            || !matches!(scenario.fitting_agreement.as_str(), "YES" | "NO" | "NA")
+            || !matches!(
+                scenario.product_standard_link.as_str(),
+                "REFERENCED" | "NOT_REFERENCED" | "NOT_REQUIRED"
+            )
+            || (!valid_ref(&scenario.fitting_agreement_ref)
+                && scenario.fitting_agreement_ref != "-")
+            || (!valid_ref(&scenario.product_standard_ref)
+                && scenario.product_standard_ref != "-")
+            || (!valid_ref(&scenario.purchaser_agreement_ref)
+                && scenario.purchaser_agreement_ref != "-")
+            || !valid_date(&scenario.assessment_as_of)
+        {
+            return Err(format!(
+                "scenario {}: malformed direct evaluator input",
+                scenario.scenario_id
+            ));
+        }
         if !seen_scenarios.insert(scenario.scenario_id.as_str()) {
             return Err(format!("duplicate scenario_id: {}", scenario.scenario_id));
         }
@@ -1018,6 +1077,33 @@ mod tests {
             .find(|row| row.scenario_id == "valve_iso5208_nonmetallic")
             .unwrap();
         assert_eq!(row.disposition, Disposition::NotApplicable);
+    }
+
+    #[test]
+    fn direct_api_rejects_malformed_profile_catalogue_date() {
+        let (mut profiles, scenarios) = parsed();
+        profiles[0].catalog_snapshot_date = "2026-02-31".into();
+        assert!(evaluate(&profiles, &scenarios)
+            .unwrap_err()
+            .contains("malformed direct evaluator input"));
+    }
+
+    #[test]
+    fn direct_api_rejects_malformed_scenario_as_of_date() {
+        let (profiles, mut scenarios) = parsed();
+        scenarios[0].assessment_as_of = "not-a-date".into();
+        assert!(evaluate(&profiles, &scenarios)
+            .unwrap_err()
+            .contains("malformed direct evaluator input"));
+    }
+
+    #[test]
+    fn direct_api_rejects_unrecognized_contract_link_state() {
+        let (profiles, mut scenarios) = parsed();
+        scenarios[0].product_standard_link = "SURE".into();
+        assert!(evaluate(&profiles, &scenarios)
+            .unwrap_err()
+            .contains("malformed direct evaluator input"));
     }
 
     #[test]
