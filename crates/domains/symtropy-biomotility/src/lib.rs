@@ -106,7 +106,9 @@ impl SampleSet {
     }
 }
 
-/// Empirical samples indexed by the direction of the preceding run.
+/// Empirical samples indexed by an explicitly declared direction observable.
+/// The profile field determines whether that observable is run-start heading
+/// or completed-run displacement direction.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DirectionalSamples {
     pub up_gradient: SampleSet,
@@ -167,10 +169,12 @@ impl BiasMode {
 
 /// A sampled event profile for one declared biological condition.
 ///
-/// Run durations and short-turn angles are conditioned on the direction of
-/// the preceding run. Separate unconditional empirical distributions enable
-/// matched no-bias, run-time-only, turn-angle-only and combined ablations.
-/// Long mechanical-trap angles are intentionally pooled.
+/// Run-time samples are keyed by run-start heading (the causal input to the
+/// next-run policy); short-turn samples are keyed by the realized net
+/// displacement direction of the just-completed run. These are distinct
+/// observables. Separate unconditional distributions enable matched no-bias,
+/// run-time-only, turn-angle-only and combined ablations. Long-trap angles
+/// are intentionally pooled.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PorousMotilityProfile {
     /// Swimming speed in micrometres per second.
@@ -180,7 +184,7 @@ pub struct PorousMotilityProfile {
     pub rotational_diffusion_rad2_s: f64,
     /// Maximum Euler-Maruyama integration step during a run, in seconds.
     pub integration_step_s: f64,
-    /// Empirical run-duration samples by preceding-run direction, in seconds.
+    /// Empirical run-duration samples keyed by run-start direction, in seconds.
     pub run_duration_s: DirectionalSamples,
     /// Pooled run-duration samples used by ablations with run-time bias disabled.
     pub run_duration_unconditional_s: SampleSet,
@@ -192,10 +196,10 @@ pub struct PorousMotilityProfile {
     pub threshold_boundary_policy: ThresholdBoundaryPolicy,
     /// Duration samples for short events; validation follows the declared threshold policy.
     pub short_event_duration_s: SampleSet,
-    /// Duration samples for long mechanical traps (all must be > 1 second).
+    /// Duration samples for long traps; validation follows the boundary policy.
     pub long_trap_duration_s: SampleSet,
-    /// Signed heading changes in radians for short events, conditional on the
-    /// direction of the run immediately before the event.
+    /// Signed heading changes in radians for short events, conditional on
+    /// the net displacement direction of the just-completed run.
     pub short_turn_angle_rad: DirectionalSamples,
     /// Pooled short-event turn-angle samples used when turn-angle bias is disabled.
     pub short_turn_angle_unconditional_rad: SampleSet,
@@ -371,7 +375,10 @@ pub struct EventRecord {
     /// empirical turn-angle distributions and post-event outcome statistics.
     pub completed_run_direction: DirectionClass,
     /// Net run-displacement heading from the first to last simulated position.
-    pub run_displacement_heading_rad: f64,
+    /// None means the run had no numerically resolvable net displacement.
+    pub run_displacement_heading_rad: Option<f64>,
+    /// Magnitude of the net run displacement in micrometres.
+    pub run_displacement_um: f64,
     /// Instantaneous tangent at the end of the run, before the interruption.
     pub incoming_heading_rad: f64,
     pub run_duration_s: f64,
@@ -673,18 +680,17 @@ pub fn simulate_with_bias_mode(
 
         let run_displacement_x_um = state.x_um - run_start_x_um;
         let run_displacement_y_um = state.y_um - run_start_y_um;
-        let has_run_displacement = run_displacement_x_um.hypot(run_displacement_y_um)
-            > f64::MIN_POSITIVE;
-        let run_displacement_heading_rad = if has_run_displacement {
-            run_displacement_y_um.atan2(run_displacement_x_um)
+        let run_displacement_um =
+            run_displacement_x_um.hypot(run_displacement_y_um);
+        let run_displacement_heading_rad = if run_displacement_um > f64::MIN_POSITIVE {
+            Some(run_displacement_y_um.atan2(run_displacement_x_um))
         } else {
-            state.heading_rad
+            None
         };
-        let completed_run_direction = if has_run_displacement {
-            classify_direction(run_displacement_heading_rad, gradient_heading_rad)
-                .expect("validated finite headings produce a direction class")
-        } else {
-            DirectionClass::CrossGradient
+        let completed_run_direction = match run_displacement_heading_rad {
+            Some(heading) => classify_direction(heading, gradient_heading_rad)
+                .expect("validated finite headings produce a direction class"),
+            None => DirectionClass::CrossGradient,
         };
         let incoming_heading_rad = state.heading_rad;
 
@@ -707,9 +713,13 @@ pub fn simulate_with_bias_mode(
                 )
             };
 
-        // The observed event turn is the change from the preceding run's
-        // net displacement direction to the following run's initial heading.
-        state.heading_rad = wrap_angle(run_displacement_heading_rad + wrap_angle(turn_angle));
+        // The event turn is applied relative to the preceding run's net
+        // displacement heading. If no net displacement was resolvable, retain
+        // the incoming tangent as the only available orientation reference.
+        let turn_reference_heading_rad =
+            run_displacement_heading_rad.unwrap_or(incoming_heading_rad);
+        state.heading_rad =
+            wrap_angle(turn_reference_heading_rad + wrap_angle(turn_angle));
         let event_end_time_s = state.elapsed_s + event_duration;
         if !event_end_time_s.is_finite() {
             return Err(SimulationError::NonFiniteTrajectory);
@@ -731,6 +741,7 @@ pub fn simulate_with_bias_mode(
             direction_before_run: direction,
             completed_run_direction,
             run_displacement_heading_rad,
+            run_displacement_um,
             incoming_heading_rad,
             run_duration_s: run_duration,
             event_class,
@@ -1261,7 +1272,8 @@ mod tests {
         };
         assert_eq!(first.turn_angle_rad, expected_angle);
         assert!(first.incoming_heading_rad.is_finite());
-        assert!(first.run_displacement_heading_rad.is_finite());
+        assert!(first.run_displacement_heading_rad.is_some());
+        assert!(first.run_displacement_um.is_finite());
     }
 
     #[test]
