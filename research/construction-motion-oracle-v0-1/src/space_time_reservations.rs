@@ -574,7 +574,7 @@ impl SpaceTimeReservationCoordinator {
         request: &ReservationRequest,
     ) -> Result<(), ReservationCoordinatorError> {
         for (existing_id, existing) in &self.reservations {
-            if matches!(existing.status, ReservationStatus::Cleared { .. }) {
+            if matches!(&existing.status, ReservationStatus::Cleared { .. }) {
                 continue;
             }
             let may_still_be_physically_present = matches!(
