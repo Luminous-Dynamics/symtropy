@@ -487,5 +487,6 @@
     "Phase durations are deterministic timing inputs, not semi-Markov sojourn-time distributions.",
     "A duplicate completion acknowledgement is ignored idempotently after the first commit; it cannot create extra committed users or a second authority.",
     "This fixture is a protocol-accounting oracle, not a live handover or end-to-end customer SLA result."
-  ]
+  ],
+  "source_node_id": "haps-source-jp-02"
 }
