@@ -142,3 +142,18 @@ Before testing, freeze the KPI, threshold, test case, margin, seed and failure a
 ## 8. Claim ceiling
 
 A pass on IDS is not physical qualification. A Standard 140 result is not learned-model validation. A BOPTEST win is not a field deployment. ISO 20887 alignment is not actual recovery proof. Synthetic lifecycle mass balance is not a real material passport. Report each evidence layer separately and retain unknowns, failures and limitations.
+
+
+## 9. Cross-scenario climate robustness and SOTA
+
+Recent 2026 literature makes this a concrete comparison target:
+
+- Alexakis et al., *A climate-sensitive multi-objective optimisation framework for building envelope retrofit decision support*, Energy and Buildings, 15 October 2026, DOI 10.1016/j.enbuild.2026.117962. Its review of 157 genetic-algorithm retrofit studies reports that 75.2% used a single Typical Meteorological Year (TMY) and 12.7% considered future climate scenarios. It explicitly identifies cross-scenario Pareto-front composition and multi-criteria decision support as gaps.
+- An et al., *Multi-objective optimization for robust optimal green retrofit design of public buildings under multiple SSP scenarios*, Renewable and Sustainable Energy Reviews, July 2026, DOI 10.1016/j.rser.2026.116900. The paper evaluates eight SSP scenarios and reports that scenario-specific optimal designs do not necessarily remain robust across all scenarios; it uses regret analysis to select balanced designs.
+- Jahanbin, Selicati and Berardi, *Decision-robust planning of positive energy districts under future climate-demand uncertainty*, Energy Conversion and Management, 1 October 2026, DOI 10.1016/j.enconman.2026.121793. It combines surrogate-assisted MOPSO with horizon-specific stress testing and regret analysis. Its Bari case reports erosion of positive-energy safety margins and worst-case regret approaching 0.6 by 2090. This is a case-specific result, not a universal building performance claim.
+- Bala et al., *Climate-resilient urban housing in sub-Saharan Africa: A decision support framework integrating cultural behavior modeling with multi-objective optimization*, Urban Climate, June 2026, DOI 10.1016/j.uclim.2026.102907. It is a useful method reference for culturally calibrated stochastic occupancy in a Sub-Saharan housing case; its numerical results should not be transferred to other regions without reproduction.
+
+**Implication:** optimizing one present-day TMY and adding a sensitivity chart is no longer a strong research baseline. HoloFrac must compare scenario-specific frontiers, their persistence/overlap, universally feasible candidates, robust worst-case frontiers and regret under matched solver budgets.
+
+The initial HoloFrac climate executable is a synthetic metric/contract fixture only. It has not reproduced any of these papers, and its analytical scenario weights are not probabilities. The next high-value study should reproduce one rights-cleared published case using its exact weather/scenario files, functional unit, candidate variables, constraints and solver settings. Compare present-TMY-only optimization, independent optimization per scenario, union/intersection frontiers, maximin robust design and minimax regret; add expected-utility selection only if scenario probabilities are independently justified.
+
