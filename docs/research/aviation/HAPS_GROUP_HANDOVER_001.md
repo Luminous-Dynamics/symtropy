@@ -34,8 +34,8 @@ The implementation injects failures at initiation, preparation, execution and co
 
 - [haps_group_handover_case_v1.schema.json](schemas/haps_group_handover_case_v1.schema.json)
 - [synthetic_haps_group_handover_case_v1.json](examples/synthetic_haps_group_handover_case_v1.json)
-- [Standalone Rust checker](../../../../tools/haps-group-handover)
-- [Dedicated GitHub Actions workflow](../../../../.github/workflows/haps-group-handover.yml)
+- [Standalone Rust checker](https://github.com/Luminous-Dynamics/symtropy/tree/research/haps-group-handover-20261118/tools/haps-group-handover)
+- [Dedicated GitHub Actions workflow](https://github.com/Luminous-Dynamics/symtropy/blob/research/haps-group-handover-20261118/.github/workflows/haps-group-handover.yml)
 
 The fixture has three synthetic cohorts:
 - Drone control: 12 safety-critical users, 100 kbps/user, 100 ms handover deadline, stateful, local-safe-mode fallback.
@@ -85,7 +85,7 @@ Research targets, not achievements:
 
 ## 6. Validation and claim ceiling
 
-The checked-in synthetic fixture was independently replayed and all five expected cohort/aggregate receipts matched. The standalone Rust crate has 12 authored unit tests for admission, tie-break, backhaul failure, execution rollback, lost acknowledgement, deadline overrun, fallback, idempotency, accounting and authority partition. These tests have **not** been executed locally; the dedicated workflow must establish formatting, Clippy, compilation and test results.
+The checked-in synthetic fixture was independently replayed and all five expected cohort/aggregate receipts matched. The schema required-field subset, source/target identity, synthetic evidence ceiling, Cargo manifest/lock dependency pins and CLI/workflow path were also checked structurally. The standalone Rust crate has 12 authored unit tests for admission, tie-break, backhaul failure, execution rollback, lost acknowledgement, deadline overrun, fallback, idempotency, accounting and authority partition. These tests have **not** been executed locally; the dedicated workflow must establish formatting, Clippy, compilation and test results.
 
 No full JSON Schema validator, RF/SINR model, packet simulator, mobility model, stochastic or Semi-Markov distribution, live subscriber trace, spectrum authorization, live radio service, drone command authority, flight test or operating permission is included.
 
