@@ -1185,6 +1185,7 @@ mod tests {
             source_schema_release: "IFC4X3_ADD2".into(),
             ids_spec_sha256: digest('d'),
             ids_version: "1.0".into(),
+            ids_engine_build_sha256: digest('9'),
             design_revision_sha256: digest('b'),
             frame_id: "site-frame".into(),
             frame_sha256: digest('c'),
