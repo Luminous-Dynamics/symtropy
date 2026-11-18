@@ -1365,10 +1365,6 @@ fn ensure_attempt_is_awaiting_measurement(
 }
 
 
-fn intervals_overlap(first_start: u64, first_end: u64, second_start: u64, second_end: u64) -> bool {
-    first_start < second_end && second_start < first_end
-}
-
 fn validate_space_time_reservation(
     ledger: &SiteStateLedger,
     reservation: &SpaceTimeReservation,
@@ -2997,6 +2993,65 @@ mod tests {
             .space_time_reservation("reservation-1")
             .unwrap()
             .is_active());
+    }
+
+
+    #[test]
+    fn indexed_conflict_decisions_match_brute_force_oracle_over_generated_windows() {
+        let mut ledger = SiteStateLedger::new();
+        publish_package(&mut ledger, package('a', &["point-1"]));
+        publish_exclusive_resource_catalog(&mut ledger);
+        let mut seed = 0x51_7e_2026_u64;
+
+        for index in 0..256_u64 {
+            seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+            let start_tick = 120 + (seed % 300);
+            seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+            let duration = 1 + (seed % 24);
+            let end_tick = start_tick + duration;
+
+            let expected_conflict = ledger.active_space_time_reservations().any(|record| {
+                record.reservation.claims.iter().any(|claim| {
+                    claim.resource_id == "crane-zone-1"
+                        && claim.start_tick < end_tick
+                        && start_tick < claim.end_tick
+                })
+            });
+            let reservation = reservation_for(
+                &ledger,
+                &format!("generated-{index:03}"),
+                start_tick,
+                end_tick,
+                100,
+                90,
+                450,
+            );
+            let result = commit_reservation_event(
+                &mut ledger,
+                reservation,
+                &format!("generated-event-{index:03}"),
+                char::from_digit((index % 15 + 1) as u32, 16).unwrap(),
+            );
+            assert_eq!(
+                matches!(result, Err(SiteLedgerError::SpaceTimeReservationConflict { .. })),
+                expected_conflict,
+                "indexed-vs-brute-force conflict result diverged at generated case {index}"
+            );
+            if !expected_conflict {
+                assert_eq!(result, Ok(SiteApplyOutcome::Applied));
+            }
+
+            let projection_claim_count: usize = ledger
+                .active_space_time_reservations()
+                .map(|record| record.reservation.claims.len())
+                .sum();
+            assert_eq!(
+                ledger.active_resource_claim_count(),
+                projection_claim_count,
+                "active interval index count diverged from reservation projection"
+            );
+            assert_eq!(ledger.active_resource_count(), usize::from(projection_claim_count > 0));
+        }
     }
 
 }
