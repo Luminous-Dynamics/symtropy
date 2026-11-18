@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminousdynamics:aero:haps-fleet-rotation-capacity:v1",
+  "title": "HAPS fleet rotation capacity lower-bound case v1",
+  "description": "Idealized capacity lower bound for a recurring HAPS fleet rotation with explicit on-station service interval and sequential recovery/refurbishment/relaunch turnaround components. It is not a schedule feasibility, weather, reliability or maintenance-duration estimator.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "revision",
+    "evidence_class",
+    "claim_ceiling",
+    "required_service_units",
+    "scenarios",
+    "source_evidence_refs",
+    "assumptions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "haps-fleet-rotation-capacity/v1"
+    },
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,95}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_rotation_capacity_lower_bound"
+    },
+    "required_service_units": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "scenario_label",
+          "service_active_days",
+          "turnaround_components_days",
+          "expected_oracle"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]{2,95}$"
+          },
+          "scenario_label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "service_active_days": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "turnaround_components_days": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "recovery_and_decommission_days",
+              "transport_to_depot_days",
+              "inspection_and_disassembly_days",
+              "repair_and_refurbishment_days",
+              "replenishment_days",
+              "launch_preparation_days",
+              "transit_to_service_area_days"
+            ],
+            "properties": {
+              "recovery_and_decommission_days": {
+                "type": "number",
+                "minimum": 0
+              },
+              "transport_to_depot_days": {
+                "type": "number",
+                "minimum": 0
+              },
+              "inspection_and_disassembly_days": {
+                "type": "number",
+                "minimum": 0
+              },
+              "repair_and_refurbishment_days": {
+                "type": "number",
+                "minimum": 0
+              },
+              "replenishment_days": {
+                "type": "number",
+                "minimum": 0
+              },
+              "launch_preparation_days": {
+                "type": "number",
+                "minimum": 0
+              },
+              "transit_to_service_area_days": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          },
+          "expected_oracle": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "total_turnaround_days",
+              "cycle_days",
+              "service_duty_fraction",
+              "minimum_total_platforms_lower_bound",
+              "minimum_reserve_platforms_lower_bound",
+              "aggregate_active_service_capacity_units",
+              "surplus_active_capacity_units"
+            ],
+            "properties": {
+              "total_turnaround_days": {
+                "type": "number",
+                "minimum": 0
+              },
+              "cycle_days": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "service_duty_fraction": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 1
+              },
+              "minimum_total_platforms_lower_bound": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "minimum_reserve_platforms_lower_bound": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "aggregate_active_service_capacity_units": {
+                "type": "number",
+                "minimum": 0
+              },
+              "surplus_active_capacity_units": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "source_evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "uniqueItems": true
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  },
+  "$comment": "Analytical lower bound only. Assumes identical aircraft, one service-capacity unit per aircraft, deterministic periodic service/turnaround cycle, non-overlapping turnaround components, perfect phase staggering, no common-cause events, no failures during active service, no spares themselves failing, and unlimited launch/recovery/maintenance capacity. The integer fleet lower bound is ceil(required_service_units / service_duty_fraction). It does not prove a realizable schedule or zero service outage; separate event-schedule and stochastic reliability qualification is required."
+}
