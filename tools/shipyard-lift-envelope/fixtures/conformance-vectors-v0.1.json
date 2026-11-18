@@ -349,6 +349,15 @@
       ],
       "assertion": "A one-mN shortfall below conservative leg tension is rejected.",
       "synthetic_only": true
+    },
+    {
+      "id": "LEV-META-005",
+      "mode": "metamorphic",
+      "test_name": "duplicate_leg_id_permutations_preserve_canonical_input_and_result_bytes",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Input and report canonical bytes remain stable when invalid duplicate rigging leg identities with different metadata are permuted.",
+      "synthetic_only": true
     }
   ]
 }
