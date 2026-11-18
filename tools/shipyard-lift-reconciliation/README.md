@@ -47,13 +47,14 @@ V0.1 channels:
 - overload-alarm active/inactive state;
 - hoist state.
 
-Each event binds a source ID/revision, sequence number, event tick, receipt tick, declared clock domain and calibration/source evidence.
+Each event binds a source ID/revision, sequence, source clock domain, exact source-to-yard mapping ID/revision, closed mapped event-time uncertainty interval, target-clock receipt tick, calibration/source evidence and clock-mapping evidence. A point timestamp is not inferred from an interval.
 
 ### Coverage statements
 
 Every required channel has exactly one source-owned coverage statement with:
 - exact source ID/revision;
 - first sequence and exclusive next sequence;
+- target clock-domain ID;
 - covered start/end ticks;
 - a complete/incomplete assertion;
 - source evidence valid over the complete execution interval.
@@ -77,7 +78,7 @@ A complete execution with no alarms is not established by the absence of alarm r
 - `ReconciliationPolicy::canonical_json()` pins required channels and timing limits.
 - `ReconciliationReport::canonical_json()` emits deterministic result bytes and echoes the plan, preflight, authorisation, policy, event-ledger and coverage-bundle digests.
 
-The caller computes SHA-256 over the canonical event ledger and coverage bundle, supplies those digests in the execution binding, and hashes the canonical report bytes after reconciliation. The crate checks SHA-256 lexical shape only; it does not perform signature verification or cryptographic source authentication.
+The caller computes SHA-256 over the canonical policy payload, event ledger and coverage bundle, supplies those digests in the execution binding, and hashes the canonical report bytes after reconciliation. The mapped-time interval bounds are retained in canonical event bytes, so a changed clock map or uncertainty interval changes the evidence digest. The crate checks SHA-256 lexical shape only; it does not perform signature verification or cryptographic source authentication.
 
 ## Fail-closed cases covered
 
@@ -89,12 +90,23 @@ The synthetic suite covers:
 - exact event retransmission vs conflicting event identity/sequence;
 - wrong source stream trying to fill another stream's coverage;
 - stale/revoked/mismatched sensor calibration and clock-domain mismatch;
-- event-time regression, out-of-window events and excessive ingestion lateness;
+- source/target clock-map mismatch, mapping-revision mismatch, overlapping mapped-time uncertainty, out-of-window intervals and conservative ingestion lateness;
 - leading/inter-sample/trailing sample gaps and exact gap-boundary behavior;
 - load/gust equality vs one-unit-over deviations;
 - crane configuration, motion and occupancy deviations;
 - active overload alarm and incomplete/aborted sessions;
 - permitted transport reordering with stable canonical event, coverage and result bytes.
+
+## Machine-readable contracts and conformance
+
+The public JSON contracts live in `schemas/`:
+- `telemetry-event-v0.1.schema.json` — event IDs, source revisions, mapped-time uncertainty, clock mapping, calibration evidence and tagged observation channel;
+- `stream-coverage-v0.1.schema.json` — channel/source identity, sequence interval, target clock domain and coverage attestation;
+- `reconciliation-policy-v0.1.schema.json` — required channels and timing policies;
+- `reconciliation-report-v0.1.schema.json` — final disposition, full execution/authority/configuration context, raw input digests, unknown intervals and diagnostics;
+- `conformance-vectors-v0.1.schema.json` — frozen vector envelope.
+
+The 42 synthetic vectors are in `fixtures/conformance-vectors-v0.1.json`; each maps to a named Rust test. A Rust test verifies all vector IDs/test names are present, and the exact-head workflow checks unique IDs, unique test names, schema anchors and that each mapped test exists in source. Schema shape validation does not authenticate evidence or establish that sensors are physically true.
 
 ## Build and test
 
@@ -108,7 +120,7 @@ cargo clippy --locked --offline --manifest-path tools/shipyard-lift-reconciliati
 cargo run --locked --offline --manifest-path tools/shipyard-lift-reconciliation/Cargo.toml --example synthetic_reconciliation -- --emit-inputs
 ```
 
-The current environment has no Rust/Cargo toolchain. Tests and the synthetic example are authored but not compiled or executed here. The exact-head workflow is the next execution gate.
+The current unit suite contains 42 deterministic tests (plus a fixture-to-test mapping test). The current authoring environment has no Rust/Cargo toolchain; formatting, compilation, tests and Clippy are not claimed as passing. The dedicated exact-head workflow is the execution gate.
 
 ## Industry and standards comparison
 
