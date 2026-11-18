@@ -1185,7 +1185,7 @@ impl PreflightDependencies {
                 .iter()
                 .find(|dependency| {
                     dependency.source_record_id == *source_record_id
-                        && dependency.state != *new_state
+
                 })
                 .map(|dependency| InvalidationMatch {
                     reason: InvalidationReason::EvidenceStateChanged,
@@ -1336,7 +1336,7 @@ impl PreflightReceipt {
         if !nonblank(evaluator_revision) {
             return Err(ReceiptError::EvaluatorRevisionEmpty);
         }
-        if evaluate(plan) != *report {
+        if &evaluate(plan) != report {
             return Err(ReceiptError::EvaluatedReportDoesNotMatchPlan);
         }
         if issued_at_tick >= plan.end_tick {
@@ -2097,10 +2097,10 @@ mod tests {
         let plan = baseline();
         let receipt = synthetic_receipt(&plan);
         let json = receipt.canonical_json();
-        assert!(json.starts_with("{\\"receipt_contract_version\\":\\"shipyard-lift-preflight-receipt-v0\\""));
-        assert!(json.contains("\\"evidence_dependencies\\":["));
-        assert!(json.contains("\\"subject_dependencies\\":["));
-        assert!(json.contains("\\"kind\\":\\"crane_configuration\\""));
+        assert!(json.starts_with(r#"{"receipt_contract_version":"shipyard-lift-preflight-receipt-v0""#));
+        assert!(json.contains(r#""evidence_dependencies":["#));
+        assert!(json.contains(r#""subject_dependencies":["#));
+        assert!(json.contains(r#""kind":"crane_configuration""#));
     }
 
     #[test]
