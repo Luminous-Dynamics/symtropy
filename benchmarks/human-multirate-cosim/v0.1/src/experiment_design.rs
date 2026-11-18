@@ -843,6 +843,29 @@ mod tests {
     }
 
     #[test]
+    fn exact_pulse_grid_finds_the_known_best_feasible_profile() {
+        let problem = scenario();
+        let catalogue = enumerate_single_node_pulses(
+            &problem,
+            &[0, 1, 2],
+            &[-1.0, -0.5, 0.5, 1.0],
+            &[0.25, 0.5, 1.0],
+            100,
+        )
+        .unwrap();
+        assert_eq!(catalogue.profiles.len(), 30);
+        assert_eq!(catalogue.rejected.len(), 6);
+
+        let tournament =
+            evaluate_input_tournament(&problem, &catalogue.profiles, &[30]).unwrap();
+        let best = tournament.best_worst_case.unwrap();
+        assert_eq!(best.profile_id, 101);
+        assert_eq!(best.selected_sensor_ids, vec![30]);
+        assert!((best.minimum_pairwise_gaussian_kl - 0.3344981676303682).abs() < 1.0e-9);
+        assert!((best.integrated_squared_input - 0.5).abs() < 1.0e-12);
+    }
+
+    #[test]
     fn pulse_grid_rejects_duplicate_and_out_of_range_candidates() {
         let problem = scenario();
         assert_eq!(
