@@ -72,11 +72,23 @@ jq -e '
     and ([.quality_samples[].sample_id] | length == (unique | length))
     and all($r.stage_events[];
       . as $event
-      | all($event.input_stream_ids[];
+      | ($event.started_at < $event.completed_at)
+        and all($event.input_stream_ids[];
           . as $id | any($r.material_streams[]; .stream_id == $id))
         and all($event.output_stream_ids[];
           . as $id | any($r.material_streams[];
             .stream_id == $id and .created_by_event_id == $event.event_id))
+        and all($event.output_stream_ids[];
+          . as $id
+          | ($r.material_streams | map(select(.stream_id == $id)) | .[0].parent_stream_ids) as $parents
+          | ($parents | sort) == ($event.input_stream_ids | sort))
+        and all($event.input_stream_ids[];
+          . as $id
+          | ($r.material_streams | map(select(.stream_id == $id)) | .[0].created_by_event_id) as $parent_event_id
+          | ($r.stage_events | map(.event_id) | index($parent_event_id))
+             < ($r.stage_events | map(.event_id) | index($event.event_id))
+          and (($r.stage_events | map(select(.event_id == $parent_event_id)) | .[0].completed_at)
+               <= $event.started_at))
         and any($r.artifacts[]; .artifact_id == $event.settings_artifact_id))
     and all($r.material_streams[];
       . as $stream
@@ -90,6 +102,8 @@ jq -e '
           | ($r.material_streams | map(select(.stream_id == $parent)) | .[0].created_by_event_id) as $parent_event
           | ($r.stage_events | map(.event_id) | index($parent_event))
              < ($r.stage_events | map(.event_id) | index($stream.created_by_event_id)))
+        and all([$stream.composition_artifact_id,$stream.psd_artifact_id][];
+          . == null or any($r.artifacts[]; .artifact_id == .))
     )
 ' "$run_path" >/dev/null || fail "stage/stream lineage or event references invalid"
 
