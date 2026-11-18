@@ -5,7 +5,7 @@
     "manifest": {
       "contract_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "world_model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      "model_profile_sha256": "47c1f7f44e83a22bebebe43f92bec4fdf72f425205783ea93f08ae28e953d280",
+      "model_profile_sha256": "1f7fdf3ac9240059798ca3c39c83695cbd767284d9ed2323ce5f6cd2144b8a27",
       "world_recipe_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "clock_profile_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "time_origin_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
@@ -35,12 +35,14 @@
           {
             "action_id": "measure-combined-signal",
             "description": "Measure the combined categorical signal through the current sensor state.",
-            "target": "observation_channel"
+            "target": "observation_channel",
+            "cost_units": 1
           },
           {
             "action_id": "calibrate-sensor",
             "description": "Calibrate the sensor channel. In this declared profile this changes sensor state, not the underlying process state.",
-            "target": "sensor"
+            "target": "sensor",
+            "cost_units": 1
           }
         ],
         "observations": [
