@@ -1,0 +1,81 @@
+{
+  "fixture_bundle_id": "kitchen-outcome-accounting-v1",
+  "status": "synthetic_arithmetic_and_evidence_cases_only",
+  "cases": [
+    {
+      "case_id": "complete-claim-eligible-meal",
+      "expected_disposition": "complete_claim_eligible",
+      "description": "All expected mass/water/electricity terms observed with claim-permitting evidence; accepted output, yield and servings reconcile."
+    },
+    {
+      "case_id": "unknown-water-is-not-zero",
+      "expected_disposition": "indeterminate",
+      "description": "One required water stage is unknown; no total water or per-serving water figure is emitted."
+    },
+    {
+      "case_id": "missing-mass-term",
+      "expected_disposition": "indeterminate",
+      "description": "One preregistered mass flow is omitted; totals and mass closure are withheld."
+    },
+    {
+      "case_id": "not-applicable-with-justification",
+      "expected_disposition": "complete_claim_eligible",
+      "description": "A stage explicitly not applicable with a reason is excluded from the total and recorded."
+    },
+    {
+      "case_id": "not-applicable-without-justification",
+      "expected_disposition": "blocked",
+      "description": "An empty not-applicable justification is invalid."
+    },
+    {
+      "case_id": "simulated-energy-is-exploratory",
+      "expected_disposition": "complete_exploratory",
+      "description": "The arithmetic is complete but simulated evidence prevents a claim-eligible result."
+    },
+    {
+      "case_id": "outputs-exceed-inputs",
+      "expected_disposition": "blocked",
+      "description": "Accounted output mass is greater than total input mass."
+    },
+    {
+      "case_id": "mass-category-direction-mismatch",
+      "expected_disposition": "blocked",
+      "description": "A category declared as accepted edible output is incorrectly marked as an input."
+    },
+    {
+      "case_id": "duplicate-flow-id-or-stage",
+      "expected_disposition": "blocked",
+      "description": "Duplicate term IDs or duplicate water/electricity stages are rejected."
+    },
+    {
+      "case_id": "measured-without-calibration",
+      "expected_disposition": "blocked",
+      "description": "Measured evidence without a calibration reference cannot qualify the receipt."
+    },
+    {
+      "case_id": "rejected-batch-zero-servings",
+      "expected_disposition": "complete_exploratory",
+      "description": "An explicitly measured zero accepted mass with zero accepted servings is retained; no per-serving ratios are emitted."
+    },
+    {
+      "case_id": "positive-serving-with-zero-accepted-mass",
+      "expected_disposition": "blocked",
+      "description": "A positive accepted serving count cannot be paired with zero accepted edible mass."
+    },
+    {
+      "case_id": "mass-ratio-overflow",
+      "expected_disposition": "indeterminate",
+      "description": "An overflow while computing mass-balance parts per million is reported; no wrapped ratio is emitted."
+    },
+    {
+      "case_id": "evidence-refs-are-replayable",
+      "expected_disposition": "complete_claim_eligible",
+      "description": "Accounting report includes sorted and deduplicated evidence source, method and calibration references used by its observed terms."
+    },
+    {
+      "case_id": "integer-outside-json-safe-range",
+      "expected_disposition": "indeterminate",
+      "description": "Input quantity or aggregate outside the exact JSON integer bound is rejected as indeterminate; no rounded or wrapped total is emitted."
+    }
+  ]
+}
