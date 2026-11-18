@@ -146,7 +146,10 @@ Each task now has:
 
 The scheduler performs non-preemptive, deterministic list scheduling across **all events in the case**, subject to precedence and resource capacity. Independent activities can overlap. When a crew or tool is unavailable, the next task is moved to the earliest feasible time slot. The reported event restoration time is the last scheduled task completion minus the event start; it is not the sum of all task durations.
 
-This is a transparent greedy baseline:
+This is a transparent greedy baseline. The semantic validator also enforces stage-specific engineering precedence: diagnosis follows detection/isolation; parts sourcing and crew mobilisation follow diagnosis; transport follows parts sourcing; repair waits for the required part, transport (for depot stock) and crew; commissioning follows repair.
+
+The CLI emits a machine-readable JSON schedule report with task intervals, event restoration spans, firm shortfall and calculated unserved energy. It labels itself as a heuristic and does not claim optimality.
+
 1. Find tasks whose predecessors have completed.
 2. Calculate each task's earliest precedence-ready time.
 3. Find the earliest interval where its required resource capacity is available.
@@ -174,6 +177,7 @@ Use standard resource-constrained project scheduling corpora such as PSPLIB and 
 
 Report:
 - feasibility rate and zero false acceptance on adversarial cases;
+- event/task interval output, resource waiting time and restored-service critical path;
 - makespan gap to proven optimum / best-known bound where available;
 - lower bound, upper bound and optimality gap separately;
 - p50/p95 runtime, memory, scaling, solver status and determinism;
