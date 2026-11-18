@@ -1,0 +1,1071 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "wdn-active-observability-t0-oracle-v0.1",
+  "benchmark_id": "WDN-ACTIVE-OBSERVABILITY-T0-001",
+  "cases": [
+    {
+      "case_id": "ACTOBS-T0-001-safe-temporary-sensor-separates-four",
+      "passive_max_clique_size": 4,
+      "passive_maximum_ambiguity_sets": [
+        [
+          "LEAK-A",
+          "LEAK-B",
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "passive_indistinguishability_edges": [
+        [
+          "LEAK-A",
+          "LEAK-B"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "feasible_probe_count": 1,
+      "option_count": 1,
+      "options": [
+        {
+          "sequence": [
+            "TEMP-PRESSURE-1"
+          ],
+          "feasible": true,
+          "reason_codes": [],
+          "post_max_clique_size": 1,
+          "worst_case_reduction": 3,
+          "estimated_duration_seconds": 300,
+          "ambiguity_sets_after": [
+            [
+              "LEAK-A"
+            ],
+            [
+              "LEAK-B"
+            ],
+            [
+              "LEAK-C"
+            ],
+            [
+              "LEAK-D"
+            ]
+          ],
+          "indistinguishability_edges_after": []
+        }
+      ],
+      "decision_status": "counterfactual_probe_sequence_recommended",
+      "recommended_sequence": [
+        "TEMP-PRESSURE-1"
+      ],
+      "recommended_post_max_clique_size": 1,
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "execution_authorized": false,
+      "probability_interpretation": "none_unweighted_interval_compatibility",
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "ACTOBS-T0-002-manual-observation-reduces-to-two",
+      "passive_max_clique_size": 4,
+      "passive_maximum_ambiguity_sets": [
+        [
+          "LEAK-A",
+          "LEAK-B",
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "passive_indistinguishability_edges": [
+        [
+          "LEAK-A",
+          "LEAK-B"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "feasible_probe_count": 1,
+      "option_count": 1,
+      "options": [
+        {
+          "sequence": [
+            "MANUAL-ACOUSTIC-1"
+          ],
+          "feasible": true,
+          "reason_codes": [],
+          "post_max_clique_size": 2,
+          "worst_case_reduction": 2,
+          "estimated_duration_seconds": 300,
+          "ambiguity_sets_after": [
+            [
+              "LEAK-A",
+              "LEAK-B"
+            ],
+            [
+              "LEAK-C",
+              "LEAK-D"
+            ]
+          ],
+          "indistinguishability_edges_after": [
+            [
+              "LEAK-A",
+              "LEAK-B"
+            ],
+            [
+              "LEAK-C",
+              "LEAK-D"
+            ]
+          ]
+        }
+      ],
+      "decision_status": "counterfactual_probe_sequence_recommended",
+      "recommended_sequence": [
+        "MANUAL-ACOUSTIC-1"
+      ],
+      "recommended_post_max_clique_size": 2,
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "execution_authorized": false,
+      "probability_interpretation": "none_unweighted_interval_compatibility",
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "ACTOBS-T0-003-valve-probe-pressure-floor-failure",
+      "passive_max_clique_size": 4,
+      "passive_maximum_ambiguity_sets": [
+        [
+          "LEAK-A",
+          "LEAK-B",
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "passive_indistinguishability_edges": [
+        [
+          "LEAK-A",
+          "LEAK-B"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "feasible_probe_count": 0,
+      "option_count": 1,
+      "options": [
+        {
+          "sequence": [
+            "VALVE-PROBE-LOW-PRESSURE"
+          ],
+          "feasible": false,
+          "reason_codes": [
+            "pressure_floor_margin_insufficient"
+          ],
+          "post_max_clique_size": null,
+          "worst_case_reduction": null,
+          "estimated_duration_seconds": 300,
+          "ambiguity_sets_after": [],
+          "indistinguishability_edges_after": []
+        }
+      ],
+      "decision_status": "abstain_no_feasible_probe",
+      "recommended_sequence": null,
+      "recommended_post_max_clique_size": null,
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "execution_authorized": false,
+      "probability_interpretation": "none_unweighted_interval_compatibility",
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "ACTOBS-T0-004-valve-probe-fire-flow-failure",
+      "passive_max_clique_size": 4,
+      "passive_maximum_ambiguity_sets": [
+        [
+          "LEAK-A",
+          "LEAK-B",
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "passive_indistinguishability_edges": [
+        [
+          "LEAK-A",
+          "LEAK-B"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "feasible_probe_count": 0,
+      "option_count": 1,
+      "options": [
+        {
+          "sequence": [
+            "VALVE-PROBE-LOW-FIRE-FLOW"
+          ],
+          "feasible": false,
+          "reason_codes": [
+            "fire_flow_reserve_insufficient"
+          ],
+          "post_max_clique_size": null,
+          "worst_case_reduction": null,
+          "estimated_duration_seconds": 300,
+          "ambiguity_sets_after": [],
+          "indistinguishability_edges_after": []
+        }
+      ],
+      "decision_status": "abstain_no_feasible_probe",
+      "recommended_sequence": null,
+      "recommended_post_max_clique_size": null,
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "execution_authorized": false,
+      "probability_interpretation": "none_unweighted_interval_compatibility",
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "ACTOBS-T0-005-valve-probe-transient-failure",
+      "passive_max_clique_size": 4,
+      "passive_maximum_ambiguity_sets": [
+        [
+          "LEAK-A",
+          "LEAK-B",
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "passive_indistinguishability_edges": [
+        [
+          "LEAK-A",
+          "LEAK-B"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "feasible_probe_count": 0,
+      "option_count": 1,
+      "options": [
+        {
+          "sequence": [
+            "VALVE-PROBE-TRANSIENT"
+          ],
+          "feasible": false,
+          "reason_codes": [
+            "maximum_transient_exceeded"
+          ],
+          "post_max_clique_size": null,
+          "worst_case_reduction": null,
+          "estimated_duration_seconds": 300,
+          "ambiguity_sets_after": [],
+          "indistinguishability_edges_after": []
+        }
+      ],
+      "decision_status": "abstain_no_feasible_probe",
+      "recommended_sequence": null,
+      "recommended_post_max_clique_size": null,
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "execution_authorized": false,
+      "probability_interpretation": "none_unweighted_interval_compatibility",
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "ACTOBS-T0-006-valve-identity-unverified",
+      "passive_max_clique_size": 4,
+      "passive_maximum_ambiguity_sets": [
+        [
+          "LEAK-A",
+          "LEAK-B",
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "passive_indistinguishability_edges": [
+        [
+          "LEAK-A",
+          "LEAK-B"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "feasible_probe_count": 0,
+      "option_count": 1,
+      "options": [
+        {
+          "sequence": [
+            "VALVE-PROBE-UNKNOWN-IDENTITY"
+          ],
+          "feasible": false,
+          "reason_codes": [
+            "valve_identity_unverified"
+          ],
+          "post_max_clique_size": null,
+          "worst_case_reduction": null,
+          "estimated_duration_seconds": 300,
+          "ambiguity_sets_after": [],
+          "indistinguishability_edges_after": []
+        }
+      ],
+      "decision_status": "abstain_no_feasible_probe",
+      "recommended_sequence": null,
+      "recommended_post_max_clique_size": null,
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "execution_authorized": false,
+      "probability_interpretation": "none_unweighted_interval_compatibility",
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "ACTOBS-T0-007-stale-hydraulic-model-and-topology",
+      "passive_max_clique_size": 4,
+      "passive_maximum_ambiguity_sets": [
+        [
+          "LEAK-A",
+          "LEAK-B",
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "passive_indistinguishability_edges": [
+        [
+          "LEAK-A",
+          "LEAK-B"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "feasible_probe_count": 0,
+      "option_count": 1,
+      "options": [
+        {
+          "sequence": [
+            "VALVE-PROBE-STALE-MODEL"
+          ],
+          "feasible": false,
+          "reason_codes": [
+            "hydraulic_model_stale",
+            "topology_stale"
+          ],
+          "post_max_clique_size": null,
+          "worst_case_reduction": null,
+          "estimated_duration_seconds": 300,
+          "ambiguity_sets_after": [],
+          "indistinguishability_edges_after": []
+        }
+      ],
+      "decision_status": "abstain_no_feasible_probe",
+      "recommended_sequence": null,
+      "recommended_post_max_clique_size": null,
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "execution_authorized": false,
+      "probability_interpretation": "none_unweighted_interval_compatibility",
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "ACTOBS-T0-008-invalid-telemetry-time-and-calibration",
+      "passive_max_clique_size": 4,
+      "passive_maximum_ambiguity_sets": [
+        [
+          "LEAK-A",
+          "LEAK-B",
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "passive_indistinguishability_edges": [
+        [
+          "LEAK-A",
+          "LEAK-B"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "feasible_probe_count": 0,
+      "option_count": 1,
+      "options": [
+        {
+          "sequence": [
+            "VALVE-PROBE-BAD-TIME-CAL"
+          ],
+          "feasible": false,
+          "reason_codes": [
+            "calibration_stale",
+            "telemetry_time_invalid"
+          ],
+          "post_max_clique_size": null,
+          "worst_case_reduction": null,
+          "estimated_duration_seconds": 300,
+          "ambiguity_sets_after": [],
+          "indistinguishability_edges_after": []
+        }
+      ],
+      "decision_status": "abstain_no_feasible_probe",
+      "recommended_sequence": null,
+      "recommended_post_max_clique_size": null,
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "execution_authorized": false,
+      "probability_interpretation": "none_unweighted_interval_compatibility",
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "ACTOBS-T0-009-safe-probe-with-overlapping-uncertainty",
+      "passive_max_clique_size": 4,
+      "passive_maximum_ambiguity_sets": [
+        [
+          "LEAK-A",
+          "LEAK-B",
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "passive_indistinguishability_edges": [
+        [
+          "LEAK-A",
+          "LEAK-B"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "feasible_probe_count": 1,
+      "option_count": 1,
+      "options": [
+        {
+          "sequence": [
+            "TEMP-PRESSURE-AMBIGUOUS"
+          ],
+          "feasible": true,
+          "reason_codes": [],
+          "post_max_clique_size": 4,
+          "worst_case_reduction": 0,
+          "estimated_duration_seconds": 300,
+          "ambiguity_sets_after": [
+            [
+              "LEAK-A",
+              "LEAK-B",
+              "LEAK-C",
+              "LEAK-D"
+            ]
+          ],
+          "indistinguishability_edges_after": [
+            [
+              "LEAK-A",
+              "LEAK-B"
+            ],
+            [
+              "LEAK-A",
+              "LEAK-C"
+            ],
+            [
+              "LEAK-A",
+              "LEAK-D"
+            ],
+            [
+              "LEAK-B",
+              "LEAK-C"
+            ],
+            [
+              "LEAK-B",
+              "LEAK-D"
+            ],
+            [
+              "LEAK-C",
+              "LEAK-D"
+            ]
+          ]
+        }
+      ],
+      "decision_status": "abstain_no_probe_meets_worst_case_reduction",
+      "recommended_sequence": null,
+      "recommended_post_max_clique_size": null,
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "execution_authorized": false,
+      "probability_interpretation": "none_unweighted_interval_compatibility",
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "ACTOBS-T0-010-weak-probe-below-required-worst-case-reduction",
+      "passive_max_clique_size": 4,
+      "passive_maximum_ambiguity_sets": [
+        [
+          "LEAK-A",
+          "LEAK-B",
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "passive_indistinguishability_edges": [
+        [
+          "LEAK-A",
+          "LEAK-B"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "feasible_probe_count": 1,
+      "option_count": 1,
+      "options": [
+        {
+          "sequence": [
+            "TEMP-PRESSURE-WEAK"
+          ],
+          "feasible": true,
+          "reason_codes": [],
+          "post_max_clique_size": 3,
+          "worst_case_reduction": 1,
+          "estimated_duration_seconds": 900,
+          "ambiguity_sets_after": [
+            [
+              "LEAK-A",
+              "LEAK-B",
+              "LEAK-C"
+            ]
+          ],
+          "indistinguishability_edges_after": [
+            [
+              "LEAK-A",
+              "LEAK-B"
+            ],
+            [
+              "LEAK-A",
+              "LEAK-C"
+            ],
+            [
+              "LEAK-B",
+              "LEAK-C"
+            ]
+          ]
+        }
+      ],
+      "decision_status": "abstain_no_probe_meets_worst_case_reduction",
+      "recommended_sequence": null,
+      "recommended_post_max_clique_size": null,
+      "minimum_worst_case_ambiguity_reduction": 2,
+      "execution_authorized": false,
+      "probability_interpretation": "none_unweighted_interval_compatibility",
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "ACTOBS-T0-011-two-probes-jointly-separate-hypotheses",
+      "passive_max_clique_size": 4,
+      "passive_maximum_ambiguity_sets": [
+        [
+          "LEAK-A",
+          "LEAK-B",
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "passive_indistinguishability_edges": [
+        [
+          "LEAK-A",
+          "LEAK-B"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "feasible_probe_count": 2,
+      "option_count": 3,
+      "options": [
+        {
+          "sequence": [
+            "MANUAL-PROBE-OTHER-AXIS"
+          ],
+          "feasible": true,
+          "reason_codes": [],
+          "post_max_clique_size": 2,
+          "worst_case_reduction": 2,
+          "estimated_duration_seconds": 300,
+          "ambiguity_sets_after": [
+            [
+              "LEAK-A",
+              "LEAK-C"
+            ],
+            [
+              "LEAK-B",
+              "LEAK-D"
+            ]
+          ],
+          "indistinguishability_edges_after": [
+            [
+              "LEAK-A",
+              "LEAK-C"
+            ],
+            [
+              "LEAK-B",
+              "LEAK-D"
+            ]
+          ]
+        },
+        {
+          "sequence": [
+            "MANUAL-PROBE-OTHER-AXIS",
+            "TEMP-PROBE-ONE-AXIS"
+          ],
+          "feasible": true,
+          "reason_codes": [],
+          "post_max_clique_size": 1,
+          "worst_case_reduction": 3,
+          "estimated_duration_seconds": 600,
+          "ambiguity_sets_after": [
+            [
+              "LEAK-A"
+            ],
+            [
+              "LEAK-B"
+            ],
+            [
+              "LEAK-C"
+            ],
+            [
+              "LEAK-D"
+            ]
+          ],
+          "indistinguishability_edges_after": []
+        },
+        {
+          "sequence": [
+            "TEMP-PROBE-ONE-AXIS"
+          ],
+          "feasible": true,
+          "reason_codes": [],
+          "post_max_clique_size": 2,
+          "worst_case_reduction": 2,
+          "estimated_duration_seconds": 300,
+          "ambiguity_sets_after": [
+            [
+              "LEAK-A",
+              "LEAK-B"
+            ],
+            [
+              "LEAK-C",
+              "LEAK-D"
+            ]
+          ],
+          "indistinguishability_edges_after": [
+            [
+              "LEAK-A",
+              "LEAK-B"
+            ],
+            [
+              "LEAK-C",
+              "LEAK-D"
+            ]
+          ]
+        }
+      ],
+      "decision_status": "counterfactual_probe_sequence_recommended",
+      "recommended_sequence": [
+        "MANUAL-PROBE-OTHER-AXIS",
+        "TEMP-PROBE-ONE-AXIS"
+      ],
+      "recommended_post_max_clique_size": 1,
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "execution_authorized": false,
+      "probability_interpretation": "none_unweighted_interval_compatibility",
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "ACTOBS-T0-012-input-order-permutation-invariance",
+      "passive_max_clique_size": 4,
+      "passive_maximum_ambiguity_sets": [
+        [
+          "LEAK-A",
+          "LEAK-B",
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "passive_indistinguishability_edges": [
+        [
+          "LEAK-A",
+          "LEAK-B"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "feasible_probe_count": 1,
+      "option_count": 1,
+      "options": [
+        {
+          "sequence": [
+            "TEMP-PRESSURE-1"
+          ],
+          "feasible": true,
+          "reason_codes": [],
+          "post_max_clique_size": 1,
+          "worst_case_reduction": 3,
+          "estimated_duration_seconds": 300,
+          "ambiguity_sets_after": [
+            [
+              "LEAK-A"
+            ],
+            [
+              "LEAK-B"
+            ],
+            [
+              "LEAK-C"
+            ],
+            [
+              "LEAK-D"
+            ]
+          ],
+          "indistinguishability_edges_after": []
+        }
+      ],
+      "decision_status": "counterfactual_probe_sequence_recommended",
+      "recommended_sequence": [
+        "TEMP-PRESSURE-1"
+      ],
+      "recommended_post_max_clique_size": 1,
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "execution_authorized": false,
+      "probability_interpretation": "none_unweighted_interval_compatibility",
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "ACTOBS-T0-013-operator-authorization-missing",
+      "passive_max_clique_size": 4,
+      "passive_maximum_ambiguity_sets": [
+        [
+          "LEAK-A",
+          "LEAK-B",
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "passive_indistinguishability_edges": [
+        [
+          "LEAK-A",
+          "LEAK-B"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "feasible_probe_count": 0,
+      "option_count": 1,
+      "options": [
+        {
+          "sequence": [
+            "TEMP-PROBE-NO-AUTH"
+          ],
+          "feasible": false,
+          "reason_codes": [
+            "operator_authorization_missing"
+          ],
+          "post_max_clique_size": null,
+          "worst_case_reduction": null,
+          "estimated_duration_seconds": 300,
+          "ambiguity_sets_after": [],
+          "indistinguishability_edges_after": []
+        }
+      ],
+      "decision_status": "abstain_no_feasible_probe",
+      "recommended_sequence": null,
+      "recommended_post_max_clique_size": null,
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "execution_authorized": false,
+      "probability_interpretation": "none_unweighted_interval_compatibility",
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "ACTOBS-T0-014-no-feasible-probe-abstention",
+      "passive_max_clique_size": 4,
+      "passive_maximum_ambiguity_sets": [
+        [
+          "LEAK-A",
+          "LEAK-B",
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "passive_indistinguishability_edges": [
+        [
+          "LEAK-A",
+          "LEAK-B"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-A",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-C"
+        ],
+        [
+          "LEAK-B",
+          "LEAK-D"
+        ],
+        [
+          "LEAK-C",
+          "LEAK-D"
+        ]
+      ],
+      "feasible_probe_count": 0,
+      "option_count": 2,
+      "options": [
+        {
+          "sequence": [
+            "VALVE-PROBE-NO-PERMIT"
+          ],
+          "feasible": false,
+          "reason_codes": [
+            "permit_missing"
+          ],
+          "post_max_clique_size": null,
+          "worst_case_reduction": null,
+          "estimated_duration_seconds": 300,
+          "ambiguity_sets_after": [],
+          "indistinguishability_edges_after": []
+        },
+        {
+          "sequence": [
+            "VALVE-PROBE-NO-ROLLBACK"
+          ],
+          "feasible": false,
+          "reason_codes": [
+            "rollback_not_defined"
+          ],
+          "post_max_clique_size": null,
+          "worst_case_reduction": null,
+          "estimated_duration_seconds": 300,
+          "ambiguity_sets_after": [],
+          "indistinguishability_edges_after": []
+        }
+      ],
+      "decision_status": "abstain_no_feasible_probe",
+      "recommended_sequence": null,
+      "recommended_post_max_clique_size": null,
+      "minimum_worst_case_ambiguity_reduction": 1,
+      "execution_authorized": false,
+      "probability_interpretation": "none_unweighted_interval_compatibility",
+      "claim_eligibility": "NotEligible"
+    }
+  ]
+}

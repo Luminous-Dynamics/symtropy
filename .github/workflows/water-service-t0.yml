@@ -104,6 +104,17 @@ jobs:
             docs/research/water-observability/wdn_observability_survival_frontier_input.schema.v0.1.json \
             docs/research/water-observability/wdn_observability_survival_frontier_oracle.v0.1.json \
             artifacts/water-service-t0/wdn-observability-survival-frontier-t1-receipt.json
+      - name: Evaluate counterfactual active observability T0
+        id: evaluate_active_observability
+        env:
+          WDN_ACTIVE_OBSERVABILITY_T0_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin wdn-active-observability-t0 -- \
+            docs/research/water-observability/wdn_active_observability_t0_input.v0.1.json \
+            docs/research/water-observability/wdn_active_observability_t0_input.schema.v0.1.json \
+            docs/research/water-observability/wdn_active_observability_t0_oracle.v0.1.json \
+            artifacts/water-service-t0/wdn-active-observability-t0-receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -141,6 +152,12 @@ jobs:
             docs/research/water-observability/wdn_observability_survival_frontier_oracle.v0.1.json
             docs/research/water-observability/wdn_observability_survival_frontier_oracle.schema.v0.1.json
             artifacts/water-service-t0/wdn-observability-survival-frontier-t1-receipt.json
+            docs/research/water-observability/WDN_ACTIVE_OBSERVABILITY_T0_PROTOCOL_V0_1.md
+            docs/research/water-observability/wdn_active_observability_t0_input.v0.1.json
+            docs/research/water-observability/wdn_active_observability_t0_input.schema.v0.1.json
+            docs/research/water-observability/wdn_active_observability_t0_oracle.v0.1.json
+            docs/research/water-observability/wdn_active_observability_t0_oracle.schema.v0.1.json
+            artifacts/water-service-t0/wdn-active-observability-t0-receipt.json
           if-no-files-found: warn
       - name: Set up Python for observability schema validation
         uses: actions/setup-python@v5
@@ -227,6 +244,39 @@ jobs:
           if frontier["max_failure_order"] != 2 or frontier["evidence_class"] != "synthetic_only":
               raise SystemExit("WDN_SURVIVAL_FRONTIER_CLAIM_CEILING_FAIL")
           print("WDN_SURVIVAL_FRONTIER_SCHEMA_PASS: 12 layouts; exact order 0..2 combinations; no probabilities")
+
+          active_schema = json.loads((root / "wdn_active_observability_t0_input.schema.v0.1.json").read_text())
+          active_input = json.loads((root / "wdn_active_observability_t0_input.v0.1.json").read_text())
+          active_oracle_schema = json.loads((root / "wdn_active_observability_t0_oracle.schema.v0.1.json").read_text())
+          active_oracle = json.loads((root / "wdn_active_observability_t0_oracle.v0.1.json").read_text())
+          for name, schema in [("active_input", active_schema), ("active_oracle", active_oracle_schema)]:
+              Draft202012Validator.check_schema(schema)
+          for name, schema, document in [
+              ("active_input", active_schema, active_input),
+              ("active_oracle", active_oracle_schema, active_oracle),
+          ]:
+              errors = sorted(
+                  Draft202012Validator(schema).iter_errors(document),
+                  key=lambda error: (list(map(str, error.absolute_path)), error.message),
+              )
+              if errors:
+                  for error in errors:
+                      pointer = "/" + "/".join(map(str, error.absolute_path))
+                      print(f"WDN_ACTIVE_OBSERVABILITY_{name.upper()}_SCHEMA_FAIL: {pointer}: {error.message}")
+                  raise SystemExit(1)
+          active_cases = active_input["cases"]
+          active_expected = active_oracle["cases"]
+          if len(active_cases) != 14 or len(active_expected) != 14:
+              raise SystemExit("WDN_ACTIVE_OBSERVABILITY_CASE_COUNT_FAIL")
+          if {x["case_id"] for x in active_cases} != {x["case_id"] for x in active_expected}:
+              raise SystemExit("WDN_ACTIVE_OBSERVABILITY_ORACLE_CASE_SET_FAIL")
+          if active_input["max_hypotheses"] != 8 or active_input["max_sequence_length"] != 2:
+              raise SystemExit("WDN_ACTIVE_OBSERVABILITY_ENUMERATION_CAP_FAIL")
+          if any(x["execution_authorized"] is not False or x["claim_eligibility"] != "NotEligible" for x in active_expected):
+              raise SystemExit("WDN_ACTIVE_OBSERVABILITY_EXECUTION_OR_CLAIM_GUARD_FAIL")
+          if any(x["probability_interpretation"] != "none_unweighted_interval_compatibility" for x in active_expected):
+              raise SystemExit("WDN_ACTIVE_OBSERVABILITY_PROBABILITY_CLAIM_FAIL")
+          print("WDN_ACTIVE_OBSERVABILITY_SCHEMA_PASS: 14 cases; max 8 hypotheses; counterfactual only; no execution")
           PY
       - name: Require an exact successful evaluator receipt
         if: always()
@@ -236,9 +286,11 @@ jobs:
           INTAKE_OUTCOME: ${{ steps.verify_intake_t1.outcome }}
           OBSERVABILITY_OUTCOME: ${{ steps.evaluate_observability.outcome }}
           SURVIVAL_FRONTIER_OUTCOME: ${{ steps.evaluate_survival_frontier.outcome }}
+          ACTIVE_OBSERVABILITY_OUTCOME: ${{ steps.evaluate_active_observability.outcome }}
         run: |
           test "$EVALUATE_OUTCOME" = "success"
           test "$CASCADE_OUTCOME" = "success"
           test "$INTAKE_OUTCOME" = "success"
           test "$OBSERVABILITY_OUTCOME" = "success"
           test "$SURVIVAL_FRONTIER_OUTCOME" = "success"
+          test "$ACTIVE_OBSERVABILITY_OUTCOME" = "success"

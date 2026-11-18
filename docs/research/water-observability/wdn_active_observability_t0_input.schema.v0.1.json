@@ -1,0 +1,273 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WDN active observability T0 input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "max_hypotheses",
+    "max_probes_per_case",
+    "max_sequence_length",
+    "cases"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "wdn-active-observability-t0-input-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WDN-ACTIVE-OBSERVABILITY-T0-001"
+    },
+    "evidence_class": {
+      "const": "synthetic_only"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "max_hypotheses": {
+      "const": 8
+    },
+    "max_probes_per_case": {
+      "const": 4
+    },
+    "max_sequence_length": {
+      "const": 2
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 14,
+      "maxItems": 14,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "minimum_worst_case_ambiguity_reduction",
+          "max_sequence_length",
+          "hypotheses",
+          "passive_observations",
+          "probes"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^ACTOBS-T0-[0-9]{3}-"
+          },
+          "minimum_worst_case_ambiguity_reduction": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 7
+          },
+          "max_sequence_length": {
+            "const": 2
+          },
+          "hypotheses": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "hypothesis_id",
+                "ground_truth_ref"
+              ],
+              "properties": {
+                "hypothesis_id": {
+                  "type": "string"
+                },
+                "ground_truth_ref": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "passive_observations": {
+            "$ref": "#/$defs/observationRows"
+          },
+          "probes": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "probe_id",
+                "kind",
+                "estimated_duration_seconds",
+                "feasibility",
+                "observations"
+              ],
+              "properties": {
+                "probe_id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "temporary_sensor",
+                    "operator_observation",
+                    "simulated_valve_perturbation"
+                  ]
+                },
+                "estimated_duration_seconds": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "feasibility": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "hydraulic_model_current",
+                    "topology_current",
+                    "operating_window_valid",
+                    "telemetry_time_valid",
+                    "calibration_current",
+                    "pressure_floor_margin_kpa",
+                    "required_pressure_margin_kpa",
+                    "fire_flow_margin_lps",
+                    "required_fire_flow_margin_lps",
+                    "maximum_transient_kpa",
+                    "allowed_maximum_transient_kpa",
+                    "quality_hazard_clear",
+                    "isolation_conflict_clear",
+                    "reversible_rollback_defined",
+                    "operator_authorized",
+                    "permit_approved",
+                    "action_timeout_clear",
+                    "valve_identity_verified",
+                    "valve_position_verified"
+                  ],
+                  "properties": {
+                    "hydraulic_model_current": {
+                      "type": "boolean"
+                    },
+                    "topology_current": {
+                      "type": "boolean"
+                    },
+                    "operating_window_valid": {
+                      "type": "boolean"
+                    },
+                    "telemetry_time_valid": {
+                      "type": "boolean"
+                    },
+                    "calibration_current": {
+                      "type": "boolean"
+                    },
+                    "pressure_floor_margin_kpa": {
+                      "type": "number"
+                    },
+                    "required_pressure_margin_kpa": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "fire_flow_margin_lps": {
+                      "type": "number"
+                    },
+                    "required_fire_flow_margin_lps": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "maximum_transient_kpa": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "allowed_maximum_transient_kpa": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "quality_hazard_clear": {
+                      "type": "boolean"
+                    },
+                    "isolation_conflict_clear": {
+                      "type": "boolean"
+                    },
+                    "reversible_rollback_defined": {
+                      "type": "boolean"
+                    },
+                    "operator_authorized": {
+                      "type": "boolean"
+                    },
+                    "permit_approved": {
+                      "type": "boolean"
+                    },
+                    "action_timeout_clear": {
+                      "type": "boolean"
+                    },
+                    "valve_identity_verified": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "valve_position_verified": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "observations": {
+                  "$ref": "#/$defs/observationRows"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "observationRows": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "hypothesis_id",
+          "features"
+        ],
+        "properties": {
+          "hypothesis_id": {
+            "type": "string"
+          },
+          "features": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "feature_id",
+                "lower",
+                "upper"
+              ],
+              "properties": {
+                "feature_id": {
+                  "type": "string"
+                },
+                "lower": {
+                  "type": "number"
+                },
+                "upper": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
