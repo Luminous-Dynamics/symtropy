@@ -43,7 +43,8 @@
       "required": [
         "isolation_axes",
         "partition_order",
-        "blind_test_access"
+        "blind_test_access",
+        "optional_isolation_axes"
       ],
       "properties": {
         "isolation_axes": {
@@ -92,6 +93,16 @@
               }
             }
           }
+        },
+        "optional_isolation_axes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "laboratory_id",
+              "campaign_id"
+            ]
+          }
         }
       }
     },
@@ -115,6 +126,12 @@
           "$ref": "#/$defs/partitionMap"
         },
         "operating_regime_id": {
+          "$ref": "#/$defs/partitionMap"
+        },
+        "laboratory_id": {
+          "$ref": "#/$defs/partitionMap"
+        },
+        "campaign_id": {
           "$ref": "#/$defs/partitionMap"
         }
       }
@@ -193,6 +210,14 @@
           "minLength": 1
         },
         "operating_regime_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "laboratory_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "campaign_id": {
           "type": "string",
           "minLength": 1
         }
