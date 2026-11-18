@@ -22,6 +22,7 @@ pub mod lifecycle;
 pub mod lifecycle_impact;
 pub mod multichannel;
 pub mod partial;
+pub mod composition;
 pub mod pluralistic;
 pub mod privacy_attack;
 pub mod sensor_placement;
