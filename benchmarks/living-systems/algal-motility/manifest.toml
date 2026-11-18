@@ -1,0 +1,102 @@
+schema_version = "living-systems-lineage-benchmark-v0.1"
+benchmark_id = "BIO-ALGAE-MOTILITY-001"
+status = "LITERATURE_ANCHORED_DATA_ADMISSION_PENDING"
+created_utc_date = "2026-11-18"
+issue = "https://github.com/Luminous-Dynamics/symtropy/issues/6096"
+parent_issue = "https://github.com/Luminous-Dynamics/symtropy/issues/5981"
+identity_contract_pr = "https://github.com/Luminous-Dynamics/symtropy/pull/6076"
+crosswalk_contract_pr = "https://github.com/Luminous-Dynamics/symtropy/pull/6088"
+shared_equation_for_all_algae = false
+comparison_policy = "MECHANISM_SPECIFIC_MODELS_SHARED_OBSERVATION_AND_EVIDENCE_CONTRACT"
+
+[benchmark_policy]
+split_unit = "INDEPENDENT_BIOLOGICAL_REPLICATE_OR_COMPLETE_RECORDING"
+no_track_or_frame_split_leakage = true
+unknown_and_ambiguous_modes_are_valid_outcomes = true
+article_license_does_not_imply_dataset_license = true
+taxon_identity_must_include_provider_dataset_release_concept = true
+exact_file_checksums_required_before_admission = true
+
+[diatoms.casp]
+taxon = "Craspedostauros australis"
+lineage = "EUKARYOTA_STRAMENOPILES_BACILLARIOPHYTA"
+movement_mechanism = ["RAPHE_SUBSTRATE_GLIDING", "ACTOMYOSIN_EPS_ADHESION", "ONE_TWO_RAPHE_CONTACT_SWITCHING"]
+primary_reference_doi = "10.1073/pnas.2506122123"
+primary_reference_date = "2026-04-01"
+primary_article_license = "CC-BY-4.0"
+data_doi = "10.5281/zenodo.17791511"
+data_version = "v1"
+data_published = "2026-02-19"
+visible_dataset_file_list_mb = 268.6
+visible_dataset_file_list = ["Figure1.zip", "Figure2.zip", "Figure3.zip", "Figure4.zip", "Figure5.zip", "MSD.zip"]
+dataset_license_status = "NOT_VISIBLE_IN_RETRIEVED_ZENODO_RECORD"
+dataset_admission = "NOT_ADMITTED_PENDING_API_LICENSE_FILE_INVENTORY_AND_CHECKSUM_REVIEW"
+source_contents = ["SINGLE_CELL_TRACKS", "SEM_RAPHE_IMAGES", "SEGMENTED_RAPHES", "RAPHE_CURVATURE", "IRM_CONTACT_TRACKS", "ANALYSIS_NOTEBOOKS", "MATHEMATICA_MODEL"]
+comparators = ["EMPIRICAL_TRACKS", "RAPHE_CONTACT_GEOMETRY_MODEL", "ONE_RAPHE_MODE", "TWO_RAPHE_MODE"]
+metrics = ["SIGNED_PATH_CURVATURE", "CURVATURE_SWITCH_TIME", "CONTACT_MODE_CLASSIFICATION", "ANGULAR_VELOCITY", "SPEED", "STRAIGHTNESS", "TIME_WINDOWED_MSD", "CELL_SIZE_CONDITIONED_CURVATURE"]
+
+[diatoms.multi_species]
+primary_reference_doi = "10.1073/pnas.2426910122"
+primary_article_date = "2025-03-18"
+primary_article_license = "CC-BY-4.0"
+data_doi = "10.5281/zenodo.14751417"
+data_version = "v1"
+data_published = "2025-02-28"
+displayed_file_size_mb = 126.6
+visible_usage_data_volume_gb = 5.7
+dataset_license_status = "NOT_VISIBLE_IN_RETRIEVED_ZENODO_RECORD"
+dataset_admission = "NOT_ADMITTED_PENDING_API_LICENSE_FILE_INVENTORY_AND_CHECKSUM_REVIEW"
+species = ["Cylindrotheca", "Halamphora", "Nitzschia", "Pleurosigma", "Seminavis"]
+published_track_counts = [110, 605, 122, 450, 834]
+movement_mechanism = ["SPECIES_DEPENDENT_RAPHE_GLIDING", "STOCHASTIC_SWITCHING_AMONG_FOUR_STEREOTYPED_MOTILITY_STATES"]
+metrics = ["PER_SPECIES_STATE_DISTRIBUTION", "3D_DISPLACEMENT", "RAPHE_MORPHOLOGY", "MSD", "LONG_TIME_DIFFUSIVITY", "SPECIES_HELD_OUT_CALIBRATION"]
+
+[chlamydomonas.single_cell_2026]
+taxon = "Chlamydomonas reinhardtii"
+lineage = "EUKARYOTA_ARCHAEPLASTIDA_CHLOROPHYTA"
+movement_mechanism = ["BIFLAGELLAR_SWIMMING", "PHOTOTAXIS", "FLAGELLAR_BEAT_STATE_SWITCHING", "POPULATION_HETEROGENEITY"]
+primary_reference_doi = "10.3389/fphbi.2026.1800988"
+primary_reference_date = "2026-05-28"
+article_license = "CC-BY"
+data_doi = "10.5281/zenodo.19354253"
+code_doi = "10.5281/zenodo.19364857"
+dataset_license_status = "NOT_VERIFIED_PER_ZENODO_RECORD"
+dataset_admission = "NOT_ADMITTED_PENDING_RECORD_VERSION_FILE_MANIFEST_LICENSE_AND_CHECKSUM_REVIEW"
+representative_video_duration_s = 60
+representative_video_fps = 10
+baseline_before_light_s = 10
+light_wavelength_nm = 470
+tracker_returned_trajectories = 607
+tracking_consistency_retained_tracks = 497
+independent_biological_replicates = 3
+od_mean = 0.4
+od_tolerance = 0.05
+behaviour_classes = ["STATIONARY_OR_LOCAL", "CONFINED_OR_CIRCLING", "DIRECTIONAL_POSITIVE_PHOTOTAXIS", "DIRECTIONAL_NEGATIVE_PHOTOTAXIS"]
+metrics = ["TRACK_RECONSTRUCTION_ERROR", "SUBGROUP_PREVALENCE", "POLAR_ORDER", "CIRCULAR_RESULTANT_LENGTH", "SPEED_DISTRIBUTION", "TIME_WINDOWED_MSD", "RESPONSE_LATENCY", "RESPONSE_TIME_CONSTANT", "REPLICATE_CALIBRATION"]
+
+[chlamydomonas.population_kinetics_2024]
+primary_reference_doi = "10.5061/dryad.sj3tx96dg"
+repository = "Dryad"
+version_date = "2024-10-02"
+size_mb = 218.29
+dataset_platform_policy = "DRYAD_CC0_PUBLIC_DOMAIN_DEDICATION"
+dataset_license_status = "CC0_UNDER_PUBLISHED_DRYAD_POLICY_VERIFY_RECORD_METADATA_AND_README"
+dataset_admission = "RIGHTS_POLICY_IDENTIFIED_README_AND_FILE_CHECKSUM_CROSSWALK_PENDING"
+movement_mechanism = ["DARK_TO_LIGHT_POPULATION_RESPONSE", "LIGHT_TO_DARK_POPULATION_RECOVERY"]
+source_says_response_depends_on = ["LIGHT_INTENSITY", "CELL_NUMBER_DENSITY"]
+source_says_recovery_depends_on = []
+source_assets = ["POLARIZATION_SERIES", "SPEED_SERIES", "RESPONSE_TIME_CONSTANTS", "RECOVERY_TIME_CONSTANTS", "ORIENTATION_DISTRIBUTIONS", "MATLAB_SCRIPTS", "MATHEMATICA_SCRIPTS"]
+metrics = ["POPULATION_POLARIZATION", "RESPONSE_TIME_CONSTANT", "RECOVERY_TIME_CONSTANT", "SPEED", "DENSITY_CONDITIONED_RESPONSE"]
+
+[chlamydomonas.competing_light_2025]
+primary_reference_doi = "10.1103/3fry-7tsw"
+article_date = "2025-11-26"
+article_license = "CC-BY-4.0"
+movement_mechanism = ["COMPETING_LIGHT_SOURCE_PHOTOTAXIS", "INTENSITY_WEIGHTED_LIGHT_DIRECTION", "STOCHASTIC_SUBPOPULATION_SWITCHING"]
+model_baseline = "INTENSITY_WEIGHTED_VECTOR_OF_LIGHT_PROPAGATION_DIRECTIONS"
+metrics = ["DIRECTION_RESIDUAL", "SUBPOPULATION_PREVALENCE", "SWITCHING_RATE", "STIMULUS_ANGLE_AND_INTENSITY_RESPONSE"]
+
+[portfolio_coverage]
+stramenopiles = "THIS_ISSUE_ADDS_BENTHIC_DIATOM_RAPHE_GLIDING"
+archaeplastida = "THIS_ISSUE_ADDS_CHLAMYDOMONAS_BIFLAGELLAR_PHOTOTAXIS"
+remaining_lineage_gaps = ["RHIZARIA", "HAPTISTA", "CRYPTISTA"]
