@@ -1231,34 +1231,34 @@ mod tests {
             integration_step_s: 0.05,
             run_duration_s: directional(vec![0.25], vec![0.25], vec![0.25]),
             run_duration_unconditional_s: SampleSet::new(vec![0.25]),
-            short_event_probability: 1.0,
+            mechanism_probabilities: MechanismProbabilities {
+                active_motor: 1.0,
+                passive_trap: 0.0,
+                unresolved: 0.0,
+            },
             threshold_boundary_policy: ThresholdBoundaryPolicy::ShortInclusive,
-            short_event_duration_s: SampleSet::new(vec![0.25]),
-            long_trap_duration_s: SampleSet::new(vec![2.0]),
-            short_turn_angle_rad: directional(
+            active_motor_event_duration_s: SampleSet::new(vec![0.25]),
+            passive_trap_event_duration_s: SampleSet::new(vec![2.0]),
+            unresolved_event_duration_s: SampleSet::new(vec![1.0]),
+            active_motor_turn_angle_rad: directional(
                 vec![0.0],
                 vec![-PI / 2.0, PI / 2.0],
                 vec![PI],
             ),
-            short_turn_angle_unconditional_rad: SampleSet::new(vec![0.0]),
-            long_trap_turn_angle_rad: SampleSet::new(vec![0.0]),
+            active_motor_turn_angle_unconditional_rad: SampleSet::new(vec![0.0]),
+            passive_trap_turn_angle_rad: SampleSet::new(vec![0.0]),
+            unresolved_turn_angle_rad: SampleSet::new(vec![0.0]),
         }
     }
 
     #[test]
-    fn classifies_directions_with_the_paper_cone() {
-        assert_eq!(
-            classify_direction(0.0, 0.0),
-            Some(DirectionClass::UpGradient)
-        );
+    fn classifies_gradient_direction_by_projection() {
+        assert_eq!(classify_direction(0.0, 0.0), Some(DirectionClass::UpGradient));
         assert_eq!(
             classify_direction(PI / 4.0, 0.0),
             Some(DirectionClass::UpGradient)
         );
-        assert_eq!(
-            classify_direction(PI, 0.0),
-            Some(DirectionClass::DownGradient)
-        );
+        assert_eq!(classify_direction(PI, 0.0), Some(DirectionClass::DownGradient));
         assert_eq!(
             classify_direction(PI * 3.0 / 4.0, 0.0),
             Some(DirectionClass::DownGradient)
@@ -1271,54 +1271,135 @@ mod tests {
     }
 
     #[test]
-    fn rejects_non_finite_and_invalid_event_samples() {
+    fn validates_physical_mechanism_profiles_without_duration_causation() {
         let mut profile = steering_profile();
-        profile.short_event_duration_s = SampleSet::new(vec![0.4, 1.2]);
+        profile.active_motor_event_duration_s = SampleSet::new(vec![0.4, 1.2]);
+        profile.passive_trap_event_duration_s = SampleSet::new(vec![0.2, 2.0]);
+        profile.unresolved_event_duration_s = SampleSet::new(vec![1.0]);
+        assert!(profile.validate().is_ok());
+
+        let mut invalid = steering_profile();
+        invalid.mechanism_probabilities = MechanismProbabilities {
+            active_motor: 0.7,
+            passive_trap: 0.7,
+            unresolved: 0.0,
+        };
         assert_eq!(
-            profile.validate(),
-            Err(ProfileError::ShortEventOutsideThresholdPolicy)
+            invalid.validate(),
+            Err(ProfileError::InvalidMechanismProbabilities)
         );
 
-        let mut profile = steering_profile();
-        profile.long_trap_duration_s = SampleSet::new(vec![0.8]);
+        let mut invalid = steering_profile();
+        invalid.active_motor_event_duration_s = SampleSet::new(vec![0.0]);
         assert_eq!(
-            profile.validate(),
-            Err(ProfileError::LongTrapOutsideThresholdPolicy)
+            invalid.validate(),
+            Err(ProfileError::NonPositiveSample("active_motor_event_duration_s"))
         );
 
-        let mut profile = steering_profile();
-        profile.short_event_duration_s = SampleSet::new(vec![1.0]);
+        let mut invalid = steering_profile();
+        invalid.swimming_speed_um_s = f64::NAN;
         assert_eq!(
-            profile.validate(),
-            Err(ProfileError::ShortEventOutsideThresholdPolicy)
-        );
-
-        let mut profile = steering_profile();
-        profile.swimming_speed_um_s = f64::NAN;
-        assert_eq!(
-            profile.validate(),
+            invalid.validate(),
             Err(ProfileError::InvalidSwimmingSpeed)
         );
     }
 
     #[test]
-    fn exact_one_second_boundary_follows_declared_source_policy() {
-        let mut short_inclusive = steering_profile();
-        short_inclusive.short_event_duration_s = SampleSet::new(vec![1.0]);
-        assert!(short_inclusive.validate().is_ok());
+    fn exact_boundary_policy_classifies_duration_not_mechanism() {
+        let short_inclusive = steering_profile();
+        assert_eq!(
+            short_inclusive.duration_bin(1.0),
+            Ok(EventDurationBin::Short)
+        );
 
         let mut long_inclusive = steering_profile();
         long_inclusive.threshold_boundary_policy = ThresholdBoundaryPolicy::LongInclusive;
-        long_inclusive.long_trap_duration_s = SampleSet::new(vec![1.0]);
-        assert!(long_inclusive.validate().is_ok());
+        assert_eq!(
+            long_inclusive.duration_bin(1.0),
+            Ok(EventDurationBin::Long)
+        );
 
         let mut excluded = steering_profile();
         excluded.threshold_boundary_policy = ThresholdBoundaryPolicy::ExcludeExactBoundary;
-        excluded.short_event_duration_s = SampleSet::new(vec![1.0]);
         assert_eq!(
-            excluded.validate(),
-            Err(ProfileError::ShortEventOutsideThresholdPolicy)
+            excluded.duration_bin(1.0),
+            Ok(EventDurationBin::ExactBoundaryExcluded)
         );
+        assert_eq!(
+            excluded.duration_bin(f64::NAN),
+            Err(ProfileError::InvalidEventDuration)
+        );
+    }
+
+    #[test]
+    fn an_active_motor_event_can_be_long_and_a_passive_trap_can_be_short() {
+        let mut profile = steering_profile();
+        profile.mechanism_probabilities = MechanismProbabilities {
+            active_motor: 1.0,
+            passive_trap: 0.0,
+            unresolved: 0.0,
+        };
+        profile.active_motor_event_duration_s = SampleSet::new(vec![2.0]);
+
+        let active = simulate(
+            &profile,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            1,
+            7,
+        )
+        .expect("active event simulation");
+        assert_eq!(active.events[0].mechanism, EventMechanism::ActiveMotorEvent);
+        assert_eq!(active.events[0].duration_bin, EventDurationBin::Long);
+        assert_eq!(active.events[0].evidence_status, EventEvidenceStatus::ModelLatent);
+
+        profile.mechanism_probabilities = MechanismProbabilities {
+            active_motor: 0.0,
+            passive_trap: 1.0,
+            unresolved: 0.0,
+        };
+        profile.passive_trap_event_duration_s = SampleSet::new(vec![0.25]);
+
+        let passive = simulate(
+            &profile,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            1,
+            7,
+        )
+        .expect("passive event simulation");
+        assert_eq!(
+            passive.events[0].mechanism,
+            EventMechanism::PassiveMechanicalTrap
+        );
+        assert_eq!(passive.events[0].duration_bin, EventDurationBin::Short);
+    }
+
+    #[test]
+    fn unresolved_mechanism_is_preserved_as_unknown() {
+        let mut profile = steering_profile();
+        profile.mechanism_probabilities = MechanismProbabilities {
+            active_motor: 0.0,
+            passive_trap: 0.0,
+            unresolved: 1.0,
+        };
+        let result = simulate(
+            &profile,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            3,
+            31,
+        )
+        .expect("unresolved event simulation");
+
+        assert!(result.events.iter().all(|event| {
+            event.mechanism == EventMechanism::Unresolved
+                && event.evidence_status == EventEvidenceStatus::ModelLatent
+        }));
+        let summary = summarize(&result);
+        assert_eq!(summary.unresolved_mechanism_event_count, 3);
+        assert_eq!(summary.active_motor_event_count, 0);
+        assert_eq!(summary.passive_trap_event_count, 0);
     }
 
     #[test]
@@ -1336,43 +1417,48 @@ mod tests {
         let initial = AgentState::new(0.0, 0.0, PI);
         let result = simulate(&profile, initial, 0.0, 8, 42).expect("valid simulation");
 
-        assert!((wrap_angle(result.final_state.heading_rad)).abs() < 1.0e-12);
+        assert!(wrap_angle(result.final_state.heading_rad).abs() < 1.0e-12);
         let summary = summarize(&result);
-        assert_eq!(summary.short_event_count, 8);
-        assert_eq!(summary.long_trap_count, 0);
+        assert_eq!(summary.short_duration_event_count, 8);
+        assert_eq!(summary.long_duration_event_count, 0);
+        assert_eq!(summary.active_motor_event_count, 8);
+        assert_eq!(summary.passive_trap_event_count, 0);
         assert_eq!(summary.resolved_run_direction_count, 8);
         assert_eq!(summary.up_gradient_run_count, 7);
         assert_eq!(summary.up_gradient_run_fraction, Some(7.0 / 8.0));
-        assert_eq!(summary.short_event_followed_run_count, 7);
-        assert_eq!(summary.short_event_followed_up_gradient_count, 7);
-        assert_eq!(
-            summary.short_event_followed_up_gradient_fraction,
-            Some(1.0)
-        );
-        assert_eq!(summary.long_trap_followed_up_gradient_fraction, None);
+        assert_eq!(summary.short_duration_followed_run_count, 7);
+        assert_eq!(summary.short_duration_followed_up_gradient_count, 7);
+        assert_eq!(summary.short_duration_followed_up_gradient_fraction, Some(1.0));
+        assert_eq!(summary.active_motor_followed_run_count, 7);
+        assert_eq!(summary.active_motor_followed_up_gradient_fraction, Some(1.0));
+        assert_eq!(summary.passive_trap_followed_up_gradient_fraction, None);
     }
 
     #[test]
-    fn passive_trap_kernel_does_not_inherit_active_directional_turn_bias() {
+    fn passive_trap_turns_do_not_receive_active_directional_bias() {
         let mut profile = steering_profile();
-        profile.short_event_probability = 0.0;
+        profile.mechanism_probabilities = MechanismProbabilities {
+            active_motor: 0.0,
+            passive_trap: 1.0,
+            unresolved: 0.0,
+        };
 
         let initial = AgentState::new(0.0, 0.0, PI);
         let result = simulate(&profile, initial, 0.0, 12, 42).expect("valid simulation");
 
         assert!((wrap_angle(result.final_state.heading_rad - PI)).abs() < 1.0e-12);
         let summary = summarize(&result);
-        assert_eq!(summary.short_event_count, 0);
-        assert_eq!(summary.long_trap_count, 12);
-        assert_eq!(summary.long_trap_followed_run_count, 11);
-        assert_eq!(summary.long_trap_followed_up_gradient_count, 0);
-        assert_eq!(
-            summary.long_trap_followed_up_gradient_fraction,
-            Some(0.0)
-        );
-        assert_eq!(summary.short_event_followed_up_gradient_fraction, None);
+        assert_eq!(summary.short_duration_event_count, 0);
+        assert_eq!(summary.long_duration_event_count, 12);
+        assert_eq!(summary.passive_trap_event_count, 12);
+        assert_eq!(summary.long_duration_followed_run_count, 11);
+        assert_eq!(summary.long_duration_followed_up_gradient_count, 0);
+        assert_eq!(summary.long_duration_followed_up_gradient_fraction, Some(0.0));
+        assert_eq!(summary.passive_trap_followed_up_gradient_fraction, Some(0.0));
+        assert_eq!(summary.active_motor_followed_up_gradient_fraction, None);
     }
 
+    #[test]
     #[test]
     fn reversing_gradient_reverses_the_selected_heading() {
         let profile = steering_profile();
