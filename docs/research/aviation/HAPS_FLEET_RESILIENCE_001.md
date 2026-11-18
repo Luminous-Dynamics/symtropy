@@ -106,7 +106,17 @@ No public source cited here establishes an achieved commercial HAPS nationwide a
 5. Integrate the demand trace and edge workload scheduler so availability is measured for required service, not merely platform heartbeat.
 6. Compare 1/2/3/5 platform fleet layouts and diverse fallback by cost per served critical task and availability nine.
 
-## 7. Ownership
+## 7. Executable analytic evaluator
+
+A standalone Rust evaluator now exists at `tools/haps-fleet-availability`:
+- parser validates the synthetic evidence ceiling, probability domains, conditional-independence contract, fleet-size rows and maintenance accounting;
+- evaluator computes HAPS-only, HAPS+terrestrial and HAPS+terrestrial+LEO availability;
+- the CLI prints a JSON report from the checked-in case or a supplied case path;
+- eight unit tests cover all 45 fixture rows, common-weather saturation, layered fallback, correlated external outage, monotonicity, invalid probabilities and maintenance double-counting.
+
+The evaluator is dependency-pinned (`serde 1.0.228`, `serde_json 1.0.150`) with a dedicated path-scoped workflow for rustfmt, Clippy, unit/fixture tests and CLI replay. The source and independent arithmetic were structurally checked, but the Rust workflow has not yet been observed passing in this response. Do not claim compilation or test success until exact-head CI reports success.
+
+## 8. Ownership
 
 - Parent HAPS network/persistence: [#5885](https://github.com/Luminous-Dynamics/symtropy/issues/5885).
 - Traffic/beam allocation: [#5948](https://github.com/Luminous-Dynamics/symtropy/pull/5948).
