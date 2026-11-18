@@ -70,8 +70,38 @@
     "lean_static_coefficient_fixture_authored": true,
     "lean_static_coefficient_fixture_executed": false,
     "static_mk_annulus_positive_proved_by_exact_factorization": true,
-    "full_static_classification_formalized_in_lean": false
+    "full_static_classification_formalized_in_lean": false,
+    "lean_coefficient_manifold_gradient_theorem_authored": true,
+    "lean_coefficient_manifold_gradient_theorem_executed": false
   },
   "claim_ceiling": "Exact symbolic classification on the declared static domain; no horizon, rotating, stability, EFT or observational claim.",
-  "lean_arithmetic_fixture": "crates/domains/symtropy-relativity/benchmarks/lean/static_bach_vacuum_coefficients_v1.lean"
+  "lean_arithmetic_fixture": "crates/domains/symtropy-relativity/benchmarks/lean/static_bach_vacuum_coefficients_v1.lean",
+  "coefficient_manifold": {
+    "constraint": "Q(c_minus,c0,c1)=c0^2-3*c1*c_minus-1=0",
+    "ambient_coefficients": [
+      "c_minus",
+      "c0",
+      "c1",
+      "c2"
+    ],
+    "expected_dimension": 3,
+    "gradient": [
+      "-3*c1",
+      "2*c0",
+      "-3*c_minus",
+      "0"
+    ],
+    "regular_on_vacuum_manifold": true,
+    "mk_reference_gradient": [
+      "-3/10",
+      "7/5",
+      "51/10",
+      "0"
+    ],
+    "mk_tangent_condition": "(-3/10)*delta_c_minus+(7/5)*delta_c0+(51/10)*delta_c1=0",
+    "delta_c2": "free",
+    "lean_file": "crates/domains/symtropy-relativity/benchmarks/lean/static_bach_vacuum_coefficients_v1.lean",
+    "formalized_algebraic_gradient_nonzero": true,
+    "full_function_space_linearized_kernel_proved": false
+  }
 }
