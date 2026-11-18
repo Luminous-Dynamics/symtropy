@@ -480,7 +480,13 @@
         "akribeia_supplemental_near_horizon_and_asymptotic_series_extracted": false,
         "raw_akribeia_solution_arrays_extracted": false,
         "exact_2010_reference_arrays_extracted": false,
-        "symtropy_run_executed": false
+        "symtropy_run_executed": false,
+        "aps_accepted_paper_page_inspected": true,
+        "aps_supplemental_material_available": false,
+        "aps_supplemental_availability_note": "APS accepted-paper page explicitly says author-provided supplemental materials will be available upon publication of the version of record; accepted-paper page inspected 2026-11-18.",
+        "version_of_record_available_on_checked_page": false,
+        "next_source_gate": "recheck APS version-of-record page for Supplemental Material; meanwhile continue exact MP control and 2010 paper-based EGB boundary/source reconstruction.",
+        "main_paper_reference_data_extracted": "main-paper ansatz, training summary, coupling sweep, and 5D EGB/MP comparison are available; exact raw solution arrays and supplemental diagnostics remain unavailable on accepted-paper page."
       },
       "purpose": [
         "matched neural-spectral discovery/refinement comparison",
