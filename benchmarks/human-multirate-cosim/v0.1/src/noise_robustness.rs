@@ -9,7 +9,7 @@
 //! including AR(1) temporal correlation. Unknown/non-Gaussian processes are not
 //! assigned an iid threshold by this module.
 
-use crate::adequacy_calibration::{AdequacyCalibrationConfig, HiddenOutOfFamilyTruth};
+use crate::adequacy_calibration::HiddenOutOfFamilyTruth;
 use crate::experiment_design::{evaluate_input_profile, InputProfile, ModelCandidate};
 use crate::robust_discrimination::{
     ModelFamilyAdequacyDisposition, ModelFamilyAdequacyPolicy, ModelFamilyAdequacyScore,
@@ -944,9 +944,24 @@ pub struct NoiseAdequacyCalibrationReportV1 {
     pub out_of_family_rejections: usize,
     pub out_of_family_rejection_rate: f64,
     pub out_of_family_rejection_wilson_95: [f64; 2],
+    pub out_of_family_false_accepts: usize,
+    pub out_of_family_false_accept_rate: f64,
+    pub out_of_family_false_accept_wilson_95: [f64; 2],
     pub calibration_seed: u64,
     pub validation_seed: u64,
+    pub evaluator_seed: u64,
     pub assumptions: Vec<&'static str>,
+}
+
+/// Three explicitly disjoint deterministic streams for evaluator-side
+/// covariance calibration. The PRNG is reproducibility-only, not cryptographic.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct NoiseCalibrationConfigV1 {
+    pub calibration_seed: u64,
+    pub validation_seed: u64,
+    pub evaluator_seed: u64,
+    pub replicates_per_model: usize,
+    pub target_in_family_coverage: f64,
 }
 
 /// Fail-closed errors for full space-time covariance calibration.
@@ -1046,7 +1061,7 @@ pub fn calibrate_model_family_adequacy_full_covariance(
     selected_sensor_ids: &[u32],
     covariance: &ObservationCovarianceV1,
     hidden_out_of_family_truths: &[HiddenOutOfFamilyTruth],
-    config: AdequacyCalibrationConfig,
+    config: NoiseCalibrationConfigV1,
 ) -> Result<NoiseAdequacyCalibrationReportV1, NoiseCalibrationError> {
     scenario
         .validate()
@@ -1060,7 +1075,10 @@ pub fn calibrate_model_family_adequacy_full_covariance(
     {
         return Err(NoiseCalibrationError::InvalidTargetCoverage);
     }
-    if config.calibration_seed == config.validation_seed {
+    if config.calibration_seed == config.validation_seed
+        || config.calibration_seed == config.evaluator_seed
+        || config.validation_seed == config.evaluator_seed
+    {
         return Err(NoiseCalibrationError::SeedsMustDiffer);
     }
 
@@ -1240,6 +1258,7 @@ pub fn calibrate_model_family_adequacy_full_covariance(
         }
     }
 
+    let mut evaluator_rng = SplitMix64::new(config.evaluator_seed);
     let mut out_of_family_samples = 0_usize;
     let mut out_of_family_rejections = 0_usize;
     for hidden in hidden_out_of_family_truths {
@@ -1251,7 +1270,7 @@ pub fn calibrate_model_family_adequacy_full_covariance(
         )?;
         for _ in 0..config.replicates_per_model {
             out_of_family_samples += 1;
-            let trace = sample_bound_observation_trace(covariance, &means, &mut validation_rng)?;
+            let trace = sample_bound_observation_trace(covariance, &means, &mut evaluator_rng)?;
             let adequacy = evaluate_model_family_adequacy_full_covariance(
                 scenario,
                 profile,
@@ -1323,13 +1342,23 @@ pub fn calibrate_model_family_adequacy_full_covariance(
             out_of_family_rejections,
             out_of_family_samples,
         ),
+        out_of_family_false_accepts: out_of_family_samples - out_of_family_rejections,
+        out_of_family_false_accept_rate: rate(
+            out_of_family_samples - out_of_family_rejections,
+            out_of_family_samples,
+        ),
+        out_of_family_false_accept_wilson_95: wilson_interval(
+            out_of_family_samples - out_of_family_rejections,
+            out_of_family_samples,
+        ),
         calibration_seed: config.calibration_seed,
         validation_seed: config.validation_seed,
+        evaluator_seed: config.evaluator_seed,
         assumptions: vec![
             "additive zero-mean Gaussian noise",
             "known full space-time covariance shared by candidate and hidden truths",
             "covariance/process/sampling/operator/availability identity is fixed for this calibration",
-            "independent calibration and validation PRNG streams",
+            "independent calibration, in-family validation and hidden-truth evaluator PRNG streams",
             "finite synthetic Monte Carlo counts; rates are empirical, not universal guarantees",
             "candidate scorer receives no hidden truth IDs; this in-process evaluator requires external process isolation for agent-facing use",
         ],
@@ -1579,7 +1608,7 @@ mod tests {
 
     #[test]
     fn full_covariance_calibration_binds_identity_and_uses_separate_streams() {
-        use crate::adequacy_calibration::{AdequacyCalibrationConfig, HiddenOutOfFamilyTruth};
+        use crate::adequacy_calibration::HiddenOutOfFamilyTruth;
         use crate::experiment_design::{
             ExperimentDesignScenario, ForcingSegment, ModelCandidate,
         };
@@ -1673,9 +1702,10 @@ mod tests {
             &[10],
             &covariance,
             &[hidden],
-            AdequacyCalibrationConfig {
+            NoiseCalibrationConfigV1 {
                 calibration_seed: 0xCA11_BA7E,
                 validation_seed: 0xB01D_5EED,
+                evaluator_seed: 0xE0A1_0D01,
                 replicates_per_model: 128,
                 target_in_family_coverage: 0.95,
             },
@@ -1694,6 +1724,8 @@ mod tests {
         assert!(report.out_of_family_rejection_rate > 0.90);
         assert_ne!(report.calibration_seed, report.validation_seed);
         assert!(report.assumptions.iter().any(|item| item.contains("full space-time covariance")));
+        assert_eq!(report.out_of_family_false_accepts + report.out_of_family_rejections, 128);
+        assert_ne!(report.evaluator_seed, report.validation_seed);
     }
 
     #[test]
