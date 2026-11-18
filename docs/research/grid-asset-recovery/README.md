@@ -218,7 +218,7 @@ Primary references:
 
 ### Bounded exact reference oracle
 
-A second scheduler path now exhaustively enumerates precedence-feasible serial schedules for cases of at most ten tasks. The CLI exposes it as `--exact-small`. It is an exact reference only for this bounded model: fixed non-preemptive durations, finish-to-start dependencies, fixed renewable resource capacities and release times. It is not a large-instance optimiser, and cases above ten tasks are rejected.
+A second scheduler path now exhaustively enumerates precedence-feasible serial schedules for cases of at most ten tasks. The CLI exposes it as `--exact-small`. It is an exact reference only for this bounded model: fixed non-preemptive durations, finish-to-start dependencies, fixed renewable resource capacities and release times. It is not a large-instance optimiser, and cases above ten tasks are rejected. The current task model assigns at most one renewable resource class to a task and assumes constant resource capacity; it does not yet cover calendars, shifts, alternate execution modes, setup times or stochastic duration. Invoke it with `cargo run --manifest-path tools/grid-asset-recovery-validator/Cargo.toml -- --exact-small <case.json>`.
 
 A deliberately small counterexample is included in the Rust tests:
 - the deterministic earliest-feasible-start / stable-ID order has makespan **120 h**;
