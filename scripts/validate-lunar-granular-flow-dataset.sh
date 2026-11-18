@@ -194,6 +194,11 @@ for run_path in "${run_paths[@]}"; do
       and (($expected | type) == "number")
       and ((($actual.value - $expected) | abs)
            <= ([1e-10, (($expected | abs) * 0.01)] | max));
+    def close_squared($actual; $expected_squared):
+      ($actual.status != "unknown")
+      and (($expected_squared | type) == "number")
+      and ((($actual.value * $actual.value - $expected_squared) | abs)
+           <= ([1e-12, (($expected_squared | abs) * 0.02)] | max));
     . as $r
     | $r.derived_coordinates as $d
     | (if known($r.material.mean_interparticle_cohesion_force_n)
@@ -220,12 +225,12 @@ for run_path in "${run_paths[@]}"; do
            and known($r.operation.normal_confining_stress_pa)
            and known($r.material.d50_um)
            and known($r.material.bulk_density_kg_m3)
-       then close(
+       then close_squared(
          $d.inertial_number;
-         ($r.operation.shear_rate_s_minus_1.value
-          * ($r.material.d50_um.value / 1000000)
-          / sqrt($r.operation.normal_confining_stress_pa.value
-                 / $r.material.bulk_density_kg_m3.value))
+         ((($r.operation.shear_rate_s_minus_1.value
+            * ($r.material.d50_um.value / 1000000)) ^ 2)
+          / ($r.operation.normal_confining_stress_pa.value
+             / $r.material.bulk_density_kg_m3.value))
        )
        else $d.inertial_number.status == "unknown" end)
     and (if known($r.material.surface_charge_coulomb_per_kg)
@@ -249,11 +254,11 @@ for run_path in "${run_paths[@]}"; do
     and (if known($r.operation.vibration_frequency_hz)
            and known($r.material.d50_um)
            and known($r.environment.gravity_m_s2)
-       then close(
+       then close_squared(
          $d.vibration_frequency_gravity_scale;
-         ($r.operation.vibration_frequency_hz.value
-          * sqrt(($r.material.d50_um.value / 1000000)
-                 / $r.environment.gravity_m_s2.value))
+         (($r.operation.vibration_frequency_hz.value ^ 2)
+          * ($r.material.d50_um.value / 1000000)
+          / $r.environment.gravity_m_s2.value)
        )
        else $d.vibration_frequency_gravity_scale.status == "unknown" end)
     and (if known($r.operation.vibration_amplitude_m)
