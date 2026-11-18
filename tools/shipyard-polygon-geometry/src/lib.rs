@@ -218,11 +218,15 @@ impl Polygon {
     /// Minimal axis-aligned bounding rectangle. The polygon is already validated
     /// and non-degenerate, so both returned extents are strictly positive.
     pub fn bounds(&self) -> Rect {
-        let min_x = self.vertices.iter().map(|point| point.x).min().unwrap_or_default();
-        let min_y = self.vertices.iter().map(|point| point.y).min().unwrap_or_default();
-        let max_x = self.vertices.iter().map(|point| point.x).max().unwrap_or_default();
-        let max_y = self.vertices.iter().map(|point| point.y).max().unwrap_or_default();
-        Rect::new(min_x, min_y, max_x, max_y)
+        let first = self.vertices[0];
+        let mut bounds = Rect::new(first.x, first.y, first.x, first.y);
+        for point in &self.vertices[1..] {
+            bounds.min_x = bounds.min_x.min(point.x);
+            bounds.min_y = bounds.min_y.min(point.y);
+            bounds.max_x = bounds.max_x.max(point.x);
+            bounds.max_y = bounds.max_y.max(point.y);
+        }
+        bounds
     }
 
     /// A polygon is within a convex rectangular yard boundary iff all its
