@@ -16,7 +16,6 @@ use crate::robust_discrimination::{
 use crate::sensor_design::principal_submatrix;
 use std::fmt;
 
-const TIME_TOLERANCE: f64 = 1.0e-12;
 const SPLITMIX_INCREMENT: u64 = 0x9E37_79B9_7F4A_7C15;
 
 /// Independent deterministic Monte Carlo streams for threshold fitting and holdout.
@@ -70,6 +69,7 @@ pub enum AdequacyCalibrationError {
     InvalidTargetCoverage,
     SeedsMustDiffer,
     CovarianceNotPositiveDefinite,
+    UnknownSelectedSensor(u32),
     IncompatibleHiddenTruth { evaluator_id: u32 },
     MissingModelPrediction(u32),
     MissingTrueFamily(u32),
@@ -94,6 +94,9 @@ impl fmt::Display for AdequacyCalibrationError {
             }
             Self::CovarianceNotPositiveDefinite => {
                 write!(f, "selected observation covariance must be strictly positive definite")
+            }
+            Self::UnknownSelectedSensor(id) => {
+                write!(f, "selected sensor ID {id} is absent from the experiment manifest")
             }
             Self::IncompatibleHiddenTruth { evaluator_id } => {
                 write!(f, "hidden truth {evaluator_id} does not share the declared state basis and horizon")
@@ -307,14 +310,16 @@ pub fn calibrate_model_family_adequacy(
                     validation_false_out_of_model_set_count += 1;
                 }
                 ModelFamilyAdequacyDisposition::InFamilyPreferred { family_id, .. } => {
-                    validation_in_family_accepts += 1;
-                    if *family_id != true_family_id {
+                    if *family_id == true_family_id {
+                        validation_in_family_accepts += 1;
+                    } else {
                         validation_wrong_family_preference_count += 1;
                     }
                 }
                 ModelFamilyAdequacyDisposition::ParameterNotIdentified { family_id, .. } => {
-                    validation_in_family_accepts += 1;
-                    if *family_id != true_family_id {
+                    if *family_id == true_family_id {
+                        validation_in_family_accepts += 1;
+                    } else {
                         validation_wrong_family_preference_count += 1;
                     }
                     validation_ambiguous_count += 1;
@@ -322,8 +327,9 @@ pub fn calibrate_model_family_adequacy(
                 ModelFamilyAdequacyDisposition::InFamilyUnresolved {
                     compatible_family_ids,
                 } => {
-                    validation_in_family_accepts += 1;
-                    if !compatible_family_ids.contains(&true_family_id) {
+                    if compatible_family_ids.contains(&true_family_id) {
+                        validation_in_family_accepts += 1;
+                    } else {
                         validation_wrong_family_preference_count += 1;
                     }
                     validation_ambiguous_count += 1;
@@ -429,7 +435,7 @@ fn selected_covariance_indices(
             .sensors
             .iter()
             .position(|sensor| sensor.id == *id)
-            .ok_or(AdequacyCalibrationError::CovarianceNotPositiveDefinite)?;
+            .ok_or(AdequacyCalibrationError::UnknownSelectedSensor(*id))?;
         indices.push(index);
     }
     Ok(indices)
