@@ -262,7 +262,7 @@ pub fn evaluate_robust_cumulative_resource_capacity(
                 if window.start_tick > cursor {
                     break;
                 }
-                cursor = cursor.max(window.start_tick).max(cursor).min(window.end_tick);
+                cursor = window.end_tick.min(claim.end_tick);
                 if cursor >= claim.end_tick {
                     break;
                 }
@@ -730,11 +730,37 @@ mod tests {
                 site_snapshot_sha256: digest('d'),
                 site_clock_domain_id: "site-clock-1".into(),
                 capacity_owner_id: "power-owner".into(),
+                evidence_receipt_sha256: digest('1'),
+                start_tick: 0,
+                end_tick: 5,
+                lower_capacity_units: 10,
+                nominal_capacity_units: 10,
+                upper_capacity_units: 10,
+            },
+            CapacityAvailabilityWindow {
+                resource_id: "power".into(),
+                resource_definition_sha256: digest('a'),
+                site_snapshot_sha256: digest('d'),
+                site_clock_domain_id: "site-clock-1".into(),
+                capacity_owner_id: "power-owner".into(),
                 evidence_receipt_sha256: digest('f'),
                 start_tick: 5,
                 end_tick: 25,
                 lower_capacity_units: 5,
                 nominal_capacity_units: 8,
+                upper_capacity_units: 10,
+            },
+            CapacityAvailabilityWindow {
+                resource_id: "power".into(),
+                resource_definition_sha256: digest('a'),
+                site_snapshot_sha256: digest('d'),
+                site_clock_domain_id: "site-clock-1".into(),
+                capacity_owner_id: "power-owner".into(),
+                evidence_receipt_sha256: digest('2'),
+                start_tick: 25,
+                end_tick: 30,
+                lower_capacity_units: 10,
+                nominal_capacity_units: 10,
                 upper_capacity_units: 10,
             },
         ];
