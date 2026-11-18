@@ -73,7 +73,10 @@ jobs:
           policy_sha=$(sha256sum "$out/policy.json" | cut -d ' ' -f 1)
           coverage_sha=$(sha256sum "$out/coverage-bundle.json" | cut -d ' ' -f 1)
           event_sha=$(sha256sum "$out/event-ledger.json" | cut -d ' ' -f 1)
-          RECONCILIATION_POLICY_SHA256="$policy_sha"           COVERAGE_BUNDLE_SHA256="$coverage_sha"           EVENT_LEDGER_SHA256="$event_sha"             cargo run --locked --offline --manifest-path tools/shipyard-lift-reconciliation/Cargo.toml --example synthetic_reconciliation > "$out/reconciliation-report.json"
+          export RECONCILIATION_POLICY_SHA256="$policy_sha"
+          export COVERAGE_BUNDLE_SHA256="$coverage_sha"
+          export EVENT_LEDGER_SHA256="$event_sha"
+          cargo run --locked --offline --manifest-path tools/shipyard-lift-reconciliation/Cargo.toml --example synthetic_reconciliation > "$out/reconciliation-report.json"
           jq -e --arg policy "$policy_sha" --arg coverage "$coverage_sha" --arg events "$event_sha" '
             .contract_version == "shipyard-lift-reconciliation-v0.1"
             and .disposition == "conforming_to_declared_envelope"
@@ -89,7 +92,7 @@ jobs:
             and (.diagnostics | length) == 0
           ' "$out/reconciliation-report.json"
           report_sha=$(sha256sum "$out/reconciliation-report.json" | cut -d ' ' -f 1)
-          printf '{"receipt_contract_version":"shipyard-lift-reconciliation-receipt-v0","policy_sha256":"%s","coverage_bundle_sha256":"%s","event_ledger_sha256":"%s","report_sha256":"%s"}\n'             "$policy_sha" "$coverage_sha" "$event_sha" "$report_sha" > "$out/reconciliation-receipt.json"
+          printf '%s\n' "{\"receipt_contract_version\":\"shipyard-lift-reconciliation-receipt-v0\",\"policy_sha256\":\"$policy_sha\",\"coverage_bundle_sha256\":\"$coverage_sha\",\"event_ledger_sha256\":\"$event_sha\",\"report_sha256\":\"$report_sha\"}" > "$out/reconciliation-receipt.json"
           jq -e --arg policy "$policy_sha" --arg coverage "$coverage_sha" --arg events "$event_sha" --arg report "$report_sha" '
             .receipt_contract_version == "shipyard-lift-reconciliation-receipt-v0"
             and .policy_sha256 == $policy and .coverage_bundle_sha256 == $coverage
