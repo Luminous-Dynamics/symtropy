@@ -1498,14 +1498,18 @@ mod tests {
 
     #[test]
     fn dependency_contract_blocks_motion_envelopes_missing_required_tool_bindings() {
+        let motion_dependencies: Vec<VersionedDependency> = minimum_required_domains(
+            ConstructionArtifactKind::MotionEnvelope,
+        )
+        .iter()
+        .filter(|domain| **domain != DependencyDomain::ToolConfiguration)
+        .map(|domain| dependency(*domain, &format!("motion:A:{domain:?}"), '1'))
+        .collect();
         let graph = graph(vec![artifact(
             "motion:A",
             ConstructionArtifactKind::MotionEnvelope,
             ArtifactPersistence::Recomputable,
-            vec![
-                dependency(DependencyDomain::EntityGeometry, "entity:A", '1'),
-                dependency(DependencyDomain::CoordinateTransform, "floor:02", '2'),
-            ],
+            motion_dependencies,
             &[],
             'a',
         )]);
@@ -1532,7 +1536,7 @@ mod tests {
                 &contracts,
                 &change_set(vec![change(
                     DependencyDomain::EntityGeometry,
-                    "entity:A",
+                    "motion:A:EntityGeometry",
                     '1',
                     '3'
                 )])
@@ -1620,7 +1624,10 @@ mod tests {
             contract_sha256: digest('c'),
             contracts: vec![ArtifactDependencyContract {
                 artifact_kind: ConstructionArtifactKind::DispatchReadiness,
-                required_domains: vec![DependencyDomain::AuthorityPolicy],
+                required_domains: minimum_required_domains(
+                    ConstructionArtifactKind::DispatchReadiness,
+                )
+                .to_vec(),
             }],
         };
         assert_eq!(
