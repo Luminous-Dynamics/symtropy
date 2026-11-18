@@ -113,3 +113,22 @@ The IDS engine build digest and per-entity applicability/evaluation receipts are
 
 
 The separate interruption replay fixture is \`examples/site-state-interruption-replay-synthetic-v0.1.json\`. It contains a frozen package, station qualification, robot attempt, explicit power-loss interruption, and independent referee NO_MARK_FOUND receipt. The correct projection is EXECUTION_IN_PROGRESS → AWAITING_INDEPENDENT_MEASUREMENT(UNKNOWN) → PHYSICALLY_ABSENT. None of the robot events can accept the entity. The repeated digest strings are synthetic placeholders; the fixture is not a signed or cryptographically verified event stream.
+
+
+### Space-time dispatch readiness gate v0.1
+
+The typed API is dispatch_readiness::check_dispatch_readiness. It joins the current append-only site ledger, frozen work package, robot/tool/payload configuration, primitive manifest, trajectory and motion-envelope digest to an independent occupancy assessment for the exact same envelope and site snapshot.
+
+It rejects:
+- inactive/superseded packages and mismatched design revision, frame, transform or entity identity;
+- entities already accepted, waived, held, executing or awaiting independent measurement;
+- expired/not-yet-valid envelopes or occupancy assessments, cross-clock evidence, and occupancy assessments created before the envelope they claim to assess;
+- a changed site ledger sequence/head since occupancy evaluation;
+- missing primitive, dynamic actor, broad-phase pair or narrow-phase coverage;
+- any conflict, unresolved pair, invalid bound, stale actor or unmodelled occupant.
+
+A successful result is a short-lived **readiness receipt** bound to the exact package, design revision, entity, robot, envelope digest, occupancy snapshot digest, receipt digest, ledger head and site clock domain. Its expiry is the earlier of the envelope or occupancy assessment expiry. The JSON contract is schema/dispatch-readiness-v0.1.schema.json; examples/dispatch-readiness-request-synthetic-v0.1.json is a synthetic shape fixture.
+
+This component does not calculate robot stopping distance, verify the occupancy engine's maths, recompute source hashes, authenticate signatures, reserve a zone, issue an actuation permit or control an emergency stop. The caller must verify the canonical assessment and envelope receipts and invoke the relevant independent safety authority. A new site ledger event invalidates the old occupancy snapshot and requires re-evaluation. This is a non-actuating readiness gate only.
+
+The benchmark should separately measure readiness-check p50/p95/p99, stale-snapshot rejection, conflict/missing-coverage negative-control recall, false-block rate, receipt replay resistance and re-evaluation work after localized site changes. The safety target is zero false-ready outcomes in a frozen, independently reviewed adversarial corpus; performance cannot compensate for a false-ready result.
