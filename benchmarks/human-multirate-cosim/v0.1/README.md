@@ -221,8 +221,9 @@ principal submatrix; missing values are never replaced with zero.
 The full-covariance adequacy evaluator scores the same candidate-visible trace
 against every registered finite-grid model variant using the supplied dense
 space-time covariance. Its versioned covariance and trace envelopes must agree
-on caller-supplied covariance/process/sampling/operator/availability-cutoff IDs,
-ordered sensor IDs and exact sample times. These identifiers are compared but
+on caller-supplied covariance ID, process ID, sampling-policy ID, observation-
+operator ID, availability-cutoff ID, ordered sensor IDs and exact sample times.
+The covariance ID is present in both the trace and covariance envelope. These IDs are compared but
 are not authenticated by this module; an upstream evidence layer must verify
 their manifests and event receipts. The original independent-time implementation
 remains the explicit iid baseline.
@@ -271,7 +272,10 @@ This is an evaluator-side synthetic harness: it keeps hidden truth out of the
 adequacy scorer's input and output, but the calibration function itself runs
 in-process and is not a security/process-isolation boundary. The caller must
 still put hidden truth and seeds behind the independent evaluator boundary
-before using this as an agent-facing benchmark.
+before using this as an agent-facing benchmark. An empty hidden-truth set or a
+hidden truth whose dynamics exactly match a registered candidate is rejected;
+this prevents an empty or non-OOD corpus from being reported as a successful
+OOD campaign.
 
 Threshold calibration is specific to the complete bound observation process.
 Changing the covariance, process family, sample schedule, ordered sensors,
@@ -346,3 +350,18 @@ output is not claimed until the exact Rust branch head is run.
 See Symtropy issue #6052 for the preregistered acceptance tests, including
 AR(1), GARCH-like and Markov-switching future regimes, delay-to-memory
 sensitivity, missing/late labels and historical decision-cutoff controls.
+
+### Covariance identity binding refinement
+
+The candidate-visible `ObservationProcessTraceV1` now repeats the exact
+covariance ID as well as process, sampling, operator and availability-cutoff
+IDs. The evaluator rejects a trace when any of these identities, ordered
+sensor IDs or exact sample times differ from the admitted covariance object.
+The identifiers remain caller-supplied references, not authenticated
+signatures; evidence-manifest verification remains an upstream authority.
+
+The evaluator also rejects an empty hidden out-of-family set and a hidden
+truth whose mathematical dynamics exactly equal a registered candidate.
+The equality check ignores human-readable scenario names and undirected edge
+ordering, but preserves exact capacities, initial state, horizon and edge
+conductances. This avoids reporting a meaningless OOD rejection rate.
