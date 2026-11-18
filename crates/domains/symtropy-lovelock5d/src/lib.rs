@@ -10,6 +10,8 @@
 
 #![forbid(unsafe_code)]
 
+pub mod reduced_action;
+
 use core::fmt;
 
 /// Parameters for the nonextremal, equal-angular-momentum 5D Myers-Perry
@@ -155,6 +157,10 @@ pub struct MyersPerryProfile5D {
     pub g_prime: f64,
     pub h_prime: f64,
     pub w_prime: f64,
+    pub b_second: f64,
+    pub f_second: f64,
+    pub h_second: f64,
+    pub w_second: f64,
     /// Exact ratio f/b, with its finite horizon limit evaluated analytically.
     pub f_over_b: f64,
 }
@@ -312,6 +318,26 @@ impl MyersPerry5D {
             2.0 * radius - 2.0 * r_h.powi(2) * q * u / ((1.0 - q) * radius);
         let w_prime =
             -4.0 * omega * u.powi(2) * (1.0 - q) / (radius * denominator.powi(2));
+
+        let u_prime = -2.0 * u / radius;
+        let u_second = 6.0 * u / radius.powi(2);
+        let denominator_prime = -4.0 * q * u.powi(2) / radius;
+        let denominator_second = 20.0 * q * u.powi(2) / radius.powi(2);
+        let inverse_radius_ratio = u / denominator;
+        let inverse_radius_ratio_second =
+            u_second / denominator
+                - 2.0 * u_prime * denominator_prime / denominator.powi(2)
+                - u * denominator_second / denominator.powi(2)
+                + 2.0 * u * denominator_prime.powi(2) / denominator.powi(3);
+        let b_second = -inverse_radius_ratio_second;
+        let f_second = 2.0 * (-3.0 * u + 10.0 * q * u.powi(2))
+            / ((1.0 - q) * radius.powi(2));
+        let h_second = 2.0
+            + 6.0 * r_h.powi(2) * q * u
+                / ((1.0 - q) * radius.powi(2));
+        let w_second = w_prime
+            * (-5.0 + 8.0 * q * u.powi(2) / denominator)
+            / radius;
         let f_over_b = denominator / (1.0 - q);
 
         let outputs = [
@@ -323,6 +349,10 @@ impl MyersPerry5D {
             ("f_prime", f_prime),
             ("h_prime", h_prime),
             ("w_prime", w_prime),
+            ("b_second", b_second),
+            ("f_second", f_second),
+            ("h_second", h_second),
+            ("w_second", w_second),
             ("f_over_b", f_over_b),
         ];
         for (name, value) in outputs {
@@ -343,6 +373,10 @@ impl MyersPerry5D {
             g_prime,
             h_prime,
             w_prime,
+            b_second,
+            f_second,
+            h_second,
+            w_second,
             f_over_b,
         })
     }
