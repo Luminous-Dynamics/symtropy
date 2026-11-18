@@ -229,7 +229,7 @@ pub fn synthetic_climate_voi_request() -> ClimateExperimentSelectionRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::climate_robustness::{ClimateScenario, CLIMATE_ROBUSTNESS_SCHEMA_VERSION};
+    use crate::climate_robustness::ClimateRobustnessError;
 
     #[test]
     fn analytical_scenario_weights_cannot_be_used_as_voi_priors() {
