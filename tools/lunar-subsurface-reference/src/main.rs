@@ -1,3 +1,4 @@
+mod as_built_closure;
 mod material_accounting;
 
 use std::process::ExitCode;
@@ -95,6 +96,7 @@ fn calculate_excavation(case: ExcavationCase) -> Result<ExcavationEstimate, Stri
 
 fn render_report_json() -> Result<String, String> {
     let material_accounting = material_accounting::render_report_json()?;
+    let as_built_closure = as_built_closure::render_report_json()?;
     let scenario_count = CIRCUMFERENCE_CASES_KM.len()
         * EXCAVATED_SECTION_CASES_M2.len()
         * BORE_COUNT_CASES.len()
@@ -174,6 +176,8 @@ fn render_report_json() -> Result<String, String> {
 
     report.push_str("\n  ],\n  \"material_accounting\": ");
     report.push_str(&material_accounting);
+    report.push_str(",\n  \"as_built_closure\": ");
+    report.push_str(&as_built_closure);
     report.push_str("\n}\n");
     if emitted != scenario_count {
         return Err("emitted scenario count does not match declared matrix size".to_owned());
