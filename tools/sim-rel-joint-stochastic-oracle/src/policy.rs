@@ -238,7 +238,7 @@ fn validate_public_view(view: &crate::episode::EpisodeView) -> Result<(), Policy
     }
 
     if view.dropped_attempts != 0
-        || view.attempts.len() != view.attempts.len().min(crate::episode::MAX_ATTEMPT_RECEIPTS)
+        || view.attempts.len() > crate::episode::MAX_ATTEMPT_RECEIPTS
         || view.accepted_attempts > view.max_attempts
         || view.current_step > view.max_world_steps
         || view.spent_cost_units > view.max_cost_units
@@ -251,19 +251,16 @@ fn validate_public_view(view: &crate::episode::EpisodeView) -> Result<(), Policy
     let mut accepted = 0_u64;
     let mut total_cost = 0_u64;
     let mut applied_observations = Vec::new();
-    let mut previous_request_step = 0_u64;
     for (ordinal, attempt) in view.attempts.iter().enumerate() {
         if attempt.ordinal != ordinal as u64
             || attempt.attempt_id != format!("attempt-{ordinal:08}")
-            || attempt.requested_at_step < previous_request_step
+            || attempt.requested_at_step != accepted
             || attempt.requested_at_step > view.current_step
         {
             return Err(PolicyError::InvalidPublicModel(
                 "attempt IDs, ordinals or request timestamps are inconsistent".to_owned(),
             ));
         }
-        previous_request_step = attempt.requested_at_step;
-
         match &attempt.disposition {
             AttemptDisposition::Applied { observation_id } => {
                 let action = view
@@ -324,23 +321,36 @@ fn validate_public_view(view: &crate::episode::EpisodeView) -> Result<(), Policy
                     PolicyError::InvalidPublicModel("attempt cost total overflow".to_owned())
                 })?;
             }
-            _ => {
-                if attempt.charged_cost_units != 0 || attempt.executed_at_step.is_some() {
+            AttemptDisposition::RejectedUnknownAction => {
+                if attempt.charged_cost_units != 0
+                    || attempt.executed_at_step.is_some()
+                    || attempt.requested_cost_units.is_some()
+                    || view.actions.iter().any(|action| {
+                        action.action_id == attempt.requested_action_id
+                    })
+                {
                     return Err(PolicyError::InvalidPublicModel(
-                        "rejected request must not charge cost or advance execution time".to_owned(),
+                        "unknown-action rejection has a declared action, cost, or execution".to_owned(),
                     ));
                 }
-                if matches!(
-                    &attempt.disposition,
-                    AttemptDisposition::RejectedTerminal
-                        | AttemptDisposition::RejectedAttemptBudget
-                        | AttemptDisposition::RejectedCostBudget
-                        | AttemptDisposition::RejectedStepBudget
-                ) && !view.actions.iter().any(|action| {
-                    action.action_id == attempt.requested_action_id
-                }) {
-                    return Err(PolicyError::InvalidPublicModel(
+            }
+            AttemptDisposition::RejectedTerminal
+            | AttemptDisposition::RejectedAttemptBudget
+            | AttemptDisposition::RejectedCostBudget
+            | AttemptDisposition::RejectedStepBudget => {
+                let action = view
+                    .actions
+                    .iter()
+                    .find(|action| action.action_id == attempt.requested_action_id)
+                    .ok_or_else(|| PolicyError::InvalidPublicModel(
                         "known-action rejection references an undeclared action".to_owned(),
+                    ))?;
+                if attempt.charged_cost_units != 0
+                    || attempt.executed_at_step.is_some()
+                    || attempt.requested_cost_units != Some(action.cost_units)
+                {
+                    return Err(PolicyError::InvalidPublicModel(
+                        "rejected request has inconsistent cost or execution data".to_owned(),
                     ));
                 }
             }
