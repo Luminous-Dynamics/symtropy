@@ -83,6 +83,8 @@ pub enum EventEvidenceStatus {
 pub enum RunTerminationCause {
     IntrinsicMotorSwitch,
     GeometryLimitedFreePath,
+    /// Evidence does not support assigning either termination cause.
+    Unresolved,
 }
 
 /// Probabilities of the three physical event mechanisms.
@@ -475,6 +477,8 @@ pub struct EventRecord {
     pub geometry_free_path_um: Option<f64>,
     /// Cause that ended the run, separate from the subsequent event mechanism.
     pub run_termination_cause: RunTerminationCause,
+    /// Evidence status for the run-termination cause.
+    pub run_termination_evidence_status: EventEvidenceStatus,
     /// Arc length traversed during the run (speed × realized run duration).
     pub run_arc_length_um: f64,
     /// Realized duration after applying the motor and optional geometry limits.
@@ -573,6 +577,7 @@ pub struct BehaviorSummary {
     /// Run-termination counts, independent of subsequent event mechanism.
     pub intrinsic_motor_terminated_run_count: usize,
     pub geometry_limited_run_count: usize,
+    pub unresolved_run_termination_count: usize,
     pub mean_run_duration_s: Option<f64>,
     pub projected_drift_um_s: Option<f64>,
 }
@@ -1261,6 +1266,7 @@ pub fn simulate_with_bias_mode(
             intrinsic_motor_persistence_time_s,
             geometry_free_path_um,
             run_termination_cause,
+            run_termination_evidence_status: EventEvidenceStatus::ModelLatent,
             run_arc_length_um,
             run_duration_s: run_duration,
             mechanism,
@@ -1528,6 +1534,11 @@ pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
             }),
         intrinsic_motor_terminated_run_count,
         geometry_limited_run_count,
+        unresolved_run_termination_count: result
+            .events
+            .iter()
+            .filter(|event| event.run_termination_cause == RunTerminationCause::Unresolved)
+            .count(),
         mean_run_duration_s: (!result.events.is_empty())
             .then(|| total_run_duration / result.events.len() as f64),
         projected_drift_um_s: (elapsed > 0.0)
@@ -1798,6 +1809,7 @@ mod tests {
             intrinsic_motor_persistence_time_s: 0.25,
             geometry_free_path_um: None,
             run_termination_cause: RunTerminationCause::IntrinsicMotorSwitch,
+            run_termination_evidence_status: EventEvidenceStatus::ModelLatent,
             run_arc_length_um: 0.25,
             run_duration_s: 0.25,
             mechanism,
