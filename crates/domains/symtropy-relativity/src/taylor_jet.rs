@@ -149,8 +149,12 @@ impl TaylorJet4Order5 {
             return Err(TaylorJetError::NonFiniteInput);
         }
         for (index, alpha) in MULTI_INDICES.iter().enumerate() {
-            if total_degree(alpha.0) > u16::from(order) && coefficients[index] != 0.0 {
+            let degree = total_degree(alpha.0);
+            if degree > u16::from(order) && coefficients[index] != 0.0 {
                 return Err(TaylorJetError::InvalidMultiIndex(alpha.0));
+            }
+            if degree > 0 && coefficients[index] != 0.0 {
+                return Err(TaylorJetError::MissingExpansionPoint);
             }
         }
         Ok(Self {
@@ -169,9 +173,22 @@ impl TaylorJet4Order5 {
         if expansion_point.iter().any(|value| !value.is_finite()) {
             return Err(TaylorJetError::NonFiniteInput);
         }
-        let mut jet = Self::new(coefficients, order)?;
-        jet.expansion_point = Some(expansion_point);
-        Ok(jet)
+        if order > MAX_ORDER {
+            return Err(TaylorJetError::InvalidOrder(order));
+        }
+        if coefficients.iter().any(|value| !value.is_finite()) {
+            return Err(TaylorJetError::NonFiniteInput);
+        }
+        for (index, alpha) in MULTI_INDICES.iter().enumerate() {
+            if total_degree(alpha.0) > u16::from(order) && coefficients[index] != 0.0 {
+                return Err(TaylorJetError::InvalidMultiIndex(alpha.0));
+            }
+        }
+        Ok(Self {
+            coefficients,
+            order,
+            expansion_point: Some(expansion_point),
+        })
     }
 
     pub fn zero(order: u8) -> Result<Self, TaylorJetError> {
@@ -368,7 +385,7 @@ impl TaylorJet4Order5 {
         }
         let mut coefficients = [0.0; COEFFICIENT_COUNT];
         for (index, alpha) in MULTI_INDICES.iter().enumerate() {
-            if total_degree(alpha.0) <= self.order {
+            if total_degree(alpha.0) <= u16::from(self.order) {
                 coefficients[index] = self.coefficients[index] * factor;
             }
         }
@@ -625,6 +642,20 @@ mod tests {
         assert_eq!(
             lower.derivative_at([4, 0, 0, 0]),
             Err(TaylorJetError::InvalidMultiIndex([4, 0, 0, 0]))
+        );
+    }
+
+    #[test]
+    fn nonconstant_coefficients_require_an_expansion_point() {
+        let mut coefficients = [0.0; COEFFICIENT_COUNT];
+        coefficients[0] = 1.0;
+        coefficients[index_of([1, 0, 0, 0]).unwrap()] = 2.0;
+        assert_eq!(
+            TaylorJet4Order5::new(coefficients, 5),
+            Err(TaylorJetError::MissingExpansionPoint)
+        );
+        assert!(
+            TaylorJet4Order5::new_at(coefficients, 5, [0.0; 4]).is_ok()
         );
     }
 
