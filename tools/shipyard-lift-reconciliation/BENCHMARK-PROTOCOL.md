@@ -85,7 +85,7 @@ The synthetic conformance suite includes:
 - authorisation missing, expired, revoked, wrong-plan and wrong-revision;
 - distinct hook-load and gust limit provenance;
 - coverage missing, incomplete, duplicate, wrong clock domain or wrong source;
-- event identity conflict, exact retransmission and conflicting sequence;
+- event identity conflict, exact retransmission and conflicting sequence; both conflicting records must be quarantined and must not affect reported peaks or summaries, regardless of arrival order;
 - calibration wrong source revision, stale or revoked;
 - source clock mapping wrong source/target domain or wrong mapping revision;
 - mapped event-time intervals outside execution, beyond receipt time, overlapping sequence order or too uncertain;
