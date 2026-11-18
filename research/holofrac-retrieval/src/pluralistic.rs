@@ -96,28 +96,26 @@ pub struct PreferenceLedger {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct PreferenceProfile {
+struct PreferenceProfile {
     /// Present only for explicitly named/shared consent. Anonymous profile IDs
     /// are removed when the decision snapshot crosses the aggregation boundary.
-    pub stakeholder_id: Option<String>,
-    pub revision: u32,
-    pub consent_scope: ConsentScope,
-    pub consent_status: ConsentStatus,
-    pub weights: [f64; CRITERION_COUNT],
-    pub veto_thresholds: [Option<f64>; CRITERION_COUNT],
+    stakeholder_id: Option<String>,
+    revision: u32,
+    consent_scope: ConsentScope,
+    consent_status: ConsentStatus,
+    weights: [f64; CRITERION_COUNT],
+    veto_thresholds: [Option<f64>; CRITERION_COUNT],
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PreferenceSnapshot {
     pub decision_cutoff_micros: i64,
-    pub visible_event_count: usize,
-    /// Profiles authorized for group aggregation. Named profiles retain an ID;
-    /// anonymous profiles have no participant ID or stable pseudonym in this view.
-    pub profiles: Vec<PreferenceProfile>,
-    /// Count of anonymous profiles included in the aggregate, without identity.
-    pub anonymous_profile_count: usize,
-    /// Count of latest profiles excluded by consent scope or status, without identity.
-    pub excluded_profile_count: usize,
+    // The raw profile collection and all cohort counts stay inside this module.
+    // Consumers receive decision outputs, not the underlying preference table.
+    visible_event_count: usize,
+    profiles: Vec<PreferenceProfile>,
+    anonymous_profile_count: usize,
+    excluded_profile_count: usize,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -176,9 +174,9 @@ pub struct RejectedAlternative {
 #[derive(Clone, Debug, PartialEq)]
 pub struct GroupDecisionReport {
     pub decision_cutoff_micros: i64,
-    pub active_stakeholder_count: usize,
-    pub anonymous_stakeholder_count: usize,
-    pub excluded_profile_count: usize,
+    active_stakeholder_count: usize,
+    anonymous_stakeholder_count: usize,
+    excluded_profile_count: usize,
     pub assessments: Vec<AlternativeAssessment>,
     pub rejected_alternatives: Vec<RejectedAlternative>,
     /// Pareto frontier is computed over the original declared outcome vector,
