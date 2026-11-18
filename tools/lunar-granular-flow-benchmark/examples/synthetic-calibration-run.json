@@ -267,7 +267,8 @@
       "status": "unknown",
       "source_artifact_id": null,
       "calibration_record_id": null
-    }
+    },
+    "electrostatic_field_axis_id": null
   },
   "apparatus": {
     "apparatus_type": "rotating_drum",
