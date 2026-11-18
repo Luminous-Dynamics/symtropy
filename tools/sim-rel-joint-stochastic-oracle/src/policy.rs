@@ -714,6 +714,55 @@ mod tests {
         provider.request()
     }
 
+    fn append_applied_attempt(
+        request: &mut EpisodeRequest,
+        action_id: &str,
+        observation_id: &str,
+    ) {
+        let action = request
+            .view
+            .actions
+            .iter()
+            .find(|action| action.action_id == action_id)
+            .unwrap()
+            .clone();
+        let description = request
+            .view
+            .manifest
+            .public_profile
+            .observations
+            .iter()
+            .find(|observation| observation.observation_id == observation_id)
+            .unwrap()
+            .clone();
+        let requested_at_step = request.view.current_step;
+        let executed_at_step = requested_at_step + 1;
+        let ordinal = request.view.attempts.len() as u64;
+        request.view.attempts.push(crate::episode::EpisodeAttempt {
+            attempt_id: format!("attempt-{ordinal:08}"),
+            ordinal,
+            requested_action_id: action_id.to_owned(),
+            requested_cost_units: Some(action.cost_units),
+            charged_cost_units: action.cost_units,
+            requested_at_step,
+            executed_at_step: Some(executed_at_step),
+            disposition: AttemptDisposition::Applied {
+                observation_id: observation_id.to_owned(),
+            },
+        });
+        request.view.current_step = executed_at_step;
+        request.view.accepted_attempts += 1;
+        request.view.spent_cost_units += action.cost_units;
+        request.view.observations.push(crate::episode::EpisodeObservation {
+            observation_id: observation_id.to_owned(),
+            description: description.description,
+            unit: description.unit,
+            event_step: executed_at_step,
+            acquisition_step: executed_at_step,
+            available_at_step: executed_at_step,
+        });
+    }
+
     #[test]
     fn no_intervention_baseline_abstains_without_spending_budget() {
         let response = next_response(&request(), BaselineStrategy::NoIntervention).unwrap();
@@ -747,7 +796,7 @@ mod tests {
             charged_cost_units: 0,
             requested_at_step: 0,
             executed_at_step: None,
-            disposition: crate::episode::AttemptDisposition::RejectedUnknownAction,
+            disposition: AttemptDisposition::RejectedCostBudget,
         });
         let response = next_response(&request, BaselineStrategy::FixedActionOrder).unwrap();
         assert_eq!(
@@ -782,18 +831,7 @@ mod tests {
     #[test]
     fn public_posterior_updates_from_only_the_emitted_observation_prefix() {
         let mut request = request();
-        request.view.attempts.push(crate::episode::EpisodeAttempt {
-            attempt_id: "attempt-00000000".to_owned(),
-            ordinal: 0,
-            requested_action_id: "measure-a".to_owned(),
-            requested_cost_units: Some(1),
-            charged_cost_units: 1,
-            requested_at_step: 0,
-            executed_at_step: Some(1),
-            disposition: AttemptDisposition::Applied {
-                observation_id: "zero".to_owned(),
-            },
-        });
+        append_applied_attempt(&mut request, "measure-a", "zero");
         let (kernel, belief) = public_kernel_and_belief(&request.view).unwrap();
         assert_eq!(belief.len(), 1);
         assert_eq!(kernel.hypothesis_ids[belief[0].hypothesis], "candidate-a");
@@ -810,18 +848,7 @@ mod tests {
     #[test]
     fn unknown_observation_symbols_fail_closed_before_posterior_update() {
         let mut request = request();
-        request.view.attempts.push(crate::episode::EpisodeAttempt {
-            attempt_id: "attempt-00000000".to_owned(),
-            ordinal: 0,
-            requested_action_id: "measure-a".to_owned(),
-            requested_cost_units: Some(1),
-            charged_cost_units: 1,
-            requested_at_step: 0,
-            executed_at_step: Some(1),
-            disposition: AttemptDisposition::Applied {
-                observation_id: "one".to_owned(),
-            },
-        });
+        append_applied_attempt(&mut request, "measure-a", "one");
         request.view.attempts[0].disposition = AttemptDisposition::Applied {
             observation_id: "not-declared".to_owned(),
         };
@@ -834,18 +861,7 @@ mod tests {
     #[test]
     fn one_step_joint_eig_updates_to_the_candidate_supported_by_the_observation() {
         let mut request = request();
-        request.view.attempts.push(crate::episode::EpisodeAttempt {
-            attempt_id: "attempt-00000000".to_owned(),
-            ordinal: 0,
-            requested_action_id: "measure-a".to_owned(),
-            requested_cost_units: Some(1),
-            charged_cost_units: 1,
-            requested_at_step: 0,
-            executed_at_step: Some(1),
-            disposition: AttemptDisposition::Applied {
-                observation_id: "one".to_owned(),
-            },
-        });
+        append_applied_attempt(&mut request, "measure-a", "one");
         let (kernel, belief) = public_kernel_and_belief(&request.view).unwrap();
         assert_eq!(belief.len(), 1);
         assert_eq!(kernel.hypothesis_ids[belief[0].hypothesis], "candidate-b");
@@ -885,18 +901,9 @@ mod tests {
             .manifest
             .public_profile
             .model_catalogue = PublicModelCatalogue::from_kernel(&full_kernel, &candidate_b).unwrap();
-        request.view.attempts.push(crate::episode::EpisodeAttempt {
-            attempt_id: "attempt-00000000".to_owned(),
-            ordinal: 0,
-            requested_action_id: "measure-a".to_owned(),
-            requested_cost_units: Some(1),
-            charged_cost_units: 1,
-            requested_at_step: 0,
-            executed_at_step: Some(1),
-            disposition: AttemptDisposition::Applied {
-                observation_id: "zero".to_owned(),
-            },
-        });
+        request.view.manifest.model_profile_sha256 =
+            request.view.manifest.public_profile.sha256().unwrap();
+        append_applied_attempt(&mut request, "measure-a", "zero");
 
         let (_, belief) = public_kernel_and_belief(&request.view).unwrap();
         assert!(belief.is_empty());
