@@ -7,10 +7,14 @@
 //! The component expressions come from the full covariant Bach tensor, not
 //! from the symmetry-reduced B1 +/- B2 equations. Coordinate order is
 //! (t, r, theta, phi); the radial Taylor variable is coordinate slot 1.
+//! Radius and coefficients must use one consistent geometric length unit;
+//! B(r) is dimensionless and component units follow the coordinate basis.
 //!
 //! This static specialization needs fourth derivatives of B(r). The general
-//! four-dimensional contracted-divergence evaluator still needs the fifth
-//! derivative covered by the parent Taylor-jet substrate.
+//! arbitrary-metric contracted-divergence evaluator still needs the fifth
+//! derivative covered by the parent Taylor-jet substrate. This scalar jet
+//! does not itself carry chart identity; this module is a chart-specific
+//! reference, not a generic tensor compatibility layer.
 
 use core::fmt;
 use super::taylor_jet::{TaylorJet4Order5, TaylorJetError};
