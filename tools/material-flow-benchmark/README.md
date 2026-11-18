@@ -277,7 +277,7 @@ The `mfb-evaluate-coavailability` binary screens one proposed delivery-UAV sorti
 - conservative rendezvous bounds: the latest possible arrival and earliest possible departure define the guaranteed carrier-presence interval (not optimistic ETA bounds);
 - launch and recovery service windows with interval arithmetic;
 - payload, usable battery energy plus protected reserve, peak power and continuous power;
-- declared operating permission and freshness/domain status of aircraft and weather evidence;
+- declared operating permission and freshness/domain status of carrier route timing, pad/site resources, aircraft capability, permission and weather evidence;
 - launch/recovery pad reservations using half-open intervals.
 
 It returns `feasible`, `infeasible` or `indeterminate`. Unknown / stale / conflicted evidence and unknown / expired permission never become a pass. A known hard constraint violation is reported as infeasible. The output hard-codes `dispatch_authorized=false` and `physical_command_emitted=false`.
