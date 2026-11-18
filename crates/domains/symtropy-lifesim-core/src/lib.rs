@@ -19,7 +19,9 @@ mod identity;
 pub use identity::{
     LifeStageConceptRef, LivingSystemEdge, LivingSystemGraph, LivingSystemIdentityError,
     LivingSystemLevel, LivingSystemMember, LivingSystemNode, LivingSystemRelation,
-    RelationshipConceptRef, TaxonConceptKey, TaxonConceptRef,
+    RelationshipConceptRef, TaxonConceptKey, TaxonConceptMapping, TaxonConceptRef,
+    TaxonMappingMethodRef, TaxonMappingRelation, TaxonMappingStatus,
+    validate_taxon_mappings,
 };
 
 #[cfg(feature = "wgpu")]

@@ -63,6 +63,31 @@ Darwin Core terms should be used by future import/export adapters where their
 semantics fit. This crate does not replace Darwin Core, NCBI Taxonomy, GBIF
 or Catalogue of Life.
 
+## Evidence-bearing taxon crosswalks
+
+A crosswalk is an assertion about two independently retained taxon concepts,
+not a synonym table or canonical-ID merger. The `TaxonConceptMapping` API
+preserves both `TaxonConceptKey` values and declares one directional
+relationship:
+
+- `ExactMatch` and `Congruent` are distinct assertions;
+- `Includes` and `IncludedIn` are directional inverses;
+- `Overlaps` does not imply synonymy or full inclusion;
+- `RelatedTo` is intentionally weaker than equivalence;
+- `NoMatch` and `Unresolved` remain distinct non-equivalence outcomes.
+
+Each assertion binds a versioned mapping method, review status and opaque
+evidence-reference IDs. Reviewed/accepted/rejected/deprecated assertions
+require at least one evidence reference. An accepted mapping cannot use
+`NoMatch` or `Unresolved`. Multiple one-to-many and conflicting assertions
+can coexist under distinct mapping IDs; resolving the conflict is an external
+review process, not a core side effect. No mapping silently changes taxon
+identity or rewrites a living-system node.
+
+The evidence references are opaque pointers owned by Sol-Atlas / Mycelix
+provenance services. This crate checks that required references are present
+and unique; it does not fetch, validate, adjudicate or mint those receipts.
+
 ## Overlapping living-system graphs
 
 A `LivingSystemNode` represents an individual, population, community,
@@ -118,7 +143,10 @@ that do not mutate concept identity, independent life-stage vocabularies,
 multi-taxon holobiont nodes, valid containment chains, rejected containment
 cycles, cyclic/overlapping symbiosis and trophic edges, missing source
 identity fields, duplicate IDs, unknown edge references, input permutation,
-empty graphs and parallel relationships.
+empty graphs and parallel relationships. Crosswalk tests cover distinct
+mapping semantics, directional inverses, unresolved/no-match handling,
+evidence requirements, competing one-to-many mappings, self-mapping and
+duplicate evidence/mapping IDs.
 
 No live taxonomy lookups or external datasets are used by the unit fixtures.
 Identifiers in tests are synthetic except for the published CoL XR checklist
