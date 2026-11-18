@@ -873,6 +873,7 @@ pub enum MsdError {
     EmptyEnsemble,
     InvalidLagTime,
     InvalidTimeOriginStep,
+    InvalidAgeingTime,
     InvalidTrace,
     TooManyTimeOrigins,
     NoTrajectorySupportsLag(f64),
@@ -890,6 +891,9 @@ impl fmt::Display for MsdError {
             }
             Self::InvalidTimeOriginStep => {
                 write!(formatter, "MSD time-origin step must be finite and positive")
+            }
+            Self::InvalidAgeingTime => {
+                write!(formatter, "MSD ageing time must be finite and non-negative")
             }
             Self::InvalidTrace => {
                 write!(formatter, "trajectory trace must be finite and strictly time-ordered")
@@ -1448,13 +1452,40 @@ pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
 /// This evaluator does not bootstrap biological plates/days. The ensemble
 /// supplied by the caller must already represent the intended independent
 /// simulation or experimental units.
+/// Compute time-origin-averaged MSD for an ensemble of trajectories.
+///
+/// This convenience form evaluates the zero-age curve. Use
+/// `mean_squared_displacement_with_age` when the observation begins after a
+/// non-zero renewal-process age.
 pub fn mean_squared_displacement(
     trajectories: &[SimulationResult],
     lag_times_s: &[f64],
     time_origin_step_s: f64,
 ) -> Result<Vec<MsdEstimate>, MsdError> {
+    mean_squared_displacement_with_age(trajectories, 0.0, lag_times_s, time_origin_step_s)
+}
+
+/// Compute time-origin-averaged MSD at a declared renewal-process age.
+///
+/// `ageing_time_s` is measured from the first trace point. Origin times begin
+/// at first_time + ageing_time_s; the trace must therefore contain the
+/// pre-observation history as well as the later displacement intervals.
+///
+/// A trajectory-level time-origin average is computed first; the reported
+/// mean and sample standard deviation are then calculated across trajectories.
+/// Overlapping time origins and frames are not treated as independent
+/// biological replicates.
+pub fn mean_squared_displacement_with_age(
+    trajectories: &[SimulationResult],
+    ageing_time_s: f64,
+    lag_times_s: &[f64],
+    time_origin_step_s: f64,
+) -> Result<Vec<MsdEstimate>, MsdError> {
     if trajectories.is_empty() {
         return Err(MsdError::EmptyEnsemble);
+    }
+    if !ageing_time_s.is_finite() || ageing_time_s < 0.0 {
+        return Err(MsdError::InvalidAgeingTime);
     }
     if !time_origin_step_s.is_finite() || time_origin_step_s <= 0.0 {
         return Err(MsdError::InvalidTimeOriginStep);
@@ -1477,13 +1508,17 @@ pub fn mean_squared_displacement(
         for trajectory in trajectories {
             let first = trajectory.trace[0].time_s;
             let last = trajectory.trace[trajectory.trace.len() - 1].time_s;
+            let first_origin = first + ageing_time_s;
+            if !first_origin.is_finite() {
+                return Err(MsdError::InvalidAgeingTime);
+            }
             let latest_origin = last - lag_time_s;
-            if latest_origin < first {
+            if first_origin > latest_origin {
                 continue;
             }
 
             let origin_count_f64 =
-                ((latest_origin - first) / time_origin_step_s).floor() + 1.0;
+                ((latest_origin - first_origin) / time_origin_step_s).floor() + 1.0;
             if !origin_count_f64.is_finite()
                 || origin_count_f64 > MAX_MSD_TIME_ORIGINS_PER_TRAJECTORY as f64
             {
@@ -1497,7 +1532,7 @@ pub fn mean_squared_displacement(
             let mut squared_displacement_sum = 0.0;
             for origin_index in 0..origin_count {
                 let origin_time =
-                    first + origin_index as f64 * time_origin_step_s;
+                    first_origin + origin_index as f64 * time_origin_step_s;
                 let Some((x0, y0)) = interpolate_position(&trajectory.trace, origin_time)
                 else {
                     return Err(MsdError::InvalidTrace);
