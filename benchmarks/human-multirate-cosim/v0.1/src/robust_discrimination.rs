@@ -689,6 +689,151 @@ mod tests {
         }
     }
 
+    fn trace_from_model(model: &ModelCandidate, profile: &InputProfile) -> ObservedSensorTrace {
+        let oracle = model.network.spectral_oracle().unwrap();
+        let times = vec![0.25, 0.5, 1.0, 2.0];
+        let mut values = Vec::new();
+        for time in &times {
+            let mut state = model.network.initial.clone();
+            for segment in &profile.segments {
+                if *time <= segment.start_time {
+                    break;
+                }
+                let elapsed = time.min(&segment.end_time) - segment.start_time;
+                if elapsed > 0.0 {
+                    state = oracle
+                        .state_after_constant_forcing(&state, &segment.forcing, elapsed)
+                        .unwrap();
+                }
+                if *time <= segment.end_time {
+                    break;
+                }
+            }
+            values.push(vec![state[2]]);
+        }
+        ObservedSensorTrace {
+            sensor_ids: vec![30],
+            times,
+            values,
+        }
+    }
+
+    #[test]
+    fn exact_observation_from_overlapping_families_is_unresolved() {
+        let problem = scenario();
+        let trace = trace_from_model(&problem.experiment.models[0], &pulse());
+        let score = evaluate_model_family_adequacy(
+            &problem,
+            &pulse(),
+            &[30],
+            &trace,
+            ModelFamilyAdequacyPolicy {
+                maximum_gaussian_residual: 1.0e-12,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(
+            score.disposition,
+            ModelFamilyAdequacyDisposition::InFamilyUnresolved {
+                compatible_family_ids: vec![100, 200]
+            }
+        );
+    }
+
+    #[test]
+    fn held_out_bypass_strength_outside_the_finite_family_grid_is_out_of_model_set() {
+        let problem = scenario();
+        let hidden = candidate(99, "held_out_bypass", 0.75);
+        let trace = trace_from_model(&hidden, &pulse());
+        let score = evaluate_model_family_adequacy(
+            &problem,
+            &pulse(),
+            &[30],
+            &trace,
+            ModelFamilyAdequacyPolicy {
+                maximum_gaussian_residual: 1.0e-12,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(
+            score.disposition,
+            ModelFamilyAdequacyDisposition::OutOfModelSet
+        );
+        assert!(score
+            .family_fits
+            .iter()
+            .all(|family| family.minimum_gaussian_residual > 1.0e-12));
+    }
+
+    #[test]
+    fn one_compatible_family_with_multiple_variants_reports_parameter_nonidentifiability() {
+        let mut problem = scenario();
+        problem.experiment.models[2].network.edges.push(Edge {
+            left: 0,
+            right: 2,
+            conductance: 0.25,
+        });
+        problem.experiment.models.push(candidate(4, "chain_second_variant", 0.0));
+        problem.family_assignments.push(ModelFamilyAssignment {
+            model_id: 4,
+            family_id: 100,
+        });
+        let trace = trace_from_model(&problem.experiment.models[0], &pulse());
+        let score = evaluate_model_family_adequacy(
+            &problem,
+            &pulse(),
+            &[30],
+            &trace,
+            ModelFamilyAdequacyPolicy {
+                maximum_gaussian_residual: 1.0e-12,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(
+            score.disposition,
+            ModelFamilyAdequacyDisposition::ParameterNotIdentified {
+                family_id: 100,
+                compatible_model_ids: vec![1, 4]
+            }
+        );
+    }
+
+    #[test]
+    fn adequacy_trace_must_match_sensor_order_and_event_schedule() {
+        let problem = scenario();
+        let mut trace = trace_from_model(&problem.experiment.models[0], &pulse());
+        trace.sensor_ids = vec![31];
+        assert_eq!(
+            evaluate_model_family_adequacy(
+                &problem,
+                &pulse(),
+                &[30],
+                &trace,
+                ModelFamilyAdequacyPolicy {
+                    maximum_gaussian_residual: 1.0e-12,
+                },
+            ),
+            Err(ProfiledDiscriminationError::TraceSensorOrderMismatch)
+        );
+        let mut trace = trace_from_model(&problem.experiment.models[0], &pulse());
+        trace.times[0] = 0.3;
+        assert_eq!(
+            evaluate_model_family_adequacy(
+                &problem,
+                &pulse(),
+                &[30],
+                &trace,
+                ModelFamilyAdequacyPolicy {
+                    maximum_gaussian_residual: 1.0e-12,
+                },
+            ),
+            Err(ProfiledDiscriminationError::TraceTimeScheduleMismatch)
+        );
+    }
+
     #[test]
     fn nuisance_profiling_detects_a_family_that_contains_the_chain_limit() {
         let score = evaluate_profiled_input(&scenario(), &pulse(), &[30]).unwrap();
