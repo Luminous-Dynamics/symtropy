@@ -840,67 +840,102 @@ pub fn simulate_with_bias_mode(
 
 /// Compute dimensionally explicit summary measures for a simulated result.
 pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
-    if result.events.is_empty() {
-        return BehaviorSummary {
-            event_count: 0,
-            short_event_count: 0,
-            long_trap_count: 0,
-            resolved_run_direction_count: 0,
-            up_gradient_run_count: 0,
-            up_gradient_run_fraction: None,
-            short_event_followed_run_count: 0,
-            short_event_followed_up_gradient_count: 0,
-            short_event_followed_up_gradient_fraction: None,
-            long_trap_followed_run_count: 0,
-            long_trap_followed_up_gradient_count: 0,
-            long_trap_followed_up_gradient_fraction: None,
-            mean_run_duration_s: None,
-            projected_drift_um_s: None,
-        };
-    }
-
-    let short_event_count = result
+    let short_duration_event_count = result
         .events
         .iter()
-        .filter(|event| event.event_class == EventClass::ShortReorientation)
+        .filter(|event| event.duration_bin == EventDurationBin::Short)
         .count();
-    let long_trap_count = result.events.len() - short_event_count;
+    let long_duration_event_count = result
+        .events
+        .iter()
+        .filter(|event| event.duration_bin == EventDurationBin::Long)
+        .count();
+    let exact_boundary_excluded_event_count = result.events.len()
+        - short_duration_event_count
+        - long_duration_event_count;
+
+    let active_motor_event_count = result
+        .events
+        .iter()
+        .filter(|event| event.mechanism == EventMechanism::ActiveMotorEvent)
+        .count();
+    let passive_trap_event_count = result
+        .events
+        .iter()
+        .filter(|event| event.mechanism == EventMechanism::PassiveMechanicalTrap)
+        .count();
+    let unresolved_mechanism_event_count = result.events.len()
+        - active_motor_event_count
+        - passive_trap_event_count;
+
     let resolved_run_directions: Vec<_> = result
         .events
         .iter()
-        .filter_map(|event| event.run_displacement_heading_rad.map(|_| event.completed_run_direction))
+        .filter_map(|event| {
+            event
+                .run_displacement_heading_rad
+                .map(|_| event.completed_run_direction)
+        })
         .collect();
     let resolved_run_direction_count = resolved_run_directions.len();
     let up_gradient_run_count = resolved_run_directions
         .iter()
         .filter(|direction| **direction == DirectionClass::UpGradient)
         .count();
-    // An event in record i precedes the run in record i+1. The final event
-    // has no observed following run and is deliberately excluded from these
-    // conditional fractions. This aligns the denominator with "runs after
-    // short/long events" rather than classifying the run before the event.
-    let mut short_event_followed_run_count = 0;
-    let mut short_event_followed_up_gradient_count = 0;
-    let mut long_trap_followed_run_count = 0;
-    let mut long_trap_followed_up_gradient_count = 0;
+
+    // Event i precedes run i+1. The final event has no observed following
+    // run and is excluded from every conditional denominator.
+    let mut short_duration_followed_run_count = 0;
+    let mut short_duration_followed_up_gradient_count = 0;
+    let mut long_duration_followed_run_count = 0;
+    let mut long_duration_followed_up_gradient_count = 0;
+
+    let mut active_motor_followed_run_count = 0;
+    let mut active_motor_followed_up_gradient_count = 0;
+    let mut passive_trap_followed_run_count = 0;
+    let mut passive_trap_followed_up_gradient_count = 0;
+    let mut unresolved_mechanism_followed_run_count = 0;
+    let mut unresolved_mechanism_followed_up_gradient_count = 0;
 
     for pair in result.events.windows(2) {
-        let event = pair[0];
+        let previous_event = pair[0];
         let following_run = pair[1];
         let is_up_gradient =
             following_run.completed_run_direction == DirectionClass::UpGradient;
 
-        match event.event_class {
-            EventClass::ShortReorientation => {
-                short_event_followed_run_count += 1;
+        match previous_event.duration_bin {
+            EventDurationBin::Short => {
+                short_duration_followed_run_count += 1;
                 if is_up_gradient {
-                    short_event_followed_up_gradient_count += 1;
+                    short_duration_followed_up_gradient_count += 1;
                 }
             }
-            EventClass::LongMechanicalTrap => {
-                long_trap_followed_run_count += 1;
+            EventDurationBin::Long => {
+                long_duration_followed_run_count += 1;
                 if is_up_gradient {
-                    long_trap_followed_up_gradient_count += 1;
+                    long_duration_followed_up_gradient_count += 1;
+                }
+            }
+            EventDurationBin::ExactBoundaryExcluded => {}
+        }
+
+        match previous_event.mechanism {
+            EventMechanism::ActiveMotorEvent => {
+                active_motor_followed_run_count += 1;
+                if is_up_gradient {
+                    active_motor_followed_up_gradient_count += 1;
+                }
+            }
+            EventMechanism::PassiveMechanicalTrap => {
+                passive_trap_followed_run_count += 1;
+                if is_up_gradient {
+                    passive_trap_followed_up_gradient_count += 1;
+                }
+            }
+            EventMechanism::Unresolved => {
+                unresolved_mechanism_followed_run_count += 1;
+                if is_up_gradient {
+                    unresolved_mechanism_followed_up_gradient_count += 1;
                 }
             }
         }
@@ -920,27 +955,53 @@ pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
 
     BehaviorSummary {
         event_count: result.events.len(),
-        short_event_count,
-        long_trap_count,
+        short_duration_event_count,
+        long_duration_event_count,
+        exact_boundary_excluded_event_count,
+        active_motor_event_count,
+        passive_trap_event_count,
+        unresolved_mechanism_event_count,
         resolved_run_direction_count,
         up_gradient_run_count,
         up_gradient_run_fraction: (resolved_run_direction_count > 0)
             .then_some(up_gradient_run_count as f64 / resolved_run_direction_count as f64),
-        short_event_followed_run_count,
-        short_event_followed_up_gradient_count,
-        short_event_followed_up_gradient_fraction: (short_event_followed_run_count > 0)
+        short_duration_followed_run_count,
+        short_duration_followed_up_gradient_count,
+        short_duration_followed_up_gradient_fraction: (short_duration_followed_run_count > 0)
             .then_some(
-                short_event_followed_up_gradient_count as f64
-                    / short_event_followed_run_count as f64,
+                short_duration_followed_up_gradient_count as f64
+                    / short_duration_followed_run_count as f64,
             ),
-        long_trap_followed_run_count,
-        long_trap_followed_up_gradient_count,
-        long_trap_followed_up_gradient_fraction: (long_trap_followed_run_count > 0)
+        long_duration_followed_run_count,
+        long_duration_followed_up_gradient_count,
+        long_duration_followed_up_gradient_fraction: (long_duration_followed_run_count > 0)
             .then_some(
-                long_trap_followed_up_gradient_count as f64
-                    / long_trap_followed_run_count as f64,
+                long_duration_followed_up_gradient_count as f64
+                    / long_duration_followed_run_count as f64,
             ),
-        mean_run_duration_s: Some(total_run_duration / result.events.len() as f64),
+        active_motor_followed_run_count,
+        active_motor_followed_up_gradient_count,
+        active_motor_followed_up_gradient_fraction: (active_motor_followed_run_count > 0)
+            .then_some(
+                active_motor_followed_up_gradient_count as f64
+                    / active_motor_followed_run_count as f64,
+            ),
+        passive_trap_followed_run_count,
+        passive_trap_followed_up_gradient_count,
+        passive_trap_followed_up_gradient_fraction: (passive_trap_followed_run_count > 0)
+            .then_some(
+                passive_trap_followed_up_gradient_count as f64
+                    / passive_trap_followed_run_count as f64,
+            ),
+        unresolved_mechanism_followed_run_count,
+        unresolved_mechanism_followed_up_gradient_count,
+        unresolved_mechanism_followed_up_gradient_fraction:
+            (unresolved_mechanism_followed_run_count > 0).then_some(
+                unresolved_mechanism_followed_up_gradient_count as f64
+                    / unresolved_mechanism_followed_run_count as f64,
+            ),
+        mean_run_duration_s: (!result.events.is_empty())
+            .then_some(total_run_duration / result.events.len() as f64),
         projected_drift_um_s: (elapsed > 0.0).then_some(projected_displacement / elapsed),
     }
 }
