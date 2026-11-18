@@ -45,8 +45,10 @@ theorem qNuExact_positive : 0 < qNuExact := by
   unfold qNuExact
   nlinarith [Real.sqrt_two_lt_three_halves]
 
-theorem qNuExact_lt_one : qNuExact < 1 :=
-  qNuExact_lt_qNuUpper |>.trans qNuUpper_lt_one
+theorem qNuExact_lt_one : qNuExact < 1 := by
+  have hUpper : (qNuUpper : ℝ) < 1 := by
+    exact_mod_cast qNuUpper_lt_one
+  exact qNuExact_lt_qNuUpper.trans hUpper
 
 def prefactorExact : ℝ := 17 / (15 * Real.sqrt 2)
 
