@@ -1522,6 +1522,64 @@ mod tests {
     }
 
     #[test]
+    fn end_to_end_load_and_leg_tension_match_independent_rational_oracle() {
+        fn reference_ceil_mul_div(left: u128, right: u128, divisor: u128) -> u128 {
+            assert!(divisor > 0);
+            (left * right + divisor - 1) / divisor
+        }
+
+        let dynamic_factors = [1_000_000_u64, 1_100_000, 1_250_000, 1_500_000];
+        let share_bounds = [100_000_u64, 250_000, 500_000, 750_000, 1_000_000];
+        let sine_bounds = [250_000_u64, 500_000, 707_107, 866_025, 1_000_000];
+
+        for mass_kg in 1_u64..=7 {
+            for dynamic_factor_ppm in dynamic_factors {
+                for share_ppm in share_bounds {
+                    for sine_ppm in sine_bounds {
+                        let mut plan = baseline();
+                        plan.mass_upper_kg = mass_kg;
+                        plan.dynamic_factor_ppm = dynamic_factor_ppm;
+                        plan.crane_chart.net_capacity_mn = u64::MAX;
+                        plan.rigging_legs[0].maximum_vertical_share_ppm = share_ppm;
+                        plan.rigging_legs[0].minimum_sine_angle_ppm = sine_ppm;
+                        plan.rigging_legs[0].working_load_limit_mn = u64::MAX;
+                        plan.rigging_legs[1].working_load_limit_mn = u64::MAX;
+
+                        let expected_design_load = reference_ceil_mul_div(
+                            u128::from(mass_kg) * GRAVITY_MILLINEWTONS_PER_KG,
+                            u128::from(dynamic_factor_ppm),
+                            u128::from(PPM_SCALE),
+                        ) as u64;
+                        let expected_leg_a_tension = reference_ceil_mul_div(
+                            u128::from(expected_design_load),
+                            u128::from(share_ppm),
+                            u128::from(sine_ppm),
+                        ) as u64;
+
+                        let report = evaluate(&plan);
+                        assert_eq!(
+                            report.disposition,
+                            Disposition::ReadyForHumanReview,
+                            "unexpected disposition for mass={mass_kg}, dynamic={dynamic_factor_ppm}, share={share_ppm}, sine={sine_ppm}: {:?}",
+                            report.diagnostics
+                        );
+                        assert_eq!(
+                            report.design_load_upper_mn,
+                            Some(expected_design_load),
+                            "design-load oracle mismatch for mass={mass_kg}, dynamic={dynamic_factor_ppm}"
+                        );
+                        assert_eq!(
+                            report.leg_assessments[0].tension_upper_mn,
+                            Some(expected_leg_a_tension),
+                            "leg-tension oracle mismatch for mass={mass_kg}, dynamic={dynamic_factor_ppm}, share={share_ppm}, sine={sine_ppm}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
     fn canonical_input_json_is_identical_under_leg_input_permutation() {
         let first = baseline();
         let mut second = baseline();
