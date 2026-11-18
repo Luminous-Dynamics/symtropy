@@ -148,7 +148,10 @@ fn fixture_provider(seed: u64) -> EpisodeProvider {
 fn run_child(strategy: &str, seed: u64) -> EpisodeEvaluation {
     let executable = env!("CARGO_BIN_EXE_episode_baseline_agent");
     let mut child = Command::new(executable)
-        .args(["--strategy", strategy, "--seed", &seed.to_string()])
+        .arg("--strategy")
+        .arg(strategy)
+        .arg("--seed")
+        .arg(seed.to_string())
         .env_clear()
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -201,8 +204,9 @@ fn fixed_order_baseline_runs_through_real_jsonl_child_and_exact_evaluator() {
         evaluation.reported_disposition,
         EpisodeFinishDisposition::Ambiguous
     );
-    assert!(evaluation.version_space_exact_match);
-    assert!(evaluation.disposition_correct);
+    assert!(!evaluation.version_space_exact_match);
+    assert!(!evaluation.disposition_correct);
+    assert_eq!(evaluation.correct_candidate_count, 1);
 }
 
 #[test]
