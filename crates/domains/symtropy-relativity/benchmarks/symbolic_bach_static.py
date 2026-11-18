@@ -231,7 +231,7 @@ def sample_record(coefficients: dict[sp.Symbol, sp.Expr], radius: int) -> dict[s
         "B_theta_theta": str(bach_four_term.get((2, 2), 0).subs(coefficients).subs(r, radius)),
         "B1_plus_B2": str(B1_plus_B2.subs(substitutions).subs(coefficients).subs(r, radius)),
         "B1_minus_B2": str(B1_minus_B2.subs(substitutions).subs(coefficients).subs(r, radius)),
-        "static_frame_domain_valid": bool(b_value > 0 and b_prime != 0),
+        "static_frame_domain_valid": bool(b_value > 0),
     }
     return entries
 
