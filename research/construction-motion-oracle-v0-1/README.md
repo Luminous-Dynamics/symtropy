@@ -135,3 +135,51 @@ The benchmark should separately measure readiness-check p50/p95/p99, stale-snaps
 
 
 The dispatch-readiness receipt is a typed assessment result, not yet a cryptographically signed authorization token. Before handing it to an authorization authority, the consuming application must bind its canonical serialization to a digest/signature or an authenticated Mycelix attestation, verify that proof, and call verify_dispatch_readiness_receipt_current against the current ledger and approved engine/policy identities. The helper only checks logical currentness and schema/digest syntax; it does not authenticate the receipt itself. A rejected physical mark is intentionally not eligible for ordinary dispatch: the ledger must first record a specific remediation disposition or referee-confirmed physical absence. No actuator API is exposed by this crate.
+
+
+## Construction change-impact compiler v0.1
+
+The pure Rust module change_impact calculates the smallest declared set of derived construction artifacts that must be recomputed or requalified after a design, survey, robot, tool, payload, obstacle, clock, material, occupancy-engine or authority-policy change.
+
+### Paradigm
+
+A new input version does not make every historical fact false, and it does not leave every previously qualified future task valid. The compiler separates:
+- direct invalidations: an artifact's recorded input dependency does not match the new/current digest;
+- transitive invalidations: downstream derived artifacts depended on an invalidated artifact;
+- preserved history: accepted construction, inspection and handover records remain immutable and visible as historical evidence;
+- unaffected artifacts: their declared dependency versions still match;
+- unmatched change keys: changes with no declared dependent artifact, which require explicit reconciliation rather than being silently ignored.
+
+The dependency key is a typed domain plus explicit scope. A localized entity-geometry change should affect that entity's trajectory, envelope, occupancy and dispatch chain, not unrelated entities. A shared frame/transform or occupancy-policy change should affect all artifacts that depend on that shared input.
+
+The graph is validated for unique artifact IDs, unique dependency keys, known parent artifacts, acyclic dependencies and well-formed SHA-256 encodings. A deterministic topological sort produces a dependency-first requalification order. The function is read-only and reports source_records_mutated=false.
+
+### Benchmark
+
+The change-impact benchmark builds 3 artifacts per entity: motion envelope, space-time occupancy assessment and dispatch readiness. It compares:
+- one localized geometry change, expected to invalidate exactly 1 direct motion artifact and its 2 downstream artifacts;
+- one shared floor-transform change, expected to invalidate all motion artifacts plus their occupancy and readiness descendants.
+
+Run the separate harness with:
+\`cargo run --release --manifest-path research/construction-motion-oracle-v0-1/Cargo.toml --bin change-impact-bench\`
+
+The frozen synthetic size points are 1,000, 10,000 and 50,000 entities. The harness checks exact invalidation counts and unmatched-change absence before accepting timing samples, and reports p50/p95/p99. These are algorithmic software microbenchmarks, not production site throughput. A second host and held-out dependency topologies are needed before selecting a production invalidation index.
+
+### Proposed benchmark gates (targets, not achieved results)
+
+| Metric | Research target |
+|---|---:|
+| Stale derived artifacts missed in the frozen dependency corpus | 0 |
+| Historical accepted evidence mutated/deleted | 0 |
+| Unmatched change keys silently dropped | 0 |
+| Requalification order violations | 0 |
+| Localized change over-invalidation | ≤10% of otherwise current derived artifacts |
+| Shared transform/site-frame change coverage | 100% of dependent artifacts |
+| 50K-entity localized-change compile | p95 ≤100 ms on the reference CI host |
+| Change receipt replay determinism | byte-identical canonical report for identical graph/change inputs |
+
+The zero-miss target is a correctness gate, not a statistical claim about the completeness of a live site's dependency graph. The ≤10% over-invalidation target applies only to declared localized changes with a frozen independent oracle. Global changes should not be penalized for correctly invalidating a large fraction of the graph.
+
+### Trust boundary
+
+The caller must verify the change event, graph snapshot, source digests and signatures. This crate validates digest encoding but does not recompute SHA-256, verify signatures, prove that an upstream adapter declared every dependency, or mutate the site ledger. An unmatched change is explicitly surfaced; a caller must not treat a report as dispatch-ready until graph completeness and unmatched-key disposition are independently satisfied.
