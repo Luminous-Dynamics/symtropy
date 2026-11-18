@@ -1,0 +1,90 @@
+{
+  "schema_version": "haps-fleet-reliability-case/v1",
+  "case_id": "synthetic.haps.fleet.k2of3.weather-diversified.001",
+  "revision": 1,
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_static_availability_oracle",
+  "analysis_method": "static_bernoulli_exact_enumeration",
+  "time_window_s": 2592000,
+  "nodes": [
+    {
+      "node_id": "haps-a",
+      "platform_class": "solar_fixed_wing_haps",
+      "independent_availability_probability": 0.92,
+      "service_region_ref": "synthetic.region.disaster-network.001",
+      "maintenance_profile_ref": null
+    },
+    {
+      "node_id": "haps-b",
+      "platform_class": "solar_fixed_wing_haps",
+      "independent_availability_probability": 0.92,
+      "service_region_ref": "synthetic.region.disaster-network.001",
+      "maintenance_profile_ref": null
+    },
+    {
+      "node_id": "haps-c",
+      "platform_class": "buoyant_free_balloon",
+      "independent_availability_probability": 0.92,
+      "service_region_ref": "synthetic.region.disaster-network.001",
+      "maintenance_profile_ref": null
+    }
+  ],
+  "common_cause_events": [
+    {
+      "event_id": "regional-stratospheric-weather-grounding-zone-a",
+      "event_class": "weather_grounding",
+      "event_probability": 0.06,
+      "affected_node_ids": [
+        "haps-a"
+      ],
+      "source_profile_ref": null
+    }
+  ],
+  "shared_dependencies": [
+    {
+      "dependency_id": "regional-backhaul-gateway",
+      "dependency_class": "terrestrial_gateway",
+      "availability_probability": 0.97,
+      "dependency_scope": "regional",
+      "source_profile_ref": null
+    }
+  ],
+  "service_contract": {
+    "minimum_operational_node_count": 2,
+    "required_shared_dependency_ids": [
+      "regional-backhaul-gateway"
+    ],
+    "single_node_reference_id": "haps-a",
+    "service_region_ref": "synthetic.region.disaster-network.001",
+    "target_service_availability_fraction": 0.999
+  },
+  "expected_oracle": {
+    "oracle_status": "independently_calculated",
+    "enumerated_scenario_count": 32,
+    "single_node_service_availability": 0.838856,
+    "fleet_k_of_n_service_availability": 0.9444876032,
+    "naive_independent_k_of_n_service_availability": 0.95236928,
+    "absolute_service_availability_gain_vs_single_node": 0.1056316032,
+    "common_cause_overstatement_probability_points": 0.0078816768,
+    "enumeration_verified": true
+  },
+  "source_evidence_refs": [
+    "https://doi.org/10.1016/j.ress.2025.111450",
+    "https://doi.org/10.1016/j.ress.2024.110419"
+  ],
+  "assumptions": [
+    "All probabilities are synthetic and are not measured Sceye, AALTO, UAVOS or Luminous fleet reliability data.",
+    "The 30-day window labels the intended service interval, but the static Bernoulli model does not represent time-varying failures, repair distributions, maintenance schedules, launch/recovery or weather persistence.",
+    "Each node has 0.92 independent availability conditional on no active common-cause event; these independent node states are mutually independent.",
+    "One weather-grounding event occurs with probability 0.06 and makes haps-a unavailable. Haps-b and haps-c represent platforms with sufficiently diverse weather exposure while retaining overlapping coverage of the same declared service region; this is an explicit synthetic architecture assumption.",
+    "One shared regional gateway dependency is available with probability 0.97 and is required for the service to count as available.",
+    "The weather event, shared gateway state and independent node states are independent of one another in this synthetic example.",
+    "The service is available when at least two HAPS are operational and the required shared gateway is available.",
+    "The single-node baseline uses haps-a with the same independent availability, weather event and shared gateway dependency.",
+    "The naive independent k-of-n comparator applies the same 0.92 per-node availability, k=2 threshold and 0.97 gateway availability but incorrectly omits the common-cause weather-grounding event.",
+    "Exact enumeration covers 2^3 independent node states × 2 weather states × 2 gateway states = 32 mutually exclusive scenarios.",
+    "Compared with the matched all-three-nodes-weather-exposed case, this variant changes only the set of nodes affected by the common-cause weather event. Any availability improvement is therefore attributable to the declared diversity assumption in this fixture.",
+    "The fleet k-of-n result is a service-availability probability for this synthetic model. It is not a measured fleet SLA, 30-day uptime observation, certified safety/reliability metric or operational availability forecast.",
+    "The 99.9% target is a synthetic design target only; this fixture's 94.45% service availability is deliberately below it and must not be presented as meeting the target."
+  ]
+}
