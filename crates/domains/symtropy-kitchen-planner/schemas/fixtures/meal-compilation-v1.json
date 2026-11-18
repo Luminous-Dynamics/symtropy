@@ -97,6 +97,21 @@
       "id": "decision-reference-retention",
       "expected": "compiled",
       "assert": "time source, lot, license, market, source record and revision refs remain in report provenance"
+    },
+    {
+      "id": "task-loss-not-accounted",
+      "expected": "conflicted",
+      "assert": "task input must reconcile to declared ingredient contributions in downstream/edible/planned-loss outputs"
+    },
+    {
+      "id": "output-contribution-does-not-equal-output-quantity",
+      "expected": "conflicted",
+      "assert": "per-ingredient contributions must sum exactly to each typed planned output"
+    },
+    {
+      "id": "dimension-mixing-in-one-output",
+      "expected": "blocked",
+      "assert": "contributions to one output cannot mix mass, volume and count dimensions"
     }
   ],
   "score_policy": {
