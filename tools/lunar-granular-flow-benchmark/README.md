@@ -321,3 +321,5 @@ The comparison must distinguish the source papers' boundaries:
 
 No model trained on rotating-drum angles may claim hopper flow qualification without a matched transfer experiment. No model trained on hopper-to-feeder flow may claim free gravity discharge or downstream beneficiation. The issue [#6090](https://github.com/Luminous-Dynamics/symtropy/issues/6090) tracks the controller tournament and its control/actuator acknowledgement contract.
 
+
+The end-to-end source acquisition gates, exact data-request items, and source-specific reproduction boundaries are maintained in [docs/research/LUNAR_GRANULAR_FLOW_DATA_ACQUISITION.md](../../../docs/research/LUNAR_GRANULAR_FLOW_DATA_ACQUISITION.md).
