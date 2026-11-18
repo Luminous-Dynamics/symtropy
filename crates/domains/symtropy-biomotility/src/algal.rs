@@ -29,6 +29,8 @@ impl RapheContactMode {
 pub struct RapheCurvatureObservation<'a> {
     pub sample_id: &'a str,
     pub time_s: f64,
+    /// Normalized arclength coordinate of the primary active contact on its raphe branch.
+    pub active_contact_position_fraction: Option<f64>,
     pub contact_mode: RapheContactMode,
     pub active_raphe_curvature_inv_um: Option<f64>,
     pub observed_path_curvature_inv_um: Option<f64>,
@@ -42,6 +44,11 @@ impl RapheCurvatureObservation<'_> {
         }
         if !self.time_s.is_finite() || self.time_s < 0.0 {
             return Err(AlgalKinematicsError::InvalidObservationTime);
+        }
+        if self.active_contact_position_fraction.is_some_and(|position| {
+            !position.is_finite() || !(0.0..=1.0).contains(&position)
+        }) {
+            return Err(AlgalKinematicsError::InvalidContactPositionFraction);
         }
         for value in [
             self.active_raphe_curvature_inv_um,
@@ -514,6 +521,7 @@ pub enum AlgalKinematicsError {
     EmptySampleId,
     EmptyTrackId,
     InvalidObservationTime,
+    InvalidContactPositionFraction,
     InvalidTrackDuration,
     InvalidTrackMeasurement,
     InvalidClassificationPolicy,
@@ -536,6 +544,9 @@ impl fmt::Display for AlgalKinematicsError {
             Self::EmptyTrackId => write!(formatter, "track ID must be non-empty"),
             Self::InvalidObservationTime => {
                 write!(formatter, "observation time must be finite and non-negative")
+            }
+            Self::InvalidContactPositionFraction => {
+                write!(formatter, "raphe contact position must be within [0, 1]")
             }
             Self::InvalidTrackDuration => {
                 write!(formatter, "track duration must be finite and positive")
@@ -588,6 +599,7 @@ mod tests {
             RapheCurvatureObservation {
                 sample_id: "one-1",
                 time_s: 0.0,
+                active_contact_position_fraction: Some(0.5),
                 contact_mode: RapheContactMode::OneRapheBranch,
                 active_raphe_curvature_inv_um: Some(0.1),
                 observed_path_curvature_inv_um: Some(0.25),
@@ -596,6 +608,7 @@ mod tests {
             RapheCurvatureObservation {
                 sample_id: "one-2",
                 time_s: 1.0,
+                active_contact_position_fraction: Some(0.5),
                 contact_mode: RapheContactMode::OneRapheBranch,
                 active_raphe_curvature_inv_um: Some(0.2),
                 observed_path_curvature_inv_um: Some(0.45),
@@ -604,6 +617,7 @@ mod tests {
             RapheCurvatureObservation {
                 sample_id: "one-3",
                 time_s: 2.0,
+                active_contact_position_fraction: Some(0.5),
                 contact_mode: RapheContactMode::OneRapheBranch,
                 active_raphe_curvature_inv_um: Some(0.3),
                 observed_path_curvature_inv_um: Some(0.65),
@@ -612,6 +626,7 @@ mod tests {
             RapheCurvatureObservation {
                 sample_id: "two-1",
                 time_s: 0.0,
+                active_contact_position_fraction: Some(0.5),
                 contact_mode: RapheContactMode::TwoRapheBranches,
                 active_raphe_curvature_inv_um: Some(0.1),
                 observed_path_curvature_inv_um: Some(0.12),
@@ -620,6 +635,7 @@ mod tests {
             RapheCurvatureObservation {
                 sample_id: "two-2",
                 time_s: 1.0,
+                active_contact_position_fraction: Some(0.5),
                 contact_mode: RapheContactMode::TwoRapheBranches,
                 active_raphe_curvature_inv_um: Some(0.2),
                 observed_path_curvature_inv_um: Some(0.22),
@@ -628,6 +644,7 @@ mod tests {
             RapheCurvatureObservation {
                 sample_id: "inferred",
                 time_s: 1.0,
+                active_contact_position_fraction: Some(0.5),
                 contact_mode: RapheContactMode::OneRapheBranch,
                 active_raphe_curvature_inv_um: Some(0.4),
                 observed_path_curvature_inv_um: Some(0.85),
@@ -636,6 +653,7 @@ mod tests {
             RapheCurvatureObservation {
                 sample_id: "unresolved",
                 time_s: 1.0,
+                active_contact_position_fraction: None,
                 contact_mode: RapheContactMode::Unresolved,
                 active_raphe_curvature_inv_um: None,
                 observed_path_curvature_inv_um: None,
@@ -666,6 +684,7 @@ mod tests {
             RapheCurvatureObservation {
                 sample_id: "holdout-one",
                 time_s: 3.0,
+                active_contact_position_fraction: Some(0.5),
                 contact_mode: RapheContactMode::OneRapheBranch,
                 active_raphe_curvature_inv_um: Some(0.5),
                 observed_path_curvature_inv_um: Some(1.05),
@@ -674,6 +693,7 @@ mod tests {
             RapheCurvatureObservation {
                 sample_id: "holdout-two",
                 time_s: 3.0,
+                active_contact_position_fraction: Some(0.5),
                 contact_mode: RapheContactMode::TwoRapheBranches,
                 active_raphe_curvature_inv_um: Some(0.4),
                 observed_path_curvature_inv_um: Some(0.42),
@@ -682,6 +702,7 @@ mod tests {
             RapheCurvatureObservation {
                 sample_id: "holdout-inferred",
                 time_s: 3.0,
+                active_contact_position_fraction: Some(0.5),
                 contact_mode: RapheContactMode::OneRapheBranch,
                 active_raphe_curvature_inv_um: Some(0.6),
                 observed_path_curvature_inv_um: Some(1.25),
@@ -710,11 +731,22 @@ mod tests {
     }
 
     #[test]
+    fn raphe_contact_position_fraction_is_validated() {
+        let mut observation = raphe_samples()[0];
+        observation.active_contact_position_fraction = Some(1.1);
+        assert_eq!(
+            fit_raphe_curvature_model(&[observation]),
+            Err(AlgalKinematicsError::InvalidContactPositionFraction)
+        );
+    }
+
+    #[test]
     fn raphe_mode_with_no_curvature_variation_is_unidentifiable() {
         let samples = [
             RapheCurvatureObservation {
                 sample_id: "constant-one",
                 time_s: 0.0,
+                active_contact_position_fraction: Some(0.5),
                 contact_mode: RapheContactMode::OneRapheBranch,
                 active_raphe_curvature_inv_um: Some(0.2),
                 observed_path_curvature_inv_um: Some(0.3),
@@ -723,6 +755,7 @@ mod tests {
             RapheCurvatureObservation {
                 sample_id: "constant-two",
                 time_s: 1.0,
+                active_contact_position_fraction: Some(0.5),
                 contact_mode: RapheContactMode::OneRapheBranch,
                 active_raphe_curvature_inv_um: Some(0.2),
                 observed_path_curvature_inv_um: Some(0.4),
