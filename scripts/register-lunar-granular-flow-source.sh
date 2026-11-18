@@ -40,12 +40,16 @@ command -v realpath >/dev/null 2>&1 || fail "realpath is required"
 canonical_path="$(realpath -e -- "$file_path")"
 filename="$(basename -- "$canonical_path")"
 
-expected="$(jq -er --arg source "$source_id" --arg file "$file_id" '
-  [.sources[] | select(.source_id == $source) | .files[] | select(.file_id == $file)]
-  | if length == 1 then .[0].md5 else error("source/file identity is missing or ambiguous") end
-' "$registry")" || fail "source/file identity is not in the registry"
+entry="$(jq -ce --arg source "$source_id" --arg file "$file_id" '
+  [.sources[] | select(.source_id == $source and .access == "public")
+   | .files[] | select(.file_id == $file and .status == "not_downloaded")]
+  | if length == 1 then .[0] else error("source/file identity is missing, ambiguous or not public") end
+' "$registry")" || fail "source/file identity is not an eligible public registry entry"
+expected="$(jq -r '.md5' <<< "$entry")"
+declared_filename="$(jq -r '.filename' <<< "$entry")"
 
 [[ "$expected" != "null" ]] || fail "registry has no publisher checksum for this file"
+[[ "$filename" == "$declared_filename" ]] || fail "filename does not match registry: expected $declared_filename, got $filename"
 actual_md5="$(md5sum -- "$canonical_path" | awk '{print $1}')"
 [[ "$actual_md5" == "$expected" ]] || fail "publisher MD5 mismatch: expected $expected, got $actual_md5"
 
