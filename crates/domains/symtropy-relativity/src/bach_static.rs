@@ -10,11 +10,12 @@
 //! Radius and coefficients must use one consistent geometric length unit;
 //! B(r) is dimensionless and component units follow the coordinate basis.
 //!
-//! The Bach components need fourth derivatives of B(r). The returned
-//! covariant-divergence diagnostic differentiates a Bach component once and
-//! therefore needs fifth-order metric data. This scalar jet does not itself
-//! carry chart identity; this module is a chart-specific reference, not a
-//! generic tensor compatibility layer.
+//! The Bach components need fourth derivatives of B(r). In this static
+//! specialization B_rr depends only through B'''(r), so differentiating it
+//! for the radial divergence also needs only B''''(r). A general arbitrary-
+//! metric contracted-divergence evaluator still needs fifth-order metric data.
+//! This scalar jet does not itself carry chart identity; this module is a
+//! chart-specific reference, not a generic tensor compatibility layer.
 
 use core::fmt;
 use super::taylor_jet::{TaylorJet4Order5, TaylorJetError};
@@ -89,10 +90,10 @@ impl std::error::Error for StaticSphericalBachError {}
 
 /// Evaluate the full covariant Bach components from a local Taylor jet B(r).
 ///
-/// Bach component values require fourth-order metric data. This function also
-/// differentiates the radial Bach component to evaluate its covariant
-/// divergence, so the complete result requires a fifth-order lapse jet.
-/// The azimuthal component is returned divided by sin(theta)^2.
+/// Bach component values require fourth-order metric data. In this static
+/// specialization B_rr contains derivatives only through third order, so the
+/// radial covariant-divergence diagnostic also requires only a fourth-order
+/// lapse jet. The azimuthal component is returned divided by sin(theta)^2.
 pub fn static_spherical_bach(
     radius: f64,
     lapse: TaylorJet4Order5,
@@ -100,9 +101,9 @@ pub fn static_spherical_bach(
     if !radius.is_finite() || radius <= 0.0 {
         return Err(StaticSphericalBachError::InvalidRadius(radius));
     }
-    if lapse.order() < 5 {
+    if lapse.order() < 4 {
         return Err(StaticSphericalBachError::InsufficientDerivativeOrder {
-            required: 5,
+            required: 4,
             actual: lapse.order(),
         });
     }
@@ -356,6 +357,18 @@ mod tests {
     }
 
     #[test]
+    fn fourth_order_lapse_is_sufficient_for_full_static_result() {
+        let radius = 8.0;
+        let jet = mk_metric_jet(radius, -2.0, 1.0, 0.0, 0.0)
+            .truncate(4)
+            .unwrap();
+        let result = static_spherical_bach(radius, jet).unwrap();
+        assert!(result.max_abs_component() < 2e-12);
+        assert!(result.trace.abs() < 2e-12);
+        assert!(result.radial_covariant_divergence.abs() < 2e-12);
+    }
+
+    #[test]
     fn horizon_and_invalid_derivative_domains_fail_closed() {
         let horizon = mk_metric_jet(2.0, -2.0, 1.0, 0.0, 0.0);
         assert!(matches!(
@@ -364,13 +377,13 @@ mod tests {
         ));
         let low_order = TaylorJet4Order5::variable(3.0, 1)
             .unwrap()
-            .truncate(4)
+            .truncate(3)
             .unwrap();
         assert_eq!(
             static_spherical_bach(3.0, low_order),
             Err(StaticSphericalBachError::InsufficientDerivativeOrder {
-                required: 5,
-                actual: 4
+                required: 4,
+                actual: 3
             })
         );
         assert!(matches!(
