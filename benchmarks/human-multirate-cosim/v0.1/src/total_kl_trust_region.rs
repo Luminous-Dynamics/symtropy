@@ -11,6 +11,7 @@ use crate::experiment_design::{
     evaluate_input_profile, ExperimentDesignScenario, ExcitationDesignError, ForcingSegment,
     InputProfile,
 };
+use crate::noise_robustness::{CovarianceError, ObservationCovarianceV1};
 use crate::sensor_design::invert_spd;
 use crate::trust_region::{
     maximize_psd_quadratic_on_ball, TrustRegionDisposition, TrustRegionError,
@@ -58,6 +59,12 @@ pub struct TotalKlTrustRegionReportV1 {
     pub achieved_peak_amplitude: f64,
     pub peak_constraint_active: bool,
     pub trust_region_iterations: usize,
+    pub covariance_id: String,
+    pub observation_process_id: String,
+    pub sampling_policy_id: String,
+    pub observation_operator_id: String,
+    pub availability_cutoff_id: String,
+    pub covariance_kind: &'static str,
     pub assumptions: Vec<&'static str>,
 }
 
@@ -79,6 +86,9 @@ pub enum TotalKlTrustRegionError {
     NonFiniteReplay,
     MissingModelPrediction(u32),
     InvalidPredictionShape,
+    Covariance(CovarianceError),
+    CovarianceIdentityMismatch,
+    MissingCovarianceIdentity,
 }
 
 impl fmt::Display for TotalKlTrustRegionError {
@@ -116,6 +126,18 @@ impl fmt::Display for TotalKlTrustRegionError {
             Self::InvalidPredictionShape => {
                 write!(f, "model prediction does not match the observation dimensions")
             }
+            Self::Covariance(error) => {
+                write!(f, "observation covariance rejected: {error}")
+            }
+            Self::CovarianceIdentityMismatch => {
+                write!(
+                    f,
+                    "covariance sensor order or exact sample schedule does not match the experiment"
+                )
+            }
+            Self::MissingCovarianceIdentity => {
+                write!(f, "covariance identity fields must be non-empty")
+            }
         }
     }
 }
@@ -138,6 +160,115 @@ pub fn optimize_pairwise_total_kl_trust_region(
     actuator_nodes: &[usize],
     time_boundaries: &[f64],
 ) -> Result<TotalKlTrustRegionReportV1, TotalKlTrustRegionError> {
+    let sensor_indices = selected_sensor_indices(scenario, selected_sensor_ids)?;
+    let selected_covariance = principal_submatrix(&scenario.noise_covariance, &sensor_indices);
+    let covariance_inverse = invert_spd(&selected_covariance)
+        .map_err(EnergyOptimalControlError::SensorDesign)
+        .map_err(TotalKlTrustRegionError::Energy)?;
+    let sensor_count = selected_sensor_ids.len();
+    let metric = move |left: &[f64], right: &[f64]| {
+        independent_time_bilinear_form(
+            &covariance_inverse,
+            sensor_count,
+            left,
+            right,
+        )
+    };
+    let metadata = CovarianceMetadataV1 {
+        covariance_id: "scenario-independent-time-covariance".to_owned(),
+        observation_process_id: "independent-time-blocks".to_owned(),
+        sampling_policy_id: "scenario-observation-schedule".to_owned(),
+        observation_operator_id: "scenario-sensor-selection".to_owned(),
+        availability_cutoff_id: "all-declared-observations".to_owned(),
+        covariance_kind: "INDEPENDENT_TIME_BLOCKS",
+    };
+    optimize_pairwise_total_kl_with_metric(
+        scenario,
+        left_model_id,
+        right_model_id,
+        selected_sensor_ids,
+        actuator_nodes,
+        time_boundaries,
+        metric,
+        metadata,
+    )
+}
+
+/// Total-KL trust-region design using a versioned full space-time covariance.
+/// The covariance identity, sensor ordering and exact sample schedule are
+/// checked before any candidate model is scored.
+pub fn optimize_pairwise_total_kl_trust_region_with_covariance(
+    scenario: &ExperimentDesignScenario,
+    left_model_id: u32,
+    right_model_id: u32,
+    selected_sensor_ids: &[u32],
+    actuator_nodes: &[usize],
+    time_boundaries: &[f64],
+    covariance: &ObservationCovarianceV1,
+) -> Result<TotalKlTrustRegionReportV1, TotalKlTrustRegionError> {
+    if covariance.covariance_id.trim().is_empty()
+        || covariance.observation_process_id.trim().is_empty()
+        || covariance.sampling_policy_id.trim().is_empty()
+        || covariance.observation_operator_id.trim().is_empty()
+        || covariance.availability_cutoff_id.trim().is_empty()
+    {
+        return Err(TotalKlTrustRegionError::MissingCovarianceIdentity);
+    }
+    if covariance.sensor_ids != selected_sensor_ids
+        || covariance.times != scenario.observation_times
+        || covariance.covariance().dimension()
+            != scenario.observation_times.len() * selected_sensor_ids.len()
+    {
+        return Err(TotalKlTrustRegionError::CovarianceIdentityMismatch);
+    }
+    let metadata = CovarianceMetadataV1 {
+        covariance_id: covariance.covariance_id.clone(),
+        observation_process_id: covariance.observation_process_id.clone(),
+        sampling_policy_id: covariance.sampling_policy_id.clone(),
+        observation_operator_id: covariance.observation_operator_id.clone(),
+        availability_cutoff_id: covariance.availability_cutoff_id.clone(),
+        covariance_kind: covariance.covariance().kind_label(),
+    };
+    let metric = |left: &[f64], right: &[f64]| {
+        covariance
+            .gaussian_bilinear_form(left, right)
+            .map_err(TotalKlTrustRegionError::Covariance)
+    };
+    optimize_pairwise_total_kl_with_metric(
+        scenario,
+        left_model_id,
+        right_model_id,
+        selected_sensor_ids,
+        actuator_nodes,
+        time_boundaries,
+        metric,
+        metadata,
+    )
+}
+
+#[derive(Debug, Clone)]
+struct CovarianceMetadataV1 {
+    covariance_id: String,
+    observation_process_id: String,
+    sampling_policy_id: String,
+    observation_operator_id: String,
+    availability_cutoff_id: String,
+    covariance_kind: &'static str,
+}
+
+fn optimize_pairwise_total_kl_with_metric<F>(
+    scenario: &ExperimentDesignScenario,
+    left_model_id: u32,
+    right_model_id: u32,
+    selected_sensor_ids: &[u32],
+    actuator_nodes: &[usize],
+    time_boundaries: &[f64],
+    metric: F,
+    covariance_metadata: CovarianceMetadataV1,
+) -> Result<TotalKlTrustRegionReportV1, TotalKlTrustRegionError>
+where
+    F: Fn(&[f64], &[f64]) -> Result<f64, TotalKlTrustRegionError>,
+{
     scenario
         .validate()
         .map_err(EnergyOptimalControlError::Experiment)
@@ -250,11 +381,7 @@ pub fn optimize_pairwise_total_kl_trust_region(
         return Err(TotalKlTrustRegionError::InvalidProbeAmplitude);
     }
 
-    let sensor_indices = selected_sensor_indices(scenario, selected_sensor_ids)?;
-    let selected_covariance = principal_submatrix(&scenario.noise_covariance, &sensor_indices);
-    let covariance_inverse = invert_spd(&selected_covariance)
-        .map_err(EnergyOptimalControlError::SensorDesign)
-        .map_err(TotalKlTrustRegionError::Energy)?;
+    let _sensor_indices = selected_sensor_indices(scenario, selected_sensor_ids)?;
 
     let sensor_count = selected_sensor_ids.len();
     let output_dimension = scenario
@@ -320,27 +447,17 @@ pub fn optimize_pairwise_total_kl_trust_region(
     let mut gram = vec![vec![0.0; basis_dimension]; basis_dimension];
     let mut cross = vec![0.0; basis_dimension];
     for column in 0..basis_dimension {
-        for time_index in 0..scenario.observation_times.len() {
-            let offset = time_index * sensor_count;
-            let response = &response_columns[column][offset..offset + sensor_count];
-            let passive = &passive_delta[offset..offset + sensor_count];
-            let weighted_passive = matrix_vector_product(&covariance_inverse, passive);
-            cross[column] += dot(response, &weighted_passive);
-        }
+        cross[column] = metric(&response_columns[column], &passive_delta)?;
         if !cross[column].is_finite() {
             return Err(TotalKlTrustRegionError::NonFiniteCrossTerm);
         }
     }
     for left_column in 0..basis_dimension {
         for right_column in left_column..basis_dimension {
-            let mut value = 0.0;
-            for time_index in 0..scenario.observation_times.len() {
-                let offset = time_index * sensor_count;
-                let left = &response_columns[left_column][offset..offset + sensor_count];
-                let right = &response_columns[right_column][offset..offset + sensor_count];
-                let weighted_right = matrix_vector_product(&covariance_inverse, right);
-                value += dot(left, &weighted_right);
-            }
+            let value = metric(
+                &response_columns[left_column],
+                &response_columns[right_column],
+            )?;
             if !value.is_finite() {
                 return Err(TotalKlTrustRegionError::NonFiniteCrossTerm);
             }
@@ -349,13 +466,8 @@ pub fn optimize_pairwise_total_kl_trust_region(
         }
     }
 
-    let mut passive_baseline_gaussian_kl = 0.0;
-    for time_index in 0..scenario.observation_times.len() {
-        let offset = time_index * sensor_count;
-        let passive = &passive_delta[offset..offset + sensor_count];
-        let weighted = matrix_vector_product(&covariance_inverse, passive);
-        passive_baseline_gaussian_kl += 0.5 * dot(passive, &weighted);
-    }
+    let passive_baseline_gaussian_kl =
+        0.5 * metric(&passive_delta, &passive_delta)?;
     if !passive_baseline_gaussian_kl.is_finite() {
         return Err(TotalKlTrustRegionError::NonFiniteOffset);
     }
@@ -437,8 +549,25 @@ pub fn optimize_pairwise_total_kl_trust_region(
     let replay = evaluate_input_profile(scenario, &profile, selected_sensor_ids)
         .map_err(EnergyOptimalControlError::Experiment)
         .map_err(TotalKlTrustRegionError::Energy)?;
+    let replay_left = prediction_vector(
+        &replay,
+        left_model_id,
+        scenario.observation_times.len(),
+        selected_sensor_ids.len(),
+    )?;
+    let replay_right = prediction_vector(
+        &replay,
+        right_model_id,
+        scenario.observation_times.len(),
+        selected_sensor_ids.len(),
+    )?;
+    let controlled_delta: Vec<f64> = replay_left
+        .iter()
+        .zip(replay_right.iter())
+        .map(|(left, right)| left - right)
+        .collect();
     let achieved_total_gaussian_kl =
-        pairwise_gaussian_kl(&replay, left_model_id, right_model_id)?;
+        0.5 * metric(&controlled_delta, &controlled_delta)?;
     let achieved_incremental_control_gaussian_kl =
         quadratic_objective(&gram, &amplitudes);
     let linear_objective = dot(&cross, &amplitudes);
@@ -506,6 +635,12 @@ pub fn optimize_pairwise_total_kl_trust_region(
         achieved_peak_amplitude,
         peak_constraint_active,
         trust_region_iterations: trust.iterations,
+        covariance_id: covariance_metadata.covariance_id,
+        observation_process_id: covariance_metadata.observation_process_id,
+        sampling_policy_id: covariance_metadata.sampling_policy_id,
+        observation_operator_id: covariance_metadata.observation_operator_id,
+        availability_cutoff_id: covariance_metadata.availability_cutoff_id,
+        covariance_kind: covariance_metadata.covariance_kind,
         assumptions: assumptions(),
     })
 }
@@ -602,25 +737,29 @@ fn prediction_vector(
     Ok(prediction.observations.iter().flatten().copied().collect())
 }
 
-fn pairwise_gaussian_kl(
-    score: &crate::experiment_design::ExperimentDesignScore,
-    left_model_id: u32,
-    right_model_id: u32,
+fn independent_time_bilinear_form(
+    sensor_precision: &[Vec<f64>],
+    sensor_count: usize,
+    left: &[f64],
+    right: &[f64],
 ) -> Result<f64, TotalKlTrustRegionError> {
-    let value = score
-        .pairwise_separations
-        .iter()
-        .find(|pair| {
-            (pair.left_model_id == left_model_id && pair.right_model_id == right_model_id)
-                || (pair.left_model_id == right_model_id
-                    && pair.right_model_id == left_model_id)
-        })
-        .map(|pair| pair.gaussian_kl_separation)
-        .ok_or(TotalKlTrustRegionError::NonFiniteReplay)?;
-    if !value.is_finite() {
-        return Err(TotalKlTrustRegionError::NonFiniteReplay);
+    if sensor_count == 0
+        || left.len() != right.len()
+        || left.len() % sensor_count != 0
+    {
+        return Err(TotalKlTrustRegionError::InvalidPredictionShape);
     }
-    Ok(value.max(0.0))
+    let mut value = 0.0;
+    for offset in (0..left.len()).step_by(sensor_count) {
+        let left_block = &left[offset..offset + sensor_count];
+        let right_block = &right[offset..offset + sensor_count];
+        let weighted_right = matrix_vector_product(sensor_precision, right_block);
+        value += dot(left_block, &weighted_right);
+    }
+    if !value.is_finite() {
+        return Err(TotalKlTrustRegionError::NonFiniteCrossTerm);
+    }
+    Ok(value)
 }
 
 fn matrix_vector_product(matrix: &[Vec<f64>], vector: &[f64]) -> Vec<f64> {
@@ -656,6 +795,9 @@ mod tests {
     use super::*;
     use crate::experiment_design::ModelCandidate;
     use crate::network::{Edge, NetworkScenario};
+    use crate::noise_robustness::{
+        Ar1KroneckerCovariance, DenseSpdCovariance, ObservationCovarianceV1,
+    };
     use crate::sensor_design::SensorCandidate;
 
     fn network(edges: Vec<Edge>, initial: Vec<f64>) -> NetworkScenario {
@@ -778,6 +920,149 @@ mod tests {
         assert_eq!(
             report.optimality_disposition,
             TotalKlOptimalityDisposition::ExactTotalKlTrustRegionOptimum
+        );
+    }
+
+    #[test]
+    fn block_diagonal_full_covariance_matches_independent_time_solver() {
+        let fixture = scenario(2.0);
+        let independent = optimize_pairwise_total_kl_trust_region(
+            &fixture, 1, 2, &[10, 11], &[0, 1, 2], &[0.0, 0.5, 1.0, 2.0],
+        )
+        .unwrap();
+        let time_count = fixture.observation_times.len();
+        let sensor_count = fixture.noise_covariance.len();
+        let dimension = time_count * sensor_count;
+        let mut dense_matrix = vec![vec![0.0; dimension]; dimension];
+        for time_index in 0..time_count {
+            for row in 0..sensor_count {
+                for column in 0..sensor_count {
+                    dense_matrix[time_index * sensor_count + row]
+                        [time_index * sensor_count + column] =
+                        fixture.noise_covariance[row][column];
+                }
+            }
+        }
+        let dense = DenseSpdCovariance::new(dense_matrix).unwrap();
+        let binding = ObservationCovarianceV1::new(
+            "covariance:block-diagonal-v1".to_owned(),
+            "process:independent-time-v1".to_owned(),
+            "sampling:scenario-v1".to_owned(),
+            "operator:selected-sensors-v1".to_owned(),
+            "cutoff:finalized-v1".to_owned(),
+            vec![10, 11],
+            fixture.observation_times.clone(),
+            dense,
+        )
+        .unwrap();
+        let full = optimize_pairwise_total_kl_trust_region_with_covariance(
+            &fixture,
+            1,
+            2,
+            &[10, 11],
+            &[0, 1, 2],
+            &[0.0, 0.5, 1.0, 2.0],
+            &binding,
+        )
+        .unwrap();
+        assert_eq!(full.covariance_kind, "DENSE_SPD");
+        assert_eq!(full.covariance_id, "covariance:block-diagonal-v1");
+        assert!((full.achieved_total_gaussian_kl - independent.achieved_total_gaussian_kl).abs() < 1.0e-8);
+        assert!((full.unconstrained_total_gaussian_kl_upper_bound
+            - independent.unconstrained_total_gaussian_kl_upper_bound).abs() < 1.0e-8);
+        assert!((full.trust_region_multiplier - independent.trust_region_multiplier).abs() < 1.0e-8);
+    }
+
+    #[test]
+    fn structured_ar1_and_dense_joint_covariance_produce_matching_trust_region_designs() {
+        let mut fixture = scenario(2.0);
+        fixture.observation_times = vec![0.4, 0.8, 1.2, 1.6, 2.0];
+        let sensor = DenseSpdCovariance::new(fixture.noise_covariance.clone()).unwrap();
+        let structured = Ar1KroneckerCovariance::new(
+            fixture.observation_times.len(),
+            0.6,
+            sensor,
+        )
+        .unwrap();
+        let dense = structured.to_dense().unwrap();
+        let dense_binding = ObservationCovarianceV1::new(
+            "covariance:ar1-dense-v1".to_owned(),
+            "process:ar1-rho-0.6".to_owned(),
+            "sampling:equal-spacing-v1".to_owned(),
+            "operator:selected-sensors-v1".to_owned(),
+            "cutoff:finalized-v1".to_owned(),
+            vec![10, 11],
+            fixture.observation_times.clone(),
+            dense,
+        )
+        .unwrap();
+        let structured_sensor = DenseSpdCovariance::new(fixture.noise_covariance.clone()).unwrap();
+        let structured_covariance = Ar1KroneckerCovariance::new(
+            fixture.observation_times.len(),
+            0.6,
+            structured_sensor,
+        )
+        .unwrap();
+        let structured_binding = ObservationCovarianceV1::new(
+            "covariance:ar1-structured-v1".to_owned(),
+            "process:ar1-rho-0.6".to_owned(),
+            "sampling:equal-spacing-v1".to_owned(),
+            "operator:selected-sensors-v1".to_owned(),
+            "cutoff:finalized-v1".to_owned(),
+            vec![10, 11],
+            fixture.observation_times.clone(),
+            structured_covariance,
+        )
+        .unwrap();
+        let dense_report = optimize_pairwise_total_kl_trust_region_with_covariance(
+            &fixture, 1, 2, &[10, 11], &[0, 1, 2], &[0.0, 0.5, 1.0, 2.0],
+            &dense_binding,
+        )
+        .unwrap();
+        let structured_report = optimize_pairwise_total_kl_trust_region_with_covariance(
+            &fixture, 1, 2, &[10, 11], &[0, 1, 2], &[0.0, 0.5, 1.0, 2.0],
+            &structured_binding,
+        )
+        .unwrap();
+        assert_eq!(dense_report.covariance_kind, "DENSE_SPD");
+        assert_eq!(structured_report.covariance_kind, "AR1_KRONECKER");
+        assert!((dense_report.achieved_total_gaussian_kl
+            - structured_report.achieved_total_gaussian_kl).abs() < 1.0e-8);
+        assert!((dense_report.unconstrained_total_gaussian_kl_upper_bound
+            - structured_report.unconstrained_total_gaussian_kl_upper_bound).abs() < 1.0e-8);
+        assert!((dense_report.trust_region_multiplier
+            - structured_report.trust_region_multiplier).abs() < 1.0e-8);
+
+        let independent = optimize_pairwise_total_kl_trust_region(
+            &fixture, 1, 2, &[10, 11], &[0, 1, 2], &[0.0, 0.5, 1.0, 2.0],
+        )
+        .unwrap();
+        assert!(
+            (structured_report.achieved_total_gaussian_kl
+                - independent.achieved_total_gaussian_kl).abs() > 1.0e-3
+        );
+    }
+
+    #[test]
+    fn full_covariance_binding_rejects_sensor_order_or_time_mismatch() {
+        let fixture = scenario(2.0);
+        let dense = DenseSpdCovariance::new(fixture.noise_covariance.clone()).unwrap();
+        let wrong_order = ObservationCovarianceV1::new(
+            "covariance:wrong-order".to_owned(),
+            "process:independent-time".to_owned(),
+            "sampling:scenario".to_owned(),
+            "operator:sensors".to_owned(),
+            "cutoff:finalized".to_owned(),
+            vec![11, 10],
+            fixture.observation_times.clone(),
+            dense,
+        )
+        .unwrap();
+        assert_eq!(
+            optimize_pairwise_total_kl_trust_region_with_covariance(
+                &fixture, 1, 2, &[10, 11], &[0], &[0.0, 2.0], &wrong_order,
+            ),
+            Err(TotalKlTrustRegionError::CovarianceIdentityMismatch)
         );
     }
 
