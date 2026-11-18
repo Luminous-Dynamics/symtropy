@@ -1332,8 +1332,10 @@ mod tests {
         let request_json = String::from_utf8(encoded_request.clone()).expect("JSON is UTF-8");
         assert!(request_json.contains(EPISODE_PROTOCOL_VERSION));
         assert!(request_json.contains("measure-combined-signal"));
-        assert!(!request_json.contains("latent-mechanism-a"));
-        assert!(!request_json.contains("latent-mechanism-b"));
+        assert!(request_json.contains("latent-mechanism-a"));
+        assert!(request_json.contains("latent-mechanism-b"));
+        assert!(request_json.contains("Calibrate the sensor channel"));
+        assert!(request_json.contains("combined categorical signal"));
         assert!(!request_json.contains("sensor_state"));
         assert!(!request_json.contains("991"));
 
@@ -1387,6 +1389,31 @@ mod tests {
     }
 
     #[test]
+    fn finish_rejects_unknown_or_duplicate_candidate_ids() {
+        let mut provider = new_provider(persistent_sensor_confounding_kernel(), 3);
+        assert_eq!(
+            provider.finish_episode(EpisodeFinish {
+                disposition: EpisodeFinishDisposition::Ambiguous,
+                compatible_hypothesis_ids: vec!["not-in-the-public-catalogue".to_owned()],
+                rationale: "Invalid candidate ID control.".to_owned(),
+            }),
+            Err(EpisodeError::InvalidFinish)
+        );
+        assert_eq!(
+            provider.finish_episode(EpisodeFinish {
+                disposition: EpisodeFinishDisposition::Ambiguous,
+                compatible_hypothesis_ids: vec![
+                    "latent-mechanism-a".to_owned(),
+                    "latent-mechanism-a".to_owned(),
+                ],
+                rationale: "Duplicate candidate ID control.".to_owned(),
+            }),
+            Err(EpisodeError::InvalidFinish)
+        );
+        assert!(!provider.view().terminal);
+    }
+
+    #[test]
     fn exact_evaluator_rejects_a_false_unique_claim_before_discriminating_probe() {
         let mut provider = new_provider(persistent_sensor_confounding_kernel(), 3);
         provider
@@ -1395,6 +1422,7 @@ mod tests {
         provider
             .finish_episode(EpisodeFinish {
                 disposition: EpisodeFinishDisposition::Identified,
+                compatible_hypothesis_ids: vec!["latent-mechanism-a".to_owned()],
                 rationale: "The first signal appears to identify one mechanism.".to_owned(),
             })
             .expect("finish with a status report");
@@ -1405,6 +1433,8 @@ mod tests {
         assert_eq!(evaluation.compatible_hypotheses.len(), 2);
         assert!(evaluation.generating_hypothesis_retained);
         assert!(!evaluation.evidence_identifies_unique_hypothesis);
+        assert!(!evaluation.version_space_exact_match);
+        assert_eq!(evaluation.correct_candidate_count, 1);
         assert!(evaluation.false_unique_claim);
         assert!(!evaluation.disposition_correct);
         assert_eq!(evaluation.applied_interventions, 1);
@@ -1424,6 +1454,7 @@ mod tests {
         provider
             .finish_episode(EpisodeFinish {
                 disposition: EpisodeFinishDisposition::Identified,
+                compatible_hypothesis_ids: vec!["latent-mechanism-a".to_owned()],
                 rationale: "Calibration removed the persistent sensor confound; the later signal separates the remaining mechanisms.".to_owned(),
             })
             .expect("finish with unique status");
@@ -1434,6 +1465,8 @@ mod tests {
         assert_eq!(evaluation.compatible_hypotheses.len(), 1);
         assert!(evaluation.generating_hypothesis_retained);
         assert!(evaluation.evidence_identifies_unique_hypothesis);
+        assert!(evaluation.version_space_exact_match);
+        assert_eq!(evaluation.correct_candidate_count, 1);
         assert!(!evaluation.false_unique_claim);
         assert!(evaluation.disposition_correct);
         assert_eq!(evaluation.applied_interventions, 3);
@@ -1448,6 +1481,10 @@ mod tests {
         ambiguous
             .finish_episode(EpisodeFinish {
                 disposition: EpisodeFinishDisposition::Abstain,
+                compatible_hypothesis_ids: vec![
+                    "latent-mechanism-a".to_owned(),
+                    "latent-mechanism-b".to_owned(),
+                ],
                 rationale: "The available observation is compatible with more than one mechanism.".to_owned(),
             })
             .expect("record safe abstention");
@@ -1467,6 +1504,7 @@ mod tests {
         unique
             .finish_episode(EpisodeFinish {
                 disposition: EpisodeFinishDisposition::Abstain,
+                compatible_hypothesis_ids: vec!["latent-mechanism-a".to_owned()],
                 rationale: "I choose not to make a claim.".to_owned(),
             })
             .unwrap();
@@ -1482,6 +1520,7 @@ mod tests {
         provider.trace_complete = false;
         provider.finish = Some(EpisodeFinish {
             disposition: EpisodeFinishDisposition::Abstain,
+            compatible_hypothesis_ids: Vec::new(),
             rationale: "Incomplete trace control.".to_owned(),
         });
         provider.terminal = true;
