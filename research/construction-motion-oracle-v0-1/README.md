@@ -152,11 +152,15 @@ A new input version does not make every historical fact false, and it does not l
 
 The dependency key is a typed domain plus explicit scope. A localized entity-geometry change should affect that entity's trajectory, envelope, occupancy and dispatch chain, not unrelated entities. A shared frame/transform or occupancy-policy change should affect all artifacts that depend on that shared input.
 
-The graph is validated for unique artifact IDs, unique dependency keys, known parent artifacts, acyclic dependencies and well-formed SHA-256 encodings. A deterministic topological sort produces a dependency-first requalification order. The function is read-only and reports source_records_mutated=false.
+The graph is validated for unique artifact IDs, unique dependency keys, known parent artifacts, acyclic dependencies and well-formed SHA-256 encodings. A deterministic topological sort produces a dependency-first requalification order. The raw graph-only compiler is read-only and reports source_records_mutated=false, but it does not qualify dependency completeness.
+
+For selective requalification, use compile_change_impact_with_contract rather than the graph-only compiler. An owner-approved DependencyContractSet defines the minimum dependency domains for every artifact kind. The coverage audit rejects missing artifact-kind contracts and missing required domain bindings. A successful report binds the contract digest and sets dependency_coverage_complete=true. The selective_requalification_gate_passed helper additionally requires that every change key is matched to at least one declared dependency. A graph-only report remains explicitly unqualified and must not authorize selective requalification.
+
+The dependency contract is a coverage floor, not proof that all upstream dependencies were declared. Owners must version and review their contracts, and adapters must supply correct entity/floor/site scope IDs. The completeness of the upstream graph remains an independent assurance obligation.
 
 ### Benchmark
 
-The change-impact benchmark builds 3 artifacts per entity: motion envelope, space-time occupancy assessment and dispatch readiness. It compares:
+The change-impact benchmark builds 3 artifacts per entity: motion envelope, space-time occupancy assessment and dispatch readiness. Each artifact must satisfy the owner-approved dependency-domain contract before the timed operation completes. The measurement includes graph validation, dependency-coverage audit and invalidation closure—not just the final breadth-first walk. It compares:
 - one localized geometry change, expected to invalidate exactly 1 direct motion artifact and its 2 downstream artifacts;
 - one shared floor-transform change, expected to invalidate all motion artifacts plus their occupancy and readiness descendants.
 
@@ -188,3 +192,5 @@ The caller must verify the change event, graph snapshot, source digests and sign
 The machine-readable graph/change contract is schema/construction-change-impact-v0.1.schema.json. The localized replay fixture is examples/construction-change-impact-localized-synthetic-v0.1.json. It demonstrates an entity-A geometry change invalidating motion:A, occupancy:A and readiness:A while preserving accepted:A as immutable history and leaving entity B's chain unaffected. Digests are synthetic placeholders; the fixture is not a signed event or complete site dependency manifest.
 
 The wire schema and typed validator enforce the same persistence rule: accepted construction records, as-built measurements and handover records are historical_immutable; derived artifacts such as trajectories, envelopes, occupancy assessments and dispatch readiness are recomputable. The typed Rust module is the authoritative validation path; the JSON Schema is the interoperable input shape.
+
+The schema and synthetic fixture also carry a dependency_contract_set. Every artifact kind must be covered, and the minimum required domains must be unique and non-empty. The typed contract audit remains authoritative because it also checks artifact IDs, parents, cycles, persistence class and the dependency edges used by the invalidation compiler.
