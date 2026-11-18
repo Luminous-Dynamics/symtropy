@@ -12,6 +12,7 @@
     "evidence_class",
     "claim_ceiling",
     "source",
+    "source_node_id",
     "authority_policy",
     "target",
     "cohorts",
@@ -450,6 +451,10 @@
         "type": "string"
       },
       "uniqueItems": true
+    },
+    "source_node_id": {
+      "type": "string",
+      "minLength": 1
     }
   },
   "$comment": "Semantic invariants: unique cohort IDs; lower priority_rank means higher priority; deterministic admission by (priority_rank, cohort_id); partial admission by individual user using integer bitrate capacity; no admission until initiation and preparation succeed; source authority is released only after valid target completion acknowledgement; completed + rejected + rolled_back + unresolved equals offered per cohort; source_authoritative_ues + target_authoritative_ues equals offered; authority_overlap_ues is zero; completion_ack_lost leaves source authoritative and requires reconciliation; safety-critical users not completed use drone_local_safe_mode; duplicate acknowledgements are idempotent. This does not model RF, SINR, propagation, mobility or stochastic/semi-Markov phase durations."
