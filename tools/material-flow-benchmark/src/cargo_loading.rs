@@ -707,6 +707,17 @@ mod tests {
     }
 
     #[test]
+    fn accepts_declared_axis_rotation_within_bay() {
+        let mut test = input();
+        test.packages[0]
+            .allowed_orientations
+            .push(BoxOrientation::LengthHeightWidth);
+        test.packages[0].placement.orientation = BoxOrientation::LengthHeightWidth;
+        let report = evaluate_cargo_loading(&test).expect("valid rotated placement");
+        assert_eq!(report.verdict, CargoFeasibilityVerdict::Feasible);
+    }
+
+    #[test]
     fn rejects_package_orientation_not_allowed() {
         let mut test = input();
         test.packages[0].placement.orientation = BoxOrientation::WidthLengthHeight;
