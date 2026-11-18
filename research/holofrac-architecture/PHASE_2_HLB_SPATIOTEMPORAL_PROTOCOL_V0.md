@@ -566,7 +566,7 @@ The first executable finite-scenario slice is now on the HoloFrac implementation
 
 It computes scenario-specific Pareto frontiers, their union and intersection, mean pairwise Jaccard persistence, worst-case objective vectors, weighted feasibility coverage, per-criterion weighted regret, maximum regret and a robust Pareto frontier restricted to candidates feasible in every declared scenario.
 
-The first synthetic scenarios are present-TMY, future-hot and compound heat/grid stress. They use explicitly declared **analytical decision weights**, not probabilities. The fixture deliberately includes a present-day specialist that is infeasible under later scenarios; it must not be called guaranteed-feasible or appear on the robust frontier.
+The first synthetic scenarios are present-TMY, future-hot and compound heat/grid stress. They use explicitly declared **analytical decision weights**, not probabilities. The fixture deliberately includes a present-day specialist that is infeasible under later scenarios; it must not be called guaranteed-feasible or appear on the robust frontier. It also tests a valid no-robust-candidate outcome: every scenario has at least one feasible candidate, but no candidate passes all scenarios, so the robust frontier is empty and HLB/Symtropy must not relax constraints to force a winner.
 
 ### T14 hypotheses
 
