@@ -123,6 +123,8 @@ pub struct FleetReliabilityReport {
     pub naive_independent_k_of_n_service_availability: f64,
     pub absolute_service_availability_gain_vs_single_node: f64,
     pub common_cause_overstatement_probability_points: f64,
+    pub target_service_availability_fraction: Option<f64>,
+    pub fleet_meets_target: Option<bool>,
 }
 
 pub fn parse_case_json(bytes: &[u8]) -> Result<FleetReliabilityCase, ReliabilityError> {
@@ -178,6 +180,17 @@ pub fn validate_case(case: &FleetReliabilityCase) -> Result<(), ReliabilityError
                 node.node_id
             )));
         }
+        if node.service_region_ref != case.service_contract.service_region_ref {
+            return Err(ReliabilityError::new(format!(
+                "node {} does not declare the fleet service region",
+                node.node_id
+            )));
+        }
+        if node.maintenance_profile_ref.is_some() {
+            return Err(ReliabilityError::new(
+                "maintenance_profile_ref is not consumed by the static Bernoulli evaluator; use the temporal reliability owner",
+            ));
+        }
         if !matches!(
             node.platform_class.as_str(),
             "solar_fixed_wing_haps"
@@ -210,6 +223,20 @@ pub fn validate_case(case: &FleetReliabilityCase) -> Result<(), ReliabilityError
                 event.event_id
             )));
         }
+        if !matches!(
+            event.event_class.as_str(),
+            "weather_grounding"
+                | "regional_airspace_closure"
+                | "shared_launch_site_loss"
+                | "common_configuration_defect"
+                | "shared_maintenance_supply_failure"
+                | "other"
+        ) {
+            return Err(ReliabilityError::new(format!(
+                "common-cause event {} has an unrecognized event_class",
+                event.event_id
+            )));
+        }
         validate_probability(
             event.event_probability,
             &format!("common-cause event {} probability", event.event_id),
@@ -238,6 +265,22 @@ pub fn validate_case(case: &FleetReliabilityCase) -> Result<(), ReliabilityError
         {
             return Err(ReliabilityError::new(format!(
                 "dependency_id is empty or duplicated: {}",
+                dependency.dependency_id
+            )));
+        }
+        if !matches!(
+            dependency.dependency_class.as_str(),
+            "terrestrial_gateway"
+                | "satellite_backhaul"
+                | "fso_backhaul"
+                | "spectrum_authority"
+                | "ground_control_site"
+                | "launch_recovery_site"
+                | "maintenance_supply"
+                | "other"
+        ) {
+            return Err(ReliabilityError::new(format!(
+                "dependency {} has an unrecognized dependency_class",
                 dependency.dependency_id
             )));
         }
@@ -448,6 +491,11 @@ pub fn evaluate_case(
         absolute_service_availability_gain_vs_single_node: fleet_availability
             - single_node_availability,
         common_cause_overstatement_probability_points: naive_availability - fleet_availability,
+        target_service_availability_fraction: case.service_contract.target_service_availability_fraction,
+        fleet_meets_target: case
+            .service_contract
+            .target_service_availability_fraction
+            .map(|target| fleet_availability >= target),
     })
 }
 
@@ -511,6 +559,7 @@ mod tests {
             report.common_cause_overstatement_probability_points,
             0.0571421568,
         );
+        assert_eq!(report.fleet_meets_target, Some(false));
     }
 
     #[test]
@@ -526,6 +575,7 @@ mod tests {
             report.common_cause_overstatement_probability_points,
             0.0078816768,
         );
+        assert_eq!(report.fleet_meets_target, Some(false));
     }
 
     #[test]
