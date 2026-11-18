@@ -88,6 +88,9 @@ jobs:
           echo "cross-scenario climate robustness and regret:"
           HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin climate_robustness_sweep > artifacts/climate-robustness.csv
           cat artifacts/climate-robustness.csv
+          echo "probability-grounded climate experiment selection:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin climate_experiment_selection_sweep > artifacts/climate-experiment-selection.csv
+          cat artifacts/climate-experiment-selection.csv
 
       - name: Upload raw benchmark outputs
         if: always()
