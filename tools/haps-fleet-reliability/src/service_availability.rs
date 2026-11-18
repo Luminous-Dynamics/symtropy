@@ -654,7 +654,7 @@ fn evaluate_platform_set(
             let platform = case
                 .platforms
                 .iter()
-                .find(|candidate| candidate.platform_id == *id)
+                .find(|candidate| candidate.platform_id.as_str() == *id)
                 .ok_or_else(|| ReliabilityError::new(format!("unknown platform {id}")))?;
             if let Some(segment) = platform
                 .segments
@@ -666,7 +666,7 @@ fn evaluate_platform_set(
                     for event in &case.common_cause_events {
                         if mid >= event.start_h
                             && mid < event.end_h
-                            && event.affected_platform_ids.iter().any(|affected| affected == *id)
+                            && event.affected_platform_ids.iter().any(|affected| affected.as_str() == *id)
                         {
                             multiplier *= event.service_capacity_multiplier;
                         }
