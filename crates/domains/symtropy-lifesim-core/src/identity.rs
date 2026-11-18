@@ -203,7 +203,6 @@ fn validate_taxon_key(
     key: &TaxonConceptKey,
     source: bool,
 ) -> Result<(), LivingSystemIdentityError> {
-    let prefix = if source { "mapping.source" } else { "mapping.target" };
     require_non_empty(
         &key.authority,
         if source { "mapping.source.authority" } else { "mapping.target.authority" },
@@ -220,7 +219,6 @@ fn validate_taxon_key(
         &key.concept_id,
         if source { "mapping.source.concept_id" } else { "mapping.target.concept_id" },
     )?;
-    let _ = prefix;
     Ok(())
 }
 
