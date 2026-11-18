@@ -207,6 +207,92 @@
           "occupancy:B"
         ]
       }
+    ],
+    "current_dependencies": [
+      {
+        "key": {
+          "domain": "authority_policy",
+          "scope_id": "site"
+        },
+        "observed_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+      },
+      {
+        "key": {
+          "domain": "clearance_policy",
+          "scope_id": "site"
+        },
+        "observed_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+      },
+      {
+        "key": {
+          "domain": "coordinate_transform",
+          "scope_id": "floor:02"
+        },
+        "observed_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      {
+        "key": {
+          "domain": "dynamic_actor_manifest",
+          "scope_id": "region:A"
+        },
+        "observed_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+      },
+      {
+        "key": {
+          "domain": "dynamic_actor_manifest",
+          "scope_id": "region:B"
+        },
+        "observed_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+      },
+      {
+        "key": {
+          "domain": "entity_geometry",
+          "scope_id": "entity:ifc4x3:AAAAAAAAAAAAAAAAAAAAAA"
+        },
+        "observed_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      {
+        "key": {
+          "domain": "entity_geometry",
+          "scope_id": "entity:ifc4x3:BBBBBBBBBBBBBBBBBBBBBB"
+        },
+        "observed_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      {
+        "key": {
+          "domain": "obstacle_map",
+          "scope_id": "region:A"
+        },
+        "observed_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      {
+        "key": {
+          "domain": "obstacle_map",
+          "scope_id": "region:B"
+        },
+        "observed_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      {
+        "key": {
+          "domain": "occupancy_engine_build",
+          "scope_id": "engine"
+        },
+        "observed_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      {
+        "key": {
+          "domain": "site_clock_map",
+          "scope_id": "site"
+        },
+        "observed_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      {
+        "key": {
+          "domain": "work_package_schedule",
+          "scope_id": "work-package"
+        },
+        "observed_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+      }
     ]
   },
   "change_set": {
