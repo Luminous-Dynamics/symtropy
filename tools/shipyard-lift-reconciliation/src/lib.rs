@@ -428,8 +428,8 @@ pub fn canonical_coverage_bundle_json(coverage: &[StreamCoverage]) -> String {
 impl ReconciliationPolicy {
     pub fn canonical_json(&self) -> String {
         let mut channels = self.required_channels.clone();
-        channels.sort();
-        channels.dedup();
+        // Preserve duplicates in the bytes: reconcile() rejects them, and
+        // canonical input must not erase an invalid caller-supplied policy.
         let names = channels
             .iter()
             .map(|channel| json_quote(channel_name(*channel)))
@@ -2016,7 +2016,11 @@ mod tests {
         reversed_coverage.reverse();
         assert_eq!(event_bytes, canonical_event_ledger_json(&reversed_events));
         assert_eq!(coverage_bytes, canonical_coverage_bundle_json(&reversed_coverage));
-        assert_eq!(policy.canonical_json(), policy.canonical_json());
+        let mut reversed_policy = policy.clone();
+        reversed_policy.required_channels.reverse();
+        assert_eq!(policy.canonical_json(), reversed_policy.canonical_json());
+        reversed_policy.required_channels.push(Channel::HookLoad);
+        assert_ne!(policy.canonical_json(), reversed_policy.canonical_json());
     }
 
     #[test]
