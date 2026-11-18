@@ -1,0 +1,104 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "lunar-granular-flow-validation-v0",
+  "evidence_class": "external_dataset_registry_not_ingested",
+  "generated_at": "2026-11-18T12:30:00+02:00",
+  "policy": {
+    "raw_bytes_are_never_inferred": true,
+    "imported_records_require_sha256": true,
+    "source_md5_is_integrity_crosscheck_only": true,
+    "do_not_merge_material_batches_or_test_protocols": true,
+    "no_dataset_is_training_eligible_until_schema_and_license_are_verified": true
+  },
+  "sources": [
+    {
+      "source_id": "WYLEGALA-UHL-2026-ROTATING-DRUM",
+      "title": "Experimental data for: Influence of wall material and vacuum conditions on lunar regolith flow stability in a rotating drum",
+      "doi": "10.5281/zenodo.18749190",
+      "publication_doi": "10.1016/j.actaastro.2026.07.006",
+      "access": "public",
+      "source_url": "https://zenodo.org/records/18749190",
+      "material_identity": "source simulant and batch identity must be read from source metadata; do not substitute ICN-LHT-1 or LHS-1",
+      "license_status": "verify exact Zenodo record license metadata at ingestion before redistribution or derived-data publication",
+      "files": [
+        {
+          "file_id": "frame-level-metrics",
+          "filename": "metrics_frame_level.csv",
+          "bytes": 40737280,
+          "display_size": "38.8 MB",
+          "md5": "55c298d9edccc571f0ca0a3ec8e36fbd",
+          "role": "primary_first_pass_reproduction",
+          "status": "not_downloaded"
+        },
+        {
+          "file_id": "raw-and-processed-video",
+          "filename": "materials.zip",
+          "bytes": 42277224448,
+          "display_size": "39.4 GB",
+          "md5": "2bf754879dc088c2cb648c5441c7d640",
+          "role": "video_pipeline_and_audit",
+          "status": "not_downloaded"
+        }
+      ],
+      "extraction_scope": "Frame-level angle/stability metrics first; raw video only for spot-audit, segmentation reproducibility and disputed trials",
+      "planned_outputs": [
+        "source-summary-reproduction",
+        "per-cell-angle-stability",
+        "wall-pressure-speed-interactions",
+        "video-segmentation-audit"
+      ]
+    },
+    {
+      "source_id": "LAPPA-WATSON-BONNIEU-2026-LHS1-HOPPER",
+      "title": "Data for: Vibrationally Aided Flow of Lunar Regolith Simulant in a Hopper-Based Conveying Device",
+      "doi": "10.15129/22b792eb-7ca4-46b1-b2eb-6ef15b95a281",
+      "publication_doi": "10.1122/8.0001055",
+      "access": "public",
+      "source_url": "https://pureportal.strath.ac.uk/en/datasets/data-for-vibrationally-aided-flow-of-lunar-regolith-simulant-in-a/",
+      "material_identity": "LHS-1; preserve the paper's sample preparation, batch and hopper test metadata",
+      "license_status": "CC BY 4.0 as listed on the University of Strathclyde dataset record",
+      "files": [
+        {
+          "file_id": "hopper-video-corpus",
+          "filename": "Data_for_Vibrationally_Aided_Flow_of_Lunar_Regolith_Simulant_in_a_Hopper-Based_Conveying_Device_2_.zip",
+          "bytes": 584000000,
+          "display_size": "558 MB",
+          "md5": null,
+          "role": "video-reproduction-and-flow-regime-classification",
+          "status": "not_downloaded"
+        }
+      ],
+      "extraction_scope": "Videos grouped by figure; recover exact folder semantics and source test IDs before feature extraction",
+      "planned_outputs": [
+        "flow-regime-classification",
+        "clogging-probability",
+        "vibration-frequency-amplitude-response",
+        "mass-flow-curve-reconstruction"
+      ]
+    },
+    {
+      "source_id": "STEPANOVA-DREYER-GARVEY-2026-PARABOLIC-FEEDER",
+      "title": "Vibration-assisted granular flow under simulated lunar conditions: parabolic flight validation of lunar regolith feed system",
+      "doi": "10.1007/s44461-026-00021-y",
+      "access": "author_request",
+      "source_url": "https://link.springer.com/article/10.1007/s44461-026-00021-y",
+      "material_identity": "ICN-LHT-1; record actual test batch and preparation from authors",
+      "license_status": "not published as an open dataset; obtain permission and data-use/redistribution terms from corresponding author",
+      "data_request_scope": [
+        "load-cell records",
+        "accelerometer measurements",
+        "video documentation",
+        "per-parabola condition schedule",
+        "assembly-to-test mapping",
+        "calibration records"
+      ],
+      "files": [],
+      "extraction_scope": "Import only author-provided records with a source digest and condition manifest; the 480 branch entries are empty templates",
+      "planned_outputs": [
+        "480-row-parabola-source-reconstruction",
+        "Gamma-threshold-reproduction",
+        "pocket-feeder-rate-response"
+      ]
+    }
+  ]
+}
