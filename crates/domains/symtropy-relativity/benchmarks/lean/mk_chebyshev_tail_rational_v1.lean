@@ -114,8 +114,7 @@ theorem physical_mk_coefficient_tail_hasSum (N : ℕ) :
       (fun k : ℕ =>
         |mkChebyshevCoeff (N + 1 + k)| * (2 : ℝ) ^ (N + 1 + k))
       (exactTail N) := by
-  apply (exact_tail_hasSum N).congr
-  intro k
+  refine HasSum.congr_fun (exact_tail_hasSum N) (fun k => ?_)
   rw [weighted_mk_coefficient_abs]
 
 theorem qNuExact_le_upper : qNuExact ≤ qNuUpperReal :=
