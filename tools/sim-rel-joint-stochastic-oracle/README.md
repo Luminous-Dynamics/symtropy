@@ -62,29 +62,41 @@ A policy may finish with an epistemic status: identified, ambiguous, no-compatib
 
 **Claim ceiling:** this is a finite synthetic mechanism-adequacy benchmark with an explicit public candidate family and an evaluator-hidden owner generator. It measures intervention choice, exact candidate-set recovery and OOD/model-family detection. It does not score a free-form mechanism/model description or prove ansatz-free scientific discovery. The candidate family is supplied; do not call this a no-ansatz result. A future genuinely open-world track must generate candidate-independent mechanisms and score proposed model descriptions against sealed held-out interventions or independently measured physical observations.
 
-The 34 authored adapter tests include a known-answer confounding world, exact-optimizer-to-provider policy replay on both hidden initial states, versioned request/response JSON round trips, public semantic-profile visibility, candidate-subset validation, protocol-version fail-closed behavior, false-unique detection before a discriminating probe, exact candidate-set comparison, hidden out-of-catalogue overlap and post-calibration divergence controls, OOD false-positive detection on an in-catalogue world, and fail-closed detection of a corrupted trace that eliminates an in-family generator, and correct unique-status scoring after calibration/measurement. They also cover manifest validation, action accounting, request/execution chronology, receipt-cap overflow, rejected requests not consuming randomness, and sampler-resolution rejection. The separate policy module adds six tests, and the real JSONL child-process integration suite adds two more (43 authored tests total across the new episode/policy/process slices). These tests are authored but have not yet passed an exact-head Rust run.
+The episode adapter adds 36 tests for a known-answer confounding world, exact-optimizer-to-provider policy replay, versioned request/response frames, public semantic visibility, candidate-subset validation, exact candidate-set/OOD scoring, false-unique and abstention controls, profile-digest tamper rejection, corrupted-trace rejection, terminal cutoff, receipt overflow, request chronology and sampler resolution. The public predictive catalogue adds 8 tests for exact u128 rational serialization, candidate-kernel reconstruction, task-prior separation, catalogue hash tamper detection, subset scoping, complete transition grids and profile/model order. The policy layer adds 11 tests for no-probe, fixed, seeded-random, metadata-only, public posterior update, one-step joint EIG, OOD empty-version-space detection and malformed-view rejection. The child frame reader adds 3 bounded-JSONL tests. The process integration suite adds 3 tests that launch the actual child executable and evaluate its policy through the trusted parent provider.
+
+**Total: 61 authored tests** across episode, catalogue, policy, binary and process-integration targets. These tests have not yet passed an exact-head Rust run.
 
 The first profile is synchronous and discrete: for each emitted observation, event, acquisition, and availability steps are equal. Each action receipt records its pre-action request step and post-transition execution step separately. It does not simulate delayed acquisition or late delivery. Add those semantics only with an owner model that represents the relevant clock and process evolution.
 
 ### Versioned policy wire protocol
 
 The adapter defines `EPISODE_PROTOCOL_VERSION = "symtropy-joint-world-episode-v0"` and two serde frames:
-- `EpisodeRequest`: trusted runner → policy; contains the version and public `EpisodeView` only.
-- `EpisodeResponse`: policy → trusted runner; contains the version and one `EpisodeCommand` (`probe` or `finish`).
+- `EpisodeRequest`: trusted runner → policy; contains protocol version, public episode view, non-secret provenance digests, task description, declared candidate semantics, formal predictive candidate catalogue, actions, observations, attempt receipts and budget.
+- `EpisodeResponse`: policy → trusted runner; contains one typed `probe` or `finish` command.
 
-The public JSON Schemas and example frames live under `benchmarks/scientific-world-episodes/v0.1/wire/`, including an outside-family response fixture. A Symthaea process runner can call its generic `ProcessAgent::exchange::<EpisodeRequest, EpisodeResponse>`; the trusted world runner then applies the command through `EpisodeProvider::apply_response`, creates the next request and repeats. The provider object, sampled state, complete kernel, seed and evaluator output must remain in the trusted runner—not in the policy process.
+The public JSON Schemas and example frames live under `benchmarks/scientific-world-episodes/v0.1/wire/`. The request's public predictive catalogue includes:
+- explicit **task priors** over the declared candidate family, separate from the hidden generator's sampling prior;
+- candidate-specific conditional initial physical/sensor-state distributions;
+- complete action-conditioned transition distributions, including categorical observations and terminal hazard outcomes;
+- exact probabilities encoded as reduced decimal numerator/denominator strings, avoiding binary floating-point loss for u128 values;
+- a canonical SHA-256 over the model catalogue, plus a manifest profile digest binding candidate priors, descriptions, action/observation semantics and the catalogue digest.
 
-A finish command reports one of `identified`, `ambiguous`, `no_compatible_model`, or `abstain`, plus a bounded rationale. The trusted provider then computes `EpisodeEvaluation` from exact rational likelihood propagation over the supplied joint kernel and the recorded action/observation history. Its exact compatible-hypothesis list and false-unique/abstention outcomes are evaluator-only and are never placed in a public request or response.
+The public catalogue includes only declared candidate models. The sampled generator ID, hidden initial state, hidden generator models outside the public candidate subset, owner kernel as a whole, PRNG seed and evaluator output remain private. The trusted provider validates the public catalogue against its owner kernel before creating an episode; the child policy independently validates profile/catalogue hashes and reconstructs its own candidate-only kernel from the public frames.
 
-**Claim ceiling:** v0 evaluates epistemic-status calibration against a finite supplied hypothesis family. It does not yet score the semantic correctness of a free-form mechanism/model description, nor discover mechanisms outside the kernel's candidate family. Because a valid episode is generated from the supplied candidate family, `no_compatible_model` cannot be a correct outcome on an ordinary in-support fixture; genuine open-world/OOD qualification requires a separately modelled external mechanism and an independent task oracle. Do not call this an ansatz-free discovery result.
+A Symthaea process runner can call `ProcessAgent::exchange::<EpisodeRequest, EpisodeResponse>`; the trusted world runner applies the response through `EpisodeProvider::apply_response`, creates the next request and repeats. The process layer must use a 16 MiB frame limit for this protocol (the generic bridge's default is 1 MiB); the catalogue itself is capped at 8 MiB to leave room for the rest of the episode view. The process boundary is not an OS sandbox.
+
+A finish command reports one of `identified`, `ambiguous`, `no_compatible_model`, `outside_candidate_family`, or `abstain`, plus the policy's claimed compatible candidate IDs and rationale. The trusted provider independently propagates the exact rational joint belief over the recorded action/observation history and scores exact candidate-set recovery, false-unique claims, OOD detection, false positives/misses and abstention. That score is never serialized to the policy.
+
+**Claim ceiling:** SIM-REL-017 gives a policy enough formal information to compute Bayesian posterior updates and one-step joint EIG over the declared model family. It is still a **finite candidate-family model-discrimination benchmark** with a hidden owner generator and OOD controls. It does not accept free-form candidate-independent model programs, and it is not an Unsatz-equivalent ansatz-discovery result. That work is tracked separately under SIM-REL-018.
 
 ### Executable baseline policies
 
-The crate includes a process-ready baseline executable, `episode_baseline_agent`, which reads one EpisodeRequest JSONL frame at a time and emits one EpisodeResponse frame. It supports four explicit arms:
+The crate includes a bounded process-ready executable, `episode_baseline_agent`, which reads one EpisodeRequest JSONL frame (maximum 16 MiB) and emits one EpisodeResponse frame. It supports five explicit arms:
 
-- `no_intervention`: no experiments; report the full public candidate set and abstain.
-- `fixed_order`: try each affordable public action once in catalogue order, then report the full declared candidate set.
+- `no_intervention`: no experiments; report the public prior candidate set and abstain.
+- `fixed_order`: try each affordable public action once in catalogue order, then report the candidate set supported by the actual observations.
 - `seeded_random`: reproducibly choose an unattempted affordable action from the public catalogue; seed is an agent-side control, not the hidden world seed.
+- `one_step_eig`: reconstruct the public candidate-only joint kernel, update the exact joint posterior using emitted observations, and choose the affordable action with the highest one-step mechanism EIG per unit cost. It may repeat actions when the current posterior makes a repeated intervention informative.
 - `metadata_only`: negative control that identifies the first public candidate without using observations.
 
 Example build/run:
@@ -93,11 +105,12 @@ Example build/run:
 cargo build --locked --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml --bin episode_baseline_agent
 ./target/debug/episode_baseline_agent --strategy fixed_order
 ./target/debug/episode_baseline_agent --strategy seeded_random --seed 23
+./target/debug/episode_baseline_agent --strategy one_step_eig
 ```
 
 The integration tests launch this executable as an actual child process, exchange typed JSONL frames, keep the provider/evaluator in the parent process, and evaluate after the child exits. These are intentionally weak transparent baselines; they do not claim to be model-based EIG policies or learned Symthaea agents.
 
-**Important next dependency:** the public profile currently exposes semantic descriptions but not a formal probabilistic predictive catalogue. A policy cannot independently reproduce exact Bayesian posterior updates, joint EIG, expected hazard or action regret from prose alone. [SIM-REL-017 #6024](https://github.com/Luminous-Dynamics/symtropy/issues/6024) tracks the separation of the public candidate model catalogue from the hidden owner generator and independent evaluator. Until that exists, EIG and exact finite-horizon policies remain evaluator-side diagnostic baselines, not valid child-process policy arms.
+**Remaining model-based gap:** the new EIG arm is myopic. It does not account for multi-step enabling actions (such as calibration that only makes a later measurement useful), terminal utility, intervention risk limits, model misspecification outside the declared generator family, or formal confidence calibration. The exact finite-horizon joint-state optimizer remains an evaluator-side diagnostic oracle. Next: compare the child one-step policy with the exact frontier on matched kernels; then implement decision-aware EVSI, explicit risk-constrained stopping and counterexample-driven model revision.
 
 ### Randomness and claim ceiling
 
@@ -108,5 +121,5 @@ The trajectory sampler converts exact rational weights to f64 and uses a 53-bit 
 ### Run the adapter tests
 
 ```sh
-cargo test --locked --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml --lib episode::tests
+cargo test --locked --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml --all-targets
 ```
