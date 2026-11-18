@@ -861,6 +861,241 @@ mod tests {
         }
     }
 
+    // Independent exact reference for small arbitrary simple polygons.
+    // It intentionally does not call production orientation/segment/point/
+    // relation predicates. The corpus is small enough that direct pairwise
+    // segment checks and rational edge-midpoint probes are inexpensive.
+    fn reference_cross(a: (i64, i64), b: (i64, i64), c: (i64, i64)) -> i128 {
+        (i128::from(b.0) - i128::from(a.0))
+            * (i128::from(c.1) - i128::from(a.1))
+            - (i128::from(b.1) - i128::from(a.1))
+                * (i128::from(c.0) - i128::from(a.0))
+    }
+
+    fn reference_on_segment(point: (i64, i64), a: (i64, i64), b: (i64, i64)) -> bool {
+        reference_cross(a, b, point) == 0
+            && point.0 >= a.0.min(b.0)
+            && point.0 <= a.0.max(b.0)
+            && point.1 >= a.1.min(b.1)
+            && point.1 <= a.1.max(b.1)
+    }
+
+    fn reference_segments_intersect(
+        a: (i64, i64),
+        b: (i64, i64),
+        c: (i64, i64),
+        d: (i64, i64),
+    ) -> bool {
+        let ab_c = reference_cross(a, b, c);
+        let ab_d = reference_cross(a, b, d);
+        let cd_a = reference_cross(c, d, a);
+        let cd_b = reference_cross(c, d, b);
+        if ((ab_c > 0 && ab_d < 0) || (ab_c < 0 && ab_d > 0))
+            && ((cd_a > 0 && cd_b < 0) || (cd_a < 0 && cd_b > 0))
+        {
+            return true;
+        }
+        (ab_c == 0 && reference_on_segment(c, a, b))
+            || (ab_d == 0 && reference_on_segment(d, a, b))
+            || (cd_a == 0 && reference_on_segment(a, c, d))
+            || (cd_b == 0 && reference_on_segment(b, c, d))
+    }
+
+    // Classify a point represented with denominator two. This permits exact
+    // edge-midpoint probes without floating-point division or epsilon policy.
+    fn reference_locate_doubled(
+        x2: i128,
+        y2: i128,
+        polygon: &[(i64, i64)],
+    ) -> PointLocation {
+        let mut inside = false;
+        for index in 0..polygon.len() {
+            let a = polygon[index];
+            let b = polygon[(index + 1) % polygon.len()];
+            let ax2 = i128::from(a.0) * 2;
+            let ay2 = i128::from(a.1) * 2;
+            let bx2 = i128::from(b.0) * 2;
+            let by2 = i128::from(b.1) * 2;
+            let cross = (i128::from(b.0) - i128::from(a.0)) * (y2 - ay2)
+                - (i128::from(b.1) - i128::from(a.1)) * (x2 - ax2);
+            if cross == 0
+                && x2 >= ax2.min(bx2)
+                && x2 <= ax2.max(bx2)
+                && y2 >= ay2.min(by2)
+                && y2 <= ay2.max(by2)
+            {
+                return PointLocation::Boundary;
+            }
+            if (ay2 > y2) != (by2 > y2) {
+                let crosses_right = if b.1 > a.1 { cross > 0 } else { cross < 0 };
+                if crosses_right {
+                    inside = !inside;
+                }
+            }
+        }
+        if inside {
+            PointLocation::Inside
+        } else {
+            PointLocation::Outside
+        }
+    }
+
+    fn reference_same_boundary(first: &[(i64, i64)], second: &[(i64, i64)]) -> bool {
+        if first.len() != second.len() {
+            return false;
+        }
+        for offset in 0..second.len() {
+            let forward = (0..first.len()).all(|index| {
+                first[index] == second[(offset + index) % second.len()]
+            });
+            if forward {
+                return true;
+            }
+            let reverse = (0..first.len()).all(|index| {
+                first[index] == second[(offset + second.len() - index) % second.len()]
+            });
+            if reverse {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn exact_reference_relation(
+        first: &[(i64, i64)],
+        second: &[(i64, i64)],
+    ) -> PolygonRelation {
+        if reference_same_boundary(first, second) {
+            return PolygonRelation::PositiveAreaOverlap;
+        }
+
+        for first_index in 0..first.len() {
+            let a = first[first_index];
+            let b = first[(first_index + 1) % first.len()];
+            for second_index in 0..second.len() {
+                let c = second[second_index];
+                let d = second[(second_index + 1) % second.len()];
+                let ab_c = reference_cross(a, b, c);
+                let ab_d = reference_cross(a, b, d);
+                let cd_a = reference_cross(c, d, a);
+                let cd_b = reference_cross(c, d, b);
+                if ((ab_c > 0 && ab_d < 0) || (ab_c < 0 && ab_d > 0))
+                    && ((cd_a > 0 && cd_b < 0) || (cd_a < 0 && cd_b > 0))
+                {
+                    return PolygonRelation::PositiveAreaOverlap;
+                }
+            }
+        }
+
+        for point in first.iter().chain(second.iter()) {
+            let (subject, container) = if first.contains(point) {
+                (point, second)
+            } else {
+                (point, first)
+            };
+            if reference_locate_doubled(
+                i128::from(subject.0) * 2,
+                i128::from(subject.1) * 2,
+                container,
+            ) == PointLocation::Inside
+            {
+                return PolygonRelation::PositiveAreaOverlap;
+            }
+        }
+
+        // If all vertices lie on boundaries, an edge can still pass through
+        // the other polygon's interior (the inscribed-diamond counterexample).
+        for (edge_set, container) in [(first, second), (second, first)] {
+            for index in 0..edge_set.len() {
+                let a = edge_set[index];
+                let b = edge_set[(index + 1) % edge_set.len()];
+                if reference_locate_doubled(
+                    i128::from(a.0) + i128::from(b.0),
+                    i128::from(a.1) + i128::from(b.1),
+                    container,
+                ) == PointLocation::Inside
+                {
+                    return PolygonRelation::PositiveAreaOverlap;
+                }
+            }
+        }
+
+        for first_index in 0..first.len() {
+            for second_index in 0..second.len() {
+                if reference_segments_intersect(
+                    first[first_index],
+                    first[(first_index + 1) % first.len()],
+                    second[second_index],
+                    second[(second_index + 1) % second.len()],
+                ) {
+                    return PolygonRelation::BoundaryContact;
+                }
+            }
+        }
+        PolygonRelation::Disjoint
+    }
+
+    #[test]
+    fn independent_exact_segment_interior_oracle_checks_oblique_and_concave_corpus() {
+        let shapes: &[&[(i64, i64)]] = &[
+            &[(0, 0), (4, 0), (2, 4)],
+            &[(0, 3), (4, 3), (2, -1)],
+            &[(0, 0), (4, 0), (4, 1), (1, 1), (1, 4), (0, 4)],
+            &[(0, 0), (4, 0), (4, 4), (3, 4), (3, 1), (1, 1), (1, 4), (0, 4)],
+            &[(0, 0), (4, 0), (4, 4), (0, 4)],
+            &[(2, 0), (4, 2), (2, 4), (0, 2)],
+            &[(0, 0), (4, 0), (0, 4)],
+            &[(3, 3), (4, 3), (3, 4)],
+        ];
+        let mut corpus: Vec<(Vec<(i64, i64)>, Polygon)> = Vec::new();
+        for shape in shapes {
+            for shift_x in -1..=1 {
+                for shift_y in -1..=1 {
+                    let mut vertices: Vec<(i64, i64)> = shape
+                        .iter()
+                        .map(|(x, y)| (*x + shift_x, *y + shift_y))
+                        .collect();
+                    let polygon = Polygon::new(vertices.iter().map(|(x, y)| p(*x, *y)).collect())
+                        .expect("authored polygon should be valid");
+                    corpus.push((vertices.clone(), polygon));
+                    vertices.reverse();
+                    let reversed =
+                        Polygon::new(vertices.iter().map(|(x, y)| p(*x, *y)).collect())
+                            .expect("reversed polygon should be valid");
+                    corpus.push((vertices, reversed));
+                }
+            }
+        }
+
+        assert_eq!(corpus.len(), 144, "frozen oblique corpus changed");
+        let mut positive_area = 0usize;
+        let mut boundary_contact = 0usize;
+        let mut disjoint = 0usize;
+        for (first_vertices, first_polygon) in &corpus {
+            for (second_vertices, second_polygon) in &corpus {
+                let expected = exact_reference_relation(first_vertices, second_vertices);
+                assert_eq!(
+                    first_polygon.relation(second_polygon),
+                    Ok(expected),
+                    "independent exact oracle mismatch: first={first_vertices:?}, second={second_vertices:?}"
+                );
+                assert_eq!(
+                    first_polygon.relation(second_polygon),
+                    second_polygon.relation(first_polygon),
+                    "polygon relation must be symmetric"
+                );
+                match expected {
+                    PolygonRelation::PositiveAreaOverlap => positive_area += 1,
+                    PolygonRelation::BoundaryContact => boundary_contact += 1,
+                    PolygonRelation::Disjoint => disjoint += 1,
+                }
+            }
+        }
+        assert!(positive_area > 0);
+        assert!(boundary_contact > 0);
+        assert!(disjoint > 0);
+    }
+
     fn aabb_conflict(first: &[(i64, i64)], second: &[(i64, i64)]) -> bool {
         let first_min_x = first.iter().map(|point| point.0).min().unwrap();
         let first_max_x = first.iter().map(|point| point.0).max().unwrap();
