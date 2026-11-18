@@ -796,6 +796,11 @@ fn law_parameter_count(law: &WaitingTimeLaw) -> Option<usize> {
     match law {
         WaitingTimeLaw::Empirical(_) => None,
         WaitingTimeLaw::Exponential { .. } => Some(1),
+        WaitingTimeLaw::DoubleExponential { fast_weight, .. }
+            if *fast_weight == 0.0 || *fast_weight == 1.0 =>
+        {
+            Some(1)
+        }
         WaitingTimeLaw::DoubleExponential { .. } => Some(3),
         WaitingTimeLaw::PiecewisePowerLaw { .. } => Some(4),
     }
@@ -1185,6 +1190,8 @@ mod tests {
             .all(|score| score.survival_probabilities.len() == grid.len()));
         assert_eq!(comparison.scores[0].parameter_count, Some(1));
         assert_eq!(comparison.scores[1].parameter_count, Some(3));
+        assert_eq!(comparison.scores[0].akaike_information_criterion, None);
+        assert_eq!(comparison.scores[0].bayesian_information_criterion, None);
         assert!(comparison.scores[0].integrated_squared_survival_error >= 0.0);
         assert!(comparison.scores[1].integrated_squared_survival_error >= 0.0);
     }
