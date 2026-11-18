@@ -44,9 +44,9 @@ The standalone Cargo crate contains synthetic known-answer tests for:
 3. Average Joule excitation power under a declared duty factor.
 4. Temperature-equivalent length drift.
 5. First-order length uncertainty propagation from resistance and slope uncertainty.
-6. Invalid/non-finite calibration, readout and excitation inputs.
+6. Invalid/non-finite calibration, readout and excitation inputs.\n7. A force-identifiability negative control: identical resistive length at different unknown axial stiffnesses yields different candidate forces.
 
-All numeric test values are synthetic and deliberately separate from the paper's reported 1.19 mm RMSE. The crate does not estimate tendon tension, joint torque, full robot shape, stiffness or safety margin.
+All numeric test values are synthetic and deliberately separate from the paper's reported 1.19 mm RMSE. The crate does not estimate tendon tension, joint torque, full robot shape, stiffness or safety margin. The seventh test deliberately demonstrates why: the same measured tendon length can imply different forces under different unknown constitutive stiffnesses.
 
 ## 4. Run
 
@@ -73,3 +73,11 @@ Sensor-removal claims require a causal ablation while the independent referee in
 ## 6. Claim ceiling and safety
 
 This is an analytic software reference only. It does not reproduce the paper's material, calibrate a physical tendon, demonstrate load-bearing capacity, validate fatigue life or authorize fabrication, energization, human contact or wearable testing. The braid construction, terminations, routing, temperature, duty cycle and life state each require their own measurements. Any repaired, rerouted or replaced tendon invalidates its previous calibration until requalified.
+
+## 7. Force is not identifiable from length without a constitutive model
+
+The resistance calibration is a map from electrical resistance to tendon arc length. It is not a map from resistance to tension. Even in a deliberately simplified linear spring example, the same 5 mm extension gives 50 N at 10 N/mm and 100 N at 20 N/mm. The electrical length observation is identical in both cases.
+
+Real tendon force inference adds further latent factors: pretension, routing/capstan friction, slack, hysteresis, creep, temperature, termination compliance, material ageing and changing moment arm. The seventh analytic test is a synthetic non-identifiability negative control, not a proposed tendon constitutive model.
+
+A force estimator must therefore be trained/identified against independent inline tension measurements, with held-out routing, temperature, cycle age and remount strata. Until then, the correct output from this channel is tendon length plus calibration uncertainty—not force or joint torque.
