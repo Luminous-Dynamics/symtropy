@@ -76,6 +76,154 @@ impl LifeStageConceptRef {
     }
 }
 
+/// Versioned mapping-method identity; the source resolver owns its semantics.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TaxonMappingMethodRef {
+    pub authority: String,
+    pub release: String,
+    pub method_id: String,
+    pub label: String,
+}
+
+impl TaxonMappingMethodRef {
+    pub fn validate(&self) -> Result<(), LivingSystemIdentityError> {
+        require_non_empty(&self.authority, "mapping_method.authority")?;
+        require_non_empty(&self.release, "mapping_method.release")?;
+        require_non_empty(&self.method_id, "mapping_method.method_id")?;
+        require_non_empty(&self.label, "mapping_method.label")?;
+        Ok(())
+    }
+}
+
+/// Directional semantic relation between two independently identified taxon concepts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum TaxonMappingRelation {
+    ExactMatch,
+    Congruent,
+    Includes,
+    IncludedIn,
+    Overlaps,
+    RelatedTo,
+    NoMatch,
+    Unresolved,
+}
+
+impl TaxonMappingRelation {
+    /// Return the correct relation when source and target are swapped.
+    pub const fn inverse(self) -> Self {
+        match self {
+            Self::ExactMatch => Self::ExactMatch,
+            Self::Congruent => Self::Congruent,
+            Self::Includes => Self::IncludedIn,
+            Self::IncludedIn => Self::Includes,
+            Self::Overlaps => Self::Overlaps,
+            Self::RelatedTo => Self::RelatedTo,
+            Self::NoMatch => Self::NoMatch,
+            Self::Unresolved => Self::Unresolved,
+        }
+    }
+
+    const fn can_be_accepted_as_mapping(self) -> bool {
+        !matches!(self, Self::NoMatch | Self::Unresolved)
+    }
+}
+
+/// Review lifecycle. Acceptance does not change either source concept's identity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum TaxonMappingStatus {
+    Proposed,
+    Reviewed,
+    Accepted,
+    Rejected,
+    Deprecated,
+}
+
+/// Evidence-bearing assertion between two source-scoped taxon concepts.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TaxonConceptMapping {
+    pub mapping_id: String,
+    pub source: TaxonConceptKey,
+    pub target: TaxonConceptKey,
+    pub relation: TaxonMappingRelation,
+    pub status: TaxonMappingStatus,
+    pub method: TaxonMappingMethodRef,
+    /// Opaque IDs owned by external provenance/evidence services.
+    pub evidence_refs: Vec<String>,
+}
+
+impl TaxonConceptMapping {
+    pub fn validate(&self) -> Result<(), LivingSystemIdentityError> {
+        require_non_empty(&self.mapping_id, "mapping.mapping_id")?;
+        validate_taxon_key(&self.source, true)?;
+        validate_taxon_key(&self.target, false)?;
+        if self.source == self.target {
+            return Err(LivingSystemIdentityError::SelfTaxonMapping);
+        }
+        self.method.validate()?;
+
+        let mut evidence_ids = HashSet::new();
+        for evidence_ref in &self.evidence_refs {
+            require_non_empty(evidence_ref, "mapping.evidence_ref")?;
+            if !evidence_ids.insert(evidence_ref.as_str()) {
+                return Err(LivingSystemIdentityError::DuplicateEvidenceReference(
+                    evidence_ref.clone(),
+                ));
+            }
+        }
+        if self.status != TaxonMappingStatus::Proposed && self.evidence_refs.is_empty() {
+            return Err(LivingSystemIdentityError::MissingMappingEvidence);
+        }
+        if self.status == TaxonMappingStatus::Accepted
+            && !self.relation.can_be_accepted_as_mapping()
+        {
+            return Err(LivingSystemIdentityError::InvalidAcceptedMappingRelation);
+        }
+        Ok(())
+    }
+}
+
+/// Validate a set of crosswalk assertions. Multiple mappings from one source
+/// are allowed for release splits, overlaps or competing provider assertions.
+pub fn validate_taxon_mappings(
+    mappings: &[TaxonConceptMapping],
+) -> Result<(), LivingSystemIdentityError> {
+    let mut mapping_ids = HashSet::new();
+    for mapping in mappings {
+        mapping.validate()?;
+        if !mapping_ids.insert(mapping.mapping_id.as_str()) {
+            return Err(LivingSystemIdentityError::DuplicateTaxonMappingId(
+                mapping.mapping_id.clone(),
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn validate_taxon_key(
+    key: &TaxonConceptKey,
+    source: bool,
+) -> Result<(), LivingSystemIdentityError> {
+    let prefix = if source { "mapping.source" } else { "mapping.target" };
+    require_non_empty(
+        &key.authority,
+        if source { "mapping.source.authority" } else { "mapping.target.authority" },
+    )?;
+    require_non_empty(
+        &key.dataset_id,
+        if source { "mapping.source.dataset_id" } else { "mapping.target.dataset_id" },
+    )?;
+    require_non_empty(
+        &key.release,
+        if source { "mapping.source.release" } else { "mapping.target.release" },
+    )?;
+    require_non_empty(
+        &key.concept_id,
+        if source { "mapping.source.concept_id" } else { "mapping.target.concept_id" },
+    )?;
+    let _ = prefix;
+    Ok(())
+}
+
 /// Coarse organizational scale, not a taxonomic rank or kingdom.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LivingSystemLevel {
@@ -286,6 +434,11 @@ pub enum LivingSystemIdentityError {
     DuplicateEdgeId(String),
     UnknownNodeReference(String),
     ContainmentCycle,
+    SelfTaxonMapping,
+    MissingMappingEvidence,
+    InvalidAcceptedMappingRelation,
+    DuplicateEvidenceReference(String),
+    DuplicateTaxonMappingId(String),
 }
 
 impl fmt::Display for LivingSystemIdentityError {
@@ -304,6 +457,21 @@ impl fmt::Display for LivingSystemIdentityError {
             }
             Self::ContainmentCycle => {
                 write!(formatter, "containment relationships must be acyclic")
+            }
+            Self::SelfTaxonMapping => {
+                write!(formatter, "a taxon concept cannot be crosswalked to itself")
+            }
+            Self::MissingMappingEvidence => {
+                write!(formatter, "reviewed taxon mappings require evidence references")
+            }
+            Self::InvalidAcceptedMappingRelation => {
+                write!(formatter, "NoMatch and Unresolved cannot be accepted mappings")
+            }
+            Self::DuplicateEvidenceReference(id) => {
+                write!(formatter, "duplicate mapping evidence reference: {id}")
+            }
+            Self::DuplicateTaxonMappingId(id) => {
+                write!(formatter, "duplicate taxon mapping ID: {id}")
             }
         }
     }
@@ -666,6 +834,148 @@ mod tests {
             Err(LivingSystemIdentityError::EmptyField(
                 "life_stage.vocabulary_release"
             ))
+        );
+    }
+
+    fn mapping(source: TaxonConceptRef, target: TaxonConceptRef) -> TaxonConceptMapping {
+        TaxonConceptMapping {
+            mapping_id: "mapping-1".to_owned(),
+            source: source.key(),
+            target: target.key(),
+            relation: TaxonMappingRelation::ExactMatch,
+            status: TaxonMappingStatus::Proposed,
+            method: TaxonMappingMethodRef {
+                authority: "Example Resolver".to_owned(),
+                release: "1.0".to_owned(),
+                method_id: "exact-curated-crosswalk".to_owned(),
+                label: "curated exact concept comparison".to_owned(),
+            },
+            evidence_refs: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn exact_name_identity_and_crosswalk_relation_are_not_implicit() {
+        let source = taxon("Provider A", "dataset-a", "2026-01", "A:1", "Example organism");
+        let target = taxon("Provider B", "dataset-b", "2026-01", "B:1", "Example organism");
+        assert_ne!(source.key(), target.key());
+        let assertion = mapping(source, target);
+        assert_eq!(assertion.status, TaxonMappingStatus::Proposed);
+        assert_eq!(assertion.relation, TaxonMappingRelation::ExactMatch);
+        assert!(assertion.validate().is_ok());
+    }
+
+    #[test]
+    fn exact_match_and_congruent_are_distinct_mapping_relations() {
+        assert_ne!(
+            TaxonMappingRelation::ExactMatch,
+            TaxonMappingRelation::Congruent
+        );
+    }
+
+    #[test]
+    fn directional_inclusion_relations_have_explicit_inverses() {
+        assert_eq!(
+            TaxonMappingRelation::Includes.inverse(),
+            TaxonMappingRelation::IncludedIn
+        );
+        assert_eq!(
+            TaxonMappingRelation::IncludedIn.inverse(),
+            TaxonMappingRelation::Includes
+        );
+        assert_eq!(
+            TaxonMappingRelation::Overlaps.inverse(),
+            TaxonMappingRelation::Overlaps
+        );
+    }
+
+    #[test]
+    fn no_match_and_unresolved_cannot_be_accepted() {
+        let source = taxon("A", "dataset-a", "1", "A:1", "One");
+        let target = taxon("B", "dataset-b", "1", "B:1", "Two");
+        for relation in [TaxonMappingRelation::NoMatch, TaxonMappingRelation::Unresolved] {
+            let mut assertion = mapping(source.clone(), target.clone());
+            assertion.relation = relation;
+            assertion.status = TaxonMappingStatus::Accepted;
+            assertion.evidence_refs = vec!["receipt:review-1".to_owned()];
+            assert_eq!(
+                assertion.validate(),
+                Err(LivingSystemIdentityError::InvalidAcceptedMappingRelation)
+            );
+        }
+    }
+
+    #[test]
+    fn reviewed_or_accepted_mapping_requires_opaque_evidence_reference() {
+        let source = taxon("A", "dataset-a", "1", "A:1", "One");
+        let target = taxon("B", "dataset-b", "1", "B:1", "Two");
+        let mut assertion = mapping(source, target);
+        assertion.status = TaxonMappingStatus::Reviewed;
+        assert_eq!(
+            assertion.validate(),
+            Err(LivingSystemIdentityError::MissingMappingEvidence)
+        );
+        assertion.status = TaxonMappingStatus::Accepted;
+        assertion.relation = TaxonMappingRelation::Congruent;
+        assertion.evidence_refs = vec!["sol-atlas:crosswalk-review:42".to_owned()];
+        assert!(assertion.validate().is_ok());
+    }
+
+    #[test]
+    fn unresolved_mapping_can_be_preserved_as_proposed_without_false_resolution() {
+        let source = taxon("A", "dataset-a", "1", "A:1", "One");
+        let target = taxon("B", "dataset-b", "1", "B:1", "One");
+        let mut assertion = mapping(source, target);
+        assertion.relation = TaxonMappingRelation::Unresolved;
+        assert!(assertion.validate().is_ok());
+    }
+
+    #[test]
+    fn one_to_many_release_split_and_conflicting_mappings_are_preserved() {
+        let source = taxon("A", "dataset-a", "2025", "A:old", "Species alpha");
+        let target_one = taxon("A", "dataset-a", "2026", "A:new-1", "Species alpha");
+        let target_two = taxon("A", "dataset-a", "2026", "A:new-2", "Species alpha beta");
+        let mut first = mapping(source.clone(), target_one);
+        first.mapping_id = "split-1".to_owned();
+        first.relation = TaxonMappingRelation::Includes;
+        let mut second = mapping(source, target_two);
+        second.mapping_id = "split-2".to_owned();
+        second.relation = TaxonMappingRelation::Overlaps;
+        assert!(validate_taxon_mappings(&[first, second]).is_ok());
+    }
+
+    #[test]
+    fn duplicate_mapping_and_evidence_ids_fail_closed() {
+        let source = taxon("A", "dataset-a", "1", "A:1", "One");
+        let target = taxon("B", "dataset-b", "1", "B:1", "Two");
+        let first = mapping(source.clone(), target.clone());
+        let second = first.clone();
+        assert_eq!(
+            validate_taxon_mappings(&[first, second]),
+            Err(LivingSystemIdentityError::DuplicateTaxonMappingId(
+                "mapping-1".to_owned()
+            ))
+        );
+
+        let mut duplicate_evidence = mapping(source, target);
+        duplicate_evidence.status = TaxonMappingStatus::Reviewed;
+        duplicate_evidence.evidence_refs =
+            vec!["receipt:1".to_owned(), "receipt:1".to_owned()];
+        assert_eq!(
+            duplicate_evidence.validate(),
+            Err(LivingSystemIdentityError::DuplicateEvidenceReference(
+                "receipt:1".to_owned()
+            ))
+        );
+    }
+
+    #[test]
+    fn self_mapping_is_rejected() {
+        let source = taxon("A", "dataset-a", "1", "A:1", "One");
+        let assertion = mapping(source.clone(), source);
+        assert_eq!(
+            assertion.validate(),
+            Err(LivingSystemIdentityError::SelfTaxonMapping)
         );
     }
 
