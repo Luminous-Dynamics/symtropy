@@ -253,7 +253,8 @@
         "particle_morphology",
         "compaction_history_id",
         "representative_particle_mass_kg",
-        "mean_interparticle_cohesion_force_n"
+        "mean_interparticle_cohesion_force_n",
+        "initial_charge_mass_kg"
       ],
       "properties": {
         "material_family": {
@@ -328,6 +329,9 @@
           "$ref": "#/$defs/measurement"
         },
         "mean_interparticle_cohesion_force_n": {
+          "$ref": "#/$defs/measurement"
+        },
+        "initial_charge_mass_kg": {
           "$ref": "#/$defs/measurement"
         }
       }
@@ -407,7 +411,9 @@
         "fill_fraction",
         "wall_pull_off_force_n",
         "wall_surface_energy_j_m2",
-        "wall_contact_angle_deg"
+        "wall_contact_angle_deg",
+        "hopper_outlet_diameter_m",
+        "hopper_column_height_m"
       ],
       "properties": {
         "apparatus_type": {
@@ -502,6 +508,18 @@
         },
         "feeder_rotational_speed_rpm": {
           "$ref": "#/$defs/measurement"
+        },
+        "hopper_outlet_diameter_m": {
+          "$ref": "#/$defs/measurement"
+        },
+        "hopper_column_height_m": {
+          "$ref": "#/$defs/measurement"
+        },
+        "vibration_mount_profile_id": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -544,7 +562,11 @@
             "continuous_discharge",
             "intermittent_discharge",
             "bridging",
-            "unknown"
+            "unknown",
+            "funnel_flow",
+            "mass_flow",
+            "asymmetric_flow",
+            "ratholing"
           ]
         },
         "protocol_id": {
@@ -636,7 +658,10 @@
         "flow_interruption_count",
         "mass_flow_rate_cv",
         "vibration_energy_j",
-        "agglomerate_fragmentation_fraction"
+        "agglomerate_fragmentation_fraction",
+        "flow_regime_classification",
+        "flow_regime_confidence",
+        "flow_regime_observation_artifact_id"
       ],
       "properties": {
         "raw_observation_artifact_id": {
@@ -774,6 +799,31 @@
         },
         "out_of_spec_duration_s": {
           "$ref": "#/$defs/measurement"
+        },
+        "flow_regime_classification": {
+          "enum": [
+            "funnel_flow",
+            "mass_flow",
+            "asymmetric_flow",
+            "ratholing",
+            "slumping",
+            "rolling",
+            "cascading",
+            "cataracting",
+            "continuous_discharge",
+            "intermittent_discharge",
+            "bridging",
+            "unknown"
+          ]
+        },
+        "flow_regime_confidence": {
+          "$ref": "#/$defs/measurement"
+        },
+        "flow_regime_observation_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -917,7 +967,11 @@
             "size_fraction_profile",
             "composition_profile",
             "input_material_characterization",
-            "output_material_characterization"
+            "output_material_characterization",
+            "flow_regime_map",
+            "velocity_field",
+            "stagnant_zone_mask",
+            "hopper_occupancy_map"
           ]
         },
         "path": {
