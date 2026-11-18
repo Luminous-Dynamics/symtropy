@@ -1,0 +1,230 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminousdynamics:aero:haps-fleet-availability:v1",
+  "title": "HAPS fleet service availability case v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "revision",
+    "evidence_class",
+    "claim_ceiling",
+    "analysis_horizon_h",
+    "inputs",
+    "maintenance_policy",
+    "scenarios",
+    "assumptions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "haps-fleet-availability-case/v1"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 3
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "offline_replay",
+        "field_measurement"
+      ]
+    },
+    "claim_ceiling": {
+      "enum": [
+        "synthetic_reliability_calculation",
+        "offline_availability_replay",
+        "measured_service_availability"
+      ]
+    },
+    "analysis_horizon_h": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "per_haps_independent_availability",
+        "shared_haps_weather_outage_probability",
+        "terrestrial_availability",
+        "leo_backhaul_availability",
+        "independence_contract"
+      ],
+      "properties": {
+        "per_haps_independent_availability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shared_haps_weather_outage_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "terrestrial_availability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "leo_backhaul_availability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "independence_contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "haps_platforms_independent_conditioned_on_no_common_mode",
+            "terrestrial_independent_of_haps_weather",
+            "leo_independent_of_haps_weather_and_terrestrial",
+            "availability_includes_planned_maintenance"
+          ],
+          "properties": {
+            "haps_platforms_independent_conditioned_on_no_common_mode": {
+              "const": true
+            },
+            "terrestrial_independent_of_haps_weather": {
+              "const": true
+            },
+            "leo_independent_of_haps_weather_and_terrestrial": {
+              "const": true
+            },
+            "availability_includes_planned_maintenance": {
+              "const": true
+            }
+          }
+        }
+      }
+    },
+    "maintenance_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy",
+        "max_simultaneous_planned_maintenance",
+        "maintenance_already_accounted_in_individual_availability",
+        "maintenance_windows_staggered"
+      ],
+      "properties": {
+        "policy": {
+          "enum": [
+            "staggered",
+            "uncoordinated",
+            "unknown"
+          ]
+        },
+        "max_simultaneous_planned_maintenance": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maintenance_already_accounted_in_individual_availability": {
+          "type": "boolean"
+        },
+        "maintenance_windows_staggered": {
+          "type": "boolean"
+        }
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "shared_weather_outage_probability",
+          "haps_platform_counts",
+          "expected"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "shared_weather_outage_probability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "haps_platform_counts": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "expected": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "haps_count",
+                "haps_only_availability",
+                "haps_plus_terrestrial_availability",
+                "haps_plus_terrestrial_plus_leo_availability",
+                "haps_only_downtime_h_per_year",
+                "cross_layer_downtime_h_per_year"
+              ],
+              "properties": {
+                "haps_count": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "haps_only_availability": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "haps_plus_terrestrial_availability": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "haps_plus_terrestrial_plus_leo_availability": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "haps_only_downtime_h_per_year": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "cross_layer_downtime_h_per_year": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "source_evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "uniqueItems": true
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  },
+  "$comment": "Analytic toy model. Let p be individual HAPS availability including independently attributable planned maintenance and faults; q is a shared HAPS-only common-mode weather outage probability; g is terrestrial availability; s is LEO availability. Conditional independence assumptions are explicit. HAPS fleet availability A_H=(1-q)*(1-(1-p)^n). Layered availability A_HG=1-(1-A_H)*(1-g). A_HGS=1-(1-A_H)*(1-g)*(1-s). Correlation between external providers or shared power/backhaul invalidates this product form. This is not measured availability, a Markov model, fault-tree qualification, maintenance scheduler, weather simulation or SLA."
+}
