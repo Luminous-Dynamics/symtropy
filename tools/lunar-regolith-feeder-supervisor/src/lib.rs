@@ -665,6 +665,7 @@ mod tests {
         let mut obs = observation();
         obs.flow_status = FlowStatus::NoFlow;
         obs.mass_flow_rate_kg_s = Some(0.0);
+        obs.measured_gamma = Some(10.0);
         let decision = supervisor.step(&obs).unwrap();
         assert_eq!(decision.mode, DecisionMode::CommissioningLimitReached);
         assert_eq!(decision.feeder_command, FeederCommand::Stop);
@@ -681,7 +682,7 @@ mod tests {
             decision.vibration_command,
             VibrationCommand::SetGamma { value: 5.4 }
         );
-        assert_eq!(decision.feeder_command, FeederCommand::Hold);
+        assert_eq!(decision.feeder_command, FeederCommand::Stop);
         assert_eq!(supervisor.state.commanded_feeder_speed_fraction, 0.5);
     }
 
@@ -805,7 +806,8 @@ mod tests {
         stopped.mass_flow_rate_kg_s = Some(0.0);
         supervisor.step(&stopped).unwrap();
 
-        let recovered = observation();
+        let mut recovered = observation();
+        recovered.measured_gamma = Some(5.4);
         let decision = supervisor.step(&recovered).unwrap();
         assert_eq!(
             decision.feeder_command,
