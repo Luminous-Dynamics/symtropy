@@ -1365,13 +1365,14 @@ mod tests {
     }
 
     #[test]
-    fn public_profile_ids_must_match_the_owner_kernel_catalogue_exactly() {
+    fn public_candidate_catalogue_may_be_a_subset_but_not_unknown_ids() {
         let kernel = persistent_sensor_confounding_kernel();
         let mut manifest = test_manifest(&kernel);
-        manifest.public_profile.candidate_hypotheses.swap(0, 1);
+        manifest.public_profile.candidate_hypotheses[0].hypothesis_id =
+            "not-in-owner-kernel".to_owned();
         assert!(matches!(
             EpisodeProvider::new(
-                "profile-order-mismatch-0001",
+                "profile-unknown-candidate-0001",
                 manifest,
                 kernel,
                 EpisodeConfig::default(),
@@ -1379,6 +1380,27 @@ mod tests {
             ),
             Err(EpisodeError::InvalidManifest)
         ));
+    }
+
+    #[test]
+    fn public_candidate_subset_hides_the_generating_out_of_catalogue_id() {
+        let kernel = persistent_sensor_confounding_kernel();
+        let mut manifest = test_manifest(&kernel);
+        manifest
+            .public_profile
+            .candidate_hypotheses
+            .retain(|candidate| candidate.hypothesis_id == "latent-mechanism-a");
+        let provider = EpisodeProvider::new(
+            "hidden-outside-candidate-0001",
+            manifest,
+            kernel,
+            EpisodeConfig::default(),
+            0,
+        )
+        .expect("valid public candidate subset with a hidden owner generator");
+        let request = serde_json::to_string(&provider.request()).unwrap();
+        assert!(request.contains("latent-mechanism-a"));
+        assert!(!request.contains("latent-mechanism-b"));
     }
 
     #[test]
@@ -1531,6 +1553,138 @@ mod tests {
             Err(EpisodeError::InvalidFinish)
         );
         assert!(!provider.view().terminal);
+    }
+
+    #[test]
+    fn out_of_catalogue_world_is_ambiguous_while_a_declared_candidate_still_fits() {
+        let kernel = persistent_sensor_confounding_kernel();
+        let mut manifest = test_manifest(&kernel);
+        manifest
+            .public_profile
+            .candidate_hypotheses
+            .retain(|candidate| candidate.hypothesis_id == "latent-mechanism-a");
+        let mut provider = EpisodeProvider::new(
+            "ood-overlap-episode-0001",
+            manifest,
+            kernel,
+            EpisodeConfig {
+                max_attempts: 4,
+                max_cost_units: 8,
+                max_world_steps: 4,
+            },
+            0,
+        )
+        .expect("hidden generating mechanism is outside the public catalogue");
+
+        provider
+            .submit_action("measure-combined-signal")
+            .expect("initial intervention");
+        provider
+            .finish_episode(EpisodeFinish {
+                disposition: EpisodeFinishDisposition::Ambiguous,
+                compatible_hypothesis_ids: vec!["latent-mechanism-a".to_owned()],
+                rationale: "One declared candidate explains this observation, but the evidence does not establish that the candidate family is complete.".to_owned(),
+            })
+            .expect("report ambiguity under possible model misspecification");
+
+        let evaluation = provider.evaluate_after_finish().unwrap();
+        assert_eq!(evaluation.compatible_hypotheses, vec!["latent-mechanism-a"]);
+        assert!(evaluation.version_space_exact_match);
+        assert!(!evaluation.generating_hypothesis_declared);
+        assert!(evaluation.outside_candidate_family);
+        assert!(!evaluation.generating_hypothesis_retained);
+        assert!(!evaluation.outside_family_detected);
+        assert!(evaluation.outside_family_missed);
+        assert!(!evaluation.outside_family_detection_correct);
+        assert!(evaluation.disposition_correct);
+        assert!(!evaluation.false_unique_claim);
+    }
+
+    #[test]
+    fn out_of_catalogue_world_becomes_no_compatible_model_after_discriminating_sequence() {
+        let kernel = persistent_sensor_confounding_kernel();
+        let mut manifest = test_manifest(&kernel);
+        manifest
+            .public_profile
+            .candidate_hypotheses
+            .retain(|candidate| candidate.hypothesis_id == "latent-mechanism-a");
+        let mut provider = EpisodeProvider::new(
+            "ood-divergence-episode-0001",
+            manifest,
+            kernel,
+            EpisodeConfig {
+                max_attempts: 4,
+                max_cost_units: 8,
+                max_world_steps: 4,
+            },
+            0,
+        )
+        .expect("hidden generating mechanism is outside the public catalogue");
+
+        for action in [
+            "measure-combined-signal",
+            "calibrate-sensor",
+            "measure-combined-signal",
+        ] {
+            provider.submit_action(action).expect("apply discriminator");
+        }
+        provider
+            .finish_episode(EpisodeFinish {
+                disposition: EpisodeFinishDisposition::NoCompatibleModel,
+                compatible_hypothesis_ids: Vec::new(),
+                rationale: "The post-calibration observation contradicts every declared candidate mechanism.".to_owned(),
+            })
+            .expect("report model-family mismatch");
+
+        let evaluation = provider.evaluate_after_finish().unwrap();
+        assert!(evaluation.compatible_hypotheses.is_empty());
+        assert!(evaluation.version_space_exact_match);
+        assert!(evaluation.outside_candidate_family);
+        assert!(evaluation.outside_family_detected);
+        assert!(evaluation.outside_family_detection_correct);
+        assert!(!evaluation.outside_family_false_positive);
+        assert!(!evaluation.outside_family_missed);
+        assert!(evaluation.disposition_correct);
+    }
+
+    #[test]
+    fn out_of_catalogue_claim_on_an_in_catalogue_world_is_a_false_positive() {
+        let kernel = persistent_sensor_confounding_kernel();
+        let mut manifest = test_manifest(&kernel);
+        manifest
+            .public_profile
+            .candidate_hypotheses
+            .retain(|candidate| candidate.hypothesis_id == "latent-mechanism-a");
+        let mut provider = EpisodeProvider::new(
+            "false-ood-claim-episode-0001",
+            manifest,
+            kernel,
+            EpisodeConfig {
+                max_attempts: 4,
+                max_cost_units: 8,
+                max_world_steps: 4,
+            },
+            3,
+        )
+        .expect("generating mechanism is the declared candidate");
+        provider
+            .submit_action("measure-combined-signal")
+            .expect("initial intervention");
+        provider
+            .finish_episode(EpisodeFinish {
+                disposition: EpisodeFinishDisposition::OutsideCandidateFamily,
+                compatible_hypothesis_ids: vec!["latent-mechanism-a".to_owned()],
+                rationale: "Deliberately incorrect OOD control.".to_owned(),
+            })
+            .expect("report OOD claim");
+
+        let evaluation = provider.evaluate_after_finish().unwrap();
+        assert!(evaluation.generating_hypothesis_declared);
+        assert!(!evaluation.outside_candidate_family);
+        assert!(evaluation.outside_family_detected);
+        assert!(evaluation.outside_family_false_positive);
+        assert!(!evaluation.outside_family_detection_correct);
+        assert!(!evaluation.disposition_correct);
     }
 
     #[test]
