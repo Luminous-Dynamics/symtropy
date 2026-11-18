@@ -48,10 +48,17 @@ entry="$(jq -ce --arg source "$source_id" --arg file "$file_id" '
 expected="$(jq -r '.md5' <<< "$entry")"
 declared_filename="$(jq -r '.filename' <<< "$entry")"
 
-[[ "$expected" != "null" ]] || fail "registry has no publisher checksum for this file"
 [[ "$filename" == "$declared_filename" ]] || fail "filename does not match registry: expected $declared_filename, got $filename"
-actual_md5="$(md5sum -- "$canonical_path" | awk '{print $1}')"
-[[ "$actual_md5" == "$expected" ]] || fail "publisher MD5 mismatch: expected $expected, got $actual_md5"
+actual_md5=""
+publisher_md5_status="not_provided"
+if [[ "$expected" != "null" ]]; then
+  actual_md5="$(md5sum -- "$canonical_path" | awk '{print $1}')"
+  [[ "$actual_md5" == "$expected" ]] || fail "publisher MD5 mismatch: expected $expected, got $actual_md5"
+  publisher_md5_status="verified"
+elif [[ "$filename" == *.zip ]]; then
+  command -v unzip >/dev/null 2>&1 || fail "unzip is required to validate ZIP structure when no publisher checksum is provided"
+  unzip -tqq -- "$canonical_path" || fail "ZIP structure validation failed"
+fi
 
 actual_sha256="$(sha256sum -- "$canonical_path" | awk '{print $1}')"
 bytes="$(stat -c '%s' -- "$canonical_path")"
@@ -63,6 +70,7 @@ jq -n \
   --arg filename "$filename" \
   --arg path "$canonical_path" \
   --arg md5 "$actual_md5" \
+  --arg publisher_md5_status "$publisher_md5_status" \
   --arg sha256 "$actual_sha256" \
   --arg retrieved_at "$retrieved_at" \
   --argjson bytes "$bytes" '
@@ -74,7 +82,9 @@ jq -n \
     filename:$filename,
     original_path:$path,
     bytes:$bytes,
-    publisher_md5:$md5,
+    publisher_md5:(if $md5 == "" then null else $md5 end),
+    publisher_md5_status:$publisher_md5_status,
+    integrity_basis:(if $publisher_md5_status == "verified" then "publisher_md5_and_local_sha256" else "local_sha256_and_archive_structure_only" end),
     sha256:$sha256,
     retrieved_at_utc:$retrieved_at,
     admission_status:"pending_schema_license_and_provenance_review",
