@@ -68,6 +68,18 @@ The 2025 Datta et al. paper reports mean run lengths of approximately 8 µm in 0
 
 The v0.1 model samples an **effective path-length budget**; it is not an explicit pore graph, microstructure reconstruction or collision solver. Free-path parameters remain uncalibrated until geometry and trajectory data are admitted. Speed-scaling and mutant-invariance tests are synthetic controls, not biological confirmation.
 
+## Contact mechanosensing and collective order
+
+`CollisionReversalLaw` models the response to an **already identified** cell-cell contact. It consumes contact angle and duration; it does not generate collisions or derive them from density. A characteristic response time `tau_CR` is defined so a perpendicular contact (`pi/2)) lasting `tau_CR` gives 0.5 reversal probability. The angular gate decreases linearly to zero at/below `pi/6`. The continuous duration response uses an exponential-hazard interpolation; this is an explicit model assumption constrained by the published anchor, not claimed as the paper's complete fitted response curve.
+
+`CollisionResponseSummary` keeps contact incidence, per-contact reversal fraction and population reversal rate separate. This supports the key hypothesis that a fixed sensory response law can yield density-dependent population reversal frequency because density changes contact incidence—not because the per-contact probability is forced to depend on density.
+
+`ReversalPhenotype` provides contact-sensitive and non-reversing controls. `ConstitutiveReversalLaw` provides a separate contact-independent Poisson reversal process. `orientation_order` computes global polar and nematic order; nematic order is head-tail invariant while polar order preserves directed heading.
+
+The 6 October 2026 *Nature Microbiology* study on *P. aeruginosa* surface twitching reports contact-induced reversal through type-IV-pilus mechanosensing, with wild-type reversal frequency increasing with density while per-contact reversal probability is largely constant. It reports a non-reversing `Delta pilH` phenotype and a constitutive-reversal `Delta pilG` control. This is not the same mechanism as *P. putida* flagellar swimming in porous agar; do not transfer parameters or event labels across these benchmark lanes. <Link url="https://www.nature.com/articles/s41564-026-02505-1" title="Le Blanc et al. (2026), Nature Microbiology"/> <Cite refs={["turn386658view0","turn971273view1","turn971273view2"]}/>
+
+The source lists data and simulation-code records at Zenodo DOIs 10.5281/zenodo.20430747 and 10.5281/zenodo.22231353. The exact record versions, per-file rights, checksums and schemas are not yet verified; no raw data or code has been ingested. The response model is synthetic and the characteristic time remains uncalibrated.
+
 ## Duration-as-mechanism diagnostic
 
 `duration_mechanism_diagnostic` calculates the sensitivity, specificity, positive predictive value, negative predictive value and balanced accuracy of treating SHORT as an active-motor proxy and LONG as a passive-trap proxy. It admits only DIRECTLY_OBSERVED and MODEL_LATENT events with known active/passive mechanisms. ALGORITHM_INFERRED, UNRESOLVED and EXACT_BOUNDARY_EXCLUDED events are reported as exclusions, not silently relabelled.
