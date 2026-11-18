@@ -1,0 +1,46 @@
+name: Shipyard space-time verifier
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/shipyard-space-time/**"
+      - ".github/workflows/shipyard-space-time.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/shipyard-space-time/**"
+      - ".github/workflows/shipyard-space-time.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shipyard-space-time-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Pinned Rust space-time oracle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check Rust formatting
+        run: cargo fmt --all --manifest-path tools/shipyard-space-time/Cargo.toml -- --check
+
+      - name: Verify frozen spatial scenario corpus digest
+        run: echo "44cad4723cb81cb94812cdfa16053622275faff66167563d179d93e496e892a6  tools/shipyard-space-time/tests/fixtures/space-time-v0.tsv" | sha256sum --check --status
+
+      - name: Run dependency-free tests offline
+        run: cargo test --locked --offline --manifest-path tools/shipyard-space-time/Cargo.toml
+
+      - name: Clippy with warnings denied
+        run: cargo clippy --locked --offline --manifest-path tools/shipyard-space-time/Cargo.toml --all-targets -- -D warnings
