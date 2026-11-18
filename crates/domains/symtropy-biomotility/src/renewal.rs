@@ -666,10 +666,23 @@ pub fn compare_waiting_time_models(
     }
 
     let right_censoring_present = reference_curve.right_censored_count > 0;
+    let mut effective_time_grid_s = time_grid_s.to_vec();
+    effective_time_grid_s.extend(
+        reference_curve
+            .points
+            .iter()
+            .map(|point| point.time_s),
+    );
+    effective_time_grid_s.push(max_observed_time_s);
+    effective_time_grid_s.sort_by(f64::total_cmp);
+    effective_time_grid_s.dedup_by(|left, right| *left == *right);
+
     let mut candidate_names = std::collections::BTreeSet::new();
     let mut scores = Vec::with_capacity(candidates.len());
 
-    let reference_survival_probabilities: Vec<f64> = time_grid_s
+    // Include every observed event/censor time so the reference is a
+    // piecewise-constant KM estimate on each integration interval.
+    let reference_survival_probabilities: Vec<f64> = effective_time_grid_s
         .iter()
         .map(|&time_s| km_survival_at(&reference_curve, time_s))
         .collect();
@@ -692,7 +705,7 @@ pub fn compare_waiting_time_models(
             return Err(WaitingTimeComparisonError::EmpiricalCandidateWithRightCensoring);
         }
 
-        let survival_probabilities: Vec<f64> = time_grid_s
+        let survival_probabilities: Vec<f64> = effective_time_grid_s
             .iter()
             .map(|&time_s| {
                 candidate
@@ -702,7 +715,7 @@ pub fn compare_waiting_time_models(
             })
             .collect();
 
-        let integrated_squared_survival_error = time_grid_s
+        let integrated_squared_survival_error = effective_time_grid_s
             .windows(2)
             .zip(
                 reference_survival_probabilities
@@ -711,7 +724,10 @@ pub fn compare_waiting_time_models(
             )
             .map(|(times, (reference, predicted))| {
                 let left_error = reference[0] - predicted[0];
-                let right_error = reference[1] - predicted[1];
+                // KM is constant on [t_i, t_{i+1}); use the left-limit
+                // step for both endpoints. The value at t_{i+1} has measure
+                // zero and belongs to the following interval.
+                let right_error = reference[0] - predicted[1];
                 0.5
                     * (left_error * left_error + right_error * right_error)
                     * (times[1] - times[0])
@@ -740,7 +756,7 @@ pub fn compare_waiting_time_models(
     }
 
     Ok(WaitingTimeComparison {
-        time_grid_s: time_grid_s.to_vec(),
+        time_grid_s: effective_time_grid_s,
         reference_survival_probabilities,
         reference_curve,
         scores,
@@ -1193,7 +1209,7 @@ mod tests {
             law: &empirical,
         }];
         let comparison =
-            compare_waiting_time_models(&observations, &[0.0, 1.0, 2.0], &candidates)
+            compare_waiting_time_models(&observations, &[0.0, 1.0, 2.0], &candidates, None)
                 .expect("uncensored empirical reference");
         let score = &comparison.scores[0];
 
