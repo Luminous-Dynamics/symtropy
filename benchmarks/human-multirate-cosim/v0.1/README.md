@@ -595,9 +595,9 @@ Run with:
 
 This is still a sequence of exact optima over finite piecewise-constant
 spaces, not a proof of convergence to the arbitrary-waveform L2 optimum.
-The next #6121 increment must add an independent adjoint/Pontryagin reference
-and compare direct collocation or high-resolution controls under matched
-constraints. Liu, Maini and Baker (2026) explicitly formulate control-based
+The #6121 implementation adds an independent sampled-observation adjoint and
+KKT consistency check. Direct collocation and arbitrary-waveform PMP remain
+future qualification work under matched constraints. Liu, Maini and Baker (2026) explicitly formulate control-based
 model discrimination with Pontryagin's Maximum Principle
 ([DOI 10.1016/j.mbs.2026.109710](https://doi.org/10.1016/j.mbs.2026.109710));
 Pagnier et al. (2026) present a closed-loop optimal-control discrimination
@@ -638,3 +638,21 @@ level. This is a finite-dimensional adjoint/PMP consistency reference for
 the fixed linear graph model and sampled Gaussian objective. It is not yet
 a nonlinear PDE adjoint, an arbitrary-waveform solver, or a general-purpose
 PMP implementation.
+### Independent nested-mesh reference values (not Rust execution)
+
+A separate dense matrix-exponential/secular-equation reproduction of the
+same AR(1) rho 0.6 fixture gives the following total-KL sequence:
+
+| Time segments | Basis dimension | Total KL | Gain over prior mesh |
+| ---: | ---: | ---: | ---: |
+| 1 | 2 | 0.3302503226 | — |
+| 2 | 4 | 0.3483219996 | 0.0180716770 |
+| 4 | 8 | 0.3604974498 | 0.0121754502 |
+| 8 | 16 | 0.3639492430 | 0.0034517932 |
+
+Energy is `0.5` at each level and peak amplitudes remain below the `2.0`
+cap. The diminishing gains are consistent with convergence on this fixture,
+but four basis levels do not prove convergence to the infinite-dimensional
+L2 optimum. The normalized L2 profile differences on each refined grid were
+`0.2882868509`, `0.2063312872` and `0.1044940718` for 1→2, 2→4 and 4→8.
+These are independent mathematical reference values, not Rust runner output.
