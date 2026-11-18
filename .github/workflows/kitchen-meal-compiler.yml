@@ -50,11 +50,20 @@ jobs:
           rustfmt --version
           cargo --version
 
-      - name: Check formatting
+      - name: Check production crate formatting
+        run: cargo fmt --manifest-path Cargo.toml --package symtropy-kitchen-planner -- --check
+
+      - name: Check harness formatting
         run: cargo fmt --manifest-path tools/kitchen-meal-compiler-harness/Cargo.toml --all -- --check
 
-      - name: Run integration tests against production crate
+      - name: Run production crate unit tests
+        run: cargo test --manifest-path Cargo.toml --package symtropy-kitchen-planner --all-targets
+
+      - name: Run focused integration tests against production crate
         run: cargo test --manifest-path tools/kitchen-meal-compiler-harness/Cargo.toml
 
-      - name: Run strict Clippy
+      - name: Run strict production crate Clippy
+        run: cargo clippy --manifest-path Cargo.toml --package symtropy-kitchen-planner --all-targets -- -D warnings
+
+      - name: Run strict harness Clippy
         run: cargo clippy --manifest-path tools/kitchen-meal-compiler-harness/Cargo.toml --all-targets -- -D warnings
