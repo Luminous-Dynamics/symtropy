@@ -135,13 +135,13 @@ fn phase_map(sample: &Value) -> Result<Vec<(String, Value)>, String> {
         .and_then(Value::as_array)
         .ok_or_else(|| "sample has no phase_fractions array".to_owned())?;
 
-    let mut result = Vec::with_capacity(fractions.len());
+    let mut result: Vec<(String, Value)> = Vec::with_capacity(fractions.len());
     for entry in fractions {
         let phase = entry
             .get("phase_id")
             .and_then(Value::as_str)
             .ok_or_else(|| "phase fraction is missing phase_id".to_owned())?;
-        if result.iter().any(|(seen, _): &(String, Value)| seen == phase) {
+        if result.iter().any(|(seen, _)| seen.as_str() == phase) {
             return Err(format!("duplicate phase_id in assay: {phase}"));
         }
         result.push((phase.to_owned(), entry.get("mass_fraction").cloned().unwrap_or(Value::Null)));
@@ -297,13 +297,11 @@ pub fn compare_quality_samples(
     let (size_bins, size_bins_available) = compare_size_bins(from, to)?;
 
     let has_unknown_phase = phase_results.iter().any(|entry| {
-        entry.get("status").and_then(Value::as_str)
-            == Some(DeltaStatus::UnknownMissingMeasurement.as_str())
-            || entry
-                .get("mass_fraction_change")
-                .and_then(|change| change.get("status"))
-                .and_then(Value::as_str)
-                == Some(DeltaStatus::UnknownMissingMeasurement.as_str())
+        let status = entry
+            .get("status")
+            .or_else(|| entry.get("mass_fraction_change").and_then(|change| change.get("status")))
+            .and_then(Value::as_str);
+        status.is_some_and(|value| value.starts_with("unknown_"))
     });
 
     let has_incompatible_units = phase_results.iter().any(|entry| {
