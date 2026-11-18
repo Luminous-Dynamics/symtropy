@@ -118,7 +118,7 @@ The V0.1 interface schemas are under `schemas/`:
 - `reconciliation-report-v0.1.schema.json` — complete execution context, input digests, disposition, unknown intervals and diagnostics;
 - `conformance-vectors-v0.1.schema.json` — the frozen conformance set envelope.
 
-The 42 frozen synthetic vectors are in `fixtures/conformance-vectors-v0.1.json`. Each maps to an executable Rust unit test. A Rust test checks vector-to-test mapping, and CI checks unique vector IDs/test names, mapped test presence and the schema anchors. The schemas validate data shape only; semantic checks remain in Rust and source authenticity/physical truth remain with the responsible owner systems.
+The 45 frozen synthetic vectors are in `fixtures/conformance-vectors-v0.1.json`. Each maps to an executable Rust unit test. A Rust test checks vector-to-test mapping, and CI checks unique vector IDs/test names, mapped test presence and the schema anchors. The schemas validate data shape only; semantic checks remain in Rust and source authenticity/physical truth remain with the responsible owner systems.
 
 ## Build and test
 
@@ -132,7 +132,7 @@ cargo clippy --locked --offline --manifest-path tools/shipyard-lift-reconciliati
 cargo run --locked --offline --manifest-path tools/shipyard-lift-reconciliation/Cargo.toml --example synthetic_reconciliation -- --emit-inputs
 ```
 
-The current unit suite contains 42 deterministic tests (plus a fixture-to-test mapping test). The current authoring environment has no Rust/Cargo toolchain; formatting, compilation, tests and Clippy are not claimed as passing. The dedicated exact-head workflow is the execution gate.
+The current unit suite contains 45 deterministic tests (plus a fixture-to-test mapping test). The current authoring environment has no Rust/Cargo toolchain; formatting, compilation, tests and Clippy are not claimed as passing. The dedicated exact-head workflow is the execution gate.
 
 ## Industry and standards comparison
 
