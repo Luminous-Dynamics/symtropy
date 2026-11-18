@@ -24,13 +24,17 @@ A frozen two-block counterexample uses two identical L-shaped footprints in a 6Ã
 A separate temporal control uses a concave L-shaped footprint to test endpoint reuse at the exact clearance tick, a one-tick delayed-clearance conflict, and boundary-contact policy under overlapping time intervals.
 
 - Exact integer orientation and segment-relation predicates.
-- Validated simple polygons, point location and canonical vertex cycles.
+- Validated simple polygons, point location, canonical vertex cycles, axis-aligned polygon bounds, and inclusive containment within a finite rectangular yard boundary.
 - Polygon relation classification: disjoint, boundary contact or positive-area overlap.
 - A collinear shared segment is classified as positive-area overlap when both polygon interiors lie on the same side of it; opposite-side shared boundaries remain boundary contact.
 - Conservative conflict semantics: boundary contact counts as a conflict.
 - Half-open integer time windows; endpoint-touching windows may reuse the same footprint, while a delayed-clearance interval conflicts.
 - An independent unit-cell rectangle oracle checks every ordered pair of small axis-aligned rectangle cases.
 
+
+
+
+Finite-yard containment uses the convex-rectangle property: a valid simple polygon is inside or on the declared rectangle exactly when every vertex is within its inclusive bounds. The returned AABB is a broadphase descriptor only; it must not replace exact polygon conflict checks. Neither operation establishes route or swept-volume clearance.
 
 ## Published geometry-quality benchmark
 
