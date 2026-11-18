@@ -1,0 +1,388 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/shipyard-lift-plan-v0.1.schema.json",
+  "title": "Shipyard Lift Preflight Input V0.1",
+  "description": "Canonical integer-only synthetic-first lift preflight input. Shape validation does not authenticate evidence or establish physical truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "lift_id",
+    "block_id",
+    "block_revision",
+    "site_epoch_id",
+    "frame_id",
+    "clock_domain_id",
+    "start_tick",
+    "end_tick",
+    "mass_upper_kg",
+    "dynamic_factor_ppm",
+    "dynamic_factor_profile_id",
+    "dynamic_factor_profile_revision",
+    "mass_evidence",
+    "centre_of_gravity_envelope_evidence",
+    "pick_point_and_load_share_evidence",
+    "dynamic_factor_evidence",
+    "crane_id",
+    "crane_configuration_revision",
+    "crane_radius_band_id",
+    "crane_working_quadrant_id",
+    "crane_chart",
+    "rigging_legs",
+    "weather",
+    "motion"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "shipyard-lift-envelope-v0.1"
+    },
+    "lift_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "block_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "block_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "site_epoch_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "frame_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "clock_domain_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "start_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "end_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "mass_upper_kg": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "dynamic_factor_ppm": {
+      "type": "integer",
+      "minimum": 1000000
+    },
+    "dynamic_factor_profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dynamic_factor_profile_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mass_evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "centre_of_gravity_envelope_evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "pick_point_and_load_share_evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "dynamic_factor_evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "crane_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "crane_configuration_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "crane_radius_band_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "crane_working_quadrant_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "crane_chart": {
+      "$ref": "#/$defs/craneChartCell"
+    },
+    "rigging_legs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/riggingLeg"
+      }
+    },
+    "weather": {
+      "$ref": "#/$defs/weatherEnvelope"
+    },
+    "motion": {
+      "$ref": "#/$defs/motionOccupancyBinding"
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_record_id",
+        "owner_id",
+        "revision",
+        "subject_id",
+        "subject_revision",
+        "sha256",
+        "validity_clock_domain_id",
+        "valid_from_tick",
+        "valid_until_tick",
+        "state"
+      ],
+      "properties": {
+        "source_record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{64}$"
+        },
+        "validity_clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "valid_from_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "state": {
+          "enum": [
+            "current",
+            "revoked",
+            "superseded"
+          ]
+        }
+      }
+    },
+    "u64": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "craneChartCell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "crane_id",
+        "configuration_revision",
+        "radius_band_id",
+        "working_quadrant_id",
+        "net_capacity_mn",
+        "record_id",
+        "evidence"
+      ],
+      "properties": {
+        "crane_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "radius_band_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "working_quadrant_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "net_capacity_mn": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "riggingLeg": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "leg_id",
+        "component_revision",
+        "maximum_vertical_share_ppm",
+        "minimum_sine_angle_ppm",
+        "working_load_limit_mn",
+        "wll_evidence"
+      ],
+      "properties": {
+        "leg_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "component_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "maximum_vertical_share_ppm": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "minimum_sine_angle_ppm": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "working_load_limit_mn": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "wll_evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "weatherEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gust_upper_mm_per_s",
+        "maximum_gust_mm_per_s",
+        "observation_subject_id",
+        "observation_subject_revision",
+        "limit_profile_id",
+        "limit_profile_revision",
+        "observation_evidence",
+        "operating_limit_evidence"
+      ],
+      "properties": {
+        "gust_upper_mm_per_s": {
+          "$ref": "#/$defs/u64"
+        },
+        "maximum_gust_mm_per_s": {
+          "$ref": "#/$defs/u64"
+        },
+        "observation_subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observation_subject_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "limit_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "limit_profile_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observation_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "operating_limit_evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "motionOccupancyBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "motion_report_id",
+        "motion_report_evidence",
+        "occupancy_projection_id",
+        "occupancy_evidence",
+        "block_id",
+        "block_revision",
+        "payload_id",
+        "site_epoch_id",
+        "frame_id",
+        "clock_domain_id",
+        "occupancy_start_tick",
+        "occupancy_end_tick"
+      ],
+      "properties": {
+        "motion_report_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "motion_report_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "occupancy_projection_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "occupancy_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "block_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "block_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payload_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_epoch_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "occupancy_start_tick": {
+          "$ref": "#/$defs/u64"
+        },
+        "occupancy_end_tick": {
+          "$ref": "#/$defs/u64"
+        }
+      }
+    }
+  }
+}
