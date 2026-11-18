@@ -1,0 +1,74 @@
+{
+  "schema_id": "org.luminous-dynamics.scientific-world-episode.public-packet",
+  "schema_version": "0.1.0",
+  "episode": {
+    "opaque_instance_id": "n6R4kq8T2vQ9xP3a",
+    "contract_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "visible_state_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "objective": "Determine which candidate response structure remains compatible with the observations after a bounded set of permitted interventions. Preserve an equivalence class or abstain when the allowed probes do not identify one mechanism.",
+  "scope": {
+    "description": "Synthetic scalar response process with a bounded experiment interface.",
+    "claim_scope": "Development contract fixture only; no physical-world or scientific-discovery claim."
+  },
+  "observation_channels": [
+    {
+      "channel_id": "response.y",
+      "description": "Observed response after the declared intervention and process evolution.",
+      "value_type": "number",
+      "unit": "dimensionless",
+      "quality_states": [
+        "current",
+        "stale",
+        "missing",
+        "invalid",
+        "unknown"
+      ]
+    }
+  ],
+  "interventions": [
+    {
+      "action_id": "probe.input",
+      "description": "Apply a bounded input level for the declared duration.",
+      "parameters": [
+        {
+          "name": "u",
+          "unit": "dimensionless",
+          "minimum": -1,
+          "maximum": 1
+        }
+      ],
+      "cost_units": 1,
+      "duration_steps": 1
+    }
+  ],
+  "budget": {
+    "max_observation_requests": 6,
+    "max_interventions": 4,
+    "max_simulation_steps": 32,
+    "max_compute_units": 100,
+    "compute_unit_definition": "Development-only abstract search units; not CPU time, FLOPs, GPU time or energy."
+  },
+  "timebase": {
+    "clock_id": "dev-sim-clock-v1",
+    "time_origin_id": "dev-episode-origin-v1",
+    "time_unit": "step"
+  },
+  "initial_observations": [
+    {
+      "observation_id": "obs-0001",
+      "channel_id": "response.y",
+      "value": 0,
+      "unit": "dimensionless",
+      "event_time": 0,
+      "available_at": 0,
+      "quality_state": "current",
+      "source_evidence_ref": "fixture:initial-observation"
+    }
+  ],
+  "evidence_profile": {
+    "evidence_class": "synthetic",
+    "applicability_domain": "Authored finite development fixture only.",
+    "claim_ceiling": "Schema and consumer-conformance discussion only; not a benchmark result."
+  }
+}

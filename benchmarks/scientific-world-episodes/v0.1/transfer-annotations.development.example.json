@@ -1,0 +1,172 @@
+{
+  "schema_id": "org.luminous-dynamics.scientific-world-episode.evaluator-transfer-annotations",
+  "schema_version": "0.1.0",
+  "visibility": "development_fixture_only",
+  "warning": "All records are public known-answer development examples. They are not sealed qualification labels and MUST NOT be sent to a policy under evaluation.",
+  "annotations": [
+    {
+      "schema_id": "org.luminous-dynamics.scientific-world-episode.evaluator-transfer-annotation",
+      "schema_version": "0.1.0",
+      "annotation_id": "x3B7mQ9vL2sP8dK4",
+      "pair_id": "t6R1wA8pN3cF5hJ2",
+      "source_episode_contract_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "target_episode_contract_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "transfer_relation": "parameter_shift",
+      "changed_dimensions": [
+        "parameters"
+      ],
+      "expected_disposition": "reuse_after_validation",
+      "identifiability": {
+        "status": "identifiable",
+        "permitted_probe_set_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "reason": "The mechanism class is invariant; the target parameter values require re-estimation."
+      },
+      "expected_supported_submechanism_ids": [
+        "m4V8q2L7s9P1d6X3"
+      ],
+      "expected_rejected_submechanism_ids": [],
+      "claim_scope": "Development-only known-answer parameter shift; positive transfer requires the paired target result to improve over cold start under matched inclusive cost.",
+      "policy_visibility": "evaluator_only",
+      "development_only": true
+    },
+    {
+      "schema_id": "org.luminous-dynamics.scientific-world-episode.evaluator-transfer-annotation",
+      "schema_version": "0.1.0",
+      "annotation_id": "a8N2c5Q7r1W4p9D6",
+      "pair_id": "b1H7k3T9v2M6s4X8",
+      "source_episode_contract_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "target_episode_contract_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "transfer_relation": "topology_composition_shift",
+      "changed_dimensions": [
+        "topology",
+        "composition"
+      ],
+      "expected_disposition": "adapt_model",
+      "identifiability": {
+        "status": "partially_identifiable",
+        "permitted_probe_set_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "reason": "The local component mechanism remains testable, but composition-dependent couplings need new evidence."
+      },
+      "expected_supported_submechanism_ids": [
+        "m4V8q2L7s9P1d6X3"
+      ],
+      "expected_rejected_submechanism_ids": [],
+      "claim_scope": "Development-only topology/composition shift; source parameters and full-system predictions are not presumed transferable.",
+      "policy_visibility": "evaluator_only",
+      "development_only": true
+    },
+    {
+      "schema_id": "org.luminous-dynamics.scientific-world-episode.evaluator-transfer-annotation",
+      "schema_version": "0.1.0",
+      "annotation_id": "c9L4u2B7n5A8r1K6",
+      "pair_id": "d2P6m8Q1t4V9x3S7",
+      "source_episode_contract_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+      "target_episode_contract_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+      "transfer_relation": "measurement_map_shift",
+      "changed_dimensions": [
+        "measurement_map",
+        "calibration",
+        "missingness",
+        "observation_channel"
+      ],
+      "expected_disposition": "adapt_model",
+      "identifiability": {
+        "status": "partially_identifiable",
+        "permitted_probe_set_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+        "reason": "The latent process may transfer, but the source observation model is unsupported until the target sensor map is re-identified."
+      },
+      "expected_supported_submechanism_ids": [
+        "m4V8q2L7s9P1d6X3"
+      ],
+      "expected_rejected_submechanism_ids": [
+        "s7K2p9A4w6C1n8R5"
+      ],
+      "claim_scope": "Development-only sensor transformation; do not interpret measurement disagreement as mechanism mutation without a discriminating instrument probe.",
+      "policy_visibility": "evaluator_only",
+      "development_only": true
+    },
+    {
+      "schema_id": "org.luminous-dynamics.scientific-world-episode.evaluator-transfer-annotation",
+      "schema_version": "0.1.0",
+      "annotation_id": "e5M8q1Z4s7R2u9B6",
+      "pair_id": "f8N3w5C1p7D2k6T9",
+      "source_episode_contract_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+      "target_episode_contract_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+      "transfer_relation": "shared_submechanism",
+      "changed_dimensions": [
+        "mechanism",
+        "feedback",
+        "state_persistence"
+      ],
+      "expected_disposition": "partial_transfer",
+      "identifiability": {
+        "status": "partially_identifiable",
+        "permitted_probe_set_digest": "6666666666666666666666666666666666666666666666666666666666666666",
+        "reason": "A known submechanism persists, but the target includes additional dynamics not supported by the source model."
+      },
+      "expected_supported_submechanism_ids": [
+        "m4V8q2L7s9P1d6X3"
+      ],
+      "expected_rejected_submechanism_ids": [
+        "q8T3v6J1a4P7n9D2"
+      ],
+      "claim_scope": "Development-only composite target; the source model is credited only for the independently identified shared submechanism.",
+      "policy_visibility": "evaluator_only",
+      "development_only": true
+    },
+    {
+      "schema_id": "org.luminous-dynamics.scientific-world-episode.evaluator-transfer-annotation",
+      "schema_version": "0.1.0",
+      "annotation_id": "g1H6b9R2m5K8x3W7",
+      "pair_id": "h4J9n2C6v8P1s5A3",
+      "source_episode_contract_digest": "7777777777777777777777777777777777777777777777777777777777777777",
+      "target_episode_contract_digest": "8888888888888888888888888888888888888888888888888888888888888888",
+      "transfer_relation": "mechanism_mutation",
+      "changed_dimensions": [
+        "mechanism",
+        "delay",
+        "intervention_semantics"
+      ],
+      "expected_disposition": "adapt_model",
+      "identifiability": {
+        "status": "identifiable",
+        "permitted_probe_set_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+        "reason": "The permitted intervention set separates the mutated mechanism from the source model."
+      },
+      "expected_supported_submechanism_ids": [],
+      "expected_rejected_submechanism_ids": [
+        "m4V8q2L7s9P1d6X3"
+      ],
+      "claim_scope": "Development-only counterexample; the source mechanism must be revised rather than retained by analogy.",
+      "policy_visibility": "evaluator_only",
+      "development_only": true
+    },
+    {
+      "schema_id": "org.luminous-dynamics.scientific-world-episode.evaluator-transfer-annotation",
+      "schema_version": "0.1.0",
+      "annotation_id": "j7K2p5W8d1Q4m9R6",
+      "pair_id": "k3L8s1B5n7V2x4C9",
+      "source_episode_contract_digest": "aaaaaaaa11111111aaaaaaaa11111111aaaaaaaa11111111aaaaaaaa11111111",
+      "target_episode_contract_digest": "bbbbbbbb22222222bbbbbbbb22222222bbbbbbbb22222222bbbbbbbb22222222",
+      "transfer_relation": "unrelated_control",
+      "changed_dimensions": [
+        "mechanism",
+        "measurement_map",
+        "noise_process"
+      ],
+      "expected_disposition": "reject_source_model",
+      "identifiability": {
+        "status": "identifiable",
+        "permitted_probe_set_digest": "cccccccc33333333cccccccc33333333cccccccc33333333cccccccc33333333",
+        "reason": "The target has no supported source submechanism; forcing analogy worsens target adequacy."
+      },
+      "expected_supported_submechanism_ids": [],
+      "expected_rejected_submechanism_ids": [
+        "m4V8q2L7s9P1d6X3"
+      ],
+      "claim_scope": "Development-only unrelated-world negative control; positive transfer must be compared with matched cold start.",
+      "policy_visibility": "evaluator_only",
+      "development_only": true
+    }
+  ]
+}
