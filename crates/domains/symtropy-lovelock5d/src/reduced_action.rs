@@ -422,7 +422,7 @@ impl Div for Jet2 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{BoulwareDeser5D, MyersPerry5D};
+    use crate::{BoulwareDeser5D, MyersPerry5D, SlowRotationBoulwareDeser5D};
 
     fn close_zero(value: f64, tolerance: f64) {
         assert!(
@@ -505,6 +505,57 @@ mod tests {
             close_zero(residual.p_w_canonical, 0.0, 1.0e-14);
             close_zero(residual.p_w_canonical - residual.p_w_closed_form, 1.0e-14);
             close_zero(residual.f_prime_momentum, 0.0);
+        }
+    }
+
+    #[test]
+    fn finite_alpha_slow_rotation_solves_the_angular_equation_to_first_order() {
+        let alpha = 0.7;
+        let radius = 2.0;
+        let mut scaled_residuals = Vec::new();
+        for rotation in [0.01, 0.02] {
+            let slow = SlowRotationBoulwareDeser5D::new(1.0, alpha, rotation).unwrap();
+            let profile = slow.evaluate(radius).unwrap();
+            let residual = ReducedActionResiduals5D::evaluate(
+                profile.second_order_jet,
+                alpha,
+            )
+            .unwrap();
+            // The angular equation is linear in w at this order, so the
+            // exact Noether flux makes E_w vanish to roundoff.
+            close_zero(residual.e_w, 2.0e-12);
+            close_zero(
+                residual.p_w_canonical - slow.conserved_angular_flux(),
+                2.0e-12,
+            );
+            // The static metric functions omit O(a^2) backreaction. The four
+            // even-in-spin equations should therefore scale quadratically.
+            scaled_residuals.push(residual.as_array()[..4]
+                .iter()
+                .fold(0.0_f64, |maximum, value| maximum.max(value.abs())));
+        }
+        let ratio = scaled_residuals[1] / scaled_residuals[0];
+        close_zero(ratio - 4.0, 2.0e-7);
+    }
+
+    #[test]
+    fn alpha_zero_slow_rotation_matches_exact_myers_perry_through_linear_spin_order() {
+        let r_h = 1.0;
+        let rotation = 0.01;
+        let slow = SlowRotationBoulwareDeser5D::new(r_h, 0.0, rotation).unwrap();
+        let exact = MyersPerry5D::new(r_h, rotation / r_h.powi(2)).unwrap();
+        for radius in [1.1, 1.5, 2.0, 3.0, 5.0, 10.0] {
+            let slow_profile = slow.evaluate(radius).unwrap();
+            let exact_profile = exact.evaluate(radius).unwrap();
+            close_zero(
+                (slow_profile.sample.w - exact_profile.w) / rotation.powi(3),
+                1.0,
+            );
+            close_zero(
+                (slow_profile.sample.w_prime - exact_profile.w_prime)
+                    / rotation.powi(3),
+                1.0,
+            );
         }
     }
 
