@@ -10,6 +10,8 @@
 //! runner/oracle custody boundary described in the research protocol.
 
 use super::{JointKernel, Rational};
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 /// Hard cap on one in-memory episode's retained action-attempt records.
 pub const MAX_ATTEMPT_RECEIPTS: usize = 65_536;
@@ -45,7 +47,8 @@ impl Default for EpisodeConfig {
 /// All digests are lowercase SHA-256 hex strings supplied by the trusted runner.
 /// These values may be shown to the research policy; per-episode seeds and hidden
 /// initial-state realizations must not be included here.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct EpisodeManifest {
     /// Digest of the public episode contract and admissible action/observation surface.
     pub contract_sha256: String,
@@ -84,7 +87,8 @@ impl EpisodeManifest {
 }
 
 /// Public description of one action available to the research policy.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PublicAction {
     /// Stable action identity from the admitted model profile.
     pub action_id: String,
@@ -93,7 +97,8 @@ pub struct PublicAction {
 }
 
 /// An observation that has been emitted by the owner model.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct EpisodeObservation {
     /// Stable observation identity from the admitted model profile.
     pub observation_id: String,
@@ -106,7 +111,8 @@ pub struct EpisodeObservation {
 }
 
 /// Disposition of one policy action request.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
 pub enum AttemptDisposition {
     /// The intervention was executed and returned a safe observation.
     Applied {
@@ -132,7 +138,8 @@ pub enum AttemptDisposition {
 /// Rejected requests are retained. requested_cost_units is the catalogue
 /// cost when the action is known. charged_cost_units is non-zero only when
 /// the owner model actually executed the intervention.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct EpisodeAttempt {
     /// Stable episode-local attempt identity.
     pub attempt_id: String,
@@ -156,7 +163,8 @@ pub struct EpisodeAttempt {
 ///
 /// The hidden hypothesis index, physical state, sensor state, full joint
 /// kernel, initial-belief realization, and PRNG seed are intentionally absent.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct EpisodeView {
     /// Opaque episode identity supplied by the trusted runner.
     pub episode_id: String,
@@ -186,6 +194,100 @@ pub struct EpisodeView {
     pub trace_complete: bool,
     /// Whether a hazard or terminal condition ended the episode.
     pub terminal: bool,
+}
+
+/// Protocol identifier shared by the Symtropy provider and external research agents.
+pub const EPISODE_PROTOCOL_VERSION: &str = "symtropy-joint-world-episode-v0";
+
+/// Agent-reported epistemic status at the end of an episode.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EpisodeFinishDisposition {
+    /// The available evidence supports a unique candidate mechanism.
+    Identified,
+    /// Multiple candidate mechanisms remain compatible with the evidence.
+    Ambiguous,
+    /// No candidate mechanism remains compatible with the evidence.
+    NoCompatibleModel,
+    /// The agent deliberately declines to make an identification claim.
+    Abstain,
+}
+
+/// Final policy decision. This reports only epistemic status, not hidden truth.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EpisodeFinish {
+    /// Agent-reported epistemic status.
+    pub disposition: EpisodeFinishDisposition,
+    /// Bounded rationale supplied by the policy.
+    pub rationale: String,
+}
+
+/// Versioned request frame sent from the trusted runner to the policy process.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EpisodeRequest {
+    /// Exact wire protocol version.
+    pub protocol_version: String,
+    /// Policy-visible snapshot only; never contains the hidden joint state or kernel.
+    pub view: EpisodeView,
+}
+
+/// Typed action returned by the policy process.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "command", content = "payload", rename_all = "snake_case")]
+pub enum EpisodeCommand {
+    /// Apply one action from the public action catalogue.
+    Probe {
+        /// Public action identity.
+        action_id: String,
+    },
+    /// Stop experimentation and submit an epistemic-status decision.
+    Finish {
+        /// Final decision and rationale.
+        finish: EpisodeFinish,
+    },
+}
+
+/// Versioned response frame returned by the trusted runner after applying a command.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EpisodeResponse {
+    /// Exact wire protocol version.
+    pub protocol_version: String,
+    /// Updated policy-visible snapshot.
+    pub view: EpisodeView,
+}
+
+/// Evaluator-only score computed after the agent submits its final epistemic status.
+///
+/// This type must never be serialized back into an EpisodeResponse or made available
+/// to the policy before its run is complete.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EpisodeEvaluation {
+    /// Opaque episode identity.
+    pub episode_id: String,
+    /// Agent's final epistemic-status report.
+    pub reported_disposition: EpisodeFinishDisposition,
+    /// Exact compatible candidate IDs computed by the trusted evaluator.
+    pub compatible_hypotheses: Vec<String>,
+    /// Whether the sampled generating hypothesis remains in the exact version space.
+    pub generating_hypothesis_retained: bool,
+    /// Whether the evidence identifies exactly one candidate.
+    pub evidence_identifies_unique_hypothesis: bool,
+    /// A false-unique claim: the agent reports unique identification when the exact version
+    /// space is not a singleton or does not retain the generating hypothesis.
+    pub false_unique_claim: bool,
+    /// Abstention is epistemically safe because the exact version space is not a singleton.
+    pub safe_abstention: bool,
+    /// The agent abstained despite the exact evidence identifying one candidate.
+    pub unnecessary_abstention: bool,
+    /// Whether the reported epistemic status agrees with the exact version-space cardinality.
+    pub disposition_correct: bool,
+    /// Number of interventions actually applied by the provider.
+    pub applied_interventions: usize,
+    /// Total retained requests, including rejections.
+    pub total_requests: usize,
 }
 
 /// Fail-closed episode-provider error.
