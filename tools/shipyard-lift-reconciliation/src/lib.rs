@@ -219,6 +219,126 @@ pub struct ReconciliationReport {
     pub diagnostics: Vec<Diagnostic>,
 }
 
+fn json_quote(input: &str) -> String {
+    use std::fmt::Write as _;
+
+    let mut output = String::with_capacity(input.len() + 2);
+    output.push('"');
+    for character in input.chars() {
+        match character {
+            '"' => output.push_str("\\\""),
+            '\\' => output.push_str("\\\\"),
+            '\u{0008}' => output.push_str("\\b"),
+            '\u{000c}' => output.push_str("\\f"),
+            '\n' => output.push_str("\\n"),
+            '\r' => output.push_str("\\r"),
+            '\t' => output.push_str("\\t"),
+            character if character <= '\u{001f}' => {
+                let _ = write!(output, "\\u{:04x}", character as u32);
+            }
+            character => output.push(character),
+        }
+    }
+    output.push('"');
+    output
+}
+
+fn channel_name(channel: Channel) -> &'static str {
+    match channel {
+        Channel::HookLoad => "hook_load",
+        Channel::WindGust => "wind_gust",
+        Channel::CraneConfiguration => "crane_configuration",
+        Channel::MotionEnvelope => "motion_envelope",
+        Channel::OccupancyProjection => "occupancy_projection",
+        Channel::OverloadAlarm => "overload_alarm",
+        Channel::HoistState => "hoist_state",
+    }
+}
+
+fn disposition_name(disposition: Disposition) -> &'static str {
+    match disposition {
+        Disposition::ConformingToDeclaredEnvelope => "conforming_to_declared_envelope",
+        Disposition::DeviationObserved => "deviation_observed",
+        Disposition::Indeterminate => "indeterminate",
+    }
+}
+
+fn severity_name(severity: DiagnosticSeverity) -> &'static str {
+    match severity {
+        DiagnosticSeverity::Indeterminate => "indeterminate",
+        DiagnosticSeverity::Deviation => "deviation",
+    }
+}
+
+impl ReconciliationReport {
+    /// Canonical JSON for the deterministic result. Hash this byte string
+    /// externally and bind it with the plan, preflight, policy, coverage and
+    /// raw-event digests. It is a receipt, not a signature or physical proof.
+    pub fn canonical_json(&self) -> String {
+        let unknown_json = self
+            .unknown_intervals
+            .iter()
+            .map(|item| {
+                format!(
+                    "{{\"channel\":{},\"start_tick\":{},\"end_tick\":{},\"reason\":{}}}",
+                    json_quote(channel_name(item.channel)),
+                    item.start_tick,
+                    item.end_tick,
+                    json_quote(item.reason),
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        let diagnostic_json = self
+            .diagnostics
+            .iter()
+            .map(|item| {
+                format!(
+                    "{{\"code\":{},\"severity\":{},\"channel\":{},\"subject_id\":{},\"detail\":{}}}",
+                    json_quote(item.code),
+                    json_quote(severity_name(item.severity)),
+                    item.channel
+                        .map(|channel| json_quote(channel_name(channel)))
+                        .unwrap_or_else(|| "null".to_owned()),
+                    item.subject_id
+                        .as_deref()
+                        .map(json_quote)
+                        .unwrap_or_else(|| "null".to_owned()),
+                    json_quote(&item.detail),
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        format!(
+            "{{\"contract_version\":{},\"disposition\":{},\"session_id\":{},\"plan_id\":{},\"plan_revision\":{},\"plan_input_sha256\":{},\"preflight_report_sha256\":{},\"authorisation_id\":{},\"policy_id\":{},\"policy_revision\":{},\"policy_sha256\":{},\"verified_event_count\":{},\"exact_retransmission_count\":{},\"maximum_hook_load_upper_mn\":{},\"maximum_wind_gust_upper_mm_per_s\":{},\"maximum_ingest_lateness_ticks\":{},\"unknown_intervals\":[{}],\"diagnostics\":[{}]}}",
+            json_quote(self.contract_version),
+            json_quote(disposition_name(self.disposition)),
+            json_quote(&self.session_id),
+            json_quote(&self.plan_id),
+            json_quote(&self.plan_revision),
+            json_quote(&self.plan_input_sha256.to_ascii_lowercase()),
+            json_quote(&self.preflight_report_sha256.to_ascii_lowercase()),
+            json_quote(&self.authorisation_id),
+            json_quote(&self.policy_id),
+            json_quote(&self.policy_revision),
+            json_quote(&self.policy_sha256.to_ascii_lowercase()),
+            self.verified_event_count,
+            self.exact_retransmission_count,
+            self.maximum_hook_load_upper_mn
+                .map(|value| value.to_string())
+                .unwrap_or_else(|| "null".to_owned()),
+            self.maximum_wind_gust_upper_mm_per_s
+                .map(|value| value.to_string())
+                .unwrap_or_else(|| "null".to_owned()),
+            self.maximum_ingest_lateness_ticks
+                .map(|value| value.to_string())
+                .unwrap_or_else(|| "null".to_owned()),
+            unknown_json,
+            diagnostic_json,
+        )
+    }
+}
+
 fn nonblank(value: &str) -> bool {
     !value.trim().is_empty()
 }
