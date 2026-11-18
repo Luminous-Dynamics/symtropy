@@ -3,10 +3,13 @@
 //! These are comparison arms, not learned agents. The seeded-random generator
 //! is reproducibility-only and is never suitable for protecting hidden seeds.
 
+use crate::baseline::rank_by_one_step_eig;
 use crate::episode::{
-    EPISODE_PROTOCOL_VERSION, EpisodeCommand, EpisodeFinish, EpisodeFinishDisposition,
-    EpisodeRequest, EpisodeResponse,
+    AttemptDisposition, EPISODE_PROTOCOL_VERSION, EpisodeCommand, EpisodeFinish,
+    EpisodeFinishDisposition, EpisodeRequest, EpisodeResponse,
 };
+use crate::{JointKernel, JointMass, Rational};
+use std::collections::BTreeMap;
 use std::fmt;
 
 /// Policy arms that operate only on the public episode request.
@@ -18,6 +21,9 @@ pub enum BaselineStrategy {
     FixedActionOrder,
     /// Select among unattempted affordable public actions with a reproducible seed.
     SeededRandom { seed: u64 },
+    /// Reconstruct the public candidate kernel, update its exact posterior, and
+    /// choose the highest one-step joint-state EIG-per-cost action.
+    OneStepJointEig,
     /// Negative control: identify the first public candidate from metadata alone.
     MetadataOnlyFirstCandidate,
 }
@@ -33,6 +39,8 @@ pub enum PolicyError {
     EmptyCandidateCatalogue,
     /// The metadata-only control requires a first candidate.
     MissingFirstCandidate,
+    /// The public candidate model catalogue, priors, or action trace is invalid.
+    InvalidPublicModel(String),
 }
 
 impl fmt::Display for PolicyError {
@@ -45,8 +53,9 @@ impl std::error::Error for PolicyError {}
 
 /// Return one typed policy response for the supplied public view.
 ///
-/// The policy sees no hidden generating mechanism, physical/sensor state,
-/// transition kernel, sampled world seed, or evaluator output.
+/// Model-based arms reconstruct their predictive kernel from the public
+/// catalogue; they never receive the episode's hidden owner generator,
+/// sampled physical/sensor state or evaluator result.
 pub fn next_response(
     request: &EpisodeRequest,
     strategy: BaselineStrategy,
@@ -55,17 +64,11 @@ pub fn next_response(
         return Err(PolicyError::UnsupportedProtocol);
     }
     let view = &request.view;
-    if view.terminal || view.finish.is_some() {
+    if view.terminal || view.finish.is_some() || !view.trace_complete {
         return Err(PolicyError::EpisodeClosed);
     }
 
-    let candidates: Vec<String> = view
-        .manifest
-        .public_profile
-        .candidate_hypotheses
-        .iter()
-        .map(|candidate| candidate.hypothesis_id.clone())
-        .collect();
+    let candidates = public_candidate_ids(view);
     if candidates.is_empty() {
         return Err(PolicyError::EmptyCandidateCatalogue);
     }
@@ -74,7 +77,7 @@ pub fn next_response(
         return Ok(finish_response(
             EpisodeFinishDisposition::Abstain,
             candidates,
-            "No-intervention baseline: preserve the declared candidate set and abstain without spending experiment budget.",
+            "No-intervention baseline: preserve the public prior support and abstain without spending experiment budget.",
         ));
     }
 
@@ -90,34 +93,76 @@ pub fn next_response(
         ));
     }
 
+    let (kernel, belief) = public_kernel_and_belief(view)?;
+    let compatible = compatible_candidate_ids(&kernel, &belief);
     let exhausted = view.accepted_attempts >= view.max_attempts
         || view.current_step >= view.max_world_steps
         || view.spent_cost_units >= view.max_cost_units;
-    let attempted: Vec<&str> = view
-        .attempts
-        .iter()
-        .map(|attempt| attempt.requested_action_id.as_str())
-        .collect();
-    let affordable_untried: Vec<&str> = view
+    let affordable: Vec<&str> = view
         .actions
         .iter()
         .filter(|action| {
-            !attempted.contains(&action.action_id.as_str())
-                && action.cost_units <= view.max_cost_units.saturating_sub(view.spent_cost_units)
+            action.cost_units <= view.max_cost_units.saturating_sub(view.spent_cost_units)
         })
         .map(|action| action.action_id.as_str())
         .collect();
 
-    if exhausted || affordable_untried.is_empty() {
-        let disposition = if candidates.len() > 1 {
-            EpisodeFinishDisposition::Ambiguous
-        } else {
-            EpisodeFinishDisposition::Abstain
-        };
+    if strategy == BaselineStrategy::OneStepJointEig {
+        if belief.is_empty() {
+            return Ok(finish_response(
+                EpisodeFinishDisposition::NoCompatibleModel,
+                Vec::new(),
+                "No declared candidate predictive model assigns positive likelihood to the observed evidence prefix.",
+            ));
+        }
+        if exhausted || affordable.is_empty() {
+            return Ok(finish_response(
+                status_for_candidate_set(&compatible),
+                compatible,
+                "One-step joint EIG policy stopped at the frozen attempt, cost, or step budget.",
+            ));
+        }
+        let ranked = rank_by_one_step_eig(&kernel, &belief)
+            .map_err(PolicyError::InvalidPublicModel)?;
+        let selected = ranked
+            .iter()
+            .find(|score| {
+                view.actions
+                    .iter()
+                    .any(|action| action.action_id == score.action_id && action.cost_units
+                        <= view.max_cost_units.saturating_sub(view.spent_cost_units))
+            });
+        if let Some(score) = selected {
+            if score.expected_information_gain_nats > 1e-12 {
+                return Ok(probe_response(&score.action_id));
+            }
+        }
         return Ok(finish_response(
-            disposition,
-            candidates,
-            "Budget/action-order baseline: stop when the available public action set or frozen budget is exhausted.",
+            status_for_candidate_set(&compatible),
+            compatible,
+            "One-step joint EIG per cost is zero for every affordable intervention; stop rather than spend budget without expected mechanism information.",
+        ));
+    }
+
+    let attempted: Vec<&str> = view
+        .attempts
+        .iter()
+        .filter(|attempt| !matches!(
+            &attempt.disposition,
+            AttemptDisposition::RejectedUnknownAction
+        ))
+        .map(|attempt| attempt.requested_action_id.as_str())
+        .collect();
+    let affordable_untried: Vec<&str> = affordable
+        .into_iter()
+        .filter(|action_id| !attempted.contains(action_id))
+        .collect();
+
+    if exhausted || affordable_untried.is_empty() {
+        return Ok(finish_response(
+            status_for_candidate_set(&compatible),
+            compatible,
+            "Non-model-based baseline stopped when its untried public action set or frozen budget was exhausted.",
         ));
     }
 
@@ -130,17 +175,148 @@ pub fn next_response(
             );
             affordable_untried[(draw as usize) % affordable_untried.len()]
         }
-        BaselineStrategy::NoIntervention | BaselineStrategy::MetadataOnlyFirstCandidate => {
+        BaselineStrategy::NoIntervention
+        | BaselineStrategy::MetadataOnlyFirstCandidate
+        | BaselineStrategy::OneStepJointEig => {
             unreachable!("early-returned baseline strategy")
         }
     };
 
-    Ok(EpisodeResponse {
+    Ok(probe_response(selected))
+}
+
+/// Reconstruct a candidate-only kernel and apply the public evidence prefix.
+pub fn public_kernel_and_belief(
+    view: &crate::episode::EpisodeView,
+) -> Result<(JointKernel, Vec<JointMass>), PolicyError> {
+    let kernel = view
+        .manifest
+        .public_profile
+        .model_catalogue
+        .to_joint_kernel(
+            &view.manifest.public_profile.candidate_hypotheses,
+            &view.actions,
+        )
+        .map_err(PolicyError::InvalidPublicModel)?;
+    let mut belief = kernel.initial_belief.clone();
+
+    for attempt in &view.attempts {
+        let (action_id, observation_id) = match &attempt.disposition {
+            AttemptDisposition::Applied { observation_id } => {
+                (attempt.requested_action_id.as_str(), observation_id.as_str())
+            }
+            AttemptDisposition::HazardTerminal => return Err(PolicyError::EpisodeClosed),
+            _ => continue,
+        };
+        let action = kernel
+            .action_ids
+            .iter()
+            .position(|candidate| candidate == action_id)
+            .ok_or_else(|| PolicyError::InvalidPublicModel(
+                "applied action is absent from the public model catalogue".to_owned(),
+            ))?;
+        let observation = kernel
+            .observation_ids
+            .iter()
+            .position(|candidate| candidate == observation_id)
+            .ok_or_else(|| PolicyError::InvalidPublicModel(
+                "emitted observation is absent from the public model catalogue".to_owned(),
+            ))?;
+
+        let mut next: BTreeMap<(usize, usize, usize), Rational> = BTreeMap::new();
+        for point in &belief {
+            let row = kernel
+                .transition_row(
+                    point.hypothesis,
+                    point.physical_state,
+                    point.sensor_state,
+                    action,
+                )
+                .ok_or_else(|| PolicyError::InvalidPublicModel(
+                    "public predictive model lacks an action-conditioned state row".to_owned(),
+                ))?;
+            for outcome in &row.outcomes {
+                if outcome.observation == Some(observation) {
+                    let key = (
+                        point.hypothesis,
+                        outcome.next_physical_state,
+                        outcome.next_sensor_state,
+                    );
+                    let weighted = point
+                        .mass
+                        .checked_mul(outcome.probability)
+                        .map_err(PolicyError::InvalidPublicModel)?;
+                    let current = next.get(&key).copied().unwrap_or(Rational::zero());
+                    next.insert(
+                        key,
+                        current
+                            .checked_add(weighted)
+                            .map_err(PolicyError::InvalidPublicModel)?,
+                    );
+                }
+            }
+        }
+        let total = next
+            .values()
+            .try_fold(Rational::zero(), |sum, mass| sum.checked_add(*mass))
+            .map_err(PolicyError::InvalidPublicModel)?;
+        if total.is_zero() {
+            belief.clear();
+            break;
+        }
+        let mut normalized = Vec::with_capacity(next.len());
+        for ((hypothesis, physical_state, sensor_state), mass) in next {
+            normalized.push(JointMass {
+                hypothesis,
+                physical_state,
+                sensor_state,
+                mass: mass
+                    .checked_div(total)
+                    .map_err(PolicyError::InvalidPublicModel)?,
+            });
+        }
+        belief = normalized;
+    }
+    Ok((kernel, belief))
+}
+
+fn public_candidate_ids(view: &crate::episode::EpisodeView) -> Vec<String> {
+    view.manifest
+        .public_profile
+        .candidate_hypotheses
+        .iter()
+        .map(|candidate| candidate.hypothesis_id.clone())
+        .collect()
+}
+
+fn compatible_candidate_ids(kernel: &JointKernel, belief: &[JointMass]) -> Vec<String> {
+    let mut present = vec![false; kernel.hypothesis_ids.len()];
+    for point in belief {
+        present[point.hypothesis] = true;
+    }
+    kernel
+        .hypothesis_ids
+        .iter()
+        .zip(present)
+        .filter_map(|(id, retained)| retained.then_some(id.clone()))
+        .collect()
+}
+
+fn status_for_candidate_set(candidates: &[String]) -> EpisodeFinishDisposition {
+    match candidates.len() {
+        0 => EpisodeFinishDisposition::NoCompatibleModel,
+        1 => EpisodeFinishDisposition::Identified,
+        _ => EpisodeFinishDisposition::Ambiguous,
+    }
+}
+
+fn probe_response(action_id: &str) -> EpisodeResponse {
+    EpisodeResponse {
         protocol_version: EPISODE_PROTOCOL_VERSION.to_owned(),
         command: EpisodeCommand::Probe {
-            action_id: selected.to_owned(),
+            action_id: action_id.to_owned(),
         },
-    })
+    }
 }
 
 fn finish_response(
