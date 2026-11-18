@@ -129,7 +129,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ),
     ];
 
-    let snapshot = PreferenceLedger { events }.snapshot_as_of(100)?;
+    let snapshot = PreferenceLedger::from_events(events)?.snapshot_as_of(100)?;
     let alternatives = vec![
         alternative(
             "balanced",
