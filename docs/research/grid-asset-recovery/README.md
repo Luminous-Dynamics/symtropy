@@ -148,7 +148,7 @@ The scheduler performs non-preemptive, deterministic list scheduling across **al
 
 This is a transparent greedy baseline. The semantic validator also enforces stage-specific engineering precedence: diagnosis follows detection/isolation; parts sourcing and crew mobilisation follow diagnosis; transport follows parts sourcing; repair waits for the required part, transport (for depot stock) and crew; commissioning follows repair.
 
-The CLI emits a machine-readable JSON schedule report with task intervals, event restoration spans, firm shortfall and calculated unserved energy. It labels itself as a heuristic and does not claim optimality.
+The CLI emits a machine-readable JSON schedule report with task intervals, event restoration spans, firm shortfall and calculated unserved energy. It labels itself as a heuristic and does not claim optimality. The current objective is deterministic schedule feasibility and per-event restoration time, not weighted load-restoration priority. Grid switching, islanding, black-start and critical-load restoration policy remain with [#3418 POWER-SYSTEM-RESILIENCE-001](https://github.com/Luminous-Dynamics/symtropy/issues/3418).
 
 1. Find tasks whose predecessors have completed.
 2. Calculate each task's earliest precedence-ready time.
@@ -162,7 +162,7 @@ The CLI emits a machine-readable JSON schedule report with task intervals, event
 
 The three-event fixture now represents parallel parts sourcing/logistics and crew mobilisation. With the current synthetic durations and resource capacities, it declares restoration spans of 32 h, 1,219 h and 23 h. These are calculated from the task dependency graphs and the declared single-crew capacity; they are not observed transformer restoration times.
 
-The second event's long OEM procurement duration is deliberately a stress case. It is a synthetic value used to exercise the schedule and must not be interpreted as a current supplier quote.
+The second event's long OEM procurement duration is deliberately a stress case. It is a synthetic value used to exercise the schedule and must not be interpreted as a current supplier quote. The v0.2 unserved-energy calculation assumes the declared net firm shortfall remains constant until restoration. It is a transparent screening approximation—not a chronological production-cost, load-flow, stability or customer interruption model. Later versions must consume a time series and declared alternative-service availability before making operational or reliability claims.
 
 ### Scheduler benchmark plan
 
