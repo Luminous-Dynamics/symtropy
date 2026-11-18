@@ -1202,6 +1202,7 @@ mod tests {
                     raw_response_sha256: format!("{:064x}", index + 1),
                 });
             }
+        }
         FoodQualityAssessmentRequestV1 {
             schema_version: 1,
             assessment_id: "assessment:rice-01".to_owned(),
