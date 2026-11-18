@@ -283,9 +283,11 @@ They are deliberately marked `template_unpopulated` with local standards adoptio
 
 ### Standards metadata snapshot (18 November 2026)
 
-The machine-readable register records exact editions and status boundaries for 11 reference documents. Particularly important details:
+The machine-readable register records exact editions and status boundaries for 13 reference documents. Particularly important details:
 - IEEE 738-2023 is active for conductor current-temperature modelling, but does not prescribe the weather or conductor inputs that a line-rating assessment must use.
 - IEC 60840:2020+AMD1:2023 has a 2025 corrigendum in the current consolidated publication.
+- IEC 60287-1-1:2023 provides steady-state cable current-rating and losses methods; site thermal resistivity and ambient parameters remain project inputs.
+- IEC 60287-2-3:2024 gives a thermal-resistance method for cables in ventilated tunnels, but assumes identical cables, constant tunnel cross-section and negligible longitudinal heat transfer. Actual tunnel geometry and ventilation must be checked against those assumptions.
 - IEC 62067:2022 covers extruded-insulation cable systems from above 150 kV through 500 kV, in its stated scope.
 - IEC 60071-2:2023 remains the published edition in the current catalogue snapshot, while Edition 6 is under development.
 - IEC TS 60071-4:2026 was published on 23 October 2026 and provides simulation-based insulation-coordination modelling guidance.
@@ -299,6 +301,8 @@ Primary sources:
 - [IEC 60826:2017](https://webstore.iec.ch/en/publication/59954)
 - [IEEE 738-2023](https://standards.ieee.org/ieee/738/10207/)
 - [IEC 60840 consolidated version and 2025 corrigendum](https://webstore.iec.ch/en/publication/107576)
+- [IEC 60287-1-1:2023](https://webstore.iec.ch/en/publication/68118)
+- [IEC 60287-2-3:2024](https://webstore.iec.ch/en/publication/80333)
 - [IEC 62067:2022](https://webstore.iec.ch/en/publication/66951)
 - [IEC 60071-2:2023](https://webstore.iec.ch/en/publication/64145)
 - [IEC TS 60071-4:2026](https://webstore.iec.ch/en/publication/107140)
