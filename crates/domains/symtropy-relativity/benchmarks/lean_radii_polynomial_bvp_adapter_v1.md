@@ -168,7 +168,33 @@ provided qν<1. This is an analytic geometric-series bound, not a sampled-grid e
 
 For ν=2, qν=6-4√2≈0.3431457505, so the condition holds. The reference fixture contains high-precision evaluations at N=4,8,12,16,24,32.
 
-**Representation warning:** the upstream library uses a bilateral/symmetric Chebyshev coefficient model in parts of its physical-space API. The one-sided tail formula above must be mapped into that model with the exact factor-of-two and symmetry convention proved explicitly. Do not copy this one-sided norm into an upstream bilateral norm without that conversion.
+### Exact conversion to the pinned upstream bilateral Chebyshev representation
+
+The pinned upstream sources were inspected directly:
+- `Analysis/SequenceSpace/Chebyshev/Scalar.lean` defines the bilateral weight as `nu^|k|`.
+- `Analysis/SequenceSpace/Chebyshev/Symmetrize.lean` defines symmetric storage by copying the nonnegative coefficient to both signs.
+- `Analysis/SequenceSpace/Chebyshev/OneSided.lean` identifies nonnegative-mode restriction with the one-sided weighted coefficient norm.
+- The physical basis is the Joukowski/Laurent identity
+  [
+  T_n(x)=\frac{z^n+z^{-n}}2,qquad x=\frac{z+z^{-1}}2.
+  ]
+
+Therefore a one-sided physical Chebyshev series
+[
+f(x)=a_0+\sum_{n\ge1}a_nT_n(x)
+]
+is represented in the symmetric bilateral Laurent carrier by
+[
+c_0=a_0,\qquad c_n=c_{-n}=\frac{a_n}{2}\quad(n\ge1).
+]
+The bilateral weighted norm is exactly
+[
+|c_0|+\sum_{n\ge1}(|c_n|+|c_{-n}|)\nu^n
+=|a_0|+\sum_{n\ge1}|a_n|\nu^n.
+]
+Thus the one-sided tail bound above transfers to the upstream symmetric bilateral norm with **no additional factor**. The factor 1/2 belongs in each of the positive and negative stored coefficients; it is canceled by the two equal weighted contributions.
+
+The conversion and norm equality are an elementary coefficient calculation. They have not yet been formalized in the pinned Lean project or executed there. The future BVP adapter must add those Lean lemmas (or use an existing exact equivalent) before feeding the tail bound into an upstream certificate.
 
 This analytic tail is only one input to a complete BVP proof. It does not by itself bound the nonlinear field residual, the boundary data, the inverse defect, or the spectral error after applying fourth derivatives.
 
