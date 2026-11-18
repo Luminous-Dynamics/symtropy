@@ -519,7 +519,8 @@
         "actual_froude_number",
         "vibration_frequency_hz",
         "vibration_amplitude_m",
-        "vibration_enabled"
+        "vibration_enabled",
+        "vibration_profile_id"
       ],
       "properties": {
         "operation_type": {
@@ -606,6 +607,12 @@
         },
         "vibration_phase_rad": {
           "$ref": "#/$defs/measurement"
+        },
+        "vibration_profile_id": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
