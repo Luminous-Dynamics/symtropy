@@ -15,7 +15,7 @@
 //! safe. Receipt digests and owner identities are bound here, but canonical
 //! receipt bytes, source measurements and signatures remain caller-verified.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use crate::cumulative_resource_capacity::{
     CumulativeCapacityError, CumulativeCapacityScenario, evaluate_cumulative_resource_capacity,
@@ -624,6 +624,138 @@ mod tests {
                     "hoist".into()
                 ))
         );
+    }
+
+
+    #[test]
+    fn generated_derating_sweeps_match_independent_tick_oracle() {
+        for initial_seed in 0..24_u64 {
+            let mut seed = 0xD3A7_1A6_u64.wrapping_add(initial_seed);
+            let mut next = || {
+                seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+                seed >> 32
+            };
+
+            let resources = vec![
+                definition("hoist", 10),
+                CapacityResourceDefinition {
+                    resource_id: "temporary-power".into(),
+                    definition_sha256: digest('f'),
+                    capacity_units: 10,
+                    unit_label: "kW".into(),
+                },
+            ];
+            let mut reservations = Vec::new();
+            for index in 0..24_u64 {
+                let resource_id = if index % 2 == 0 {
+                    "hoist"
+                } else {
+                    "temporary-power"
+                };
+                let resource_digest = if index % 2 == 0 { digest('a') } else { digest('f') };
+                let start_tick = next() % 40;
+                let duration = 1 + next() % 15;
+                let demand_units = 1 + next() % 5;
+                reservations.push(CapacityReservation {
+                    reservation_id: format!("seed-{initial_seed}-reservation-{index}"),
+                    reservation_receipt_sha256: digest('b'),
+                    site_clock_domain_id: "site-clock-1".into(),
+                    claims: vec![CapacityDemandClaim {
+                        resource_id: resource_id.into(),
+                        resource_definition_sha256: resource_digest,
+                        start_tick,
+                        end_tick: start_tick + duration,
+                        demand_units,
+                    }],
+                });
+            }
+            let snapshot = digest('d');
+            let windows = vec![
+                window(10, 30, 3, 5, 7),
+                CapacityAvailabilityWindow {
+                    resource_id: "temporary-power".into(),
+                    resource_definition_sha256: digest('f'),
+                    site_snapshot_sha256: snapshot.clone(),
+                    capacity_owner_id: "power-owner".into(),
+                    evidence_receipt_sha256: digest('e'),
+                    start_tick: 15,
+                    end_tick: 35,
+                    lower_capacity_units: 4,
+                    nominal_capacity_units: 6,
+                    upper_capacity_units: 8,
+                },
+            ];
+            let scenario = RobustCumulativeCapacityScenario {
+                base: CumulativeCapacityScenario {
+                    scenario_id: format!("generated-robust-{initial_seed}"),
+                    resource_catalog_sha256: digest('c'),
+                    site_snapshot_sha256: snapshot,
+                    site_clock_domain_id: "site-clock-1".into(),
+                    resources,
+                    reservations,
+                },
+                availability_windows: windows,
+            };
+            let report = evaluate_robust_cumulative_resource_capacity(&scenario).unwrap();
+
+            let mut expected_robust = true;
+            for (resource_id, definition) in [
+                ("hoist", 10_u64),
+                ("temporary-power", 10_u64),
+            ] {
+                for tick in 0..60_u64 {
+                    let load: u128 = scenario
+                        .base
+                        .reservations
+                        .iter()
+                        .flat_map(|reservation| reservation.claims.iter())
+                        .filter(|claim| {
+                            claim.resource_id == resource_id
+                                && claim.start_tick <= tick
+                                && tick < claim.end_tick
+                        })
+                        .map(|claim| u128::from(claim.demand_units))
+                        .sum();
+                    let profile = scenario.availability_windows.iter().find(|window| {
+                        window.resource_id == resource_id
+                            && window.start_tick <= tick
+                            && tick < window.end_tick
+                    });
+                    let (lower, upper) = profile
+                        .map(|window| {
+                            (window.lower_capacity_units, window.upper_capacity_units)
+                        })
+                        .unwrap_or((definition, definition));
+                    let expected_assessment = if load <= u128::from(lower) {
+                        None
+                    } else if load <= u128::from(upper) {
+                        expected_robust = false;
+                        Some(RobustCapacityAssessment::IndeterminateWithinCapacityRange)
+                    } else {
+                        expected_robust = false;
+                        Some(RobustCapacityAssessment::DefinitelyOverUpperBound)
+                    };
+                    let reported = report.non_robust_segments.iter().find(|segment| {
+                        segment.resource_id == resource_id
+                            && segment.start_tick <= tick
+                            && tick < segment.end_tick
+                    });
+                    match (expected_assessment, reported) {
+                        (None, None) => {}
+                        (Some(expected), Some(actual)) => {
+                            assert_eq!(actual.assessment, expected);
+                            assert_eq!(actual.observed_load_units, load);
+                            assert_eq!(actual.lower_capacity_units, lower);
+                            assert_eq!(actual.upper_capacity_units, upper);
+                        }
+                        (expected, actual) => panic!(
+                            "generated robust sweep disagreed at seed {initial_seed}, resource {resource_id}, tick {tick}: expected {expected:?}, got {actual:?}"
+                        ),
+                    }
+                }
+            }
+            assert_eq!(report.is_robustly_feasible, expected_robust);
+        }
     }
 
 }
