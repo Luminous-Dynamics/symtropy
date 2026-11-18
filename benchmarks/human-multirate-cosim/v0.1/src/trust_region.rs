@@ -5,6 +5,7 @@
 //! where the linear term is orthogonal to the top eigenspace. It is intended as
 //! a small, auditable exact reference, not a large-scale optimizer.
 
+// Explicit row/column indexing keeps the small dense KKT reference auditable.
 #![allow(clippy::needless_range_loop)]
 
 use crate::network::{symmetric_eigen, NetworkError};

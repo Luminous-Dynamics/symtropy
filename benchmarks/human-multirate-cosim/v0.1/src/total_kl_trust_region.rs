@@ -4,6 +4,9 @@
 //! objective. This module solves that offset quadratic globally with the exact
 //! small-dimensional trust-region solver, including the hard case.
 
+// Matrix and actuator/time basis indexing is explicit to preserve coefficient ordering.
+#![allow(clippy::needless_range_loop)]
+
 use crate::energy_optimal_control::{
     ControlCoefficientV1, EnergyOptimalControlError,
 };
@@ -673,7 +676,7 @@ fn assumptions(covariance_kind: &'static str) -> Vec<&'static str> {
         }
         "AR1_KRONECKER" => {
             declared.push(
-                "structured AR(1) covariance uses temporal innovations and sensor Cholesky whitening",
+                "AR(1) covariance uses innovations and sensor Cholesky whitening",
             );
         }
         _ => {
