@@ -13,6 +13,7 @@ pub mod network;
 pub mod experiment_design;
 pub mod robust_discrimination;
 pub mod adequacy_calibration;
+pub mod adjoint_reference;
 pub mod noise_robustness;
 pub mod coverage_inference;
 pub mod energy_optimal_control;
