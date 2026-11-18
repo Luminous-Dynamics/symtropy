@@ -346,7 +346,12 @@
         "required_properties": {
           "type": "array",
           "items": {
-            "type": "string"
+            "enum": [
+              "thermal_properties",
+              "charge_profile",
+              "shape_profile",
+              "uncertainty_budget"
+            ]
           },
           "uniqueItems": true
         },
