@@ -537,6 +537,9 @@ mod tests {
     const DIVERSE_WEATHER_CASE: &str = include_str!(
         "../../../docs/research/aviation/examples/synthetic_haps_fleet_diverse_weather_reliability_v1.json"
     );
+    const CROSS_LAYER_CASE: &str = include_str!(
+        "../../../docs/research/aviation/examples/synthetic_haps_fleet_cross_layer_common_mode_reliability_v1.json"
+    );
 
     fn parse_fixture(value: &str) -> FleetReliabilityCase {
         parse_case_json(value.as_bytes()).expect("fixture parses and validates")
@@ -577,6 +580,22 @@ mod tests {
         close(
             report.common_cause_overstatement_probability_points,
             0.0078816768,
+        );
+        assert_eq!(report.fleet_meets_target, Some(false));
+    }
+
+    #[test]
+    fn cross_layer_weather_and_external_common_cause_case_matches_oracle() {
+        let case = parse_fixture(CROSS_LAYER_CASE);
+        let report = evaluate_case(&case).unwrap();
+        assert_eq!(report.enumerated_scenario_count, 128);
+        close(report.probability_mass, 1.0);
+        close(report.single_node_service_availability, 0.9506);
+        close(report.fleet_k_of_n_service_availability, 0.9996984370158802);
+        close(report.naive_independent_k_of_n_service_availability, 0.9999999996);
+        close(
+            report.common_cause_overstatement_probability_points,
+            0.00030156258411973,
         );
         assert_eq!(report.fleet_meets_target, Some(false));
     }
