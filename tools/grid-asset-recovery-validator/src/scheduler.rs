@@ -275,7 +275,14 @@ fn exact_search(
             .as_ref()
             .is_none_or(|(best_makespan, _)| makespan < *best_makespan)
         {
-            *best = Some((makespan, scheduled.values().cloned().collect()));
+            let mut exact_schedule: Vec<_> = scheduled.values().cloned().collect();
+            exact_schedule.sort_by(|left, right| {
+                left.start_hour
+                    .total_cmp(&right.start_hour)
+                    .then_with(|| left.event_id.cmp(&right.event_id))
+                    .then_with(|| left.task_id.cmp(&right.task_id))
+            });
+            *best = Some((makespan, exact_schedule));
         }
         return;
     }
