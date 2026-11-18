@@ -1196,6 +1196,7 @@ pub enum NoiseCalibrationError {
     Robustness(NoiseRobustnessError),
     Profiled(ProfiledDiscriminationError),
     InvalidReplicateCount,
+    NoHiddenOutOfFamilyTruths,
     ExcessiveSampleCount,
     DuplicateHiddenTruthId(u32),
     InvalidTargetCoverage,
@@ -1229,6 +1230,9 @@ impl fmt::Display for NoiseCalibrationError {
             Self::Robustness(error) => write!(f, "noise robustness evaluation failed: {error}"),
             Self::Profiled(error) => write!(f, "profiled scenario invalid: {error}"),
             Self::InvalidReplicateCount => write!(f, "replicates per model must be positive"),
+            Self::NoHiddenOutOfFamilyTruths => {
+                write!(f, "at least one hidden out-of-family truth is required for an OOD report")
+            }
             Self::ExcessiveSampleCount => {
                 write!(f, "full-covariance calibration exceeds the 100,000-sample campaign bound")
             }
@@ -1296,6 +1300,9 @@ pub fn calibrate_model_family_adequacy_full_covariance(
         .map_err(NoiseCalibrationError::Profiled)?;
     if config.replicates_per_model == 0 {
         return Err(NoiseCalibrationError::InvalidReplicateCount);
+    }
+    if hidden_out_of_family_truths.is_empty() {
+        return Err(NoiseCalibrationError::NoHiddenOutOfFamilyTruths);
     }
     if !config.target_in_family_coverage.is_finite()
         || config.target_in_family_coverage <= 0.0
@@ -1714,6 +1721,94 @@ fn wilson_interval(successes: usize, total: usize) -> [f64; 2] {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn full_covariance_calibration_requires_a_hidden_out_of_family_fixture() {
+        use crate::experiment_design::{
+            ExperimentDesignScenario, ForcingSegment, ModelCandidate,
+        };
+        use crate::network::{Edge, NetworkScenario};
+        use crate::robust_discrimination::{
+            ModelFamilyAssignment, ProfiledModelFamilyScenario,
+        };
+        use crate::sensor_design::SensorCandidate;
+
+        let network = NetworkScenario {
+            name: "candidate",
+            capacities: vec![1.0, 1.0],
+            initial: vec![0.0, 0.0],
+            edges: vec![Edge {
+                left: 0,
+                right: 1,
+                conductance: 0.5,
+            }],
+            horizon: 1.0,
+        };
+        let scenario = ProfiledModelFamilyScenario {
+            experiment: ExperimentDesignScenario {
+                name: "no-hidden-truth-guard",
+                models: vec![ModelCandidate {
+                    id: 1,
+                    label: "candidate",
+                    network: network.clone(),
+                }],
+                sensors: vec![SensorCandidate {
+                    id: 1,
+                    node: 0,
+                    cost: 1.0,
+                    common_cause_group: None,
+                }],
+                noise_covariance: vec![vec![1.0]],
+                observation_times: vec![0.5],
+                sensor_budget: 1.0,
+                max_abs_forcing: 1.0,
+                input_energy_budget: 1.0,
+            },
+            family_assignments: vec![ModelFamilyAssignment {
+                model_id: 1,
+                family_id: 1,
+            }],
+        };
+        let profile = InputProfile {
+            id: 1,
+            label: "zero forcing",
+            segments: vec![ForcingSegment {
+                start_time: 0.0,
+                end_time: 1.0,
+                forcing: vec![0.0, 0.0],
+            }],
+        };
+        let covariance = ObservationCovarianceV1::new(
+            "covariance:one-time".to_owned(),
+            "process:iid-gaussian".to_owned(),
+            "sampling:one-time".to_owned(),
+            "operator:node-zero".to_owned(),
+            "availability:immediate".to_owned(),
+            vec![1],
+            vec![0.5],
+            DenseSpdCovariance::new(vec![vec![1.0]]).unwrap(),
+        )
+        .unwrap();
+
+        let result = calibrate_model_family_adequacy_full_covariance(
+            &scenario,
+            &profile,
+            &[1],
+            &covariance,
+            &[],
+            NoiseCalibrationConfigV1 {
+                calibration_seed: 1,
+                validation_seed: 2,
+                evaluator_seed: 3,
+                replicates_per_model: 2,
+                target_in_family_coverage: 0.95,
+            },
+        );
+        assert_eq!(
+            result,
+            Err(NoiseCalibrationError::NoHiddenOutOfFamilyTruths)
+        );
+    }
 
     #[test]
     fn ar1_covariance_has_declared_lag_structure() {
