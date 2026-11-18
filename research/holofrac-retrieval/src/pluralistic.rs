@@ -394,7 +394,10 @@ impl PreferenceLedger {
         for event in self
             .events
             .iter()
-            .filter(|event| event.recorded_at_micros <= decision_cutoff_micros)
+            .filter(|event| {
+                event.effective_at_micros <= decision_cutoff_micros
+                    && event.recorded_at_micros <= decision_cutoff_micros
+            })
         {
             visible_event_count += 1;
             let replace = latest
@@ -901,6 +904,30 @@ mod tests {
             evaluate_group(&[alternative("a", 0.6, 0.6, 0.6)], &after_knowledge),
             Err(PreferenceError::NoParticipatingStakeholders)
         ));
+    }
+
+    #[test]
+    fn future_effective_preference_is_not_applied_before_its_start_time() {
+        let event = PreferenceEvent {
+            event_id: 1,
+            stakeholder_id: "resident-a".to_owned(),
+            revision: 1,
+            previous_event_id: None,
+            effective_at_micros: 500,
+            recorded_at_micros: 100,
+            consent_scope: ConsentScope::NamedAggregate,
+            consent_status: ConsentStatus::Granted,
+            weights: balanced_weights(0),
+            veto_thresholds: [None; CRITERION_COUNT],
+        };
+        let ledger = PreferenceLedger { events: vec![event] };
+
+        let before_effective = ledger.snapshot_as_of(300).unwrap();
+        let after_effective = ledger.snapshot_as_of(600).unwrap();
+
+        assert_eq!(before_effective.profiles.len(), 0);
+        assert_eq!(after_effective.profiles.len(), 1);
+        assert_eq!(after_effective.profiles[0].revision, 1);
     }
 
     #[test]
