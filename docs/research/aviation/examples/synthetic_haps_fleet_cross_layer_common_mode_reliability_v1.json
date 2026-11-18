@@ -1,0 +1,102 @@
+{
+  "schema_version": "haps-fleet-reliability-case/v1",
+  "case_id": "synthetic.haps.fleet.cross-layer-weather-external-common-mode.001",
+  "revision": 1,
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_static_availability_oracle",
+  "analysis_method": "static_bernoulli_exact_enumeration",
+  "time_window_s": 2592000,
+  "nodes": [
+    {
+      "node_id": "haps-a",
+      "platform_class": "solar_fixed_wing_haps",
+      "independent_availability_probability": 0.98,
+      "service_region_ref": "synthetic.region.cross-layer-disaster.001",
+      "maintenance_profile_ref": null
+    },
+    {
+      "node_id": "haps-b",
+      "platform_class": "solar_fixed_wing_haps",
+      "independent_availability_probability": 0.98,
+      "service_region_ref": "synthetic.region.cross-layer-disaster.001",
+      "maintenance_profile_ref": null
+    },
+    {
+      "node_id": "haps-c",
+      "platform_class": "buoyant_airship",
+      "independent_availability_probability": 0.98,
+      "service_region_ref": "synthetic.region.cross-layer-disaster.001",
+      "maintenance_profile_ref": null
+    },
+    {
+      "node_id": "terrestrial-gateway",
+      "platform_class": "terrestrial_gateway",
+      "independent_availability_probability": 0.995,
+      "service_region_ref": "synthetic.region.cross-layer-disaster.001",
+      "maintenance_profile_ref": null
+    },
+    {
+      "node_id": "leo-backhaul",
+      "platform_class": "leo_satellite_backhaul",
+      "independent_availability_probability": 0.99,
+      "service_region_ref": "synthetic.region.cross-layer-disaster.001",
+      "maintenance_profile_ref": null
+    }
+  ],
+  "common_cause_events": [
+    {
+      "event_id": "shared-stratospheric-weather",
+      "event_class": "weather_grounding",
+      "event_probability": 0.03,
+      "affected_node_ids": [
+        "haps-a",
+        "haps-b",
+        "haps-c"
+      ],
+      "source_profile_ref": null
+    },
+    {
+      "event_id": "shared-ground-leo-core-power-domain",
+      "event_class": "shared_external_common_mode",
+      "event_probability": 0.01,
+      "affected_node_ids": [
+        "terrestrial-gateway",
+        "leo-backhaul"
+      ],
+      "source_profile_ref": null
+    }
+  ],
+  "shared_dependencies": [],
+  "service_contract": {
+    "minimum_operational_node_count": 1,
+    "required_shared_dependency_ids": [],
+    "single_node_reference_id": "haps-a",
+    "service_region_ref": "synthetic.region.cross-layer-disaster.001",
+    "target_service_availability_fraction": 0.9999
+  },
+  "expected_oracle": {
+    "oracle_status": "independently_calculated",
+    "enumerated_scenario_count": 128,
+    "single_node_service_availability": 0.9506,
+    "fleet_k_of_n_service_availability": 0.9996984370158802,
+    "naive_independent_k_of_n_service_availability": 0.9999999996,
+    "absolute_service_availability_gain_vs_single_node": 0.049098437015880125,
+    "common_cause_overstatement_probability_points": 0.00030156258411973,
+    "enumeration_verified": true
+  },
+  "source_evidence_refs": [
+    "https://www.itu.int/rec/dologin_pub.asp?id=T-REC-Y.3212-202409-I%21%21PDF-E&lang=e&type=items",
+    "https://sceye.com/press-releases/sceye-softbank-sign-agreement-for-fleet-of-stratospheric-platforms/"
+  ],
+  "assumptions": [
+    "All node availability probabilities and common-cause event probabilities are synthetic sensitivity inputs and are not operator or vendor reliability claims.",
+    "The three HAPS nodes have independent baseline availability 0.98, conditional on no shared HAPS weather grounding event.",
+    "The terrestrial gateway and LEO backhaul nodes have independent baseline availability values 0.995 and 0.99, conditional on no shared external common-mode event.",
+    "The weather event disables all three HAPS nodes together; the shared external event disables terrestrial and LEO fallback together. The two common-cause events are independent in this case.",
+    "The service is available if at least one of the five provider nodes remains operational after its independent and common-cause states are applied.",
+    "No shared dependencies are required in this case; the two common-cause events explicitly represent the shared dependencies between provider groups.",
+    "The naïve k-of-n comparator treats all five provider nodes as independent and ignores both common-cause events; the exact enumeration includes them.",
+    "This is a static Bernoulli probability model over a 30-day declared analysis window; it does not model outage duration, weather episode persistence, repair, maintenance scheduling, geographic overlap, capacity or handover.",
+    "The 99.99% target is an illustrative synthetic objective, not an operator SLA or achieved service availability."
+  ]
+}

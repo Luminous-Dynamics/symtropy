@@ -1,0 +1,533 @@
+{
+  "schema_version": "haps-fleet-availability-case/v1",
+  "case_id": "synthetic.haps.fleet.common-mode-layered-availability.001",
+  "revision": 1,
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_reliability_calculation",
+  "analysis_horizon_h": 8760,
+  "inputs": {
+    "per_haps_independent_availability": 0.98,
+    "shared_haps_weather_outage_probability": 0.03,
+    "terrestrial_availability": 0.995,
+    "leo_backhaul_availability": 0.99,
+    "independence_contract": {
+      "haps_platforms_independent_conditioned_on_no_common_mode": true,
+      "terrestrial_independent_of_haps_weather": true,
+      "availability_includes_planned_maintenance": true,
+      "external_common_mode_independent_of_haps_weather": true,
+      "terrestrial_and_leo_independent_conditioned_on_no_external_common_mode": true
+    },
+    "shared_external_common_mode_outage_probability": 0
+  },
+  "maintenance_policy": {
+    "policy": "staggered",
+    "max_simultaneous_planned_maintenance": 1,
+    "maintenance_already_accounted_in_individual_availability": true,
+    "maintenance_windows_staggered": true,
+    "baseline_fleet_size": 3
+  },
+  "scenarios": [
+    {
+      "scenario_id": "haps_weather_0pct_external_common_0pct",
+      "shared_weather_outage_probability": 0,
+      "shared_external_outage_probability": 0,
+      "haps_platform_counts": [
+        1,
+        2,
+        3,
+        5,
+        10
+      ],
+      "expected": [
+        {
+          "haps_count": 1,
+          "haps_only_availability": 0.98,
+          "haps_plus_terrestrial_availability": 0.9999,
+          "haps_plus_terrestrial_plus_leo_availability": 0.999999,
+          "haps_only_downtime_h_per_year": 175.20000000000016,
+          "cross_layer_downtime_h_per_year": 0.0087600000002519
+        },
+        {
+          "haps_count": 2,
+          "haps_only_availability": 0.9996,
+          "haps_plus_terrestrial_availability": 0.999998,
+          "haps_plus_terrestrial_plus_leo_availability": 0.99999998,
+          "haps_only_downtime_h_per_year": 3.503999999999614,
+          "cross_layer_downtime_h_per_year": 0.00017519999990778246
+        },
+        {
+          "haps_count": 3,
+          "haps_only_availability": 0.999992,
+          "haps_plus_terrestrial_availability": 0.99999996,
+          "haps_plus_terrestrial_plus_leo_availability": 0.9999999996,
+          "haps_only_downtime_h_per_year": 0.07008000000007009,
+          "cross_layer_downtime_h_per_year": 0.00000350400028992226
+        },
+        {
+          "haps_count": 5,
+          "haps_only_availability": 0.9999999968,
+          "haps_plus_terrestrial_availability": 0.999999999984,
+          "haps_plus_terrestrial_plus_leo_availability": 0.99999999999984,
+          "haps_only_downtime_h_per_year": 0.00002803200037426734,
+          "cross_layer_downtime_h_per_year": 1.4014522875527291e-9
+        },
+        {
+          "haps_count": 10,
+          "haps_only_availability": 1,
+          "haps_plus_terrestrial_availability": 1,
+          "haps_plus_terrestrial_plus_leo_availability": 1,
+          "haps_only_downtime_h_per_year": 0,
+          "cross_layer_downtime_h_per_year": 0
+        }
+      ]
+    },
+    {
+      "scenario_id": "haps_weather_0pct_external_common_0_1pct",
+      "shared_weather_outage_probability": 0,
+      "shared_external_outage_probability": 0.001,
+      "haps_platform_counts": [
+        1,
+        2,
+        3,
+        5,
+        10
+      ],
+      "expected": [
+        {
+          "haps_count": 1,
+          "haps_only_availability": 0.98,
+          "haps_plus_terrestrial_availability": 0.9998801,
+          "haps_plus_terrestrial_plus_leo_availability": 0.999979001,
+          "haps_only_downtime_h_per_year": 175.20000000000016,
+          "cross_layer_downtime_h_per_year": 0.1839512399997023
+        },
+        {
+          "haps_count": 2,
+          "haps_only_availability": 0.9996,
+          "haps_plus_terrestrial_availability": 0.999997602,
+          "haps_plus_terrestrial_plus_leo_availability": 0.99999958002,
+          "haps_only_downtime_h_per_year": 3.503999999999614,
+          "cross_layer_downtime_h_per_year": 0.003679024799994046
+        },
+        {
+          "haps_count": 3,
+          "haps_only_availability": 0.999992,
+          "haps_plus_terrestrial_availability": 0.99999995204,
+          "haps_plus_terrestrial_plus_leo_availability": 0.9999999916004,
+          "haps_only_downtime_h_per_year": 0.07008000000007009,
+          "cross_layer_downtime_h_per_year": 0.00007358049613603868
+        },
+        {
+          "haps_count": 5,
+          "haps_only_availability": 0.9999999968,
+          "haps_plus_terrestrial_availability": 0.999999999980816,
+          "haps_plus_terrestrial_plus_leo_availability": 0.9999999999966401,
+          "haps_only_downtime_h_per_year": 0.00002803200037426734,
+          "cross_layer_downtime_h_per_year": 2.9432443149346454e-8
+        },
+        {
+          "haps_count": 10,
+          "haps_only_availability": 1,
+          "haps_plus_terrestrial_availability": 1,
+          "haps_plus_terrestrial_plus_leo_availability": 1,
+          "haps_only_downtime_h_per_year": 0,
+          "cross_layer_downtime_h_per_year": 0
+        }
+      ]
+    },
+    {
+      "scenario_id": "haps_weather_0pct_external_common_1pct",
+      "shared_weather_outage_probability": 0,
+      "shared_external_outage_probability": 0.01,
+      "haps_platform_counts": [
+        1,
+        2,
+        3,
+        5,
+        10
+      ],
+      "expected": [
+        {
+          "haps_count": 1,
+          "haps_only_availability": 0.98,
+          "haps_plus_terrestrial_availability": 0.999701,
+          "haps_plus_terrestrial_plus_leo_availability": 0.99979901,
+          "haps_only_downtime_h_per_year": 175.20000000000016,
+          "cross_layer_downtime_h_per_year": 1.7606723999996188
+        },
+        {
+          "haps_count": 2,
+          "haps_only_availability": 0.9996,
+          "haps_plus_terrestrial_availability": 0.99999402,
+          "haps_plus_terrestrial_plus_leo_availability": 0.9999959802,
+          "haps_only_downtime_h_per_year": 3.503999999999614,
+          "cross_layer_downtime_h_per_year": 0.035213447999797864
+        },
+        {
+          "haps_count": 3,
+          "haps_only_availability": 0.999992,
+          "haps_plus_terrestrial_availability": 0.9999998804,
+          "haps_plus_terrestrial_plus_leo_availability": 0.999999919604,
+          "haps_only_downtime_h_per_year": 0.07008000000007009,
+          "cross_layer_downtime_h_per_year": 0.0007042689597236418
+        },
+        {
+          "haps_count": 5,
+          "haps_only_availability": 0.9999999968,
+          "haps_plus_terrestrial_availability": 0.99999999995216,
+          "haps_plus_terrestrial_plus_leo_availability": 0.9999999999678416,
+          "haps_only_downtime_h_per_year": 0.00002803200037426734,
+          "cross_layer_downtime_h_per_year": 2.817074706840117e-7
+        },
+        {
+          "haps_count": 10,
+          "haps_only_availability": 1,
+          "haps_plus_terrestrial_availability": 1,
+          "haps_plus_terrestrial_plus_leo_availability": 1,
+          "haps_only_downtime_h_per_year": 0,
+          "cross_layer_downtime_h_per_year": 0
+        }
+      ]
+    },
+    {
+      "scenario_id": "haps_weather_3pct_external_common_0pct",
+      "shared_weather_outage_probability": 0.03,
+      "shared_external_outage_probability": 0,
+      "haps_platform_counts": [
+        1,
+        2,
+        3,
+        5,
+        10
+      ],
+      "expected": [
+        {
+          "haps_count": 1,
+          "haps_only_availability": 0.9506,
+          "haps_plus_terrestrial_availability": 0.999753,
+          "haps_plus_terrestrial_plus_leo_availability": 0.99999753,
+          "haps_only_downtime_h_per_year": 432.74399999999997,
+          "cross_layer_downtime_h_per_year": 0.02163719999979552
+        },
+        {
+          "haps_count": 2,
+          "haps_only_availability": 0.969612,
+          "haps_plus_terrestrial_availability": 0.99984806,
+          "haps_plus_terrestrial_plus_leo_availability": 0.9999984806,
+          "haps_only_downtime_h_per_year": 266.19887999999975,
+          "cross_layer_downtime_h_per_year": 0.013309944000337026
+        },
+        {
+          "haps_count": 3,
+          "haps_only_availability": 0.96999224,
+          "haps_plus_terrestrial_availability": 0.9998499612,
+          "haps_plus_terrestrial_plus_leo_availability": 0.999998499612,
+          "haps_only_downtime_h_per_year": 262.8679776000004,
+          "cross_layer_downtime_h_per_year": 0.013143398879589263
+        },
+        {
+          "haps_count": 5,
+          "haps_only_availability": 0.9699999968959999,
+          "haps_plus_terrestrial_availability": 0.99984999998448,
+          "haps_plus_terrestrial_plus_leo_availability": 0.9999984999998448,
+          "haps_only_downtime_h_per_year": 262.8000271910407,
+          "cross_layer_downtime_h_per_year": 0.013140001359523978
+        },
+        {
+          "haps_count": 10,
+          "haps_only_availability": 0.97,
+          "haps_plus_terrestrial_availability": 0.99985,
+          "haps_plus_terrestrial_plus_leo_availability": 0.9999985,
+          "haps_only_downtime_h_per_year": 262.80000000000024,
+          "cross_layer_downtime_h_per_year": 0.013139999999891572
+        }
+      ]
+    },
+    {
+      "scenario_id": "haps_weather_3pct_external_common_0_1pct",
+      "shared_weather_outage_probability": 0.03,
+      "shared_external_outage_probability": 0.001,
+      "haps_platform_counts": [
+        1,
+        2,
+        3,
+        5,
+        10
+      ],
+      "expected": [
+        {
+          "haps_count": 1,
+          "haps_only_availability": 0.9506,
+          "haps_plus_terrestrial_availability": 0.999703847,
+          "haps_plus_terrestrial_plus_leo_availability": 0.99994813247,
+          "haps_only_downtime_h_per_year": 432.74399999999997,
+          "cross_layer_downtime_h_per_year": 0.454359562799751
+        },
+        {
+          "haps_count": 2,
+          "haps_only_availability": 0.969612,
+          "haps_plus_terrestrial_availability": 0.99981782394,
+          "haps_plus_terrestrial_plus_leo_availability": 0.9999680941194,
+          "haps_only_downtime_h_per_year": 266.19887999999975,
+          "cross_layer_downtime_h_per_year": 0.27949551405582973
+        },
+        {
+          "haps_count": 3,
+          "haps_only_availability": 0.96999224,
+          "haps_plus_terrestrial_availability": 0.9998201034788,
+          "haps_plus_terrestrial_plus_leo_availability": 0.999968493352388,
+          "haps_only_downtime_h_per_year": 262.8679776000004,
+          "cross_layer_downtime_h_per_year": 0.27599823308093185
+        },
+        {
+          "haps_count": 5,
+          "haps_only_availability": 0.9699999968959999,
+          "haps_plus_terrestrial_availability": 0.9998201499813916,
+          "haps_plus_terrestrial_plus_leo_availability": 0.999968501496741,
+          "haps_only_downtime_h_per_year": 262.8000271910407,
+          "cross_layer_downtime_h_per_year": 0.27592688854891634
+        },
+        {
+          "haps_count": 10,
+          "haps_only_availability": 0.97,
+          "haps_plus_terrestrial_availability": 0.99982015,
+          "haps_plus_terrestrial_plus_leo_availability": 0.9999685015,
+          "haps_only_downtime_h_per_year": 262.80000000000024,
+          "cross_layer_downtime_h_per_year": 0.27592685999955346
+        }
+      ]
+    },
+    {
+      "scenario_id": "haps_weather_3pct_external_common_1pct",
+      "shared_weather_outage_probability": 0.03,
+      "shared_external_outage_probability": 0.01,
+      "haps_platform_counts": [
+        1,
+        2,
+        3,
+        5,
+        10
+      ],
+      "expected": [
+        {
+          "haps_count": 1,
+          "haps_only_availability": 0.9506,
+          "haps_plus_terrestrial_availability": 0.99926147,
+          "haps_plus_terrestrial_plus_leo_availability": 0.9995035547,
+          "haps_only_downtime_h_per_year": 432.74399999999997,
+          "cross_layer_downtime_h_per_year": 4.348860828000323
+        },
+        {
+          "haps_count": 2,
+          "haps_only_availability": 0.969612,
+          "haps_plus_terrestrial_availability": 0.9995456994,
+          "haps_plus_terrestrial_plus_leo_availability": 0.999694615794,
+          "haps_only_downtime_h_per_year": 266.19887999999975,
+          "cross_layer_downtime_h_per_year": 2.675165644560127
+        },
+        {
+          "haps_count": 3,
+          "haps_only_availability": 0.96999224,
+          "haps_plus_terrestrial_availability": 0.999551383988,
+          "haps_plus_terrestrial_plus_leo_availability": 0.99969843701588,
+          "haps_only_downtime_h_per_year": 262.8679776000004,
+          "cross_layer_downtime_h_per_year": 2.64169174089107
+        },
+        {
+          "haps_count": 5,
+          "haps_only_availability": 0.9699999968959999,
+          "haps_plus_terrestrial_availability": 0.9995514999535952,
+          "haps_plus_terrestrial_plus_leo_availability": 0.9996985149688064,
+          "haps_only_downtime_h_per_year": 262.8000271910407,
+          "cross_layer_downtime_h_per_year": 2.6410088732563652
+        },
+        {
+          "haps_count": 10,
+          "haps_only_availability": 0.97,
+          "haps_plus_terrestrial_availability": 0.9995515,
+          "haps_plus_terrestrial_plus_leo_availability": 0.999698515,
+          "haps_only_downtime_h_per_year": 262.80000000000024,
+          "cross_layer_downtime_h_per_year": 2.6410086000004007
+        }
+      ]
+    },
+    {
+      "scenario_id": "haps_weather_10pct_external_common_0pct",
+      "shared_weather_outage_probability": 0.1,
+      "shared_external_outage_probability": 0,
+      "haps_platform_counts": [
+        1,
+        2,
+        3,
+        5,
+        10
+      ],
+      "expected": [
+        {
+          "haps_count": 1,
+          "haps_only_availability": 0.882,
+          "haps_plus_terrestrial_availability": 0.99941,
+          "haps_plus_terrestrial_plus_leo_availability": 0.9999941,
+          "haps_only_downtime_h_per_year": 1033.6799999999998,
+          "cross_layer_downtime_h_per_year": 0.051684000000027375
+        },
+        {
+          "haps_count": 2,
+          "haps_only_availability": 0.8996400000000001,
+          "haps_plus_terrestrial_availability": 0.9994982,
+          "haps_plus_terrestrial_plus_leo_availability": 0.999994982,
+          "haps_only_downtime_h_per_year": 879.1535999999991,
+          "cross_layer_downtime_h_per_year": 0.04395767999971767
+        },
+        {
+          "haps_count": 3,
+          "haps_only_availability": 0.8999928,
+          "haps_plus_terrestrial_availability": 0.999499964,
+          "haps_plus_terrestrial_plus_leo_availability": 0.99999499964,
+          "haps_only_downtime_h_per_year": 876.0630719999997,
+          "cross_layer_downtime_h_per_year": 0.04380315359957532
+        },
+        {
+          "haps_count": 5,
+          "haps_only_availability": 0.89999999712,
+          "haps_plus_terrestrial_availability": 0.9994999999856,
+          "haps_plus_terrestrial_plus_leo_availability": 0.999994999999856,
+          "haps_only_downtime_h_per_year": 876.0000252287999,
+          "cross_layer_downtime_h_per_year": 0.04380000126169126
+        },
+        {
+          "haps_count": 10,
+          "haps_only_availability": 0.9,
+          "haps_plus_terrestrial_availability": 0.9995,
+          "haps_plus_terrestrial_plus_leo_availability": 0.999995,
+          "haps_only_downtime_h_per_year": 875.9999999999998,
+          "cross_layer_downtime_h_per_year": 0.04380000000028694
+        }
+      ]
+    },
+    {
+      "scenario_id": "haps_weather_10pct_external_common_0_1pct",
+      "shared_weather_outage_probability": 0.1,
+      "shared_external_outage_probability": 0.001,
+      "haps_platform_counts": [
+        1,
+        2,
+        3,
+        5,
+        10
+      ],
+      "expected": [
+        {
+          "haps_count": 1,
+          "haps_only_availability": 0.882,
+          "haps_plus_terrestrial_availability": 0.99929259,
+          "haps_plus_terrestrial_plus_leo_availability": 0.9998761059,
+          "haps_only_downtime_h_per_year": 1033.6799999999998,
+          "cross_layer_downtime_h_per_year": 1.0853123160001887
+        },
+        {
+          "haps_count": 2,
+          "haps_only_availability": 0.8996400000000001,
+          "haps_plus_terrestrial_availability": 0.9993983418,
+          "haps_plus_terrestrial_plus_leo_availability": 0.999894627018,
+          "haps_only_downtime_h_per_year": 879.1535999999991,
+          "cross_layer_downtime_h_per_year": 0.9230673223197705
+        },
+        {
+          "haps_count": 3,
+          "haps_only_availability": 0.8999928,
+          "haps_plus_terrestrial_availability": 0.999400456836,
+          "haps_plus_terrestrial_plus_leo_availability": 0.99989499744036,
+          "haps_only_downtime_h_per_year": 876.0630719999997,
+          "cross_layer_downtime_h_per_year": 0.9198224224461038
+        },
+        {
+          "haps_count": 5,
+          "haps_only_availability": 0.89999999712,
+          "haps_plus_terrestrial_availability": 0.9994004999827344,
+          "haps_plus_terrestrial_plus_leo_availability": 0.9998950049969761,
+          "haps_only_downtime_h_per_year": 876.0000252287999,
+          "cross_layer_downtime_h_per_year": 0.9197562264889747
+        },
+        {
+          "haps_count": 10,
+          "haps_only_availability": 0.9,
+          "haps_plus_terrestrial_availability": 0.9994005,
+          "haps_plus_terrestrial_plus_leo_availability": 0.999895005,
+          "haps_only_downtime_h_per_year": 875.9999999999998,
+          "cross_layer_downtime_h_per_year": 0.9197562000004567
+        }
+      ]
+    },
+    {
+      "scenario_id": "haps_weather_10pct_external_common_1pct",
+      "shared_weather_outage_probability": 0.1,
+      "shared_external_outage_probability": 0.01,
+      "haps_platform_counts": [
+        1,
+        2,
+        3,
+        5,
+        10
+      ],
+      "expected": [
+        {
+          "haps_count": 1,
+          "haps_only_availability": 0.882,
+          "haps_plus_terrestrial_availability": 0.9982359,
+          "haps_plus_terrestrial_plus_leo_availability": 0.998814159,
+          "haps_only_downtime_h_per_year": 1033.6799999999998,
+          "cross_layer_downtime_h_per_year": 10.387967159999697
+        },
+        {
+          "haps_count": 2,
+          "haps_only_availability": 0.8996400000000001,
+          "haps_plus_terrestrial_availability": 0.998499618,
+          "haps_plus_terrestrial_plus_leo_availability": 0.99899143218,
+          "haps_only_downtime_h_per_year": 879.1535999999991,
+          "cross_layer_downtime_h_per_year": 8.835054103200246
+        },
+        {
+          "haps_count": 3,
+          "haps_only_availability": 0.8999928,
+          "haps_plus_terrestrial_availability": 0.99850489236,
+          "haps_plus_terrestrial_plus_leo_availability": 0.9989949776436,
+          "haps_only_downtime_h_per_year": 876.0630719999997,
+          "cross_layer_downtime_h_per_year": 8.803995842063888
+        },
+        {
+          "haps_count": 5,
+          "haps_only_availability": 0.89999999712,
+          "haps_plus_terrestrial_availability": 0.998504999956944,
+          "haps_plus_terrestrial_plus_leo_availability": 0.9989950499710575,
+          "haps_only_downtime_h_per_year": 876.0000252287999,
+          "cross_layer_downtime_h_per_year": 8.80336225353647
+        },
+        {
+          "haps_count": 10,
+          "haps_only_availability": 0.9,
+          "haps_plus_terrestrial_availability": 0.998505,
+          "haps_plus_terrestrial_plus_leo_availability": 0.99899505,
+          "haps_only_downtime_h_per_year": 875.9999999999998,
+          "cross_layer_downtime_h_per_year": 8.803362000000039
+        }
+      ]
+    }
+  ],
+  "source_evidence_refs": [
+    "https://www.itu.int/ITU-T/recommendations/rec.aspx?rec=16109",
+    "https://sceye.com/press-releases/sceye-softbank-sign-agreement-for-fleet-of-stratospheric-platforms/"
+  ],
+  "assumptions": [
+    "All reliability probabilities are synthetic sensitivity inputs, not vendor, operator or regulatory values.",
+    "The per-HAPS independent availability value includes independently attributable planned maintenance and random platform faults but excludes the shared weather common-mode event.",
+    "The HAPS fleet is unavailable when a shared HAPS-only weather event occurs or when every HAPS independently fails; HAPS platform failures are independent conditional on no shared event.",
+    "Terrestrial and LEO backhaul are assumed independent of the HAPS weather event and independent of each other. Real correlated power, fibre, gateway, spectrum, cyber, space-weather and geopolitical failures can invalidate this assumption.",
+    "Staggered planned maintenance is a policy constraint; because the example's per-platform availability already includes maintenance, maintenance downtime must not be subtracted a second time.",
+    "The model treats a service zone as covered when at least one relevant provider is available; it does not model geographic overlap, radio capacity, latency, traffic load, group handover or partial service.",
+    "Availability is an analytic probability over a one-year equivalent horizon, not a single simulated year or empirical confidence interval.",
+    "A 99.99% target is a research objective only; it is not attributed to any operator and requires an SLA-defined service boundary and measured outage denominator.",
+    "The five-year Sceye/SoftBank fleet agreement indicates movement toward fleet manufacture/launch/operations but does not itself disclose an achieved national availability SLA.",
+    "Within each scenario the external common-mode outage event is independent of the HAPS-only common weather event; conditional on no external common-mode event, terrestrial and LEO availability are independent."
+  ]
+}

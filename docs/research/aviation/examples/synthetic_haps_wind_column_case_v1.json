@@ -1,0 +1,502 @@
+{
+  "schema_version": "haps-wind-navigation-case/v1",
+  "case_id": "synthetic.haps.wind-column.ensemble.001",
+  "revision": 1,
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_data_contract",
+  "platform_lift_family": "buoyant_free_balloon",
+  "mission": {
+    "target_region": {
+      "center_latitude_deg": -22,
+      "center_longitude_deg": 23,
+      "radius_km": 50
+    },
+    "evaluation_duration_s": 86400,
+    "altitude_bounds_m": {
+      "minimum": 18000,
+      "maximum": 22000
+    },
+    "maximum_coverage_gap_s": 3600,
+    "service_profile_ref": "examples/synthetic_disaster_resilience_haps_service_v1.json"
+  },
+  "weather_source": {
+    "dataset_name": "synthetic_three_member_wind_column",
+    "dataset_version": "1",
+    "source_kind": "synthetic_generator",
+    "source_uri": null,
+    "source_digest": null,
+    "rights_or_license_ref": null,
+    "coordinate_frame": "earth_fixed_east_north_up",
+    "vertical_reference": "geometric_altitude_m",
+    "horizontal_grid_resolution_deg": null,
+    "time_cadence_s": 21600,
+    "interpolation_method": "none"
+  },
+  "forecast_definition": {
+    "data_kind": "synthetic",
+    "initialization_time_utc": null,
+    "valid_time_basis": "valid_time",
+    "forecast_horizons_s": [
+      3600,
+      14400
+    ],
+    "ensemble_member_count": 3,
+    "available_at_decision_time": false,
+    "reanalysis_not_used_as_live_forecast": true
+  },
+  "wind_samples": [
+    {
+      "valid_offset_s": 0,
+      "altitude_m": 18000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": 4,
+      "northward_wind_mps": 0,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m0",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 0,
+      "altitude_m": 20000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": -3,
+      "northward_wind_mps": 1,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m0",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 0,
+      "altitude_m": 22000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": 0,
+      "northward_wind_mps": -3,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m0",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 0,
+      "altitude_m": 18000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": 5,
+      "northward_wind_mps": -1,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m1",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 0,
+      "altitude_m": 20000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": -4,
+      "northward_wind_mps": 1,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m1",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 0,
+      "altitude_m": 22000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": 1,
+      "northward_wind_mps": -4,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m1",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 0,
+      "altitude_m": 18000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": 3,
+      "northward_wind_mps": 1,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m2",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 0,
+      "altitude_m": 20000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": -2,
+      "northward_wind_mps": 2,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m2",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 0,
+      "altitude_m": 22000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": -1,
+      "northward_wind_mps": -2,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m2",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 21600,
+      "altitude_m": 18000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": 4,
+      "northward_wind_mps": 0,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m0",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 21600,
+      "altitude_m": 20000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": -3,
+      "northward_wind_mps": 1,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m0",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 21600,
+      "altitude_m": 22000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": 0,
+      "northward_wind_mps": -3,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m0",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 21600,
+      "altitude_m": 18000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": 5,
+      "northward_wind_mps": -1,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m1",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 21600,
+      "altitude_m": 20000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": -4,
+      "northward_wind_mps": 1,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m1",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 21600,
+      "altitude_m": 22000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": 1,
+      "northward_wind_mps": -4,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m1",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 21600,
+      "altitude_m": 18000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": 3,
+      "northward_wind_mps": 1,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m2",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 21600,
+      "altitude_m": 20000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": -2,
+      "northward_wind_mps": 2,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m2",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 21600,
+      "altitude_m": 22000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": -1,
+      "northward_wind_mps": -2,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m2",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 43200,
+      "altitude_m": 18000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": 4,
+      "northward_wind_mps": 0,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m0",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 43200,
+      "altitude_m": 20000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": -3,
+      "northward_wind_mps": 1,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m0",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 43200,
+      "altitude_m": 22000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": 0,
+      "northward_wind_mps": -3,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m0",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 43200,
+      "altitude_m": 18000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": 5,
+      "northward_wind_mps": -1,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m1",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 43200,
+      "altitude_m": 20000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": -4,
+      "northward_wind_mps": 1,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m1",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 43200,
+      "altitude_m": 22000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": 1,
+      "northward_wind_mps": -4,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m1",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 43200,
+      "altitude_m": 18000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": 3,
+      "northward_wind_mps": 1,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m2",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 43200,
+      "altitude_m": 20000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": -2,
+      "northward_wind_mps": 2,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m2",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 43200,
+      "altitude_m": 22000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": -1,
+      "northward_wind_mps": -2,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m2",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 64800,
+      "altitude_m": 18000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": 4,
+      "northward_wind_mps": 0,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m0",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 64800,
+      "altitude_m": 20000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": -3,
+      "northward_wind_mps": 1,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m0",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 64800,
+      "altitude_m": 22000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": 0,
+      "northward_wind_mps": -3,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m0",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 64800,
+      "altitude_m": 18000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": 5,
+      "northward_wind_mps": -1,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m1",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 64800,
+      "altitude_m": 20000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": -4,
+      "northward_wind_mps": 1,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m1",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 64800,
+      "altitude_m": 22000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": 1,
+      "northward_wind_mps": -4,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m1",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 64800,
+      "altitude_m": 18000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": 3,
+      "northward_wind_mps": 1,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m2",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 64800,
+      "altitude_m": 20000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": -2,
+      "northward_wind_mps": 2,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m2",
+      "sample_class": "synthetic"
+    },
+    {
+      "valid_offset_s": 64800,
+      "altitude_m": 22000,
+      "latitude_deg": -22,
+      "longitude_deg": 23,
+      "eastward_wind_mps": -1,
+      "northward_wind_mps": -2,
+      "upward_wind_mps": 0,
+      "ensemble_member_id": "m2",
+      "sample_class": "synthetic"
+    }
+  ],
+  "platform_control": {
+    "lift_family": "buoyant_free_balloon",
+    "vertical_control_model_ref": null,
+    "lateral_control_model_ref": null,
+    "propulsion_energy_model_ref": null,
+    "altitude_actuation_energy_model_ref": null,
+    "authority_status": "unknown",
+    "unknowns": [
+      "No Sceye, Zephyr or Luminous platform control authority is represented.",
+      "No altitude transition dynamics, gas/ballast consumption, thermal state or actuation energy model is provided.",
+      "No horizontal propulsion or airship/fixed-wing controller is represented."
+    ]
+  },
+  "baseline_policies": [
+    "passive_drift",
+    "fixed_altitude",
+    "rule_based_layer_switching",
+    "greedy",
+    "astar",
+    "simultaneous_optimistic_optimization",
+    "reinforcement_learning",
+    "model_predictive_control",
+    "robust_ensemble_mpc"
+  ],
+  "required_metrics": [
+    "east_north_vector_mae",
+    "wind_speed_error",
+    "wind_direction_error",
+    "crps_or_equivalent",
+    "forecast_interval_coverage",
+    "forecast_regret",
+    "fraction_time_inside_target_radius",
+    "coverage_area_hours",
+    "p95_target_distance_km",
+    "maximum_service_gap_s",
+    "station_keeping_energy_wh",
+    "altitude_actuation_energy_wh",
+    "battery_reserve_margin_wh",
+    "planner_runtime_p95_ms",
+    "out_of_domain_rate"
+  ],
+  "source_evidence_refs": [
+    "https://doi.org/10.1016/j.ast.2022.107399",
+    "https://doi.org/10.1038/s41598-024-71445-9",
+    "https://doi.org/10.3390/electronics13204032",
+    "https://doi.org/10.1016/j.ast.2024.109365",
+    "https://doi.org/10.1038/s43247-025-02526-4"
+  ],
+  "assumptions": [
+    "Every wind value is synthetic and illustrative; no dataset, region or measured wind campaign is represented.",
+    "The three wind layers at 18, 20 and 22 km and four valid-time samples are an input-contract fixture only, not a plausible forecast or flight profile.",
+    "A free-balloon lift family is selected only to exercise the schema; its altitude control authority and energy consumption remain explicitly unknown.",
+    "The 50 km target radius is included to make comparison to the 2024 seasonal/geographic study possible; service-specific smaller radii must be defined by a validated mission.",
+    "The case contains no controller outputs, path solution, success metric or optimality claim.",
+    "The forecast horizons are metadata for intended benchmark horizons; the samples are not an operational forecast and are not available to a historical decision-maker.",
+    "ERA5 reanalysis or other retrospective analyses must not be passed to an online policy as if they were available at the decision timestamp."
+  ]
+}

@@ -1,0 +1,218 @@
+{
+  "schema_version": "haps-service-profile/v1",
+  "profile_id": "synthetic.disaster-resilience-haps-connectivity.001",
+  "revision": 1,
+  "data_origin": "synthetic",
+  "claim_ceiling": "synthetic_architecture_screening",
+  "service": {
+    "service_class": "disaster_resilience_connectivity",
+    "description": "Illustrative regional emergency connectivity service with ground-device access and drone backhaul/telemetry support.",
+    "target_devices": 20000,
+    "aggregate_throughput_mbps": 100,
+    "max_one_way_latency_ms": 120,
+    "availability_fraction": 0.995,
+    "service_window_s": 2592000,
+    "maximum_unserved_interval_s": 60
+  },
+  "coverage": {
+    "region_ref": "synthetic.region.coverage-grid.001",
+    "target_area_km2": 10000,
+    "minimum_coverage_fraction": 0.95,
+    "maximum_coverage_gap_s": 60,
+    "handover_max_gap_s": 5,
+    "demand_profile_ref": "synthetic.demand.disaster-connectivity.001",
+    "population_density_profile_ref": null
+  },
+  "operating_envelope": {
+    "altitude_m": {
+      "minimum": 18000,
+      "maximum": 22000
+    },
+    "latitude_deg": {
+      "minimum": -25,
+      "maximum": 25
+    },
+    "temperature_k": {
+      "minimum": 190,
+      "maximum": 300
+    },
+    "wind_profile_ref": "examples/synthetic_haps_wind_column_case_v1.json",
+    "solar_weather_profile_ref": "synthetic.weather.solar-cloud-season.001",
+    "seasonal_holdout_refs": [
+      "synthetic.seasonal-holdout.low-sun.001",
+      "synthetic.seasonal-holdout.high-sun.001"
+    ],
+    "weather_campaign_holdout_refs": [
+      "synthetic.weather-campaign.adverse-wind.001",
+      "synthetic.weather-campaign.low-solar.001"
+    ]
+  },
+  "platform_portfolio": {
+    "candidate_families": [
+      "solar_haps",
+      "buoyant_haps"
+    ],
+    "candidate_refs": [
+      "conceptual.solar-haps.energy-node.001@1",
+      "reference.sceye-st1.buoyant-haps.2026@1"
+    ],
+    "minimum_simultaneous_nodes": 2,
+    "candidate_selection_policy": "matched_service_optimization"
+  },
+  "fleet_policy": {
+    "minimum_fleet_availability_fraction": 0.999,
+    "maximum_concurrent_node_losses": 1,
+    "minimum_spare_ratio": 0.25,
+    "maximum_maintenance_downtime_fraction": 0.05,
+    "single_node_failure_must_be_tolerated": true,
+    "handover_policy": "continuous_overlap"
+  },
+  "energy_and_reserve": {
+    "energy_case_refs": [
+      "synthetic.haps.daynight.surplus-export.001@1",
+      "synthetic.haps.reject-battery-funded-export.001@1"
+    ],
+    "own_platform_load_priority": true,
+    "minimum_reserve_fraction": 0.2,
+    "export_allowed": false,
+    "export_profile_ref": null,
+    "energy_export_admission_policy": "none"
+  },
+  "comparators": [
+    "terrestrial_network",
+    "leo_satellite",
+    "solar_fixed_wing_haps",
+    "buoyant_haps",
+    "low_altitude_uav_mesh",
+    "hybrid_multilayer_network"
+  ],
+  "evidence_requirements": {
+    "independent_weather_holdouts": true,
+    "independent_service_measurement": true,
+    "source_to_service_traceability": true,
+    "claim_boundary_notes": [
+      "All numeric service, operating and fleet thresholds in this fixture are synthetic, illustrative benchmark targets.",
+      "The service is regional connectivity and drone data relay, not aircraft-to-aircraft energy transfer.",
+      "The two candidate references denote architecture families; no Sceye or Zephyr performance is assigned to the synthetic Luminous candidate.",
+      "Platform endurance, station-keeping, coverage availability and fleet availability are separate metrics.",
+      "Energy export is disabled in this profile; any later export service must pass a separate surplus-only energy admission contract.",
+      "The November 2026 Sceye/SoftBank agreement announces a planned five-year HAPS fleet and a subset intended for stratospheric free-space-optical networking; this profile treats FSO as a communications/backhaul option, not wireless power transfer or an already deployed network."
+    ]
+  },
+  "source_refs": [
+    "https://www.softbank.jp/en/corp/news/press/sbkk/2026/20260902_01/",
+    "https://www.aaltohaps.com/zephyr-sets-world-record-for-longest-continuous-flight-flying-67-days-in-stratosphere/",
+    "https://spectrum.ieee.org/high-altitude-platform-station",
+    "https://sceye.com/press-releases/sceye-softbank-sign-agreement-for-fleet-of-stratospheric-platforms/"
+  ],
+  "assumptions": [
+    "This is a synthetic mission contract and not a prediction or operating plan for any geographic region.",
+    "The 30-day service horizon, 10,000 km2 target area, 20,000 devices, 100 Mbps aggregate throughput, availability and latency targets are illustrative values.",
+    "The scenario is designed to compare fixed-wing and buoyant HAPS platforms on the same delivered communications service, including fleet failure and handover.",
+    "No aircraft geometry, installed mass, solar array, battery pack, propulsion, station-keeping controller or measured wind profile is assigned.",
+    "No spectrum use, public-airspace operation, flight test or power beaming is authorized by this profile."
+  ],
+  "network_contract": {
+    "access_modes": [
+      "direct_to_device",
+      "drone_terminal"
+    ],
+    "candidate_backhaul_modes": [
+      "terrestrial_gateway",
+      "free_space_optical",
+      "satellite"
+    ],
+    "edge_compute_required": true,
+    "drone_data_relay_required": true,
+    "platform_crosslink_required": false,
+    "terrestrial_gateway_required": true,
+    "demand_management": {
+      "traffic_demand_profile_ref": "examples/synthetic_haps_disaster_traffic_trace_v1.json",
+      "network_allocation_case_refs": [
+        "examples/synthetic_haps_cell_demand_beam_allocation_v1.json",
+        "examples/synthetic_haps_disaster_30day_allocation_v1.json",
+        "examples/synthetic_haps_15day_holdout_dynamic_allocation_v1.json",
+        "examples/synthetic_haps_15day_holdout_static_allocation_v1.json"
+      ],
+      "traffic_data_available_at_decision_time": false,
+      "reanalysis_not_used_as_live_forecast": true,
+      "priority_policy": "critical_excess_first",
+      "forecast_horizon_s": 3600,
+      "traffic_forecast_model_ref": null
+    },
+    "radio_resource_budget": {
+      "beam_budget": 4,
+      "per_beam_capacity_mbps": 25,
+      "max_cells_served_simultaneously": 4,
+      "beam_reallocation_interval_s": 60,
+      "allocation_policy": "critical_excess_weighted_greedy"
+    },
+    "backhaul_capacity": {
+      "terrestrial_gateway_capacity_mbps": 200,
+      "satellite_backhaul_capacity_mbps": 100,
+      "fso_backhaul_capacity_mbps": 1000,
+      "edge_compute_capacity_tops": 10,
+      "platform_crosslink_capacity_mbps": 200
+    },
+    "edge_placement_policy": "lowest_latency_with_reserve_guard",
+    "edge_workloads": [
+      {
+        "workload_id": "emergency-alert-fusion",
+        "workload_class": "emergency_alert_fusion",
+        "placement_candidates": [
+          "platform_edge",
+          "terrestrial_gateway_edge",
+          "satellite_edge"
+        ],
+        "input_data_rate_mbps": 0.05,
+        "compute_demand_tops": 0.05,
+        "compute_power_w": 10,
+        "waste_heat_fraction": 0.9,
+        "max_response_ms": 250,
+        "response_metric_basis": "application_round_trip",
+        "criticality": "emergency_critical",
+        "fallback_policy": "store_and_forward",
+        "stateful": false,
+        "workload_profile_ref": null
+      },
+      {
+        "workload_id": "drone-control-telemetry",
+        "workload_class": "drone_telemetry_control",
+        "placement_candidates": [
+          "platform_edge",
+          "drone_edge",
+          "terrestrial_gateway_edge"
+        ],
+        "input_data_rate_mbps": 2,
+        "compute_demand_tops": 0.5,
+        "compute_power_w": 40,
+        "waste_heat_fraction": 0.9,
+        "max_response_ms": 100,
+        "response_metric_basis": "control_loop_round_trip",
+        "criticality": "safety_critical",
+        "fallback_policy": "drone_local_safe_mode",
+        "stateful": true,
+        "workload_profile_ref": null
+      },
+      {
+        "workload_id": "wildfire-video-analytics",
+        "workload_class": "wildfire_video_analytics",
+        "placement_candidates": [
+          "platform_edge",
+          "terrestrial_gateway_edge",
+          "remote_cloud"
+        ],
+        "input_data_rate_mbps": 8,
+        "compute_demand_tops": 2,
+        "compute_power_w": 60,
+        "waste_heat_fraction": 0.9,
+        "max_response_ms": 1000,
+        "response_metric_basis": "application_round_trip",
+        "criticality": "mission_critical",
+        "fallback_policy": "store_and_forward",
+        "stateful": false,
+        "workload_profile_ref": null
+      }
+    ]
+  }
+}
