@@ -38,6 +38,16 @@ It contains 21 cases spanning feasible edge-touch/time-separated controls; overl
 
 These checks provide bounded correctness evidence, not proof of arbitrary polygon geometry, general optimizer correctness, production shipyard safety or real-world throughput. The test suite must pass on the exact PR head before the milestone can be called verified.
 
+## Polygon geometry integration boundary
+
+The canonical experimental polygon kernel is [PR #2717](https://github.com/Luminous-Dynamics/symtropy/pull/2717) in `tools/shipyard-polygon-geometry`. The earlier parallel prototype [PR #2688](https://github.com/Luminous-Dynamics/symtropy/pull/2688) has been closed as superseded; do not integrate both.
+
+The kernel is still standalone. This verifier remains rectangle-only and must continue to reject unsupported polygon footprints until a separately reviewed adapter updates the footprint model, independent schedule-level oracles, fixture corpus and baseline/recovery evaluators together.
+
+**Contact-policy seam:** this space-time rectangle profile allows shared-edge contact, while the experimental polygon kernel conservatively treats any boundary contact as a conflict. An adapter must make that policy explicit and vessel/yard-profile-specific; it must not silently change existing accepted-plan semantics or loosen a clearance rule. Positive-area overlap must always remain a hard conflict.
+
+The polygon kernel uses signed integer ticks, checked exact predicates, and a 128-vertex cap. It verifies static planar footprints only; it does not compute transfer routes, rotations, swept-volume clearance, support/stacking, lift or crane envelopes, or floor-bearing constraints.
+
 ## Explicit limits
 
 V0 does **not** model arbitrary polygons, rotation of footprints, non-rectangular swept paths, vertical clearance, turning radius, lift/load/unload dynamics, cranes/rigging, stack/support rules, soil/floor bearing capacity, structural loads, human exclusion/safety envelopes, physical vehicle acceleration, or transport capacity greater than one exclusive vehicle. The corridor is supplied by the scenario; V0 does not compute a route. Unsupported dimensions need a distinct qualified model, not an assumption that clearance exists.

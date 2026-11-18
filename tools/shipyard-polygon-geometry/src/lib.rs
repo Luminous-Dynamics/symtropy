@@ -1,0 +1,1665 @@
+use std::cmp::Ordering;
+use std::collections::BTreeSet;
+use std::fmt;
+
+/// Bound quadratic ring validation and pairwise edge comparisons.
+pub const MAX_POLYGON_VERTICES: usize = 128;
+
+/// Coordinates use signed integer ticks. The caller must declare the physical
+/// scale (for example millimetres) in its benchmark manifest. No floating-point
+/// epsilon participates in authoritative predicates.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Point {
+    pub x: i64,
+    pub y: i64,
+}
+
+impl Point {
+    pub const fn new(x: i64, y: i64) -> Self {
+        Self { x, y }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum GeometryError {
+    TooFewVertices,
+    TooManyVertices {
+        count: usize,
+        max: usize,
+    },
+    ConsecutiveDuplicateVertex {
+        index: usize,
+    },
+    DuplicateVertex {
+        first: usize,
+        second: usize,
+    },
+    ZeroArea,
+    AdjacentEdgesOverlap {
+        vertex: usize,
+    },
+    SelfIntersection {
+        first_edge: usize,
+        second_edge: usize,
+    },
+    ArithmeticOverflow,
+    InvalidBounds,
+    InvalidTimeWindow {
+        start: i64,
+        end: i64,
+    },
+}
+
+impl fmt::Display for GeometryError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::TooFewVertices => write!(f, "a polygon requires at least three vertices"),
+            Self::TooManyVertices { count, max } => {
+                write!(f, "polygon has {count} vertices; maximum is {max}")
+            }
+            Self::ConsecutiveDuplicateVertex { index } => {
+                write!(f, "consecutive duplicate vertex at index {index}")
+            }
+            Self::DuplicateVertex { first, second } => {
+                write!(f, "duplicate vertex indices {first} and {second}")
+            }
+            Self::ZeroArea => write!(f, "polygon has zero signed area"),
+            Self::AdjacentEdgesOverlap { vertex } => {
+                write!(f, "adjacent edges overlap at vertex index {vertex}")
+            }
+            Self::SelfIntersection {
+                first_edge,
+                second_edge,
+            } => write!(f, "edges {first_edge} and {second_edge} self-intersect"),
+            Self::ArithmeticOverflow => {
+                write!(f, "exact integer predicate exceeded checked i128 range")
+            }
+            Self::InvalidBounds => write!(f, "invalid finite rectangular bounds"),
+            Self::InvalidTimeWindow { start, end } => {
+                write!(f, "invalid half-open time window [{start}, {end})")
+            }
+        }
+    }
+}
+
+impl std::error::Error for GeometryError {}
+
+/// Finite axis-aligned rectangle in the polygon's signed integer coordinate frame.
+/// Boundary coordinates are included by `Polygon::is_within_rect`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Rect {
+    pub min_x: i64,
+    pub min_y: i64,
+    pub max_x: i64,
+    pub max_y: i64,
+}
+
+impl Rect {
+    pub const fn new(min_x: i64, min_y: i64, max_x: i64, max_y: i64) -> Self {
+        Self {
+            min_x,
+            min_y,
+            max_x,
+            max_y,
+        }
+    }
+
+    pub const fn is_valid(self) -> bool {
+        self.min_x < self.max_x && self.min_y < self.max_y
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SegmentRelation {
+    Disjoint,
+    Touch,
+    ProperCrossing,
+    CollinearOverlap,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PolygonRelation {
+    Disjoint,
+    BoundaryContact,
+    PositiveAreaOverlap,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PointLocation {
+    Outside,
+    Boundary,
+    Inside,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Polygon {
+    vertices: Vec<Point>,
+    twice_signed_area: i128,
+}
+
+impl Polygon {
+    /// Construct and validate a simple closed polygon from its non-repeated
+    /// vertex cycle. Do not include the first vertex a second time at the end.
+    /// A failed exact predicate rejects the geometry; it never falls back to
+    /// an axis-aligned rectangle.
+    pub fn new(vertices: Vec<Point>) -> Result<Self, GeometryError> {
+        if vertices.len() < 3 {
+            return Err(GeometryError::TooFewVertices);
+        }
+        if vertices.len() > MAX_POLYGON_VERTICES {
+            return Err(GeometryError::TooManyVertices {
+                count: vertices.len(),
+                max: MAX_POLYGON_VERTICES,
+            });
+        }
+
+        for index in 0..vertices.len() {
+            let next = (index + 1) % vertices.len();
+            if vertices[index] == vertices[next] {
+                return Err(GeometryError::ConsecutiveDuplicateVertex { index });
+            }
+        }
+
+        let mut seen = BTreeSet::new();
+        for (index, point) in vertices.iter().enumerate() {
+            if !seen.insert(*point) {
+                let first = vertices
+                    .iter()
+                    .position(|candidate| candidate == point)
+                    .unwrap_or(index);
+                return Err(GeometryError::DuplicateVertex {
+                    first,
+                    second: index,
+                });
+            }
+        }
+
+        let twice_signed_area = signed_double_area(&vertices)?;
+        if twice_signed_area == 0 {
+            return Err(GeometryError::ZeroArea);
+        }
+
+        let count = vertices.len();
+        for vertex in 0..count {
+            let previous = vertices[(vertex + count - 1) % count];
+            let current = vertices[vertex];
+            let next = vertices[(vertex + 1) % count];
+            if orientation(previous, current, next)? == Ordering::Equal
+                && !point_on_segment(current, previous, next)?
+            {
+                return Err(GeometryError::AdjacentEdgesOverlap { vertex });
+            }
+        }
+
+        for first_edge in 0..count {
+            let first_next = (first_edge + 1) % count;
+            for second_edge in (first_edge + 1)..count {
+                let second_next = (second_edge + 1) % count;
+                if second_edge == first_next || (first_edge == 0 && second_next == 0) {
+                    continue;
+                }
+                let relation = segment_relation(
+                    vertices[first_edge],
+                    vertices[first_next],
+                    vertices[second_edge],
+                    vertices[second_next],
+                )?;
+                if relation != SegmentRelation::Disjoint {
+                    return Err(GeometryError::SelfIntersection {
+                        first_edge,
+                        second_edge,
+                    });
+                }
+            }
+        }
+
+        Ok(Self {
+            vertices,
+            twice_signed_area,
+        })
+    }
+
+    pub fn vertices(&self) -> &[Point] {
+        &self.vertices
+    }
+
+    /// Minimal axis-aligned bounding rectangle. The polygon is already validated
+    /// and non-degenerate, so both returned extents are strictly positive.
+    pub fn bounds(&self) -> Rect {
+        let first = self.vertices[0];
+        let mut bounds = Rect::new(first.x, first.y, first.x, first.y);
+        for point in &self.vertices[1..] {
+            bounds.min_x = bounds.min_x.min(point.x);
+            bounds.min_y = bounds.min_y.min(point.y);
+            bounds.max_x = bounds.max_x.max(point.x);
+            bounds.max_y = bounds.max_y.max(point.y);
+        }
+        bounds
+    }
+
+    /// A polygon is within a convex rectangular yard boundary iff all its
+    /// vertices are inside or on the boundary. This checks the finite planar
+    /// envelope only; it says nothing about routes, swept paths or clearance.
+    pub fn is_within_rect(&self, rect: Rect) -> Result<bool, GeometryError> {
+        if !rect.is_valid() {
+            return Err(GeometryError::InvalidBounds);
+        }
+        Ok(self.vertices.iter().all(|point| {
+            point.x >= rect.min_x
+                && point.x <= rect.max_x
+                && point.y >= rect.min_y
+                && point.y <= rect.max_y
+        }))
+    }
+
+    pub fn twice_signed_area(&self) -> i128 {
+        self.twice_signed_area
+    }
+
+    /// Return a canonical vertex cycle: counter-clockwise, starting at the
+    /// lexicographically smallest vertex, with redundant straight-through
+    /// collinear vertices removed. Useful for stable content digests.
+    pub fn canonical_vertices(&self) -> Result<Vec<Point>, GeometryError> {
+        let mut points = self.vertices.clone();
+
+        loop {
+            if points.len() <= 3 {
+                break;
+            }
+            let mut remove_index = None;
+            for index in 0..points.len() {
+                let previous = points[(index + points.len() - 1) % points.len()];
+                let current = points[index];
+                let next = points[(index + 1) % points.len()];
+                if orientation(previous, current, next)? == Ordering::Equal
+                    && point_on_segment(current, previous, next)?
+                {
+                    remove_index = Some(index);
+                    break;
+                }
+            }
+            match remove_index {
+                Some(index) => {
+                    points.remove(index);
+                }
+                None => break,
+            }
+        }
+
+        let area = signed_double_area(&points)?;
+        if area == 0 {
+            return Err(GeometryError::ZeroArea);
+        }
+        if area < 0 {
+            points.reverse();
+        }
+        let min_index = points
+            .iter()
+            .enumerate()
+            .min_by_key(|(_, point)| **point)
+            .map(|(index, _)| index)
+            .ok_or(GeometryError::TooFewVertices)?;
+        points.rotate_left(min_index);
+        Ok(points)
+    }
+
+    pub fn locate(&self, point: Point) -> Result<PointLocation, GeometryError> {
+        point_in_polygon(point, &self.vertices)
+    }
+
+    fn same_interior_side_on_shared_edge(
+        first_area: i128,
+        second_area: i128,
+        first_a: Point,
+        first_b: Point,
+        second_a: Point,
+        second_b: Point,
+    ) -> bool {
+        let first_dx = i128::from(first_b.x) - i128::from(first_a.x);
+        let first_dy = i128::from(first_b.y) - i128::from(first_a.y);
+        let second_dx = i128::from(second_b.x) - i128::from(second_a.x);
+        let second_dy = i128::from(second_b.y) - i128::from(second_a.y);
+
+        let same_direction = if first_dx != 0 {
+            (first_dx > 0) == (second_dx > 0)
+        } else {
+            (first_dy > 0) == (second_dy > 0)
+        };
+        let second_side_in_first_direction = if same_direction {
+            second_area.signum()
+        } else {
+            -second_area.signum()
+        };
+        first_area.signum() == second_side_in_first_direction
+    }
+
+    /// Classify footprint relationship. Boundary-only contact is distinct from
+    /// positive-area overlap. Contact is still a conflict for conservative yard
+    /// packing unless a separately declared clearance policy permits it.
+    pub fn relation(&self, other: &Self) -> Result<PolygonRelation, GeometryError> {
+        if self.canonical_vertices()? == other.canonical_vertices()? {
+            return Ok(PolygonRelation::PositiveAreaOverlap);
+        }
+
+        let mut boundary_contact = false;
+        for first_edge in 0..self.vertices.len() {
+            let first_next = (first_edge + 1) % self.vertices.len();
+            for second_edge in 0..other.vertices.len() {
+                let second_next = (second_edge + 1) % other.vertices.len();
+                let first_a = self.vertices[first_edge];
+                let first_b = self.vertices[first_next];
+                let second_a = other.vertices[second_edge];
+                let second_b = other.vertices[second_next];
+                match segment_relation(first_a, first_b, second_a, second_b)? {
+                    SegmentRelation::ProperCrossing => {
+                        return Ok(PolygonRelation::PositiveAreaOverlap);
+                    }
+                    SegmentRelation::CollinearOverlap => {
+                        if same_interior_side_on_shared_edge(
+                            self.twice_signed_area,
+                            other.twice_signed_area,
+                            first_a,
+                            first_b,
+                            second_a,
+                            second_b,
+                        ) {
+                            return Ok(PolygonRelation::PositiveAreaOverlap);
+                        }
+                        boundary_contact = true;
+                    }
+                    SegmentRelation::Touch => boundary_contact = true,
+                    SegmentRelation::Disjoint => {}
+                }
+            }
+        }
+
+        for point in &self.vertices {
+            if other.locate(*point)? == PointLocation::Inside {
+                return Ok(PolygonRelation::PositiveAreaOverlap);
+            }
+        }
+        for point in &other.vertices {
+            if self.locate(*point)? == PointLocation::Inside {
+                return Ok(PolygonRelation::PositiveAreaOverlap);
+            }
+        }
+
+        // Vertex tests alone miss polygons whose vertices all lie on the other
+        // boundary while their edges chord through its interior (for example,
+        // a diamond inscribed in a square). Exact doubled-coordinate midpoints
+        // are rational points on each edge and distinguish that case.
+        for index in 0..self.vertices.len() {
+            let next = (index + 1) % self.vertices.len();
+            match midpoint_location(self.vertices[index], self.vertices[next], &other.vertices)? {
+                PointLocation::Inside => return Ok(PolygonRelation::PositiveAreaOverlap),
+                PointLocation::Boundary => boundary_contact = true,
+                PointLocation::Outside => {}
+            }
+        }
+        for index in 0..other.vertices.len() {
+            let next = (index + 1) % other.vertices.len();
+            match midpoint_location(other.vertices[index], other.vertices[next], &self.vertices)? {
+                PointLocation::Inside => return Ok(PolygonRelation::PositiveAreaOverlap),
+                PointLocation::Boundary => boundary_contact = true,
+                PointLocation::Outside => {}
+            }
+        }
+
+        if boundary_contact {
+            Ok(PolygonRelation::BoundaryContact)
+        } else {
+            Ok(PolygonRelation::Disjoint)
+        }
+    }
+
+    /// Returns a conservative conflict when footprints overlap in positive area
+    /// or touch at any boundary. Only disjoint polygons are non-conflicting.
+    pub fn conflicts_with(&self, other: &Self) -> Result<bool, GeometryError> {
+        Ok(self.relation(other)? != PolygonRelation::Disjoint)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct TimeWindow {
+    start: i64,
+    end: i64,
+}
+
+impl TimeWindow {
+    pub fn new(start: i64, end: i64) -> Result<Self, GeometryError> {
+        if start >= end {
+            return Err(GeometryError::InvalidTimeWindow { start, end });
+        }
+        Ok(Self { start, end })
+    }
+
+    pub const fn start(&self) -> i64 {
+        self.start
+    }
+
+    pub const fn end(&self) -> i64 {
+        self.end
+    }
+
+    /// Half-open intervals that meet at one endpoint do not overlap.
+    pub const fn overlaps(&self, other: &Self) -> bool {
+        self.start < other.end && other.start < self.end
+    }
+}
+
+/// Space-time reservation conflict. The same physical region can be reused
+/// after the earlier half-open occupancy interval has ended.
+pub fn reservations_conflict(
+    first: &Polygon,
+    first_window: TimeWindow,
+    second: &Polygon,
+    second_window: TimeWindow,
+) -> Result<bool, GeometryError> {
+    if !first_window.overlaps(&second_window) {
+        return Ok(false);
+    }
+    first.conflicts_with(second)
+}
+
+pub fn orientation(a: Point, b: Point, c: Point) -> Result<Ordering, GeometryError> {
+    let ab_x = i128::from(b.x) - i128::from(a.x);
+    let ab_y = i128::from(b.y) - i128::from(a.y);
+    let ac_x = i128::from(c.x) - i128::from(a.x);
+    let ac_y = i128::from(c.y) - i128::from(a.y);
+
+    let left = ab_x
+        .checked_mul(ac_y)
+        .ok_or(GeometryError::ArithmeticOverflow)?;
+    let right = ab_y
+        .checked_mul(ac_x)
+        .ok_or(GeometryError::ArithmeticOverflow)?;
+    let determinant = left
+        .checked_sub(right)
+        .ok_or(GeometryError::ArithmeticOverflow)?;
+    Ok(determinant.cmp(&0))
+}
+
+pub fn segment_relation(
+    a: Point,
+    b: Point,
+    c: Point,
+    d: Point,
+) -> Result<SegmentRelation, GeometryError> {
+    let o1 = orientation(a, b, c)?;
+    let o2 = orientation(a, b, d)?;
+    let o3 = orientation(c, d, a)?;
+    let o4 = orientation(c, d, b)?;
+
+    if opposite(o1, o2) && opposite(o3, o4) {
+        return Ok(SegmentRelation::ProperCrossing);
+    }
+
+    if o1 == Ordering::Equal
+        && o2 == Ordering::Equal
+        && o3 == Ordering::Equal
+        && o4 == Ordering::Equal
+    {
+        let use_x = a.x != b.x || c.x != d.x;
+        let (a0, a1, c0, c1) = if use_x {
+            (a.x.min(b.x), a.x.max(b.x), c.x.min(d.x), c.x.max(d.x))
+        } else {
+            (a.y.min(b.y), a.y.max(b.y), c.y.min(d.y), c.y.max(d.y))
+        };
+        let low = a0.max(c0);
+        let high = a1.min(c1);
+        return Ok(if low > high {
+            SegmentRelation::Disjoint
+        } else if low == high {
+            SegmentRelation::Touch
+        } else {
+            SegmentRelation::CollinearOverlap
+        });
+    }
+
+    if (o1 == Ordering::Equal && point_on_segment(c, a, b)?)
+        || (o2 == Ordering::Equal && point_on_segment(d, a, b)?)
+        || (o3 == Ordering::Equal && point_on_segment(a, c, d)?)
+        || (o4 == Ordering::Equal && point_on_segment(b, c, d)?)
+    {
+        return Ok(SegmentRelation::Touch);
+    }
+
+    Ok(SegmentRelation::Disjoint)
+}
+
+fn opposite(a: Ordering, b: Ordering) -> bool {
+    matches!(
+        (a, b),
+        (Ordering::Less, Ordering::Greater) | (Ordering::Greater, Ordering::Less)
+    )
+}
+
+fn point_on_segment(point: Point, a: Point, b: Point) -> Result<bool, GeometryError> {
+    if orientation(a, b, point)? != Ordering::Equal {
+        return Ok(false);
+    }
+    Ok(point.x >= a.x.min(b.x)
+        && point.x <= a.x.max(b.x)
+        && point.y >= a.y.min(b.y)
+        && point.y <= a.y.max(b.y))
+}
+
+fn signed_double_area(vertices: &[Point]) -> Result<i128, GeometryError> {
+    let mut sum = 0i128;
+    for index in 0..vertices.len() {
+        let next = (index + 1) % vertices.len();
+        let left = i128::from(vertices[index].x)
+            .checked_mul(i128::from(vertices[next].y))
+            .ok_or(GeometryError::ArithmeticOverflow)?;
+        let right = i128::from(vertices[next].x)
+            .checked_mul(i128::from(vertices[index].y))
+            .ok_or(GeometryError::ArithmeticOverflow)?;
+        let edge = left
+            .checked_sub(right)
+            .ok_or(GeometryError::ArithmeticOverflow)?;
+        sum = sum
+            .checked_add(edge)
+            .ok_or(GeometryError::ArithmeticOverflow)?;
+    }
+    Ok(sum)
+}
+
+fn midpoint_location(
+    edge_start: Point,
+    edge_end: Point,
+    polygon: &[Point],
+) -> Result<PointLocation, GeometryError> {
+    // Coordinates are doubled, so (a+b) is the exact midpoint numerator.
+    // i64 coordinates are promoted before addition/multiplication.
+    let px2 = i128::from(edge_start.x) + i128::from(edge_end.x);
+    let py2 = i128::from(edge_start.y) + i128::from(edge_end.y);
+    let mut inside = false;
+
+    for index in 0..polygon.len() {
+        let a = polygon[index];
+        let b = polygon[(index + 1) % polygon.len()];
+        let ax2 = i128::from(a.x) * 2;
+        let ay2 = i128::from(a.y) * 2;
+        let bx2 = i128::from(b.x) * 2;
+        let by2 = i128::from(b.y) * 2;
+        let dx = i128::from(b.x) - i128::from(a.x);
+        let dy = i128::from(b.y) - i128::from(a.y);
+        let point_dx = px2
+            .checked_sub(ax2)
+            .ok_or(GeometryError::ArithmeticOverflow)?;
+        let point_dy = py2
+            .checked_sub(ay2)
+            .ok_or(GeometryError::ArithmeticOverflow)?;
+        let left = dx
+            .checked_mul(point_dy)
+            .ok_or(GeometryError::ArithmeticOverflow)?;
+        let right = dy
+            .checked_mul(point_dx)
+            .ok_or(GeometryError::ArithmeticOverflow)?;
+        let orientation2 = left
+            .checked_sub(right)
+            .ok_or(GeometryError::ArithmeticOverflow)?;
+
+        if orientation2 == 0
+            && px2 >= ax2.min(bx2)
+            && px2 <= ax2.max(bx2)
+            && py2 >= ay2.min(by2)
+            && py2 <= ay2.max(by2)
+        {
+            return Ok(PointLocation::Boundary);
+        }
+
+        if (ay2 > py2) != (by2 > py2) {
+            let crosses_right = if b.y > a.y {
+                orientation2 > 0
+            } else {
+                orientation2 < 0
+            };
+            if crosses_right {
+                inside = !inside;
+            }
+        }
+    }
+
+    Ok(if inside {
+        PointLocation::Inside
+    } else {
+        PointLocation::Outside
+    })
+}
+
+fn point_in_polygon(point: Point, vertices: &[Point]) -> Result<PointLocation, GeometryError> {
+    let mut inside = false;
+    for index in 0..vertices.len() {
+        let a = vertices[index];
+        let b = vertices[(index + 1) % vertices.len()];
+        if point_on_segment(point, a, b)? {
+            return Ok(PointLocation::Boundary);
+        }
+        if (a.y > point.y) != (b.y > point.y) {
+            let side = orientation(a, b, point)?;
+            let crosses_right = if b.y > a.y {
+                side == Ordering::Greater
+            } else {
+                side == Ordering::Less
+            };
+            if crosses_right {
+                inside = !inside;
+            }
+        }
+    }
+    Ok(if inside {
+        PointLocation::Inside
+    } else {
+        PointLocation::Outside
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn p(x: i64, y: i64) -> Point {
+        Point::new(x, y)
+    }
+
+    fn polygon(points: &[(i64, i64)]) -> Polygon {
+        Polygon::new(points.iter().map(|(x, y)| p(*x, *y)).collect())
+            .expect("test polygon should be valid")
+    }
+
+    fn rectangle(x0: i64, y0: i64, x1: i64, y1: i64) -> Polygon {
+        polygon(&[(x0, y0), (x1, y0), (x1, y1), (x0, y1)])
+    }
+
+    #[test]
+    fn polygon_vertex_limit_bounds_quadratic_validation_cost() {
+        fn rectangle_ring(width: i64, height: i64) -> Vec<Point> {
+            let mut vertices = Vec::new();
+            for x in 0..=width {
+                vertices.push(p(x, 0));
+            }
+            for y in 1..=height {
+                vertices.push(p(width, y));
+            }
+            for x in (0..width).rev() {
+                vertices.push(p(x, height));
+            }
+            for y in (1..height).rev() {
+                vertices.push(p(0, y));
+            }
+            vertices
+        }
+
+        let at_limit = rectangle_ring(34, 30);
+        assert_eq!(at_limit.len(), MAX_POLYGON_VERTICES);
+        assert!(Polygon::new(at_limit).is_ok());
+
+        let over_limit = rectangle_ring(34, 31);
+        assert_eq!(over_limit.len(), MAX_POLYGON_VERTICES + 2);
+        assert!(matches!(
+            Polygon::new(over_limit),
+            Err(GeometryError::TooManyVertices { .. })
+        ));
+    }
+
+    #[test]
+    fn polygon_bounds_are_canonical_and_finite_yard_containment_is_inclusive() {
+        let l_shape = polygon(&[(0, 0), (4, 0), (4, 1), (1, 1), (1, 4), (0, 4)]);
+        assert_eq!(l_shape.bounds(), Rect::new(0, 0, 4, 4));
+        assert!(
+            l_shape
+                .is_within_rect(Rect::new(0, 0, 4, 4))
+                .expect("valid yard bounds")
+        );
+        assert!(
+            l_shape
+                .is_within_rect(Rect::new(-1, -1, 5, 5))
+                .expect("valid larger yard bounds")
+        );
+        assert!(
+            !l_shape
+                .is_within_rect(Rect::new(0, 0, 3, 4))
+                .expect("valid but too narrow yard bounds")
+        );
+        assert_eq!(
+            l_shape.is_within_rect(Rect::new(1, 1, 1, 4)),
+            Err(GeometryError::InvalidBounds)
+        );
+    }
+
+    #[test]
+    fn exact_orientation_handles_clockwise_and_counter_clockwise_points() {
+        assert_eq!(
+            orientation(p(0, 0), p(4, 0), p(2, 3)),
+            Ok(Ordering::Greater)
+        );
+        assert_eq!(orientation(p(0, 0), p(4, 0), p(2, -3)), Ok(Ordering::Less));
+        assert_eq!(orientation(p(0, 0), p(4, 0), p(2, 0)), Ok(Ordering::Equal));
+    }
+
+    #[test]
+    fn segment_predicate_distinguishes_crossing_touch_and_collinear_overlap() {
+        assert_eq!(
+            segment_relation(p(0, 0), p(4, 4), p(0, 4), p(4, 0)),
+            Ok(SegmentRelation::ProperCrossing)
+        );
+        assert_eq!(
+            segment_relation(p(0, 0), p(4, 0), p(4, 0), p(4, 3)),
+            Ok(SegmentRelation::Touch)
+        );
+        assert_eq!(
+            segment_relation(p(0, 0), p(5, 0), p(2, 0), p(7, 0)),
+            Ok(SegmentRelation::CollinearOverlap)
+        );
+        assert_eq!(
+            segment_relation(p(0, 0), p(1, 0), p(2, 0), p(3, 0)),
+            Ok(SegmentRelation::Disjoint)
+        );
+    }
+
+    #[test]
+    fn polygon_rejects_degenerate_and_self_intersecting_inputs() {
+        assert_eq!(
+            Polygon::new(vec![p(0, 0), p(1, 1)]),
+            Err(GeometryError::TooFewVertices)
+        );
+        assert!(matches!(
+            Polygon::new(vec![p(0, 0), p(2, 0), p(2, 0), p(0, 2)]),
+            Err(GeometryError::ConsecutiveDuplicateVertex { .. })
+        ));
+        assert_eq!(
+            Polygon::new(vec![p(0, 0), p(2, 0), p(4, 0)]),
+            Err(GeometryError::ZeroArea)
+        );
+        assert!(matches!(
+            Polygon::new(vec![p(0, 0), p(3, 3), p(0, 3), p(3, 0)]),
+            Err(GeometryError::ZeroArea) | Err(GeometryError::SelfIntersection { .. })
+        ));
+        assert!(matches!(
+            Polygon::new(vec![p(0, 0), p(4, 0), p(2, 0), p(2, 3), p(0, 3)]),
+            Err(GeometryError::AdjacentEdgesOverlap { .. })
+                | Err(GeometryError::SelfIntersection { .. })
+        ));
+    }
+
+    #[test]
+    fn relation_distinguishes_disjoint_touch_and_positive_area_overlap() {
+        let a = rectangle(0, 0, 2, 2);
+        let disjoint = rectangle(3, 0, 5, 2);
+        let edge_touch = rectangle(2, 0, 4, 2);
+        let vertex_touch = rectangle(2, 2, 4, 4);
+        let overlap = rectangle(1, 1, 3, 3);
+        let contained = rectangle(1, 1, 2, 2);
+        assert_eq!(a.relation(&disjoint), Ok(PolygonRelation::Disjoint));
+        assert_eq!(
+            a.relation(&edge_touch),
+            Ok(PolygonRelation::BoundaryContact)
+        );
+        assert_eq!(
+            a.relation(&vertex_touch),
+            Ok(PolygonRelation::BoundaryContact)
+        );
+        assert_eq!(
+            a.relation(&overlap),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
+        assert_eq!(
+            a.relation(&contained),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
+        let inscribed_diamond = polygon(&[(2, 0), (4, 2), (2, 4), (0, 2)]);
+        let square = rectangle(0, 0, 4, 4);
+        assert_eq!(
+            square.relation(&inscribed_diamond),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
+        assert_eq!(
+            inscribed_diamond.relation(&square),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
+        assert!(a.conflicts_with(&edge_touch).unwrap());
+        assert!(!a.conflicts_with(&disjoint).unwrap());
+    }
+
+    #[test]
+    fn canonical_form_is_invariant_to_rotation_winding_and_redundant_collinear_points() {
+        let base = polygon(&[(0, 0), (4, 0), (4, 4), (0, 4)]);
+        let shifted = polygon(&[(4, 4), (0, 4), (0, 0), (4, 0)]);
+        let clockwise_with_collinear = polygon(&[(0, 4), (2, 4), (4, 4), (4, 0), (0, 0)]);
+        assert_eq!(base.canonical_vertices(), shifted.canonical_vertices());
+        assert_eq!(
+            base.canonical_vertices(),
+            clockwise_with_collinear.canonical_vertices()
+        );
+        assert_eq!(
+            base.relation(&shifted),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
+    }
+
+    #[test]
+    fn point_location_handles_concavity() {
+        let concave = polygon(&[(0, 0), (4, 0), (4, 1), (1, 1), (1, 4), (0, 4)]);
+        assert_eq!(concave.locate(p(3, 3)), Ok(PointLocation::Outside));
+        assert_eq!(concave.locate(p(0, 2)), Ok(PointLocation::Boundary));
+        assert_eq!(concave.locate(p(0, 3)), Ok(PointLocation::Boundary));
+        assert_eq!(concave.locate(p(1, 3)), Ok(PointLocation::Boundary));
+        assert_eq!(concave.locate(p(0, 0)), Ok(PointLocation::Boundary));
+        assert_eq!(concave.locate(p(3, 0)), Ok(PointLocation::Boundary));
+    }
+
+    #[test]
+    fn half_open_time_windows_allow_endpoint_reuse() {
+        let outgoing = TimeWindow::new(0, 5).unwrap();
+        let incoming = TimeWindow::new(5, 10).unwrap();
+        let overlap = TimeWindow::new(4, 8).unwrap();
+        assert!(!outgoing.overlaps(&incoming));
+        assert!(outgoing.overlaps(&overlap));
+        assert!(TimeWindow::new(5, 5).is_err());
+        assert!(TimeWindow::new(8, 2).is_err());
+    }
+
+    #[test]
+    fn space_time_reservations_can_reuse_footprint_after_clearance() {
+        let footprint = rectangle(0, 0, 2, 2);
+        let outgoing = TimeWindow::new(0, 5).unwrap();
+        let incoming = TimeWindow::new(5, 10).unwrap();
+        let late_incoming = TimeWindow::new(4, 10).unwrap();
+        assert_eq!(
+            reservations_conflict(&footprint, outgoing, &footprint, incoming),
+            Ok(false)
+        );
+        assert_eq!(
+            reservations_conflict(&footprint, outgoing, &footprint, late_incoming),
+            Ok(true)
+        );
+    }
+
+    #[test]
+    fn extreme_coordinates_fail_closed_if_exact_arithmetic_overflows() {
+        let a = p(i64::MIN, i64::MIN);
+        let b = p(i64::MAX, i64::MIN);
+        let c = p(i64::MIN, i64::MAX);
+        assert_eq!(orientation(a, b, c), Err(GeometryError::ArithmeticOverflow));
+    }
+
+    #[test]
+    fn independent_rectangle_cell_oracle_checks_all_small_pairs() {
+        use std::collections::BTreeSet;
+
+        let mut rectangles = Vec::new();
+        for x0 in 0..4 {
+            for x1 in (x0 + 1)..=4 {
+                for y0 in 0..4 {
+                    for y1 in (y0 + 1)..=4 {
+                        rectangles.push((x0, y0, x1, y1, rectangle(x0, y0, x1, y1)));
+                    }
+                }
+            }
+        }
+        let cells = |x0: i64, y0: i64, x1: i64, y1: i64| -> BTreeSet<(i64, i64)> {
+            let mut occupied = BTreeSet::new();
+            for x in x0..x1 {
+                for y in y0..y1 {
+                    occupied.insert((x, y));
+                }
+            }
+            occupied
+        };
+        for (ax0, ay0, ax1, ay1, a) in &rectangles {
+            let a_cells = cells(*ax0, *ay0, *ax1, *ay1);
+            for (bx0, by0, bx1, by1, b) in &rectangles {
+                let b_cells = cells(*bx0, *by0, *bx1, *by1);
+                let positive_area = !a_cells.is_disjoint(&b_cells);
+                let x_overlap_closed = *ax0 <= *bx1 && *bx0 <= *ax1;
+                let y_overlap_closed = *ay0 <= *by1 && *by0 <= *ay1;
+                let boundary_contact = x_overlap_closed && y_overlap_closed;
+                let expected = if positive_area {
+                    PolygonRelation::PositiveAreaOverlap
+                } else if boundary_contact {
+                    PolygonRelation::BoundaryContact
+                } else {
+                    PolygonRelation::Disjoint
+                };
+                assert_eq!(
+                    a.relation(b),
+                    Ok(expected),
+                    "oracle mismatch: A=({ax0},{ay0},{ax1},{ay1}), B=({bx0},{by0},{bx1},{by1})"
+                );
+            }
+        }
+    }
+
+    // Independent raster oracle for orthogonal integer-grid polygons. The
+    // oracle classifies positive-area overlap by shared unit cells and boundary
+    // contact by inclusive axis-aligned segment checks; it does not call any
+    // production orientation, segment, point-location, or polygon-relation API.
+    fn raster_inside(vertices: &[(i64, i64)], cell_x: i64, cell_y: i64) -> bool {
+        let point_x2 = i128::from(cell_x) * 2 + 1;
+        let point_y2 = i128::from(cell_y) * 2 + 1;
+        let mut inside = false;
+        for index in 0..vertices.len() {
+            let a = vertices[index];
+            let b = vertices[(index + 1) % vertices.len()];
+            let ay2 = i128::from(a.1) * 2;
+            let by2 = i128::from(b.1) * 2;
+            if (ay2 > point_y2) == (by2 > point_y2) {
+                continue;
+            }
+            let ax2 = i128::from(a.0) * 2;
+            let bx2 = i128::from(b.0) * 2;
+            let dx = i128::from(b.0) - i128::from(a.0);
+            let dy = i128::from(b.1) - i128::from(a.1);
+            let cross_twice = dx * (point_y2 - ay2) - dy * (point_x2 - ax2);
+            let crosses_right = if b.1 > a.1 {
+                cross_twice > 0
+            } else {
+                cross_twice < 0
+            };
+            if crosses_right {
+                inside = !inside;
+            }
+        }
+        inside
+    }
+
+    fn raster_cells(vertices: &[(i64, i64)]) -> BTreeSet<(i64, i64)> {
+        let min_x = vertices.iter().map(|point| point.0).min().unwrap();
+        let max_x = vertices.iter().map(|point| point.0).max().unwrap();
+        let min_y = vertices.iter().map(|point| point.1).min().unwrap();
+        let max_y = vertices.iter().map(|point| point.1).max().unwrap();
+        let mut cells = BTreeSet::new();
+        for x in min_x..max_x {
+            for y in min_y..max_y {
+                if raster_inside(vertices, x, y) {
+                    cells.insert((x, y));
+                }
+            }
+        }
+        cells
+    }
+
+    fn closed_interval_overlap(a0: i64, a1: i64, b0: i64, b1: i64) -> bool {
+        a0.min(a1) <= b0.max(b1) && b0.min(b1) <= a0.max(a1)
+    }
+
+    fn independent_boundary_contact(first: &[(i64, i64)], second: &[(i64, i64)]) -> bool {
+        for first_index in 0..first.len() {
+            let a = first[first_index];
+            let b = first[(first_index + 1) % first.len()];
+            for second_index in 0..second.len() {
+                let c = second[second_index];
+                let d = second[(second_index + 1) % second.len()];
+                let first_horizontal = a.1 == b.1;
+                let second_horizontal = c.1 == d.1;
+                let contact = match (first_horizontal, second_horizontal) {
+                    (true, true) => a.1 == c.1 && closed_interval_overlap(a.0, b.0, c.0, d.0),
+                    (false, false) => a.0 == c.0 && closed_interval_overlap(a.1, b.1, c.1, d.1),
+                    (true, false) => {
+                        closed_interval_overlap(a.0, b.0, c.0, d.0)
+                            && closed_interval_overlap(a.1, b.1, c.1, d.1)
+                    }
+                    (false, true) => {
+                        closed_interval_overlap(a.0, b.0, c.0, d.0)
+                            && closed_interval_overlap(a.1, b.1, c.1, d.1)
+                    }
+                };
+                if contact {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    fn orthogonal_oracle(first: &[(i64, i64)], second: &[(i64, i64)]) -> PolygonRelation {
+        let first_cells = raster_cells(first);
+        let second_cells = raster_cells(second);
+        if !first_cells.is_disjoint(&second_cells) {
+            PolygonRelation::PositiveAreaOverlap
+        } else if independent_boundary_contact(first, second) {
+            PolygonRelation::BoundaryContact
+        } else {
+            PolygonRelation::Disjoint
+        }
+    }
+
+    // Independent exact reference for small arbitrary simple polygons.
+    // It intentionally does not call production orientation/segment/point/
+    // relation predicates. The corpus is small enough that direct pairwise
+    // segment checks and rational edge-midpoint probes are inexpensive.
+    fn reference_cross(a: (i64, i64), b: (i64, i64), c: (i64, i64)) -> i128 {
+        (i128::from(b.0) - i128::from(a.0)) * (i128::from(c.1) - i128::from(a.1))
+            - (i128::from(b.1) - i128::from(a.1)) * (i128::from(c.0) - i128::from(a.0))
+    }
+
+    fn reference_on_segment(point: (i64, i64), a: (i64, i64), b: (i64, i64)) -> bool {
+        reference_cross(a, b, point) == 0
+            && point.0 >= a.0.min(b.0)
+            && point.0 <= a.0.max(b.0)
+            && point.1 >= a.1.min(b.1)
+            && point.1 <= a.1.max(b.1)
+    }
+
+    fn reference_segments_intersect(
+        a: (i64, i64),
+        b: (i64, i64),
+        c: (i64, i64),
+        d: (i64, i64),
+    ) -> bool {
+        let ab_c = reference_cross(a, b, c);
+        let ab_d = reference_cross(a, b, d);
+        let cd_a = reference_cross(c, d, a);
+        let cd_b = reference_cross(c, d, b);
+        if ((ab_c > 0 && ab_d < 0) || (ab_c < 0 && ab_d > 0))
+            && ((cd_a > 0 && cd_b < 0) || (cd_a < 0 && cd_b > 0))
+        {
+            return true;
+        }
+        (ab_c == 0 && reference_on_segment(c, a, b))
+            || (ab_d == 0 && reference_on_segment(d, a, b))
+            || (cd_a == 0 && reference_on_segment(a, c, d))
+            || (cd_b == 0 && reference_on_segment(b, c, d))
+    }
+
+    // Classify a point represented with denominator two. This permits exact
+    // edge-midpoint probes without floating-point division or epsilon policy.
+    fn reference_locate_doubled(x2: i128, y2: i128, polygon: &[(i64, i64)]) -> PointLocation {
+        let mut winding_number = 0_i32;
+        for index in 0..polygon.len() {
+            let a = polygon[index];
+            let b = polygon[(index + 1) % polygon.len()];
+            let ax2 = i128::from(a.0) * 2;
+            let ay2 = i128::from(a.1) * 2;
+            let bx2 = i128::from(b.0) * 2;
+            let by2 = i128::from(b.1) * 2;
+            let cross = (i128::from(b.0) - i128::from(a.0)) * (y2 - ay2)
+                - (i128::from(b.1) - i128::from(a.1)) * (x2 - ax2);
+            if cross == 0
+                && x2 >= ax2.min(bx2)
+                && x2 <= ax2.max(bx2)
+                && y2 >= ay2.min(by2)
+                && y2 <= ay2.max(by2)
+            {
+                return PointLocation::Boundary;
+            }
+
+            // Winding-number crossing test, intentionally distinct from the
+            // production even/odd horizontal-ray toggle.
+            if ay2 <= y2 {
+                if by2 > y2 && cross > 0 {
+                    winding_number += 1;
+                }
+            } else if by2 <= y2 && cross < 0 {
+                winding_number -= 1;
+            }
+        }
+        if winding_number != 0 {
+            PointLocation::Inside
+        } else {
+            PointLocation::Outside
+        }
+    }
+
+    fn reference_canonical_boundary(vertices: &[(i64, i64)]) -> Vec<(i64, i64)> {
+        let mut points = vertices.to_vec();
+        loop {
+            if points.len() <= 3 {
+                break;
+            }
+            let removable = (0..points.len()).find(|index| {
+                let previous = points[(*index + points.len() - 1) % points.len()];
+                let current = points[*index];
+                let next = points[(*index + 1) % points.len()];
+                reference_cross(previous, current, next) == 0
+                    && reference_on_segment(current, previous, next)
+            });
+            match removable {
+                Some(index) => {
+                    points.remove(index);
+                }
+                None => break,
+            }
+        }
+
+        let mut twice_area = 0_i128;
+        for index in 0..points.len() {
+            let next = points[(index + 1) % points.len()];
+            twice_area += i128::from(points[index].0) * i128::from(next.1)
+                - i128::from(next.0) * i128::from(points[index].1);
+        }
+        if twice_area < 0 {
+            points.reverse();
+        }
+        if let Some(min_index) = points
+            .iter()
+            .enumerate()
+            .min_by_key(|(_, point)| **point)
+            .map(|(index, _)| index)
+        {
+            points.rotate_left(min_index);
+        }
+        points
+    }
+
+    fn reference_same_boundary(first: &[(i64, i64)], second: &[(i64, i64)]) -> bool {
+        reference_canonical_boundary(first) == reference_canonical_boundary(second)
+    }
+
+    fn reference_same_side_shared_segment(first: &[(i64, i64)], second: &[(i64, i64)]) -> bool {
+        let signed_area = |vertices: &[(i64, i64)]| -> i128 {
+            (0..vertices.len())
+                .map(|index| {
+                    let a = vertices[index];
+                    let b = vertices[(index + 1) % vertices.len()];
+                    i128::from(a.0) * i128::from(b.1) - i128::from(b.0) * i128::from(a.1)
+                })
+                .sum()
+        };
+        let first_side = signed_area(first).signum();
+        let second_side = signed_area(second).signum();
+
+        for first_index in 0..first.len() {
+            let a = first[first_index];
+            let b = first[(first_index + 1) % first.len()];
+            for second_index in 0..second.len() {
+                let c = second[second_index];
+                let d = second[(second_index + 1) % second.len()];
+                if reference_cross(a, b, c) != 0 || reference_cross(a, b, d) != 0 {
+                    continue;
+                }
+                let positive_length_overlap = if a.0 != b.0 {
+                    a.0.min(b.0).max(c.0.min(d.0)) < a.0.max(b.0).min(c.0.max(d.0))
+                } else {
+                    a.1.min(b.1).max(c.1.min(d.1)) < a.1.max(b.1).min(c.1.max(d.1))
+                };
+                if !positive_length_overlap {
+                    continue;
+                }
+                let same_direction = if a.0 != b.0 {
+                    ((i128::from(b.0) - i128::from(a.0)) > 0)
+                        == ((i128::from(d.0) - i128::from(c.0)) > 0)
+                } else {
+                    ((i128::from(b.1) - i128::from(a.1)) > 0)
+                        == ((i128::from(d.1) - i128::from(c.1)) > 0)
+                };
+                let second_in_first_direction = if same_direction {
+                    second_side
+                } else {
+                    -second_side
+                };
+                if first_side == second_in_first_direction {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    fn exact_reference_relation(first: &[(i64, i64)], second: &[(i64, i64)]) -> PolygonRelation {
+        if reference_same_boundary(first, second)
+            || reference_same_side_shared_segment(first, second)
+        {
+            return PolygonRelation::PositiveAreaOverlap;
+        }
+
+        for first_index in 0..first.len() {
+            let a = first[first_index];
+            let b = first[(first_index + 1) % first.len()];
+            for second_index in 0..second.len() {
+                let c = second[second_index];
+                let d = second[(second_index + 1) % second.len()];
+                let ab_c = reference_cross(a, b, c);
+                let ab_d = reference_cross(a, b, d);
+                let cd_a = reference_cross(c, d, a);
+                let cd_b = reference_cross(c, d, b);
+                if ((ab_c > 0 && ab_d < 0) || (ab_c < 0 && ab_d > 0))
+                    && ((cd_a > 0 && cd_b < 0) || (cd_a < 0 && cd_b > 0))
+                {
+                    return PolygonRelation::PositiveAreaOverlap;
+                }
+            }
+        }
+
+        for point in first {
+            if reference_locate_doubled(i128::from(point.0) * 2, i128::from(point.1) * 2, second)
+                == PointLocation::Inside
+            {
+                return PolygonRelation::PositiveAreaOverlap;
+            }
+        }
+        for point in second {
+            if reference_locate_doubled(i128::from(point.0) * 2, i128::from(point.1) * 2, first)
+                == PointLocation::Inside
+            {
+                return PolygonRelation::PositiveAreaOverlap;
+            }
+        }
+
+        // If all vertices lie on boundaries, an edge can still pass through
+        // the other polygon's interior (the inscribed-diamond counterexample).
+        for (edge_set, container) in [(first, second), (second, first)] {
+            for index in 0..edge_set.len() {
+                let a = edge_set[index];
+                let b = edge_set[(index + 1) % edge_set.len()];
+                if reference_locate_doubled(
+                    i128::from(a.0) + i128::from(b.0),
+                    i128::from(a.1) + i128::from(b.1),
+                    container,
+                ) == PointLocation::Inside
+                {
+                    return PolygonRelation::PositiveAreaOverlap;
+                }
+            }
+        }
+
+        for first_index in 0..first.len() {
+            for second_index in 0..second.len() {
+                if reference_segments_intersect(
+                    first[first_index],
+                    first[(first_index + 1) % first.len()],
+                    second[second_index],
+                    second[(second_index + 1) % second.len()],
+                ) {
+                    return PolygonRelation::BoundaryContact;
+                }
+            }
+        }
+        PolygonRelation::Disjoint
+    }
+
+    #[test]
+    fn same_side_collinear_boundary_overlap_is_positive_area_not_contact() {
+        let first = polygon(&[(-1, -1), (3, -1), (3, 0), (0, 0), (0, 3), (-1, 3)]);
+        let second = polygon(&[
+            (-1, -1),
+            (3, -1),
+            (3, 3),
+            (2, 3),
+            (2, 0),
+            (0, 0),
+            (0, 3),
+            (-1, 3),
+        ]);
+        assert_eq!(
+            first.relation(&second),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
+        assert_eq!(
+            second.relation(&first),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
+        assert!(first.conflicts_with(&second).unwrap());
+    }
+
+    #[test]
+    fn independent_exact_segment_interior_oracle_checks_oblique_and_concave_corpus() {
+        let shapes: &[&[(i64, i64)]] = &[
+            &[(0, 0), (4, 0), (2, 4)],
+            &[(0, 3), (4, 3), (2, -1)],
+            &[(0, 0), (4, 0), (4, 1), (1, 1), (1, 4), (0, 4)],
+            &[
+                (0, 0),
+                (4, 0),
+                (4, 4),
+                (3, 4),
+                (3, 1),
+                (1, 1),
+                (1, 4),
+                (0, 4),
+            ],
+            &[(0, 0), (4, 0), (4, 4), (0, 4)],
+            &[(2, 0), (4, 2), (2, 4), (0, 2)],
+            &[(0, 0), (4, 0), (0, 4)],
+            &[(3, 3), (4, 3), (3, 4)],
+        ];
+        let mut corpus: Vec<(Vec<(i64, i64)>, Polygon)> = Vec::new();
+        for shape in shapes {
+            for shift_x in -1..=1 {
+                for shift_y in -1..=1 {
+                    let mut vertices: Vec<(i64, i64)> = shape
+                        .iter()
+                        .map(|(x, y)| (*x + shift_x, *y + shift_y))
+                        .collect();
+                    let polygon = Polygon::new(vertices.iter().map(|(x, y)| p(*x, *y)).collect())
+                        .expect("authored polygon should be valid");
+                    corpus.push((vertices.clone(), polygon));
+                    vertices.reverse();
+                    let reversed = Polygon::new(vertices.iter().map(|(x, y)| p(*x, *y)).collect())
+                        .expect("reversed polygon should be valid");
+                    corpus.push((vertices, reversed));
+                }
+            }
+        }
+
+        assert_eq!(corpus.len(), 144, "frozen oblique corpus changed");
+
+        let square = [(0, 0), (4, 0), (4, 4), (0, 4)];
+        let same_square_with_redundant_vertex = [(0, 0), (2, 0), (4, 0), (4, 4), (0, 4)];
+        assert_eq!(
+            exact_reference_relation(&square, &same_square_with_redundant_vertex),
+            PolygonRelation::PositiveAreaOverlap
+        );
+        let inscribed_diamond = [(2, 0), (4, 2), (2, 4), (0, 2)];
+        assert_eq!(
+            exact_reference_relation(&square, &inscribed_diamond),
+            PolygonRelation::PositiveAreaOverlap
+        );
+        let crossing_up = [(0, 0), (4, 0), (2, 4)];
+        let crossing_down = [(0, 3), (4, 3), (2, -1)];
+        assert_eq!(
+            exact_reference_relation(&crossing_up, &crossing_down),
+            PolygonRelation::PositiveAreaOverlap
+        );
+        assert_eq!(
+            polygon(&square).relation(&polygon(&same_square_with_redundant_vertex)),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
+
+        let mut positive_area = 0usize;
+        let mut boundary_contact = 0usize;
+        let mut disjoint = 0usize;
+        for (first_vertices, first_polygon) in &corpus {
+            for (second_vertices, second_polygon) in &corpus {
+                let expected = exact_reference_relation(first_vertices, second_vertices);
+                assert_eq!(
+                    first_polygon.relation(second_polygon),
+                    Ok(expected),
+                    "independent exact oracle mismatch: first={first_vertices:?}, second={second_vertices:?}"
+                );
+                assert_eq!(
+                    first_polygon.relation(second_polygon),
+                    second_polygon.relation(first_polygon),
+                    "polygon relation must be symmetric"
+                );
+                match expected {
+                    PolygonRelation::PositiveAreaOverlap => positive_area += 1,
+                    PolygonRelation::BoundaryContact => boundary_contact += 1,
+                    PolygonRelation::Disjoint => disjoint += 1,
+                }
+            }
+        }
+        assert!(positive_area > 0);
+        assert!(boundary_contact > 0);
+        assert!(disjoint > 0);
+    }
+
+    fn aabb_conflict(first: &[(i64, i64)], second: &[(i64, i64)]) -> bool {
+        let first_min_x = first.iter().map(|point| point.0).min().unwrap();
+        let first_max_x = first.iter().map(|point| point.0).max().unwrap();
+        let first_min_y = first.iter().map(|point| point.1).min().unwrap();
+        let first_max_y = first.iter().map(|point| point.1).max().unwrap();
+        let second_min_x = second.iter().map(|point| point.0).min().unwrap();
+        let second_max_x = second.iter().map(|point| point.0).max().unwrap();
+        let second_min_y = second.iter().map(|point| point.1).min().unwrap();
+        let second_max_y = second.iter().map(|point| point.1).max().unwrap();
+        closed_interval_overlap(first_min_x, first_max_x, second_min_x, second_max_x)
+            && closed_interval_overlap(first_min_y, first_max_y, second_min_y, second_max_y)
+    }
+
+    #[test]
+    fn concave_orthogonal_corpus_pins_aabb_ablation_against_independent_oracle() {
+        let shapes: &[&[(i64, i64)]] = &[
+            &[(0, 0), (3, 0), (3, 1), (1, 1), (1, 3), (0, 3)],
+            &[
+                (0, 0),
+                (4, 0),
+                (4, 4),
+                (3, 4),
+                (3, 1),
+                (1, 1),
+                (1, 4),
+                (0, 4),
+            ],
+            &[
+                (0, 0),
+                (3, 0),
+                (3, 1),
+                (2, 1),
+                (2, 2),
+                (1, 2),
+                (1, 3),
+                (0, 3),
+            ],
+        ];
+        let mut corpus: Vec<(Vec<(i64, i64)>, Polygon)> = Vec::new();
+        for shape in shapes {
+            for shift_x in 0..=4 {
+                for shift_y in 0..=4 {
+                    let mut vertices: Vec<(i64, i64)> = shape
+                        .iter()
+                        .map(|(x, y)| (*x + shift_x, *y + shift_y))
+                        .collect();
+                    let polygon = Polygon::new(vertices.iter().map(|(x, y)| p(*x, *y)).collect())
+                        .expect("authored orthogonal shape should be valid");
+                    corpus.push((vertices.clone(), polygon));
+
+                    vertices.reverse();
+                    let reversed = Polygon::new(vertices.iter().map(|(x, y)| p(*x, *y)).collect())
+                        .expect("reversed simple shape should remain valid");
+                    corpus.push((vertices, reversed));
+                }
+            }
+        }
+
+        assert_eq!(corpus.len(), 150, "frozen shape-placement corpus changed");
+        let mut positive_area_overlaps = 0usize;
+        let mut boundary_contacts = 0usize;
+        let mut exact_disjoint = 0usize;
+        let mut aabb_conflicts = 0usize;
+        let mut aabb_false_positive = 0usize;
+        let mut aabb_false_negative = 0usize;
+
+        for (first_vertices, first_polygon) in &corpus {
+            for (second_vertices, second_polygon) in &corpus {
+                let expected = orthogonal_oracle(first_vertices, second_vertices);
+                assert_eq!(
+                    first_polygon.relation(second_polygon),
+                    Ok(expected),
+                    "independent oracle mismatch: first={first_vertices:?}, second={second_vertices:?}"
+                );
+                assert_eq!(
+                    first_polygon.relation(second_polygon),
+                    second_polygon.relation(first_polygon),
+                    "polygon relation must be symmetric"
+                );
+
+                let aabb_says_conflict = aabb_conflict(first_vertices, second_vertices);
+                let exact_says_conflict = expected != PolygonRelation::Disjoint;
+                if aabb_says_conflict {
+                    aabb_conflicts += 1;
+                }
+                match expected {
+                    PolygonRelation::PositiveAreaOverlap => positive_area_overlaps += 1,
+                    PolygonRelation::BoundaryContact => boundary_contacts += 1,
+                    PolygonRelation::Disjoint => exact_disjoint += 1,
+                }
+                if aabb_says_conflict && !exact_says_conflict {
+                    aabb_false_positive += 1;
+                }
+                if !aabb_says_conflict && exact_says_conflict {
+                    aabb_false_negative += 1;
+                }
+            }
+        }
+
+        assert_eq!(
+            positive_area_overlaps, 12_980,
+            "frozen raster overlap count changed"
+        );
+        assert_eq!(
+            boundary_contacts, 6_216,
+            "frozen boundary-contact count changed"
+        );
+        assert_eq!(exact_disjoint, 3_304, "frozen disjoint count changed");
+        assert_eq!(
+            aabb_conflicts, 20_180,
+            "frozen AABB candidate count changed"
+        );
+        assert_eq!(aabb_false_positive, 984, "AABB conservatism corpus changed");
+        assert_eq!(
+            aabb_false_negative, 0,
+            "AABB broadphase may not reject a real contact/overlap"
+        );
+    }
+    #[test]
+    fn exact_polygon_placement_finds_layouts_conservative_aabb_rejects() {
+        let base_vertices = vec![(0, 0), (3, 0), (3, 1), (1, 1), (1, 3), (0, 3)];
+        let fixed = Polygon::new(base_vertices.iter().map(|(x, y)| p(*x, *y)).collect())
+            .expect("L-shaped footprint should be valid");
+        let mut exact_feasible_offsets = Vec::new();
+        let mut aabb_feasible_offsets = Vec::new();
+        let mut checked_offsets = 0usize;
+
+        // Two identical L-shaped blocks in a 6-by-6 yard. The first stays at
+        // (0,0); the second scans every legal unit-grid offset. AABB conflict
+        // is intentionally conservative, treating envelope touch as conflict.
+        for shift_y in 0..=3 {
+            for shift_x in 0..=3 {
+                let candidate_vertices: Vec<(i64, i64)> = base_vertices
+                    .iter()
+                    .map(|(x, y)| (*x + shift_x, *y + shift_y))
+                    .collect();
+                let candidate =
+                    Polygon::new(candidate_vertices.iter().map(|(x, y)| p(*x, *y)).collect())
+                        .expect("translated L-shaped footprint should be valid");
+                assert!(candidate_vertices.iter().all(|(x, y)| *x <= 6 && *y <= 6));
+                checked_offsets += 1;
+
+                let expected = orthogonal_oracle(&base_vertices, &candidate_vertices);
+                assert_eq!(fixed.relation(&candidate), Ok(expected));
+                let aabb_says_conflict = aabb_conflict(&base_vertices, &candidate_vertices);
+                if expected == PolygonRelation::Disjoint {
+                    exact_feasible_offsets.push((shift_x, shift_y));
+                }
+                if !aabb_says_conflict {
+                    aabb_feasible_offsets.push((shift_x, shift_y));
+                }
+            }
+        }
+
+        assert_eq!(checked_offsets, 16);
+        assert_eq!(
+            exact_feasible_offsets,
+            vec![(2, 2), (3, 2), (2, 3), (3, 3)],
+            "independent oracle's feasible placement set changed"
+        );
+        assert!(
+            aabb_feasible_offsets.is_empty(),
+            "the AABB-only baseline should remain unable to distinguish this concave notch"
+        );
+    }
+
+    #[test]
+    fn raster_oracle_has_frozen_positive_negative_and_contact_controls() {
+        let l_shape = [(0, 0), (3, 0), (3, 1), (1, 1), (1, 3), (0, 3)];
+        let disjoint = [(4, 0), (6, 0), (6, 2), (4, 2)];
+        let boundary_touch = [(3, 0), (4, 0), (4, 1), (3, 1)];
+        let overlap = [(0, 2), (1, 2), (1, 3), (0, 3)];
+        assert_eq!(
+            orthogonal_oracle(&l_shape, &disjoint),
+            PolygonRelation::Disjoint
+        );
+        assert_eq!(
+            orthogonal_oracle(&l_shape, &boundary_touch),
+            PolygonRelation::BoundaryContact
+        );
+        assert_eq!(
+            orthogonal_oracle(&l_shape, &overlap),
+            PolygonRelation::PositiveAreaOverlap
+        );
+    }
+
+    #[test]
+    fn concave_footprints_obey_half_open_clearance_and_boundary_contact_rules() {
+        let l_shape = polygon(&[(0, 0), (3, 0), (3, 1), (1, 1), (1, 3), (0, 3)]);
+        let same_shape = polygon(&[(0, 0), (3, 0), (3, 1), (1, 1), (1, 3), (0, 3)]);
+        let outgoing = TimeWindow::new(0, 5).unwrap();
+        let incoming = TimeWindow::new(5, 10).unwrap();
+        let delayed = TimeWindow::new(4, 10).unwrap();
+        assert_eq!(
+            reservations_conflict(&l_shape, outgoing, &same_shape, incoming),
+            Ok(false)
+        );
+        assert_eq!(
+            reservations_conflict(&l_shape, outgoing, &same_shape, delayed),
+            Ok(true)
+        );
+
+        // Positive-area geometry is disjoint here, but the vertical edges
+        // share a boundary; the V0 policy conservatively treats contact as a
+        // conflict while the reservations overlap in time.
+        let edge_neighbor = rectangle(3, 0, 4, 1);
+        assert_eq!(
+            l_shape.relation(&edge_neighbor),
+            Ok(PolygonRelation::BoundaryContact)
+        );
+        assert_eq!(
+            reservations_conflict(
+                &l_shape,
+                outgoing,
+                &edge_neighbor,
+                TimeWindow::new(1, 4).unwrap()
+            ),
+            Ok(true)
+        );
+    }
+
+    #[test]
+    fn oblique_polygon_controls_cover_crossings_contact_and_aabb_false_positive() {
+        // The two triangles overlap through proper edge crossings although
+        // none of the six vertices is strictly inside the other triangle.
+        let upward = polygon(&[(0, 0), (4, 0), (2, 4)]);
+        let downward = polygon(&[(0, 3), (4, 3), (2, -1)]);
+        assert_eq!(
+            upward.relation(&downward),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
+        assert_eq!(
+            downward.relation(&upward),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
+        for point in upward.vertices() {
+            assert_ne!(downward.locate(*point), Ok(PointLocation::Inside));
+        }
+        for point in downward.vertices() {
+            assert_ne!(upward.locate(*point), Ok(PointLocation::Inside));
+        }
+
+        // The axis-aligned bounding boxes overlap, but the small upper-right
+        // triangle is strictly outside the lower-left triangle.
+        let lower_left = polygon(&[(0, 0), (4, 0), (0, 4)]);
+        let upper_right = polygon(&[(3, 3), (4, 3), (3, 4)]);
+        assert_eq!(
+            lower_left.relation(&upper_right),
+            Ok(PolygonRelation::Disjoint)
+        );
+
+        // Two oblique triangles share only their diagonal edge. Contact is
+        // represented separately from positive-area overlap.
+        let upper_left = polygon(&[(4, 0), (4, 4), (0, 4)]);
+        assert_eq!(
+            lower_left.relation(&upper_left),
+            Ok(PolygonRelation::BoundaryContact)
+        );
+        assert_eq!(
+            upper_left.relation(&lower_left),
+            Ok(PolygonRelation::BoundaryContact)
+        );
+    }
+
+    #[test]
+    fn positive_area_overlap_is_symmetric_for_adversarial_concave_shapes() {
+        let l_shape = polygon(&[(0, 0), (4, 0), (4, 1), (1, 1), (1, 4), (0, 4)]);
+        let bar = rectangle(0, 2, 3, 3);
+        assert_eq!(
+            l_shape.relation(&bar),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
+        assert_eq!(
+            bar.relation(&l_shape),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
+    }
+}
