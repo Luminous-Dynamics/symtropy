@@ -34,13 +34,75 @@ pub enum DirectionClass {
     DownGradient,
 }
 
-/// Operational class of a reorientation event.
+/// Physical explanation represented by a simulated or inferred event.
+///
+/// This is intentionally independent of the observed duration bin. A long
+/// active motor event and a short passive trap are both representable.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum EventClass {
-    /// Event assigned to the short reorientation category by the declared threshold policy.
-    ShortReorientation,
-    /// Event assigned to the long mechanical-trap category by the declared threshold policy.
-    LongMechanicalTrap,
+pub enum EventMechanism {
+    ActiveMotorEvent,
+    PassiveMechanicalTrap,
+    Unresolved,
+}
+
+/// Observational duration subgroup, derived independently of physical cause.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EventDurationBin {
+    Short,
+    Long,
+    ExactBoundaryExcluded,
+}
+
+/// Evidence status attached to a mechanism assignment.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EventEvidenceStatus {
+    /// Mechanism is directly supported by an appropriate measurement.
+    DirectlyObserved,
+    /// Mechanism is inferred by a documented analysis procedure.
+    AlgorithmInferred,
+    /// Mechanism is a known latent variable in a controlled simulation.
+    ModelLatent,
+    /// Evidence does not support assigning a mechanism.
+    Unresolved,
+}
+
+/// Probabilities of the three physical event mechanisms.
+///
+/// The values must be finite, lie in [0, 1], and sum to one within the
+/// declared floating-point validation tolerance.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MechanismProbabilities {
+    pub active_motor: f64,
+    pub passive_trap: f64,
+    pub unresolved: f64,
+}
+
+impl MechanismProbabilities {
+    fn validate(self) -> Result<(), ProfileError> {
+        let values = [self.active_motor, self.passive_trap, self.unresolved];
+        if values
+            .iter()
+            .any(|value| !value.is_finite() || !(0.0..=1.0).contains(value))
+        {
+            return Err(ProfileError::InvalidMechanismProbabilities);
+        }
+        let sum = self.active_motor + self.passive_trap + self.unresolved;
+        if (sum - 1.0).abs() > 1.0e-12 {
+            return Err(ProfileError::InvalidMechanismProbabilities);
+        }
+        Ok(())
+    }
+
+    fn sample(self, rng: &mut SeededRng) -> EventMechanism {
+        let draw = rng.next_unit_f64();
+        if draw < self.active_motor {
+            EventMechanism::ActiveMotorEvent
+        } else if draw < self.active_motor + self.passive_trap {
+            EventMechanism::PassiveMechanicalTrap
+        } else {
+            EventMechanism::Unresolved
+        }
+    }
 }
 
 /// The cited papers use both <= 1 s and < 1 s in different figure/method
@@ -169,43 +231,33 @@ impl BiasMode {
 
 /// A sampled event profile for one declared biological condition.
 ///
-/// Run-time samples are keyed by run-start heading (the causal input to the
-/// next-run policy); short-turn samples are keyed by the realized net
-/// displacement direction of the just-completed run. These are distinct
-/// observables. Separate unconditional distributions enable matched no-bias,
-/// run-time-only, turn-angle-only and combined ablations. Long-trap angles
-/// are intentionally pooled.
+/// Run-time samples are keyed by run-start heading. Active motor-event turn
+/// samples are keyed by the realized net displacement direction of the
+/// completed run. Physical event mechanisms own their own duration samples;
+/// duration bins are derived afterward and never establish mechanism.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PorousMotilityProfile {
-    /// Swimming speed in micrometres per second.
     pub swimming_speed_um_s: f64,
-    /// Rotational diffusion coefficient during runs, in radians squared per second.
-    /// Set to zero for the straight-run ablation.
     pub rotational_diffusion_rad2_s: f64,
-    /// Maximum Euler-Maruyama integration step during a run, in seconds.
     pub integration_step_s: f64,
-    /// Empirical run-duration samples keyed by run-start direction, in seconds.
     pub run_duration_s: DirectionalSamples,
-    /// Pooled run-duration samples used by ablations with run-time bias disabled.
     pub run_duration_unconditional_s: SampleSet,
-    /// Fraction of interruptions represented by short reorientation events.
-    /// Calibrate this from admitted event observations; do not infer it from
-    /// the published paper's headline values.
-    pub short_event_probability: f64,
-    /// How an event exactly at the class threshold is treated.
+    pub mechanism_probabilities: MechanismProbabilities,
     pub threshold_boundary_policy: ThresholdBoundaryPolicy,
-    /// Duration samples for short events; validation follows the declared threshold policy.
-    pub short_event_duration_s: SampleSet,
-    /// Duration samples for long traps; validation follows the boundary policy.
-    pub long_trap_duration_s: SampleSet,
-    /// Signed heading changes in radians for short events, conditional on
-    /// the net displacement direction of the just-completed run.
-    pub short_turn_angle_rad: DirectionalSamples,
-    /// Pooled short-event turn-angle samples used when turn-angle bias is disabled.
-    pub short_turn_angle_unconditional_rad: SampleSet,
-    /// Signed heading changes in radians for long traps, not direction-biased
-    /// by this model.
-    pub long_trap_turn_angle_rad: SampleSet,
+    /// Duration samples conditioned on an active motor event.
+    pub active_motor_event_duration_s: SampleSet,
+    /// Duration samples conditioned on passive mechanical trapping.
+    pub passive_trap_event_duration_s: SampleSet,
+    /// Duration samples when event cause remains unresolved.
+    pub unresolved_event_duration_s: SampleSet,
+    /// Direction-conditioned turns for active motor events.
+    pub active_motor_turn_angle_rad: DirectionalSamples,
+    /// Pooled active-turn angles for the turn-angle-bias ablation.
+    pub active_motor_turn_angle_unconditional_rad: SampleSet,
+    /// Passive-trap escape/reorientation angles; never chemotactically biased here.
+    pub passive_trap_turn_angle_rad: SampleSet,
+    /// Pooled turn angles for unresolved events.
+    pub unresolved_turn_angle_rad: SampleSet,
 }
 
 impl PorousMotilityProfile {
@@ -221,60 +273,58 @@ impl PorousMotilityProfile {
         if !self.integration_step_s.is_finite() || self.integration_step_s <= 0.0 {
             return Err(ProfileError::InvalidIntegrationStep);
         }
-        if !self.short_event_probability.is_finite()
-            || !(0.0..=1.0).contains(&self.short_event_probability)
-        {
-            return Err(ProfileError::InvalidShortEventProbability);
-        }
 
+        self.mechanism_probabilities.validate()?;
         self.run_duration_s.validate_positive("run_duration_s")?;
         self.run_duration_unconditional_s
             .validate_positive("run_duration_unconditional_s")?;
-        self.short_event_duration_s
-            .validate_positive("short_event_duration_s")?;
-        self.long_trap_duration_s
-            .validate_positive("long_trap_duration_s")?;
-        self.short_turn_angle_rad
-            .validate_finite("short_turn_angle_rad")?;
-        self.short_turn_angle_unconditional_rad
-            .validate_finite("short_turn_angle_unconditional_rad")?;
-        self.long_trap_turn_angle_rad
-            .validate_finite("long_trap_turn_angle_rad")?;
-
-        let short_event_outside_policy = self
-            .short_event_duration_s
-            .values()
-            .iter()
-            .any(|duration| match self.threshold_boundary_policy {
-                ThresholdBoundaryPolicy::ShortInclusive => {
-                    *duration > EVENT_CLASS_THRESHOLD_S
-                }
-                ThresholdBoundaryPolicy::LongInclusive
-                | ThresholdBoundaryPolicy::ExcludeExactBoundary => {
-                    *duration >= EVENT_CLASS_THRESHOLD_S
-                }
-            });
-        if short_event_outside_policy {
-            return Err(ProfileError::ShortEventOutsideThresholdPolicy);
-        }
-
-        let long_trap_outside_policy = self
-            .long_trap_duration_s
-            .values()
-            .iter()
-            .any(|duration| match self.threshold_boundary_policy {
-                ThresholdBoundaryPolicy::ShortInclusive
-                | ThresholdBoundaryPolicy::ExcludeExactBoundary => {
-                    *duration <= EVENT_CLASS_THRESHOLD_S
-                }
-                ThresholdBoundaryPolicy::LongInclusive => {
-                    *duration < EVENT_CLASS_THRESHOLD_S
-                }
-            });
-        if long_trap_outside_policy {
-            return Err(ProfileError::LongTrapOutsideThresholdPolicy);
-        }
+        self.active_motor_event_duration_s
+            .validate_positive("active_motor_event_duration_s")?;
+        self.passive_trap_event_duration_s
+            .validate_positive("passive_trap_event_duration_s")?;
+        self.unresolved_event_duration_s
+            .validate_positive("unresolved_event_duration_s")?;
+        self.active_motor_turn_angle_rad
+            .validate_finite("active_motor_turn_angle_rad")?;
+        self.active_motor_turn_angle_unconditional_rad
+            .validate_finite("active_motor_turn_angle_unconditional_rad")?;
+        self.passive_trap_turn_angle_rad
+            .validate_finite("passive_trap_turn_angle_rad")?;
+        self.unresolved_turn_angle_rad
+            .validate_finite("unresolved_turn_angle_rad")?;
         Ok(())
+    }
+
+    pub fn duration_bin(&self, duration_s: f64) -> Result<EventDurationBin, ProfileError> {
+        classify_event_duration(duration_s, EVENT_CLASS_THRESHOLD_S, self.threshold_boundary_policy)
+    }
+}
+
+/// Derive an observational duration bin without inferring physical cause.
+pub fn classify_event_duration(
+    duration_s: f64,
+    threshold_s: f64,
+    policy: ThresholdBoundaryPolicy,
+) -> Result<EventDurationBin, ProfileError> {
+    if !duration_s.is_finite() || duration_s <= 0.0 {
+        return Err(ProfileError::InvalidEventDuration);
+    }
+    if !threshold_s.is_finite() || threshold_s <= 0.0 {
+        return Err(ProfileError::InvalidEventThreshold);
+    }
+
+    if duration_s < threshold_s {
+        Ok(EventDurationBin::Short)
+    } else if duration_s > threshold_s {
+        Ok(EventDurationBin::Long)
+    } else {
+        match policy {
+            ThresholdBoundaryPolicy::ShortInclusive => Ok(EventDurationBin::Short),
+            ThresholdBoundaryPolicy::LongInclusive => Ok(EventDurationBin::Long),
+            ThresholdBoundaryPolicy::ExcludeExactBoundary => {
+                Ok(EventDurationBin::ExactBoundaryExcluded)
+            }
+        }
     }
 }
 
