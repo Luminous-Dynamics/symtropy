@@ -1599,7 +1599,7 @@ mod tests {
             &contracts,
             &change_set(vec![change(
                 DependencyDomain::EntityGeometry,
-                "entity:A",
+                "motion:A:EntityGeometry",
                 '1',
                 '4',
             )]),
