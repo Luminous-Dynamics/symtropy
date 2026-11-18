@@ -367,6 +367,91 @@
       "data_status": "reported methodology and coupling range pinned; exact source branch values must be extracted before a matched run",
       "purpose": "second-stage scaling comparison after the 5D EGB control",
       "metric_ansatz_scope": "cohomogeneity-one ODE system in 7D with equal angular momenta; not a full 2D orbit-space PDE"
+    },
+    {
+      "case_id": "AKRIBEIA-D5-EGB-EQUAL-SPIN-001",
+      "status": "reference_setup_extracted_supplemental_raw_data_pending",
+      "theory_id": "5d_einstein_gauss_bonnet",
+      "spacetime_dimension": 5,
+      "symmetry": "stationary_equal_angular_momenta_cohomogeneity_one_RxU(2)",
+      "action_normalization": {
+        "alpha_1": "(16*pi*G)^-1",
+        "alpha_0": "0",
+        "alpha": "4*alpha_2/alpha_1",
+        "coupling_dimensions": "copy exact convention/dimensions from pinned paper source and supplement before numerical use"
+      },
+      "metric_ansatz": {
+        "line_element": "ds^2=-b(r)dt^2+dr^2/f(r)+g(r)*(xi^1*xi^1+xi_tilde^1*xi_tilde^1)+h(r)*(zeta-w(r)*dt)^2",
+        "radial_functions": [
+          "b",
+          "f",
+          "g",
+          "h",
+          "w"
+        ],
+        "gauge": "g(r)=r^2",
+        "invariant_frame": "Hopf frame on S^3; normalization and Maurer-Cartan data must be transcribed from source/supplement"
+      },
+      "horizon": {
+        "radius": "1",
+        "angular_velocity": "0.33",
+        "conditions": [
+          "f(r_H)=0",
+          "b(r_H)=0",
+          "w(r_H)=Omega_H",
+          "h(r_H)=Theta_H",
+          "full regular near-horizon series pending supplement extraction"
+        ]
+      },
+      "parameter_sweep": {
+        "alpha_start": "0",
+        "alpha_end": "3",
+        "alpha_step": "0.01"
+      },
+      "radial_domain": {
+        "physical": "r in [r_H,infinity)",
+        "compactification": "r-r_H=tan(x)",
+        "exact_x_domain_and_boundary_map": "pending supplemental source extraction"
+      },
+      "boundaries": {
+        "horizon": "regular near-horizon expansion",
+        "infinity": "asymptotically flat",
+        "exact_series_status": "pending supplemental source extraction"
+      },
+      "reference_controls": {
+        "alpha_zero": "exact five-dimensional equal-spin Myers-Perry limit",
+        "alpha_three": "published numerical 5D EGB equal-angular-momentum solution from Brihaye et al. (2010)",
+        "akribeia_reported_myers_perry_l2_relative_error": "~1e-160",
+        "akribeia_reported_precision_digits": 300,
+        "l2_scope": "Myers-Perry GR-limit solution-difference metric, not a generic EGB equation residual"
+      },
+      "discovery_refinement_baseline": {
+        "neural_architecture": "3 hidden layers x 20 units, Swish",
+        "training": "10^4-10^5 steps; Adam schedule then L-BFGS",
+        "reported_pre_refinement_residual": "~1e-3",
+        "spectral_refinement": "Chebyshev pseudo-spectral Gauss-Newton with extended precision",
+        "note": "Reproduction requires same norm, action, boundary data, domain compactification, precision and source data."
+      },
+      "architecture_boundary": {
+        "existing_symtropy_relativity_metric_storage": "4x4",
+        "direct_reuse_permitted": false,
+        "required_adapter": "dedicated 5D invariant-frame/cohomogeneity-one Lovelock equations or explicitly dimension-generalized tensor stack"
+      },
+      "data_status": {
+        "full_paper_inspected": true,
+        "supplemental_near_horizon_and_asymptotic_series_extracted": false,
+        "raw_solution_arrays_extracted": false,
+        "exact_2010_reference_arrays_extracted": false,
+        "symtropy_run_executed": false
+      },
+      "purpose": [
+        "matched neural-spectral discovery/refinement comparison",
+        "exact Myers-Perry limit",
+        "published 5D EGB non-GR control",
+        "independent full-domain interval and existence qualification"
+      ],
+      "owner_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6063",
+      "source": "Agurto-Sepulveda et al., arXiv:2607.07418, DOI 10.1103/3kz2-6dvv"
     }
   ],
   "fairness_rules": [
@@ -379,6 +464,9 @@
     "Akribeia's 5D/7D Lovelock cases are not directly comparable to 4D pure-Weyl cases; compare only after action/dimension/ansatz/gauge/boundary matching.",
     "Akribeia's reported ~1e-160 relative L2 error is a Myers-Perry GR-limit result at 300-digit precision, not a universal error on all higher-curvature branches.",
     "Akribeia's continuous neural-field certification and quantified residuals are not to be equated automatically with an interval/radii-polynomial existence theorem.",
-    "The two static reduced Bach equations are distinct: the factorized B1+B2 equation selects the four-term profile; B1-B2 then imposes Q=0. Both must be checked."
+    "The two static reduced Bach equations are distinct: the factorized B1+B2 equation selects the four-term profile; B1-B2 then imposes Q=0. Both must be checked.",
+    "The Akribeia 10^-160 relative L2 figure is specific to the five-dimensional Myers-Perry GR-limit control at 300 digits; it is not an EGB equation-residual bound.",
+    "The Akribeia 5D EGB equal-spin case must not be compared directly to the current 4D static pure-Weyl code. A dimension/action/symmetry/gauge/boundary matched adapter is required.",
+    "The current public symtropy-relativity metric component representation is 4x4; 5D work requires an explicit dimension-generalized or invariant-frame formulation."
   ]
 }
