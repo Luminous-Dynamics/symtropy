@@ -434,57 +434,140 @@ pub enum ModelError {
 impl fmt::Display for ModelError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::WrongSchemaVersion => write!(f, "model program schema version is unsupported"),
+            Self::WrongSchemaVersion => {
+                write!(f, "model program schema version is unsupported")
+            }
             Self::EmptyModelId => write!(f, "model identity must not be empty"),
-            Self::InvalidModelId => write!(f, "model identity must use the admitted ASCII token syntax"),
+            Self::InvalidModelId => {
+                write!(f, "model identity must use the admitted ASCII token syntax")
+            }
             Self::TooManyVariables => write!(f, "model proposal exceeds the variable limit"),
-            Self::TooManyAssignments => write!(f, "model proposal exceeds the assignment limit"),
+            Self::TooManyAssignments => {
+                write!(f, "model proposal exceeds the assignment limit")
+            }
             Self::DuplicateVariableId(id) => write!(f, "duplicate variable ID {}", id.0),
             Self::DuplicateVariableName => write!(f, "duplicate variable name"),
-            Self::InvalidVariableName => write!(f, "variable names must be lowercase ASCII identifiers"),
-            Self::InvalidValueRange => write!(f, "value range must have finite ordered endpoints"),
-            Self::MissingVariableRange(id) => write!(f, "input, parameter and dynamic-state variable {} requires an explicit admissible range", id.0),
-            Self::MissingInitialValue(id) => write!(f, "state variable {} has no initial value", id.0),
-            Self::UnexpectedInitialValue(id) => write!(f, "non-state variable {} declares an initial value", id.0),
-            Self::InitialValueOutsideRange(id) => write!(f, "initial state {} is outside its admitted range", id.0),
-            Self::MissingStateTransitions => write!(f, "every state/latent variable needs exactly one transition"),
-            Self::AlgebraicModelHasTransitions => write!(f, "algebraic proposal cannot declare state transitions"),
-            Self::TransitionForNonState(id) => write!(f, "transition target {} is not a state/latent variable", id.0),
-            Self::DuplicateAssignment(id) => write!(f, "duplicate assignment for variable {}", id.0),
-            Self::MissingAssignment(id) => write!(f, "missing required assignment for variable {}", id.0),
-            Self::OutputForNonObservable(id) => write!(f, "output target {} is not observable", id.0),
+            Self::InvalidVariableName => {
+                write!(f, "variable names must be lowercase ASCII identifiers")
+            }
+            Self::InvalidValueRange => {
+                write!(f, "value range must have finite ordered endpoints")
+            }
+            Self::MissingVariableRange(id) => write!(
+                f,
+                "input, parameter and dynamic-state variable {} requires an explicit admissible range",
+                id.0
+            ),
+            Self::MissingInitialValue(id) => {
+                write!(f, "state variable {} has no initial value", id.0)
+            }
+            Self::UnexpectedInitialValue(id) => {
+                write!(f, "non-state variable {} declares an initial value", id.0)
+            }
+            Self::InitialValueOutsideRange(id) => {
+                write!(f, "initial state {} is outside its admitted range", id.0)
+            }
+            Self::MissingStateTransitions => {
+                write!(f, "every state/latent variable needs exactly one transition")
+            }
+            Self::AlgebraicModelHasTransitions => {
+                write!(f, "algebraic proposal cannot declare state transitions")
+            }
+            Self::TransitionForNonState(id) => {
+                write!(f, "transition target {} is not a state/latent variable", id.0)
+            }
+            Self::DuplicateAssignment(id) => {
+                write!(f, "duplicate assignment for variable {}", id.0)
+            }
+            Self::MissingAssignment(id) => {
+                write!(f, "missing required assignment for variable {}", id.0)
+            }
+            Self::OutputForNonObservable(id) => {
+                write!(f, "output target {} is not observable", id.0)
+            }
             Self::NoObservables => write!(f, "proposal must declare at least one observable"),
-            Self::NoStateVariables => write!(f, "stateful proposal must declare at least one state variable"),
-            Self::AlgebraicModelHasState => write!(f, "algebraic proposal cannot declare state/latent variables"),
-            Self::StatefulModelHasNoState => write!(f, "discrete proposal must declare state/latent variables"),
-            Self::UnknownVariable(id) => write!(f, "expression references unknown variable {}", id.0),
-            Self::ObservableCannotBeRead(id) => write!(f, "observable {} cannot be read by the v0 transition language", id.0),
-            Self::DimensionMismatch { .. } => write!(f, "addition/subtraction operands have incompatible dimensions"),
-            Self::DimensionExponentOverflow => write!(f, "unit dimension exponent overflows the admitted representation"),
-            Self::DimensionlessArgumentRequired => write!(f, "exponential expects a dimensionless argument"),
-            Self::NoiseOutsideStochasticModel => write!(f, "random innovations are admitted only in stochastic-state proposals"),
-            Self::StochasticModelWithoutNoise => write!(f, "stochastic-state proposal must contain at least one noise node"),
+            Self::NoStateVariables => {
+                write!(f, "stateful proposal must declare at least one state variable")
+            }
+            Self::AlgebraicModelHasState => {
+                write!(f, "algebraic proposal cannot declare state/latent variables")
+            }
+            Self::StatefulModelHasNoState => {
+                write!(f, "discrete proposal must declare state/latent variables")
+            }
+            Self::UnknownVariable(id) => {
+                write!(f, "expression references unknown variable {}", id.0)
+            }
+            Self::ObservableCannotBeRead(id) => write!(
+                f,
+                "observable {} cannot be read by the v0 transition language",
+                id.0
+            ),
+            Self::DimensionMismatch { .. } => {
+                write!(f, "addition/subtraction operands have incompatible dimensions")
+            }
+            Self::DimensionExponentOverflow => {
+                write!(f, "unit dimension exponent overflows the admitted representation")
+            }
+            Self::DimensionlessArgumentRequired => {
+                write!(f, "exponential expects a dimensionless argument")
+            }
+            Self::NoiseOutsideStochasticModel => {
+                write!(f, "random innovations are admitted only in stochastic-state proposals")
+            }
+            Self::StochasticModelWithoutNoise => {
+                write!(f, "stochastic-state proposal must contain at least one noise node")
+            }
             Self::NonFiniteConstant => write!(f, "expression constant must be finite"),
-            Self::NonFiniteInitialState(id) => write!(f, "initial state {} must be finite", id.0),
-            Self::NonFiniteBinding(id) => write!(f, "binding for variable {} must be finite", id.0),
-            Self::MissingBinding(id) => write!(f, "external binding missing for variable {}", id.0),
-            Self::DuplicateBinding(id) => write!(f, "duplicate external binding for variable {}", id.0),
-            Self::BindingForNonExternalVariable(id) => write!(f, "binding supplied for non-input/non-parameter variable {}", id.0),
-            Self::BindingOutsideRange(id) => write!(f, "external binding for variable {} is outside its admitted range", id.0),
-            Self::InvalidHorizon => write!(f, "requested horizon is outside the program's declared limit"),
-            Self::FuelExhausted => write!(f, "model interpreter exhausted its expression fuel"),
+            Self::NonFiniteInitialState(id) => {
+                write!(f, "initial state {} must be finite", id.0)
+            }
+            Self::NonFiniteBinding(id) => {
+                write!(f, "binding for variable {} must be finite", id.0)
+            }
+            Self::MissingBinding(id) => {
+                write!(f, "external binding missing for variable {}", id.0)
+            }
+            Self::DuplicateBinding(id) => {
+                write!(f, "duplicate external binding for variable {}", id.0)
+            }
+            Self::BindingForNonExternalVariable(id) => write!(
+                f,
+                "binding supplied for non-input/non-parameter variable {}",
+                id.0
+            ),
+            Self::BindingOutsideRange(id) => write!(
+                f,
+                "external binding for variable {} is outside its admitted range",
+                id.0
+            ),
+            Self::InvalidHorizon => {
+                write!(f, "requested horizon is outside the program's declared limit")
+            }
+            Self::FuelExhausted => {
+                write!(f, "model interpreter exhausted its expression fuel")
+            }
             Self::ExpressionTooLarge => write!(f, "expression tree exceeds the node limit"),
             Self::ExpressionTooDeep => write!(f, "expression tree exceeds the depth limit"),
             Self::DivisionByZero => write!(f, "model expression divided by zero"),
-            Self::NonFiniteEvaluation => write!(f, "model expression produced a non-finite value"),
-            Self::StateOutsideRange(id) => write!(f, "updated state {} is outside its admitted range", id.0),
-            Self::ObservableOutsideRange(id) => write!(f, "computed observable {} is outside its admitted range", id.0),
-            Self::InternalMissingValue(id) => write!(f, "interpreter environment lacks variable {}", id.0),
-            Self::InvalidBudget => write!(f, "interpreter budget must have positive step and expression limits"),
+            Self::NonFiniteEvaluation => {
+                write!(f, "model expression produced a non-finite value")
+            }
+            Self::StateOutsideRange(id) => {
+                write!(f, "updated state {} is outside its admitted range", id.0)
+            }
+            Self::ObservableOutsideRange(id) => {
+                write!(f, "computed observable {} is outside its admitted range", id.0)
+            }
+            Self::InternalMissingValue(id) => {
+                write!(f, "interpreter environment lacks variable {}", id.0)
+            }
+            Self::InvalidBudget => {
+                write!(f, "interpreter budget must have positive step and expression limits")
+            }
         }
     }
 }
-
 impl std::error::Error for ModelError {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -774,7 +857,9 @@ fn validate_program(program: &ModelProgramV0) -> Result<(), ModelError> {
         }
         if let Some(range) = declaration.admissible_range {
             range.validate()?;
-        } else if declaration.role.is_dynamic_state() || declaration.role.requires_external_binding() {
+        } else if declaration.role.is_dynamic_state()
+            || declaration.role.requires_external_binding()
+        {
             return Err(ModelError::MissingVariableRange(declaration.id));
         }
         if declaration.role.is_dynamic_state() {
@@ -819,17 +904,18 @@ fn validate_program(program: &ModelProgramV0) -> Result<(), ModelError> {
     }
 
     let stochastic = program.class == ProposalClass::StochasticState;
-    let mut node_count = 0_usize;
-    let mut noise_node_count = 0_usize;
+    let mut validation_context = AssignmentValidationContext {
+        stochastic,
+        symbols: &symbols,
+        node_count: 0,
+        noise_node_count: 0,
+    };
     validate_assignment_set(
         &program.outputs,
         &observable_ids,
         false,
-        stochastic,
-        &symbols,
-        &mut node_count,
-        &mut noise_node_count,
         ModelError::OutputForNonObservable,
+        &mut validation_context,
     )?;
 
     match program.class {
@@ -846,11 +932,8 @@ fn validate_program(program: &ModelProgramV0) -> Result<(), ModelError> {
                 &program.transitions,
                 &state_ids,
                 true,
-                stochastic,
-                &symbols,
-                &mut node_count,
-                &mut noise_node_count,
                 ModelError::TransitionForNonState,
+                &mut validation_context,
             )?;
         }
     }
@@ -861,15 +944,19 @@ fn validate_program(program: &ModelProgramV0) -> Result<(), ModelError> {
     Ok(())
 }
 
+struct AssignmentValidationContext<'a> {
+    stochastic: bool,
+    symbols: &'a BTreeMap<VariableId, VariableDecl>,
+    node_count: usize,
+    noise_node_count: usize,
+}
+
 fn validate_assignment_set(
     assignments: &[Assignment],
     required_targets: &BTreeSet<VariableId>,
     require_state_target: bool,
-    stochastic: bool,
-    symbols: &BTreeMap<VariableId, VariableDecl>,
-    node_count: &mut usize,
-    noise_node_count: &mut usize,
     wrong_target: fn(VariableId) -> ModelError,
+    context: &mut AssignmentValidationContext<'_>,
 ) -> Result<(), ModelError> {
     if assignments.is_empty() {
         return Err(ModelError::MissingAssignment(
@@ -878,7 +965,7 @@ fn validate_assignment_set(
     }
     let mut targets = BTreeSet::new();
     for assignment in assignments {
-        let declaration = symbols
+        let declaration = context.symbols
             .get(&assignment.target)
             .ok_or(ModelError::UnknownVariable(assignment.target))?;
         if !required_targets.contains(&assignment.target) {
@@ -890,11 +977,13 @@ fn validate_assignment_set(
         if !targets.insert(assignment.target) {
             return Err(ModelError::DuplicateAssignment(assignment.target));
         }
-        let dimension =
-            assignment
-                .expression
-                .validate(symbols, stochastic, 0, node_count)?;
-        *noise_node_count += assignment.expression.count_noise_nodes();
+        let dimension = assignment.expression.validate(
+            context.symbols,
+            context.stochastic,
+            0,
+            &mut context.node_count,
+        )?;
+        context.noise_node_count += assignment.expression.count_noise_nodes();
         if dimension != declaration.dimension {
             return Err(ModelError::DimensionMismatch {
                 left: dimension,
@@ -1359,8 +1448,22 @@ mod tests {
                     Some(ValueRange { minimum: -10.0, maximum: 10.0 }),
                     Some(2.0),
                 ),
-                declaration(3, "left_out", VariableRole::Observable, Dimension::DIMENSIONLESS, None, None),
-                declaration(4, "right_out", VariableRole::Observable, Dimension::DIMENSIONLESS, None, None),
+                declaration(
+                    3,
+                    "left_out",
+                    VariableRole::Observable,
+                    Dimension::DIMENSIONLESS,
+                    None,
+                    None,
+                ),
+                declaration(
+                    4,
+                    "right_out",
+                    VariableRole::Observable,
+                    Dimension::DIMENSIONLESS,
+                    None,
+                    None,
+                ),
             ],
             class: ProposalClass::DiscreteState,
             transitions: vec![
