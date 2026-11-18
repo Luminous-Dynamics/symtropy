@@ -26,6 +26,18 @@ const TOTAL_KL_TOLERANCE: f64 = 1.0e-10;
 const MAX_TOTAL_KL_BASIS: usize = 16;
 const MAX_TOTAL_KL_SEGMENTS: usize = 16;
 
+/// Expected observation-process identity supplied by the experiment request.
+/// Values are identifiers, not authenticated manifests; their trust must be
+/// established by the surrounding evidence/receipt layer.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ObservationDesignIdentityV1 {
+    pub covariance_id: String,
+    pub observation_process_id: String,
+    pub sampling_policy_id: String,
+    pub observation_operator_id: String,
+    pub availability_cutoff_id: String,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TotalKlOptimalityDisposition {
     ExactTotalKlTrustRegionOptimum,
@@ -208,12 +220,13 @@ pub fn optimize_pairwise_total_kl_trust_region_with_covariance(
     actuator_nodes: &[usize],
     time_boundaries: &[f64],
     covariance: &ObservationCovarianceV1,
+    expected_identity: &ObservationDesignIdentityV1,
 ) -> Result<TotalKlTrustRegionReportV1, TotalKlTrustRegionError> {
-    if covariance.covariance_id.trim().is_empty()
-        || covariance.observation_process_id.trim().is_empty()
-        || covariance.sampling_policy_id.trim().is_empty()
-        || covariance.observation_operator_id.trim().is_empty()
-        || covariance.availability_cutoff_id.trim().is_empty()
+    if expected_identity.covariance_id.trim().is_empty()
+        || expected_identity.observation_process_id.trim().is_empty()
+        || expected_identity.sampling_policy_id.trim().is_empty()
+        || expected_identity.observation_operator_id.trim().is_empty()
+        || expected_identity.availability_cutoff_id.trim().is_empty()
     {
         return Err(TotalKlTrustRegionError::MissingCovarianceIdentity);
     }
@@ -222,18 +235,23 @@ pub fn optimize_pairwise_total_kl_trust_region_with_covariance(
         .len()
         .checked_mul(selected_sensor_ids.len())
         .ok_or(TotalKlTrustRegionError::CovarianceIdentityMismatch)?;
-    if covariance.sensor_ids != selected_sensor_ids
+    if expected_identity.covariance_id != covariance.covariance_id
+        || expected_identity.observation_process_id != covariance.observation_process_id
+        || expected_identity.sampling_policy_id != covariance.sampling_policy_id
+        || expected_identity.observation_operator_id != covariance.observation_operator_id
+        || expected_identity.availability_cutoff_id != covariance.availability_cutoff_id
+        || covariance.sensor_ids != selected_sensor_ids
         || covariance.times != scenario.observation_times
         || covariance.covariance().dimension() != expected_dimension
     {
         return Err(TotalKlTrustRegionError::CovarianceIdentityMismatch);
     }
     let metadata = CovarianceMetadataV1 {
-        covariance_id: covariance.covariance_id.clone(),
-        observation_process_id: covariance.observation_process_id.clone(),
-        sampling_policy_id: covariance.sampling_policy_id.clone(),
-        observation_operator_id: covariance.observation_operator_id.clone(),
-        availability_cutoff_id: covariance.availability_cutoff_id.clone(),
+        covariance_id: expected_identity.covariance_id.clone(),
+        observation_process_id: expected_identity.observation_process_id.clone(),
+        sampling_policy_id: expected_identity.sampling_policy_id.clone(),
+        observation_operator_id: expected_identity.observation_operator_id.clone(),
+        availability_cutoff_id: expected_identity.availability_cutoff_id.clone(),
         covariance_kind: covariance.covariance().kind_label(),
     };
     let metric = |left: &[f64], right: &[f64]| {
@@ -835,6 +853,22 @@ mod tests {
         }
     }
 
+    fn identity(
+        covariance_id: &str,
+        observation_process_id: &str,
+        sampling_policy_id: &str,
+        observation_operator_id: &str,
+        availability_cutoff_id: &str,
+    ) -> ObservationDesignIdentityV1 {
+        ObservationDesignIdentityV1 {
+            covariance_id: covariance_id.to_owned(),
+            observation_process_id: observation_process_id.to_owned(),
+            sampling_policy_id: sampling_policy_id.to_owned(),
+            observation_operator_id: observation_operator_id.to_owned(),
+            availability_cutoff_id: availability_cutoff_id.to_owned(),
+        }
+    }
+
     fn scenario(max_abs_forcing: f64) -> ExperimentDesignScenario {
         ExperimentDesignScenario {
             name: "total-kl-chain-bypass-fixture",
@@ -988,6 +1022,13 @@ mod tests {
             &[0, 1, 2],
             &[0.0, 0.5, 1.0, 2.0],
             &binding,
+            &identity(
+                "covariance:block-diagonal-v1",
+                "process:independent-time-v1",
+                "sampling:scenario-v1",
+                "operator:selected-sensors-v1",
+                "cutoff:finalized-v1",
+            ),
         )
         .unwrap();
         assert_eq!(full.covariance_kind, "DENSE_SPD");
@@ -1048,11 +1089,25 @@ mod tests {
         let dense_report = optimize_pairwise_total_kl_trust_region_with_covariance(
             &fixture, 1, 2, &[10, 11], &[0, 1, 2], &[0.0, 0.5, 1.0, 2.0],
             &dense_binding,
+            &identity(
+                "covariance:ar1-dense-v1",
+                "process:ar1-rho-0.6",
+                "sampling:equal-spacing-v1",
+                "operator:selected-sensors-v1",
+                "cutoff:finalized-v1",
+            ),
         )
         .unwrap();
         let structured_report = optimize_pairwise_total_kl_trust_region_with_covariance(
             &fixture, 1, 2, &[10, 11], &[0, 1, 2], &[0.0, 0.5, 1.0, 2.0],
             &structured_binding,
+            &identity(
+                "covariance:ar1-structured-v1",
+                "process:ar1-rho-0.6",
+                "sampling:equal-spacing-v1",
+                "operator:selected-sensors-v1",
+                "cutoff:finalized-v1",
+            ),
         )
         .unwrap();
         assert_eq!(dense_report.covariance_kind, "DENSE_SPD");
@@ -1092,6 +1147,13 @@ mod tests {
         assert_eq!(
             optimize_pairwise_total_kl_trust_region_with_covariance(
                 &fixture, 1, 2, &[10, 11], &[0], &[0.0, 2.0], &wrong_order,
+                &identity(
+                    "covariance:wrong-order",
+                    "process:independent-time",
+                    "sampling:scenario",
+                    "operator:sensors",
+                    "cutoff:finalized",
+                ),
             ),
             Err(TotalKlTrustRegionError::CovarianceIdentityMismatch)
         );
@@ -1112,9 +1174,36 @@ mod tests {
         assert_eq!(
             optimize_pairwise_total_kl_trust_region_with_covariance(
                 &fixture, 1, 2, &[10, 11], &[0], &[0.0, 2.0], &wrong_times,
+                &identity(
+                    "covariance:wrong-times",
+                    "process:independent-time",
+                    "sampling:scenario",
+                    "operator:sensors",
+                    "cutoff:finalized",
+                ),
             ),
             Err(TotalKlTrustRegionError::CovarianceIdentityMismatch)
         );
+        assert_eq!(
+            optimize_pairwise_total_kl_trust_region_with_covariance(
+                &fixture,
+                1,
+                2,
+                &[10, 11],
+                &[0],
+                &[0.0, 2.0],
+                &wrong_order,
+                &identity(
+                    "covariance:wrong-order",
+                    "process:stale-identity",
+                    "sampling:scenario",
+                    "operator:sensors",
+                    "cutoff:finalized",
+                ),
+            ),
+            Err(TotalKlTrustRegionError::CovarianceIdentityMismatch)
+        );
+
     }
 
     #[test]
