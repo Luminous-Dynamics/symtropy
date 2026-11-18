@@ -1,0 +1,212 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "black_hole_solver_benchmark_case_manifest",
+  "status": "frozen_controls_and_external_references_planned_not_executed",
+  "frozen_at": "2026-11-18",
+  "cases": [
+    {
+      "case_id": "GR-SCHWARZSCHILD-STATIC-ANNULUS-001",
+      "status": "known_answer_frozen",
+      "theory_id": "4d_einstein_vacuum",
+      "spacetime_dimension": 4,
+      "metric": "ds^2=-B(r)dt^2+dr^2/B(r)+r^2 dOmega^2",
+      "signature": "(-+++)",
+      "chart": "static_spherical",
+      "coordinates": [
+        "t",
+        "r",
+        "theta",
+        "phi"
+      ],
+      "parameters": {
+        "mass": "1"
+      },
+      "domain": {
+        "r_min": "3",
+        "r_max": "6"
+      },
+      "lapse": "B(r)=1-2/r",
+      "known_values": {
+        "B_at_3": "1/3",
+        "B_at_6": "2/3"
+      },
+      "known_answer": [
+        "Bach tensor identically zero",
+        "all independent static spherical Bach components vanish"
+      ],
+      "purpose": [
+        "GR zero control",
+        "static-chart positivity",
+        "residual and derivative regression"
+      ],
+      "source_fixture": "crates/domains/symtropy-relativity/benchmarks/bach_static_symbolic_fixture_v1.json"
+    },
+    {
+      "case_id": "Weyl-MK-ON-SHELL-ANNULUS-001",
+      "status": "known_answer_frozen",
+      "theory_id": "4d_conformal_weyl_gravity_static_spherical",
+      "spacetime_dimension": 4,
+      "metric": "ds^2=-B(r)dt^2+dr^2/B(r)+r^2 dOmega^2",
+      "signature": "(-+++)",
+      "chart": "static_spherical",
+      "coordinates": [
+        "t",
+        "r",
+        "theta",
+        "phi"
+      ],
+      "coefficients": {
+        "c_inverse": "-17/10",
+        "c_constant": "7/10",
+        "c_linear": "1/10",
+        "c_quadratic": "-1/100"
+      },
+      "lapse": "B(r)=c_inverse/r+c_constant+c_linear*r+c_quadratic*r^2",
+      "vacuum_constraint_Q": "c_constant^2-3*c_linear*c_inverse-1=0",
+      "domain": {
+        "r_min": "3",
+        "r_max": "6"
+      },
+      "known_values": {
+        "B_at_3": "103/300",
+        "B_at_6": "197/300",
+        "Q": "0"
+      },
+      "known_answer": [
+        "all independent Bach components vanish",
+        "trace is zero",
+        "covariant divergence is zero"
+      ],
+      "purpose": [
+        "non-Einstein conformal-gravity exact control",
+        "coefficient/normalization check",
+        "Chebyshev tail fixture"
+      ],
+      "source_fixture": "crates/domains/symtropy-relativity/benchmarks/bach_static_symbolic_fixture_v1.json",
+      "spectral_tail_fixture": "crates/domains/symtropy-relativity/benchmarks/mk_chebyshev_rational_tail_certificate_v1.json"
+    },
+    {
+      "case_id": "Weyl-MK-OFF-SHELL-MUTATION-001",
+      "status": "negative_control_frozen",
+      "theory_id": "4d_conformal_weyl_gravity_static_spherical",
+      "spacetime_dimension": 4,
+      "metric": "ds^2=-B(r)dt^2+dr^2/B(r)+r^2 dOmega^2",
+      "signature": "(-+++)",
+      "chart": "static_spherical",
+      "coordinates": [
+        "t",
+        "r",
+        "theta",
+        "phi"
+      ],
+      "coefficients": {
+        "c_inverse": "-17/10",
+        "c_constant": "11/10",
+        "c_linear": "1/10",
+        "c_quadratic": "-1/100"
+      },
+      "lapse": "B(r)=c_inverse/r+c_constant+c_linear*r+c_quadratic*r^2",
+      "vacuum_constraint_Q": "18/25",
+      "domain": {
+        "r_min": "3",
+        "r_max": "6"
+      },
+      "known_values": {
+        "B_at_3": "223/300",
+        "B_at_6": "317/300",
+        "B1_minus_B2_at_3": "8/675",
+        "B1_minus_B2_at_6": "1/1350"
+      },
+      "expected_behavior": "independent Bach residual enclosure must exclude zero; solver must not return a verified vacuum solution",
+      "purpose": [
+        "false-acceptance negative control",
+        "r^-4 residual scaling"
+      ],
+      "source_fixture": "crates/domains/symtropy-relativity/benchmarks/bach_static_symbolic_fixture_v1.json"
+    },
+    {
+      "case_id": "DCS-SGB-SCALAR-QNM-HIGH-SPIN-EXTERNAL-001",
+      "status": "reference_data_required",
+      "theory_ids": [
+        "dynamical_Chern_Simons",
+        "scalar_Gauss_Bonnet"
+      ],
+      "spacetime_dimension": 4,
+      "reference_paper": "Husken et al., Phys. Rev. D 114, 064072 (2026)",
+      "doi": "10.1103/jrnh-wsxw",
+      "spins": [
+        "0",
+        "0.5",
+        "0.9",
+        "0.95",
+        "0.99"
+      ],
+      "fields": [
+        "massless_minimally_coupled_test_scalar"
+      ],
+      "modes": [
+        "l=m=0",
+        "higher multipoles where tabulated"
+      ],
+      "published_accuracy": {
+        "l_m_0": "~1e-3 or better",
+        "higher_multipoles": "~1e-6 or better"
+      },
+      "data_status": "published values and convention-complete mode data must be extracted before running a matched comparison",
+      "purpose": [
+        "high-spin pseudospectral QNM accuracy comparator"
+      ]
+    },
+    {
+      "case_id": "AKRIBEIA-ROTATING-HIGHER-CURVATURE-MATCHED-001",
+      "status": "not_yet_matched",
+      "reference_paper": "Agurto-Sepulveda et al., Phys. Rev. D accepted 2026-11-12",
+      "doi": "10.1103/3kz2-6dvv",
+      "preprint": "arXiv:2607.07418",
+      "data_status": "inspect full article and supplement; select an action, dimension and branch with reference data",
+      "required_before_comparison": [
+        "same action and coupling normalization",
+        "same spacetime dimension",
+        "same symmetry ansatz",
+        "same chart and gauge",
+        "same boundary conditions",
+        "same residual norm and domain"
+      ],
+      "purpose": [
+        "neural discovery plus pseudospectral refinement methodology comparator"
+      ]
+    },
+    {
+      "case_id": "DCS-SGB-NEAR-EXTREMAL-EFT-MATCHED-001",
+      "status": "reference_data_required",
+      "reference_paper": "Lam, Horowitz and Yunes, Phys. Rev. D 114, 104044 (2026)",
+      "doi": "10.1103/ddyq-94zb",
+      "family_parameters": [
+        "kappa_H*M",
+        "Omega_H*M",
+        "dimensionless_spin",
+        "ADM_mass",
+        "ADM_angular_momentum"
+      ],
+      "validity_gates": [
+        "scalar_invariants",
+        "infalling_tidal_tensor",
+        "extra_field_gradients",
+        "near_horizon_boundary_layer",
+        "EFT_operator_ordering"
+      ],
+      "data_status": "extract source numerical curves and observer conventions before reproducing",
+      "purpose": [
+        "near-extremal regularity and EFT validity methodology comparator"
+      ]
+    }
+  ],
+  "fairness_rules": [
+    "No cross-theory numerical performance claim without identical equations and conventions.",
+    "Source-published values are not Symtropy-reproduced values.",
+    "A low collocation residual is not a full-domain enclosure.",
+    "A full-domain residual enclosure is not by itself an existence theorem.",
+    "A local existence theorem does not establish EFT validity or observational admissibility.",
+    "Inconclusive is not refuted and not verified."
+  ]
+}
