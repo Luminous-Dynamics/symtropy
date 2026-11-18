@@ -28,7 +28,11 @@ Source-reported quantitative targets:
 - Intermediate event survival exponent alpha = 0.79; large-time cutoff exponent beta = 2.63 (as fitted in the paper).
 - Mean-squared displacement crosses near 0.5 s from a short-time ballistic regime to an intermediate subdiffusive regime.
 - Analytical long-time diffusion coefficients: approximately 5.25 and 2.56 µm²/s for wild-type at 0.25% and 0.3% agar; approximately 8.55 and 6.81 µm²/s for delta-motAB and delta-motCD at 0.25% agar.
-- The model uses the empirical run and event waiting-time distributions, mean speed, within-run rotational diffusion and turn-angle statistics. Do not replace measured event dwell-time behavior with a fixed pause or a simple exponential when reproducing this baseline.
+- The model uses empirical run and event waiting-time distributions, mean speed, within-run rotational diffusion and turn-angle statistics. Do not replace measured event dwell-time behavior with a fixed pause or a simple exponential when reproducing this baseline.
+- The fitted run-time survival is double-exponential (mixture of two characteristic timescales); event dwell-time density is piecewise power-law with an intermediate exponent α = 0.79 and a long-time exponent β = 2.63.
+- The run-time mixture weight, component means, event lower support and crossover time must be fitted from the source/supplement; paper headline means are not sufficient to reconstruct these values.
+- The waiting-time distributions are estimated with non-parametric maximum-likelihood methods in the paper. Any parametric candidate must be compared against this empirical/non-parametric reference with the same censoring and observation window.
+- MSD depends on the renewal-process ageing time. Long-time normal diffusion is extrapolated beyond the observed field-of-view window and must not be reported as directly measured.
 
 All values are literature-reported targets. A new result must independently fit or measure parameters from admitted data and report fitting uncertainty.
 
@@ -109,21 +113,25 @@ The first integration may use only source-reported summaries as literature targe
 | F | Combined model + pore-resolved passive trapping | Overlap allowed across duration bins | Test geometry dependence |
 | G | Mechanism labels unresolved; use duration only for published subgroup comparison | Sensitivity across all threshold policies | Negative control for causal overinterpretation |
 
-All arms must use the same source split, empirical event distribution where applicable, swimming-speed inputs, gradient, time horizon, initial conditions, observation cadence, seeds and compute budget.
+All arms must use the same source split, empirical event distribution where applicable, swimming-speed inputs, gradient, ageing-time (t_a), observation horizon, initial conditions, observation cadence, censoring treatment, seeds and compute budget.
 
 ## Primary outcomes
 
-1. Run-time survival/distribution conditioned on preceding direction.
-2. Event-duration distributions and tails, stratified by independently assigned physical mechanism where evidence supports it.
-3. Turn-angle distributions conditioned on preceding run-displacement direction and active-motor evidence class.
-4. Up-gradient run fraction after short versus long duration bins, reported independently of mechanism.
-5. Mechanism-by-duration overlap matrix, only where mechanism evidence is independently available.
-6. Duration-as-mechanism diagnostic (sensitivity, specificity, PPV, NPV, balanced accuracy), evaluated only on DIRECTLY_OBSERVED or MODEL_LATENT ground-truth events; algorithm-inferred/unresolved/exact-boundary cases remain excluded.
-7. First circular Fourier harmonic magnitude and phase of realized run-displacement orientations.
-7. Mean-squared displacement as a function of lag time.
-8. Chemotactic drift velocity and projected displacement.
-9. Sensitivity to agar fraction, pore-size/free-path distribution and mutant condition.
-10. Predictive calibration and uncertainty on held-out experimental units.
+1. Run-time survival/distribution conditioned on run-start direction.
+2. Event-duration survival/density, stratified by independently assigned mechanism where evidence supports it.
+3. Right-censor-aware Kaplan–Meier survival curves with risk sets, event counts, censor counts and Greenwood standard errors.
+4. Matched empirical, exponential, double-exponential and piecewise-power-law waiting-time models using identical source splits and censoring assumptions.
+5. Turn-angle distributions conditioned on preceding run-displacement direction and active-motor evidence class.
+6. Up-gradient run fraction after short versus long duration bins, independently of mechanism.
+7. Mechanism-by-duration overlap matrix, only where mechanism evidence is independently available.
+8. Duration-as-mechanism diagnostic (sensitivity, specificity, PPV, NPV, balanced accuracy), evaluated only on DIRECTLY_OBSERVED or MODEL_LATENT ground-truth events; algorithm-inferred/unresolved/exact-boundary cases remain excluded.
+9. First circular Fourier harmonic magnitude and phase of realized run-displacement orientations.
+10. Mean-squared displacement as a function of lag time and renewal-process ageing time (t_a).
+11. Chemotactic drift velocity and projected displacement.
+12. Sensitivity to agar fraction, pore-size/free-path distribution and mutant condition.
+13. Predictive calibration and uncertainty on held-out biological recording/plate/day units.
+
+The observed microscopy window and model-only long-time extrapolation must be reported separately.
 
 Do not split adjacent observations from one trajectory or one plate across training and evaluation. The biological/recording replicate is the statistical unit when metadata supports it.
 
