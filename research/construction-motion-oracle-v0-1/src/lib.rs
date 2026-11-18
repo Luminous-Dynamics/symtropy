@@ -11,6 +11,11 @@ pub use ifc_ids_preflight::{
     IdsRequirementEvaluation, SourceEntityBinding, preflight_ifc_ids_work_package,
 };
 pub mod site_state_ledger;
+pub mod dispatch_readiness;
+pub use dispatch_readiness::{
+    DispatchEnvelopeBinding, DispatchReadinessFailure, DispatchReadinessReceipt,
+    DispatchReadinessRequest, OccupancyAssessmentReceipt, check_dispatch_readiness,
+};
 pub use field_layout_acceptance::{
     CrewHours, DesignIntentEntity, DesignIntentManifest, EntityAcceptanceResult, EntityScoreReason,
     FieldAcceptanceError, FieldAcceptanceProfile, FieldAcceptanceScore, FieldEntityObservation,
