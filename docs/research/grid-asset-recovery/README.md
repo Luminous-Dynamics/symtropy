@@ -214,3 +214,17 @@ Primary references:
 5. Add failure dependency / common-cause scenarios across depots, factories, routes, communications and weather.
 6. Compare the heuristic to CP-SAT / MILP on small cases with proven optima, then scale through larger PSPLIB/RCPLIB scheduling corpora and transmission-specific cases.
 7. Feed scenario restoration and firm-shortfall outputs to #6080 without giving the scheduling engine dispatch or operational authority.
+
+
+### Bounded exact reference oracle
+
+A second scheduler path now exhaustively enumerates precedence-feasible serial schedules for cases of at most ten tasks. The CLI exposes it as `--exact-small`. It is an exact reference only for this bounded model: fixed non-preemptive durations, finish-to-start dependencies, fixed renewable resource capacities and release times. It is not a large-instance optimiser, and cases above ten tasks are rejected.
+
+A deliberately small counterexample is included in the Rust tests:
+- the deterministic earliest-feasible-start / stable-ID order has makespan **120 h**;
+- exhaustive enumeration finds a feasible schedule with makespan **111 h**;
+- the greedy gap is **9 h / 8.11%** relative to the exact makespan.
+
+This is a four-task synthetic scheduling microcase, not a power-grid result. Its value is methodological: even a deterministic feasible heuristic can be suboptimal, so Power Fabric must publish its optimality gap where an exact reference is affordable.
+
+For larger recovery plans, the intended comparison remains CP-SAT / MILP / specialised RCPSP methods, with the same task graph, resource model and objective. The exact-small oracle must never be used to imply optimality for the 20-task or larger synthetic/field cases.
