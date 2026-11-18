@@ -34,13 +34,75 @@ pub enum DirectionClass {
     DownGradient,
 }
 
-/// Operational class of a reorientation event.
+/// Physical explanation represented by a simulated or inferred event.
+///
+/// This is intentionally independent of the observed duration bin. A long
+/// active motor event and a short passive trap are both representable.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum EventClass {
-    /// Event assigned to the short reorientation category by the declared threshold policy.
-    ShortReorientation,
-    /// Event assigned to the long mechanical-trap category by the declared threshold policy.
-    LongMechanicalTrap,
+pub enum EventMechanism {
+    ActiveMotorEvent,
+    PassiveMechanicalTrap,
+    Unresolved,
+}
+
+/// Observational duration subgroup, derived independently of physical cause.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EventDurationBin {
+    Short,
+    Long,
+    ExactBoundaryExcluded,
+}
+
+/// Evidence status attached to a mechanism assignment.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EventEvidenceStatus {
+    /// Mechanism is directly supported by an appropriate measurement.
+    DirectlyObserved,
+    /// Mechanism is inferred by a documented analysis procedure.
+    AlgorithmInferred,
+    /// Mechanism is a known latent variable in a controlled simulation.
+    ModelLatent,
+    /// Evidence does not support assigning a mechanism.
+    Unresolved,
+}
+
+/// Probabilities of the three physical event mechanisms.
+///
+/// The values must be finite, lie in [0, 1], and sum to one within the
+/// declared floating-point validation tolerance.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MechanismProbabilities {
+    pub active_motor: f64,
+    pub passive_trap: f64,
+    pub unresolved: f64,
+}
+
+impl MechanismProbabilities {
+    fn validate(self) -> Result<(), ProfileError> {
+        let values = [self.active_motor, self.passive_trap, self.unresolved];
+        if values
+            .iter()
+            .any(|value| !value.is_finite() || !(0.0..=1.0).contains(value))
+        {
+            return Err(ProfileError::InvalidMechanismProbabilities);
+        }
+        let sum = self.active_motor + self.passive_trap + self.unresolved;
+        if (sum - 1.0).abs() > 1.0e-12 {
+            return Err(ProfileError::InvalidMechanismProbabilities);
+        }
+        Ok(())
+    }
+
+    fn sample(self, rng: &mut SeededRng) -> EventMechanism {
+        let draw = rng.next_unit_f64();
+        if draw < self.active_motor {
+            EventMechanism::ActiveMotorEvent
+        } else if draw < self.active_motor + self.passive_trap {
+            EventMechanism::PassiveMechanicalTrap
+        } else {
+            EventMechanism::Unresolved
+        }
+    }
 }
 
 /// The cited papers use both <= 1 s and < 1 s in different figure/method
@@ -169,43 +231,33 @@ impl BiasMode {
 
 /// A sampled event profile for one declared biological condition.
 ///
-/// Run-time samples are keyed by run-start heading (the causal input to the
-/// next-run policy); short-turn samples are keyed by the realized net
-/// displacement direction of the just-completed run. These are distinct
-/// observables. Separate unconditional distributions enable matched no-bias,
-/// run-time-only, turn-angle-only and combined ablations. Long-trap angles
-/// are intentionally pooled.
+/// Run-time samples are keyed by run-start heading. Active motor-event turn
+/// samples are keyed by the realized net displacement direction of the
+/// completed run. Physical event mechanisms own their own duration samples;
+/// duration bins are derived afterward and never establish mechanism.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PorousMotilityProfile {
-    /// Swimming speed in micrometres per second.
     pub swimming_speed_um_s: f64,
-    /// Rotational diffusion coefficient during runs, in radians squared per second.
-    /// Set to zero for the straight-run ablation.
     pub rotational_diffusion_rad2_s: f64,
-    /// Maximum Euler-Maruyama integration step during a run, in seconds.
     pub integration_step_s: f64,
-    /// Empirical run-duration samples keyed by run-start direction, in seconds.
     pub run_duration_s: DirectionalSamples,
-    /// Pooled run-duration samples used by ablations with run-time bias disabled.
     pub run_duration_unconditional_s: SampleSet,
-    /// Fraction of interruptions represented by short reorientation events.
-    /// Calibrate this from admitted event observations; do not infer it from
-    /// the published paper's headline values.
-    pub short_event_probability: f64,
-    /// How an event exactly at the class threshold is treated.
+    pub mechanism_probabilities: MechanismProbabilities,
     pub threshold_boundary_policy: ThresholdBoundaryPolicy,
-    /// Duration samples for short events; validation follows the declared threshold policy.
-    pub short_event_duration_s: SampleSet,
-    /// Duration samples for long traps; validation follows the boundary policy.
-    pub long_trap_duration_s: SampleSet,
-    /// Signed heading changes in radians for short events, conditional on
-    /// the net displacement direction of the just-completed run.
-    pub short_turn_angle_rad: DirectionalSamples,
-    /// Pooled short-event turn-angle samples used when turn-angle bias is disabled.
-    pub short_turn_angle_unconditional_rad: SampleSet,
-    /// Signed heading changes in radians for long traps, not direction-biased
-    /// by this model.
-    pub long_trap_turn_angle_rad: SampleSet,
+    /// Duration samples conditioned on an active motor event.
+    pub active_motor_event_duration_s: SampleSet,
+    /// Duration samples conditioned on passive mechanical trapping.
+    pub passive_trap_event_duration_s: SampleSet,
+    /// Duration samples when event cause remains unresolved.
+    pub unresolved_event_duration_s: SampleSet,
+    /// Direction-conditioned turns for active motor events.
+    pub active_motor_turn_angle_rad: DirectionalSamples,
+    /// Pooled active-turn angles for the turn-angle-bias ablation.
+    pub active_motor_turn_angle_unconditional_rad: SampleSet,
+    /// Passive-trap escape/reorientation angles; never chemotactically biased here.
+    pub passive_trap_turn_angle_rad: SampleSet,
+    /// Pooled turn angles for unresolved events.
+    pub unresolved_turn_angle_rad: SampleSet,
 }
 
 impl PorousMotilityProfile {
@@ -221,60 +273,58 @@ impl PorousMotilityProfile {
         if !self.integration_step_s.is_finite() || self.integration_step_s <= 0.0 {
             return Err(ProfileError::InvalidIntegrationStep);
         }
-        if !self.short_event_probability.is_finite()
-            || !(0.0..=1.0).contains(&self.short_event_probability)
-        {
-            return Err(ProfileError::InvalidShortEventProbability);
-        }
 
+        self.mechanism_probabilities.validate()?;
         self.run_duration_s.validate_positive("run_duration_s")?;
         self.run_duration_unconditional_s
             .validate_positive("run_duration_unconditional_s")?;
-        self.short_event_duration_s
-            .validate_positive("short_event_duration_s")?;
-        self.long_trap_duration_s
-            .validate_positive("long_trap_duration_s")?;
-        self.short_turn_angle_rad
-            .validate_finite("short_turn_angle_rad")?;
-        self.short_turn_angle_unconditional_rad
-            .validate_finite("short_turn_angle_unconditional_rad")?;
-        self.long_trap_turn_angle_rad
-            .validate_finite("long_trap_turn_angle_rad")?;
-
-        let short_event_outside_policy = self
-            .short_event_duration_s
-            .values()
-            .iter()
-            .any(|duration| match self.threshold_boundary_policy {
-                ThresholdBoundaryPolicy::ShortInclusive => {
-                    *duration > EVENT_CLASS_THRESHOLD_S
-                }
-                ThresholdBoundaryPolicy::LongInclusive
-                | ThresholdBoundaryPolicy::ExcludeExactBoundary => {
-                    *duration >= EVENT_CLASS_THRESHOLD_S
-                }
-            });
-        if short_event_outside_policy {
-            return Err(ProfileError::ShortEventOutsideThresholdPolicy);
-        }
-
-        let long_trap_outside_policy = self
-            .long_trap_duration_s
-            .values()
-            .iter()
-            .any(|duration| match self.threshold_boundary_policy {
-                ThresholdBoundaryPolicy::ShortInclusive
-                | ThresholdBoundaryPolicy::ExcludeExactBoundary => {
-                    *duration <= EVENT_CLASS_THRESHOLD_S
-                }
-                ThresholdBoundaryPolicy::LongInclusive => {
-                    *duration < EVENT_CLASS_THRESHOLD_S
-                }
-            });
-        if long_trap_outside_policy {
-            return Err(ProfileError::LongTrapOutsideThresholdPolicy);
-        }
+        self.active_motor_event_duration_s
+            .validate_positive("active_motor_event_duration_s")?;
+        self.passive_trap_event_duration_s
+            .validate_positive("passive_trap_event_duration_s")?;
+        self.unresolved_event_duration_s
+            .validate_positive("unresolved_event_duration_s")?;
+        self.active_motor_turn_angle_rad
+            .validate_finite("active_motor_turn_angle_rad")?;
+        self.active_motor_turn_angle_unconditional_rad
+            .validate_finite("active_motor_turn_angle_unconditional_rad")?;
+        self.passive_trap_turn_angle_rad
+            .validate_finite("passive_trap_turn_angle_rad")?;
+        self.unresolved_turn_angle_rad
+            .validate_finite("unresolved_turn_angle_rad")?;
         Ok(())
+    }
+
+    pub fn duration_bin(&self, duration_s: f64) -> Result<EventDurationBin, ProfileError> {
+        classify_event_duration(duration_s, EVENT_CLASS_THRESHOLD_S, self.threshold_boundary_policy)
+    }
+}
+
+/// Derive an observational duration bin without inferring physical cause.
+pub fn classify_event_duration(
+    duration_s: f64,
+    threshold_s: f64,
+    policy: ThresholdBoundaryPolicy,
+) -> Result<EventDurationBin, ProfileError> {
+    if !duration_s.is_finite() || duration_s <= 0.0 {
+        return Err(ProfileError::InvalidEventDuration);
+    }
+    if !threshold_s.is_finite() || threshold_s <= 0.0 {
+        return Err(ProfileError::InvalidEventThreshold);
+    }
+
+    if duration_s < threshold_s {
+        Ok(EventDurationBin::Short)
+    } else if duration_s > threshold_s {
+        Ok(EventDurationBin::Long)
+    } else {
+        match policy {
+            ThresholdBoundaryPolicy::ShortInclusive => Ok(EventDurationBin::Short),
+            ThresholdBoundaryPolicy::LongInclusive => Ok(EventDurationBin::Long),
+            ThresholdBoundaryPolicy::ExcludeExactBoundary => {
+                Ok(EventDurationBin::ExactBoundaryExcluded)
+            }
+        }
     }
 }
 
@@ -286,9 +336,9 @@ pub enum ProfileError {
     InvalidSwimmingSpeed,
     InvalidRotationalDiffusion,
     InvalidIntegrationStep,
-    InvalidShortEventProbability,
-    ShortEventOutsideThresholdPolicy,
-    LongTrapOutsideThresholdPolicy,
+    InvalidMechanismProbabilities,
+    InvalidEventDuration,
+    InvalidEventThreshold,
 }
 
 impl fmt::Display for ProfileError {
@@ -312,20 +362,17 @@ impl fmt::Display for ProfileError {
             Self::InvalidIntegrationStep => {
                 write!(formatter, "integration_step_s must be finite and positive")
             }
-            Self::InvalidShortEventProbability => {
-                write!(formatter, "short_event_probability must be in [0, 1]")
-            }
-            Self::ShortEventOutsideThresholdPolicy => {
+            Self::InvalidMechanismProbabilities => {
                 write!(
                     formatter,
-                    "short-event duration violates the declared threshold-boundary policy"
+                    "event mechanism probabilities must be finite, bounded and sum to one"
                 )
             }
-            Self::LongTrapOutsideThresholdPolicy => {
-                write!(
-                    formatter,
-                    "long-trap duration violates the declared threshold-boundary policy"
-                )
+            Self::InvalidEventDuration => {
+                write!(formatter, "event duration must be finite and positive")
+            }
+            Self::InvalidEventThreshold => {
+                write!(formatter, "event duration threshold must be finite and positive")
             }
         }
     }
@@ -382,7 +429,13 @@ pub struct EventRecord {
     /// Instantaneous tangent at the end of the run, before the interruption.
     pub incoming_heading_rad: f64,
     pub run_duration_s: f64,
-    pub event_class: EventClass,
+    /// Physical mechanism selected by the model; never inferred from duration.
+    pub mechanism: EventMechanism,
+    /// Evidence class for the mechanism assignment. Simulated ground-truth
+    /// labels are MODEL_LATENT, not direct biological observations.
+    pub evidence_status: EventEvidenceStatus,
+    /// Duration subgroup derived independently from the physical mechanism.
+    pub duration_bin: EventDurationBin,
     pub event_duration_s: f64,
     pub turn_angle_rad: f64,
     pub heading_after_event_rad: f64,
@@ -410,30 +463,381 @@ pub struct SimulationResult {
 
 /// Summary measures calculated from a simulated trajectory.
 #[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MechanismDurationContingency {
+    pub active_motor_short: usize,
+    pub active_motor_long: usize,
+    pub active_motor_exact_boundary_excluded: usize,
+    pub passive_trap_short: usize,
+    pub passive_trap_long: usize,
+    pub passive_trap_exact_boundary_excluded: usize,
+    pub unresolved_short: usize,
+    pub unresolved_long: usize,
+    pub unresolved_exact_boundary_excluded: usize,
+}
+
+/// Counts mechanisms and duration bins on independent axes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EventEvidenceCounts {
+    pub directly_observed: usize,
+    pub algorithm_inferred: usize,
+    pub model_latent: usize,
+    pub unresolved: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct BehaviorSummary {
     pub event_count: usize,
-    pub short_event_count: usize,
-    pub long_trap_count: usize,
+    /// Event counts by observed duration bin (not physical cause).
+    pub short_duration_event_count: usize,
+    pub long_duration_event_count: usize,
+    pub exact_boundary_excluded_event_count: usize,
+    /// Event counts by physical mechanism (not duration).
+    pub active_motor_event_count: usize,
+    pub passive_trap_event_count: usize,
+    pub unresolved_mechanism_event_count: usize,
+    /// Full mechanism × duration cross-tabulation.
+    pub mechanism_duration_contingency: MechanismDurationContingency,
+    /// Provenance/evidence-status marginal counts.
+    pub evidence_status_counts: EventEvidenceCounts,
     /// Number of completed runs with a resolved net displacement direction.
     pub resolved_run_direction_count: usize,
-    /// Number of resolved completed runs oriented up-gradient.
     pub up_gradient_run_count: usize,
-    /// Fraction of resolved completed runs oriented up-gradient.
     pub up_gradient_run_fraction: Option<f64>,
-    /// Number of short events with an observed following run.
-    pub short_event_followed_run_count: usize,
-    /// Number of those following runs initially oriented up-gradient.
-    pub short_event_followed_up_gradient_count: usize,
-    /// Conditional fraction among observed runs following short events.
-    pub short_event_followed_up_gradient_fraction: Option<f64>,
-    /// Number of long traps with an observed following run.
-    pub long_trap_followed_run_count: usize,
-    /// Number of those following runs initially oriented up-gradient.
-    pub long_trap_followed_up_gradient_count: usize,
-    /// Conditional fraction among observed runs following long traps.
-    pub long_trap_followed_up_gradient_fraction: Option<f64>,
+    /// Next-run orientation conditioned on the previous event's duration bin.
+    pub short_duration_followed_run_count: usize,
+    pub short_duration_followed_up_gradient_count: usize,
+    pub short_duration_followed_up_gradient_fraction: Option<f64>,
+    pub long_duration_followed_run_count: usize,
+    pub long_duration_followed_up_gradient_count: usize,
+    pub long_duration_followed_up_gradient_fraction: Option<f64>,
+    /// Next-run orientation conditioned on the previous event's mechanism.
+    pub active_motor_followed_run_count: usize,
+    pub active_motor_followed_up_gradient_count: usize,
+    pub active_motor_followed_up_gradient_fraction: Option<f64>,
+    pub passive_trap_followed_run_count: usize,
+    pub passive_trap_followed_up_gradient_count: usize,
+    pub passive_trap_followed_up_gradient_fraction: Option<f64>,
+    pub unresolved_mechanism_followed_run_count: usize,
+    pub unresolved_mechanism_followed_up_gradient_count: usize,
+    pub unresolved_mechanism_followed_up_gradient_fraction: Option<f64>,
     pub mean_run_duration_s: Option<f64>,
     pub projected_drift_um_s: Option<f64>,
+}
+
+/// Diagnostic for treating SHORT as an active-motor proxy and LONG as
+/// a passive-trap proxy.
+///
+/// Only DIRECTLY_OBSERVED and MODEL_LATENT events with known active/passive
+/// mechanisms contribute to the confusion matrix. Algorithm-inferred,
+/// unresolved, and exact-boundary-excluded events are reported as excluded.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DurationMechanismDiagnostic {
+    pub true_positive_active_short: usize,
+    pub false_positive_passive_short: usize,
+    pub true_negative_passive_long: usize,
+    pub false_negative_active_long: usize,
+    pub excluded_algorithm_inferred: usize,
+    pub excluded_unresolved: usize,
+    pub excluded_exact_boundary: usize,
+    pub known_event_count: usize,
+    pub sensitivity: Option<f64>,
+    pub specificity: Option<f64>,
+    pub positive_predictive_value: Option<f64>,
+    pub negative_predictive_value: Option<f64>,
+    pub balanced_accuracy: Option<f64>,
+}
+
+/// Evaluate the one-second duration bin as a descriptive proxy for mechanism.
+///
+/// This is a diagnostic, never a mechanism-assignment rule. Events with
+/// ALGORITHM_INFERRED or UNRESOLVED evidence are not treated as ground truth.
+pub fn duration_mechanism_diagnostic(
+    events: &[EventRecord],
+) -> DurationMechanismDiagnostic {
+    let mut diagnostic = DurationMechanismDiagnostic {
+        true_positive_active_short: 0,
+        false_positive_passive_short: 0,
+        true_negative_passive_long: 0,
+        false_negative_active_long: 0,
+        excluded_algorithm_inferred: 0,
+        excluded_unresolved: 0,
+        excluded_exact_boundary: 0,
+        known_event_count: 0,
+        sensitivity: None,
+        specificity: None,
+        positive_predictive_value: None,
+        negative_predictive_value: None,
+        balanced_accuracy: None,
+    };
+
+    for event in events {
+        if event.duration_bin == EventDurationBin::ExactBoundaryExcluded {
+            diagnostic.excluded_exact_boundary += 1;
+            continue;
+        }
+
+        if event.mechanism == EventMechanism::Unresolved
+            || event.evidence_status == EventEvidenceStatus::Unresolved
+        {
+            diagnostic.excluded_unresolved += 1;
+            continue;
+        }
+
+        if event.evidence_status == EventEvidenceStatus::AlgorithmInferred {
+            diagnostic.excluded_algorithm_inferred += 1;
+            continue;
+        }
+
+        diagnostic.known_event_count += 1;
+        match (event.mechanism, event.duration_bin) {
+            (EventMechanism::ActiveMotorEvent, EventDurationBin::Short) => {
+                diagnostic.true_positive_active_short += 1
+            }
+            (EventMechanism::PassiveMechanicalTrap, EventDurationBin::Short) => {
+                diagnostic.false_positive_passive_short += 1
+            }
+            (EventMechanism::PassiveMechanicalTrap, EventDurationBin::Long) => {
+                diagnostic.true_negative_passive_long += 1
+            }
+            (EventMechanism::ActiveMotorEvent, EventDurationBin::Long) => {
+                diagnostic.false_negative_active_long += 1
+            }
+            (_, EventDurationBin::ExactBoundaryExcluded) => {}
+            (EventMechanism::Unresolved, _) => {}
+        }
+    }
+
+    let tp = diagnostic.true_positive_active_short as f64;
+    let fp = diagnostic.false_positive_passive_short as f64;
+    let tn = diagnostic.true_negative_passive_long as f64;
+    let fn_ = diagnostic.false_negative_active_long as f64;
+
+    diagnostic.sensitivity = (tp + fn_ > 0.0).then(|| tp / (tp + fn_));
+    diagnostic.specificity = (tn + fp > 0.0).then(|| tn / (tn + fp));
+    diagnostic.positive_predictive_value = (tp + fp > 0.0).then(|| tp / (tp + fp));
+    diagnostic.negative_predictive_value = (tn + fn_ > 0.0).then(|| tn / (tn + fn_));
+    diagnostic.balanced_accuracy = match (diagnostic.sensitivity, diagnostic.specificity) {
+        (Some(sensitivity), Some(specificity)) => Some((sensitivity + specificity) / 2.0),
+        _ => None,
+    };
+
+    diagnostic
+}
+
+/// Circular statistics for realized run-displacement orientations relative
+/// to the chemoattractant gradient axis.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct OrientationSummary {
+    pub run_count: usize,
+    pub up_gradient_count: usize,
+    pub down_gradient_count: usize,
+    pub cross_gradient_count: usize,
+    pub up_gradient_fraction: f64,
+    /// Real and imaginary components of the first circular Fourier moment.
+    pub first_harmonic_real: f64,
+    pub first_harmonic_imag: f64,
+    pub first_harmonic_magnitude: f64,
+    /// Undefined when the first harmonic magnitude is numerically zero.
+    pub first_harmonic_phase_rad: Option<f64>,
+}
+
+/// Percentile confidence interval for a clustered bootstrap statistic.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct BootstrapInterval {
+    pub estimate: f64,
+    pub lower: f64,
+    pub upper: f64,
+}
+
+/// Cluster-level bootstrap over independent biological recording units.
+///
+/// Each inner vector contains realized run-displacement headings in radians,
+/// already expressed relative to the gradient axis, for one independent
+/// recording/plate/day cluster. Clusters are sampled with replacement; all
+/// runs from a selected cluster remain together.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ClusteredOrientationBootstrap {
+    pub up_gradient_fraction: BootstrapInterval,
+    pub first_harmonic_magnitude: BootstrapInterval,
+    pub independent_cluster_count: usize,
+    pub resample_count: usize,
+}
+
+/// Errors returned by the clustered orientation bootstrap.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BootstrapError {
+    NoClusters,
+    InsufficientIndependentClusters,
+    EmptyCluster,
+    NonFiniteAngle,
+    InvalidConfidenceLevel,
+    ZeroResamples,
+}
+
+impl fmt::Display for BootstrapError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::NoClusters => {
+                write!(formatter, "bootstrap requires at least one independent cluster")
+            }
+            Self::InsufficientIndependentClusters => {
+                write!(formatter, "cluster bootstrap requires at least two independent clusters")
+            }
+            Self::EmptyCluster => {
+                write!(formatter, "each bootstrap cluster must contain at least one run")
+            }
+            Self::NonFiniteAngle => write!(formatter, "orientation angles must be finite"),
+            Self::InvalidConfidenceLevel => {
+                write!(formatter, "confidence level must be strictly between zero and one")
+            }
+            Self::ZeroResamples => {
+                write!(formatter, "bootstrap resample count must be positive")
+            }
+        }
+    }
+}
+
+impl Error for BootstrapError {}
+
+/// Summarize net run-displacement headings relative to the gradient.
+///
+/// This matches the first-harmonic representation used in the porous-agar
+/// chemotaxis study: p(phi) is approximated by a constant plus its first
+/// circular Fourier mode. Run orientation is the first-to-last displacement
+/// vector, not the instantaneous endpoint tangent.
+pub fn summarize_orientations(result: &SimulationResult) -> Option<OrientationSummary> {
+    let relative_headings: Vec<f64> = result
+        .events
+        .iter()
+        .filter_map(|event| {
+            event
+                .run_displacement_heading_rad
+                .map(|heading| wrap_angle(heading - result.gradient_heading_rad))
+        })
+        .collect();
+    summarize_relative_headings(&relative_headings)
+}
+
+fn summarize_relative_headings(headings: &[f64]) -> Option<OrientationSummary> {
+    if headings.is_empty() || headings.iter().any(|heading| !heading.is_finite()) {
+        return None;
+    }
+
+    let mut up_gradient_count = 0;
+    let mut down_gradient_count = 0;
+    let mut cross_gradient_count = 0;
+    let mut cosine_sum = 0.0;
+    let mut sine_sum = 0.0;
+
+    for &heading in headings {
+        match classify_direction(heading, 0.0)? {
+            DirectionClass::UpGradient => up_gradient_count += 1,
+            DirectionClass::DownGradient => down_gradient_count += 1,
+            DirectionClass::CrossGradient => cross_gradient_count += 1,
+        }
+        cosine_sum += heading.cos();
+        sine_sum += heading.sin();
+    }
+
+    let run_count = headings.len();
+    let first_harmonic_real = cosine_sum / run_count as f64;
+    let first_harmonic_imag = sine_sum / run_count as f64;
+    let first_harmonic_magnitude =
+        first_harmonic_real.hypot(first_harmonic_imag);
+
+    Some(OrientationSummary {
+        run_count,
+        up_gradient_count,
+        down_gradient_count,
+        cross_gradient_count,
+        up_gradient_fraction: up_gradient_count as f64 / run_count as f64,
+        first_harmonic_real,
+        first_harmonic_imag,
+        first_harmonic_magnitude,
+        first_harmonic_phase_rad: (first_harmonic_magnitude > 1.0e-14)
+            .then(|| first_harmonic_imag.atan2(first_harmonic_real)),
+    })
+}
+
+/// Estimate confidence intervals for up-gradient fraction and first Fourier
+/// harmonic magnitude by resampling independent recording clusters.
+///
+/// The point estimate pools all run observations. Each bootstrap draw samples
+/// the same number of clusters with replacement and includes all runs from
+/// each selected cluster. This preserves within-recording dependence.
+pub fn cluster_bootstrap_orientations(
+    clusters: &[Vec<f64>],
+    resample_count: usize,
+    confidence_level: f64,
+    seed: u64,
+) -> Result<ClusteredOrientationBootstrap, BootstrapError> {
+    if clusters.is_empty() {
+        return Err(BootstrapError::NoClusters);
+    }
+    if clusters.len() < 2 {
+        return Err(BootstrapError::InsufficientIndependentClusters);
+    }
+    if resample_count == 0 {
+        return Err(BootstrapError::ZeroResamples);
+    }
+    if !confidence_level.is_finite() || !(0.0..1.0).contains(&confidence_level) {
+        return Err(BootstrapError::InvalidConfidenceLevel);
+    }
+    if clusters.iter().any(Vec::is_empty) {
+        return Err(BootstrapError::EmptyCluster);
+    }
+    if clusters.iter().flatten().any(|angle| !angle.is_finite()) {
+        return Err(BootstrapError::NonFiniteAngle);
+    }
+
+    let pooled: Vec<f64> = clusters.iter().flatten().copied().collect();
+    let point = summarize_relative_headings(&pooled)
+        .expect("validated non-empty finite orientation clusters");
+
+    let mut rng = SeededRng::new(seed);
+    let mut up_fraction_samples = Vec::with_capacity(resample_count);
+    let mut first_harmonic_samples = Vec::with_capacity(resample_count);
+
+    for _ in 0..resample_count {
+        let mut resampled = Vec::with_capacity(pooled.len());
+        for _ in 0..clusters.len() {
+            let cluster_index = rng.index(clusters.len());
+            resampled.extend_from_slice(&clusters[cluster_index]);
+        }
+        let summary = summarize_relative_headings(&resampled)
+            .expect("resampled clusters are non-empty and finite");
+        up_fraction_samples.push(summary.up_gradient_fraction);
+        first_harmonic_samples.push(summary.first_harmonic_magnitude);
+    }
+
+    let alpha = 1.0 - confidence_level;
+    Ok(ClusteredOrientationBootstrap {
+        up_gradient_fraction: BootstrapInterval {
+            estimate: point.up_gradient_fraction,
+            lower: percentile(&mut up_fraction_samples, alpha / 2.0),
+            upper: percentile(&mut up_fraction_samples, 1.0 - alpha / 2.0),
+        },
+        first_harmonic_magnitude: BootstrapInterval {
+            estimate: point.first_harmonic_magnitude,
+            lower: percentile(&mut first_harmonic_samples, alpha / 2.0),
+            upper: percentile(&mut first_harmonic_samples, 1.0 - alpha / 2.0),
+        },
+        independent_cluster_count: clusters.len(),
+        resample_count,
+    })
+}
+
+fn percentile(samples: &mut [f64], quantile: f64) -> f64 {
+    samples.sort_by(f64::total_cmp);
+    let position = quantile * (samples.len() - 1) as f64;
+    let lower_index = position.floor() as usize;
+    let upper_index = position.ceil() as usize;
+    if lower_index == upper_index {
+        samples[lower_index]
+    } else {
+        let fraction = position - lower_index as f64;
+        samples[lower_index] + fraction * (samples[upper_index] - samples[lower_index])
+    }
 }
 
 /// Per-lag, time-origin-averaged ensemble MSD estimate.
@@ -700,24 +1104,35 @@ pub fn simulate_with_bias_mode(
         };
         let incoming_heading_rad = state.heading_rad;
 
-        let (event_class, event_duration, turn_angle) =
-            if rng.next_unit_f64() < profile.short_event_probability {
+        // Mechanism is sampled independently of event duration. Duration
+        // bins are an observational analysis view, never a causal label.
+        let mechanism = profile.mechanism_probabilities.sample(&mut rng);
+        let (event_duration, turn_angle) = match mechanism {
+            EventMechanism::ActiveMotorEvent => {
+                let angle = if bias_mode.uses_turn_angle_bias() {
+                    profile
+                        .active_motor_turn_angle_rad
+                        .sample(completed_run_direction, &mut rng)
+                } else {
+                    profile
+                        .active_motor_turn_angle_unconditional_rad
+                        .sample(&mut rng)
+                };
                 (
-                    EventClass::ShortReorientation,
-                    profile.short_event_duration_s.sample(&mut rng),
-                    if bias_mode.uses_turn_angle_bias() {
-                        profile.short_turn_angle_rad.sample(completed_run_direction, &mut rng)
-                    } else {
-                        profile.short_turn_angle_unconditional_rad.sample(&mut rng)
-                    },
+                    profile.active_motor_event_duration_s.sample(&mut rng),
+                    angle,
                 )
-            } else {
-                (
-                    EventClass::LongMechanicalTrap,
-                    profile.long_trap_duration_s.sample(&mut rng),
-                    profile.long_trap_turn_angle_rad.sample(&mut rng),
-                )
-            };
+            }
+            EventMechanism::PassiveMechanicalTrap => (
+                profile.passive_trap_event_duration_s.sample(&mut rng),
+                profile.passive_trap_turn_angle_rad.sample(&mut rng),
+            ),
+            EventMechanism::Unresolved => (
+                profile.unresolved_event_duration_s.sample(&mut rng),
+                profile.unresolved_turn_angle_rad.sample(&mut rng),
+            ),
+        };
+        let duration_bin = profile.duration_bin(event_duration)?;
 
         // The event turn is applied relative to the preceding run's net
         // displacement heading. If no net displacement was resolvable, retain
@@ -750,7 +1165,9 @@ pub fn simulate_with_bias_mode(
             run_displacement_um,
             incoming_heading_rad,
             run_duration_s: run_duration,
-            event_class,
+            mechanism,
+            evidence_status: EventEvidenceStatus::ModelLatent,
+            duration_bin,
             event_duration_s: event_duration,
             turn_angle_rad: turn_angle,
             heading_after_event_rad: state.heading_rad,
@@ -768,67 +1185,172 @@ pub fn simulate_with_bias_mode(
 
 /// Compute dimensionally explicit summary measures for a simulated result.
 pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
-    if result.events.is_empty() {
-        return BehaviorSummary {
-            event_count: 0,
-            short_event_count: 0,
-            long_trap_count: 0,
-            resolved_run_direction_count: 0,
-            up_gradient_run_count: 0,
-            up_gradient_run_fraction: None,
-            short_event_followed_run_count: 0,
-            short_event_followed_up_gradient_count: 0,
-            short_event_followed_up_gradient_fraction: None,
-            long_trap_followed_run_count: 0,
-            long_trap_followed_up_gradient_count: 0,
-            long_trap_followed_up_gradient_fraction: None,
-            mean_run_duration_s: None,
-            projected_drift_um_s: None,
-        };
-    }
-
-    let short_event_count = result
+    let short_duration_event_count = result
         .events
         .iter()
-        .filter(|event| event.event_class == EventClass::ShortReorientation)
+        .filter(|event| event.duration_bin == EventDurationBin::Short)
         .count();
-    let long_trap_count = result.events.len() - short_event_count;
+    let long_duration_event_count = result
+        .events
+        .iter()
+        .filter(|event| event.duration_bin == EventDurationBin::Long)
+        .count();
+    let exact_boundary_excluded_event_count = result.events.len()
+        - short_duration_event_count
+        - long_duration_event_count;
+
+    let active_motor_event_count = result
+        .events
+        .iter()
+        .filter(|event| event.mechanism == EventMechanism::ActiveMotorEvent)
+        .count();
+    let passive_trap_event_count = result
+        .events
+        .iter()
+        .filter(|event| event.mechanism == EventMechanism::PassiveMechanicalTrap)
+        .count();
+    let unresolved_mechanism_event_count = result.events.len()
+        - active_motor_event_count
+        - passive_trap_event_count;
+
+    let mut mechanism_duration_contingency = MechanismDurationContingency {
+        active_motor_short: 0,
+        active_motor_long: 0,
+        active_motor_exact_boundary_excluded: 0,
+        passive_trap_short: 0,
+        passive_trap_long: 0,
+        passive_trap_exact_boundary_excluded: 0,
+        unresolved_short: 0,
+        unresolved_long: 0,
+        unresolved_exact_boundary_excluded: 0,
+    };
+    let mut evidence_status_counts = EventEvidenceCounts {
+        directly_observed: 0,
+        algorithm_inferred: 0,
+        model_latent: 0,
+        unresolved: 0,
+    };
+
+    for event in &result.events {
+        let cell = match (event.mechanism, event.duration_bin) {
+            (EventMechanism::ActiveMotorEvent, EventDurationBin::Short) => {
+                &mut mechanism_duration_contingency.active_motor_short
+            }
+            (EventMechanism::ActiveMotorEvent, EventDurationBin::Long) => {
+                &mut mechanism_duration_contingency.active_motor_long
+            }
+            (
+                EventMechanism::ActiveMotorEvent,
+                EventDurationBin::ExactBoundaryExcluded,
+            ) => &mut mechanism_duration_contingency
+                .active_motor_exact_boundary_excluded,
+            (EventMechanism::PassiveMechanicalTrap, EventDurationBin::Short) => {
+                &mut mechanism_duration_contingency.passive_trap_short
+            }
+            (EventMechanism::PassiveMechanicalTrap, EventDurationBin::Long) => {
+                &mut mechanism_duration_contingency.passive_trap_long
+            }
+            (
+                EventMechanism::PassiveMechanicalTrap,
+                EventDurationBin::ExactBoundaryExcluded,
+            ) => &mut mechanism_duration_contingency
+                .passive_trap_exact_boundary_excluded,
+            (EventMechanism::Unresolved, EventDurationBin::Short) => {
+                &mut mechanism_duration_contingency.unresolved_short
+            }
+            (EventMechanism::Unresolved, EventDurationBin::Long) => {
+                &mut mechanism_duration_contingency.unresolved_long
+            }
+            (EventMechanism::Unresolved, EventDurationBin::ExactBoundaryExcluded) => {
+                &mut mechanism_duration_contingency
+                    .unresolved_exact_boundary_excluded
+            }
+        };
+        *cell += 1;
+
+        match event.evidence_status {
+            EventEvidenceStatus::DirectlyObserved => {
+                evidence_status_counts.directly_observed += 1
+            }
+            EventEvidenceStatus::AlgorithmInferred => {
+                evidence_status_counts.algorithm_inferred += 1
+            }
+            EventEvidenceStatus::ModelLatent => evidence_status_counts.model_latent += 1,
+            EventEvidenceStatus::Unresolved => evidence_status_counts.unresolved += 1,
+        }
+    }
+
     let resolved_run_directions: Vec<_> = result
         .events
         .iter()
-        .filter_map(|event| event.run_displacement_heading_rad.map(|_| event.completed_run_direction))
+        .filter_map(|event| {
+            event
+                .run_displacement_heading_rad
+                .map(|_| event.completed_run_direction)
+        })
         .collect();
     let resolved_run_direction_count = resolved_run_directions.len();
     let up_gradient_run_count = resolved_run_directions
         .iter()
         .filter(|direction| **direction == DirectionClass::UpGradient)
         .count();
-    // An event in record i precedes the run in record i+1. The final event
-    // has no observed following run and is deliberately excluded from these
-    // conditional fractions. This aligns the denominator with "runs after
-    // short/long events" rather than classifying the run before the event.
-    let mut short_event_followed_run_count = 0;
-    let mut short_event_followed_up_gradient_count = 0;
-    let mut long_trap_followed_run_count = 0;
-    let mut long_trap_followed_up_gradient_count = 0;
+
+    // Event i precedes run i+1. The final event has no observed following
+    // run and is excluded from every conditional denominator.
+    let mut short_duration_followed_run_count = 0;
+    let mut short_duration_followed_up_gradient_count = 0;
+    let mut long_duration_followed_run_count = 0;
+    let mut long_duration_followed_up_gradient_count = 0;
+
+    let mut active_motor_followed_run_count = 0;
+    let mut active_motor_followed_up_gradient_count = 0;
+    let mut passive_trap_followed_run_count = 0;
+    let mut passive_trap_followed_up_gradient_count = 0;
+    let mut unresolved_mechanism_followed_run_count = 0;
+    let mut unresolved_mechanism_followed_up_gradient_count = 0;
 
     for pair in result.events.windows(2) {
-        let event = pair[0];
+        let previous_event = pair[0];
         let following_run = pair[1];
+        if following_run.run_displacement_heading_rad.is_none() {
+            continue;
+        }
         let is_up_gradient =
             following_run.completed_run_direction == DirectionClass::UpGradient;
 
-        match event.event_class {
-            EventClass::ShortReorientation => {
-                short_event_followed_run_count += 1;
+        match previous_event.duration_bin {
+            EventDurationBin::Short => {
+                short_duration_followed_run_count += 1;
                 if is_up_gradient {
-                    short_event_followed_up_gradient_count += 1;
+                    short_duration_followed_up_gradient_count += 1;
                 }
             }
-            EventClass::LongMechanicalTrap => {
-                long_trap_followed_run_count += 1;
+            EventDurationBin::Long => {
+                long_duration_followed_run_count += 1;
                 if is_up_gradient {
-                    long_trap_followed_up_gradient_count += 1;
+                    long_duration_followed_up_gradient_count += 1;
+                }
+            }
+            EventDurationBin::ExactBoundaryExcluded => {}
+        }
+
+        match previous_event.mechanism {
+            EventMechanism::ActiveMotorEvent => {
+                active_motor_followed_run_count += 1;
+                if is_up_gradient {
+                    active_motor_followed_up_gradient_count += 1;
+                }
+            }
+            EventMechanism::PassiveMechanicalTrap => {
+                passive_trap_followed_run_count += 1;
+                if is_up_gradient {
+                    passive_trap_followed_up_gradient_count += 1;
+                }
+            }
+            EventMechanism::Unresolved => {
+                unresolved_mechanism_followed_run_count += 1;
+                if is_up_gradient {
+                    unresolved_mechanism_followed_up_gradient_count += 1;
                 }
             }
         }
@@ -848,28 +1370,57 @@ pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
 
     BehaviorSummary {
         event_count: result.events.len(),
-        short_event_count,
-        long_trap_count,
+        short_duration_event_count,
+        long_duration_event_count,
+        exact_boundary_excluded_event_count,
+        active_motor_event_count,
+        passive_trap_event_count,
+        unresolved_mechanism_event_count,
+        mechanism_duration_contingency,
+        evidence_status_counts,
         resolved_run_direction_count,
         up_gradient_run_count,
         up_gradient_run_fraction: (resolved_run_direction_count > 0)
-            .then_some(up_gradient_run_count as f64 / resolved_run_direction_count as f64),
-        short_event_followed_run_count,
-        short_event_followed_up_gradient_count,
-        short_event_followed_up_gradient_fraction: (short_event_followed_run_count > 0)
-            .then_some(
-                short_event_followed_up_gradient_count as f64
-                    / short_event_followed_run_count as f64,
-            ),
-        long_trap_followed_run_count,
-        long_trap_followed_up_gradient_count,
-        long_trap_followed_up_gradient_fraction: (long_trap_followed_run_count > 0)
-            .then_some(
-                long_trap_followed_up_gradient_count as f64
-                    / long_trap_followed_run_count as f64,
-            ),
-        mean_run_duration_s: Some(total_run_duration / result.events.len() as f64),
-        projected_drift_um_s: (elapsed > 0.0).then_some(projected_displacement / elapsed),
+            .then(|| up_gradient_run_count as f64 / resolved_run_direction_count as f64),
+        short_duration_followed_run_count,
+        short_duration_followed_up_gradient_count,
+        short_duration_followed_up_gradient_fraction: (short_duration_followed_run_count > 0)
+            .then(|| {
+                short_duration_followed_up_gradient_count as f64
+                    / short_duration_followed_run_count as f64
+            }),
+        long_duration_followed_run_count,
+        long_duration_followed_up_gradient_count,
+        long_duration_followed_up_gradient_fraction: (long_duration_followed_run_count > 0)
+            .then(|| {
+                long_duration_followed_up_gradient_count as f64
+                    / long_duration_followed_run_count as f64
+            }),
+        active_motor_followed_run_count,
+        active_motor_followed_up_gradient_count,
+        active_motor_followed_up_gradient_fraction: (active_motor_followed_run_count > 0)
+            .then(|| {
+                active_motor_followed_up_gradient_count as f64
+                    / active_motor_followed_run_count as f64
+            }),
+        passive_trap_followed_run_count,
+        passive_trap_followed_up_gradient_count,
+        passive_trap_followed_up_gradient_fraction: (passive_trap_followed_run_count > 0)
+            .then(|| {
+                passive_trap_followed_up_gradient_count as f64
+                    / passive_trap_followed_run_count as f64
+            }),
+        unresolved_mechanism_followed_run_count,
+        unresolved_mechanism_followed_up_gradient_count,
+        unresolved_mechanism_followed_up_gradient_fraction:
+            (unresolved_mechanism_followed_run_count > 0).then(|| {
+                unresolved_mechanism_followed_up_gradient_count as f64
+                    / unresolved_mechanism_followed_run_count as f64
+            }),
+        mean_run_duration_s: (!result.events.is_empty())
+            .then(|| total_run_duration / result.events.len() as f64),
+        projected_drift_um_s: (elapsed > 0.0)
+            .then(|| projected_displacement / elapsed),
     }
 }
 
@@ -1091,6 +1642,27 @@ mod tests {
         }
     }
 
+    fn event_record(
+        mechanism: EventMechanism,
+        duration_bin: EventDurationBin,
+        evidence_status: EventEvidenceStatus,
+    ) -> EventRecord {
+        EventRecord {
+            direction_before_run: DirectionClass::UpGradient,
+            completed_run_direction: DirectionClass::UpGradient,
+            run_displacement_heading_rad: Some(0.0),
+            run_displacement_um: 1.0,
+            incoming_heading_rad: 0.0,
+            run_duration_s: 0.25,
+            mechanism,
+            evidence_status,
+            duration_bin,
+            event_duration_s: 0.25,
+            turn_angle_rad: 0.0,
+            heading_after_event_rad: 0.0,
+        }
+    }
+
     fn steering_profile() -> PorousMotilityProfile {
         PorousMotilityProfile {
             swimming_speed_um_s: 20.0,
@@ -1098,34 +1670,34 @@ mod tests {
             integration_step_s: 0.05,
             run_duration_s: directional(vec![0.25], vec![0.25], vec![0.25]),
             run_duration_unconditional_s: SampleSet::new(vec![0.25]),
-            short_event_probability: 1.0,
+            mechanism_probabilities: MechanismProbabilities {
+                active_motor: 1.0,
+                passive_trap: 0.0,
+                unresolved: 0.0,
+            },
             threshold_boundary_policy: ThresholdBoundaryPolicy::ShortInclusive,
-            short_event_duration_s: SampleSet::new(vec![0.25]),
-            long_trap_duration_s: SampleSet::new(vec![2.0]),
-            short_turn_angle_rad: directional(
+            active_motor_event_duration_s: SampleSet::new(vec![0.25]),
+            passive_trap_event_duration_s: SampleSet::new(vec![2.0]),
+            unresolved_event_duration_s: SampleSet::new(vec![1.0]),
+            active_motor_turn_angle_rad: directional(
                 vec![0.0],
                 vec![-PI / 2.0, PI / 2.0],
                 vec![PI],
             ),
-            short_turn_angle_unconditional_rad: SampleSet::new(vec![0.0]),
-            long_trap_turn_angle_rad: SampleSet::new(vec![0.0]),
+            active_motor_turn_angle_unconditional_rad: SampleSet::new(vec![0.0]),
+            passive_trap_turn_angle_rad: SampleSet::new(vec![0.0]),
+            unresolved_turn_angle_rad: SampleSet::new(vec![0.0]),
         }
     }
 
     #[test]
-    fn classifies_directions_with_the_paper_cone() {
-        assert_eq!(
-            classify_direction(0.0, 0.0),
-            Some(DirectionClass::UpGradient)
-        );
+    fn classifies_gradient_direction_by_projection() {
+        assert_eq!(classify_direction(0.0, 0.0), Some(DirectionClass::UpGradient));
         assert_eq!(
             classify_direction(PI / 4.0, 0.0),
             Some(DirectionClass::UpGradient)
         );
-        assert_eq!(
-            classify_direction(PI, 0.0),
-            Some(DirectionClass::DownGradient)
-        );
+        assert_eq!(classify_direction(PI, 0.0), Some(DirectionClass::DownGradient));
         assert_eq!(
             classify_direction(PI * 3.0 / 4.0, 0.0),
             Some(DirectionClass::DownGradient)
@@ -1138,54 +1710,159 @@ mod tests {
     }
 
     #[test]
-    fn rejects_non_finite_and_invalid_event_samples() {
+    fn validates_physical_mechanism_profiles_without_duration_causation() {
         let mut profile = steering_profile();
-        profile.short_event_duration_s = SampleSet::new(vec![0.4, 1.2]);
+        profile.active_motor_event_duration_s = SampleSet::new(vec![0.4, 1.2]);
+        profile.passive_trap_event_duration_s = SampleSet::new(vec![0.2, 2.0]);
+        profile.unresolved_event_duration_s = SampleSet::new(vec![1.0]);
+        assert!(profile.validate().is_ok());
+
+        let mut invalid = steering_profile();
+        invalid.mechanism_probabilities = MechanismProbabilities {
+            active_motor: 0.7,
+            passive_trap: 0.7,
+            unresolved: 0.0,
+        };
         assert_eq!(
-            profile.validate(),
-            Err(ProfileError::ShortEventOutsideThresholdPolicy)
+            invalid.validate(),
+            Err(ProfileError::InvalidMechanismProbabilities)
         );
 
-        let mut profile = steering_profile();
-        profile.long_trap_duration_s = SampleSet::new(vec![0.8]);
+        let mut invalid = steering_profile();
+        invalid.active_motor_event_duration_s = SampleSet::new(vec![0.0]);
         assert_eq!(
-            profile.validate(),
-            Err(ProfileError::LongTrapOutsideThresholdPolicy)
+            invalid.validate(),
+            Err(ProfileError::NonPositiveSample("active_motor_event_duration_s"))
         );
 
-        let mut profile = steering_profile();
-        profile.short_event_duration_s = SampleSet::new(vec![1.0]);
+        let mut invalid = steering_profile();
+        invalid.swimming_speed_um_s = f64::NAN;
         assert_eq!(
-            profile.validate(),
-            Err(ProfileError::ShortEventOutsideThresholdPolicy)
-        );
-
-        let mut profile = steering_profile();
-        profile.swimming_speed_um_s = f64::NAN;
-        assert_eq!(
-            profile.validate(),
+            invalid.validate(),
             Err(ProfileError::InvalidSwimmingSpeed)
         );
     }
 
     #[test]
-    fn exact_one_second_boundary_follows_declared_source_policy() {
-        let mut short_inclusive = steering_profile();
-        short_inclusive.short_event_duration_s = SampleSet::new(vec![1.0]);
-        assert!(short_inclusive.validate().is_ok());
+    fn exact_boundary_policy_classifies_duration_not_mechanism() {
+        let short_inclusive = steering_profile();
+        assert_eq!(
+            short_inclusive.duration_bin(1.0),
+            Ok(EventDurationBin::Short)
+        );
 
         let mut long_inclusive = steering_profile();
         long_inclusive.threshold_boundary_policy = ThresholdBoundaryPolicy::LongInclusive;
-        long_inclusive.long_trap_duration_s = SampleSet::new(vec![1.0]);
-        assert!(long_inclusive.validate().is_ok());
+        assert_eq!(
+            long_inclusive.duration_bin(1.0),
+            Ok(EventDurationBin::Long)
+        );
 
         let mut excluded = steering_profile();
         excluded.threshold_boundary_policy = ThresholdBoundaryPolicy::ExcludeExactBoundary;
-        excluded.short_event_duration_s = SampleSet::new(vec![1.0]);
         assert_eq!(
-            excluded.validate(),
-            Err(ProfileError::ShortEventOutsideThresholdPolicy)
+            excluded.duration_bin(1.0),
+            Ok(EventDurationBin::ExactBoundaryExcluded)
         );
+        assert_eq!(
+            excluded.duration_bin(f64::NAN),
+            Err(ProfileError::InvalidEventDuration)
+        );
+    }
+
+    #[test]
+    fn an_active_motor_event_can_be_long_and_a_passive_trap_can_be_short() {
+        let mut profile = steering_profile();
+        profile.mechanism_probabilities = MechanismProbabilities {
+            active_motor: 1.0,
+            passive_trap: 0.0,
+            unresolved: 0.0,
+        };
+        profile.active_motor_event_duration_s = SampleSet::new(vec![2.0]);
+
+        let active = simulate(
+            &profile,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            1,
+            7,
+        )
+        .expect("active event simulation");
+        assert_eq!(active.events[0].mechanism, EventMechanism::ActiveMotorEvent);
+        assert_eq!(active.events[0].duration_bin, EventDurationBin::Long);
+        assert_eq!(active.events[0].evidence_status, EventEvidenceStatus::ModelLatent);
+        let active_summary = summarize(&active);
+        assert_eq!(
+            active_summary.mechanism_duration_contingency.active_motor_long,
+            1
+        );
+        assert_eq!(
+            active_summary.mechanism_duration_contingency.active_motor_short,
+            0
+        );
+        assert_eq!(active_summary.evidence_status_counts.model_latent, 1);
+
+        profile.mechanism_probabilities = MechanismProbabilities {
+            active_motor: 0.0,
+            passive_trap: 1.0,
+            unresolved: 0.0,
+        };
+        profile.passive_trap_event_duration_s = SampleSet::new(vec![0.25]);
+
+        let passive = simulate(
+            &profile,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            1,
+            7,
+        )
+        .expect("passive event simulation");
+        assert_eq!(
+            passive.events[0].mechanism,
+            EventMechanism::PassiveMechanicalTrap
+        );
+        assert_eq!(passive.events[0].duration_bin, EventDurationBin::Short);
+        let passive_summary = summarize(&passive);
+        assert_eq!(
+            passive_summary.mechanism_duration_contingency.passive_trap_short,
+            1
+        );
+        assert_eq!(
+            passive_summary.mechanism_duration_contingency.passive_trap_long,
+            0
+        );
+    }
+
+    #[test]
+    fn unresolved_mechanism_is_preserved_as_unknown() {
+        let mut profile = steering_profile();
+        profile.mechanism_probabilities = MechanismProbabilities {
+            active_motor: 0.0,
+            passive_trap: 0.0,
+            unresolved: 1.0,
+        };
+        let result = simulate(
+            &profile,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            3,
+            31,
+        )
+        .expect("unresolved event simulation");
+
+        assert!(result.events.iter().all(|event| {
+            event.mechanism == EventMechanism::Unresolved
+                && event.evidence_status == EventEvidenceStatus::ModelLatent
+        }));
+        let summary = summarize(&result);
+        assert_eq!(summary.unresolved_mechanism_event_count, 3);
+        assert_eq!(summary.active_motor_event_count, 0);
+        assert_eq!(summary.passive_trap_event_count, 0);
+        assert_eq!(
+            summary.mechanism_duration_contingency.unresolved_short,
+            3
+        );
+        assert_eq!(summary.evidence_status_counts.model_latent, 3);
     }
 
     #[test]
@@ -1203,43 +1880,48 @@ mod tests {
         let initial = AgentState::new(0.0, 0.0, PI);
         let result = simulate(&profile, initial, 0.0, 8, 42).expect("valid simulation");
 
-        assert!((wrap_angle(result.final_state.heading_rad)).abs() < 1.0e-12);
+        assert!(wrap_angle(result.final_state.heading_rad).abs() < 1.0e-12);
         let summary = summarize(&result);
-        assert_eq!(summary.short_event_count, 8);
-        assert_eq!(summary.long_trap_count, 0);
+        assert_eq!(summary.short_duration_event_count, 8);
+        assert_eq!(summary.long_duration_event_count, 0);
+        assert_eq!(summary.active_motor_event_count, 8);
+        assert_eq!(summary.passive_trap_event_count, 0);
         assert_eq!(summary.resolved_run_direction_count, 8);
         assert_eq!(summary.up_gradient_run_count, 7);
         assert_eq!(summary.up_gradient_run_fraction, Some(7.0 / 8.0));
-        assert_eq!(summary.short_event_followed_run_count, 7);
-        assert_eq!(summary.short_event_followed_up_gradient_count, 7);
-        assert_eq!(
-            summary.short_event_followed_up_gradient_fraction,
-            Some(1.0)
-        );
-        assert_eq!(summary.long_trap_followed_up_gradient_fraction, None);
+        assert_eq!(summary.short_duration_followed_run_count, 7);
+        assert_eq!(summary.short_duration_followed_up_gradient_count, 7);
+        assert_eq!(summary.short_duration_followed_up_gradient_fraction, Some(1.0));
+        assert_eq!(summary.active_motor_followed_run_count, 7);
+        assert_eq!(summary.active_motor_followed_up_gradient_fraction, Some(1.0));
+        assert_eq!(summary.passive_trap_followed_up_gradient_fraction, None);
     }
 
     #[test]
-    fn passive_trap_kernel_does_not_inherit_active_directional_turn_bias() {
+    fn passive_trap_turns_do_not_receive_active_directional_bias() {
         let mut profile = steering_profile();
-        profile.short_event_probability = 0.0;
+        profile.mechanism_probabilities = MechanismProbabilities {
+            active_motor: 0.0,
+            passive_trap: 1.0,
+            unresolved: 0.0,
+        };
 
         let initial = AgentState::new(0.0, 0.0, PI);
         let result = simulate(&profile, initial, 0.0, 12, 42).expect("valid simulation");
 
         assert!((wrap_angle(result.final_state.heading_rad - PI)).abs() < 1.0e-12);
         let summary = summarize(&result);
-        assert_eq!(summary.short_event_count, 0);
-        assert_eq!(summary.long_trap_count, 12);
-        assert_eq!(summary.long_trap_followed_run_count, 11);
-        assert_eq!(summary.long_trap_followed_up_gradient_count, 0);
-        assert_eq!(
-            summary.long_trap_followed_up_gradient_fraction,
-            Some(0.0)
-        );
-        assert_eq!(summary.short_event_followed_up_gradient_fraction, None);
+        assert_eq!(summary.short_duration_event_count, 0);
+        assert_eq!(summary.long_duration_event_count, 12);
+        assert_eq!(summary.passive_trap_event_count, 12);
+        assert_eq!(summary.long_duration_followed_run_count, 11);
+        assert_eq!(summary.long_duration_followed_up_gradient_count, 0);
+        assert_eq!(summary.long_duration_followed_up_gradient_fraction, Some(0.0));
+        assert_eq!(summary.passive_trap_followed_up_gradient_fraction, Some(0.0));
+        assert_eq!(summary.active_motor_followed_up_gradient_fraction, None);
     }
 
+    #[test]
     #[test]
     fn reversing_gradient_reverses_the_selected_heading() {
         let profile = steering_profile();
@@ -1258,7 +1940,7 @@ mod tests {
     fn rotational_diffusion_is_seeded_and_changes_heading() {
         let mut profile = steering_profile();
         profile.rotational_diffusion_rad2_s = 0.8;
-        profile.short_turn_angle_rad = directional(
+        profile.active_motor_turn_angle_rad = directional(
             vec![0.0],
             vec![0.0],
             vec![0.0],
@@ -1275,7 +1957,7 @@ mod tests {
     fn short_turn_bias_uses_realized_run_displacement_direction() {
         let mut profile = steering_profile();
         profile.rotational_diffusion_rad2_s = 0.8;
-        profile.short_turn_angle_rad = directional(
+        profile.active_motor_turn_angle_rad = directional(
             vec![0.0],
             vec![0.1],
             vec![0.2],
@@ -1432,6 +2114,177 @@ mod tests {
     }
 
     #[test]
+    fn duration_mechanism_diagnostic_uses_only_evidence_qualified_events() {
+        let events = [
+            event_record(
+                EventMechanism::ActiveMotorEvent,
+                EventDurationBin::Short,
+                EventEvidenceStatus::DirectlyObserved,
+            ),
+            event_record(
+                EventMechanism::PassiveMechanicalTrap,
+                EventDurationBin::Short,
+                EventEvidenceStatus::DirectlyObserved,
+            ),
+            event_record(
+                EventMechanism::PassiveMechanicalTrap,
+                EventDurationBin::Long,
+                EventEvidenceStatus::ModelLatent,
+            ),
+            event_record(
+                EventMechanism::ActiveMotorEvent,
+                EventDurationBin::Long,
+                EventEvidenceStatus::DirectlyObserved,
+            ),
+            event_record(
+                EventMechanism::ActiveMotorEvent,
+                EventDurationBin::Short,
+                EventEvidenceStatus::AlgorithmInferred,
+            ),
+            event_record(
+                EventMechanism::ActiveMotorEvent,
+                EventDurationBin::ExactBoundaryExcluded,
+                EventEvidenceStatus::ModelLatent,
+            ),
+            event_record(
+                EventMechanism::Unresolved,
+                EventDurationBin::Long,
+                EventEvidenceStatus::Unresolved,
+            ),
+        ];
+
+        let diagnostic = duration_mechanism_diagnostic(&events);
+        assert_eq!(diagnostic.true_positive_active_short, 1);
+        assert_eq!(diagnostic.false_positive_passive_short, 1);
+        assert_eq!(diagnostic.true_negative_passive_long, 1);
+        assert_eq!(diagnostic.false_negative_active_long, 1);
+        assert_eq!(diagnostic.excluded_algorithm_inferred, 1);
+        assert_eq!(diagnostic.excluded_unresolved, 1);
+        assert_eq!(diagnostic.excluded_exact_boundary, 1);
+        assert_eq!(diagnostic.known_event_count, 4);
+        assert_eq!(diagnostic.sensitivity, Some(0.5));
+        assert_eq!(diagnostic.specificity, Some(0.5));
+        assert_eq!(diagnostic.positive_predictive_value, Some(0.5));
+        assert_eq!(diagnostic.negative_predictive_value, Some(0.5));
+        assert_eq!(diagnostic.balanced_accuracy, Some(0.5));
+    }
+
+    #[test]
+    fn duration_mechanism_diagnostic_returns_unknown_when_no_truth_is_admitted() {
+        let events = [
+            event_record(
+                EventMechanism::ActiveMotorEvent,
+                EventDurationBin::Short,
+                EventEvidenceStatus::AlgorithmInferred,
+            ),
+            event_record(
+                EventMechanism::Unresolved,
+                EventDurationBin::Long,
+                EventEvidenceStatus::Unresolved,
+            ),
+        ];
+        let diagnostic = duration_mechanism_diagnostic(&events);
+        assert_eq!(diagnostic.known_event_count, 0);
+        assert_eq!(diagnostic.sensitivity, None);
+        assert_eq!(diagnostic.specificity, None);
+        assert_eq!(diagnostic.balanced_accuracy, None);
+    }
+
+    #[test]
+    fn first_fourier_harmonic_matches_analytic_orientation_fixtures() {
+        let aligned = summarize_relative_headings(&[0.0, 0.0, 0.0])
+            .expect("non-empty orientations");
+        assert_eq!(aligned.up_gradient_fraction, 1.0);
+        assert!((aligned.first_harmonic_magnitude - 1.0).abs() < 1.0e-12);
+        assert_eq!(aligned.first_harmonic_phase_rad, Some(0.0));
+
+        let balanced = summarize_relative_headings(&[
+            0.0,
+            PI / 2.0,
+            PI,
+            -PI / 2.0,
+        ])
+        .expect("balanced orientation set");
+        assert_eq!(balanced.up_gradient_fraction, 0.25);
+        assert!((balanced.first_harmonic_magnitude) < 1.0e-12);
+        assert_eq!(balanced.first_harmonic_phase_rad, None);
+    }
+
+    #[test]
+    fn first_fourier_harmonic_is_rotation_invariant_in_magnitude() {
+        let original = summarize_relative_headings(&[0.1, 0.2, 0.4, -0.2])
+            .expect("original angles");
+        let rotation = 1.13;
+        let rotated_angles: Vec<_> = [0.1, 0.2, 0.4, -0.2]
+            .into_iter()
+            .map(|angle| wrap_angle(angle + rotation))
+            .collect();
+        let rotated = summarize_relative_headings(&rotated_angles)
+            .expect("rotated angles");
+
+        assert!(
+            (original.first_harmonic_magnitude - rotated.first_harmonic_magnitude).abs()
+                < 1.0e-12
+        );
+        let phase_difference = wrap_angle(
+            rotated.first_harmonic_phase_rad.expect("non-zero harmonic")
+                - original.first_harmonic_phase_rad.expect("non-zero harmonic"),
+        );
+        assert!((phase_difference - rotation).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn cluster_bootstrap_is_deterministic_and_resamples_independent_units() {
+        let clusters = vec![
+            vec![0.0, 0.05, 0.1],
+            vec![0.0, 0.2],
+            vec![PI, PI - 0.1],
+            vec![0.1, 0.15, 0.2, 0.25],
+        ];
+        let first = cluster_bootstrap_orientations(&clusters, 500, 0.95, 42)
+            .expect("valid cluster bootstrap");
+        let replay = cluster_bootstrap_orientations(&clusters, 500, 0.95, 42)
+            .expect("deterministic replay");
+
+        assert_eq!(first, replay);
+        assert_eq!(first.independent_cluster_count, 4);
+        assert_eq!(first.resample_count, 500);
+        assert!(first.up_gradient_fraction.lower <= first.up_gradient_fraction.upper);
+        assert!(
+            first.first_harmonic_magnitude.lower
+                <= first.first_harmonic_magnitude.upper
+        );
+    }
+
+    #[test]
+    fn cluster_bootstrap_rejects_invalid_cluster_structure() {
+        assert_eq!(
+            cluster_bootstrap_orientations(&[], 100, 0.95, 1),
+            Err(BootstrapError::NoClusters)
+        );
+        assert_eq!(
+            cluster_bootstrap_orientations(&[vec![0.0]], 100, 0.95, 1),
+            Err(BootstrapError::InsufficientIndependentClusters)
+        );
+        assert_eq!(
+            cluster_bootstrap_orientations(&[vec![], vec![0.0]], 100, 0.95, 1),
+            Err(BootstrapError::EmptyCluster)
+        );
+        assert_eq!(
+            cluster_bootstrap_orientations(&[vec![f64::NAN], vec![0.0]], 100, 0.95, 1),
+            Err(BootstrapError::NonFiniteAngle)
+        );
+        assert_eq!(
+            cluster_bootstrap_orientations(&[vec![0.0], vec![0.0]], 0, 0.95, 1),
+            Err(BootstrapError::ZeroResamples)
+        );
+        assert_eq!(
+            cluster_bootstrap_orientations(&[vec![0.0], vec![0.0]], 100, 1.0, 1),
+            Err(BootstrapError::InvalidConfidenceLevel)
+        );
+    }
+
+    #[test]
     fn no_event_summary_is_explicitly_undefined_not_zero() {
         let result = simulate(
             &steering_profile(),
@@ -1448,8 +2301,8 @@ mod tests {
         assert_eq!(summary.projected_drift_um_s, None);
         assert_eq!(summary.resolved_run_direction_count, 0);
         assert_eq!(summary.up_gradient_run_fraction, None);
-        assert_eq!(summary.short_event_followed_up_gradient_fraction, None);
-        assert_eq!(summary.long_trap_followed_up_gradient_fraction, None);
+        assert_eq!(summary.short_duration_followed_up_gradient_fraction, None);
+        assert_eq!(summary.long_duration_followed_up_gradient_fraction, None);
 
         let one_event = simulate(
             &steering_profile(),
@@ -1460,10 +2313,10 @@ mod tests {
         )
         .expect("one-event simulation is valid");
         let one_event_summary = summarize(&one_event);
-        assert_eq!(one_event_summary.short_event_count, 1);
-        assert_eq!(one_event_summary.short_event_followed_run_count, 0);
+        assert_eq!(one_event_summary.short_duration_event_count, 1);
+        assert_eq!(one_event_summary.short_duration_followed_run_count, 0);
         assert_eq!(
-            one_event_summary.short_event_followed_up_gradient_fraction,
+            one_event_summary.short_duration_followed_up_gradient_fraction,
             None
         );
     }
