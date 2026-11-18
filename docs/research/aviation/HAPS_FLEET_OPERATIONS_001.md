@@ -19,8 +19,8 @@ This increment adds the missing bridge: **a chronological event replay that calc
 
 - [haps_fleet_operations_case_v1.schema.json](schemas/haps_fleet_operations_case_v1.schema.json)
 - [synthetic_haps_fleet_operations_case_v1.json](examples/synthetic_haps_fleet_operations_case_v1.json)
-- Rust crate: [tools/haps-fleet-operations](../../../../tools/haps-fleet-operations)
-- Workflow: [HAPS Fleet Operations Replay](../../../../.github/workflows/haps-fleet-operations.yml)
+- Rust crate: [tools/haps-fleet-operations](../../../tools/haps-fleet-operations)
+- Workflow: [HAPS Fleet Operations Replay](../../../.github/workflows/haps-fleet-operations.yml)
 
 The case has three heterogeneous HAPS nodes, terrestrial and LEO fallback, planned maintenance, individual faults, recovery transit, common weather, a shared ground/LEO outage, group handover, and an emergency-demand weighting interval.
 
