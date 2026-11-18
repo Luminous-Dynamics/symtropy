@@ -171,7 +171,7 @@
       "calibration_record_id": null
     },
     "mean_force_N": {
-      "value": 130.8333333333,
+      "value": 131,
       "standard_uncertainty": 0,
       "unit": "N",
       "status": "synthetic",
@@ -179,7 +179,7 @@
       "calibration_record_id": null
     },
     "impulse_N_s": {
-      "value": 65.4166666667,
+      "value": 65.5,
       "standard_uncertainty": 0,
       "unit": "N*s",
       "status": "synthetic",
@@ -187,7 +187,7 @@
       "calibration_record_id": null
     },
     "energy_input_J": {
-      "value": 2.4,
+      "value": 0.655,
       "standard_uncertainty": 0,
       "unit": "J",
       "status": "synthetic",
@@ -195,7 +195,7 @@
       "calibration_record_id": null
     },
     "displaced_volume_m3": {
-      "value": 0.00002,
+      "value": 0.000005,
       "standard_uncertainty": 0,
       "unit": "m3",
       "status": "synthetic",
@@ -269,35 +269,35 @@
     {
       "artifact_id": "psd-fixture",
       "role": "material_characterization",
-      "path": "examples/README.md",
+      "path": "synthetic-placeholder:psd-fixture",
       "media_type": "text/markdown",
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
     },
     {
       "artifact_id": "tool-geometry-fixture",
       "role": "tool_geometry",
-      "path": "examples/README.md",
+      "path": "synthetic-placeholder:tool-geometry-fixture",
       "media_type": "text/markdown",
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
     },
     {
       "artifact_id": "tool-path-fixture",
       "role": "tool_path",
-      "path": "examples/README.md",
+      "path": "synthetic-placeholder:tool-path-fixture",
       "media_type": "text/markdown",
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
     },
     {
       "artifact_id": "as-built-geometry-fixture",
       "role": "as_built_geometry",
-      "path": "examples/README.md",
+      "path": "synthetic-placeholder:as-built-geometry-fixture",
       "media_type": "text/markdown",
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
     },
     {
       "artifact_id": "model-parameters-fixture",
       "role": "model_parameters",
-      "path": "examples/README.md",
+      "path": "synthetic-placeholder:model-parameters-fixture",
       "media_type": "text/markdown",
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
     }
