@@ -633,7 +633,7 @@
     },
     {
       "artifact_id": "quality-assays-fixture",
-      "role": "mineral_assay",
+      "role": "mineral_and_particle_size_assay",
       "path": "synthetic-quality-assays.json",
       "sha256": "5ec6ec5ff2489b006b5bc5b49d28884c5ad5b25f87b2273ce584e1d0368a262b"
     },
