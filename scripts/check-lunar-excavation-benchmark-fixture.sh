@@ -44,9 +44,10 @@ jq -e '
 
 jq -e '
   . as $m
+  | ($m.split_policy.isolation_axes + $m.split_policy.optional_isolation_axes) as $axes
   | [
       $m.run_assignments[] as $r
-      | ["material_batch_id", "preparation_protocol_id", "tool_geometry_id", "operating_regime_id"][] as $axis
+      | $axes[] as $axis
       | $m.group_assignments[$axis][$r.group_keys[$axis]] == $r.partition
     ]
   | all(.[]; . == true)
@@ -59,6 +60,7 @@ jq -e '
     "tool_geometry_id",
     "operating_regime_id"
   ]
+  and (.split_policy.optional_isolation_axes | unique == ["campaign_id", "laboratory_id"])
 ' "$manifest" >/dev/null || fail "dataset split policy omits a required isolation axis"
 
 jq -e '
