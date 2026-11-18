@@ -214,10 +214,14 @@ pub fn optimize_pairwise_total_kl_trust_region_with_covariance(
     {
         return Err(TotalKlTrustRegionError::MissingCovarianceIdentity);
     }
+    let expected_dimension = scenario
+        .observation_times
+        .len()
+        .checked_mul(selected_sensor_ids.len())
+        .ok_or(TotalKlTrustRegionError::CovarianceIdentityMismatch)?;
     if covariance.sensor_ids != selected_sensor_ids
         || covariance.times != scenario.observation_times
-        || covariance.covariance().dimension()
-            != scenario.observation_times.len() * selected_sensor_ids.len()
+        || covariance.covariance().dimension() != expected_dimension
     {
         return Err(TotalKlTrustRegionError::CovarianceIdentityMismatch);
     }
@@ -641,24 +645,42 @@ where
         observation_operator_id: covariance_metadata.observation_operator_id,
         availability_cutoff_id: covariance_metadata.availability_cutoff_id,
         covariance_kind: covariance_metadata.covariance_kind,
-        assumptions: assumptions(),
+        assumptions: assumptions(covariance_metadata.covariance_kind),
     })
 }
 
-fn assumptions() -> Vec<&'static str> {
-    vec![
+fn assumptions(covariance_kind: &'static str) -> Vec<&'static str> {
+    let mut declared = vec![
         "one fixed pair of linear graph models",
         "common state basis, capacities, initial state and horizon",
-        "fixed sensors, sample schedule and common sensor covariance",
-        "independent observation-noise blocks across observation times",
+        "fixed sensors and exact sample schedule",
         "continuous control amplitudes over a declared piecewise-constant basis",
-        "exact total controlled Gaussian KL objective, including passive offset and linear cross term",
+        "total controlled Gaussian KL includes the passive offset and linear cross term",
         "integrated squared-input energy ellipsoid",
         "global trust-region optimum applies only when peak-amplitude cap is inactive",
         "fixed candidate parameters; nuisance profiling is not included",
         "no slew-rate or actuator-state constraint",
         "synthetic mathematical benchmark only",
-    ]
+    ];
+    match covariance_kind {
+        "INDEPENDENT_TIME_BLOCKS" => {
+            declared.push("observation covariance is block diagonal across observation times");
+        }
+        "DENSE_SPD" => {
+            declared.push(
+                "full dense space-time covariance uses Cholesky-whitened bilinear products",
+            );
+        }
+        "AR1_KRONECKER" => {
+            declared.push(
+                "structured AR(1) covariance uses temporal innovations and sensor Cholesky whitening",
+            );
+        }
+        _ => {
+            declared.push("covariance uses the declared identity-bound bilinear metric");
+        }
+    }
+    declared
 }
 
 fn selected_sensor_indices(
@@ -967,10 +989,16 @@ mod tests {
         .unwrap();
         assert_eq!(full.covariance_kind, "DENSE_SPD");
         assert_eq!(full.covariance_id, "covariance:block-diagonal-v1");
-        assert!((full.achieved_total_gaussian_kl - independent.achieved_total_gaussian_kl).abs() < 1.0e-8);
+        assert!(
+            (full.achieved_total_gaussian_kl - independent.achieved_total_gaussian_kl).abs()
+                < 1.0e-8
+        );
         assert!((full.unconstrained_total_gaussian_kl_upper_bound
             - independent.unconstrained_total_gaussian_kl_upper_bound).abs() < 1.0e-8);
-        assert!((full.trust_region_multiplier - independent.trust_region_multiplier).abs() < 1.0e-8);
+        assert!(
+            (full.trust_region_multiplier - independent.trust_region_multiplier).abs()
+                < 1.0e-8
+        );
     }
 
     #[test]
@@ -1061,6 +1089,26 @@ mod tests {
         assert_eq!(
             optimize_pairwise_total_kl_trust_region_with_covariance(
                 &fixture, 1, 2, &[10, 11], &[0], &[0.0, 2.0], &wrong_order,
+            ),
+            Err(TotalKlTrustRegionError::CovarianceIdentityMismatch)
+        );
+
+        let dense_for_times =
+            DenseSpdCovariance::new(fixture.noise_covariance.clone()).unwrap();
+        let wrong_times = ObservationCovarianceV1::new(
+            "covariance:wrong-times".to_owned(),
+            "process:independent-time".to_owned(),
+            "sampling:scenario".to_owned(),
+            "operator:sensors".to_owned(),
+            "cutoff:finalized".to_owned(),
+            vec![10, 11],
+            vec![0.2, 0.8, 1.2, 1.6, 2.0],
+            dense_for_times,
+        )
+        .unwrap();
+        assert_eq!(
+            optimize_pairwise_total_kl_trust_region_with_covariance(
+                &fixture, 1, 2, &[10, 11], &[0], &[0.0, 2.0], &wrong_times,
             ),
             Err(TotalKlTrustRegionError::CovarianceIdentityMismatch)
         );
