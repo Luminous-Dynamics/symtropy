@@ -80,7 +80,9 @@
               "solar_fixed_wing_haps",
               "buoyant_free_balloon",
               "buoyant_airship",
-              "unknown"
+              "unknown",
+              "terrestrial_gateway",
+              "leo_satellite_backhaul"
             ]
           },
           "independent_availability_probability": {
@@ -125,7 +127,8 @@
               "shared_launch_site_loss",
               "common_configuration_defect",
               "shared_maintenance_supply_failure",
-              "other"
+              "other",
+              "shared_external_common_mode"
             ]
           },
           "event_probability": {
