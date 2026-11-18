@@ -448,13 +448,27 @@ pub enum MsdError {
 impl fmt::Display for MsdError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::EmptyEnsemble => write!(formatter, "MSD requires at least one trajectory"),
-            Self::InvalidLagTime => write!(formatter, "MSD lag times must be finite and non-negative"),
-            Self::InvalidTimeOriginStep => write!(formatter, "MSD time-origin step must be finite and positive"),
-            Self::InvalidTrace => write!(formatter, "trajectory trace must be finite and strictly time-ordered"),
-            Self::TooManyTimeOrigins => write!(formatter, "MSD time-origin count exceeds the configured limit"),
-            Self::NoTrajectorySupportsLag(lag) => write!(formatter, "no trajectory supports lag time {lag} seconds"),
-            Self::NonFiniteStatistic => write!(formatter, "MSD calculation produced a non-finite statistic"),
+            Self::EmptyEnsemble => {
+                write!(formatter, "MSD requires at least one trajectory")
+            }
+            Self::InvalidLagTime => {
+                write!(formatter, "MSD lag times must be finite and non-negative")
+            }
+            Self::InvalidTimeOriginStep => {
+                write!(formatter, "MSD time-origin step must be finite and positive")
+            }
+            Self::InvalidTrace => {
+                write!(formatter, "trajectory trace must be finite and strictly time-ordered")
+            }
+            Self::TooManyTimeOrigins => {
+                write!(formatter, "MSD time-origin count exceeds the configured limit")
+            }
+            Self::NoTrajectorySupportsLag(lag) => {
+                write!(formatter, "no trajectory supports lag time {lag} seconds")
+            }
+            Self::NonFiniteStatistic => {
+                write!(formatter, "MSD calculation produced a non-finite statistic")
+            }
         }
     }
 }
@@ -683,7 +697,14 @@ pub fn simulate_with_bias_mode(
             };
 
         state.heading_rad = wrap_angle(state.heading_rad + wrap_angle(turn_angle));
-        state.elapsed_s += event_duration;
+        let event_end_time_s = state.elapsed_s + event_duration;
+        if !event_end_time_s.is_finite() {
+            return Err(SimulationError::NonFiniteTrajectory);
+        }
+        if event_end_time_s <= state.elapsed_s {
+            return Err(SimulationError::IntegrationStepDidNotAdvance);
+        }
+        state.elapsed_s = event_end_time_s;
         if !state.is_valid() {
             return Err(SimulationError::NonFiniteTrajectory);
         }
