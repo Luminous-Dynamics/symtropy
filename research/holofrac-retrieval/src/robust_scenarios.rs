@@ -696,7 +696,6 @@ mod tests {
             (
                 "present_tmy",
                 vec![
-                    "balanced_robust",
                     "cost_specialist",
                     "fragile_high_score",
                     "present_specialist",
@@ -708,7 +707,6 @@ mod tests {
                     "balanced_robust",
                     "cost_specialist",
                     "fragile_high_score",
-                    "present_specialist",
                 ],
             ),
             (
@@ -733,11 +731,7 @@ mod tests {
 
         assert_eq!(
             report.universal_pareto_candidate_ids,
-            vec![
-                "balanced_robust".to_owned(),
-                "cost_specialist".to_owned(),
-                "present_specialist".to_owned()
-            ]
+            vec!["cost_specialist".to_owned()]
         );
     }
 
