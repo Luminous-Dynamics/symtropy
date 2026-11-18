@@ -278,6 +278,24 @@ mod tests {
             decision_value.policy_outcome.expected_decision_regret
                 < information.policy_outcome.expected_decision_regret
         );
+
+        let heat = decision_value
+            .experiment_metrics
+            .iter()
+            .find(|metric| metric.experiment_id == "measure_heat_exposure_70pct")
+            .unwrap();
+        let humidity = decision_value
+            .experiment_metrics
+            .iter()
+            .find(|metric| metric.experiment_id == "measure_humidity_exact")
+            .unwrap();
+        assert!((heat.expected_value_improvement - 0.0275).abs() < 1.0e-12);
+        assert!((heat.net_expected_decision_value - 0.0175).abs() < 1.0e-12);
+        assert!((heat.expected_decision_regret - 0.0975).abs() < 1.0e-12);
+        assert!((humidity.expected_value_improvement - 0.0).abs() < 1.0e-12);
+        assert!((humidity.net_expected_decision_value + 0.01).abs() < 1.0e-12);
+        assert!((humidity.expected_decision_regret - 0.125).abs() < 1.0e-12);
+        assert!((humidity.mutual_information_bits - 1.0).abs() < 1.0e-12);
     }
 
     #[test]
