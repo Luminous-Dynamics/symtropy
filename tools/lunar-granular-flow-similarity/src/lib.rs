@@ -25,6 +25,7 @@ pub struct CategoricalCoordinates {
     pub wall_material: Option<String>,
     pub wall_grounding: Option<String>,
     pub flow_regime: Option<String>,
+    pub electrostatic_axis_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -486,6 +487,7 @@ pub fn compare(input: &ComparisonInput) -> Result<SimilarityReport, String> {
         categorical_result("wall_material", &ca.wall_material, &cb.wall_material),
         categorical_result("wall_grounding", &ca.wall_grounding, &cb.wall_grounding),
         categorical_result("flow_regime", &ca.flow_regime, &cb.flow_regime),
+        categorical_result("electrostatic_reference_axis", &ca.electrostatic_axis_id, &cb.electrostatic_axis_id),
     ];
 
     let has_outside = coordinates.iter().any(|item| {
@@ -545,6 +547,7 @@ mod tests {
                 wall_material: Some("PTFE".to_owned()),
                 wall_grounding: Some("floating".to_owned()),
                 flow_regime: Some("slumping".to_owned()),
+                electrostatic_axis_id: Some("vertical_up_positive".to_owned()),
             },
         }
     }
@@ -594,7 +597,7 @@ mod tests {
             report.overall_status,
             EnvelopeStatus::WithinDeclaredSimilarityEnvelope
         );
-        assert_eq!(report.coordinates.len(), 17);
+        assert_eq!(report.coordinates.len(), 18);
     }
 
     #[test]
@@ -717,6 +720,22 @@ mod tests {
         let mut value = input();
         value.candidate.numeric.chamber_pressure_pa = Some(0.0);
         assert!(compare(&value).is_err());
+    }
+
+    #[test]
+    fn electrostatic_axis_mismatch_is_a_hard_boundary() {
+        let mut value = input();
+        value.target.categorical.electrostatic_axis_id = Some("vertical_up_positive".to_owned());
+        value.candidate.categorical.electrostatic_axis_id = Some("vertical_down_positive".to_owned());
+        let report = compare(&value).expect("axis values are explicit categories");
+        assert_eq!(
+            report.overall_status,
+            EnvelopeStatus::OutsideDeclaredSimilarityEnvelope
+        );
+        assert_eq!(
+            report.coordinates[17].status,
+            CoordinateStatus::Mismatch
+        );
     }
 
     #[test]
