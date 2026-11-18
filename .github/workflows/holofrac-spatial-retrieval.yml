@@ -79,6 +79,9 @@ jobs:
           echo "lifecycle mutation and evidence impact:"
           HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin lifecycle_impact_sweep > artifacts/lifecycle-evidence-impact.csv
           cat artifacts/lifecycle-evidence-impact.csv
+          echo "consent-first pluralistic design decisions:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin pluralistic_decision_sweep > artifacts/pluralistic-decisions.csv
+          cat artifacts/pluralistic-decisions.csv
 
       - name: Upload raw benchmark outputs
         if: always()
