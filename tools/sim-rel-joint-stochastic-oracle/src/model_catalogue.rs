@@ -156,6 +156,13 @@ struct CatalogueHashContent<'a> {
     candidate_models: &'a [PublicCandidateModel],
 }
 
+/// SHA-256 of canonical serde JSON for any public profile/catalogue object.
+pub fn canonical_sha256<T: Serialize>(value: &T) -> Result<String, String> {
+    let bytes = serde_json::to_vec(value).map_err(|error| error.to_string())?;
+    let digest = Sha256::digest(bytes);
+    Ok(format!("sha256:{digest:x}"))
+}
+
 impl PublicModelCatalogue {
     /// Build a public candidate catalogue from the owner kernel for an explicit
     /// candidate ID subset. Candidate priors are task priors supplied separately;
@@ -488,9 +495,7 @@ impl PublicModelCatalogue {
             observation_ids: &self.observation_ids,
             candidate_models: &self.candidate_models,
         };
-        let bytes = serde_json::to_vec(&content).map_err(|error| error.to_string())?;
-        let digest = Sha256::digest(bytes);
-        Ok(format!("sha256:{digest:x}"))
+        canonical_sha256(&content)
     }
 }
 
