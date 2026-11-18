@@ -51,12 +51,12 @@ The Stage-0 input binds:
 - facility, acceptance grade, report and calibration references;
 - measured flow/head curve points with uncertainty;
 - a separate manufacturer NPSHr curve/reference for the same serial/configuration/speed;
-- site/system NPSHa interval, source and method;
+- site/system NPSHa interval, source, method and site-side calibration reference (separate from factory test calibration);
 - an application-specific NPSH margin profile and required margin;
 - site duty point and evidence state;
 - post-test repair/change state.
 
-The evaluator does not create a Q-H curve from a nameplate or model. It uses measured points in the fixture only, does not extrapolate, and reports INDETERMINATE when uncertainty overlaps the required head.
+The site NPSHa interval is not admissible without a separately bound site-side calibration reference; a factory instrument calibration is not substituted. The evaluator does not create a Q-H curve from a nameplate or model. It uses measured points in the fixture only, does not extrapolate, and reports INDETERMINATE when uncertainty overlaps the required head.
 
 ## Stage-0 challenge set
 
