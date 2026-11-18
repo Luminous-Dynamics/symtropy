@@ -9,14 +9,13 @@
 //! appliance modules. Planned material flows are not measurements or proof of
 //! edible acceptance. The result is not a safety certificate or actuation permit.
 
-use crate::action_ontology::ActionOntologyBindingV1;
+use crate::action_ontology::{ActionMappingMethodV1, ActionOntologyBindingV1};
 use crate::recipe_graph::{
     ExactRecipeQuantityV1, RecipeActionKindV1, RecipeEvidenceClassV1, RecipeGraphValidationReportV1,
     RecipeIngredientUseV1, RecipeIngredientV1, RecipeRightsStatusV1, RecipeReviewStateV1,
     RecipeSourceV1, RecipeTaskGraphV1, RecipeTaskNodeV1, RecipeUseScopeV1,
     RECIPE_GRAPH_CLAIM_CEILING, RECIPE_TASK_GRAPH_SCHEMA_VERSION, validate_recipe_task_graph,
 };
-use crate::TaskDependencyV1;
 use crate::KitchenTaskV1;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -528,7 +527,7 @@ fn disposition(issues: &[MealCompilationIssueV1]) -> MealCompilationDispositionV
 fn proposal_digest(proposal: &MealProposalV1) -> Result<String, ()> {
     let bytes = serde_json::to_vec(proposal).map_err(|_| ())?;
     let digest = Sha256::digest(bytes);
-    Ok(digest.iter().map(|byte| format!("{byte:02x}")).collect())
+    Ok(digest.iter().map(|byte| format!("{byte:02x}")).collect::<Vec<_>>().join(""))
 }
 
 fn quantity_to_base(
@@ -689,8 +688,7 @@ fn validate_proposal(
                     );
                 }
             }
-            (IngredientQuantityStateV1::NotRequired, None)
-            | (IngredientQuantityStateV1::Explicit, Some(_)) => {}
+            (IngredientQuantityStateV1::NotRequired, None) => {}
         }
         if ingredient
             .product_lot_ref
@@ -1056,7 +1054,26 @@ fn validate_task_bindings(
                 "at least one explicit planning resource ID is required",
             );
         }
-        if binding.ontology_binding.is_none() {
+        if let Some(ontology) = &binding.ontology_binding {
+            if ontology.mapping.method == ActionMappingMethodV1::Unmapped
+                || ontology.mapping.core.is_none()
+                || ontology.mapping.group.is_none()
+                || ontology
+                    .mapping
+                    .provenance_ref
+                    .as_deref()
+                    .is_none_or(|reference| {
+                        !nonempty(reference) || reference != binding.action_resolution_ref
+                    })
+            {
+                add_issue(
+                    issues,
+                    MealCompilationIssueCodeV1::MissingActionOntology,
+                    Some(&binding.task_id),
+                    "action mapping must be mapped, versioned and bound to its exact provenance reference",
+                );
+            }
+        } else {
             add_issue(
                 issues,
                 MealCompilationIssueCodeV1::MissingActionOntology,
@@ -1101,7 +1118,11 @@ fn validate_task_bindings(
             if output
                 .ingredient_origins
                 .iter()
-                .any(|origin| !nonempty(origin) || !origins.insert(origin.as_str()))
+                .any(|origin| {
+                    !nonempty(origin)
+                        || !origins.insert(origin.as_str())
+                        || !task.ingredient_refs.iter().any(|input| input == origin)
+                })
             {
                 add_issue(
                     issues,
@@ -1125,7 +1146,7 @@ fn validate_task_bindings(
     }
     by_id
         .into_iter()
-        .map(|(task_id, binding)| (task_id.to_owned(), binding.clone()))
+        .map(|(task_id, binding)| (task_id.to_owned(), (*binding).clone()))
         .collect()
 }
 
@@ -1326,19 +1347,7 @@ fn validate_food_flows(
                     .entry((producer.clone(), output_ref.clone()))
                     .and_modify(|count| *count += 1)
                     .or_insert(1);
-                if output
-                    .ingredient_origins
-                    .iter()
-                    .any(|origin| !producer_task.ingredient_refs.iter().any(|item| item == origin))
-                {
-                    add_issue(
-                        issues,
-                        MealCompilationIssueCodeV1::OutputIngredientLineageMismatch,
-                        Some(output_ref),
-                        "producer output ingredient origins must be a subset of its declared proposal inputs",
-                    );
-                }
-                let _ = consumer_task;
+                        let _ = (producer_task, consumer_task);
                 task_input_origins
                     .entry(consumer.clone())
                     .or_default()
@@ -1403,12 +1412,20 @@ fn validate_food_flows(
             .cloned()
             .unwrap_or_default();
         let expected: BTreeSet<String> = task.ingredient_refs.iter().cloned().collect();
-        if actual != expected {
+        if !expected.is_subset(&actual) {
+            add_issue(
+                issues,
+                MealCompilationIssueCodeV1::MissingTaskIngredientFlow,
+                Some(&task.task_id),
+                "one or more declared task ingredients have no explicit incoming material-flow lineage",
+            );
+        }
+        if !actual.is_subset(&expected) {
             add_issue(
                 issues,
                 MealCompilationIssueCodeV1::TaskIngredientLineageMismatch,
                 Some(&task.task_id),
-                "task material-flow ancestry must exactly match its declared ingredient references",
+                "material-flow lineage contains an ingredient not declared by the proposal task",
             );
         }
     }
@@ -1670,7 +1687,7 @@ pub fn compile_meal(request: &MealCompilationRequestV1) -> MealCompilationReport
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::action_ontology::{ActionMappingMethodV1, rule_based_action_binding};
+    use crate::action_ontology::rule_based_action_binding;
     use crate::TaskDependencyV1;
 
     fn quantity(value: u64, unit: QuantityUnitV1) -> ExactIngredientQuantityV1 {
@@ -1747,10 +1764,8 @@ mod tests {
             claim_ceiling: MEAL_PROPOSAL_CLAIM_CEILING.to_owned(),
         };
 
-        let mut proposal = proposal;
+        let proposal = proposal;
         let proposal_sha256 = proposal_digest(&proposal).unwrap();
-        // Keep a mutable binding above to make fixture edits obvious and local.
-        proposal.revision = 1;
 
         let mut chop_binding = MealTaskCompilationBindingV1 {
             task_id: "chop-onion".to_owned(),
@@ -1768,7 +1783,7 @@ mod tests {
                 RecipeActionKindV1::Chop,
                 RecipeEvidenceClassV1::Declared,
             )),
-            action_resolution_ref: "review:action-chop-v1".to_owned(),
+            action_resolution_ref: "builtin:symtropy-kitchen-action-rules-v1".to_owned(),
             duration_method_ref: "method:manual-cutting-v1".to_owned(),
             resource_resolution_ref: "resolution:manual-prep-v1".to_owned(),
             instruction_ref: Some("instruction:step-1".to_owned()),
@@ -1799,7 +1814,7 @@ mod tests {
                 RecipeActionKindV1::Saute,
                 RecipeEvidenceClassV1::Declared,
             )),
-            action_resolution_ref: "review:action-saute-v1".to_owned(),
+            action_resolution_ref: "builtin:symtropy-kitchen-action-rules-v1".to_owned(),
             duration_method_ref: "method:saute-v1".to_owned(),
             resource_resolution_ref: "resolution:hob-zone-1-v1".to_owned(),
             instruction_ref: Some("instruction:step-2".to_owned()),
@@ -1810,13 +1825,6 @@ mod tests {
                 quantity_basis_ref: "model:cooking-yield-v1".to_owned(),
             }],
         };
-        // The rule-based mapper uses a versioned ruleset reference.
-        for binding in [&mut chop_binding, &mut saute_binding] {
-            if let Some(ontology) = &mut binding.ontology_binding {
-                ontology.mapping.method = ActionMappingMethodV1::RuleBased;
-            }
-        }
-
         MealCompilationRequestV1 {
             schema_version: 1,
             request_id: "compile:onion-side:1".to_owned(),
