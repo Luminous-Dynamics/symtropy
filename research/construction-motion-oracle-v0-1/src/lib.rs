@@ -11,6 +11,12 @@ pub use ifc_ids_preflight::{
     IdsRequirementEvaluation, SourceEntityBinding, preflight_ifc_ids_work_package,
 };
 pub mod site_state_ledger;
+pub mod reservation_command_gate;
+pub use reservation_command_gate::{
+    CommandReplayGuard, CommandReplayGuardError, CommandReplaySnapshot,
+    ReservationCommandFailure, ReservationCommandReceipt, ReservationCommandRequest,
+    RESERVATION_COMMAND_SCHEMA_VERSION, check_reservation_command_current,
+};
 pub mod dispatch_readiness;
 pub use dispatch_readiness::{
     DispatchEnvelopeBinding, DispatchReadinessFailure, DispatchReadinessReceipt,
