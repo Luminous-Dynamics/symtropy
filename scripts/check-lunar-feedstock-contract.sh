@@ -132,6 +132,51 @@ jq -e '
     )
 ' "$run_path" >/dev/null || fail "quality sample identity, assay evidence or distribution fields invalid"
 
+assay_artifact_path="$(jq -er '.artifacts[] | select(.role == "mineral_assay") | .path' "$run_path")"
+settings_artifact_path="$(jq -er '.artifacts[] | select(.role == "stage_settings") | .path' "$run_path")"
+mass_artifact_path="$(jq -er '.artifacts[] | select(.role == "mass_balance") | .path' "$run_path")"
+
+jq -e --slurpfile assay "$run_dir/$assay_artifact_path" '
+  . as $r
+  | all($r.quality_samples[];
+      . as $sample
+      | ($assay[0].samples | map(select(.sample_id == $sample.sample_id)) | .[0]) as $source
+      | ($source != null)
+        and ($source.stream_id == $sample.stream_id)
+        and ($source.sample_point == $sample.sample_point)
+        and all($sample.phase_fractions[];
+          . as $phase
+          | any($source.phase_fractions[];
+              .phase_id == $phase.phase_id
+              and .value == $phase.mass_fraction.value
+              and .standard_uncertainty == $phase.mass_fraction.standard_uncertainty
+              and .unit == $phase.mass_fraction.unit))
+        and all($sample.size_bins[];
+          . as $bin
+          | any($source.size_bins[];
+              .d_min_um == $bin.d_min_um.value
+              and .d_max_um == $bin.d_max_um.value
+              and .mass_fraction == $bin.mass_fraction.value
+              and .standard_uncertainty == $bin.mass_fraction.standard_uncertainty))
+        and ($source.target_size_mass_fraction == $sample.target_size_mass_fraction.value)
+  )
+' "$run_path" >/dev/null || fail "quality sample values do not reconcile to the referenced mineral-assay artifact"
+
+jq -e --slurpfile settings "$run_dir/$settings_artifact_path" '
+  . as $r
+  | all($r.stage_events[];
+      . as $event
+      | any($settings[0].settings[]; .event_id == $event.event_id))
+' "$run_path" >/dev/null || fail "stage event has no matching settings record in its referenced artifact"
+
+jq -e --slurpfile mass "$run_dir/$mass_artifact_path" '
+  . as $r
+  | all($r.material_streams[];
+      . as $stream
+      | (($mass[0].streams_kg[$stream.stream_id] | type) == "number")
+        and ($mass[0].streams_kg[$stream.stream_id] == $stream.measured_mass_kg.value))
+' "$run_path" >/dev/null || fail "material stream mass does not reconcile to the referenced mass artifact"
+
 # Recompute every transformation's mass balance from the referenced streams.
 jq -e '
   def stream_mass($r; $id):
