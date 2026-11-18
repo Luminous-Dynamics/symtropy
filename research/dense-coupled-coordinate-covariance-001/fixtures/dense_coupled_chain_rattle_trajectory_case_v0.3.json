@@ -689,8 +689,8 @@
     "singular_basis_transform": "rejected before solver execution"
   },
   "claim_boundary": {
-    "established_by_fixture": "frozen exact coordinate data, one-step force-free RATTLE input, and a 32-step repeated-step covariance comparison specification",
-    "not_established": "exact-head Rust trajectory-test pass until CI; long-horizon invariant drift; forced RATTLE; pHDAE equivalence; contact/friction; physical calibration; production readiness; performance advantage"
+    "established_by_fixture": "frozen exact coordinate data, one-step and repeated-step force-free RATTLE comparison inputs, and a separate high-conditioning one-step stress input",
+    "not_established": "exact-head Rust qualification of latest repeated-step and high-conditioning stress tests; forced RATTLE; pHDAE equivalence; contact/friction; long-horizon invariant drift; physical calibration; production readiness; performance advantage"
   },
   "separate_force_duality_control": {
     "external_force_covector": [
@@ -728,8 +728,8 @@
     "claim_boundary": "This is a frozen force-free step-map test vector. It does not qualify forced RATTLE, pHDAE equivalence, contact/friction, long-horizon integration or physical calibration."
   },
   "trajectory_case": {
-    "step_count": 32,
-    "time_step": 0.01,
+    "step_count": 64,
+    "time_step": 0.005,
     "solver_profile": {
       "relative_tolerance": 1e-13,
       "max_iterations": 32,
@@ -758,6 +758,224 @@
     ],
     "dense_state_recurrence": "each dense step starts from the prior dense lifted physical state; no reset to the canonical reference state between steps",
     "reference_state_recurrence": "each Cartesian step starts from the prior Cartesian reference state",
-    "claim_boundary": "A 32-step force-free open-chain RATTLE covariance regression on two fixed dense bases; not long-horizon stability, forced dynamics or physical calibration"
+    "claim_boundary": "A 64-step force-free open-chain RATTLE covariance regression over a 0.32 s horizon on two fixed dense bases; not long-horizon stability, forced dynamics or physical calibration"
+  },
+  "conditioning_stress_case": {
+    "basis_id": "dense_shear_3",
+    "construction": "S = I + 3 u v^T with u=[1,1,1,2,1,1,1,2,3], v=[1,1,1,1,-1,-1,-1,-1,0], and v^T u=0",
+    "determinant_exact": 1,
+    "basis_matrix": [
+      [
+        4,
+        3,
+        3,
+        3,
+        -3,
+        -3,
+        -3,
+        -3,
+        0
+      ],
+      [
+        3,
+        4,
+        3,
+        3,
+        -3,
+        -3,
+        -3,
+        -3,
+        0
+      ],
+      [
+        3,
+        3,
+        4,
+        3,
+        -3,
+        -3,
+        -3,
+        -3,
+        0
+      ],
+      [
+        6,
+        6,
+        6,
+        7,
+        -6,
+        -6,
+        -6,
+        -6,
+        0
+      ],
+      [
+        3,
+        3,
+        3,
+        3,
+        -2,
+        -3,
+        -3,
+        -3,
+        0
+      ],
+      [
+        3,
+        3,
+        3,
+        3,
+        -3,
+        -2,
+        -3,
+        -3,
+        0
+      ],
+      [
+        3,
+        3,
+        3,
+        3,
+        -3,
+        -3,
+        -2,
+        -3,
+        0
+      ],
+      [
+        6,
+        6,
+        6,
+        6,
+        -6,
+        -6,
+        -6,
+        -5,
+        0
+      ],
+      [
+        9,
+        9,
+        9,
+        9,
+        -9,
+        -9,
+        -9,
+        -9,
+        1
+      ]
+    ],
+    "inverse_basis_matrix": [
+      [
+        -2,
+        -3,
+        -3,
+        -3,
+        3,
+        3,
+        3,
+        3,
+        0
+      ],
+      [
+        -3,
+        -2,
+        -3,
+        -3,
+        3,
+        3,
+        3,
+        3,
+        0
+      ],
+      [
+        -3,
+        -3,
+        -2,
+        -3,
+        3,
+        3,
+        3,
+        3,
+        0
+      ],
+      [
+        -6,
+        -6,
+        -6,
+        -5,
+        6,
+        6,
+        6,
+        6,
+        0
+      ],
+      [
+        -3,
+        -3,
+        -3,
+        -3,
+        4,
+        3,
+        3,
+        3,
+        0
+      ],
+      [
+        -3,
+        -3,
+        -3,
+        -3,
+        3,
+        4,
+        3,
+        3,
+        0
+      ],
+      [
+        -3,
+        -3,
+        -3,
+        -3,
+        3,
+        3,
+        4,
+        3,
+        0
+      ],
+      [
+        -6,
+        -6,
+        -6,
+        -6,
+        6,
+        6,
+        6,
+        7,
+        0
+      ],
+      [
+        -9,
+        -9,
+        -9,
+        -9,
+        9,
+        9,
+        9,
+        9,
+        1
+      ]
+    ],
+    "condition_number_2_reference": 1657.9993968634428,
+    "transformed_mass_metric_condition_number_2_reference": 2611081.1788464356,
+    "step_case": {
+      "dt": 0.0025,
+      "comparison_against": "independent CartesianRattleChain::step",
+      "lifted_position_max_abs_tolerance": 0.00002,
+      "lifted_velocity_max_abs_tolerance": 0.00002,
+      "per_edge_squared_length_residual_max_abs": 2e-12,
+      "endpoint_tangency_max_abs": 2e-7
+    },
+    "claim_boundary": "One-step force-free dense-coordinate RATTLE stress at the third conditioning level; do not infer long-horizon stability at this condition number."
   }
 }
