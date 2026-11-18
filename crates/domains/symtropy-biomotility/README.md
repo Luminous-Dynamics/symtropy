@@ -117,7 +117,7 @@ The 2025 porous-gel study reports exponentially distributed run times and an imm
 
 `kaplan_meier` estimates a product-limit survival curve from completed and right-censored durations. Each step reports the risk set, observed events, censors and Greenwood standard error where defined. At tied times, observed events are applied before censor removals. The estimator deliberately leaves independent recording/plate/day cluster identities outside the row-level function so uncertainty can be bootstrapped at the correct experimental unit.
 
-This is right-censoring support, not interval-censoring or left-truncation support. An incomplete event is not converted into a completed sample. Parametric fitting must use censor-aware likelihoods or an explicitly documented source-specific estimator.
+This is right-censoring support, not interval-censoring or left-truncation support. An incomplete run or immobile event at the end of a video/track is not converted into a completed sample. The normalized schema retains censor reason, observation window, waiting-time state and process age. Parametric fitting must use censor-aware likelihoods or an explicitly documented source-specific estimator.
 
 ## Mean-squared displacement (MSD)
 
