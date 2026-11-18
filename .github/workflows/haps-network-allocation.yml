@@ -3,6 +3,7 @@ name: HAPS Network Allocation
 on:
   pull_request:
     paths:
+      - ".github/workflows/haps-network-allocation.yml"
       - "tools/haps-network-allocation/**"
       - "docs/research/aviation/examples/synthetic_haps_disaster_traffic_trace_v1.json"
 
