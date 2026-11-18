@@ -15,6 +15,7 @@ use symtropy_hdc_core::{
 };
 
 pub mod field;
+pub mod climate_robustness;
 pub mod experiment_selection;
 pub mod fractal;
 pub mod impact;
