@@ -383,47 +383,25 @@ impl StreamCoverage {
 /// Canonical source event ledger. Permitted transport reordering does not alter
 /// these bytes; duplicate retransmissions remain represented and auditable.
 pub fn canonical_event_ledger_json(events: &[TelemetryEvent]) -> String {
-    let mut ordered = events.to_vec();
-    ordered.sort_by(|left, right| {
-        left.observation
-            .channel()
-            .cmp(&right.observation.channel())
-            .then_with(|| left.source_id.cmp(&right.source_id))
-            .then_with(|| left.sequence.cmp(&right.sequence))
-            .then_with(|| left.event_id.cmp(&right.event_id))
-            .then_with(|| left.event_time_lower_tick.cmp(&right.event_time_lower_tick))
-            .then_with(|| left.event_time_upper_tick.cmp(&right.event_time_upper_tick))
-            .then_with(|| left.received_tick.cmp(&right.received_tick))
-    });
-    format!(
-        "[{}]",
-        ordered
-            .iter()
-            .map(TelemetryEvent::canonical_json)
-            .collect::<Vec<_>>()
-            .join(",")
-    )
+    // Sort complete canonical event bytes, not a partial key. Invalid/conflicting
+    // records must still have permutation-invariant evidence receipts.
+    let mut ordered = events
+        .iter()
+        .map(TelemetryEvent::canonical_json)
+        .collect::<Vec<_>>();
+    ordered.sort();
+    format!("[{}]", ordered.join(","))
 }
 
 /// Canonical coverage bundle. Source attestations are retained as records and
 /// never inferred from the mere absence of alarm events.
 pub fn canonical_coverage_bundle_json(coverage: &[StreamCoverage]) -> String {
-    let mut ordered = coverage.to_vec();
-    ordered.sort_by(|left, right| {
-        left.channel
-            .cmp(&right.channel)
-            .then_with(|| left.source_id.cmp(&right.source_id))
-            .then_with(|| left.source_revision.cmp(&right.source_revision))
-            .then_with(|| left.first_sequence.cmp(&right.first_sequence))
-    });
-    format!(
-        "[{}]",
-        ordered
-            .iter()
-            .map(StreamCoverage::canonical_json)
-            .collect::<Vec<_>>()
-            .join(",")
-    )
+    let mut ordered = coverage
+        .iter()
+        .map(StreamCoverage::canonical_json)
+        .collect::<Vec<_>>();
+    ordered.sort();
+    format!("[{}]", ordered.join(","))
 }
 
 impl ReconciliationPolicy {
@@ -909,6 +887,9 @@ pub fn reconcile(
 
     let mut events_by_channel: BTreeMap<Channel, Vec<TelemetryEvent>> = BTreeMap::new();
     let mut event_ids: BTreeMap<String, TelemetryEvent> = BTreeMap::new();
+    let mut conflicted_event_ids: BTreeSet<String> = BTreeSet::new();
+    let mut sequence_records: BTreeMap<(Channel, String, u64), TelemetryEvent> = BTreeMap::new();
+    let mut conflicted_sequences: BTreeSet<(Channel, String, u64)> = BTreeSet::new();
     let mut seen_evidence: BTreeMap<String, EvidenceRef> = BTreeMap::new();
     validate_evidence(
         &binding.authorisation_evidence,
@@ -941,7 +922,6 @@ pub fn reconcile(
         &mut diagnostics,
     );
     let mut matched_event_count = 0_usize;
-    let mut sequence_records: BTreeMap<(Channel, String, u64), TelemetryEvent> = BTreeMap::new();
     let mut exact_retransmissions = 0_usize;
 
     for event in events {
@@ -1076,53 +1056,96 @@ pub fn reconcile(
             &mut diagnostics,
         );
 
-        match event_ids.get(&event.event_id) {
-            Some(existing) if existing == event => {
+        let channel = event.observation.channel();
+        let sequence_key = (channel, event.source_id.clone(), event.sequence);
+
+        if conflicted_event_ids.contains(&event.event_id) {
+            continue;
+        }
+        if conflicted_sequences.contains(&sequence_key) {
+            continue;
+        }
+
+        match event_ids.get(&event.event_id).cloned() {
+            Some(existing) if existing == *event => {
                 exact_retransmissions += 1;
                 continue;
             }
-            Some(_) => {
+            Some(existing) => {
                 add_diagnostic(
                     &mut diagnostics,
                     "EVENT_ID_CONFLICT",
                     DiagnosticSeverity::Indeterminate,
-                    Some(event.observation.channel()),
+                    Some(channel),
                     Some(&event.event_id),
-                    "same event ID was observed with conflicting event content",
+                    "same event ID was observed with conflicting event content; neither record is admitted",
+                );
+                let prior_key = (
+                    existing.observation.channel(),
+                    existing.source_id.clone(),
+                    existing.sequence,
+                );
+                event_ids.remove(&event.event_id);
+                conflicted_event_ids.insert(event.event_id.clone());
+                sequence_records.remove(&prior_key);
+                conflicted_sequences.insert(prior_key.clone());
+                conflicted_sequences.insert(sequence_key.clone());
+                if let Some(items) = events_by_channel.get_mut(&prior_key.0) {
+                    items.retain(|item| {
+                        item.event_id != existing.event_id
+                    });
+                }
+                if let Some(items) = events_by_channel.get_mut(&channel) {
+                    items.retain(|item| item.event_id != event.event_id);
+                }
+                add_unknown(
+                    &mut unknown_intervals,
+                    channel,
+                    binding.start_tick,
+                    binding.end_tick,
+                    "conflicting_event_identity",
                 );
                 continue;
             }
-            None => {
-                event_ids.insert(event.event_id.clone(), event.clone());
-            }
+            None => {}
         }
 
-        let sequence_key = (event.observation.channel(), event.source_id.clone(), event.sequence);
-        match sequence_records.get(&sequence_key) {
-            Some(existing) if existing == event => {
-                exact_retransmissions += 1;
-                continue;
-            }
-            Some(_) => {
+        match sequence_records.get(&sequence_key).cloned() {
+            Some(existing) => {
                 add_diagnostic(
                     &mut diagnostics,
                     "EVENT_SEQUENCE_CONFLICT",
                     DiagnosticSeverity::Indeterminate,
-                    Some(event.observation.channel()),
+                    Some(channel),
                     Some(&event.source_id),
-                    "one source sequence number identifies different event payloads",
+                    "one source sequence number identifies different event payloads; neither record is admitted",
+                );
+                event_ids.remove(&existing.event_id);
+                conflicted_event_ids.insert(existing.event_id.clone());
+                conflicted_event_ids.insert(event.event_id.clone());
+                sequence_records.remove(&sequence_key);
+                conflicted_sequences.insert(sequence_key.clone());
+                if let Some(items) = events_by_channel.get_mut(&channel) {
+                    items.retain(|item| {
+                        item.event_id != existing.event_id && item.event_id != event.event_id
+                    });
+                }
+                add_unknown(
+                    &mut unknown_intervals,
+                    channel,
+                    binding.start_tick,
+                    binding.end_tick,
+                    "conflicting_source_sequence",
                 );
                 continue;
             }
-            None => {
-                sequence_records.insert(sequence_key, event.clone());
-            }
+            None => {}
         }
-        events_by_channel
-            .entry(event.observation.channel())
-            .or_default()
-            .push(event.clone());
-        // Count after the channel is matched to its source coverage below.
+
+        event_ids.insert(event.event_id.clone(), event.clone());
+        sequence_records.insert(sequence_key, event.clone());
+        events_by_channel.entry(channel).or_default().push(event.clone());
+        // Count only conflict-free events after source coverage matches below.
     }
 
     let mut maximum_hook_load = None;
