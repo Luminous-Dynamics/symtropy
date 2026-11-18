@@ -110,6 +110,33 @@ for run in "$cal" "$val" "$blind"; do
     .source_class == "synthetic_fixture"
     and (.notes | contains("NON-PHYSICAL SYNTHETIC FIXTURE"))
   ' "$run" >/dev/null || fail "a run fixture is not explicitly synthetic: $run"
+
+  jq -e '
+    . as $r
+    | $r.derived_coordinates as $d
+    | ($d.formula_set_id == "lunar-granular-dimensionless-groups-v1")
+    and ($d.uncertainty_propagation_method == "not_applicable_synthetic")
+    and ((($d.vibration_gamma.value
+           - ($r.operation.vibration_peak_acceleration_m_s2.value
+              / $r.environment.gravity_m_s2.value)) | abs) <= 0.001)
+    and ((($d.vibration_frequency_gravity_scale.value
+           - ($r.operation.vibration_frequency_hz.value
+              * sqrt(($r.material.d50_um.value / 1000000)
+                     / $r.environment.gravity_m_s2.value))) | abs) <= 0.001)
+    and ((($d.vibration_amplitude_to_particle_size.value
+           - ($r.operation.vibration_amplitude_m.value
+              / ($r.material.d50_um.value / 1000000))) | abs) <= 0.01)
+    and ((($d.particle_to_drum_ratio.value
+           - (($r.material.d50_um.value / 1000000)
+              / $r.apparatus.drum_inner_radius_m.value)) | abs) <= 0.00001)
+    and ((($d.wall_roughness_to_particle_ratio.value
+           - ($r.apparatus.wall_roughness_ra_um.value
+              / $r.material.d50_um.value)) | abs) <= 0.001)
+    and ($d.granular_bond_number.status == "unknown")
+    and ($d.wall_adhesion_to_particle_weight.status == "unknown")
+    and ($d.inertial_number.status == "unknown")
+    and ($d.electrostatic_number.status == "unknown")
+  ' "$run" >/dev/null || fail "derived dimensionless coordinates do not recompute or unsupported coordinates are not unknown: $run"
 done
 
 jq -e '
