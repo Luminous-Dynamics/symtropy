@@ -290,9 +290,12 @@ impl ChlamydomonasTrack {
         if self.net_displacement_um > self.path_length_um + 1.0e-9 {
             return Err(AlgalKinematicsError::DisplacementExceedsPath);
         }
-        for heading in [self.net_displacement_heading_rad, self.positive_phototaxis_axis_heading_rad]
-            .into_iter()
-            .flatten()
+        for heading in [
+            self.net_displacement_heading_rad,
+            self.positive_phototaxis_axis_heading_rad,
+        ]
+        .into_iter()
+        .flatten()
         {
             if !heading.is_finite() {
                 return Err(AlgalKinematicsError::NonFiniteHeading);
@@ -548,7 +551,10 @@ impl fmt::Display for AlgalKinematicsError {
                 write!(formatter, "net displacement cannot exceed path length")
             }
             Self::MissingRapheMeasurement => {
-                write!(formatter, "one/two-raphe contact needs raphe and path curvature measurements")
+                write!(
+                    formatter,
+                    "one/two-raphe contact needs raphe and path curvature measurements"
+                )
             }
             Self::DuplicateSampleId => write!(formatter, "duplicate raphe sample ID"),
             Self::DuplicateTrackId => write!(formatter, "duplicate track ID"),
