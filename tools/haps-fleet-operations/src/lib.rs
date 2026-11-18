@@ -345,8 +345,6 @@ pub fn validate_case(case: &FleetOperationsCase) -> Result<(), OperationsError> 
 
 pub fn evaluate_case(case: &FleetOperationsCase) -> Result<FleetOperationsReport, OperationsError> {
     validate_case(case)?;
-    let node_lookup = case.nodes.iter().map(|node| (node.node_id.as_str(), node)).collect::<HashMap<_, _>>();
-    let fallback_lookup = case.fallback_sources.iter().map(|source| (source.source_id.as_str(), source)).collect::<HashMap<_, _>>();
     let resource_limit_lookup = case.resource_limits.iter().map(|limit| (limit.resource_pool.as_str(), limit.maximum_concurrent_operations)).collect::<HashMap<_, _>>();
 
     let mut report = FleetOperationsReport {
@@ -554,7 +552,7 @@ mod tests {
     #[test]
     fn overlapping_capacity_factors_multiply() {
         let mut case = case();
-        let mut extra = case.events.iter().find(|event| event.event_id == "weather-all-and-ground").unwrap().clone();
+        let mut extra = (*case.events.iter().find(|event| event.event_id == "weather-all-and-ground").unwrap()).clone();
         extra.event_id = "second-weather-derate-a".to_owned();
         extra.affected_node_ids = vec!["haps-a".to_owned()];
         extra.affected_fallback_ids.clear();
