@@ -19,7 +19,8 @@
     "operation",
     "observations",
     "model",
-    "artifacts"
+    "artifacts",
+    "derived_coordinates"
   ],
   "properties": {
     "schema_version": {
