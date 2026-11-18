@@ -1,0 +1,16 @@
+{
+  "protocol_version": "symtropy-joint-world-episode-v0",
+  "command": {
+    "command": "finish",
+    "payload": {
+      "finish": {
+        "disposition": "ambiguous",
+        "rationale": "The current observation history remains compatible with multiple candidate mechanisms.",
+        "compatible_hypothesis_ids": [
+          "latent-mechanism-a",
+          "latent-mechanism-b"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "protocol_version": "symtropy-joint-world-episode-v0",
+  "view": {
+    "episode_id": "opaque-world-episode-0001",
+    "manifest": {
+      "contract_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "world_model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "model_profile_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "world_recipe_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "clock_profile_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "time_origin_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "public_profile": {
+        "task_description": "Identify which declared candidate mechanism is compatible with the intervention/observation history. Preserve multiple candidates when the available experiments do not identify a unique one.",
+        "candidate_hypotheses": [
+          {
+            "hypothesis_id": "latent-mechanism-a",
+            "structural_family": "finite-test-family",
+            "description": "Candidate mechanism A; the latent physical and sensor states remain hidden."
+          },
+          {
+            "hypothesis_id": "latent-mechanism-b",
+            "structural_family": "finite-test-family",
+            "description": "Candidate mechanism B; the latent physical and sensor states remain hidden."
+          }
+        ],
+        "actions": [
+          {
+            "action_id": "measure-combined-signal",
+            "description": "Measure the combined categorical signal through the current sensor state.",
+            "target": "observation_channel"
+          },
+          {
+            "action_id": "calibrate-sensor",
+            "description": "Calibrate the sensor channel. In this declared profile this changes sensor state, not the underlying process state.",
+            "target": "sensor"
+          }
+        ],
+        "observations": [
+          {
+            "observation_id": "zero",
+            "channel_id": "combined-signal",
+            "description": "The instrument returned the zero category.",
+            "unit": "categorical"
+          },
+          {
+            "observation_id": "one",
+            "channel_id": "combined-signal",
+            "description": "The instrument returned the one category.",
+            "unit": "categorical"
+          }
+        ]
+      }
+    },
+    "current_step": 0,
+    "actions": [
+      {
+        "action_id": "measure-combined-signal",
+        "description": "Measure the combined categorical signal through the current sensor state.",
+        "target": "observation_channel",
+        "cost_units": 1
+      },
+      {
+        "action_id": "calibrate-sensor",
+        "description": "Calibrate the sensor channel. In this declared profile this changes sensor state, not the underlying process state.",
+        "target": "sensor",
+        "cost_units": 1
+      }
+    ],
+    "observations": [],
+    "attempts": [],
+    "accepted_attempts": 0,
+    "spent_cost_units": 0,
+    "max_attempts": 4,
+    "max_cost_units": 8,
+    "max_world_steps": 4,
+    "dropped_attempts": 0,
+    "trace_complete": true,
+    "finish": null,
+    "terminal": false
+  }
+}

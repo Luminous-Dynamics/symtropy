@@ -1,0 +1,15 @@
+{
+  "protocol_version": "symtropy-joint-world-episode-v0",
+  "command": {
+    "command": "finish",
+    "payload": {
+      "finish": {
+        "disposition": "outside_candidate_family",
+        "compatible_hypothesis_ids": [
+          "latent-mechanism-a"
+        ],
+        "rationale": "One declared candidate still fits the initial observation, but independent transfer/control evidence indicates the candidate family is incomplete."
+      }
+    }
+  }
+}
