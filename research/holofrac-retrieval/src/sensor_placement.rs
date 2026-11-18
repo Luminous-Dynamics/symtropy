@@ -4,7 +4,7 @@
 //! noise-free synthetic field. It is not a measured-building benchmark and
 //! nearest-neighbour virtual sensing is a deliberately simple baseline.
 
-use crate::temporal::{synthetic_field_value, SpatialChannel};
+use crate::temporal::{SpatialChannel, synthetic_field_value};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SensorPlacementPolicy {
@@ -158,11 +158,7 @@ fn regular_grid_selection(candidates: &[SensorPoint], sensor_count: usize) -> Ve
     selected
 }
 
-fn random_selection(
-    candidate_count: usize,
-    sensor_count: usize,
-    seed: u64,
-) -> Vec<usize> {
+fn random_selection(candidate_count: usize, sensor_count: usize, seed: u64) -> Vec<usize> {
     let mut rng = DeterministicRng::new(seed);
     let mut indices: Vec<_> = (0..candidate_count).collect();
 
@@ -178,17 +174,13 @@ fn random_selection(
     indices
 }
 
-fn greedy_maximin_selection(
-    candidates: &[SensorPoint],
-    sensor_count: usize,
-) -> Vec<usize> {
+fn greedy_maximin_selection(candidates: &[SensorPoint], sensor_count: usize) -> Vec<usize> {
     let centre = SensorPoint { x: 0.5, y: 0.5 };
     let first = candidates
         .iter()
         .enumerate()
         .min_by(|left, right| {
-            squared_distance(*left.1, centre)
-                .total_cmp(&squared_distance(*right.1, centre))
+            squared_distance(*left.1, centre).total_cmp(&squared_distance(*right.1, centre))
         })
         .map(|(index, _)| index)
         .unwrap_or(0);
@@ -208,9 +200,7 @@ fn greedy_maximin_selection(
 
             let minimum_distance = selected
                 .iter()
-                .map(|selected_index| {
-                    squared_distance(*candidate, candidates[*selected_index])
-                })
+                .map(|selected_index| squared_distance(*candidate, candidates[*selected_index]))
                 .fold(f64::INFINITY, f64::min);
 
             // Strict comparison preserves candidate-order tie breaking.
@@ -237,15 +227,9 @@ fn choose_sensor_indices(
     seed: u64,
 ) -> Vec<usize> {
     match policy {
-        SensorPlacementPolicy::RegularGrid => {
-            regular_grid_selection(candidates, sensor_count)
-        }
-        SensorPlacementPolicy::Random => {
-            random_selection(candidates.len(), sensor_count, seed)
-        }
-        SensorPlacementPolicy::GreedyMaximin => {
-            greedy_maximin_selection(candidates, sensor_count)
-        }
+        SensorPlacementPolicy::RegularGrid => regular_grid_selection(candidates, sensor_count),
+        SensorPlacementPolicy::Random => random_selection(candidates.len(), sensor_count, seed),
+        SensorPlacementPolicy::GreedyMaximin => greedy_maximin_selection(candidates, sensor_count),
     }
 }
 
@@ -256,7 +240,11 @@ pub fn run_sensor_placement_benchmark(
     time_samples: usize,
     seed: u64,
 ) -> Result<Vec<SensorPlacementReport>, SensorPlacementError> {
-    if candidate_grid_size < 2 || candidate_grid_size.checked_mul(candidate_grid_size).is_none() {
+    if candidate_grid_size < 2
+        || candidate_grid_size
+            .checked_mul(candidate_grid_size)
+            .is_none()
+    {
         return Err(SensorPlacementError::InvalidCandidateGrid);
     }
     if query_grid_size < 2 || query_grid_size.checked_mul(query_grid_size).is_none() {
@@ -283,8 +271,7 @@ pub fn run_sensor_placement_benchmark(
     let mut reports = Vec::with_capacity(SensorPlacementPolicy::ALL.len());
 
     for policy in SensorPlacementPolicy::ALL {
-        let selected_indices =
-            choose_sensor_indices(&candidates, sensor_count, policy, seed);
+        let selected_indices = choose_sensor_indices(&candidates, sensor_count, policy, seed);
         let sensors: Vec<_> = selected_indices
             .iter()
             .map(|index| candidates[*index])
@@ -303,14 +290,7 @@ pub fn run_sensor_placement_benchmark(
                 let time_seconds = time_index as f64 * (86_400.0 / time_samples as f64);
                 let sensor_values: Vec<_> = sensors
                     .iter()
-                    .map(|sensor| {
-                        synthetic_field_value(
-                            channel,
-                            sensor.x,
-                            sensor.y,
-                            time_seconds,
-                        )
-                    })
+                    .map(|sensor| synthetic_field_value(channel, sensor.x, sensor.y, time_seconds))
                     .collect();
 
                 for query in &query_points {
@@ -326,8 +306,7 @@ pub fn run_sensor_placement_benchmark(
                     }
 
                     let estimate = sensor_values[nearest_index];
-                    let truth =
-                        synthetic_field_value(channel, query.x, query.y, time_seconds);
+                    let truth = synthetic_field_value(channel, query.x, query.y, time_seconds);
                     let error = estimate - truth;
                     let distance = nearest_squared_distance.sqrt();
 
