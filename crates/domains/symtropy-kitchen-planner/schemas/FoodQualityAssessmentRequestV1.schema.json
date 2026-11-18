@@ -13,89 +13,218 @@
     "protocol_sha256",
     "protocol",
     "instrumental_observations",
+    "presentation_assignments",
     "consumer_responses",
     "external_safety_gate",
     "claim_ceiling"
   ],
   "properties": {
-    "schema_version": { "const": 1 },
-    "assessment_id": { "type": "string", "minLength": 1 },
-    "run_ref": { "type": "string", "minLength": 1 },
-    "assessed_at_epoch_ms": { "type": "integer", "minimum": 1 },
-    "protocol_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-    "protocol": { "$ref": "#/$defs/protocol" },
+    "schema_version": {
+      "const": 1
+    },
+    "assessment_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assessed_at_epoch_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "protocol_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "protocol": {
+      "$ref": "#/$defs/protocol"
+    },
     "instrumental_observations": {
       "type": "array",
-      "items": { "$ref": "#/$defs/instrumental_observation" }
+      "items": {
+        "$ref": "#/$defs/instrumental_observation"
+      }
     },
     "consumer_responses": {
       "type": "array",
-      "items": { "$ref": "#/$defs/consumer_response" }
+      "items": {
+        "$ref": "#/$defs/consumer_response"
+      }
     },
-    "external_safety_gate": { "$ref": "#/$defs/external_safety_gate" },
+    "external_safety_gate": {
+      "$ref": "#/$defs/external_safety_gate"
+    },
     "claim_ceiling": {
       "const": "Descriptive evidence assessment for the exact declared samples and protocol only; not food-safety or allergen qualification, nutrition/medical suitability, universal taste, regulatory conformity, a serving permit, or product superiority."
+    },
+    "presentation_assignments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/presentation_assignment"
+      }
     }
   },
   "$defs": {
     "metric_requirement": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["metric_id", "unit", "basis", "method_ref", "decimal_places", "required", "minimum_value_scaled", "maximum_value_scaled"],
+      "required": [
+        "metric_id",
+        "unit",
+        "basis",
+        "method_ref",
+        "decimal_places",
+        "required",
+        "minimum_value_scaled",
+        "maximum_value_scaled"
+      ],
       "properties": {
-        "metric_id": { "type": "string", "minLength": 1 },
-        "unit": { "type": "string", "minLength": 1 },
-        "basis": { "type": "string", "minLength": 1 },
-        "method_ref": { "type": "string", "minLength": 1 },
-        "decimal_places": { "type": "integer", "minimum": 0, "maximum": 6 },
-        "required": { "type": "boolean" },
-        "minimum_value_scaled": { "type": ["integer", "null"] },
-        "maximum_value_scaled": { "type": ["integer", "null"] }
+        "metric_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "basis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decimal_places": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "minimum_value_scaled": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "maximum_value_scaled": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
       }
     },
     "sensory_protocol": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "method_ref", "population_scope_ref", "scale_min", "scale_max",
-        "minimum_responses_per_sample", "minimum_mean_liking_milli",
-        "blinded", "blinding_protocol_ref", "randomized", "randomization_protocol_ref"
+        "method_ref",
+        "population_scope_ref",
+        "scale_min",
+        "scale_max",
+        "minimum_responses_per_sample",
+        "minimum_mean_liking_milli",
+        "blinded",
+        "blinding_protocol_ref",
+        "randomized",
+        "randomization_protocol_ref"
       ],
       "properties": {
-        "method_ref": { "type": "string", "minLength": 1 },
-        "population_scope_ref": { "type": "string", "minLength": 1 },
-        "scale_min": { "type": "integer" },
-        "scale_max": { "type": "integer" },
-        "minimum_responses_per_sample": { "type": "integer", "minimum": 1 },
-        "minimum_mean_liking_milli": { "type": ["integer", "null"] },
-        "blinded": { "type": "boolean" },
-        "blinding_protocol_ref": { "type": ["string", "null"] },
-        "randomized": { "type": "boolean" },
-        "randomization_protocol_ref": { "type": ["string", "null"] }
+        "method_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "population_scope_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scale_min": {
+          "type": "integer"
+        },
+        "scale_max": {
+          "type": "integer"
+        },
+        "minimum_responses_per_sample": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_mean_liking_milli": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "blinded": {
+          "type": "boolean"
+        },
+        "blinding_protocol_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "randomized": {
+          "type": "boolean"
+        },
+        "randomization_protocol_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
     "protocol": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "schema_version", "protocol_id", "revision", "dish_ref",
-        "sample_refs", "sensory", "instrumental_requirements", "claim_ceiling"
+        "schema_version",
+        "protocol_id",
+        "revision",
+        "dish_ref",
+        "sample_refs",
+        "sensory",
+        "instrumental_requirements",
+        "claim_ceiling"
       ],
       "properties": {
-        "schema_version": { "const": 1 },
-        "protocol_id": { "type": "string", "minLength": 1 },
-        "revision": { "type": "integer", "minimum": 1 },
-        "dish_ref": { "type": "string", "minLength": 1 },
+        "schema_version": {
+          "const": 1
+        },
+        "protocol_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "dish_ref": {
+          "type": "string",
+          "minLength": 1
+        },
         "sample_refs": {
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": { "type": "string", "minLength": 1 }
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         },
-        "sensory": { "$ref": "#/$defs/sensory_protocol" },
+        "sensory": {
+          "$ref": "#/$defs/sensory_protocol"
+        },
         "instrumental_requirements": {
           "type": "array",
-          "items": { "$ref": "#/$defs/metric_requirement" }
+          "items": {
+            "$ref": "#/$defs/metric_requirement"
+          }
         },
         "claim_ceiling": {
           "const": "Descriptive evidence assessment for the exact declared samples and protocol only; not food-safety or allergen qualification, nutrition/medical suitability, universal taste, regulatory conformity, a serving permit, or product superiority."
@@ -106,58 +235,219 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "observation_id", "run_ref", "sample_ref", "metric_id", "value_scaled",
-        "decimal_places", "unit", "basis", "method_ref", "sample_position_ref",
-        "instrument_ref", "calibration_ref", "uncertainty_scaled",
-        "observed_at_epoch_ms", "raw_observation_sha256"
+        "observation_id",
+        "run_ref",
+        "sample_ref",
+        "metric_id",
+        "value_scaled",
+        "decimal_places",
+        "unit",
+        "basis",
+        "method_ref",
+        "sample_position_ref",
+        "instrument_ref",
+        "calibration_ref",
+        "uncertainty_scaled",
+        "observed_at_epoch_ms",
+        "raw_observation_sha256"
       ],
       "properties": {
-        "observation_id": { "type": "string", "minLength": 1 },
-        "run_ref": { "type": "string", "minLength": 1 },
-        "sample_ref": { "type": "string", "minLength": 1 },
-        "metric_id": { "type": "string", "minLength": 1 },
-        "value_scaled": { "type": "integer" },
-        "decimal_places": { "type": "integer", "minimum": 0, "maximum": 6 },
-        "unit": { "type": "string", "minLength": 1 },
-        "basis": { "type": "string", "minLength": 1 },
-        "method_ref": { "type": "string", "minLength": 1 },
-        "sample_position_ref": { "type": "string", "minLength": 1 },
-        "instrument_ref": { "type": "string", "minLength": 1 },
-        "calibration_ref": { "type": "string", "minLength": 1 },
-        "uncertainty_scaled": { "type": "integer", "minimum": 0 },
-        "observed_at_epoch_ms": { "type": "integer", "minimum": 1 },
-        "raw_observation_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        "observation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sample_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "metric_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value_scaled": {
+          "type": "integer"
+        },
+        "decimal_places": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "basis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sample_position_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instrument_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uncertainty_scaled": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observed_at_epoch_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "raw_observation_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
       }
     },
     "consumer_response": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "response_id", "run_ref", "sample_ref", "respondent_token_ref",
-        "response_value", "presentation_order", "consent_receipt_ref",
-        "raw_response_sha256"
+        "response_id",
+        "run_ref",
+        "sample_ref",
+        "respondent_token_ref",
+        "response_value",
+        "presentation_order",
+        "consent_receipt_ref",
+        "raw_response_sha256",
+        "presentation_assignment_ref"
       ],
       "properties": {
-        "response_id": { "type": "string", "minLength": 1 },
-        "run_ref": { "type": "string", "minLength": 1 },
-        "sample_ref": { "type": "string", "minLength": 1 },
-        "respondent_token_ref": { "type": "string", "minLength": 1 },
-        "response_value": { "type": "integer" },
-        "presentation_order": { "type": "integer", "minimum": 1 },
-        "consent_receipt_ref": { "type": "string", "minLength": 1 },
-        "raw_response_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        "response_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sample_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "respondent_token_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "response_value": {
+          "type": "integer"
+        },
+        "presentation_order": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "consent_receipt_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_response_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "presentation_assignment_ref": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "external_safety_gate": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["state", "scope_ref", "competent_authority_ref", "evidence_ref", "valid_until_epoch_ms"],
+      "required": [
+        "state",
+        "scope_ref",
+        "competent_authority_ref",
+        "evidence_ref",
+        "valid_until_epoch_ms"
+      ],
       "properties": {
-        "state": { "enum": ["not_provided", "unknown", "externally_qualified", "externally_failed"] },
-        "scope_ref": { "type": ["string", "null"] },
-        "competent_authority_ref": { "type": ["string", "null"] },
-        "evidence_ref": { "type": ["string", "null"] },
-        "valid_until_epoch_ms": { "type": ["integer", "null"], "minimum": 1 }
+        "state": {
+          "enum": [
+            "not_provided",
+            "unknown",
+            "externally_qualified",
+            "externally_failed"
+          ]
+        },
+        "scope_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "competent_authority_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "valid_until_epoch_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      }
+    },
+    "presentation_assignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assignment_ref",
+        "respondent_token_ref",
+        "ordered_sample_refs",
+        "randomization_protocol_ref",
+        "assignment_sha256"
+      ],
+      "properties": {
+        "assignment_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "respondent_token_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ordered_sample_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "randomization_protocol_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assignment_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
       }
     }
   }
