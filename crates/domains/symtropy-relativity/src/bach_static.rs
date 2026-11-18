@@ -10,11 +10,11 @@
 //! Radius and coefficients must use one consistent geometric length unit;
 //! B(r) is dimensionless and component units follow the coordinate basis.
 //!
-//! This static specialization needs fourth derivatives of B(r). The general
-//! arbitrary-metric contracted-divergence evaluator still needs the fifth
-//! derivative covered by the parent Taylor-jet substrate. This scalar jet
-//! does not itself carry chart identity; this module is a chart-specific
-//! reference, not a generic tensor compatibility layer.
+//! The Bach components need fourth derivatives of B(r). The returned
+//! covariant-divergence diagnostic differentiates a Bach component once and
+//! therefore needs fifth-order metric data. This scalar jet does not itself
+//! carry chart identity; this module is a chart-specific reference, not a
+//! generic tensor compatibility layer.
 
 use core::fmt;
 use super::taylor_jet::{TaylorJet4Order5, TaylorJetError};
@@ -89,10 +89,10 @@ impl std::error::Error for StaticSphericalBachError {}
 
 /// Evaluate the full covariant Bach components from a local Taylor jet B(r).
 ///
-/// The static spherical component formula requires Taylor order four, while
-/// the resulting Bach components are differentiated once to verify their
-/// radial covariant divergence. The azimuthal component is returned divided
-/// by sin(theta)^2 to avoid an artificial polar-coordinate singularity.
+/// Bach component values require fourth-order metric data. This function also
+/// differentiates the radial Bach component to evaluate its covariant
+/// divergence, so the complete result requires a fifth-order lapse jet.
+/// The azimuthal component is returned divided by sin(theta)^2.
 pub fn static_spherical_bach(
     radius: f64,
     lapse: TaylorJet4Order5,
@@ -100,9 +100,9 @@ pub fn static_spherical_bach(
     if !radius.is_finite() || radius <= 0.0 {
         return Err(StaticSphericalBachError::InvalidRadius(radius));
     }
-    if lapse.order() < 4 {
+    if lapse.order() < 5 {
         return Err(StaticSphericalBachError::InsufficientDerivativeOrder {
-            required: 4,
+            required: 5,
             actual: lapse.order(),
         });
     }
@@ -364,13 +364,13 @@ mod tests {
         ));
         let low_order = TaylorJet4Order5::variable(3.0, 1)
             .unwrap()
-            .truncate(3)
+            .truncate(4)
             .unwrap();
         assert_eq!(
             static_spherical_bach(3.0, low_order),
             Err(StaticSphericalBachError::InsufficientDerivativeOrder {
-                required: 4,
-                actual: 3
+                required: 5,
+                actual: 4
             })
         );
         assert!(matches!(
