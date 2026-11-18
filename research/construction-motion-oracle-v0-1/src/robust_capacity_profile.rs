@@ -715,6 +715,7 @@ mod tests {
                 definition("hoist", 10),
                 CapacityResourceDefinition {
                     resource_id: "temporary-power".into(),
+                    capacity_owner_id: "temporary-power-owner".into(),
                     definition_sha256: digest('f'),
                     capacity_units: 10,
                     unit_label: "kW".into(),
@@ -752,7 +753,7 @@ mod tests {
                     resource_definition_sha256: digest('f'),
                     site_snapshot_sha256: snapshot.clone(),
                     site_clock_domain_id: "site-clock-1".into(),
-                    capacity_owner_id: "power-owner".into(),
+                    capacity_owner_id: "temporary-power-owner".into(),
                     evidence_receipt_sha256: digest('e'),
                     start_tick: 15,
                     end_tick: 35,
