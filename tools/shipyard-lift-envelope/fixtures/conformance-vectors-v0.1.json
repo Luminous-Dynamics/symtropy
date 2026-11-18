@@ -358,6 +358,15 @@
       "required_diagnostic_codes": [],
       "assertion": "Input and report canonical bytes remain stable when invalid duplicate rigging leg identities with different metadata are permuted.",
       "synthetic_only": true
+    },
+    {
+      "id": "LEV-ORACLE-003",
+      "mode": "arithmetic_oracle",
+      "test_name": "end_to_end_load_and_leg_tension_match_independent_rational_oracle",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Across 700 bounded combinations of mass, dynamic factor, per-leg upper share and lower sling-angle sine, the complete verifier outputs match separately calculated rational ceiling bounds.",
+      "synthetic_only": true
     }
   ]
 }
