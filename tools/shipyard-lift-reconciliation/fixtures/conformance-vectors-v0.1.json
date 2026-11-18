@@ -330,7 +330,7 @@
       "required_diagnostic_codes": [
         "EVENT_ID_CONFLICT"
       ],
-      "assertion": "Same event ID with conflicting payload cannot be silently deduplicated.",
+      "assertion": "Both conflicting payloads using one event ID are quarantined; their measurement cannot affect maxima, and reconciliation output is invariant to arrival order.",
       "synthetic_only": true
     },
     {
@@ -450,7 +450,7 @@
       "required_diagnostic_codes": [
         "EVENT_SEQUENCE_CONFLICT"
       ],
-      "assertion": "One source sequence number cannot identify two different event records.",
+      "assertion": "Both records sharing one source sequence are quarantined; their measurements cannot affect maxima, and reconciliation output is invariant to arrival order.",
       "synthetic_only": true
     }
   ]
