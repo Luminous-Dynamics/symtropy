@@ -37,22 +37,26 @@
     "material_batch_id": {
       "SYN-BATCH-B": "validation",
       "SYN-BATCH-C": "blind_test",
-      "SYNTHETIC-BATCH-A": "calibration"
+      "SYNTHETIC-BATCH-A": "calibration",
+      "SYNTHETIC-BATCH-B": "validation"
     },
     "preparation_protocol_id": {
       "SYN-PREP-B": "validation",
       "SYN-PREP-C": "blind_test",
-      "SYNTHETIC-PREP-A": "calibration"
+      "SYNTHETIC-PREP-A": "calibration",
+      "SYNTHETIC-PREP-B": "validation"
     },
     "tool_geometry_id": {
       "SYN-TOOL-B": "validation",
       "SYN-TOOL-C": "blind_test",
-      "SYNTHETIC-TOOL-A": "calibration"
+      "SYNTHETIC-TOOL-A": "calibration",
+      "SYNTHETIC-TOOL-B": "validation"
     },
     "operating_regime_id": {
       "SYN-REGIME-B": "validation",
       "SYN-REGIME-C": "blind_test",
-      "SYNTHETIC-QUASISTATIC-A": "calibration"
+      "SYNTHETIC-QUASISTATIC-A": "calibration",
+      "SYNTHETIC-REGIME-B": "validation"
     },
     "laboratory_id": {
       "SYN-LAB-A": "calibration",
