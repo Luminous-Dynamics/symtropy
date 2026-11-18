@@ -59,6 +59,12 @@ pub enum QualityIssueCodeV1 {
     InvalidResponse,
     MissingResponseConsent,
     InvalidResponseDigest,
+    MissingPresentationAssignment,
+    DuplicatePresentationAssignment,
+    InvalidPresentationAssignmentDigest,
+    PresentationAssignmentMismatch,
+    IncompletePresentationBlock,
+    InvalidPresentationOrderSequence,
     InsufficientConsumerResponses,
     ConsumerScoreBelowThreshold,
 }
@@ -133,6 +139,19 @@ pub struct InstrumentalQualityObservationV1 {
     pub raw_observation_sha256: String,
 }
 
+/// One pre-generated, participant-scoped randomized presentation sequence.
+/// The digest binds the exact ordered sample list; it does not prove that the
+/// randomizer itself was honest or that the participant followed the sequence.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SensoryPresentationAssignmentV1 {
+    pub assignment_ref: String,
+    pub respondent_token_ref: String,
+    pub ordered_sample_refs: Vec<String>,
+    pub randomization_protocol_ref: String,
+    pub assignment_sha256: String,
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ConsumerResponseV1 {
@@ -143,6 +162,7 @@ pub struct ConsumerResponseV1 {
     pub respondent_token_ref: String,
     pub response_value: i32,
     pub presentation_order: u32,
+    pub presentation_assignment_ref: String,
     pub consent_receipt_ref: String,
     pub raw_response_sha256: String,
 }
@@ -176,6 +196,7 @@ pub struct FoodQualityAssessmentRequestV1 {
     pub protocol_sha256: String,
     pub protocol: FoodQualityProtocolV1,
     pub instrumental_observations: Vec<InstrumentalQualityObservationV1>,
+    pub presentation_assignments: Vec<SensoryPresentationAssignmentV1>,
     pub consumer_responses: Vec<ConsumerResponseV1>,
     /// Echoed independently; the evaluator does not authenticate this claim.
     pub external_safety_gate: ExternalSafetyGateEvidenceV1,
@@ -224,6 +245,7 @@ pub struct FoodQualityAssessmentReportV1 {
     pub disposition: QualityDispositionV1,
     pub issues: Vec<QualityIssueV1>,
     pub sensory_summaries: Vec<SampleSensorySummaryV1>,
+    pub randomization_assignment_sha256: Vec<String>,
     pub instrumental_summaries: Vec<InstrumentalMetricSummaryV1>,
     pub external_safety_gate: ExternalSafetyGateEvidenceV1,
     pub raw_evidence_sha256: Vec<String>,
@@ -265,6 +287,32 @@ fn add_issue(
         reference: reference.map(str::to_owned),
         detail: detail.into(),
     });
+}
+
+#[derive(Serialize)]
+struct PresentationAssignmentDigestPayload<'a> {
+    assignment_ref: &'a str,
+    respondent_token_ref: &'a str,
+    ordered_sample_refs: &'a [String],
+    randomization_protocol_ref: &'a str,
+}
+
+fn presentation_assignment_digest(
+    assignment: &SensoryPresentationAssignmentV1,
+) -> Result<String, serde_json::Error> {
+    let payload = PresentationAssignmentDigestPayload {
+        assignment_ref: &assignment.assignment_ref,
+        respondent_token_ref: &assignment.respondent_token_ref,
+        ordered_sample_refs: &assignment.ordered_sample_refs,
+        randomization_protocol_ref: &assignment.randomization_protocol_ref,
+    };
+    let bytes = serde_json::to_vec(&payload)?;
+    let digest = Sha256::digest(bytes);
+    Ok(digest
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<Vec<_>>()
+        .join(""))
 }
 
 fn protocol_digest(protocol: &FoodQualityProtocolV1) -> Result<String, serde_json::Error> {
@@ -418,6 +466,7 @@ fn summarize_sensory(
     request: &FoodQualityAssessmentRequestV1,
     issues: &mut Vec<QualityIssueV1>,
     raw_digests: &mut BTreeSet<String>,
+    assignment_digests: &mut BTreeSet<String>,
 ) -> Vec<SampleSensorySummaryV1> {
     let protocol = &request.protocol;
     let valid_samples: BTreeSet<&str> = protocol.sample_refs.iter().map(String::as_str).collect();
@@ -425,6 +474,71 @@ fn summarize_sensory(
     let mut response_ids = BTreeSet::new();
     let mut respondent_sample_pairs = BTreeSet::new();
     let mut respondent_orders = BTreeSet::new();
+    let mut assignments_by_ref = BTreeMap::<String, &SensoryPresentationAssignmentV1>::new();
+    let mut assignments_by_respondent = BTreeMap::<String, &SensoryPresentationAssignmentV1>::new();
+    for assignment in &request.presentation_assignments {
+        if !nonempty(&assignment.assignment_ref)
+            || !nonempty(&assignment.respondent_token_ref)
+            || !nonempty(&assignment.randomization_protocol_ref)
+            || assignment.ordered_sample_refs.is_empty()
+        {
+            add_issue(
+                issues,
+                QualityIssueCodeV1::MissingPresentationAssignment,
+                Some(&assignment.assignment_ref),
+                "presentation assignment identity, respondent token, randomization protocol and ordered samples are required",
+            );
+            continue;
+        }
+        if assignments_by_ref
+            .insert(assignment.assignment_ref.clone(), assignment)
+            .is_some()
+            || assignments_by_respondent
+                .insert(assignment.respondent_token_ref.clone(), assignment)
+                .is_some()
+        {
+            add_issue(
+                issues,
+                QualityIssueCodeV1::DuplicatePresentationAssignment,
+                Some(&assignment.assignment_ref),
+                "each participant must have exactly one unique presentation assignment",
+            );
+        }
+        let mut ordered_seen = BTreeSet::new();
+        if assignment.ordered_sample_refs.len() != protocol.sample_refs.len()
+            || assignment.ordered_sample_refs.iter().any(|sample| {
+                !valid_samples.contains(sample.as_str()) || !ordered_seen.insert(sample.as_str())
+            })
+            || ordered_seen != valid_samples
+        {
+            add_issue(
+                issues,
+                QualityIssueCodeV1::IncompletePresentationBlock,
+                Some(&assignment.assignment_ref),
+                "complete-block assignment must contain each declared sample exactly once",
+            );
+        }
+        if assignment.randomization_protocol_ref != protocol.sensory.randomization_protocol_ref.as_deref().unwrap_or("")
+        {
+            add_issue(
+                issues,
+                QualityIssueCodeV1::PresentationAssignmentMismatch,
+                Some(&assignment.assignment_ref),
+                "presentation assignment must cite the exact protocol randomization reference",
+            );
+        }
+        match presentation_assignment_digest(assignment) {
+            Ok(digest) if digest == assignment.assignment_sha256 && is_sha256(&digest) => {
+                assignment_digests.insert(digest);
+            }
+            _ => add_issue(
+                issues,
+                QualityIssueCodeV1::InvalidPresentationAssignmentDigest,
+                Some(&assignment.assignment_ref),
+                "presentation assignment digest must match its exact ordered sample sequence",
+            ),
+        }
+    }
 
     for response in &request.consumer_responses {
         if !response_ids.insert(response.response_id.as_str()) {
@@ -457,6 +571,29 @@ fn summarize_sensory(
                 QualityIssueCodeV1::InvalidResponse,
                 Some(&response.response_id),
                 "response fields, run binding, presentation order or scale value are invalid",
+            );
+        }
+        let assignment = assignments_by_ref.get(&response.presentation_assignment_ref).copied();
+        if let Some(assignment) = assignment {
+            if assignment.respondent_token_ref != response.respondent_token_ref
+                || assignment
+                    .ordered_sample_refs
+                    .get(response.presentation_order.saturating_sub(1) as usize)
+                    .is_none_or(|sample| sample != &response.sample_ref)
+            {
+                add_issue(
+                    issues,
+                    QualityIssueCodeV1::PresentationAssignmentMismatch,
+                    Some(&response.response_id),
+                    "response sample/order/token do not match its participant presentation assignment",
+                );
+            }
+        } else {
+            add_issue(
+                issues,
+                QualityIssueCodeV1::MissingPresentationAssignment,
+                Some(&response.response_id),
+                "consumer response must reference an exact participant presentation assignment",
             );
         }
         if response.consent_receipt_ref.trim().is_empty() {
@@ -503,6 +640,36 @@ fn summarize_sensory(
             .entry(response.sample_ref.clone())
             .or_default()
             .push(response);
+    }
+
+    for assignment in &request.presentation_assignments {
+        let assignment_responses: Vec<&ConsumerResponseV1> = request
+            .consumer_responses
+            .iter()
+            .filter(|response| response.presentation_assignment_ref == assignment.assignment_ref)
+            .collect();
+        if assignment_responses.len() != protocol.sample_refs.len() {
+            add_issue(
+                issues,
+                QualityIssueCodeV1::IncompletePresentationBlock,
+                Some(&assignment.assignment_ref),
+                "each complete-block participant must provide exactly one response for every protocol sample",
+            );
+        }
+        let mut observed_orders: Vec<u32> = assignment_responses
+            .iter()
+            .map(|response| response.presentation_order)
+            .collect();
+        observed_orders.sort_unstable();
+        let expected_orders: Vec<u32> = (1..=u32::try_from(protocol.sample_refs.len()).unwrap_or(u32::MAX)).collect();
+        if observed_orders != expected_orders {
+            add_issue(
+                issues,
+                QualityIssueCodeV1::InvalidPresentationOrderSequence,
+                Some(&assignment.assignment_ref),
+                "participant response orders must exactly match the contiguous assignment positions 1..sample_count",
+            );
+        }
     }
 
     let mut summaries = Vec::new();
@@ -857,7 +1024,13 @@ pub fn assess_food_quality(
 
     let requirements = validate_protocol(&request.protocol, &mut issues);
     let mut raw_digests = BTreeSet::new();
-    let sensory_summaries = summarize_sensory(request, &mut issues, &mut raw_digests);
+    let mut assignment_digests = BTreeSet::new();
+    let sensory_summaries = summarize_sensory(
+        request,
+        &mut issues,
+        &mut raw_digests,
+        &mut assignment_digests,
+    );
     let instrumental_summaries =
         summarize_instrumental(request, &requirements, &mut issues, &mut raw_digests);
 
@@ -884,6 +1057,11 @@ pub fn assess_food_quality(
                 | QualityIssueCodeV1::DuplicateResponse
                 | QualityIssueCodeV1::DuplicateRespondentSample
                 | QualityIssueCodeV1::DuplicatePresentationOrder
+                | QualityIssueCodeV1::DuplicatePresentationAssignment
+                | QualityIssueCodeV1::InvalidPresentationAssignmentDigest
+                | QualityIssueCodeV1::PresentationAssignmentMismatch
+                | QualityIssueCodeV1::IncompletePresentationBlock
+                | QualityIssueCodeV1::InvalidPresentationOrderSequence
                 | QualityIssueCodeV1::InvalidProtocolDigest
         )
     }) {
@@ -918,6 +1096,7 @@ pub fn assess_food_quality(
         disposition,
         issues,
         sensory_summaries,
+        randomization_assignment_sha256: assignment_digests.into_iter().collect(),
         instrumental_summaries,
         external_safety_gate: request.external_safety_gate.clone(),
         raw_evidence_sha256: raw_digests.into_iter().collect(),
