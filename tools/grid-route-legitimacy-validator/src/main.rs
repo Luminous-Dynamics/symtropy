@@ -53,9 +53,40 @@ fn evidence_exists(
     }
 }
 
+fn gate_decision_type_compatible(gate_type: &str, decision_type: &str) -> bool {
+    match gate_type {
+        "public_participation" => decision_type == "consultation_record",
+        "land_access_and_servitude" => {
+            matches!(decision_type, "land_access" | "servitude")
+        }
+        "statutory_decisions" => matches!(
+            decision_type,
+            "statutory_authorisation"
+                | "environmental_authorisation"
+                | "other_authority_decision"
+        ),
+        "compensation_and_mitigation" => decision_type == "compensation_agreement",
+        _ => true,
+    }
+}
+
+fn gate_requires_decision(gate_type: &str) -> bool {
+    matches!(
+        gate_type,
+        "public_participation"
+            | "land_access_and_servitude"
+            | "statutory_decisions"
+            | "compensation_and_mitigation"
+    )
+}
+
 fn validate(case: &Value) -> Vec<String> {
     let mut errors = Vec::new();
     let maturity = string(case, "caseMaturity");
+    let snapshot_date = string(case, "snapshotDate");
+    if snapshot_date.is_empty() {
+        errors.push("snapshotDate is required".to_string());
+    }
     let allowed_maturity = [
         "synthetic_fixture",
         "engineering_estimate",
@@ -128,10 +159,25 @@ fn validate(case: &Value) -> Vec<String> {
         );
 
         let status = string(decision, "status");
-        if matches!(status, "granted" | "executed")
-            && array(decision, "evidenceIds").is_empty()
+        if matches!(status, "granted" | "executed") {
+            if array(decision, "evidenceIds").is_empty() {
+                errors.push(format!("{id} is {status} without evidence"));
+            }
+            let effective_from = string(decision, "effectiveFrom");
+            if effective_from.is_empty() {
+                errors.push(format!("{id} is {status} without effectiveFrom"));
+            } else if !snapshot_date.is_empty() && effective_from > snapshot_date {
+                errors.push(format!("{id} is not effective at snapshotDate"));
+            }
+        }
+        let expires_on = string(decision, "expiresOn");
+        if !expires_on.is_empty() && !snapshot_date.is_empty() && expires_on < snapshot_date
+            && status != "expired"
         {
-            errors.push(format!("{id} is {status} without evidence"));
+            errors.push(format!("{id} expired before snapshotDate but status is {status}"));
+        }
+        if status == "expired" && expires_on.is_empty() {
+            errors.push(format!("{id} is marked expired without expiresOn"));
         }
         if maturity != "synthetic_fixture" && matches!(status, "granted" | "executed") {
             let accepted = strings(decision, "evidenceIds").iter().any(|evidence_id| {
@@ -172,8 +218,17 @@ fn validate(case: &Value) -> Vec<String> {
             errors.push(format!("{id} is not_applicable without rationale"));
         }
 
+        let gate_type = string(gate, "gateType");
         let required_type = string(gate, "requiredDecisionType");
         let decision_id = string(gate, "decisionId");
+        if !required_type.is_empty() && !gate_decision_type_compatible(gate_type, required_type) {
+            errors.push(format!(
+                "{id} gate type {gate_type} cannot be satisfied by decision type {required_type}"
+            ));
+        }
+        if status == "complete" && gate_requires_decision(gate_type) && required_type.is_empty() {
+            errors.push(format!("{id} cannot be complete without an explicit requiredDecisionType"));
+        }
         if !required_type.is_empty() {
             if decision_id.is_empty() {
                 if status == "complete" {
@@ -239,12 +294,20 @@ fn validate(case: &Value) -> Vec<String> {
         }
         for concern in array(engagement, "concerns") {
             let concern_id = string(concern, "concernId");
+            let response_evidence = strings(concern, "responseEvidenceIds");
             evidence_exists(
-                &strings(concern, "responseEvidenceIds"),
+                &response_evidence,
                 &evidence_ids,
                 &format!("{id} concern {concern_id}"),
                 &mut errors,
             );
+            if matches!(string(concern, "status"), "responded" | "resolved" | "referred")
+                && response_evidence.is_empty()
+            {
+                errors.push(format!(
+                    "{id} concern {concern_id} has a response state without response evidence"
+                ));
+            }
         }
     }
 
@@ -403,6 +466,36 @@ mod tests {
         let mut case = fixture();
         case["caseMaturity"] = Value::String("field_observed".to_string());
         assert!(validate(&case).iter().any(|x| x.contains("promotes")));
+    }
+
+    #[test]
+    fn rejects_expired_authority_decision_at_snapshot() {
+        let mut case = fixture();
+        case["decisions"][0]["status"] = Value::String("granted".to_string());
+        case["decisions"][0]["effectiveFrom"] = Value::String("2026-01-01".to_string());
+        case["decisions"][0]["expiresOn"] = Value::String("2026-10-01".to_string());
+        assert!(validate(&case)
+            .iter()
+            .any(|x| x.contains("expired before snapshotDate")));
+    }
+
+    #[test]
+    fn rejects_completed_land_access_gate_without_exact_decision_type() {
+        let mut case = fixture();
+        case["gates"][4]["status"] = Value::String("complete".to_string());
+        case["gates"][4].as_object_mut().unwrap().remove("requiredDecisionType");
+        assert!(validate(&case)
+            .iter()
+            .any(|x| x.contains("without an explicit requiredDecisionType")));
+    }
+
+    #[test]
+    fn rejects_concern_response_without_evidence() {
+        let mut case = fixture();
+        case["engagements"][0]["concerns"][0]["status"] = Value::String("resolved".to_string());
+        assert!(validate(&case)
+            .iter()
+            .any(|x| x.contains("response state without response evidence")));
     }
 
     #[test]
