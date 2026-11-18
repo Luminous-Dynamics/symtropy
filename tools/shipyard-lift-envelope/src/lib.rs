@@ -6,6 +6,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+pub const CONTRACT_VERSION: &str = "shipyard-lift-envelope-v0.1";
 pub const PPM_SCALE: u64 = 1_000_000;
 pub const GRAVITY_MILLINEWTONS_PER_KG: u128 = 9_807;
 
@@ -128,7 +129,7 @@ pub enum Disposition {
     Indeterminate,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DiagnosticSeverity {
     Rejected,
     Indeterminate,
@@ -434,6 +435,106 @@ fn validate_motion_binding(plan: &LiftPlan, diagnostics: &mut Vec<Diagnostic>) {
     }
 }
 
+fn json_quote(input: &str) -> String {
+    use std::fmt::Write as _;
+
+    let mut output = String::with_capacity(input.len() + 2);
+    output.push('"');
+    for character in input.chars() {
+        match character {
+            '"' => output.push_str("\\\""),
+            '\\' => output.push_str("\\\\"),
+            '\u{0008}' => output.push_str("\\b"),
+            '\u{000c}' => output.push_str("\\f"),
+            '\n' => output.push_str("\\n"),
+            '\r' => output.push_str("\\r"),
+            '\t' => output.push_str("\\t"),
+            character if character <= '\u{001f}' => {
+                let _ = write!(output, "\\u{:04x}", character as u32);
+            }
+            character => output.push(character),
+        }
+    }
+    output.push('"');
+    output
+}
+
+fn disposition_name(value: Disposition) -> &'static str {
+    match value {
+        Disposition::ReadyForHumanReview => "ready_for_human_review",
+        Disposition::Rejected => "rejected",
+        Disposition::Indeterminate => "indeterminate",
+    }
+}
+
+fn severity_name(value: DiagnosticSeverity) -> &'static str {
+    match value {
+        DiagnosticSeverity::Rejected => "rejected",
+        DiagnosticSeverity::Indeterminate => "indeterminate",
+    }
+}
+
+impl PreflightReport {
+    /// Canonical JSON bytes for content hashing and replay comparison.
+    /// This serializes the verifier's result; it does not authenticate inputs.
+    pub fn canonical_json(&self) -> String {
+        let mut legs = self.leg_assessments.clone();
+        legs.sort_by(|left, right| left.leg_id.cmp(&right.leg_id));
+        let mut diagnostics = self.diagnostics.clone();
+        diagnostics.sort_by(|left, right| {
+            left.code
+                .cmp(right.code)
+                .then_with(|| left.subject_id.cmp(&right.subject_id))
+                .then_with(|| left.severity.cmp(&right.severity))
+                .then_with(|| left.detail.cmp(&right.detail))
+        });
+
+        let legs_json = legs
+            .iter()
+            .map(|leg| {
+                format!(
+                    "{{\"leg_id\":{},\"tension_upper_mn\":{},\"working_load_limit_mn\":{},\"within_working_load_limit\":{}}}",
+                    json_quote(&leg.leg_id),
+                    leg.tension_upper_mn
+                        .map(|value| value.to_string())
+                        .unwrap_or_else(|| "null".to_owned()),
+                    leg.working_load_limit_mn,
+                    leg.within_working_load_limit
+                        .map(|value| value.to_string())
+                        .unwrap_or_else(|| "null".to_owned()),
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        let diagnostics_json = diagnostics
+            .iter()
+            .map(|item| {
+                format!(
+                    "{{\"code\":{},\"severity\":{},\"subject_id\":{},\"detail\":{}}}",
+                    json_quote(item.code),
+                    json_quote(severity_name(item.severity)),
+                    item.subject_id
+                        .as_deref()
+                        .map(json_quote)
+                        .unwrap_or_else(|| "null".to_owned()),
+                    json_quote(&item.detail),
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        format!(
+            "{{\"contract_version\":{},\"disposition\":{},\"design_load_upper_mn\":{},\"leg_assessments\":[{}],\"diagnostics\":[{}]}}",
+            json_quote(CONTRACT_VERSION),
+            json_quote(disposition_name(self.disposition)),
+            self.design_load_upper_mn
+                .map(|value| value.to_string())
+                .unwrap_or_else(|| "null".to_owned()),
+            legs_json,
+            diagnostics_json
+        )
+    }
+}
+
 fn disposition_for(diagnostics: &[Diagnostic]) -> Disposition {
     if diagnostics
         .iter()
@@ -728,6 +829,7 @@ pub fn evaluate(plan: &LiftPlan) -> PreflightReport {
         left.code
             .cmp(right.code)
             .then_with(|| left.subject_id.cmp(&right.subject_id))
+            .then_with(|| left.severity.cmp(&right.severity))
             .then_with(|| left.detail.cmp(&right.detail))
     });
 
@@ -1013,6 +1115,48 @@ mod tests {
         let mut second = baseline();
         second.rigging_legs.reverse();
         assert_eq!(evaluate(&first), evaluate(&second));
+    }
+
+    #[test]
+    fn checked_ceil_mul_div_matches_independent_bounded_integer_oracle() {
+        for left in 0_u128..40 {
+            for right in 0_u128..40 {
+                for divisor in 1_u128..40 {
+                    let product = left * right;
+                    let expected = (product + divisor - 1) / divisor;
+                    assert_eq!(
+                        ceil_mul_div(left, right, divisor),
+                        Some(expected),
+                        "left={left}, right={right}, divisor={divisor}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn canonical_json_is_identical_under_input_permutation() {
+        let mut first = baseline();
+        let mut second = baseline();
+        second.rigging_legs.reverse();
+        assert_eq!(
+            evaluate(&first).canonical_json(),
+            evaluate(&second).canonical_json()
+        );
+
+        first.rigging_legs.swap(0, 1);
+        assert_eq!(
+            evaluate(&first).canonical_json(),
+            evaluate(&second).canonical_json()
+        );
+    }
+
+    #[test]
+    fn canonical_json_escapes_diagnostic_text() {
+        let mut plan = baseline();
+        plan.block_id = "block\n001".to_owned();
+        let report = evaluate(&plan);
+        assert!(report.canonical_json().contains("\\n"));
     }
 
     #[test]
