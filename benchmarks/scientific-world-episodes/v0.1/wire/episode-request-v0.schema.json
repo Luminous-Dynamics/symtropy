@@ -434,7 +434,8 @@
       "required": [
         "action_id",
         "description",
-        "target"
+        "target",
+        "cost_units"
       ],
       "properties": {
         "action_id": {
@@ -450,6 +451,10 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 128
+        },
+        "cost_units": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     },
