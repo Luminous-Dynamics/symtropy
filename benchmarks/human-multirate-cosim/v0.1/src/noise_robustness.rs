@@ -1361,10 +1361,17 @@ fn predict_hidden_network(
 }
 
 fn rate(count: usize, total: usize) -> f64 {
-    count as f64 / total as f64
+    if total == 0 {
+        0.0
+    } else {
+        count as f64 / total as f64
+    }
 }
 
 fn wilson_interval(successes: usize, total: usize) -> [f64; 2] {
+    if total == 0 {
+        return [0.0, 0.0];
+    }
     let n = total as f64;
     let p = successes as f64 / n;
     let z_squared = WILSON_Z_95 * WILSON_Z_95;
@@ -1503,6 +1510,125 @@ mod tests {
     }
 
     #[test]
+    fn full_covariance_calibration_binds_identity_and_uses_separate_streams() {
+        use crate::adequacy_calibration::{AdequacyCalibrationConfig, HiddenOutOfFamilyTruth};
+        use crate::experiment_design::{
+            ExperimentDesignScenario, ForcingSegment, ModelCandidate,
+        };
+        use crate::network::{Edge, NetworkScenario};
+        use crate::robust_discrimination::{
+            ModelFamilyAssignment, ProfiledModelFamilyScenario,
+        };
+        use crate::sensor_design::SensorCandidate;
+
+        let make_network = |name: &'static str, conductance: f64| NetworkScenario {
+            name,
+            capacities: vec![1.0, 1.0],
+            initial: vec![0.0, 0.0],
+            edges: vec![Edge {
+                left: 0,
+                right: 1,
+                conductance,
+            }],
+            horizon: 1.0,
+        };
+        let scenario = ProfiledModelFamilyScenario {
+            experiment: ExperimentDesignScenario {
+                name: "full-covariance-calibration-fixture",
+                models: vec![
+                    ModelCandidate {
+                        id: 1,
+                        label: "chain conductance 0.5",
+                        network: make_network("candidate_low", 0.5),
+                    },
+                    ModelCandidate {
+                        id: 2,
+                        label: "chain conductance 1.0",
+                        network: make_network("candidate_high", 1.0),
+                    },
+                ],
+                sensors: vec![SensorCandidate {
+                    id: 10,
+                    node: 0,
+                    cost: 1.0,
+                    common_cause_group: None,
+                }],
+                noise_covariance: vec![vec![1.0]],
+                observation_times: vec![0.25, 0.5],
+                sensor_budget: 1.0,
+                max_abs_forcing: 2.0,
+                input_energy_budget: 2.0,
+            },
+            family_assignments: vec![
+                ModelFamilyAssignment {
+                    model_id: 1,
+                    family_id: 100,
+                },
+                ModelFamilyAssignment {
+                    model_id: 2,
+                    family_id: 200,
+                },
+            ],
+        };
+        let profile = InputProfile {
+            id: 101,
+            label: "constant unit forcing",
+            segments: vec![ForcingSegment {
+                start_time: 0.0,
+                end_time: 1.0,
+                forcing: vec![1.0, 0.0],
+            }],
+        };
+        let covariance = ObservationCovarianceV1::new(
+            "covariance:calibration-fixture-v1".to_owned(),
+            "process:gaussian-ar1-rho-0.8".to_owned(),
+            "sampling:two-times-v1".to_owned(),
+            "operator:node-0-sensor-v1".to_owned(),
+            "availability:cutoff-v1".to_owned(),
+            vec![10],
+            vec![0.25, 0.5],
+            DenseSpdCovariance::new(vec![
+                vec![1.0e-5, 8.0e-6],
+                vec![8.0e-6, 1.0e-5],
+            ])
+            .unwrap(),
+        )
+        .unwrap();
+        let hidden = HiddenOutOfFamilyTruth {
+            evaluator_id: 900,
+            network: make_network("sealed_conductance_1_5", 1.5),
+        };
+
+        let report = calibrate_model_family_adequacy_full_covariance(
+            &scenario,
+            &profile,
+            &[10],
+            &covariance,
+            &[hidden],
+            AdequacyCalibrationConfig {
+                calibration_seed: 0xCA11_BA7E,
+                validation_seed: 0xB01D_5EED,
+                replicates_per_model: 128,
+                target_in_family_coverage: 0.95,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(report.covariance_id, "covariance:calibration-fixture-v1");
+        assert_eq!(report.observation_process_id, "process:gaussian-ar1-rho-0.8");
+        assert_eq!(report.observation_operator_id, "operator:node-0-sensor-v1");
+        assert_eq!(report.availability_cutoff_id, "availability:cutoff-v1");
+        assert_eq!(report.calibration_samples, 256);
+        assert_eq!(report.validation_samples, 256);
+        assert_eq!(report.out_of_family_samples, 128);
+        assert!(report.calibration_in_family_coverage >= 0.95);
+        assert!(report.validation_in_family_coverage > 0.85);
+        assert!(report.out_of_family_rejection_rate > 0.90);
+        assert_ne!(report.calibration_seed, report.validation_seed);
+        assert!(report.assumptions.iter().any(|item| item.contains("full space-time covariance")));
+    }
+
+    #[test]
     fn covariance_identity_binds_sensor_order_and_sampling_schedule() {
         let covariance = ar1_time_covariance(2, 0.8).unwrap();
         let binding = ObservationCovarianceV1::new(
@@ -1547,7 +1673,7 @@ mod tests {
                 times: vec![0.25, 0.75],
                 ..matching.trace.clone()
             },
-            ..matching
+            ..matching.clone()
         };
         assert_eq!(
             binding.validate_trace(&shifted),
