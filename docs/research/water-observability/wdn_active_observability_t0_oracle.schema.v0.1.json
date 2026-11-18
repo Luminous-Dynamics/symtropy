@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WDN active observability T0 oracle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "benchmark_id",
+    "cases"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "wdn-active-observability-t0-oracle-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WDN-ACTIVE-OBSERVABILITY-T0-001"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 14,
+      "maxItems": 14,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "passive_max_clique_size",
+          "feasible_probe_count",
+          "option_count",
+          "decision_status",
+          "recommended_sequence",
+          "execution_authorized",
+          "probability_interpretation",
+          "claim_eligibility"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "passive_max_clique_size": {
+            "type": "integer"
+          },
+          "feasible_probe_count": {
+            "type": "integer"
+          },
+          "option_count": {
+            "type": "integer"
+          },
+          "decision_status": {
+            "enum": [
+              "counterfactual_probe_sequence_recommended",
+              "abstain_no_feasible_probe",
+              "abstain_no_probe_meets_worst_case_reduction"
+            ]
+          },
+          "recommended_sequence": {
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "execution_authorized": {
+            "const": false
+          },
+          "probability_interpretation": {
+            "const": "none_unweighted_interval_compatibility"
+          },
+          "claim_eligibility": {
+            "const": "NotEligible"
+          }
+        }
+      }
+    }
+  }
+}
