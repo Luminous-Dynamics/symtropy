@@ -227,14 +227,16 @@ Run the independent AR(1) negative-control lane with:
 
     cargo run --manifest-path benchmarks/human-multirate-cosim/v0.1/Cargo.toml --release --bin noise_robustness
 
-The frozen fixture uses four unit-marginal-variance observation times,
-AR(1) rho = 0.8, 200,000 synthetic trials, seed 20261118, and the iid
-chi-square(4) 95th-percentile threshold. It reports iid-assumption false
-rejection and full-covariance Mahalanobis false rejection separately, with
-Wilson intervals. The target is to reproduce the qualitative failure of the
-iid negative control and recover approximately nominal rejection under the
-correctly specified full covariance. Exact observed rates are results of the
-Rust executable and are not claimed until that exact branch head is run.
+The frozen corpus uses four unit-marginal-variance observation times and
+AR(1) rho values 0.2, 0.5 and 0.8, with 200,000 synthetic trials per rho.
+Its base seed is 20261118 and each rho receives a distinct deterministic stream
+seed. The threshold is the iid chi-square(4) 95th percentile. It reports
+iid-assumption false rejection and full-covariance Mahalanobis false rejection
+separately, with Wilson intervals. The target is to reproduce increasing
+iid-assumption miscalibration as temporal dependence strengthens and recover
+approximately nominal rejection under the correctly specified full covariance.
+Exact observed rates are results of the Rust executable and are not claimed
+until that exact branch head is run.
 
 This first slice qualifies only Gaussian covariance handling and one AR(1)
 counterexample. It does not yet implement Student-t or contaminated-Gaussian
