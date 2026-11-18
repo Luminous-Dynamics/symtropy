@@ -197,3 +197,111 @@ Registered reference fixture:
 Independent reproduction of this fixed setup yielded 365/384 calibration in-family accepts (95.05%), 358/384 validation accepts (93.23%), 26/384 false OUT_OF_MODEL_SET (6.77%), and 128/128 rejection of the held-out bypass 0.75 (100%). The corresponding validation Wilson 95% intervals were approximately 90.26–95.34% for in-family coverage, 4.66–9.74% for false OUT_OF_MODEL_SET, and 97.09–100% for held-out rejection.
 
 These are deterministic synthetic Monte Carlo results for one declared fixture, not a calibrated real-world OOD detector or a general guarantee. The Gaussian/noise covariance model is assumed correct. The test does not establish robustness to covariance misspecification, non-Gaussian noise, temporal correlation, hidden MNAR missingness or arbitrary omitted model structures.
+
+## Observation-process robustness and full space-time covariance
+
+The noise_robustness module adds a strict dense-covariance reference for
+candidate-visible model-family adequacy. The covariance vector order is
+time-major, then sensor-major. The generalized Gaussian residual is evaluated
+as 0.5 times the squared norm of L^-1 r using a Cholesky factor of the admitted
+covariance; the implementation does not explicitly invert the covariance.
+
+The initial covariance constructors include:
+- arbitrary finite, symmetric, strictly positive-definite dense matrices;
+- AR(1) temporal correlation on equally spaced sample indices;
+- exponential temporal correlation on strictly increasing irregular sample times;
+- separable time-by-sensor covariance through a Kronecker product.
+
+Covariance admission is fail-closed. Asymmetric, singular, indefinite,
+non-finite, dimensionally inconsistent or oversized matrices are rejected.
+There is no silent jitter, symmetrization, diagonal fallback, clipping or
+pseudoinverse. Missing observations are handled by selecting the matching
+principal submatrix; missing values are never replaced with zero.
+
+The full-covariance adequacy evaluator scores the same candidate-visible trace
+against every registered finite-grid model variant using the supplied dense
+space-time covariance. Its versioned covariance and trace envelopes must agree
+on caller-supplied covariance/process/sampling/operator/availability-cutoff IDs,
+ordered sensor IDs and exact sample times. These identifiers are compared but
+are not authenticated by this module; an upstream evidence layer must verify
+their manifests and event receipts. The original independent-time implementation
+remains the explicit iid baseline.
+
+Run the independent AR(1) negative-control lane with:
+
+    cargo run --manifest-path benchmarks/human-multirate-cosim/v0.1/Cargo.toml --release --bin noise_robustness
+
+The frozen corpus uses four unit-marginal-variance observation times and
+AR(1) rho values 0.2, 0.5 and 0.8, with 200,000 synthetic trials per rho.
+Its base seed is 20261118 and each rho receives a distinct deterministic stream
+seed. The threshold is the iid chi-square(4) 95th percentile. It reports
+iid-assumption false rejection and full-covariance Mahalanobis false rejection
+separately, with Wilson intervals. The target is to reproduce increasing
+iid-assumption miscalibration as temporal dependence strengthens and recover
+approximately nominal rejection under the correctly specified full covariance.
+Exact observed rates are results of the Rust executable and are not claimed
+until that exact branch head is run.
+
+This first slice qualifies only Gaussian covariance handling and one AR(1)
+counterexample. It does not yet implement Student-t or contaminated-Gaussian
+likelihoods, heteroscedastic models, bias/drift state models, common-cause
+dropout processes, MCAR/MAR/MNAR generators, covariance estimation error,
+or a general dependent-data conformal guarantee. Unknown noise-family semantics
+must remain NOT_ASSESSED / ABSTAIN. The benchmark is synthetic-only and does not
+establish any physical sensor or human-subject validity.
+
+### Full-covariance empirical threshold calibration
+
+The `calibrate_model_family_adequacy_full_covariance` reference calibrator
+uses the same admitted full time-by-sensor covariance as the candidate-visible
+adequacy evaluator. It generates calibration traces with one deterministic
+stream, fits a nearest-rank empirical residual threshold, and evaluates
+registered candidate truths and held-out hidden out-of-family mathematical
+truths with a distinct validation stream.
+
+The report keeps true-family retention, false OUT_OF_MODEL_SET, wrong-family
+preference, ambiguous disposition, held-out out-of-family rejection and false
+acceptance separate. It also repeats the covariance/process/sampling/operator/
+availability identity, ordered sensor IDs and observation schedule used for
+calibration. The campaign is bounded to 100,000 total generated traces across
+calibration, in-family validation and hidden-truth evaluation. These three
+lanes use pairwise-distinct deterministic PRNG seeds.
+
+This is an evaluator-side synthetic harness: it keeps hidden truth out of the
+adequacy scorer's input and output, but the calibration function itself runs
+in-process and is not a security/process-isolation boundary. The caller must
+still put hidden truth and seeds behind the independent evaluator boundary
+before using this as an agent-facing benchmark.
+
+Threshold calibration is specific to the complete bound observation process.
+Changing the covariance, process family, sample schedule, ordered sensors,
+observation operator or availability cutoff requires a new calibration or an
+explicitly verified compatibility rule. Unknown and unsupported observation
+processes remain NOT_ASSESSED / ABSTAIN; they do not inherit an iid threshold.
+
+### Structured AR(1) × sensor covariance (matrix-free exact path)
+
+Alongside the dense correctness reference, `Ar1KroneckerCovariance` represents
+the separable covariance `K_AR1(rho) kron R_sensor` without materializing the
+full time-by-sensor matrix. It evaluates the exact Gaussian quadratic form
+through AR(1) innovations:
+
+    z_0 = e_0
+    z_t = (e_t - rho * e_(t-1)) / sqrt(1 - rho^2), t > 0
+    Q   = 0.5 * sum_t z_t^T R_sensor^-1 z_t
+
+The sensor blocks are whitened through the sensor covariance Cholesky factor.
+The same representation samples the exact joint Gaussian process through the
+AR(1) recurrence. For T observation times and m sensors, scoring is
+O(T*m^2) and storage is O(T*m + m^2); the dense reference requires an
+O((T*m)^3) factorization and O((T*m)^2) storage. The structured form is only
+admitted for its declared separable AR(1) model; non-separable covariance
+continues to use the dense correctness reference or a future explicit factor.
+
+The unit corpus compares structured Mahalanobis scores against a materialized
+dense Kronecker covariance on small fixtures, and includes a 10,000-component
+history that is intentionally too large for dense materialization. The
+observation-process receipt now records `DENSE_SPD` or `AR1_KRONECKER` so
+performance and calibration claims bind to the actual covariance algorithm.
+No Rust performance result is claimed until exact-head execution and matched
+benchmarks complete.
