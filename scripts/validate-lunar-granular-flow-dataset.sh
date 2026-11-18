@@ -202,8 +202,12 @@ for run_path in "${run_paths[@]}"; do
     and (if known($r.material.surface_charge_coulomb_per_kg)
             and known($r.environment.electrostatic_field_v_m)
             and known($r.environment.gravity_m_s2)
+            and ($r.environment.electrostatic_field_axis_id | type == "string" and length > 0)
          then known($d.electrostatic_number)
          else $d.electrostatic_number.status == "unknown" end)
+    and (if known($r.environment.electrostatic_field_v_m)
+         then ($r.environment.electrostatic_field_axis_id | type == "string" and length > 0)
+         else $r.environment.electrostatic_field_axis_id == null end)
     and (if known($r.operation.vibration_peak_acceleration_m_s2)
             and known($r.environment.gravity_m_s2)
          then known($d.vibration_gamma)
@@ -286,6 +290,7 @@ for run_path in "${run_paths[@]}"; do
     and (if known($r.material.surface_charge_coulomb_per_kg)
            and known($r.environment.electrostatic_field_v_m)
            and known($r.environment.gravity_m_s2)
+           and ($r.environment.electrostatic_field_axis_id | type == "string" and length > 0)
        then close(
          $d.electrostatic_number;
          ($r.material.surface_charge_coulomb_per_kg.value
