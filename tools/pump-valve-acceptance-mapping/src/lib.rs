@@ -633,9 +633,9 @@ mod tests {
     }
 
     #[test]
-    fn frozen_twenty_seven_case_oracle_matches() {
+    fn frozen_thirty_one_case_oracle_matches() {
         let result = evaluate_corpus(PROFILES, SCENARIOS, EXPECTED).unwrap();
-        assert_eq!(result.len(), 30);
+        assert_eq!(result.len(), 31);
         assert_eq!(
             result
                 .iter()
