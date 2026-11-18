@@ -251,7 +251,9 @@
         "d90_um",
         "bulk_density_kg_m3",
         "particle_morphology",
-        "compaction_history_id"
+        "compaction_history_id",
+        "representative_particle_mass_kg",
+        "mean_interparticle_cohesion_force_n"
       ],
       "properties": {
         "material_family": {
@@ -321,6 +323,12 @@
             "string",
             "null"
           ]
+        },
+        "representative_particle_mass_kg": {
+          "$ref": "#/$defs/measurement"
+        },
+        "mean_interparticle_cohesion_force_n": {
+          "$ref": "#/$defs/measurement"
         }
       }
     },
@@ -332,7 +340,9 @@
         "chamber_pressure_pa",
         "temperature_k",
         "pressure_profile_id",
-        "atmosphere"
+        "atmosphere",
+        "electrostatic_field_v_m",
+        "surface_potential_v"
       ],
       "properties": {
         "gravity_m_s2": {
@@ -373,6 +383,12 @@
             "string",
             "null"
           ]
+        },
+        "electrostatic_field_v_m": {
+          "$ref": "#/$defs/measurement"
+        },
+        "surface_potential_v": {
+          "$ref": "#/$defs/measurement"
         }
       }
     },
@@ -388,7 +404,10 @@
         "wall_roughness_ra_um",
         "wall_conductivity_s_m",
         "wall_grounding",
-        "fill_fraction"
+        "fill_fraction",
+        "wall_pull_off_force_n",
+        "wall_surface_energy_j_m2",
+        "wall_contact_angle_deg"
       ],
       "properties": {
         "apparatus_type": {
@@ -452,6 +471,15 @@
           ]
         },
         "fill_fraction": {
+          "$ref": "#/$defs/measurement"
+        },
+        "wall_pull_off_force_n": {
+          "$ref": "#/$defs/measurement"
+        },
+        "wall_surface_energy_j_m2": {
+          "$ref": "#/$defs/measurement"
+        },
+        "wall_contact_angle_deg": {
           "$ref": "#/$defs/measurement"
         }
       }
