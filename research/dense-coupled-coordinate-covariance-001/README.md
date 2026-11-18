@@ -57,6 +57,22 @@ The new machine-readable step vector is `fixtures/dense_coupled_chain_rattle_ste
 
 The useful differentiator is not raw throughput. It is the fraction of admissible re-representations for which the complete physical step, multipliers and constraints remain independently qualified, with solver cost and certificate overhead reported.
 
+
+
+## Bounded 32-step repeated-map qualification (v0.3)
+
+The next increment runs 32 consecutive force-free SHAKE/RATTLE steps in both dense generalized-coordinate bases. The dense trajectory recursively advances from its own lifted state; the Cartesian oracle recursively advances from its own Cartesian state. They are compared after every step, rather than resetting the dense state to the reference state.
+
+The test records the maximum over all steps of:
+- lifted position and velocity errors;
+- position and velocity multiplier differences;
+- per-edge squared-length residual;
+- endpoint tangency.
+
+The frozen protocol is `fixtures/dense_coupled_chain_rattle_trajectory_case_v0.3.json` with its Draft 2020-12 schema. Thresholds are (2\times10^{-7}) for lifted state and multipliers, (2\times10^{-12}) for squared-link residual, and (2\times10^{-9}) for endpoint tangency.
+
+**This is a bounded 32-step metamorphic regression, not a long-horizon stability claim.** It does not establish energy drift bounds over thousands of steps, forced RATTLE, pHDAE equivalence, contact/friction, or physical calibration. The exact-head Rust 1.96 workflow must pass before the 32-step extension is qualified.
+
 ## Algebraic preflight scope
 
 The warning-denied Rust tests verify exact inverse identities, the transformed mass metric, state/force/Jacobian/momentum laws, power duality, the canonical momentum one-form, multiplier virtual-work duality, SO(3) metric-skew generators and deliberately incorrect transformation laws.
