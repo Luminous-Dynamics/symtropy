@@ -163,3 +163,15 @@ The `robust_discrimination` module groups fixed-parameter graph variants into de
 The frozen negative control deliberately puts a zero-bypass-conductance variant inside the bypass family. This variant reproduces the chain model exactly. Therefore a fixed nominal chain-vs-positive-bypass pulse score can be about 0.334498 while the family-level worst-case separation is zero. Correct disposition: the candidate family sets overlap under their declared parameter bounds; do not claim structural identification.
 
 This is an exact finite-grid nuisance-profile reference. It is not continuous profile likelihood: no likelihood optimizer, interval threshold, posterior, or Pontryagin control solver is implemented. The model-family map and every variant remain explicit and digested. Work is tracked in [HUMAN-NESTED-ROBUST-DISCRIMINATION-001 / #5995](https://github.com/Luminous-Dynamics/symtropy/issues/5995).
+
+### Candidate-visible adequacy and out-of-model-set control
+
+The robust-discrimination module now accepts an explicit candidate-visible observation trace and a preregistered maximum Gaussian residual threshold. It evaluates every finite-grid parameter variant, reports the best residual per family and returns one of four dispositions:
+- IN_FAMILY_PREFERRED;
+- PARAMETER_NOT_IDENTIFIED;
+- IN_FAMILY_UNRESOLVED;
+- OUT_OF_MODEL_SET.
+
+The evaluator uses the exact declared sensor order, sample times and full covariance submatrix. A trace with a different sensor order, time schedule, shape or non-finite value rejects before scoring. OUT_OF_MODEL_SET means no registered finite-grid variant passes the declared residual threshold; it does not identify the missing physical cause.
+
+The threshold is an explicit protocol input, not an automatically calibrated chi-square quantile or false-alarm guarantee. These controls are deterministic synthetic software checks only.
