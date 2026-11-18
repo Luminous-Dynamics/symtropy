@@ -820,7 +820,7 @@ mod tests {
     }
 
     #[test]
-    fn time_sector_b_prime_reconstruction_uses_alpha_corrections() {
+    fn time_sector_b_prime_reconstruction_matches_einstein_mp() {
         let solution = mp();
         let expected_current = 2.0 * solution.asymptotic_parameters().u_mass;
         for radius in [1.1, 1.5, 2.0, 3.0, 10.0] {
@@ -893,6 +893,9 @@ mod tests {
         for radius in [1.1, 1.5, 2.0, 3.0] {
             let sample = bd.radial_sample(radius).unwrap();
             let current = time_sector_radial_flux(sample, alpha).unwrap();
+            let reconstructed_b_prime =
+                reconstruct_b_prime_from_time_flux(sample, alpha, current).unwrap();
+            close(reconstructed_b_prime, sample.b_prime, 2e-12);
             let current_plus =
                 time_sector_radial_flux(bd.radial_sample(radius + step).unwrap(), alpha)
                     .unwrap();
