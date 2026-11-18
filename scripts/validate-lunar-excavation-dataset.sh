@@ -22,7 +22,7 @@ USAGE
 }
 
 allow_synthetic_placeholders=false
-if [[ "\${1:-}" == "--allow-synthetic-placeholders" ]]; then
+if [[ "${1:-}" == "--allow-synthetic-placeholders" ]]; then
   allow_synthetic_placeholders=true
   shift
 fi
@@ -77,12 +77,13 @@ active_axes="$(jq -c '.split_policy.isolation_axes + (.split_policy.optional_iso
 manifest_run_ids="$(jq -r '.run_assignments[].run_id' "$manifest_path" | LC_ALL=C sort)"
 provided_run_ids=()
 
-for run_path in "\${run_paths[@]}"; do
+for run_path in "${run_paths[@]}"; do
   [[ -f "$run_path" && ! -L "$run_path" ]] || fail "run record is missing or is a symlink: $run_path"
 
-  jq -e '
+  jq -e --arg source_class "$(jq -r '.source_class' "$manifest_path")" '
     .schema_version == "0.1.0"
     and .benchmark_id == "lunar-excavation-model-validation-v0"
+    and .source_class == $source_class
     and (.run_id | type == "string" and length > 0)
     and (.partition == "calibration" or .partition == "validation" or .partition == "blind_test")
     and (.group_keys | type == "object")
@@ -195,7 +196,7 @@ printf '%s\n' "${provided_run_ids[@]}" | LC_ALL=C sort > "$provided_sorted"
 [[ "$(uniq -d "$provided_sorted")" == "" ]] || fail "duplicate run_id supplied across run files"
 [[ "$(cat "$provided_sorted")" == "$manifest_run_ids" ]] || fail "provided run files do not exactly match manifest run assignments"
 
-for run_path in "\${run_paths[@]}"; do
+for run_path in "${run_paths[@]}"; do
   jq -e -s --argjson axes "$active_axes" '
     .[0] as $r
     | .[1] as $m
@@ -207,4 +208,4 @@ for run_path in "\${run_paths[@]}"; do
   ' "$run_path" "$manifest_path" >/dev/null || fail "run does not match exactly one manifest assignment: $run_path"
 done
 
-printf 'lunar excavation dataset validation: PASS (%s run records; semantic/provenance checks only)\n' "\${#run_paths[@]}"
+printf 'lunar excavation dataset validation: PASS (%s run records; semantic/provenance checks only)\n' "${#run_paths[@]}"
