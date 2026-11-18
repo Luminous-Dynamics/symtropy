@@ -53,7 +53,7 @@ jq -e '
   and .vibration_assisted_feeder_source_reconstruction.source_design_reconstruction.planned_records == 480
   and (.vibration_assisted_feeder_source_reconstruction.source_design_reconstruction.records | length) == 480
   and ([.vibration_assisted_feeder_source_reconstruction.source_design_reconstruction.records[].source_record_id] | length == (unique | length))
-  and all(.vibration_assisted_feeder_source_reconstruction.source_design_reconstruction.records[]; .execution_status == "source_reconstruction_pending")
+  and all(.vibration_assisted_feeder_source_reconstruction.source_design_reconstruction.records[]; .execution_status == "awaiting_author_data_request" and .record_type == "empty_source_record_template")
   and .vibration_assisted_feeder_source_reconstruction.proposed_gamma_threshold_screen.unique_cells == 800
   and (.vibration_assisted_feeder_source_reconstruction.proposed_gamma_threshold_screen.cells | length) == 800
   and all(.vibration_assisted_feeder_source_reconstruction.proposed_gamma_threshold_screen.cells[]; .execution_status == "planned_not_run")
@@ -75,6 +75,16 @@ jq -e '
   and .vibration_assisted_feeder_source_reconstruction.proposed_segregation_shear_cell.unique_cells == 90
   and (.vibration_assisted_feeder_source_reconstruction.proposed_segregation_shear_cell.cells | length) == 90
   and all(.vibration_assisted_feeder_source_reconstruction.proposed_segregation_shear_cell.cells[]; .execution_status == "planned_not_run")
+  and .cross_gravity_material_transfer_screen.unique_cells == 80
+  and (.cross_gravity_material_transfer_screen.cells | length) == 80
+  and ([.cross_gravity_material_transfer_screen.cells[].test_id] | length == (unique | length))
+  and all(.cross_gravity_material_transfer_screen.cells[]; .execution_status == "planned_not_run")
+  and ([.cross_gravity_material_transfer_screen.cells[].material] | unique | sort) == ["ICN-LHT-1", "LHS-1"]
+  and ([.cross_gravity_material_transfer_screen.cells[].gravity_m_s2] | unique | sort) == [1.62, 9.81]
+  and .lhs1_ground_hopper_regime_extension.unique_cells == 63
+  and (.lhs1_ground_hopper_regime_extension.cells | length) == 63
+  and ([.lhs1_ground_hopper_regime_extension.cells[].test_id] | length == (unique | length))
+  and all(.lhs1_ground_hopper_regime_extension.cells[]; .execution_status == "planned_not_run")
   and ([.vibration_assisted_feeder_source_reconstruction.proposed_gamma_threshold_screen.cells[].target_gamma] | unique | min) == 0
   and ([.vibration_assisted_feeder_source_reconstruction.proposed_gamma_threshold_screen.cells[].target_gamma] | unique | max) == 23.8
 ' "$advanced_doe" >/dev/null || fail "advanced feeder/segregation DOE counts or claim ceiling invalid"
