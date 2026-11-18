@@ -581,7 +581,9 @@ pub fn evaluate_coavailability(
                     &sortie.launch_pad_resource_id,
                     launch_time,
                     launch_end,
-                ).is_some() {
+                )
+                .is_some()
+                {
                     known_infeasible = true;
                     findings.push(
                         "INFEASIBLE: launch pad is occupied during the required interval".into(),
@@ -592,10 +594,26 @@ pub fn evaluate_coavailability(
                     &sortie.recovery_pad_resource_id,
                     recovery_time,
                     recovery_end,
-                ).is_some() {
+                )
+                .is_some()
+                {
                     known_infeasible = true;
                     findings.push(
                         "INFEASIBLE: recovery pad is occupied during the required interval".into(),
+                    );
+                }
+                if interval_conflict(
+                    &input.existing_reservations,
+                    &aircraft.aircraft_id,
+                    launch_time,
+                    recovery_end,
+                )
+                .is_some()
+                {
+                    known_infeasible = true;
+                    findings.push(
+                        "INFEASIBLE: aircraft is reserved by another operation during this sortie"
+                            .into(),
                     );
                 }
             }
@@ -856,6 +874,25 @@ mod tests {
         let report = evaluate_coavailability(&test).expect("valid structure");
         assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
         assert!(report.findings.iter().any(|finding| finding.contains("not declared")));
+    }
+
+    #[test]
+    fn rejects_aircraft_double_booking_during_flight_or_turnaround() {
+        let mut test = input();
+        test.existing_reservations.push(ResourceReservation {
+            reservation_id: "other-uav-operation".into(),
+            resource_id: "uav-01".into(),
+            start_ms: 700_000,
+            end_ms: 800_000,
+        });
+        let report = evaluate_coavailability(&test).expect("valid input");
+        assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| finding.contains("aircraft is reserved"))
+        );
     }
 
     #[test]
