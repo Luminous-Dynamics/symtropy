@@ -40,7 +40,11 @@
     "invalid_bound_count": 0,
     "stale_actor_count": 0,
     "unmodelled_occupant_count": 0,
-    "assessment_receipt_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+    "assessment_receipt_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+    "narrowphase_evaluated_pair_count": 0,
+    "unqualified_bound_count": 0
   },
-  "now_tick": 120
+  "now_tick": 120,
+  "trusted_occupancy_engine_build_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "required_clearance_policy_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
 }
