@@ -9,14 +9,15 @@
 //! appliance modules. Planned material flows are not measurements or proof of
 //! edible acceptance. The result is not a safety certificate or actuation permit.
 
+use crate::KitchenTaskV1;
 use crate::action_ontology::{ActionMappingMethodV1, ActionOntologyBindingV1};
 use crate::recipe_graph::{
-    ExactRecipeQuantityV1, RecipeActionKindV1, RecipeEvidenceClassV1, RecipeGraphValidationReportV1,
-    RecipeIngredientUseV1, RecipeIngredientV1, RecipeRightsStatusV1, RecipeReviewStateV1,
+    ExactRecipeQuantityV1, RECIPE_GRAPH_CLAIM_CEILING, RECIPE_TASK_GRAPH_SCHEMA_VERSION,
+    RecipeActionKindV1, RecipeEvidenceClassV1, RecipeGraphValidationReportV1,
+    RecipeIngredientUseV1, RecipeIngredientV1, RecipeReviewStateV1, RecipeRightsStatusV1,
     RecipeSourceV1, RecipeTaskGraphV1, RecipeTaskNodeV1, RecipeUseScopeV1,
-    RECIPE_GRAPH_CLAIM_CEILING, RECIPE_TASK_GRAPH_SCHEMA_VERSION, validate_recipe_task_graph,
+    validate_recipe_task_graph,
 };
-use crate::KitchenTaskV1;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
@@ -311,8 +312,12 @@ pub enum PlannedLossKindV1 {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum FoodFlowDestinationV1 {
-    TaskInput { task_id: String },
-    PlannedEdibleOutput { output_ref: String },
+    TaskInput {
+        task_id: String,
+    },
+    PlannedEdibleOutput {
+        output_ref: String,
+    },
     PlannedLossOutput {
         output_ref: String,
         loss_kind: PlannedLossKindV1,
@@ -483,11 +488,16 @@ fn add_issue(
 
 fn sort_issues(issues: &mut [MealCompilationIssueV1]) {
     issues.sort_by(|left, right| {
-        (left.code, left.reference.as_deref().unwrap_or(""), left.detail.as_str()).cmp(&(
-            right.code,
-            right.reference.as_deref().unwrap_or(""),
-            right.detail.as_str(),
-        ))
+        (
+            left.code,
+            left.reference.as_deref().unwrap_or(""),
+            left.detail.as_str(),
+        )
+            .cmp(&(
+                right.code,
+                right.reference.as_deref().unwrap_or(""),
+                right.detail.as_str(),
+            ))
     });
 }
 
@@ -558,7 +568,11 @@ fn disposition(issues: &[MealCompilationIssueV1]) -> MealCompilationDispositionV
 fn proposal_digest(proposal: &MealProposalV1) -> serde_json::Result<String> {
     let bytes = serde_json::to_vec(proposal)?;
     let digest = Sha256::digest(bytes);
-    Ok(digest.iter().map(|byte| format!("{byte:02x}")).collect::<Vec<_>>().join(""))
+    Ok(digest
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<Vec<_>>()
+        .join(""))
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -706,15 +720,17 @@ fn validate_proposal(
             );
         }
         match (ingredient.quantity_state, ingredient.quantity) {
-            (IngredientQuantityStateV1::Explicit, Some(quantity))
-                if quantity.is_valid() => {}
+            (IngredientQuantityStateV1::Explicit, Some(quantity)) if quantity.is_valid() => {}
             (IngredientQuantityStateV1::Explicit, _) => add_issue(
                 issues,
                 MealCompilationIssueCodeV1::QuantityStateMismatch,
                 Some(&ingredient.ingredient_id),
                 "explicit ingredient quantity requires a positive, dimensionally valid quantity",
             ),
-            (IngredientQuantityStateV1::Unknown | IngredientQuantityStateV1::NotRequired, Some(_)) => {
+            (
+                IngredientQuantityStateV1::Unknown | IngredientQuantityStateV1::NotRequired,
+                Some(_),
+            ) => {
                 add_issue(
                     issues,
                     MealCompilationIssueCodeV1::QuantityStateMismatch,
@@ -789,7 +805,11 @@ fn validate_proposal(
             }
         }
         let mut dependency_ids = BTreeSet::new();
-        if task.depends_on.iter().any(|dependency| !dependency_ids.insert(dependency.as_str())) {
+        if task
+            .depends_on
+            .iter()
+            .any(|dependency| !dependency_ids.insert(dependency.as_str()))
+        {
             add_issue(
                 issues,
                 MealCompilationIssueCodeV1::InvalidProposal,
@@ -838,7 +858,8 @@ fn validate_proposal(
 
     let mut uncertainty_fields = BTreeSet::new();
     for uncertainty in &proposal.uncertainties {
-        if !nonempty(&uncertainty.field_path) || !nonempty(&uncertainty.reason)
+        if !nonempty(&uncertainty.field_path)
+            || !nonempty(&uncertainty.reason)
             || !uncertainty_fields.insert(uncertainty.field_path.as_str())
         {
             add_issue(
@@ -883,7 +904,10 @@ fn validate_proposal(
                 "fact source, version, observation time and non-null value are required",
             );
         }
-        if fact.valid_until_epoch_ms.is_some_and(|expiry| expiry < fact.observed_at_epoch_ms) {
+        if fact
+            .valid_until_epoch_ms
+            .is_some_and(|expiry| expiry < fact.observed_at_epoch_ms)
+        {
             add_issue(
                 issues,
                 MealCompilationIssueCodeV1::InvalidFactTimeWindow,
@@ -892,7 +916,9 @@ fn validate_proposal(
             );
         }
         if fact.observed_at_epoch_ms > as_of_epoch_ms
-            || fact.valid_until_epoch_ms.is_some_and(|expiry| expiry < as_of_epoch_ms)
+            || fact
+                .valid_until_epoch_ms
+                .is_some_and(|expiry| expiry < as_of_epoch_ms)
         {
             add_issue(
                 issues,
@@ -918,7 +944,10 @@ fn validate_proposal(
                 .ingredient_id
                 .as_deref()
                 .is_none_or(|ingredient_id| !ingredient_ids.contains(ingredient_id))
-                || !matches!(fact.scope, FactScopeV1::ProductSku | FactScopeV1::SupplierLot))
+                || !matches!(
+                    fact.scope,
+                    FactScopeV1::ProductSku | FactScopeV1::SupplierLot
+                ))
         {
             add_issue(
                 issues,
@@ -964,7 +993,11 @@ fn validate_proposal(
     for ingredient in &proposal.ingredients {
         for fact_ref in &ingredient.fact_refs {
             if let Some(fact) = facts.get(fact_ref.as_str()) {
-                if fact.ingredient_id.as_deref().is_some_and(|id| id != ingredient.ingredient_id) {
+                if fact
+                    .ingredient_id
+                    .as_deref()
+                    .is_some_and(|id| id != ingredient.ingredient_id)
+                {
                     add_issue(
                         issues,
                         MealCompilationIssueCodeV1::FactIngredientMismatch,
@@ -986,7 +1019,10 @@ fn validate_proposal(
         for fact_ref in &task.fact_refs {
             if let Some(fact) = facts.get(fact_ref.as_str()) {
                 if fact.ingredient_id.as_deref().is_some_and(|id| {
-                    !task.ingredient_refs.iter().any(|ingredient_ref| ingredient_ref == id)
+                    !task
+                        .ingredient_refs
+                        .iter()
+                        .any(|ingredient_ref| ingredient_ref == id)
                 }) {
                     add_issue(
                         issues,
@@ -1220,9 +1256,7 @@ fn validate_task_bindings(
         }
         let mut output_ids = BTreeSet::new();
         for output in &binding.outputs {
-            if !nonempty(&output.output_ref)
-                || !output_ids.insert(output.output_ref.as_str())
-            {
+            if !nonempty(&output.output_ref) || !output_ids.insert(output.output_ref.as_str()) {
                 add_issue(
                     issues,
                     MealCompilationIssueCodeV1::DuplicateTaskOutput,
@@ -1247,15 +1281,14 @@ fn validate_task_bindings(
                     "every planned output must carry at least one explicit ingredient-origin reference",
                 );
             }
-            if output
-                .ingredient_origins
-                .iter()
-                .any(|origin| {
-                    !nonempty(origin)
-                        || !origins.insert(origin.as_str())
-                        || !task.ingredient_refs.iter().any(|input| input.as_str() == origin.as_str())
-                })
-            {
+            if output.ingredient_origins.iter().any(|origin| {
+                !nonempty(origin)
+                    || !origins.insert(origin.as_str())
+                    || !task
+                        .ingredient_refs
+                        .iter()
+                        .any(|input| input.as_str() == origin.as_str())
+            }) {
                 add_issue(
                     issues,
                     MealCompilationIssueCodeV1::OutputIngredientLineageMismatch,
@@ -1381,9 +1414,10 @@ fn validate_food_flows(
                     );
                     continue;
                 }
-                let (Ok((declared_dimension, declared_base)), Ok((flow_dimension, flow_base))) =
-                    (quantity_to_base(&declared), quantity_to_base(&edge.quantity))
-                else {
+                let (Ok((declared_dimension, declared_base)), Ok((flow_dimension, flow_base))) = (
+                    quantity_to_base(&declared),
+                    quantity_to_base(&edge.quantity),
+                ) else {
                     add_issue(
                         issues,
                         MealCompilationIssueCodeV1::InvalidQuantity,
@@ -1442,7 +1476,10 @@ fn validate_food_flows(
                     .insert(ingredient_id.clone());
             }
             (
-                FoodFlowSourceV1::TaskOutput { task_id: producer, output_ref },
+                FoodFlowSourceV1::TaskOutput {
+                    task_id: producer,
+                    output_ref,
+                },
                 FoodFlowDestinationV1::TaskInput { task_id: consumer },
             ) => {
                 let Some(consumer_task) = tasks.get(consumer.as_str()).copied() else {
@@ -1472,7 +1509,10 @@ fn validate_food_flows(
                     );
                     continue;
                 };
-                let Some(output) = binding.outputs.iter().find(|item| item.output_ref == *output_ref)
+                let Some(output) = binding
+                    .outputs
+                    .iter()
+                    .find(|item| item.output_ref == *output_ref)
                 else {
                     add_issue(
                         issues,
@@ -1483,7 +1523,10 @@ fn validate_food_flows(
                     continue;
                 };
                 if producer == consumer
-                    || !consumer_task.depends_on.iter().any(|dependency| dependency == producer)
+                    || !consumer_task
+                        .depends_on
+                        .iter()
+                        .any(|dependency| dependency == producer)
                 {
                     add_issue(
                         issues,
@@ -1514,12 +1557,23 @@ fn validate_food_flows(
                     .extend(output.ingredient_origins.iter().cloned());
             }
             (
-                FoodFlowSourceV1::TaskOutput { task_id: producer, output_ref },
-                FoodFlowDestinationV1::PlannedEdibleOutput { output_ref: destination_ref },
+                FoodFlowSourceV1::TaskOutput {
+                    task_id: producer,
+                    output_ref,
+                },
+                FoodFlowDestinationV1::PlannedEdibleOutput {
+                    output_ref: destination_ref,
+                },
             )
             | (
-                FoodFlowSourceV1::TaskOutput { task_id: producer, output_ref },
-                FoodFlowDestinationV1::PlannedLossOutput { output_ref: destination_ref, .. },
+                FoodFlowSourceV1::TaskOutput {
+                    task_id: producer,
+                    output_ref,
+                },
+                FoodFlowDestinationV1::PlannedLossOutput {
+                    output_ref: destination_ref,
+                    ..
+                },
             ) => {
                 let Some(binding) = bindings.get(producer) else {
                     add_issue(
@@ -1530,7 +1584,10 @@ fn validate_food_flows(
                     );
                     continue;
                 };
-                let Some(output) = binding.outputs.iter().find(|item| item.output_ref == *output_ref)
+                let Some(output) = binding
+                    .outputs
+                    .iter()
+                    .find(|item| item.output_ref == *output_ref)
                 else {
                     add_issue(
                         issues,
@@ -1595,9 +1652,10 @@ fn validate_food_flows(
                     );
                     continue;
                 };
-                let (Ok((declared_dimension, declared_base)), Ok((flow_dimension, flow_base))) =
-                    (quantity_to_base(&declared), quantity_to_base(&edge.quantity))
-                else {
+                let (Ok((declared_dimension, declared_base)), Ok((flow_dimension, flow_base))) = (
+                    quantity_to_base(&declared),
+                    quantity_to_base(&edge.quantity),
+                ) else {
                     add_issue(
                         issues,
                         MealCompilationIssueCodeV1::InvalidQuantity,
@@ -1773,7 +1831,6 @@ fn compilation_resolution_refs(request: &MealCompilationRequestV1) -> Vec<String
                 refs.insert(output.quantity_basis_ref.clone());
             }
             // ingredient_origins are identifiers, not independent evidence references.
-
         }
     }
     for edge in &request.food_flow_edges {
@@ -1975,11 +2032,7 @@ pub fn compile_meal(request: &MealCompilationRequestV1) -> MealCompilationReport
         );
     }
 
-    let bindings = validate_task_bindings(
-        &request.proposal,
-        &request.task_bindings,
-        &mut issues,
-    );
+    let bindings = validate_task_bindings(&request.proposal, &request.task_bindings, &mut issues);
     validate_food_flows(
         &request.proposal,
         &bindings,
@@ -2022,11 +2075,16 @@ pub fn compile_meal(request: &MealCompilationRequestV1) -> MealCompilationReport
     }
 
     issues.sort_by(|left, right| {
-        (left.code, left.reference.as_deref().unwrap_or(""), left.detail.as_str()).cmp(&(
-            right.code,
-            right.reference.as_deref().unwrap_or(""),
-            right.detail.as_str(),
-        ))
+        (
+            left.code,
+            left.reference.as_deref().unwrap_or(""),
+            left.detail.as_str(),
+        )
+            .cmp(&(
+                right.code,
+                right.reference.as_deref().unwrap_or(""),
+                right.detail.as_str(),
+            ))
     });
     let final_disposition = disposition(&issues);
     if final_disposition != MealCompilationDispositionV1::Compiled {
@@ -2053,8 +2111,8 @@ pub fn compile_meal(request: &MealCompilationRequestV1) -> MealCompilationReport
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::action_ontology::rule_based_action_binding;
     use crate::TaskDependencyV1;
+    use crate::action_ontology::rule_based_action_binding;
 
     fn quantity(value: u64, unit: QuantityUnitV1) -> ExactIngredientQuantityV1 {
         ExactIngredientQuantityV1 {
@@ -2314,17 +2372,24 @@ mod tests {
         request.acceptance.proposal_revision = 2;
         let report = compile_meal(&request);
         assert_eq!(report.disposition, MealCompilationDispositionV1::Conflicted);
-        assert!(report.issues.iter().any(|issue| {
-            issue.code == MealCompilationIssueCodeV1::ProposalAcceptanceMismatch
-        }));
+        assert!(
+            report.issues.iter().any(|issue| {
+                issue.code == MealCompilationIssueCodeV1::ProposalAcceptanceMismatch
+            })
+        );
     }
 
     #[test]
     fn incomplete_raw_material_allocation_is_indeterminate() {
         let mut request = valid_request();
-        request.food_flow_edges.retain(|edge| edge.edge_id != "edge:raw-onion-to-chop");
+        request
+            .food_flow_edges
+            .retain(|edge| edge.edge_id != "edge:raw-onion-to-chop");
         let report = compile_meal(&request);
-        assert_eq!(report.disposition, MealCompilationDispositionV1::Indeterminate);
+        assert_eq!(
+            report.disposition,
+            MealCompilationDispositionV1::Indeterminate
+        );
         assert!(report.issues.iter().any(|issue| {
             issue.code == MealCompilationIssueCodeV1::IngredientAllocationIncomplete
         }));
@@ -2335,7 +2400,10 @@ mod tests {
         let mut request = valid_request();
         request.task_bindings.pop();
         let report = compile_meal(&request);
-        assert_eq!(report.disposition, MealCompilationDispositionV1::Indeterminate);
+        assert_eq!(
+            report.disposition,
+            MealCompilationDispositionV1::Indeterminate
+        );
         assert!(report.recipe_graph.is_none());
     }
 
@@ -2351,7 +2419,10 @@ mod tests {
         });
         request.proposal_sha256 = proposal_digest(&request.proposal).unwrap();
         let report = compile_meal(&request);
-        assert_eq!(report.disposition, MealCompilationDispositionV1::Indeterminate);
+        assert_eq!(
+            report.disposition,
+            MealCompilationDispositionV1::Indeterminate
+        );
         assert!(report.recipe_graph.is_none());
     }
 
@@ -2391,21 +2462,29 @@ mod tests {
         let mut request = valid_request();
         request.task_bindings[0].ontology_binding = None;
         let report = compile_meal(&request);
-        assert_eq!(report.disposition, MealCompilationDispositionV1::Indeterminate);
+        assert_eq!(
+            report.disposition,
+            MealCompilationDispositionV1::Indeterminate
+        );
         assert!(report.recipe_graph.is_none());
     }
 
     #[test]
     fn planned_loss_and_edible_outputs_remain_plans_not_measured_acceptance() {
         let mut request = valid_request();
-        request.food_flow_edges[2].destination =
-            FoodFlowDestinationV1::PlannedLossOutput {
-                output_ref: "planned-loss:sauteed-onion".to_owned(),
-                loss_kind: PlannedLossKindV1::ExpectedReject,
-            };
+        request.food_flow_edges[2].destination = FoodFlowDestinationV1::PlannedLossOutput {
+            output_ref: "planned-loss:sauteed-onion".to_owned(),
+            loss_kind: PlannedLossKindV1::ExpectedReject,
+        };
         request.food_flow_edges[2].material_ref = "material:planned-loss-onion".to_owned();
         let report = compile_meal(&request);
         assert_eq!(report.disposition, MealCompilationDispositionV1::Compiled);
-        assert!(report.food_flow_graph.unwrap().claim_ceiling.contains("not measured process yield"));
+        assert!(
+            report
+                .food_flow_graph
+                .unwrap()
+                .claim_ceiling
+                .contains("not measured process yield")
+        );
     }
 }
