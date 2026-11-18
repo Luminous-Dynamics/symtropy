@@ -40,6 +40,7 @@ pub enum GeometryError {
         second_edge: usize,
     },
     ArithmeticOverflow,
+    InvalidBounds,
     InvalidTimeWindow {
         start: i64,
         end: i64,
@@ -70,6 +71,7 @@ impl fmt::Display for GeometryError {
             Self::ArithmeticOverflow => {
                 write!(f, "exact integer predicate exceeded checked i128 range")
             }
+            Self::InvalidBounds => write!(f, "invalid finite rectangular bounds"),
             Self::InvalidTimeWindow { start, end } => {
                 write!(f, "invalid half-open time window [{start}, {end})")
             }
@@ -78,6 +80,26 @@ impl fmt::Display for GeometryError {
 }
 
 impl std::error::Error for GeometryError {}
+
+/// Finite axis-aligned rectangle in the polygon's signed integer coordinate frame.
+/// Boundary coordinates are included by `Polygon::is_within_rect`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Rect {
+    pub min_x: i64,
+    pub min_y: i64,
+    pub max_x: i64,
+    pub max_y: i64,
+}
+
+impl Rect {
+    pub const fn new(min_x: i64, min_y: i64, max_x: i64, max_y: i64) -> Self {
+        Self { min_x, min_y, max_x, max_y }
+    }
+
+    pub const fn is_valid(self) -> bool {
+        self.min_x < self.max_x && self.min_y < self.max_y
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SegmentRelation {
@@ -191,6 +213,31 @@ impl Polygon {
 
     pub fn vertices(&self) -> &[Point] {
         &self.vertices
+    }
+
+    /// Minimal axis-aligned bounding rectangle. The polygon is already validated
+    /// and non-degenerate, so both returned extents are strictly positive.
+    pub fn bounds(&self) -> Rect {
+        let min_x = self.vertices.iter().map(|point| point.x).min().unwrap_or_default();
+        let min_y = self.vertices.iter().map(|point| point.y).min().unwrap_or_default();
+        let max_x = self.vertices.iter().map(|point| point.x).max().unwrap_or_default();
+        let max_y = self.vertices.iter().map(|point| point.y).max().unwrap_or_default();
+        Rect::new(min_x, min_y, max_x, max_y)
+    }
+
+    /// A polygon is within a convex rectangular yard boundary iff all its
+    /// vertices are inside or on the boundary. This checks the finite planar
+    /// envelope only; it says nothing about routes, swept paths or clearance.
+    pub fn is_within_rect(&self, rect: Rect) -> Result<bool, GeometryError> {
+        if !rect.is_valid() {
+            return Err(GeometryError::InvalidBounds);
+        }
+        Ok(self.vertices.iter().all(|point| {
+            point.x >= rect.min_x
+                && point.x <= rect.max_x
+                && point.y >= rect.min_y
+                && point.y <= rect.max_y
+        }))
     }
 
     pub fn twice_signed_area(&self) -> i128 {
@@ -642,6 +689,25 @@ mod tests {
             Polygon::new(over_limit),
             Err(GeometryError::TooManyVertices { .. })
         ));
+    }
+
+    #[test]
+    fn polygon_bounds_are_canonical_and_finite_yard_containment_is_inclusive() {
+        let l_shape = polygon(&[(0, 0), (4, 0), (4, 1), (1, 1), (1, 4), (0, 4)]);
+        assert_eq!(l_shape.bounds(), Rect::new(0, 0, 4, 4));
+        assert!(l_shape
+            .is_within_rect(Rect::new(0, 0, 4, 4))
+            .expect("valid yard bounds"));
+        assert!(l_shape
+            .is_within_rect(Rect::new(-1, -1, 5, 5))
+            .expect("valid larger yard bounds"));
+        assert!(!l_shape
+            .is_within_rect(Rect::new(0, 0, 3, 4))
+            .expect("valid but too narrow yard bounds"));
+        assert_eq!(
+            l_shape.is_within_rect(Rect::new(1, 1, 1, 4)),
+            Err(GeometryError::InvalidBounds)
+        );
     }
 
     #[test]
