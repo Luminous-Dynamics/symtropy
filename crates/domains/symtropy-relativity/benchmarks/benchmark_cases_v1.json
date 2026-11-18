@@ -486,7 +486,11 @@
         "aps_supplemental_availability_note": "APS accepted-paper page explicitly says author-provided supplemental materials will be available upon publication of the version of record; accepted-paper page inspected 2026-11-18.",
         "version_of_record_available_on_checked_page": false,
         "next_source_gate": "recheck APS version-of-record page for Supplemental Material; meanwhile continue exact MP control and 2010 paper-based EGB boundary/source reconstruction.",
-        "main_paper_reference_data_extracted": "main-paper ansatz, training summary, coupling sweep, and 5D EGB/MP comparison are available; exact raw solution arrays and supplemental diagnostics remain unavailable on accepted-paper page."
+        "main_paper_reference_data_extracted": "main-paper ansatz, training summary, coupling sweep, and 5D EGB/MP comparison are available; exact raw solution arrays and supplemental diagnostics remain unavailable on accepted-paper page.",
+        "time_sector_identity_full_alpha_terms_extracted": true,
+        "time_sector_source_balance_verified_against_bd": true,
+        "time_sector_finite_alpha_conserved": false,
+        "rotating_egb_solution_executed": false
       },
       "purpose": [
         "matched neural-spectral discovery/refinement comparison",
@@ -517,22 +521,56 @@
         "branch": "Einstein branch",
         "role": "separate static EGB exact control and alpha->0 Schwarzschild-Tangherlini limit"
       },
-      "time_sector_first_integral": {
-        "source": "Brihaye et al. (2010), Eq. (2.14)",
-        "field_equation_combination": "R_t^t+alpha/4*(H_t^t+L_GB/2)",
-        "total_derivative_rhs": "(1/(2*r^2))*sqrt(f/(b*h))*d/dr[sqrt(f*h/b)*r^2*(h*w*w'-b')]",
-        "constant": "P_t=sqrt(f*h/b)*r^2*(h*w*w'-b')",
-        "asymptotic_relation": "P_t=2*U",
-        "horizon_limit": "r_H^2*sqrt(f1*h_H/b1)*(h_H*Omega_H*w1-b1)",
-        "role": "independent first-integral residual and optional b-prime reconstruction",
-        "caution": "This is a consequence of a field-equation combination, not an additional independent equation; all remaining EGB equations must still be checked."
-      },
       "reduced_architecture_hypothesis": {
-        "five_field": "solve b,f,g,h,w with g=r^2 gauge",
-        "four_profile": "use P_w=-4W to reconstruct w' where K is certified nonzero",
-        "three_profile": "also use P_t=2U to reconstruct b', then integrate b and w; primary profiles f,h plus global U,W and boundary/remaining-field-equation constraints",
-        "status": "prospective architecture hypothesis, requires matched benchmark and interval qualification",
-        "fallback": "retain unreduced equations and four/five-profile solve whenever quadrature denominator is unresolved"
+        "full_profile": "solve b,f,h,w with g=r^2",
+        "angular_noether_reduction": "use only the true conserved P_w=-4W to reconstruct w' where K is interval-certified away from zero; retain b,f,h as remaining profiles",
+        "source_balanced_reduction": "use full Eq. (2.14) current plus L_GB source balance to constrain/reconstruct b' only where -r^2+alpha*C_b is interval-certified away from zero",
+        "status": "prospective architectures to benchmark; no dual-conserved-flux or two-global-charge reduction is claimed",
+        "fallback": "retain the full four-profile system whenever K or the b-prime coefficient is unresolved"
+      },
+      "time_sector_radial_identity": {
+        "source": "Brihaye et al. (2010), Eq. (2.14), with full alpha-dependent current",
+        "definitions": {
+          "C_b": "f-4+h/r^2+r*f*h'/h",
+          "C_w": "4-3*h/r^2-f",
+          "P_t": "sqrt(f*h/b)*(r^2*(h*w*w'-b')+alpha*(C_b*b'+C_w*h*w*w'+r*f*h*w'^2))"
+        },
+        "trace_identity_5d": "H^mu_mu=-L_GB/2; on shell R=-alpha*L_GB/12",
+        "source_balance": "dP_t/dr=(alpha/6)*r^2*sqrt(b*h/f)*L_GB",
+        "asymptotic_endpoint": "P_t(infinity)=2*U",
+        "alpha_zero": "At alpha=0, source vanishes and P_t(r)=2*U is constant",
+        "finite_alpha": "P_t is radius-dependent; it is not a conserved charge",
+        "static_boulware_deser_control": {
+          "b_f": "F(r)",
+          "h": "r^2",
+          "w": "0",
+          "current": "P_t=-r^3*F'+3*alpha*r*(F-1)*F'",
+          "gauss_bonnet_scalar": "L_GB=12/r^3*((F-1)*(r*F''+2*F')+r*(F')^2)",
+          "source_balance": "P_t'=alpha*r^3*L_GB/6",
+          "asymptotic_U": "U=-(r_H^2+alpha/2)",
+          "asymptotic_endpoint": "P_t(infinity)=2*U"
+        },
+        "alpha_zero_mp_control": {
+          "U": "-10000/8911",
+          "P_t_all_r": "-20000/8911",
+          "sample_r3": "-20000/8911",
+          "horizon_limit": "-20000/8911"
+        },
+        "rust_apis": {
+          "current": "time_sector_radial_flux(sample,alpha)",
+          "source_prefactor": "time_sector_current_source(sample,alpha,L_GB)",
+          "b_prime_reconstruction": "reconstruct_b_prime_from_time_flux(sample,alpha,local_P_t)",
+          "b_d_curvature": "BoulwareDeser5D::curvature_data(radius)"
+        },
+        "validation": {
+          "corrected_current_includes_all_alpha_terms": true,
+          "bd_gauss_bonnet_scalar_independently_derived": true,
+          "bd_source_balance_symbolically_checked": true,
+          "bd_asymptotic_current_checked": true,
+          "rust_tests_authored": 14,
+          "rust_tests_executed": false
+        },
+        "claim_ceiling": "A sourced radial identity and asymptotic endpoint, not a finite-alpha conserved charge and not a second independent Noether momentum."
       }
     }
   ],
@@ -554,7 +592,9 @@
     "The MP exact b,f,h,w profiles must all be checked; b,w alone are not a complete metric control.",
     "The EGB rotational Noether flux from the 2010 reduced action is a separate exact conserved quantity; quadrature reconstruction of w requires an interval proof that its radial denominator K(r) stays away from zero.",
     "The 2010 action and gauge-fixed ansatz are used as an independent source for the Akribeia benchmark; no raw nonzero-alpha EGB profiles have yet been reproduced.",
-    "For the 5D EGB benchmark, compare full-profile, angular-flux-reduced, and dual-flux-reduced architectures only under identical equations, domain, boundary data, norms and precision.",
-    "P_t=2U is a first integral of the time-sector field-equation combination (2010 Eq. 2.14), not a second cyclic Noether momentum; it must not replace the other EGB equations."
+    "The full time-sector Eq. (2.14) radial current includes alpha-dependent terms; the Einstein-only current r^2(h*w*w'-b') is incomplete at finite alpha.",
+    "The time-sector current is sourced: P_t'=(alpha/6)*r^2*sqrt(b*h/f)*L_GB. Its asymptotic endpoint is 2U, but it is not a conserved charge at finite alpha.",
+    "Only the angular P_w current is the conserved Noether current in this two-current discussion. Do not construct a dual-conserved-flux reduction.",
+    "A source-balanced b-prime reconstruction must use the full alpha-dependent coefficient and the local P_t(r), not the asymptotic constant 2U at every radius."
   ]
 }
