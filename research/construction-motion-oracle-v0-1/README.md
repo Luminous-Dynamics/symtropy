@@ -187,3 +187,16 @@ Official references:
 This adds a new explicit layer to the evidence architecture:
 
 Protocol intent/status → normalized construction task semantics → independently qualified body/tool/payload envelope → fresh occupancy and exclusive resource reservation → separate safety authority → physical execution → independent referee acceptance.
+
+
+### Reservation-bound command fencing and replay gate v0.1
+
+The typed Rust module \`reservation_command_gate\` is the next layer after dispatch readiness (#5999) and atomic resource reservation (#6050). It intentionally does not create a second reservation authority. The **fencing token is the append-only reservation commit sequence** recorded by the site-state ledger.
+
+A command admission check binds the reservation ID and fencing token to the exact robot, attempt, work package/revision, design entity, motion-envelope digest, resource catalog and claim manifest, consumed readiness receipt, site clock and current ledger head. It requires the reservation to remain active, the site package/catalog to remain current, and the command tick to fall within the reservation's validity, lease and physical schedule windows.
+
+The readiness receipt is compared with the snapshot embedded in the reservation commit. It is not re-evaluated against the post-commit ledger, because the reservation commit itself advances the ledger. Later compatible resource commits and referee releases for *other* reservations may coexist only when they preserve the same package/revision, catalog, site clock, occupancy-engine build and clearance-policy build. Any other site event (for example, a station/frame change) invalidates the old command admission until readiness and reservation context are re-established.
+
+The stateful \`CommandReplayGuard\` additionally enforces a strictly increasing command sequence per reservation, unique command IDs and digest-bound idempotency. Its serializable snapshot must be persisted atomically with the command gateway's accepted-command record; rebuilding an empty in-memory guard after restart is not replay-safe. This code supplies a deterministic reference predicate and replay-state model, not a transport adapter, cryptographic signature verifier, actuator API, safety permit or protective-stop function. The consuming gateway must authenticate the robot and receipts, serialize/persist replay updates transactionally and re-check at every command boundary.
+
+Negative controls cover stale fencing tokens, wrong robot identity, expired lease, unrelated ledger mutation, a second compatible reservation commit, duplicate command IDs, command-sequence gaps and replay-guard recovery from a persisted snapshot. The key invariant is that **a readiness receipt is not a reservation, and a reservation is not a permanently reusable command credential**. Exact-head tests and strict Clippy must pass before this software reference is treated as validated; a physical command/safety integration requires separate qualified work.
