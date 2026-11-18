@@ -773,6 +773,122 @@ mod tests {
     }
 
     #[test]
+    fn weighted_means_feasibility_and_regret_match_independent_direct_oracle() {
+        let scenarios = scenario_set();
+        let candidates = fixture_candidates();
+        let report = evaluate_climate_robustness(&scenarios, &candidates).unwrap();
+
+        for candidate in &candidates {
+            let actual = report
+                .candidate_reports
+                .iter()
+                .find(|row| row.candidate_id == candidate.candidate_id)
+                .unwrap();
+
+            let mut expected_mean = [0.0_f64; CLIMATE_CRITERION_COUNT];
+            let mut expected_worst = [1.0_f64; CLIMATE_CRITERION_COUNT];
+            let mut expected_regret = [0.0_f64; CLIMATE_CRITERION_COUNT];
+            let mut expected_maximum_regret = 0.0_f64;
+            let mut expected_coverage = 0.0_f64;
+            let mut expected_guaranteed = true;
+
+            for scenario in &scenarios.scenarios {
+                let own = candidate
+                    .scenario_outcomes
+                    .iter()
+                    .find(|row| row.scenario_id == scenario.scenario_id)
+                    .unwrap();
+                if own.feasible {
+                    expected_coverage += scenario.decision_weight;
+                } else {
+                    expected_guaranteed = false;
+                }
+
+                let mut ideal = [0.0_f64; CLIMATE_CRITERION_COUNT];
+                for other in &candidates {
+                    let result = other
+                        .scenario_outcomes
+                        .iter()
+                        .find(|row| row.scenario_id == scenario.scenario_id)
+                        .unwrap();
+                    if result.feasible {
+                        for (ideal_value, outcome) in
+                            ideal.iter_mut().zip(result.outcomes.iter())
+                        {
+                            *ideal_value = (*ideal_value).max(*outcome);
+                        }
+                    }
+                }
+
+                for index in 0..CLIMATE_CRITERION_COUNT {
+                    expected_mean[index] +=
+                        scenario.decision_weight * own.outcomes[index];
+                    expected_worst[index] = expected_worst[index].min(own.outcomes[index]);
+                    let regret = (ideal[index] - own.outcomes[index]).max(0.0);
+                    expected_regret[index] += scenario.decision_weight * regret;
+                    expected_maximum_regret = expected_maximum_regret.max(regret);
+                }
+            }
+
+            for index in 0..CLIMATE_CRITERION_COUNT {
+                assert!(
+                    (actual.weighted_mean_outcomes[index] - expected_mean[index]).abs() < 1.0e-12
+                );
+                assert!(
+                    (actual.worst_case_outcomes[index] - expected_worst[index]).abs() < 1.0e-12
+                );
+                assert!(
+                    (actual.weighted_regret_by_criterion[index] - expected_regret[index]).abs()
+                        < 1.0e-12
+                );
+            }
+            assert!(
+                (actual.weighted_feasibility_coverage - expected_coverage).abs() < 1.0e-12
+            );
+            assert_eq!(actual.guaranteed_feasible, expected_guaranteed);
+            assert!((actual.maximum_regret - expected_maximum_regret).abs() < 1.0e-12);
+        }
+    }
+
+    #[test]
+    fn zero_weight_scenario_still_participates_in_hard_guarantee() {
+        let scenarios = ClimateScenarioSet {
+            semantics: ScenarioWeightSemantics::AnalyticalDecisionWeights,
+            scenarios: vec![
+                ClimateScenario {
+                    scenario_id: "weighted".to_owned(),
+                    decision_weight: 1.0,
+                },
+                ClimateScenario {
+                    scenario_id: "zero_weight_hard_scenario".to_owned(),
+                    decision_weight: 0.0,
+                },
+            ],
+        };
+        let candidate = ClimateCandidate {
+            candidate_id: "fails_zero_weight_scenario".to_owned(),
+            scenario_outcomes: vec![
+                ClimateScenarioOutcome {
+                    scenario_id: "weighted".to_owned(),
+                    outcomes: [0.9, 0.9, 0.9],
+                    feasible: true,
+                },
+                ClimateScenarioOutcome {
+                    scenario_id: "zero_weight_hard_scenario".to_owned(),
+                    outcomes: [0.8, 0.8, 0.8],
+                    feasible: false,
+                },
+            ],
+        };
+
+        let report = evaluate_climate_robustness(&scenarios, &[candidate]).unwrap();
+        let row = &report.candidate_reports[0];
+        assert_eq!(row.weighted_feasibility_coverage, 1.0);
+        assert!(!row.guaranteed_feasible);
+        assert!(report.robust_frontier_candidate_ids.is_empty());
+    }
+
+    #[test]
     fn invalid_scenario_weights_and_incomplete_candidate_coverage_fail_closed() {
         let mut invalid_weights = scenario_set();
         invalid_weights.scenarios[0].decision_weight = 0.9;
