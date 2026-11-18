@@ -39,3 +39,14 @@ The run-level contract, dataset-level split manifest, synthetic examples and fix
 Detailed protocol: tools/lunar-excavation-benchmark/README.md.
 
 Related programme: [#6012 model validation](https://github.com/Luminous-Dynamics/symtropy/issues/6012), [#6006 as-built closure](https://github.com/Luminous-Dynamics/symtropy/issues/6006), [#5988 terrestrial analogue](https://github.com/Luminous-Dynamics/symtropy/issues/5988).
+
+## New 2026 comparators — 18 November
+
+The SOTA comparison now needs an explicit ML baseline. Srinivasan et al. (Acta Astronautica, online 18 August 2026; DOI 10.1016/j.actaastro.2026.08.051) report XGBoost RMSE of 11.305 N horizontal and 6.824 N vertical, 64% and 85.5% lower than their Lockheed–Martin analytical baseline on their study dataset. Those numbers must be reproduced with the original feature set, split and test protocol; they are not evidence of new-batch, new-tool, percussive or lunar-gravity generalization.
+
+A separate returned-sample reference is now available: Bao et al. (Acta Astronautica, online 3 November 2026; DOI 10.1016/j.actaastro.2026.10.071) report rotating-drum slumping tests on authentic Chang'e-6 farside sample CE60100 (1.85 g available mass). Their dynamic angle of repose fell from 50.4° ± 3.1° to 41.1° ± 1.8° over Fr = 3.3×10^-4 to 3.3×10^-3, with a force-balance model reproducing the trend without fitting those DAoR values. This supports a distinct micro-sample flow/handling benchmark, not excavation-force qualification.
+
+The model tournament now includes analytical equations, published MLR/SVR/RF/XGBR baselines, DEM, CEL/FEM, and an experimentally qualified physics-informed residual model candidate. Score interpolation and genuine group-level transfer separately; report abstention/OOD detection and uncertainty coverage alongside RMSE. For the material-handling leg, measure the complete excavation-to-beneficiation transfer chain and isolate retained material, bridging and discharge losses.
+
+NASA's public Lunar Surface Technology page currently describes IPEx's 10-tonne / 100-m / 11-day profile, while other programme text describes an approximately 20-tonne single-mission goal. Preserve each source's mission boundary and goal/status label rather than merge them into an achieved throughput metric. The 2026 ISAM State of Play classifies surface infrastructure across excavation/site preparation, processing, logistics and construction.
+
