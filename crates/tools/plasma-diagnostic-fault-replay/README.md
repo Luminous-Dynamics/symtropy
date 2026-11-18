@@ -87,6 +87,7 @@ The `observation_export` module converts a verified waveform receipt into a sequ
 - Integrity failure and stale-calibration samples map to `Invalid`.
 - The adapter never emits `Measured`, `Delayed`, or `Degraded` measurement dispositions because the synthetic replay has no physical source/calibration evidence.
 - The outer envelope preserves the original sample state, active fault ID, source sample index, sample timestamp, and waveform receipt digest.
+- Exported frame shot IDs are namespaced as `synthetic-shot:<scenario_id>` so they cannot be mistaken for physical discharge identifiers.
 - The export itself remains `SYNTHETIC_WAVEFORM_FAULT_REPLAY`, `physical_measurements=false`, with its fixed synthetic-only claim ceiling.
 
 The JSON frame shape matches Symthaea's observation schema for interchange. It is not a source-authentication mechanism and does not prove the synthetic values are physically plausible. Downstream consumers must still apply the normal evidence gate; synthetic frames must abstain at a direct-measurement gate.
