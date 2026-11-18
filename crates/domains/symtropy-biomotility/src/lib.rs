@@ -2315,6 +2315,57 @@ mod tests {
     }
 
     #[test]
+    fn simulator_accepts_double_exponential_and_piecewise_power_law_time_laws() {
+        let mut profile = steering_profile();
+        profile.run_duration_s = DirectionalWaitingTimes {
+            up_gradient: WaitingTimeLaw::DoubleExponential {
+                fast_weight: 0.7,
+                fast_mean_s: 0.15,
+                slow_mean_s: 0.45,
+            },
+            cross_gradient: WaitingTimeLaw::Exponential { mean_s: 0.25 },
+            down_gradient: WaitingTimeLaw::Exponential { mean_s: 0.35 },
+        };
+        profile.run_duration_unconditional_s = WaitingTimeLaw::DoubleExponential {
+            fast_weight: 0.5,
+            fast_mean_s: 0.2,
+            slow_mean_s: 0.4,
+        };
+        profile.active_motor_event_duration_s = WaitingTimeLaw::PiecewisePowerLaw {
+            alpha: 0.79,
+            beta: 2.63,
+            min_s: 0.05,
+            crossover_s: 2.0,
+        };
+
+        profile.validate().expect("parametric renewal profile is valid");
+        let result = simulate(
+            &profile,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            100,
+            77,
+        )
+        .expect("parametric renewal simulation");
+
+        assert_eq!(result.events.len(), 100);
+        assert!(result.events.iter().all(|event| {
+            event.run_duration_s > 0.0
+                && event.event_duration_s >= 0.05
+                && event.event_duration_s.is_finite()
+        }));
+        let replay = simulate(
+            &profile,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            100,
+            77,
+        )
+        .expect("deterministic parametric renewal replay");
+        assert_eq!(result, replay);
+    }
+
+    #[test]
     fn no_event_summary_is_explicitly_undefined_not_zero() {
         let result = simulate(
             &steering_profile(),
