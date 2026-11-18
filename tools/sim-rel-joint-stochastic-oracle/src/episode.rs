@@ -185,11 +185,13 @@ impl EpisodeManifest {
 
     fn validate_against_kernel(&self, kernel: &JointKernel) -> Result<(), EpisodeError> {
         let profile = &self.public_profile;
-        let candidate_ids: Vec<&str> = profile
+        let candidate_ids: BTreeSet<&str> = profile
             .candidate_hypotheses
             .iter()
             .map(|item| item.hypothesis_id.as_str())
             .collect();
+        let owner_hypothesis_ids: BTreeSet<&str> =
+            kernel.hypothesis_ids.iter().map(String::as_str).collect();
         let action_ids: Vec<&str> = profile
             .actions
             .iter()
@@ -200,11 +202,8 @@ impl EpisodeManifest {
             .iter()
             .map(|item| item.observation_id.as_str())
             .collect();
-        if candidate_ids.len() != kernel.hypothesis_ids.len()
-            || candidate_ids
-                .iter()
-                .zip(&kernel.hypothesis_ids)
-                .any(|(public, owner)| *public != owner.as_str())
+        if candidate_ids.is_empty()
+            || !candidate_ids.is_subset(&owner_hypothesis_ids)
             || action_ids.len() != kernel.action_ids.len()
             || action_ids
                 .iter()
@@ -353,8 +352,10 @@ pub enum EpisodeFinishDisposition {
     Identified,
     /// Multiple candidate mechanisms remain compatible with the evidence.
     Ambiguous,
-    /// No candidate mechanism remains compatible with the evidence.
+    /// No declared candidate mechanism remains compatible with the evidence.
     NoCompatibleModel,
+    /// The generating mechanism is outside the declared candidate family.
+    OutsideCandidateFamily,
     /// The agent deliberately declines to make an identification claim.
     Abstain,
 }
@@ -697,11 +698,6 @@ impl EpisodeProvider {
             ))?;
         let generating_hypothesis_retained =
             compatible_hypotheses.iter().any(|candidate| candidate == generating_id);
-        if !generating_hypothesis_retained {
-            return Err(EpisodeError::EvaluationFailure(
-                "the in-support generating hypothesis is absent from the exact version space".to_owned(),
-            ));
-        }
 
         let exact_set: BTreeSet<&str> =
             compatible_hypotheses.iter().map(String::as_str).collect();
@@ -713,14 +709,16 @@ impl EpisodeProvider {
         let correct_candidate_count = claimed_set.intersection(&exact_set).count();
         let version_space_exact_match = claimed_set == exact_set;
         let evidence_identifies_unique_hypothesis = compatible_hypotheses.len() == 1;
-        let false_unique_claim = (finish.disposition == EpisodeFinishDisposition::Identified
-            && !evidence_identifies_unique_hypothesis)
-            || (finish.compatible_hypothesis_ids.len() == 1
-                && (!evidence_identifies_unique_hypothesis
-                    || !finish.compatible_hypothesis_ids.iter().any(|id| id == generating_id)));
+        let claimed_generation = finish
+            .compatible_hypothesis_ids
+            .iter()
+            .any(|candidate| candidate == generating_id);
+        let false_unique_claim = finish.disposition == EpisodeFinishDisposition::Identified
+            && (!evidence_identifies_unique_hypothesis
+                || !generating_hypothesis_retained
+                || !claimed_generation);
         let safe_abstention = finish.disposition == EpisodeFinishDisposition::Abstain
-            && compatible_hypotheses.len() > 1
-            && generating_hypothesis_retained;
+            && (!generating_hypothesis_retained || compatible_hypotheses.len() > 1);
         let unnecessary_abstention = finish.disposition == EpisodeFinishDisposition::Abstain
             && evidence_identifies_unique_hypothesis;
         let disposition_correct = match finish.disposition {
@@ -730,7 +728,10 @@ impl EpisodeProvider {
             EpisodeFinishDisposition::Ambiguous => compatible_hypotheses.len() > 1
             // The current provider only admits in-support kernels. An empty
             // candidate set is a task/model contradiction and fails closed.
-            EpisodeFinishDisposition::NoCompatibleModel => false,
+            EpisodeFinishDisposition::NoCompatibleModel => {
+                compatible_hypotheses.is_empty() && !generating_hypothesis_retained
+            }
+            EpisodeFinishDisposition::OutsideCandidateFamily => !generating_hypothesis_retained,
             EpisodeFinishDisposition::Abstain => safe_abstention,
         };
         let applied_interventions = self
@@ -770,7 +771,15 @@ impl EpisodeProvider {
             .collect();
 
         let mut compatible = Vec::new();
-        for hypothesis in 0..self.kernel.hypothesis_ids.len() {
+        for public_candidate in &self.manifest.public_profile.candidate_hypotheses {
+            let hypothesis = self
+                .kernel
+                .hypothesis_ids
+                .iter()
+                .position(|owner_id| owner_id == &public_candidate.hypothesis_id)
+                .ok_or_else(|| EpisodeError::EvaluationFailure(
+                    "public candidate is absent from the owner kernel".to_owned(),
+                ))?;
             let mut belief: BTreeMap<(usize, usize), Rational> = BTreeMap::new();
             for point in &self.kernel.initial_belief {
                 if point.hypothesis == hypothesis {
@@ -828,15 +837,7 @@ impl EpisodeProvider {
             }
 
             if !belief.is_empty() {
-                compatible.push(
-                    self.kernel
-                        .hypothesis_ids
-                        .get(hypothesis)
-                        .ok_or_else(|| EpisodeError::EvaluationFailure(
-                            "hypothesis index is outside the kernel catalogue".to_owned(),
-                        ))?
-                        .clone(),
-                );
+                compatible.push(public_candidate.hypothesis_id.clone());
             }
         }
         Ok(compatible)
