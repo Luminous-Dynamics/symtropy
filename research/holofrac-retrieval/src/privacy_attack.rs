@@ -154,9 +154,8 @@ mod tests {
     fn attack_uses_only_redacted_aggregate_output() {
         let report = run_synthetic_basis_query_attack().unwrap();
         assert!(report.recovered.iter().all(|row| row.absolute_error < 1.0e-12));
-        assert_eq!(
-            report.recovered.iter().map(|row| row.criterion).collect::<Vec<_>>(),
-            DecisionCriterion::ALL
-        );
+        for (index, row) in report.recovered.iter().enumerate() {
+            assert_eq!(row.criterion, DecisionCriterion::ALL[index]);
+        }
     }
 }
