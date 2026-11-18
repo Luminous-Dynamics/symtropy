@@ -52,6 +52,7 @@ pub struct SupervisorConfig {
     pub gamma_max_validated: f64,
     pub gamma_step: f64,
     pub initial_gamma: f64,
+    pub gamma_tracking_tolerance_fraction: f64,
     pub feeder_speed_min_fraction: f64,
     pub feeder_speed_max_fraction: f64,
     pub feeder_speed_step_fraction: f64,
@@ -84,6 +85,12 @@ impl SupervisorConfig {
             if !value.is_finite() || value <= 0.0 {
                 return Err(format!("{name} must be finite and positive"));
             }
+        }
+
+        if !self.gamma_tracking_tolerance_fraction.is_finite()
+            || !(0.0..=1.0).contains(&self.gamma_tracking_tolerance_fraction)
+        {
+            return Err("gamma_tracking_tolerance_fraction must be finite and in [0, 1]".to_owned());
         }
 
         if self.gamma_min_validated > self.gamma_max_validated
@@ -238,9 +245,12 @@ impl FeederSupervisor {
     pub fn step(&mut self, observation: &Observation) -> Result<Decision, String> {
         self.config.validate()?;
 
-        let energy_available = observation
-            .measured_vibration_power_w
-            .is_some_and(|value| value.is_finite() && value >= 0.0);
+        if let Some(power) = observation.measured_vibration_power_w {
+            if !power.is_finite() || power < 0.0 {
+                return Err("measured_vibration_power_w must be finite and non-negative".to_owned());
+            }
+        }
+        let energy_available = observation.measured_vibration_power_w.is_some();
 
         let core_sensors_healthy = [
             observation.sensors.flow,
@@ -285,9 +295,54 @@ impl FeederSupervisor {
             return Err("pocket fill and feeder speed fractions must not exceed 1.0".to_owned());
         }
 
-        if measured_gamma > self.config.gamma_max_validated * 1.05 {
+        if self.state.commanded_gamma < self.config.gamma_min_validated
+            || self.state.commanded_gamma > self.config.gamma_max_validated
+            || self.state.commanded_feeder_speed_fraction < self.config.feeder_speed_min_fraction
+            || self.state.commanded_feeder_speed_fraction > self.config.feeder_speed_max_fraction
+        {
             return Ok(self.hold_all(
-                "Measured vibration exceeds the commissioned maximum; stop feed and inspect the actuator/resonance state.",
+                "Stored supervisor state is outside the commissioned envelope; stop and reconcile the last acknowledged actuator state.",
+                DecisionMode::CommissioningLimitReached,
+            ));
+        }
+
+        if measured_gamma > self.config.gamma_max_validated {
+            return Ok(self.hold_all(
+                "Accelerometer-measured vibration exceeds the commissioned maximum; stop feed and inspect the actuator/resonance state.",
+                DecisionMode::CommissioningLimitReached,
+            ));
+        }
+
+        if observation.flow_status == FlowStatus::Continuous
+            && measured_gamma < self.config.gamma_min_validated
+        {
+            self.state.stable_windows = 0;
+            self.state.commanded_gamma = self.config.gamma_min_validated;
+            return Ok(self.decision(
+                DecisionMode::FlowRecovery,
+                FeederCommand::Stop,
+                VibrationCommand::SetGamma { value: self.config.gamma_min_validated },
+                "Flow appears continuous below the material/apparatus-specific validated Gamma envelope; pause withdrawal and restore the commissioned minimum.",
+                energy_available,
+            ));
+        }
+
+        if observation.flow_status == FlowStatus::Continuous {
+            let tracking_error = (measured_gamma - self.state.commanded_gamma).abs()
+                / self.state.commanded_gamma.max(1.0e-9);
+            if tracking_error > self.config.gamma_tracking_tolerance_fraction {
+                return Ok(self.hold_all(
+                    "Measured Gamma differs from the commanded target beyond the tracking tolerance; stop feed and inspect resonance, mounting and accelerometer calibration.",
+                    DecisionMode::SensorHold,
+                ));
+            }
+        }
+
+        if speed_fraction < self.config.feeder_speed_min_fraction
+            || speed_fraction > self.config.feeder_speed_max_fraction
+        {
+            return Ok(self.hold_all(
+                "Measured feeder speed lies outside the commissioned range; stop withdrawal and reconcile actuator feedback.",
                 DecisionMode::CommissioningLimitReached,
             ));
         }
@@ -477,7 +532,8 @@ impl FeederSupervisor {
 
         self.state.stable_windows = self.state.stable_windows.saturating_add(1);
 
-        if self.state.stable_windows >= self.config.stable_windows_before_gamma_trim
+        if energy_available
+            && self.state.stable_windows >= self.config.stable_windows_before_gamma_trim
             && self.state.commanded_gamma > self.config.gamma_min_validated
         {
             self.state.stable_windows = 0;
@@ -518,6 +574,7 @@ mod tests {
             gamma_max_validated: 10.0,
             gamma_step: 1.0,
             initial_gamma: 4.4,
+            gamma_tracking_tolerance_fraction: 0.2,
             feeder_speed_min_fraction: 0.1,
             feeder_speed_max_fraction: 1.0,
             feeder_speed_step_fraction: 0.1,
