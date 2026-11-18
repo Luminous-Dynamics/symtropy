@@ -424,10 +424,8 @@ fn validate_commit_history_compatibility(
         .get(commit_index)
         .ok_or(ReservationCommandFailure::ReservationCommitEventMissing)?;
     if commit_event.event_id != record.committed_event_id
-        || commit_event.event_sha256 != ledger
-            .event_history()
-            .get(commit_index)
-            .map_or("", |event| event.event_sha256.as_str())
+        || !is_sha256(&commit_event.event_sha256)
+        || commit_event.sequence != record.committed_sequence
     {
         return Err(ReservationCommandFailure::ReservationCommitEventMissing);
     }
@@ -456,10 +454,15 @@ fn validate_commit_history_compatibility(
                 site_clock_domain_id,
                 ..
             } => {
-                if released_id == &record.reservation.reservation_id
+                if released_id == &record.reservation.reservation_id {
+                    return Err(ReservationCommandFailure::ReservationReleased);
+                }
+                if event.actor_role != crate::site_state_ledger::SiteActorRole::Referee
                     || site_clock_domain_id != &reservation.site_clock_domain_id
                 {
-                    return Err(ReservationCommandFailure::ReservationReleased);
+                    return Err(ReservationCommandFailure::UnrelatedLedgerMutation(
+                        event.event_id.clone(),
+                    ));
                 }
             }
             SiteEventPayload::ExecutionStarted {
