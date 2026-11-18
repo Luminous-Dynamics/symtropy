@@ -375,7 +375,6 @@ fn check_accessibility(
                     "INFEASIBLE: package {} is blocked from {:?} by package {}",
                     target.package_id, target.access_face, blocker.package_id
                 ));
-                break;
             }
         }
     }
@@ -483,9 +482,14 @@ pub fn evaluate_cargo_loading(
         for right_index in (left_index + 1)..placed.len() {
             if placed[left_index].bounds.overlaps(placed[right_index].bounds) {
                 known_infeasible = true;
+                let (first_id, second_id) =
+                    if placed[left_index].package_id <= placed[right_index].package_id {
+                        (&placed[left_index].package_id, &placed[right_index].package_id)
+                    } else {
+                        (&placed[right_index].package_id, &placed[left_index].package_id)
+                    };
                 findings.push(format!(
-                    "INFEASIBLE: packages {} and {} overlap",
-                    placed[left_index].package_id, placed[right_index].package_id
+                    "INFEASIBLE: packages {first_id} and {second_id} overlap"
                 ));
             }
         }
@@ -778,7 +782,10 @@ mod tests {
 
     #[test]
     fn canonical_digest_ignores_package_and_orientation_list_order() {
-        let first = input();
+        let mut first = input();
+        first.packages[1].placement.x_mm = 500;
+        first.packages[1].placement.y_mm = 400;
+        first.packages[0].access_face = AccessFace::XMax;
         let mut second = first.clone();
         second.packages.reverse();
         for package in &mut second.packages {
@@ -788,6 +795,7 @@ mod tests {
         let second_report = evaluate_cargo_loading(&second).expect("permuted input");
         assert_eq!(first_report.input_digest_sha256, second_report.input_digest_sha256);
         assert_eq!(first_report, second_report);
+        assert_eq!(first_report.verdict, CargoFeasibilityVerdict::Infeasible);
     }
 
     #[test]
