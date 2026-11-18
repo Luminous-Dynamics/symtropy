@@ -336,3 +336,27 @@ No model trained on rotating-drum angles may claim hopper flow qualification wit
 
 
 The end-to-end source acquisition gates, exact data-request items, and source-specific reproduction boundaries are maintained in [docs/research/LUNAR_GRANULAR_FLOW_DATA_ACQUISITION.md](../../../docs/research/LUNAR_GRANULAR_FLOW_DATA_ACQUISITION.md).
+
+## Distribution-valued adhesion, evolving particle inventory and second-stage segregation
+
+The scalar \(Bo_m\) used in the first-stage annular screen is a controlled summary, not an adequate description of the whole regolith stream. Nakagawa & Kioka (2026) note that adhesion on rough grains is broadly distributed: the strongest contacts can govern arrest/clogging, while weak contacts can govern relative motion and percolation. The lunar grading also spans multiple decades; a single sample can occupy several cohesion regimes simultaneously. Shape/interlocking and agglutinate breakage are not captured by \(Bo_m\), \(I\), and \(El\) alone.
+
+The run contract therefore now supports:
+
+- size-bin-specific particle mass and contact-adhesion p05/p50/p95/p99;
+- size-bin-specific derived \(Bo_m\) quantiles, each reconciled against its source force quantile, representative particle mass and gravity;
+- bulk tensile strength and \(\Sigma^*=P/\sigma_t\), a confinement-to-cohesive-strength ratio;
+- flow depth, breakage rate, segregation velocity scale and size contrast, with \(R=H\bar b/(w_0\Delta s)\), the breakage/segregation timescale ratio;
+- pre/post-run PSD and composition artifacts, as well as agglutinate fragmentation and out-of-spec feedstock measurements.
+
+The **18-coordinate** similarity utility now treats electrostatic projection as signed only along a declared reference axis. The paper's \(El=|q|E/(mg)\) is a magnitude; its direction is size-dependent charge polarity. The run schema uses a signed field component and requires \`electrostatic_field_axis_id\`; the similarity comparator requires the axis identity to match. A polarity comparison without a shared axis is not a valid similitude claim.
+
+### Staged segregation programme
+
+Stage 1 remains the 90-cell fixed-size-ratio annular vacuum shear-cell screen: 10 target \(Bo_m\) levels over three decades × 3 inertial-number levels × 3 confining-pressure levels. This isolates the cohesion / confinement competition, but does not represent a full lunar grading.
+
+Stage 2 adds 36 planned multi-species cells: narrow bidisperse, trimodal and broad Apollo-like grading × matched/contrasting density × 10/30/60% agglutinate volume fraction × grounded/isolated electrical boundary. The 10/30/60% values span the approximate range reported in the review, while the Apollo-like \(D_5=3.3\,\mu m\), \(D_{50}=72\,\mu m\), \(D_{95}=1370\,\mu m\) are source anchors, not substitute test material. The actual particle size, mineral density, morphology, adhesion and charge distributions must be measured for each batch.
+
+This second stage asks whether the first-stage regime map survives simultaneous size, density, shape, electrostatic and breakage interactions. It is explicitly not a full factorial over every physical parameter; it is a discriminating screen whose follow-up conditions should be chosen using observed interaction effects and uncertainty.
+
+The new work is tracked in [#6070](https://github.com/Luminous-Dynamics/symtropy/issues/6070). Process-specific feedstock contracts from beneficiation through the reactor inlet are tracked separately in [#6124](https://github.com/Luminous-Dynamics/symtropy/issues/6124).
