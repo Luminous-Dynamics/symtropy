@@ -499,7 +499,7 @@ fn observe_mass(
                                     issues,
                                     KitchenOutcomeIssueCodeV1::ArithmeticOverflow,
                                     Some(&term.term_id),
-                                    "mass aggregation exceeded checked u128 arithmetic",
+                                    "mass aggregation exceeded checked JSON-safe u64 arithmetic",
                                 );
                                 complete = false;
                             }
@@ -672,7 +672,7 @@ fn observe_water(
                                 issues,
                                 KitchenOutcomeIssueCodeV1::ArithmeticOverflow,
                                 Some(&reference),
-                                "water aggregation overflowed checked u128 arithmetic",
+                                "water aggregation exceeded checked JSON-safe u64 arithmetic",
                             );
                             complete = false;
                         }
@@ -782,7 +782,7 @@ fn observe_electricity(
                                 issues,
                                 KitchenOutcomeIssueCodeV1::ArithmeticOverflow,
                                 Some(&reference),
-                                "electricity aggregation overflowed checked u128 arithmetic",
+                                "electricity aggregation exceeded checked JSON-safe u64 arithmetic",
                             );
                             complete = false;
                         }
