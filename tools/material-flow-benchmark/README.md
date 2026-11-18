@@ -272,7 +272,8 @@ This is **protocol-level event injection**, not physical fault injection: it doe
 ## Carrier–UAV co-availability screen (synthetic contract slice)
 
 The `mfb-evaluate-coavailability` binary screens one proposed delivery-UAV sortie against a declared carrier itinerary. It checks:
-- route-stop identity and carrier stop windows;
+- route-stop identity, chronological route-stop time envelopes and carrier stop windows;
+- pad-resource identity bound to the exact launch and recovery route stops;
 - conservative rendezvous bounds: the latest possible arrival and earliest possible departure define the guaranteed carrier-presence interval (not optimistic ETA bounds);
 - launch and recovery service windows with interval arithmetic;
 - payload, usable battery energy plus protected reserve, peak power and continuous power;
