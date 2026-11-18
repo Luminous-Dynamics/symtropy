@@ -17,6 +17,15 @@ pub enum ScenarioWeightBasis {
     Probability,
 }
 
+impl ScenarioWeightBasis {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Analytical => "analytical_decision_weights",
+            Self::Probability => "probability_weights",
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct FutureScenario {
     pub scenario_id: String,
@@ -375,11 +384,13 @@ impl RobustScenarioProblem {
                 let outcome_utility = utility(&outcome.objectives, &objective_weights);
                 weighted_mean_utility += scenario.weight * outcome_utility;
                 worst_case_utility = worst_case_utility.min(outcome_utility);
-                for objective_index in 0..OBJECTIVE_COUNT {
-                    weighted_mean_objectives[objective_index] +=
-                        scenario.weight * outcome.objectives[objective_index];
-                    worst_case_objectives[objective_index] =
-                        worst_case_objectives[objective_index].min(outcome.objectives[objective_index]);
+                for ((mean, worst), value) in weighted_mean_objectives
+                    .iter_mut()
+                    .zip(worst_case_objectives.iter_mut())
+                    .zip(outcome.objectives.iter())
+                {
+                    *mean += scenario.weight * value;
+                    *worst = worst.min(*value);
                 }
 
                 if outcome.hard_constraints_satisfied {
