@@ -10,7 +10,8 @@ use human_multirate_cosim::{
         enumerate_single_node_pulses, evaluate_input_tournament,
     },
     robust_discrimination::{
-        ModelFamilyAssignment, ProfiledModelFamilyScenario, evaluate_profiled_tournament,
+        ModelFamilyAssignment, ProfiledModelFamilyScenario, evaluate_profiled_input,
+        evaluate_profiled_tournament,
     },
     adequacy_calibration::{
         AdequacyCalibrationConfig, HiddenOutOfFamilyTruth,
@@ -461,7 +462,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             horizon: 2.0,
         },
     });
-    profiled_experiment.noise_covariance = vec![vec![1.0e-5]];
     let profiled_scenario = ProfiledModelFamilyScenario {
         experiment: profiled_experiment,
         family_assignments: vec![
@@ -482,20 +482,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let profiled_tournament =
         evaluate_profiled_tournament(&profiled_scenario, &input_profiles, &[30])?;
     if let Some(best) = profiled_tournament.best_worst_case {
-        let nominal_pulse = excitation_tournament
-            .scores
+        let nominal_pulse = input_profiles
             .iter()
-            .find(|score| score.profile_id == 101)
-            .expect("pulse profile 101 must exist in the declared grid");
+            .find(|profile| profile.id == 101)
+            .expect("pulse profile 101 must exist in the declared pulse grid");
+        let nominal_profile_score =
+            evaluate_profiled_input(&profiled_scenario, nominal_pulse, &[30])?;
+        let nominal_fixed_pair_kl = nominal_profile_score
+            .base_score
+            .pairwise_separations
+            .iter()
+            .find(|pair| pair.left_model_id == 1 && pair.right_model_id == 2)
+            .expect("the nominal chain/bypass pair must exist")
+            .gaussian_kl_separation;
         println!(
-            "profiled_discrimination,best_profile_id,{},worst_case_family_kl,{:.12e},nominal_fixed_pair_kl,{:.12e},family_overlap,{}",
+            "profiled_discrimination,best_profile_id,{},worst_case_family_kl,{:.12e},nominal_fixed_pair_kl_same_covariance,{:.12e},family_overlap,{}",
             best.base_score.profile_id,
             best.minimum_profiled_family_separation,
-            nominal_pulse.minimum_pairwise_gaussian_kl,
+            nominal_fixed_pair_kl,
             best.worst_case_family_overlap,
         );
     }
 
+    let mut calibration_scenario = profiled_scenario.clone();
+    calibration_scenario.experiment.noise_covariance = vec![vec![1.0e-5]];
     let calibration_profile = input_profiles
         .iter()
         .find(|profile| profile.id == 101)
@@ -527,7 +537,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
     };
     let adequacy = calibrate_model_family_adequacy(
-        &profiled_scenario,
+        &calibration_scenario,
         calibration_profile,
         &[30],
         &[held_out_truth],
