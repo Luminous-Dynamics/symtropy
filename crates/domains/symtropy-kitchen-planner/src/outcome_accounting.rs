@@ -345,7 +345,7 @@ fn exact_units(
 ) -> Result<u64, KitchenOutcomeIssueCodeV1> {
     let divisor =
         decimal_divisor(decimal_places).ok_or(KitchenOutcomeIssueCodeV1::InvalidMassScale)?;
-    if base % divisor != 0 {
+    if !base.is_multiple_of(divisor) {
         return Err(KitchenOutcomeIssueCodeV1::InvalidMassScale);
     }
     value
