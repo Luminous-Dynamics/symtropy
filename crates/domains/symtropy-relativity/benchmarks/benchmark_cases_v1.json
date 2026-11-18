@@ -370,7 +370,7 @@
     },
     {
       "case_id": "AKRIBEIA-D5-EGB-EQUAL-SPIN-001",
-      "status": "reference_setup_extracted_supplemental_raw_data_pending",
+      "status": "exact_5d_myers_perry_control_derived_source_data_pending",
       "theory_id": "5d_einstein_gauss_bonnet",
       "spacetime_dimension": 5,
       "symmetry": "stationary_equal_angular_momenta_cohomogeneity_one_RxU(2)",
@@ -400,7 +400,7 @@
           "b(r_H)=0",
           "w(r_H)=Omega_H",
           "h(r_H)=Theta_H",
-          "full regular near-horizon series pending supplement extraction"
+          "full EGB near-horizon series transcribed from Brihaye et al. (2010) where applicable; Akribeia supplemental details still pending"
         ]
       },
       "parameter_sweep": {
@@ -411,19 +411,50 @@
       "radial_domain": {
         "physical": "r in [r_H,infinity)",
         "compactification": "r-r_H=tan(x)",
-        "exact_x_domain_and_boundary_map": "pending supplemental source extraction"
+        "compactified_domain": "x in [0,pi/2)",
+        "exact_infinity_boundary_map": "x->pi/2 corresponds to r->infinity"
       },
       "boundaries": {
-        "horizon": "regular near-horizon expansion",
-        "infinity": "asymptotically flat",
-        "exact_series_status": "pending supplemental source extraction"
+        "horizon": "nonextremal regular expansion; exact Myers-Perry coefficients pinned in the case",
+        "infinity": "asymptotically flat; h=r^2+V/r^2+O(r^-4) with U,V,W conventions",
+        "exact_series_status": "MP exact control pinned; nonzero-alpha full asymptotic expansion still requires extraction"
       },
       "reference_controls": {
-        "alpha_zero": "exact five-dimensional equal-spin Myers-Perry limit",
-        "alpha_three": "published numerical 5D EGB equal-angular-momentum solution from Brihaye et al. (2010)",
+        "alpha_zero": "exact five-dimensional equal-spin Myers-Perry solution in the g(r)=r^2 gauge, with all five metric functions derived from Brihaye et al. (2010)",
+        "alpha_three": "published numerical 5D EGB equal-angular-momentum solution from Brihaye et al. (2010); raw profiles still require extraction/digitization",
         "akribeia_reported_myers_perry_l2_relative_error": "~1e-160",
         "akribeia_reported_precision_digits": 300,
-        "l2_scope": "Myers-Perry GR-limit solution-difference metric, not a generic EGB equation residual"
+        "l2_scope": "Myers-Perry GR-limit solution-difference metric, not a generic EGB equation residual",
+        "myers_perry_exact_functions": {
+          "definitions": [
+            "q=r_H^2*Omega_H^2",
+            "u=(r_H/r)^2",
+            "D=1-q+q*u^2"
+          ],
+          "b": "1-u/D",
+          "f": "(1-u)*(1-q*(1+u))/(1-q)",
+          "g": "r^2",
+          "h": "r^2+r_H^2*q*u/(1-q)",
+          "w": "Omega_H*u^2/D",
+          "equivalent_f": "1-mu/r^2+mu*a^2/r^4",
+          "equivalent_h": "r^2+mu*a^2/r^2",
+          "mu": "r_H^2/(1-q)",
+          "a": "r_H^2*Omega_H"
+        },
+        "nonextremal_domain": "0<=q<1/2",
+        "horizon_data": {
+          "b1": "2*(1-2*q)/r_H",
+          "f1": "2*(1-2*q)/(r_H*(1-q))",
+          "h_H": "r_H^2/(1-q)",
+          "w_H": "Omega_H",
+          "w1": "4*Omega_H*(q-1)/r_H"
+        },
+        "asymptotic_coefficients": {
+          "U": "-r_H^2/(1-q)",
+          "V": "r_H^6*Omega_H^2/(1-q)",
+          "W": "r_H^4*Omega_H/(1-q)",
+          "identity": "V=-W^2/U"
+        }
       },
       "discovery_refinement_baseline": {
         "neural_architecture": "3 hidden layers x 20 units, Swish",
@@ -439,8 +470,15 @@
       },
       "data_status": {
         "full_paper_inspected": true,
-        "supplemental_near_horizon_and_asymptotic_series_extracted": false,
-        "raw_solution_arrays_extracted": false,
+        "2010_reference_full_text_inspected": true,
+        "generic_5d_egb_action_extracted": true,
+        "2010_coordinate_metric_ansatz_extracted": true,
+        "2010_mp_exact_b_and_w_extracted": true,
+        "2010_mp_exact_f_and_h_derived_and_symbolically_checked": true,
+        "2010_horizon_data_extracted": true,
+        "2010_asymptotic_h_expansion_and_UVW_extracted": true,
+        "akribeia_supplemental_near_horizon_and_asymptotic_series_extracted": false,
+        "raw_akribeia_solution_arrays_extracted": false,
         "exact_2010_reference_arrays_extracted": false,
         "symtropy_run_executed": false
       },
@@ -451,7 +489,28 @@
         "independent full-domain interval and existence qualification"
       ],
       "owner_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6063",
-      "source": "Agurto-Sepulveda et al., arXiv:2607.07418, DOI 10.1103/3kz2-6dvv"
+      "source": "Agurto-Sepulveda et al., arXiv:2607.07418, DOI 10.1103/3kz2-6dvv",
+      "first_integral": {
+        "source": "Brihaye et al. (2010), Eq. (2.12)",
+        "original": "w'*h*sqrt(f*h/b)*(g-alpha/4*(f*g'^2/g-16+12*h/g))=constant",
+        "gauge_fixed": "P_w=w'*h*sqrt(f*h/b)*(r^2-alpha*(f-4+3*h/r^2))",
+        "asymptotic_link": "P_w=-4*W",
+        "angular_momentum": "J=(2*pi^2)*W/(8*pi*G)",
+        "quadrature_gate": "K(r)=r^2-alpha*(f-4+3*h/r^2) must be interval-certified away from zero before solving for w' by division",
+        "role": "use as exact conservation constraint, independent residual, and optional field elimination",
+        "status": "formula_source_extracted_mp_alpha0_symbolically_derived_rust_implementation_pending"
+      },
+      "published_einstein_branch_control": {
+        "name": "five-dimensional static Boulware-Deser",
+        "functions": {
+          "w": "0",
+          "h": "r^2",
+          "b": "1+(r^2/alpha)*(1-sqrt(1+alpha*(alpha+2*r_H^2)/r^4))",
+          "f": "same as b"
+        },
+        "branch": "Einstein branch",
+        "role": "separate static EGB exact control and alpha->0 Schwarzschild-Tangherlini limit"
+      }
     }
   ],
   "fairness_rules": [
@@ -467,6 +526,10 @@
     "The two static reduced Bach equations are distinct: the factorized B1+B2 equation selects the four-term profile; B1-B2 then imposes Q=0. Both must be checked.",
     "The Akribeia 10^-160 relative L2 figure is specific to the five-dimensional Myers-Perry GR-limit control at 300 digits; it is not an EGB equation-residual bound.",
     "The Akribeia 5D EGB equal-spin case must not be compared directly to the current 4D static pure-Weyl code. A dimension/action/symmetry/gauge/boundary matched adapter is required.",
-    "The current public symtropy-relativity metric component representation is 4x4; 5D work requires an explicit dimension-generalized or invariant-frame formulation."
+    "The current public symtropy-relativity metric component representation is 4x4; 5D work requires an explicit dimension-generalized or invariant-frame formulation.",
+    "The 5D equal-spin MP control is expressed in the g=r^2 radial gauge; do not confuse r_H in this gauge with the Boyer-Lindquist radial horizon coordinate.",
+    "The MP exact b,f,h,w profiles must all be checked; b,w alone are not a complete metric control.",
+    "The EGB rotational Noether flux from the 2010 reduced action is a separate exact conserved quantity; quadrature reconstruction of w requires an interval proof that its radial denominator K(r) stays away from zero.",
+    "The 2010 action and gauge-fixed ansatz are used as an independent source for the Akribeia benchmark; no raw nonzero-alpha EGB profiles have yet been reproduced."
   ]
 }
