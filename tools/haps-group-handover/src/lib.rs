@@ -189,18 +189,20 @@ pub fn validate_case(case: &HandoverCase) -> Result<(), HandoverError> {
         return Err(HandoverError::new("unsupported schema_version"));
     }
     if case.case_id.trim().is_empty() || case.revision == 0 {
-        return Err(HandoverError::new("case_id must be non-empty and revision positive"));
+        return Err(HandoverError::new(
+            "case_id must be non-empty and revision positive",
+        ));
     }
     if case.evidence_class != "synthetic"
         || case.claim_ceiling != "synthetic_handover_accounting_oracle"
         || case.source.source_kind != "synthetic_generator"
         || case.source.available_at_decision_time
     {
-        return Err(HandoverError::new("executable accepts synthetic offline cases only"));
+        return Err(HandoverError::new(
+            "executable accepts synthetic offline cases only",
+        ));
     }
-    if case.source_node_id.trim().is_empty()
-        || case.source_node_id == case.target.target_node_id
-    {
+    if case.source_node_id.trim().is_empty() || case.source_node_id == case.target.target_node_id {
         return Err(HandoverError::new(
             "source_node_id must be non-empty and differ from target_node_id",
         ));
@@ -218,10 +220,14 @@ pub fn validate_case(case: &HandoverCase) -> Result<(), HandoverError> {
         || case.target.admission_policy != "priority_rank_then_cohort_id"
         || case.target.tie_break_policy != "cohort_id_ascending"
     {
-        return Err(HandoverError::new("invalid target or unsupported admission policy"));
+        return Err(HandoverError::new(
+            "invalid target or unsupported admission policy",
+        ));
     }
     if case.cohorts.is_empty() || case.scenarios.is_empty() {
-        return Err(HandoverError::new("at least one cohort and scenario are required"));
+        return Err(HandoverError::new(
+            "at least one cohort and scenario are required",
+        ));
     }
 
     let mut cohort_ids = HashSet::with_capacity(case.cohorts.len());
@@ -291,7 +297,9 @@ pub fn validate_case(case: &HandoverCase) -> Result<(), HandoverError> {
             .ok_or_else(|| HandoverError::new("total offered UE count overflow"))?;
     }
     if total_offered_ues == 0 {
-        return Err(HandoverError::new("total offered UE count must be positive"));
+        return Err(HandoverError::new(
+            "total offered UE count must be positive",
+        ));
     }
 
     let mut scenario_ids = HashSet::with_capacity(case.scenarios.len());
@@ -475,12 +483,14 @@ fn evaluate_scenario(
                     }
                     total_latency
                 }
-                "initiation" | "preparation" | "stale_context" => {
-                    scenario
-                        .phase_durations_ms
-                        .elapsed_at_failure(&scenario.failure_point)
+                "initiation" | "preparation" | "stale_context" => scenario
+                    .phase_durations_ms
+                    .elapsed_at_failure(&scenario.failure_point),
+                _ => {
+                    return Err(HandoverError::new(
+                        "unsupported failure point during evaluation",
+                    ));
                 }
-                _ => return Err(HandoverError::new("unsupported failure point during evaluation")),
             }
         };
 
@@ -522,17 +532,15 @@ fn evaluate_scenario(
         });
     }
 
-    let total = |select: fn(&CohortResult) -> usize| -> usize {
-        results.iter().map(select).sum()
-    };
+    let total = |select: fn(&CohortResult) -> usize| -> usize { results.iter().map(select).sum() };
     let total_offered = total(|row| row.offered_ues);
     let total_completed = total(|row| row.completed_ues);
     let total_rejected = total(|row| row.rejected_ues);
     let total_rolled_back = total(|row| row.rolled_back_ues);
     let total_unresolved = total(|row| row.unresolved_ues);
     let total_admitted = total(|row| row.admitted_ues);
-    let all_accounted = total_completed + total_rejected + total_rolled_back + total_unresolved
-        == total_offered;
+    let all_accounted =
+        total_completed + total_rejected + total_rolled_back + total_unresolved == total_offered;
 
     let source_release_after_ack_only = results.iter().all(|row| {
         row.completed_ues + row.source_authoritative_ues == row.offered_ues
@@ -540,10 +548,9 @@ fn evaluate_scenario(
             && row.authority_overlap_ues == 0
             && row.source_authoritative_ues + row.target_authoritative_ues == row.offered_ues
     });
-    let duplicate_ack_ignored =
-        scenario.duplicate_completion_ack_delivery
-            && scenario.failure_point == "none"
-            && total_completed > 0;
+    let duplicate_ack_ignored = scenario.duplicate_completion_ack_delivery
+        && scenario.failure_point == "none"
+        && total_completed > 0;
 
     Ok(ExpectedOracle {
         oracle_status: "independently_calculated".to_owned(),
@@ -584,7 +591,12 @@ mod tests {
     fn all_scenario_oracles_match() {
         let result = report();
         assert_eq!(result.scenarios.len(), 5);
-        assert!(result.scenarios.iter().all(|row| row.expected_oracle_matched));
+        assert!(
+            result
+                .scenarios
+                .iter()
+                .all(|row| row.expected_oracle_matched)
+        );
     }
 
     #[test]
@@ -606,7 +618,14 @@ mod tests {
         let result = &report().scenarios[1].result;
         assert_eq!(result.total_admitted_ues, 0);
         assert_eq!(result.total_rejected_ues, 152);
-        assert_eq!(result.cohorts.iter().map(|row| row.source_authoritative_ues).sum::<usize>(), 152);
+        assert_eq!(
+            result
+                .cohorts
+                .iter()
+                .map(|row| row.source_authoritative_ues)
+                .sum::<usize>(),
+            152
+        );
         assert_eq!(result.total_local_safe_mode_ues, 12);
         assert_eq!(result.total_committed_ues, 0);
     }
@@ -629,11 +648,17 @@ mod tests {
         assert_eq!(result.total_completed_ues, 0);
         assert_eq!(result.total_committed_ues, 0);
         assert_eq!(result.total_local_safe_mode_ues, 12);
-        assert!(result.cohorts.iter().filter(|row| row.unresolved_ues > 0).all(|row| {
-            row.reconciliation_required
-                && row.target_authoritative_ues == 0
-                && row.source_authoritative_ues == row.offered_ues
-        }));
+        assert!(
+            result
+                .cohorts
+                .iter()
+                .filter(|row| row.unresolved_ues > 0)
+                .all(|row| {
+                    row.reconciliation_required
+                        && row.target_authoritative_ues == 0
+                        && row.source_authoritative_ues == row.offered_ues
+                })
+        );
     }
 
     #[test]
@@ -685,9 +710,22 @@ mod tests {
         case.cohorts[1].cohort_id = "z-emergency".to_owned();
         case.cohorts[2].cohort_id = "a-broadband".to_owned();
         let result = evaluate_scenario(&case, &case.scenarios[0]).unwrap();
-        assert!(result.cohorts.iter().all(|row| row.authority_overlap_ues == 0));
-        let broadband = result.cohorts.iter().find(|row| row.cohort_id == "a-broadband").unwrap();
-        let emergency = result.cohorts.iter().find(|row| row.cohort_id == "z-emergency").unwrap();
+        assert!(
+            result
+                .cohorts
+                .iter()
+                .all(|row| row.authority_overlap_ues == 0)
+        );
+        let broadband = result
+            .cohorts
+            .iter()
+            .find(|row| row.cohort_id == "a-broadband")
+            .unwrap();
+        let emergency = result
+            .cohorts
+            .iter()
+            .find(|row| row.cohort_id == "z-emergency")
+            .unwrap();
         assert_eq!(broadband.completed_ues, 27);
         assert_eq!(emergency.completed_ues, 1);
     }
@@ -732,8 +770,14 @@ mod tests {
             assert_eq!(scenario.total_rejected_ues, 152);
             assert_eq!(scenario.total_committed_ues, 0);
         }
-        assert_eq!(result.scenarios[6].result.cohorts[0].handover_latency_ms, 20.0);
-        assert_eq!(result.scenarios[7].result.cohorts[0].handover_latency_ms, 50.0);
+        assert_eq!(
+            result.scenarios[6].result.cohorts[0].handover_latency_ms,
+            20.0
+        );
+        assert_eq!(
+            result.scenarios[7].result.cohorts[0].handover_latency_ms,
+            50.0
+        );
     }
 
     #[test]
