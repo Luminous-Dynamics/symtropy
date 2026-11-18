@@ -1,3 +1,5 @@
+// Copyright (C) 2026 Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
 use std::{env, fs, io::{self, Read}, process::ExitCode};
 
 use lunar_granular_flow_similarity::{ComparisonInput, compare};
