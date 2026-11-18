@@ -595,7 +595,7 @@ mod tests {
     }
 
     #[test]
-    fn one_step_joint_eig_reports_no_compatible_model_when_all_public_models_are_falsified() {
+    fn unknown_observation_symbols_fail_closed_before_posterior_update() {
         let mut request = request();
         request.view.attempts.push(crate::episode::EpisodeAttempt {
             attempt_id: "attempt-00000000".to_owned(),
@@ -619,7 +619,7 @@ mod tests {
     }
 
     #[test]
-    fn one_step_joint_eig_stops_when_all_candidate_models_assign_zero_likelihood() {
+    fn one_step_joint_eig_updates_to_the_candidate_supported_by_the_observation() {
         let mut request = request();
         request.view.attempts.push(crate::episode::EpisodeAttempt {
             attempt_id: "attempt-00000000".to_owned(),
@@ -633,14 +633,67 @@ mod tests {
                 observation_id: "one".to_owned(),
             },
         });
-        // Both candidates predict distinct symbols; replacing the candidate
-        // models with a contradictory but well-typed symbol is caught by the
-        // public observation catalogue lookup above. This test instead verifies
-        // that a model-valid but impossible action/observation history returns
-        // an empty version space through the posterior API when the candidate
-        // kernel is later extended with an explicit support-negative control.
-        let (_, belief) = public_kernel_and_belief(&request.view).unwrap();
+        let (kernel, belief) = public_kernel_and_belief(&request.view).unwrap();
         assert_eq!(belief.len(), 1);
+        assert_eq!(kernel.hypothesis_ids[belief[0].hypothesis], "candidate-b");
+    }
+
+    #[test]
+    fn one_step_joint_eig_detects_empty_public_version_space_on_hidden_out_of_family_control() {
+        let mut request = request();
+        let full_kernel = request
+            .view
+            .manifest
+            .public_profile
+            .model_catalogue
+            .to_joint_kernel(
+                &request.view.manifest.public_profile.candidate_hypotheses,
+                &request.view.actions,
+            )
+            .unwrap();
+        let candidate_b = vec!["candidate-b".to_owned()];
+        let mut public_candidate = request
+            .view
+            .manifest
+            .public_profile
+            .candidate_hypotheses
+            .iter()
+            .find(|candidate| candidate.hypothesis_id == "candidate-b")
+            .unwrap()
+            .clone();
+        public_candidate.prior_probability = PublicProbability::new(1, 1).unwrap();
+        request
+            .view
+            .manifest
+            .public_profile
+            .candidate_hypotheses = vec![public_candidate];
+        request
+            .view
+            .manifest
+            .public_profile
+            .model_catalogue = PublicModelCatalogue::from_kernel(&full_kernel, &candidate_b).unwrap();
+        request.view.attempts.push(crate::episode::EpisodeAttempt {
+            attempt_id: "attempt-00000000".to_owned(),
+            ordinal: 0,
+            requested_action_id: "measure-a".to_owned(),
+            requested_cost_units: Some(1),
+            charged_cost_units: 1,
+            requested_at_step: 0,
+            executed_at_step: Some(1),
+            disposition: AttemptDisposition::Applied {
+                observation_id: "zero".to_owned(),
+            },
+        });
+
+        let (_, belief) = public_kernel_and_belief(&request.view).unwrap();
+        assert!(belief.is_empty());
+        let response = next_response(&request, BaselineStrategy::OneStepJointEig).unwrap();
+        assert!(matches!(
+            response.command,
+            EpisodeCommand::Finish { ref finish }
+                if finish.disposition == EpisodeFinishDisposition::NoCompatibleModel
+                    && finish.compatible_hypothesis_ids.is_empty()
+        ));
     }
 
     #[test]
