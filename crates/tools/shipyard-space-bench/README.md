@@ -5,6 +5,7 @@ This is the first small, dependency-free Rust slice for [SHIPYARD-SPACE-001](htt
 V0 independently checks a proposed synthetic plan for:
 
 - simultaneous overlap between rectangular block footprints in the same area;
+- one active placement per physical block identity across all areas (successive non-overlapping placements remain valid);
 - occupancy of explicitly required access corridors;
 - declared shared-resource capacity using half-open time intervals;
 - operation precedence;
