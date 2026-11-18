@@ -367,6 +367,29 @@
       "required_diagnostic_codes": [],
       "assertion": "Across 700 bounded combinations of mass, dynamic factor, per-leg upper share and lower sling-angle sine, the complete verifier outputs match separately calculated rational ceiling bounds.",
       "synthetic_only": true
+    },
+    {
+      "id": "LEV-RIG-009",
+      "mode": "evaluation",
+      "test_name": "load_share_and_sling_angle_require_exact_rigging_assembly_evidence",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_SUBJECT_MISMATCH"
+      ],
+      "assertion": "Per-leg load-share and sling-angle values must bind to the exact rigging assembly ID and revision.",
+      "synthetic_only": true
+    },
+    {
+      "id": "LEV-RIG-010",
+      "mode": "evaluation",
+      "test_name": "lifting_point_must_be_identified_and_bound_to_block_revision",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "LIFTING_POINT_ID_EMPTY",
+        "EVIDENCE_SUBJECT_MISMATCH"
+      ],
+      "assertion": "Each rigging leg must identify its lifting point and bind lifting-point evidence to the exact block revision.",
+      "synthetic_only": true
     }
   ]
 }
