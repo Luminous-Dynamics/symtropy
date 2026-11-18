@@ -95,7 +95,7 @@ The frozen synthetic conformance suite is in `fixtures/conformance-vectors-v0.1.
 
 ## Tests
 
-The dependency-free unit suite currently contains 38 tests (37 frozen conformance vectors plus one fixture-to-test mapping check) and covers:
+The dependency-free unit suite currently contains 43 tests (42 frozen conformance vectors plus one fixture-to-test mapping check) and covers:
 
 - nominal arithmetic and human-review-only disposition;
 - crane chart capacity and exact-cell mismatch/no interpolation;
