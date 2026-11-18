@@ -258,7 +258,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     ];
     let config = SequentialPolicyConfigV1 {
         posterior_commit_threshold: 0.95,
-        maximum_campaign_residual: 12.0,
+        maximum_campaign_residual: 16.0,
         maximum_experiments: 2,
         eig_replicates_per_model: 256,
         eig_seed: 0x5EED_6127,

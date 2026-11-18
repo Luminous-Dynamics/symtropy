@@ -170,19 +170,39 @@ impl fmt::Display for SequentialEvidenceError {
                 write!(f, "prior must contain exactly one entry for every candidate model")
             }
             Self::DuplicateAction(id) => write!(f, "action ID {id} is repeated"),
-            Self::TooManyActions => write!(f, "action catalogue exceeds the bounded reference limit"),
+            Self::TooManyActions => {
+                write!(f, "action catalogue exceeds the bounded reference limit")
+            },
             Self::UnknownAction(id) => write!(f, "observation references unknown action ID {id}"),
             Self::UnknownModel(id) => write!(f, "candidate model ID {id} is not registered"),
             Self::InvalidActionCost => write!(f, "action cost must be finite and positive"),
-            Self::InvalidActionIdentity => write!(f, "action covariance identity does not match its request"),
-            Self::InvalidActionPrediction => write!(f, "action predictions do not match candidate models"),
-            Self::InvalidObservationShape => write!(f, "candidate-visible trace shape/order/schedule is invalid"),
-            Self::NonFiniteObservation => write!(f, "candidate-visible observation contains a non-finite value"),
-            Self::DuplicateObservationAction => write!(f, "an action may appear at most once in this finite campaign"),
-            Self::InvalidResidualThreshold => write!(f, "campaign residual threshold must be finite and non-negative"),
-            Self::InvalidCommitThreshold => write!(f, "posterior commit threshold must lie strictly between zero and one"),
-            Self::InvalidReplicateCount => write!(f, "at least one EIG replicate per model is required"),
-            Self::ExcessiveReplicateCount => write!(f, "EIG replicate count exceeds the bounded reference limit"),
+            Self::InvalidActionIdentity => {
+                write!(f, "action covariance identity does not match its request")
+            },
+            Self::InvalidActionPrediction => {
+                write!(f, "action predictions do not match candidate models")
+            },
+            Self::InvalidObservationShape => {
+                write!(f, "candidate-visible trace shape/order/schedule is invalid")
+            },
+            Self::NonFiniteObservation => {
+                write!(f, "candidate-visible observation contains a non-finite value")
+            },
+            Self::DuplicateObservationAction => {
+                write!(f, "an action may appear at most once in this finite campaign")
+            },
+            Self::InvalidResidualThreshold => {
+                write!(f, "campaign residual threshold must be finite and non-negative")
+            },
+            Self::InvalidCommitThreshold => {
+                write!(f, "posterior commit threshold must lie strictly between zero and one")
+            },
+            Self::InvalidReplicateCount => {
+                write!(f, "at least one EIG replicate per model is required")
+            },
+            Self::ExcessiveReplicateCount => {
+                write!(f, "EIG replicate count exceeds the bounded reference limit")
+            },
             Self::NoRemainingActions => write!(f, "no unused admissible actions remain"),
             Self::PosteriorNormalizationFailed => write!(f, "posterior log-normalization failed"),
         }
@@ -280,7 +300,10 @@ pub fn validate_action_catalogue(
         if actual_ids != expected_ids
             || action.model_means.iter().any(|item| {
                 item.observations.len() != scenario.observation_times.len()
-                    || item.observations.iter().any(|row| row.len() != action.selected_sensor_ids.len())
+                    || item
+                        .observations
+                        .iter()
+                        .any(|row| row.len() != action.selected_sensor_ids.len())
                     || item.observations.iter().flatten().any(|value| !value.is_finite())
             })
         {
@@ -297,6 +320,15 @@ pub fn posterior_after_history(
     history: &[ActionObservationV1],
 ) -> Result<PosteriorReportV1, SequentialEvidenceError> {
     validate_action_catalogue(scenario, actions, prior)?;
+    posterior_after_history_validated(scenario, actions, prior, history)
+}
+
+fn posterior_after_history_validated(
+    scenario: &ExperimentDesignScenario,
+    actions: &[SequentialActionV1],
+    prior: &[ModelPriorV1],
+    history: &[ActionObservationV1],
+) -> Result<PosteriorReportV1, SequentialEvidenceError> {
     let mut log_weights = scenario
         .models
         .iter()
@@ -400,7 +432,8 @@ pub fn estimate_action_expected_information_gain(
             };
             let mut next_history = history.to_vec();
             next_history.push(observation);
-            let updated = posterior_after_history(scenario, actions, prior, &next_history)?;
+            let updated =
+                posterior_after_history_validated(scenario, actions, prior, &next_history)?;
             entropy_sum += updated.model_entropy_nats;
             entropy_squared_sum += updated.model_entropy_nats * updated.model_entropy_nats;
         }
@@ -468,6 +501,7 @@ pub fn assess_model_set_adequacy(
     history: &[ActionObservationV1],
     maximum_campaign_residual: f64,
 ) -> Result<ModelSetAdequacyV1, SequentialEvidenceError> {
+    validate_action_catalogue(scenario, actions, prior)?;
     if !maximum_campaign_residual.is_finite() || maximum_campaign_residual < 0.0 {
         return Err(SequentialEvidenceError::InvalidResidualThreshold);
     }
@@ -615,7 +649,9 @@ pub fn decide_sequential_stop(
                     posterior_probability: family_probability,
                     compatible_model_ids: compatible_model_ids.clone(),
                 }
-            } else if history.len() < config.maximum_experiments && !remaining_action_ids.is_empty() {
+            } else if history.len() < config.maximum_experiments
+                && !remaining_action_ids.is_empty()
+            {
                 SequentialDecisionV1::Continue {
                     reason: "family posterior is below the commit threshold",
                 }
@@ -642,7 +678,9 @@ pub fn decide_sequential_stop(
                     family_id: *family_id,
                     posterior_probability: probability,
                 }
-            } else if history.len() < config.maximum_experiments && !remaining_action_ids.is_empty() {
+            } else if history.len() < config.maximum_experiments
+                && !remaining_action_ids.is_empty()
+            {
                 SequentialDecisionV1::Continue {
                     reason: "candidate posterior is below the commit threshold",
                 }
@@ -665,7 +703,9 @@ pub fn decide_sequential_stop(
     })
 }
 
-fn validate_policy_config(config: SequentialPolicyConfigV1) -> Result<(), SequentialEvidenceError> {
+fn validate_policy_config(
+    config: SequentialPolicyConfigV1,
+) -> Result<(), SequentialEvidenceError> {
     if !config.posterior_commit_threshold.is_finite()
         || config.posterior_commit_threshold <= 0.0
         || config.posterior_commit_threshold >= 1.0
@@ -1023,11 +1063,23 @@ mod tests {
             times: scenario.observation_times.clone(),
             values: actions[0].model_means[0].observations.clone(),
         };
-        let first = posterior_after_history(&scenario, &actions, &prior(), &[observation.clone()]).unwrap();
-        let second = posterior_after_history(&scenario, &actions, &prior(), &[observation]).unwrap();
+        let first =
+            posterior_after_history(&scenario, &actions, &prior(), &[observation.clone()])
+                .unwrap();
+        let second =
+            posterior_after_history(&scenario, &actions, &prior(), &[observation]).unwrap();
         assert_eq!(first, second);
         assert!(first.weights[0].probability > first.weights[1].probability);
-        assert!((first.weights.iter().map(|entry| entry.probability).sum::<f64>() - 1.0).abs() < 1.0e-12);
+        assert!(
+            (first
+                .weights
+                .iter()
+                .map(|entry| entry.probability)
+                .sum::<f64>()
+                - 1.0)
+                .abs()
+                < 1.0e-12
+        );
     }
 
     #[test]
@@ -1057,7 +1109,8 @@ mod tests {
             times: scenario.observation_times.clone(),
             values: vec![vec![100.0, -100.0]; scenario.observation_times.len()],
         }];
-        let report = decide_sequential_stop(&scenario, &actions, &prior(), &history, config()).unwrap();
+        let report =
+            decide_sequential_stop(&scenario, &actions, &prior(), &history, config()).unwrap();
         assert_eq!(report.adequacy, ModelSetAdequacyV1::OutOfModelSet);
         assert_eq!(report.decision, SequentialDecisionV1::AbstainOutOfModelSet);
     }
