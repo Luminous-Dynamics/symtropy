@@ -29,7 +29,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         }
         let request: EpisodeRequest = serde_json::from_str(&line)?;
         let response = next_response(&request, strategy)?;
-        let is_finish = matches!(response.command, EpisodeCommand::Finish { .. });
+        let is_finish = matches!(&response.command, EpisodeCommand::Finish { .. });
         serde_json::to_writer(&mut output, &response)?;
         output.write_all(b"\n")?;
         output.flush()?;
