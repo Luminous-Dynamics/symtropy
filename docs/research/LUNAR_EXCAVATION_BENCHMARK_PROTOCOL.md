@@ -34,7 +34,7 @@ These are proposed falsifiable targets. Absolute tolerances must be set after a 
 
 ## Implementation
 
-The run-level contract, dataset-level split manifest, synthetic examples and fixture CI guard are in tools/lunar-excavation-benchmark/. The schemas make the intended grouping and holdout boundaries explicit; CI currently verifies only the synthetic examples. A general independent evaluator must still enforce every imported record against the manifest, artifact digest and reference resolution, calibration validity, interval ordering, unit consistency, repeat leakage, blind-set custody and licence admission. JSON Schema conformance alone is not evidence qualification.
+The run-level contract, dataset-level split manifest, three synthetic partition records, reusable semantic admission CLI (scripts/validate-lunar-excavation-dataset.sh) and fixture CI guard are in the repository. CI invokes the same validator over the complete synthetic dataset. The CLI enforces exact manifest/run membership, active group partition mapping, source/calibration artifact links, measurement semantics, prediction-interval ordering and artifact byte digests. A full JSON Schema engine, calibration validity/freshness proof, blind-set custody, licence admission and independent physical measurement acceptance remain separate responsibilities. JSON Schema conformance alone is not evidence qualification.
 
 Detailed protocol: tools/lunar-excavation-benchmark/README.md.
 
@@ -46,7 +46,7 @@ The SOTA comparison now needs an explicit ML baseline. Srinivasan et al. (Acta A
 
 A separate returned-sample reference is now available: Bao et al. (Acta Astronautica, online 3 November 2026; DOI 10.1016/j.actaastro.2026.10.071) report rotating-drum slumping tests on authentic Chang'e-6 farside sample CE60100 (1.85 g available mass). Their dynamic angle of repose fell from 50.4° ± 3.1° to 41.1° ± 1.8° over Fr = 3.3×10^-4 to 3.3×10^-3, with a force-balance model reproducing the trend without fitting those DAoR values. This supports a distinct micro-sample flow/handling benchmark, not excavation-force qualification.
 
-The model tournament now includes analytical equations, published MLR/SVR/RF/XGBR baselines, DEM, CEL/FEM, and an experimentally qualified physics-informed residual model candidate. Score interpolation and genuine group-level transfer separately; report abstention/OOD detection and uncertainty coverage alongside RMSE. For the material-handling leg, measure the complete excavation-to-beneficiation transfer chain and isolate retained material, bridging and discharge losses.
+The model tournament now includes analytical equations, published MLR/SVR/RF/XGBR baselines, DEM, CEL/FEM, and a physics-informed residual-model candidate to be experimentally qualified. Score interpolation and genuine group-level transfer separately; report abstention/OOD detection and uncertainty coverage alongside RMSE. For the material-handling leg, measure the complete excavation-to-beneficiation transfer chain and isolate retained material, bridging and discharge losses.
 
 NASA's public Lunar Surface Technology page currently describes IPEx's 10-tonne / 100-m / 11-day profile, while other programme text describes an approximately 20-tonne single-mission goal. Preserve each source's mission boundary and goal/status label rather than merge them into an achieved throughput metric. The 2026 ISAM State of Play classifies surface infrastructure across excavation/site preparation, processing, logistics and construction.
 
