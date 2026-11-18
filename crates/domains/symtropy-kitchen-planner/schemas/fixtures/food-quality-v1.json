@@ -1,0 +1,126 @@
+{
+  "fixture_bundle_id": "food-quality-assessment-v1",
+  "status": "synthetic_only_unexecuted",
+  "assessor_version": "symtropy-food-quality-assessor-v1",
+  "safety_gate_is_independent": true,
+  "score_policy": {
+    "serving_permit": "never",
+    "taste_safety_tradeoff": "forbidden",
+    "consumer_mean": "descriptive_only",
+    "instrumental_limits": "protocol_specific",
+    "missing_sample_or_response": "indeterminate",
+    "below_protocol_quality_limit": "not_qualified",
+    "blinding_or_randomization_failure": "blocked",
+    "duplicate_identity_or_digest_mismatch": "conflicted",
+    "randomization_assignment": "digest_bound_complete_block"
+  },
+  "scenarios": [
+    {
+      "id": "complete-blinded-randomized-evidence",
+      "expected": "complete",
+      "assert": "every declared sample has sufficient blinded responses and required calibrated instrumental metrics"
+    },
+    {
+      "id": "unblinded-consumer-study",
+      "expected": "blocked",
+      "assert": "consumer liking cannot be compared as a declared blinded protocol"
+    },
+    {
+      "id": "nonrandomized-consumer-study",
+      "expected": "blocked",
+      "assert": "presentation order must be controlled by a declared randomization protocol"
+    },
+    {
+      "id": "missing-consumer-responses",
+      "expected": "indeterminate",
+      "assert": "missing sample responses are not replaced with neutral scores"
+    },
+    {
+      "id": "low-consumer-liking",
+      "expected": "not_qualified",
+      "assert": "a failed protocol threshold cannot be offset by energy or yield"
+    },
+    {
+      "id": "missing-instrument-calibration",
+      "expected": "indeterminate",
+      "assert": "an instrument value without calibration reference is not qualified measured evidence"
+    },
+    {
+      "id": "uncertainty-overlaps-quality-limit",
+      "expected": "indeterminate",
+      "assert": "measurement uncertainty crossing a declared threshold cannot be rounded into a pass"
+    },
+    {
+      "id": "measurement-outside-protocol-limit",
+      "expected": "not_qualified",
+      "assert": "a valid measurement wholly outside a declared physical quality limit fails"
+    },
+    {
+      "id": "generic-or-stale-instrument-method",
+      "expected": "indeterminate",
+      "assert": "metric method, basis, unit and scale must exactly match protocol"
+    },
+    {
+      "id": "duplicate-respondent-sample",
+      "expected": "conflicted",
+      "assert": "one study-scoped respondent token cannot rate the same sample twice"
+    },
+    {
+      "id": "duplicate-presentation-order",
+      "expected": "conflicted",
+      "assert": "presentation order cannot repeat within a respondent session"
+    },
+    {
+      "id": "protocol-revision-digest-mismatch",
+      "expected": "conflicted",
+      "assert": "protocol changes invalidate old assessment digest"
+    },
+    {
+      "id": "externally-failed-safety-gate",
+      "expected": "quality-lane-independent",
+      "assert": "quality result remains separate and no serving permit is created"
+    },
+    {
+      "id": "externally-unknown-safety-gate",
+      "expected": "quality-lane-independent",
+      "assert": "unknown safety status is not promoted by consumer liking"
+    },
+    {
+      "id": "household-private-feedback",
+      "expected": "separate_local_lane",
+      "assert": "household personal feedback is not pooled into a public consumer panel"
+    },
+    {
+      "id": "participant-assignment-digest-mismatch",
+      "expected": "conflicted",
+      "assert": "assignment digest commits to exact ordered sample references"
+    },
+    {
+      "id": "response-not-in-assigned-order",
+      "expected": "conflicted",
+      "assert": "each sample response presentation_order must match that participant's assignment"
+    },
+    {
+      "id": "participant-incomplete-block",
+      "expected": "indeterminate",
+      "assert": "complete-block sensory design requires one response per sample; absent response is not imputed"
+    },
+    {
+      "id": "duplicate-participant-assignment",
+      "expected": "conflicted",
+      "assert": "one study-scoped respondent token may have only one assignment record"
+    },
+    {
+      "id": "assignment-protocol-reference-mismatch",
+      "expected": "conflicted",
+      "assert": "participant assignment must reference the exact randomization protocol in the frozen study"
+    }
+  ],
+  "target_hypotheses": {
+    "false_complete_on_adversarial_suite": 0,
+    "protocol_reference_coverage": 1,
+    "deterministic_replay": 1,
+    "missingness_preservation": 1,
+    "serving_permit_grants": 0
+  }
+}

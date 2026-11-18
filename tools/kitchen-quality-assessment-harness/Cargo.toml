@@ -1,0 +1,13 @@
+[package]
+name = "kitchen-quality-assessment-harness"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Focused conformance harness for the production kitchen food-quality assessor"
+
+[dependencies]
+serde_json = "1.0"
+symtropy-kitchen-planner = { path = "../../crates/domains/symtropy-kitchen-planner" }
+
+[workspace]

@@ -1,0 +1,68 @@
+name: Kitchen Food Quality Assessment
+
+on:
+  pull_request:
+    paths:
+      - "crates/domains/symtropy-kitchen-planner/src/food_quality_assessment.rs"
+      - "crates/domains/symtropy-kitchen-planner/src/lib.rs"
+      - "crates/domains/symtropy-kitchen-planner/Cargo.toml"
+      - "tools/kitchen-quality-assessment-harness/**"
+      - ".github/workflows/kitchen-quality-assessment.yml"
+      - "crates/domains/symtropy-kitchen-planner/schemas/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kitchen-quality-assessment-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exact-head-contract:
+    name: Food-quality evidence contract (exact head)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      QUALIFIED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      RUSTUP_TOOLCHAIN: 1.96.1
+      CARGO_INCREMENTAL: 0
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+
+      - name: Assert exact checkout
+        run: test "$(git rev-parse HEAD)" = "${QUALIFIED_SHA}"
+
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.1
+          components: rustfmt, clippy
+
+      - name: Assert exact toolchain
+        run: |
+          test "$(rustc --version | awk '{print $2}')" = "1.96.1"
+          rustfmt --version
+          cargo --version
+
+      - name: Check production crate formatting
+        run: cargo fmt --manifest-path Cargo.toml --package symtropy-kitchen-planner -- --check
+
+      - name: Check focused harness formatting
+        run: cargo fmt --manifest-path tools/kitchen-quality-assessment-harness/Cargo.toml --all -- --check
+
+      - name: Run production unit and adversarial tests
+        run: cargo test --manifest-path Cargo.toml --package symtropy-kitchen-planner --all-targets
+
+      - name: Run focused integration harness
+        run: cargo test --manifest-path tools/kitchen-quality-assessment-harness/Cargo.toml
+
+      - name: Run strict production Clippy
+        run: cargo clippy --manifest-path Cargo.toml --package symtropy-kitchen-planner --all-targets -- -D warnings
+
+      - name: Run strict harness Clippy
+        run: cargo clippy --manifest-path tools/kitchen-quality-assessment-harness/Cargo.toml --all-targets -- -D warnings
