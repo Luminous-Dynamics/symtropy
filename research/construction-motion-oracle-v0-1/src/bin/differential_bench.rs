@@ -663,7 +663,7 @@ fn build_robust_capacity_benchmark_scenario(
 
 fn run_robust_capacity_derating_benchmarks() {
     println!(
-        "robust_capacity_derating,claim_count,capacity_windows,p50_us,p95_us,p99_us,boundary_count,indeterminate_segments,definitely_over_segments,robustly_feasible"
+        "robust_capacity_derating,claim_count,capacity_windows,p50_us,p95_us,p99_us,boundary_count,indeterminate_segments,definitely_over_segments,impacted_reservations,robustly_feasible"
     );
     for claim_count in [100_u64, 1_000, 10_000, 100_000] {
         let scenario = build_robust_capacity_benchmark_scenario(claim_count);
@@ -679,7 +679,7 @@ fn run_robust_capacity_derating_benchmarks() {
         durations.sort_unstable();
         let report = last_report.expect("at least one robust capacity sample");
         println!(
-            "{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{}",
             claim_count,
             scenario.availability_windows.len(),
             percentile(&durations, 50).as_micros(),
@@ -688,6 +688,7 @@ fn run_robust_capacity_derating_benchmarks() {
             report.total_boundary_count,
             report.indeterminate_segment_count,
             report.definitely_over_capacity_segment_count,
+            report.impacted_reservation_ids().len(),
             report.is_robustly_feasible
         );
     }
