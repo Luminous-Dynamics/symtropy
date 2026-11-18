@@ -79,7 +79,7 @@
             },
             "freeze_required": {
               "type": "array",
-              "minItems": 3,
+              "minItems": 6,
               "uniqueItems": true,
               "items": {
                 "enum": [
@@ -90,7 +90,8 @@
                   "random_seed",
                   "prediction_artifacts"
                 ]
-              }
+              },
+              "maxItems": 6
             }
           }
         },
