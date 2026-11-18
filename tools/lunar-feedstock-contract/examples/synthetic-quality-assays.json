@@ -1,20 +1,111 @@
 {
   "evidence_class": "synthetic_fixture_only",
+  "assay_method_id": "SYNTHETIC-XRD-PSD-FIXTURE",
   "samples": [
     {
       "sample_id": "Q-SEP-001",
       "stream_id": "S3-ANORTHITE-PRODUCT",
-      "point": "separator_outlet",
-      "plagioclase_mass_fraction": 0.706,
+      "sample_point": "separator_outlet",
+      "phase_fractions": [
+        {
+          "phase_id": "plagioclase",
+          "value": 0.706,
+          "standard_uncertainty": 0.005,
+          "unit": "kg/kg"
+        },
+        {
+          "phase_id": "pyroxene",
+          "value": 0.15,
+          "standard_uncertainty": 0.01,
+          "unit": "kg/kg"
+        },
+        {
+          "phase_id": "olivine",
+          "value": 0.1,
+          "standard_uncertainty": 0.01,
+          "unit": "kg/kg"
+        },
+        {
+          "phase_id": "iron_bearing_other",
+          "value": 0.04400000000000004,
+          "standard_uncertainty": 0.01,
+          "unit": "kg/kg"
+        }
+      ],
+      "size_bins": [
+        {
+          "d_min_um": 20,
+          "d_max_um": 200,
+          "mass_fraction": 0.95,
+          "standard_uncertainty": 0.005
+        },
+        {
+          "d_min_um": 3,
+          "d_max_um": 20,
+          "mass_fraction": 0.03,
+          "standard_uncertainty": 0.005
+        },
+        {
+          "d_min_um": 200,
+          "d_max_um": 500,
+          "mass_fraction": 0.02,
+          "standard_uncertainty": 0.005
+        }
+      ],
       "target_size_mass_fraction": 0.95
     },
     {
       "sample_id": "Q-REACTOR-001",
       "stream_id": "S5-REACTOR-INLET",
-      "point": "reactor_inlet",
-      "plagioclase_mass_fraction": 0.72,
+      "sample_point": "reactor_inlet",
+      "phase_fractions": [
+        {
+          "phase_id": "plagioclase",
+          "value": 0.72,
+          "standard_uncertainty": 0.01,
+          "unit": "kg/kg"
+        },
+        {
+          "phase_id": "pyroxene",
+          "value": 0.15,
+          "standard_uncertainty": 0.01,
+          "unit": "kg/kg"
+        },
+        {
+          "phase_id": "olivine",
+          "value": 0.1,
+          "standard_uncertainty": 0.01,
+          "unit": "kg/kg"
+        },
+        {
+          "phase_id": "iron_bearing_other",
+          "value": 0.030000000000000027,
+          "standard_uncertainty": 0.01,
+          "unit": "kg/kg"
+        }
+      ],
+      "size_bins": [
+        {
+          "d_min_um": 20,
+          "d_max_um": 200,
+          "mass_fraction": 0.95,
+          "standard_uncertainty": 0.005
+        },
+        {
+          "d_min_um": 3,
+          "d_max_um": 20,
+          "mass_fraction": 0.03,
+          "standard_uncertainty": 0.005
+        },
+        {
+          "d_min_um": 200,
+          "d_max_um": 500,
+          "mass_fraction": 0.02,
+          "standard_uncertainty": 0.005
+        }
+      ],
       "target_size_mass_fraction": 0.95
     }
   ],
-  "notes": "Illustrative assays only; no XRD or particle-size instrument operated."
+  "notes": "Illustrative assay fixture only; no XRD, particle-size instrument, or physical process campaign performed."
 }
