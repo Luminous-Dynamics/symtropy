@@ -1331,7 +1331,7 @@ pub fn calibrate_model_family_adequacy_full_covariance(
             "covariance/process/sampling/operator/availability identity is fixed for this calibration",
             "independent calibration and validation PRNG streams",
             "finite synthetic Monte Carlo counts; rates are empirical, not universal guarantees",
-            "candidate/evaluator truth separation is enforced by the API shape, not by this in-process function",
+            "candidate scorer receives no hidden truth IDs; this in-process evaluator requires external process isolation for agent-facing use",
         ],
     })
 }
