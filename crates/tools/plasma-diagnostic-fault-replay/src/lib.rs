@@ -1,3 +1,4 @@
+pub mod observation_export;
 pub mod waveform;
 
 use serde::{Deserialize, Serialize};
