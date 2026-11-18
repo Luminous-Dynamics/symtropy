@@ -50,3 +50,12 @@ The model tournament now includes analytical equations, published MLR/SVR/RF/XGB
 
 NASA's public Lunar Surface Technology page currently describes IPEx's 10-tonne / 100-m / 11-day profile, while other programme text describes an approximately 20-tonne single-mission goal. Preserve each source's mission boundary and goal/status label rather than merge them into an achieved throughput metric. The 2026 ISAM State of Play classifies surface infrastructure across excavation/site preparation, processing, logistics and construction.
 
+
+## Dedicated granular-flow track
+
+New issue [#6041 — LUNAR-GRANULAR-FLOW-001](https://github.com/Luminous-Dynamics/symtropy/issues/6041) now separates **granular flow and material transfer** from excavation-force validation. Two relevant returned-sample results are not interchangeable:
+
+- Bao et al. (Acta Astronautica, online 3 November 2026; DOI 10.1016/j.actaastro.2026.10.071) use 1.85 g of CE60100 Chang'e-6 farside material in a rotating-drum slumping experiment, reporting DAoR 50.4° ± 3.1° at Fr 3.3×10^-4 and 41.1° ± 1.8° at Fr 3.3×10^-3. Treat it as micro-sample flow evidence for the stated drum geometry and regime.
+- The 2025 Nature Astronomy CE-6 material-characterization paper (DOI 10.1038/s41550-025-02715-3) reports average static AOR 52.9° and dynamic AOR 70.4° at 0.1 rad/s. Preserve its method and sample state separately; do not average these with the 2026 rotating-drum data.
+
+Together with ESA MoLES3's finding that transfer losses dominated recoverable inefficiency in its tested chain, this supports a material-flow scorecard covering avalanches/agglomerates, discharge, bridging/jamming, retained mass, transfer efficiency, PSD/segregation, fines, accepted target-size yield, and energy per accepted delivered mass. Excavation-force error and granular-flow error must remain distinct scorecards, joined only through batch/provenance and material-disposition records.
