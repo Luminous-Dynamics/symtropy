@@ -178,3 +178,53 @@ Keep these distinct:
 6. Lean-checked radii-polynomial local existence/uniqueness in a declared function-space ball.
 
 A flux identity alone verifies only the cyclic equation. It does not prove the other EGB equations, existence of a rotating higher-curvature branch, horizon regularity in another chart, stability or observational viability.
+
+
+## 9. Time-sector Eq. (2.14): sourced radial balance, not another conserved charge
+
+A full PDF reinspection found that Eq. (2.14) contains alpha-dependent terms inside its current. Define
+\[
+C_b=f-4+\frac{h}{r^2}+\frac{rfh'}{h},\qquad
+C_w=4-\frac{3h}{r^2}-f,
+\]
+\[
+P_t(r)=\sqrt{\frac{fh}{b}}\left[
+r^2(hww'-b')+
+\alpha\left(C_b b'+C_w hww'+rfh(w')^2\right)
+\right].
+\]
+The Einstein-only expression \( \sqrt{fh/b}\,r^2(hww'-b') \) is incomplete for nonzero alpha.
+
+For the 5D tensor convention in Eq. (2.4), the Lanczos trace is
+\[
+H^\mu{}_\mu=-\frac12 L_{GB}.
+\]
+The trace of the vacuum EGB equations therefore gives
+\[
+R=-\frac{\alpha}{12}L_{GB}.
+\]
+Combining this with the full Eq. (2.14) gives the on-shell source balance
+\[
+\boxed{
+P_t'(r)=\frac{\alpha}{6}r^2\sqrt{\frac{bh}{f}}L_{GB}.
+}
+\]
+Its asymptotic endpoint is \(P_t(\infty)=2\mathcal U\). It is **not constant at finite alpha**. Only at alpha=0 does the Gauss-Bonnet source vanish and the current reduce to the Einstein constant \(P_t=2\mathcal U\).
+
+For the static Boulware–Deser solution \(b=f=F,\ h=r^2,\ w=0\):
+\[
+P_t(r)=-r^3F'(r)+3\alpha r(F(r)-1)F'(r),
+\]
+\[
+L_{GB}=\frac{12}{r^3}\left[(F-1)(rF''+2F')+r(F')^2\right],
+\]
+and this exact branch satisfies \(P_t'=\alpha r^3L_{GB}/6\). This is a decisive negative control against treating the Einstein-only bracket as a finite-alpha conserved charge.
+
+The Rust reference crate now includes:
+- the complete alpha-dependent time-sector current;
+- a source-prefactor helper for \(P_t'\);
+- pointwise \(b'\) reconstruction from the *local* current, with the full coefficient \(-r^2+\alpha C_b\);
+- Boulware–Deser \(F,F',F''\) and an independently derived static 5D \(L_{GB}\) scalar;
+- a finite-alpha Boulware–Deser source-balance test.
+
+The proposed dual-conserved-flux reduction is withdrawn. The remaining solver architectures are the full four-profile system, the angular-Noether reduced system using the true conserved \(P_w\), and a source-balanced system using the complete Eq. (2.14) identity. The latter remains a benchmark hypothesis and must retain all remaining EGB field equations.
