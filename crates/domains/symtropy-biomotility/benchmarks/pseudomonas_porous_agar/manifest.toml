@@ -1,0 +1,37 @@
+schema_version = "biomotility-benchmark-manifest-v0.1"
+benchmark_id = "PSEUDOMONAS-POROUS-AGAR-001"
+status = "REFERENCE_TARGETS_ONLY_DATA_RIGHTS_PENDING"
+model_scope = "event-based run-time and turn-angle bias with separate long-trap events"
+organism = "Pseudomonas putida"
+study_doi = "10.1016/j.bpj.2026.06.002"
+dataset_doi = "10.5281/zenodo.17592316"
+dataset_version = "UNVERIFIED"
+dataset_license = "UNVERIFIED_DO_NOT_REDISTRIBUTE"
+dataset_checksum_status = "NOT_YET_RETRIEVED"
+raw_microscopy_access = "AUTHOR_REQUEST_REQUIRED"
+original_analysis_code_access = "AUTHOR_REQUEST_REQUIRED"
+
+[conditions.wild_type_0_25_percent_agar]
+agar_percent = 0.25
+reported_trajectory_count = 17703
+reported_mean_run_duration_seconds = 0.299
+reported_up_gradient_after_short_event_fraction = 0.567
+reported_up_gradient_after_long_event_fraction = 0.449
+
+[conditions.wild_type_0_30_percent_agar]
+agar_percent = 0.30
+reported_trajectory_count = 18714
+reported_mean_run_duration_seconds = 0.232
+reported_up_gradient_after_short_event_fraction = 0.556
+reported_up_gradient_after_long_event_fraction = 0.468
+
+[paper_simulation_reference]
+turn_angle_only_fraction_of_combined_drift = 0.72
+run_time_only_fraction_of_combined_drift = 0.25
+evidence_class = "SOURCE_REPORTED_AGENT_BASED_SIMULATION_NOT_REPRODUCED_HERE"
+
+[limitations]
+not_raw_data = true
+not_empirical_model_calibration = true
+not_independent_replication = true
+not_a_sota_claim = true
