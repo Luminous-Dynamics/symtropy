@@ -62,6 +62,56 @@ theorem prefactorExact_lt_upper :
   apply (div_lt_div_iff₀ (by positivity) (by positivity)).2
   nlinarith [sqrt2_lower_lt_real_sqrt_two]
 
+/-- Exact geometric-series majorant for the inverse-radius coefficient tail. -/
+def exactTail (N : ℕ) : ℝ :=
+  prefactorExact * qNuExact ^ (N + 1) / (1 - qNuExact)
+
+def qNuUpperReal : ℝ := (qNuUpper : ℝ)
+
+def prefactorUpperReal : ℝ := (prefactorUpper : ℝ)
+
+/-- The weighted coefficient tail is the geometric series with this exact sum.
+The identification of the physical Chebyshev coefficients with this sequence is
+documented in the adapter; this lemma proves the infinite-series arithmetic. -/
+theorem exact_tail_hasSum (N : ℕ) :
+    HasSum (fun k : ℕ => prefactorExact * qNuExact ^ (N + 1 + k)) (exactTail N) := by
+  simpa [exactTail, pow_add, div_eq_mul_inv, mul_assoc] using
+    (hasSum_geometric_of_lt_one qNuExact_positive.le qNuExact_lt_one).mul_left
+      (prefactorExact * qNuExact ^ (N + 1))
+
+theorem exact_tail_tsum (N : ℕ) :
+    (∑' k : ℕ, prefactorExact * qNuExact ^ (N + 1 + k)) = exactTail N :=
+  (exact_tail_hasSum N).tsum_eq
+
+theorem qNuExact_le_upper : qNuExact ≤ qNuUpperReal :=
+  qNuExact_lt_qNuUpper.le
+
+theorem prefactorExact_le_upper : prefactorExact ≤ prefactorUpperReal :=
+  prefactorExact_lt_upper.le
+
+theorem qNuUpperReal_lt_one : qNuUpperReal < 1 := by
+  exact_mod_cast qNuUpper_lt_one
+
+/-- The infinite weighted coefficient tail is below the exact rational-input
+upper-bound expression. The remaining step to the stored finite fractions is
+the rational evaluation of this expression. -/
+theorem exact_tail_le_upper_expression (N : ℕ) :
+    exactTail N ≤
+      prefactorUpperReal * qNuUpperReal ^ (N + 1) / (1 - qNuUpperReal) := by
+  unfold exactTail
+  have hleft : 0 < 1 - qNuExact := by
+    linarith [qNuExact_lt_one]
+  have hright : 0 < 1 - qNuUpperReal := by
+    linarith [qNuUpperReal_lt_one]
+  apply (div_le_div_iff₀ hleft hright).2
+  have hpow : qNuExact ^ (N + 1) ≤ qNuUpperReal ^ (N + 1) := by
+    gcongr
+  calc
+    prefactorExact * qNuExact ^ (N + 1) * (1 - qNuUpperReal)
+        ≤ prefactorUpperReal * qNuUpperReal ^ (N + 1) * (1 - qNuExact) := by
+          gcongr
+    _ = prefactorUpperReal * qNuUpperReal ^ (N + 1) * (1 - qNuExact) := rfl
+
 theorem qNuUpper_positive : 0 < qNuUpper := by
   norm_num [qNuUpper, qUpper, sqrt2Lower]
 
@@ -96,6 +146,9 @@ theorem tail_upper_N32 : tailUpper 32 = (119955819688865697165409293550622202914
 #print axioms qNuExact_lt_qNuUpper
 #print axioms qNuExact_lt_one
 #print axioms prefactorExact_lt_upper
+#print axioms exact_tail_hasSum
+#print axioms exact_tail_tsum
+#print axioms exact_tail_le_upper_expression
 #print axioms tail_upper_N4
 #print axioms tail_upper_N8
 #print axioms tail_upper_N12
