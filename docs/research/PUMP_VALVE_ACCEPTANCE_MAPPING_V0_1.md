@@ -49,7 +49,7 @@ The classifier reports only:
 - `STALE_OR_SUPERSEDED`: selected profile is draft or withdrawn;
 - `UNSUPPORTED_CLAIM`: applicability is being used to claim pressure-test safety or product release, under any mapped standard.
 
-It does not compute conformance, test tolerances, uncertainty, pressure values or product release. A repeated source URL is not test evidence; the exact unit, revision, facility, measurement, calibration and external authority must be independently bound.
+The evaluator emits a self-describing decision receipt with the exact standard edition, source URL, publication state, catalogue snapshot date, assessment-as-of date, product/test/facility inputs, agreement/product-standard flags and references, evidence state, disposition and reason. This preserves the decision inputs without authenticating the source references. It does not compute conformance, test tolerances, uncertainty, pressure values or product release. A repeated source URL is not test evidence; the exact unit, revision, facility, measurement, calibration and external authority must be independently bound.
 
 ## Run
 
