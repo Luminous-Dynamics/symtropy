@@ -211,11 +211,7 @@ pub fn check_dispatch_readiness(
     }
 
     match ledger.entity_state(&envelope.package_sha256, &envelope.entity_id) {
-        Some(
-            SiteEntityState::NotAttempted
-            | SiteEntityState::Rejected { .. }
-            | SiteEntityState::PhysicallyAbsent { .. },
-        ) => {}
+        Some(SiteEntityState::NotAttempted | SiteEntityState::PhysicallyAbsent { .. }) => {}
         Some(_) => return Err(DispatchReadinessFailure::EntityNotDispatchable),
         None => return Err(DispatchReadinessFailure::UnknownDesignEntity),
     }
@@ -323,6 +319,8 @@ pub fn check_dispatch_readiness(
 pub fn verify_dispatch_readiness_receipt_current(
     ledger: &SiteStateLedger,
     receipt: &DispatchReadinessReceipt,
+    trusted_occupancy_engine_build_sha256: &str,
+    required_clearance_policy_sha256: &str,
     now_tick: u64,
 ) -> Result<(), DispatchReadinessFailure> {
     if receipt.schema_version != DISPATCH_READINESS_RECEIPT_SCHEMA_VERSION {
@@ -350,6 +348,22 @@ pub fn verify_dispatch_readiness_receipt_current(
         || receipt.site_clock_domain_id.trim().is_empty()
     {
         return Err(DispatchReadinessFailure::OccupancyClockDomainMismatch);
+    }
+    if !is_sha256(trusted_occupancy_engine_build_sha256) {
+        return Err(DispatchReadinessFailure::InvalidDigest(
+            "trusted occupancy engine build",
+        ));
+    }
+    if !is_sha256(required_clearance_policy_sha256) {
+        return Err(DispatchReadinessFailure::InvalidDigest(
+            "required clearance policy",
+        ));
+    }
+    if receipt.occupancy_engine_build_sha256 != trusted_occupancy_engine_build_sha256 {
+        return Err(DispatchReadinessFailure::OccupancyEngineBuildMismatch);
+    }
+    if receipt.clearance_policy_sha256 != required_clearance_policy_sha256 {
+        return Err(DispatchReadinessFailure::ClearancePolicyMismatch);
     }
     if receipt.valid_until_tick <= receipt.checked_at_tick {
         return Err(DispatchReadinessFailure::OccupancyTimeWindowInvalid);
@@ -385,11 +399,7 @@ pub fn verify_dispatch_readiness_receipt_current(
         return Err(DispatchReadinessFailure::UnknownDesignEntity);
     }
     match ledger.entity_state(&receipt.package_sha256, &receipt.entity_id) {
-        Some(
-            SiteEntityState::NotAttempted
-            | SiteEntityState::Rejected { .. }
-            | SiteEntityState::PhysicallyAbsent { .. },
-        ) => Ok(()),
+        Some(SiteEntityState::NotAttempted | SiteEntityState::PhysicallyAbsent { .. }) => Ok(()),
         Some(_) => Err(DispatchReadinessFailure::EntityNotDispatchable),
         None => Err(DispatchReadinessFailure::UnknownDesignEntity),
     }
@@ -746,6 +756,146 @@ mod tests {
         assert_eq!(
             check_dispatch_readiness(&ledger, &request),
             Err(DispatchReadinessFailure::IncompleteNarrowphaseCoverage)
+        );
+    }
+
+
+    #[test]
+    fn readiness_receipt_must_be_revalidated_before_consume() {
+        let ledger = site_ledger();
+        let request = make_request(&ledger);
+        let receipt = check_dispatch_readiness(&ledger, &request).unwrap();
+        assert_eq!(
+            verify_dispatch_readiness_receipt_current(
+                &ledger,
+                &receipt,
+                &request.trusted_occupancy_engine_build_sha256,
+                &request.required_clearance_policy_sha256,
+                130,
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            verify_dispatch_readiness_receipt_current(
+                &ledger,
+                &receipt,
+                &request.trusted_occupancy_engine_build_sha256,
+                &request.required_clearance_policy_sha256,
+                400,
+            ),
+            Err(DispatchReadinessFailure::ReadinessReceiptExpired)
+        );
+        assert_eq!(
+            verify_dispatch_readiness_receipt_current(
+                &ledger,
+                &receipt,
+                &digest('0'),
+                &request.required_clearance_policy_sha256,
+                130,
+            ),
+            Err(DispatchReadinessFailure::OccupancyEngineBuildMismatch)
+        );
+        assert_eq!(
+            verify_dispatch_readiness_receipt_current(
+                &ledger,
+                &receipt,
+                &request.trusted_occupancy_engine_build_sha256,
+                &digest('0'),
+                130,
+            ),
+            Err(DispatchReadinessFailure::ClearancePolicyMismatch)
+        );
+    }
+
+    #[test]
+    fn rejected_physical_mark_requires_explicit_remediation_before_dispatch() {
+        let mut ledger = site_ledger();
+        let package_sha256 = ledger.active_package_sha256().unwrap().to_owned();
+        ledger
+            .apply(SiteEventEnvelope {
+                event_id: "station-qualified".into(),
+                sequence: 2,
+                previous_event_sha256: ledger.last_event_sha256().map(str::to_owned),
+                event_sha256: digest('5'),
+                actor_id: "surveyor".into(),
+                actor_role: SiteActorRole::Surveyor,
+                payload: SiteEventPayload::StationQualified {
+                    package_sha256: package_sha256.clone(),
+                    station_id: "station-01".into(),
+                    frame_sha256: digest('f'),
+                    transform_sha256: digest('1'),
+                    calibration_sha256: digest('6'),
+                },
+            })
+            .unwrap();
+        ledger
+            .apply(SiteEventEnvelope {
+                event_id: "attempt-started".into(),
+                sequence: 3,
+                previous_event_sha256: ledger.last_event_sha256().map(str::to_owned),
+                event_sha256: digest('7'),
+                actor_id: "robot-01".into(),
+                actor_role: SiteActorRole::Robot,
+                payload: SiteEventPayload::ExecutionStarted {
+                    package_sha256: package_sha256.clone(),
+                    entity_id: "ifc4x3:0000000000000000000001".into(),
+                    attempt_id: "attempt-01".into(),
+                    station_qualification_event_id: "station-qualified".into(),
+                },
+            })
+            .unwrap();
+        ledger
+            .apply(SiteEventEnvelope {
+                event_id: "robot-complete".into(),
+                sequence: 4,
+                previous_event_sha256: ledger.last_event_sha256().map(str::to_owned),
+                event_sha256: digest('8'),
+                actor_id: "robot-01".into(),
+                actor_role: SiteActorRole::Robot,
+                payload: SiteEventPayload::RobotObservationRecorded {
+                    package_sha256: package_sha256.clone(),
+                    entity_id: "ifc4x3:0000000000000000000001".into(),
+                    attempt_id: "attempt-01".into(),
+                    disposition: crate::site_state_ledger::RobotExecutionDisposition::Printed,
+                    robot_receipt_sha256: digest('9'),
+                },
+            })
+            .unwrap();
+        ledger
+            .apply(SiteEventEnvelope {
+                event_id: "referee-reject".into(),
+                sequence: 5,
+                previous_event_sha256: ledger.last_event_sha256().map(str::to_owned),
+                event_sha256: digest('a'),
+                actor_id: "referee".into(),
+                actor_role: SiteActorRole::Referee,
+                payload: SiteEventPayload::RefereeAssessmentRecorded {
+                    package_sha256: package_sha256.clone(),
+                    entity_id: "ifc4x3:0000000000000000000001".into(),
+                    attempt_id: "attempt-01".into(),
+                    assessment: crate::site_state_ledger::SiteRefereeAssessment::Measured(
+                        crate::field_layout_acceptance::RefereeMeasurement {
+                            residual_x_mm: 4.0,
+                            residual_y_mm: 0.0,
+                            residual_z_mm: None,
+                            endpoint_start_mm: None,
+                            endpoint_end_mm: None,
+                            reference_u95_x_mm: 0.1,
+                            reference_u95_y_mm: 0.1,
+                            reference_u95_z_mm: None,
+                            measurement_receipt_sha256: digest('b'),
+                        },
+                    ),
+                },
+            })
+            .unwrap();
+        let mut request = make_request(&ledger);
+        request.occupancy.site_ledger_sequence = ledger.last_sequence();
+        request.occupancy.site_ledger_event_sha256 =
+            ledger.last_event_sha256().unwrap().to_owned();
+        assert_eq!(
+            check_dispatch_readiness(&ledger, &request),
+            Err(DispatchReadinessFailure::EntityNotDispatchable)
         );
     }
 
