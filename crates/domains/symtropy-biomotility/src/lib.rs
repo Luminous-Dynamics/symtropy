@@ -1642,6 +1642,27 @@ mod tests {
         }
     }
 
+    fn event_record(
+        mechanism: EventMechanism,
+        duration_bin: EventDurationBin,
+        evidence_status: EventEvidenceStatus,
+    ) -> EventRecord {
+        EventRecord {
+            direction_before_run: DirectionClass::UpGradient,
+            completed_run_direction: DirectionClass::UpGradient,
+            run_displacement_heading_rad: Some(0.0),
+            run_displacement_um: 1.0,
+            incoming_heading_rad: 0.0,
+            run_duration_s: 0.25,
+            mechanism,
+            evidence_status,
+            duration_bin,
+            event_duration_s: 0.25,
+            turn_angle_rad: 0.0,
+            heading_after_event_rad: 0.0,
+        }
+    }
+
     fn steering_profile() -> PorousMotilityProfile {
         PorousMotilityProfile {
             swimming_speed_um_s: 20.0,
@@ -2090,6 +2111,77 @@ mod tests {
             mean_squared_displacement(&[trajectory], &[100.0], 0.1),
             Err(MsdError::NoTrajectorySupportsLag(100.0))
         );
+    }
+
+    #[test]
+    fn duration_mechanism_diagnostic_uses_only_evidence_qualified_events() {
+        let events = [
+            event_record(
+                EventMechanism::ActiveMotorEvent,
+                EventDurationBin::Short,
+                EventEvidenceStatus::DirectlyObserved,
+            ),
+            event_record(
+                EventMechanism::PassiveMechanicalTrap,
+                EventDurationBin::Short,
+                EventEvidenceStatus::DirectlyObserved,
+            ),
+            event_record(
+                EventMechanism::PassiveMechanicalTrap,
+                EventDurationBin::Long,
+                EventEvidenceStatus::ModelLatent,
+            ),
+            event_record(
+                EventMechanism::ActiveMotorEvent,
+                EventDurationBin::Long,
+                EventEvidenceStatus::DirectlyObserved,
+            ),
+            event_record(
+                EventMechanism::Unresolved,
+                EventDurationBin::Short,
+                EventEvidenceStatus::AlgorithmInferred,
+            ),
+            event_record(
+                EventMechanism::ActiveMotorEvent,
+                EventDurationBin::ExactBoundaryExcluded,
+                EventEvidenceStatus::ModelLatent,
+            ),
+        ];
+
+        let diagnostic = duration_mechanism_diagnostic(&events);
+        assert_eq!(diagnostic.true_positive_active_short, 1);
+        assert_eq!(diagnostic.false_positive_passive_short, 1);
+        assert_eq!(diagnostic.true_negative_passive_long, 1);
+        assert_eq!(diagnostic.false_negative_active_long, 1);
+        assert_eq!(diagnostic.excluded_algorithm_inferred, 1);
+        assert_eq!(diagnostic.excluded_exact_boundary, 1);
+        assert_eq!(diagnostic.known_event_count, 4);
+        assert_eq!(diagnostic.sensitivity, Some(0.5));
+        assert_eq!(diagnostic.specificity, Some(0.5));
+        assert_eq!(diagnostic.positive_predictive_value, Some(0.5));
+        assert_eq!(diagnostic.negative_predictive_value, Some(0.5));
+        assert_eq!(diagnostic.balanced_accuracy, Some(0.5));
+    }
+
+    #[test]
+    fn duration_mechanism_diagnostic_returns_unknown_when_no_truth_is_admitted() {
+        let events = [
+            event_record(
+                EventMechanism::ActiveMotorEvent,
+                EventDurationBin::Short,
+                EventEvidenceStatus::AlgorithmInferred,
+            ),
+            event_record(
+                EventMechanism::Unresolved,
+                EventDurationBin::Long,
+                EventEvidenceStatus::Unresolved,
+            ),
+        ];
+        let diagnostic = duration_mechanism_diagnostic(&events);
+        assert_eq!(diagnostic.known_event_count, 0);
+        assert_eq!(diagnostic.sensitivity, None);
+        assert_eq!(diagnostic.specificity, None);
+        assert_eq!(diagnostic.balanced_accuracy, None);
     }
 
     #[test]
