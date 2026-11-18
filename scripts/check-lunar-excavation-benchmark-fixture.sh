@@ -197,4 +197,37 @@ bash scripts/validate-lunar-excavation-dataset.sh \
   "$manifest" "$record" "$validation_record" "$blind_record" \
   || fail "reusable dataset admission validator rejected the synthetic fixture"
 
+# Negative control 1: a run whose group key is moved into another partition must fail.
+negative_root="$(mktemp -d)"
+trap 'rm -rf "$negative_root"' EXIT
+mkdir -p "$negative_root/examples"
+cp "$manifest" "$negative_root/manifest.json"
+cp "$record" "$negative_root/examples/calibration.json"
+cp "$validation_record" "$negative_root/examples/validation.json"
+cp "$blind_record" "$negative_root/examples/blind-test.json"
+cp "$force_trace" "$model_config" "$negative_root/examples/"
+jq '
+  .group_keys.material_batch_id = "SYN-BATCH-C"
+  | .specimen.batch_id = "SYN-BATCH-C"
+' "$negative_root/examples/validation.json" > "$negative_root/examples/validation-bad.json"
+if bash scripts/validate-lunar-excavation-dataset.sh \
+  --allow-synthetic-placeholders \
+  "$negative_root/manifest.json" \
+  "$negative_root/examples/calibration.json" \
+  "$negative_root/examples/validation-bad.json" \
+  "$negative_root/examples/blind-test.json"; then
+  fail "negative control accepted a cross-partition material-batch assignment"
+fi
+
+# Negative control 2: artifact bytes changed after their digest was frozen must fail.
+printf 'tampered\n' >> "$negative_root/examples/synthetic-force-trace.csv"
+if bash scripts/validate-lunar-excavation-dataset.sh \
+  --allow-synthetic-placeholders \
+  "$negative_root/manifest.json" \
+  "$negative_root/examples/calibration.json" \
+  "$negative_root/examples/validation.json" \
+  "$negative_root/examples/blind-test.json"; then
+  fail "negative control accepted an artifact digest mismatch"
+fi
+
 printf 'lunar benchmark fixture check: PASS (synthetic fixture only; no physical qualification)\n'
