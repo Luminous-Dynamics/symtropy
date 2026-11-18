@@ -56,4 +56,4 @@ cargo test --locked --all-targets
 cargo run --locked -- --report
 ```
 
-The synthetic fixture corpus contains 27 cases with a separate expected-disposition file. All standard-status dates and source links are frozen; they must be refreshed against the official catalogue before a real contract or physical test.
+The synthetic fixture corpus contains 30 cases with a separate expected-disposition file. The QUALIFIED_TEST_FACILITY prerequisite is imposed by this local profile; it is not presented as normative text from the referenced standards. All standard-status dates and source links are frozen; they must be refreshed against the official catalogue before a real contract or physical test.
