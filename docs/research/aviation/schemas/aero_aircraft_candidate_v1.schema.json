@@ -1,0 +1,445 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminousdynamics:aero:aircraft-candidate:v1",
+  "title": "Aero aircraft candidate v1",
+  "description": "Candidate architecture identity and exact owner-evidence references. Conceptual records do not carry assumed aircraft performance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "candidate_id",
+    "revision",
+    "family",
+    "data_origin",
+    "claim_ceiling",
+    "configuration_status",
+    "propulsion",
+    "energy",
+    "owner_work_refs",
+    "discipline_model_refs",
+    "component_refs",
+    "closure_receipts",
+    "unknowns",
+    "assumptions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "aero-aircraft-candidate/v1"
+    },
+    "candidate_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,95}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "family": {
+      "enum": [
+        "battery_fixed_wing",
+        "electric_stol",
+        "multirotor",
+        "lift_plus_cruise",
+        "tilt_wing_or_tiltrotor",
+        "electric_rotorcraft",
+        "hybrid_fixed_wing",
+        "hybrid_vtol",
+        "glider_or_solar_assisted",
+        "solar_haps",
+        "buoyant_haps"
+      ]
+    },
+    "data_origin": {
+      "enum": [
+        "synthetic",
+        "measured",
+        "manufacturer",
+        "public_dataset",
+        "mixed"
+      ]
+    },
+    "claim_ceiling": {
+      "enum": [
+        "synthetic_architecture_screening",
+        "analytic_bounded_fixture",
+        "model_based_research",
+        "sil_research",
+        "hil_research",
+        "component_bench_research",
+        "flight_test_research",
+        "externally_accepted"
+      ]
+    },
+    "configuration_status": {
+      "enum": [
+        "conceptual",
+        "partially_modelled",
+        "modelled",
+        "closed_for_declared_model_scope",
+        "superseded"
+      ]
+    },
+    "propulsion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "architecture",
+        "propulsor_count",
+        "drive_train_config_ref"
+      ],
+      "properties": {
+        "architecture": {
+          "enum": [
+            "tractor_electric",
+            "pusher_electric",
+            "distributed_electric",
+            "lift_plus_cruise",
+            "tilt_rotor",
+            "tilt_wing",
+            "single_main_rotor",
+            "hybrid_series",
+            "hybrid_parallel",
+            "glider",
+            "solar_assisted",
+            "other",
+            "unknown",
+            "solar_electric_haps"
+          ]
+        },
+        "propulsor_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "drive_train_config_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "energy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primary_storage",
+        "secondary_sources",
+        "energy_system_model_ref",
+        "thermal_model_ref"
+      ],
+      "properties": {
+        "primary_storage": {
+          "enum": [
+            "battery",
+            "fuel",
+            "hydrogen",
+            "capacitor",
+            "none",
+            "unknown"
+          ]
+        },
+        "secondary_sources": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "battery",
+              "fuel",
+              "hydrogen",
+              "solar",
+              "regenerative",
+              "capacitor"
+            ]
+          }
+        },
+        "energy_system_model_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "thermal_model_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "owner_work_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "system",
+          "issue_url",
+          "responsibility"
+        ],
+        "properties": {
+          "system": {
+            "enum": [
+              "symthaea",
+              "symtropy",
+              "mycelix",
+              "sol_atlas"
+            ]
+          },
+          "issue_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "responsibility": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "discipline_model_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "discipline",
+          "artifact_ref",
+          "source_revision",
+          "input_digest_sha256",
+          "applicability_profile_ref",
+          "output_receipt_ref"
+        ],
+        "properties": {
+          "discipline": {
+            "enum": [
+              "geometry",
+              "mass_properties",
+              "aerodynamics",
+              "loads_structures",
+              "propulsion",
+              "electrical_distribution",
+              "energy_storage",
+              "thermal_management",
+              "flight_dynamics",
+              "mission_performance",
+              "maintainability"
+            ]
+          },
+          "artifact_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "input_digest_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "applicability_profile_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "output_receipt_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "component_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "component_id",
+          "revision",
+          "role",
+          "provenance_ref"
+        ],
+        "properties": {
+          "component_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1
+          },
+          "provenance_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "closure_receipts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mass_properties",
+        "cg_inertia",
+        "aerodynamics_loads",
+        "propulsion",
+        "energy_thermal",
+        "mission_reserve",
+        "maintainability"
+      ],
+      "properties": {
+        "mass_properties": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cg_inertia": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "aerodynamics_loads": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "propulsion": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "energy_thermal": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mission_reserve": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "maintainability": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "field_path",
+          "disposition",
+          "reason"
+        ],
+        "properties": {
+          "field_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "disposition": {
+            "enum": [
+              "unknown",
+              "not_applicable",
+              "out_of_domain",
+              "indeterminate"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "configuration_digest_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "supersedes_candidate_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "lift_class": {
+      "enum": [
+        "heavier_than_air",
+        "buoyant",
+        "hybrid",
+        "unknown"
+      ]
+    },
+    "source_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "url",
+          "source_kind",
+          "claim_scope",
+          "independence"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "source_kind": {
+            "enum": [
+              "manufacturer",
+              "operator",
+              "independent_media",
+              "peer_reviewed",
+              "authority"
+            ]
+          },
+          "claim_scope": {
+            "type": "string",
+            "minLength": 1
+          },
+          "independence": {
+            "enum": [
+              "independently_measured",
+              "source_attributed",
+              "not_established"
+            ]
+          }
+        }
+      }
+    },
+    "buoyant_subtype": {
+      "enum": [
+        "free_balloon",
+        "airship",
+        "unknown"
+      ]
+    }
+  }
+}
