@@ -18,6 +18,10 @@ pub use dispatch_readiness::{
     DISPATCH_READINESS_RECEIPT_SCHEMA_VERSION, DISPATCH_READINESS_REQUEST_SCHEMA_VERSION,
     check_dispatch_readiness, verify_dispatch_readiness_receipt_current,
 };
+pub use site_state_ledger::{
+    ExclusiveResourceClaim, SiteResourceDefinition, SpaceTimeReservation,
+    SpaceTimeReservationRecord,
+};
 pub use field_layout_acceptance::{
     CrewHours, DesignIntentEntity, DesignIntentManifest, EntityAcceptanceResult, EntityScoreReason,
     FieldAcceptanceError, FieldAcceptanceProfile, FieldAcceptanceScore, FieldEntityObservation,
