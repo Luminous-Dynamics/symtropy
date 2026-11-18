@@ -13,12 +13,13 @@ It does not introduce a second mechanics solver.
 
 ## Frozen transformations
 
-Two dense, non-orthogonal integer 9x9 basis transformations are frozen with exact inverse matrices and determinant +1.
+Three dense, non-orthogonal integer 9x9 basis transformations are now frozen with exact inverse matrices and determinant +1; the third is a separate one-step conditioning stress case.
 
 | Basis | Reference condition number | Transformed mass-metric condition |
 |---|---:|---:|
 | dense_shear_1 | 185.995 | 33,712.94 |
 | dense_shear_2 | 737.999 | 520,513.26 |
+| dense_shear_3 | 1,658.0 | 2,611,081.18 |
 
 These are independent NumPy/SVD reference values, not Rust solver measurements.
 
@@ -42,7 +43,7 @@ The independent comparison test uses the same masses, initial physical positions
 - the existing Cartesian `CartesianRattleChain::step`;
 - the new dense-coordinate implementation using (M_y=S^T M_qS) and (J_y(y)=J_q(Sy)S).
 
-It compares lifted positions/velocities, both multiplier vectors, squared-link residuals and endpoint tangency for both dense bases. The nonzero force covector in v0.1 remains a separate covector/work-duality control; the current Cartesian RATTLE baseline has no force port, so the v0.2 step case explicitly freezes zero applied force. Forced RATTLE and the pHDAE comparison remain future increments.
+It compares lifted positions/velocities, both multiplier vectors, squared-link residuals and endpoint tangency for the two trajectory bases. A separate third-basis one-step stress uses condition number 1,658 and transformed mass-metric condition about 2.61 million, with looser state tolerances but unchanged link-residual bound. The nonzero force covector in v0.1 remains a separate covector/work-duality control; the current Cartesian RATTLE baseline has no force port, so the v0.2 step case explicitly freezes zero applied force. Forced RATTLE and the pHDAE comparison remain future increments.
 
 The new machine-readable step vector is `fixtures/dense_coupled_chain_rattle_step_case_v0.2.json`, with its own Draft 2020-12 schema. It pins the solver profile and per-observable tolerances.
 
@@ -59,9 +60,9 @@ The useful differentiator is not raw throughput. It is the fraction of admissibl
 
 
 
-## Bounded 32-step repeated-map qualification (v0.3)
+## Bounded 64-step repeated-map qualification (v0.3)
 
-The next increment runs 32 consecutive force-free SHAKE/RATTLE steps in both dense generalized-coordinate bases. The dense trajectory recursively advances from its own lifted state; the Cartesian oracle recursively advances from its own Cartesian state. They are compared after every step, rather than resetting the dense state to the reference state.
+The trajectory increment runs 64 consecutive force-free SHAKE/RATTLE steps in both dense generalized-coordinate bases over 0.32 s (64 × 0.005 s). The dense trajectory recursively advances from its own lifted state; the Cartesian oracle recursively advances from its own Cartesian state. They are compared after every step, rather than resetting the dense state to the reference state.
 
 The test records the maximum over all steps of:
 - lifted position and velocity errors;
@@ -71,7 +72,7 @@ The test records the maximum over all steps of:
 
 The frozen protocol is `fixtures/dense_coupled_chain_rattle_trajectory_case_v0.3.json` with its Draft 2020-12 schema. Thresholds are (2\times10^{-7}) for lifted state and multipliers, (2\times10^{-12}) for squared-link residual, and (2\times10^{-9}) for endpoint tangency.
 
-**This is a bounded 32-step metamorphic regression, not a long-horizon stability claim.** It does not establish energy drift bounds over thousands of steps, forced RATTLE, pHDAE equivalence, contact/friction, or physical calibration. The exact-head Rust 1.96 workflow must pass before the 32-step extension is qualified.
+**This is a bounded 64-step metamorphic regression, not a long-horizon stability claim.** It does not establish energy drift bounds over thousands of steps, forced RATTLE, pHDAE equivalence, contact/friction, or physical calibration. The 64-step trajectory and third-basis stress are newly authored and remain unqualified until the latest exact-head Rust 1.96 workflow passes.
 
 ## Algebraic preflight scope
 
