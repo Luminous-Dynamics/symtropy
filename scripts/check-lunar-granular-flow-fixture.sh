@@ -57,6 +57,12 @@ jq -e '
   and .vibration_assisted_feeder_source_reconstruction.proposed_gamma_threshold_screen.unique_cells == 800
   and (.vibration_assisted_feeder_source_reconstruction.proposed_gamma_threshold_screen.cells | length) == 800
   and all(.vibration_assisted_feeder_source_reconstruction.proposed_gamma_threshold_screen.cells[]; .execution_status == "planned_not_run")
+  and .cross_gravity_material_transfer_screen.unique_cells == 80
+  and (.cross_gravity_material_transfer_screen.cells | length) == 80
+  and ([.cross_gravity_material_transfer_screen.cells[].test_id] | length == (unique | length))
+  and all(.cross_gravity_material_transfer_screen.cells[]; .execution_status == "planned_not_run")
+  and ([.cross_gravity_material_transfer_screen.cells[].material] | unique | sort) == ["ICN-LHT-1", "LHS-1"]
+  and ([.cross_gravity_material_transfer_screen.cells[].gravity_m_s2] | unique | sort) == [1.62, 9.81]
   and .lhs1_ground_hopper_regime_extension.unique_cells == 63
   and (.lhs1_ground_hopper_regime_extension.cells | length) == 63
   and ([.lhs1_ground_hopper_regime_extension.cells[].test_id] | length == (unique | length))
