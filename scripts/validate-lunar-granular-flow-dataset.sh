@@ -124,8 +124,68 @@ for run_path in "${run_paths[@]}"; do
           ((.value | type) == "number")
           and ((.standard_uncertainty | type == "number" and .standard_uncertainty >= 0))
           and (.unit | type == "string" and length > 0)
+        elif .status == "derived" then
+          ((.value | type) == "number")
+          and ((.standard_uncertainty | type) == "number" and .standard_uncertainty >= 0)
+          and (.unit | type == "string" and length > 0)
+          and (.derivation_method_id | type == "string" and length > 0)
+          and (.calculation_version | type == "string" and length > 0)
         else false end)
   ' "$run_path" >/dev/null || fail "measurement status/value/uncertainty rule failed: $run_path"
+
+  jq -e '
+    def known($m): ($m.status != "unknown" and ($m.value | type) == "number");
+    . as $r
+    | $r.derived_coordinates as $d
+    | $d.formula_set_id == "lunar-granular-dimensionless-groups-v1"
+    and ($d.uncertainty_propagation_method == "first_order_gum"
+         or $d.uncertainty_propagation_method == "monte_carlo"
+         or $d.uncertainty_propagation_method == "interval_bounds"
+         or ($r.source_class == "synthetic_fixture"
+             and $d.uncertainty_propagation_method == "not_applicable_synthetic"))
+    and ($d.derived_from_artifact_ids | length > 0)
+    and all($d.derived_from_artifact_ids[]; . as $id | any($r.artifacts[]; .artifact_id == $id))
+    and (if known($r.material.mean_interparticle_cohesion_force_n)
+            and known($r.material.representative_particle_mass_kg)
+            and known($r.environment.gravity_m_s2)
+         then known($d.granular_bond_number)
+         else $d.granular_bond_number.status == "unknown" end)
+    and (if known($r.apparatus.wall_pull_off_force_n)
+            and known($r.material.representative_particle_mass_kg)
+            and known($r.environment.gravity_m_s2)
+         then known($d.wall_adhesion_to_particle_weight)
+         else $d.wall_adhesion_to_particle_weight.status == "unknown" end)
+    and (if known($r.operation.shear_rate_s_minus_1)
+            and known($r.operation.normal_confining_stress_pa)
+            and known($r.material.d50_um)
+            and known($r.material.bulk_density_kg_m3)
+         then known($d.inertial_number)
+         else $d.inertial_number.status == "unknown" end)
+    and (if known($r.material.surface_charge_coulomb_per_kg)
+            and known($r.environment.electrostatic_field_v_m)
+            and known($r.environment.gravity_m_s2)
+         then known($d.electrostatic_number)
+         else $d.electrostatic_number.status == "unknown" end)
+    and (if known($r.operation.vibration_peak_acceleration_m_s2)
+            and known($r.environment.gravity_m_s2)
+         then known($d.vibration_gamma)
+         else $d.vibration_gamma.status == "unknown" end)
+    and (if known($r.operation.vibration_frequency_hz)
+            and known($r.material.d50_um)
+            and known($r.environment.gravity_m_s2)
+         then known($d.vibration_frequency_gravity_scale)
+         else $d.vibration_frequency_gravity_scale.status == "unknown" end)
+    and (if known($r.operation.vibration_amplitude_m)
+            and known($r.material.d50_um)
+         then known($d.vibration_amplitude_to_particle_size)
+         else $d.vibration_amplitude_to_particle_size.status == "unknown" end)
+    and (if known($r.material.d50_um) and known($r.apparatus.drum_inner_radius_m)
+         then known($d.particle_to_drum_ratio)
+         else $d.particle_to_drum_ratio.status == "unknown" end)
+    and (if known($r.apparatus.wall_roughness_ra_um) and known($r.material.d50_um)
+         then known($d.wall_roughness_to_particle_ratio)
+         else $d.wall_roughness_to_particle_ratio.status == "unknown" end)
+  ' "$run_path" >/dev/null || fail "derived-coordinate dependency/provenance rules failed: $run_path"
 
   jq -e '
     [.artifacts[].artifact_id] as $ids
