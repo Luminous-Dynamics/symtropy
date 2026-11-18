@@ -21,7 +21,8 @@
     "policy": "staggered",
     "max_simultaneous_planned_maintenance": 1,
     "maintenance_already_accounted_in_individual_availability": true,
-    "maintenance_windows_staggered": true
+    "maintenance_windows_staggered": true,
+    "baseline_fleet_size": 3
   },
   "scenarios": [
     {
