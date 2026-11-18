@@ -641,6 +641,19 @@ fn branch_denominator_audit_preserves_missing_unsupported_and_unexpected_cases()
         },
         ProbeResultRecordV1 {
             schema_version: 1,
+            branch_id: "branch-a".to_string(),
+            manifest: ProbeManifestV1::from_spec(ProbeSpec { surface_friction: 0.3, tangential_impulse: 2.0 }),
+            disposition: ProbeDispositionV1::Completed,
+            completed_steps: STEPS,
+            collision_event_count: 1,
+            scenario_fingerprint: 11,
+            replay_tape_fingerprint: 12,
+            trajectory_fingerprint: 13,
+            outcome_fingerprint: 14,
+            record_fingerprint: 15,
+        },
+        ProbeResultRecordV1 {
+            schema_version: 1,
             branch_id: "branch-b".to_string(),
             manifest: ProbeManifestV1::from_spec(ProbeSpec { surface_friction: 0.4, tangential_impulse: 2.0 }),
             disposition: ProbeDispositionV1::Unsupported,
@@ -669,10 +682,10 @@ fn branch_denominator_audit_preserves_missing_unsupported_and_unexpected_cases()
 
     let audit = audit_expected_branches(&expected, &observed);
     assert_eq!(audit.expected_count, 3);
-    assert_eq!(audit.reported_count, 3);
-    assert_eq!(audit.completed_count, 1);
+    assert_eq!(audit.reported_count, 4);
+    assert_eq!(audit.completed_count, 2);
     assert_eq!(audit.missing, vec!["branch-c".to_string()]);
-    assert!(audit.duplicate.is_empty());
+    assert_eq!(audit.duplicate, vec!["branch-a".to_string()]);
     assert_eq!(audit.unexpected, vec!["unexpected".to_string()]);
     assert_eq!(
         audit.non_completed,
