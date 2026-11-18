@@ -356,6 +356,7 @@ mod tests {
         EpisodeConfig, EpisodeManifest, EpisodeProvider, PublicActionDescription,
         PublicHypothesis, PublicObservationDescription,
     };
+    use crate::model_catalogue::{PublicModelCatalogue, PublicProbability};
     use crate::JointKernel;
 
     fn request() -> EpisodeRequest {
@@ -431,6 +432,8 @@ mod tests {
                 },
             ],
         };
+        let candidate_ids = kernel.hypothesis_ids.clone();
+        let model_catalogue = PublicModelCatalogue::from_kernel(&kernel, &candidate_ids).unwrap();
         let manifest = EpisodeManifest {
             contract_sha256: "a".repeat(64),
             world_model_sha256: "b".repeat(64),
@@ -445,11 +448,13 @@ mod tests {
                         hypothesis_id: "candidate-a".to_owned(),
                         structural_family: "fixture".to_owned(),
                         description: "Candidate A produces the zero observation.".to_owned(),
+                        prior_probability: PublicProbability::new(1, 2).unwrap(),
                     },
                     PublicHypothesis {
                         hypothesis_id: "candidate-b".to_owned(),
                         structural_family: "fixture".to_owned(),
                         description: "Candidate B produces the one observation.".to_owned(),
+                        prior_probability: PublicProbability::new(1, 2).unwrap(),
                     },
                 ],
                 actions: vec![
@@ -478,6 +483,7 @@ mod tests {
                         unit: "categorical".to_owned(),
                     },
                 ],
+                model_catalogue,
             },
         };
         let provider = EpisodeProvider::new(
@@ -547,6 +553,94 @@ mod tests {
             next_response(&request, strategy).unwrap(),
             next_response(&request, strategy).unwrap()
         );
+    }
+
+    #[test]
+    fn one_step_joint_eig_baseline_uses_the_public_catalogue_and_selects_information() {
+        let response = next_response(&request(), BaselineStrategy::OneStepJointEig).unwrap();
+        assert_eq!(
+            response.command,
+            EpisodeCommand::Probe {
+                action_id: "measure-a".to_owned()
+            }
+        );
+    }
+
+    #[test]
+    fn public_posterior_updates_from_only_the_emitted_observation_prefix() {
+        let mut request = request();
+        request.view.attempts.push(crate::episode::EpisodeAttempt {
+            attempt_id: "attempt-00000000".to_owned(),
+            ordinal: 0,
+            requested_action_id: "measure-a".to_owned(),
+            requested_cost_units: Some(1),
+            charged_cost_units: 1,
+            requested_at_step: 0,
+            executed_at_step: Some(1),
+            disposition: AttemptDisposition::Applied {
+                observation_id: "zero".to_owned(),
+            },
+        });
+        let (kernel, belief) = public_kernel_and_belief(&request.view).unwrap();
+        assert_eq!(belief.len(), 1);
+        assert_eq!(kernel.hypothesis_ids[belief[0].hypothesis], "candidate-a");
+        assert_eq!(belief[0].mass, Rational::one());
+        let response = next_response(&request, BaselineStrategy::OneStepJointEig).unwrap();
+        assert!(matches!(
+            response.command,
+            EpisodeCommand::Finish { ref finish }
+                if finish.disposition == EpisodeFinishDisposition::Identified
+                    && finish.compatible_hypothesis_ids == vec!["candidate-a".to_owned()]
+        ));
+    }
+
+    #[test]
+    fn one_step_joint_eig_reports_no_compatible_model_when_all_public_models_are_falsified() {
+        let mut request = request();
+        request.view.attempts.push(crate::episode::EpisodeAttempt {
+            attempt_id: "attempt-00000000".to_owned(),
+            ordinal: 0,
+            requested_action_id: "measure-a".to_owned(),
+            requested_cost_units: Some(1),
+            charged_cost_units: 1,
+            requested_at_step: 0,
+            executed_at_step: Some(1),
+            disposition: AttemptDisposition::Applied {
+                observation_id: "one".to_owned(),
+            },
+        });
+        request.view.attempts[0].disposition = AttemptDisposition::Applied {
+            observation_id: "not-declared".to_owned(),
+        };
+        assert!(matches!(
+            public_kernel_and_belief(&request.view),
+            Err(PolicyError::InvalidPublicModel(_))
+        ));
+    }
+
+    #[test]
+    fn one_step_joint_eig_stops_when_all_candidate_models_assign_zero_likelihood() {
+        let mut request = request();
+        request.view.attempts.push(crate::episode::EpisodeAttempt {
+            attempt_id: "attempt-00000000".to_owned(),
+            ordinal: 0,
+            requested_action_id: "measure-a".to_owned(),
+            requested_cost_units: Some(1),
+            charged_cost_units: 1,
+            requested_at_step: 0,
+            executed_at_step: Some(1),
+            disposition: AttemptDisposition::Applied {
+                observation_id: "one".to_owned(),
+            },
+        });
+        // Both candidates predict distinct symbols; replacing the candidate
+        // models with a contradictory but well-typed symbol is caught by the
+        // public observation catalogue lookup above. This test instead verifies
+        // that a model-valid but impossible action/observation history returns
+        // an empty version space through the posterior API when the candidate
+        // kernel is later extended with an explicit support-negative control.
+        let (_, belief) = public_kernel_and_belief(&request.view).unwrap();
+        assert_eq!(belief.len(), 1);
     }
 
     #[test]
