@@ -148,7 +148,7 @@ jq -e '
     )
 ' "$run_path" >/dev/null || fail "quality sample identity, assay evidence or distribution fields invalid"
 
-assay_artifact_path="$(jq -er '.artifacts[] | select(.role == "mineral_assay") | .path' "$run_path")"
+assay_artifact_path="$(jq -er '.artifacts[] | select(.role == "mineral_and_particle_size_assay") | .path' "$run_path")"
 settings_artifact_path="$(jq -er '.artifacts[] | select(.role == "stage_settings") | .path' "$run_path")"
 mass_artifact_path="$(jq -er '.artifacts[] | select(.role == "mass_balance") | .path' "$run_path")"
 
@@ -184,6 +184,41 @@ jq -e --slurpfile settings "$run_dir/$settings_artifact_path" '
       . as $event
       | any($settings[0].settings[]; .event_id == $event.event_id))
 ' "$run_path" >/dev/null || fail "stage event has no matching settings record in its referenced artifact"
+
+jq -e '
+  . as $r
+  | all($r.material_streams[];
+      . as $stream
+      | all([$stream.composition_artifact_id,$stream.psd_artifact_id][];
+          . as $id | $id == null or any($r.artifacts[]; .artifact_id == $id))
+        and (($stream.composition_artifact_id == null)
+             or any($r.artifacts[];
+               .artifact_id == $stream.composition_artifact_id
+               and (.role == "mineral_assay" or .role == "mineral_and_particle_size_assay")))
+        and (($stream.psd_artifact_id == null)
+             or any($r.artifacts[];
+               .artifact_id == $stream.psd_artifact_id
+               and (.role == "particle_size_assay" or .role == "mineral_and_particle_size_assay"))))
+    and all($r.quality_samples[];
+      . as $sample
+      | all([$sample.thermal_properties_artifact_id,
+             $sample.charge_profile_artifact_id,
+             $sample.shape_profile_artifact_id,
+             $sample.uncertainty_budget_artifact_id][];
+          . as $id | $id == null or any($r.artifacts[]; .artifact_id == $id))
+        and (($sample.thermal_properties_artifact_id == null)
+             or any($r.artifacts[];
+               .artifact_id == $sample.thermal_properties_artifact_id and .role == "thermal_properties"))
+        and (($sample.charge_profile_artifact_id == null)
+             or any($r.artifacts[];
+               .artifact_id == $sample.charge_profile_artifact_id and .role == "charge_profile"))
+        and (($sample.shape_profile_artifact_id == null)
+             or any($r.artifacts[];
+               .artifact_id == $sample.shape_profile_artifact_id and .role == "shape_profile"))
+        and (($sample.uncertainty_budget_artifact_id == null)
+             or any($r.artifacts[];
+               .artifact_id == $sample.uncertainty_budget_artifact_id and .role == "uncertainty_budget")))
+' "$run_path" >/dev/null || fail "stream or quality-sample artifact pointer/role is invalid"
 
 jq -e --slurpfile mass "$run_dir/$mass_artifact_path" '
   . as $r
@@ -253,10 +288,25 @@ jq -e '
         else
           ($sample.target_size_mass_fraction.value - $sample.target_size_mass_fraction.standard_uncertainty) as $lower
           | ($sample.target_size_mass_fraction.value + $sample.target_size_mass_fraction.standard_uncertainty) as $upper
-          | if $lower >= $profile.minimum_target_size_mass_fraction.value then "pass"
-            elif $upper < $profile.minimum_target_size_mass_fraction.value then "out"
+          | if $lower >= ($profile.minimum_target_size_mass_fraction.value
+                          + $profile.minimum_target_size_mass_fraction.standard_uncertainty) then "pass"
+            elif $upper < ($profile.minimum_target_size_mass_fraction.value
+                           + $profile.minimum_target_size_mass_fraction.standard_uncertainty) then "out"
             else "indeterminate" end
         end
+      ] + [
+        if (($profile.required_properties | index("thermal_properties")) != null) then
+          if $sample.thermal_properties_artifact_id != null then "pass" else "unknown" end
+        else "pass" end,
+        if (($profile.required_properties | index("charge_profile")) != null) then
+          if $sample.charge_profile_artifact_id != null then "pass" else "unknown" end
+        else "pass" end,
+        if (($profile.required_properties | index("shape_profile")) != null) then
+          if $sample.shape_profile_artifact_id != null then "pass" else "unknown" end
+        else "pass" end,
+        if (($profile.required_properties | index("uncertainty_budget")) != null) then
+          if $sample.uncertainty_budget_artifact_id != null then "pass" else "unknown" end
+        else "pass" end
       ]) as $statuses
   | ($r.stage_events | map(select((.input_stream_ids | length) > 0) | .mass_closure_status)
      | all(. == "within_declared_tolerance")) as $mass_closed
