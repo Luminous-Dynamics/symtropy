@@ -725,6 +725,29 @@ mod tests {
     }
 
     #[test]
+    fn commanded_and_measured_gamma_mismatch_stops_withdrawal() {
+        let mut supervisor = FeederSupervisor::new(config()).unwrap();
+        let mut obs = observation();
+        obs.measured_gamma = Some(3.4);
+        let decision = supervisor.step(&obs).unwrap();
+        assert_eq!(decision.mode, DecisionMode::SensorHold);
+        assert_eq!(decision.feeder_command, FeederCommand::Stop);
+        assert_eq!(decision.vibration_command, VibrationCommand::Off);
+    }
+
+    #[test]
+    fn energy_trim_is_not_recommended_without_power_measurement() {
+        let mut supervisor = FeederSupervisor::new(config()).unwrap();
+        let mut obs = observation();
+        obs.measured_vibration_power_w = None;
+        supervisor.step(&obs).unwrap();
+        supervisor.step(&obs).unwrap();
+        let decision = supervisor.step(&obs).unwrap();
+        assert_eq!(decision.vibration_command, VibrationCommand::Hold);
+        assert_eq!(supervisor.state.commanded_gamma, 4.4);
+    }
+
+    #[test]
     fn recovered_flow_resumes_at_previous_feeder_setpoint() {
         let mut supervisor = FeederSupervisor::new(config()).unwrap();
         let mut stopped = observation();
