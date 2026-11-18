@@ -10,8 +10,8 @@
     "preparation_protocol_id": "SYNTHETIC-PREP-A",
     "tool_geometry_id": "SYNTHETIC-TOOL-A",
     "operating_regime_id": "SYNTHETIC-QUASISTATIC-A",
-    "laboratory_id": null,
-    "campaign_id": "SYNTHETIC-CAMPAIGN-0"
+    "laboratory_id": "SYN-LAB-A",
+    "campaign_id": "SYN-CAMPAIGN-A"
   },
   "specimen": {
     "material_family": "lunar_regolith_simulant",
