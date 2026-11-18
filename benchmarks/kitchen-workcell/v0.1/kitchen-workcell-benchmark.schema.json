@@ -15,7 +15,8 @@
     "target_hypotheses",
     "runs",
     "power_scheduler",
-    "planner_baselines"
+    "planner_baselines",
+    "analysis_plan"
   ],
   "properties": {
     "schema_version": {
@@ -492,6 +493,344 @@
           "evaluation_role": {
             "type": "string",
             "minLength": 1
+          }
+        }
+      }
+    },
+    "analysis_plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "design_status",
+        "primary_endpoints",
+        "hard_gates",
+        "randomization",
+        "matching",
+        "sample_size",
+        "estimands",
+        "analysis",
+        "missing_data",
+        "protocol_parity",
+        "reporting"
+      ],
+      "properties": {
+        "design_status": {
+          "const": "proposed_not_preregistered"
+        },
+        "primary_endpoints": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "accepted_servings",
+              "energy_wh_per_accepted_serving",
+              "water_l_per_accepted_serving",
+              "meal_actual_cost_per_accepted_serving",
+              "user_present_time_per_accepted_meal",
+              "sensory_liking_9pt"
+            ]
+          }
+        },
+        "hard_gates": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 10
+          }
+        },
+        "randomization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "design",
+            "allocation_unit",
+            "order_randomization",
+            "blinding",
+            "operator_cross_over",
+            "protocol_ref"
+          ],
+          "properties": {
+            "design": {
+              "type": "string",
+              "minLength": 1
+            },
+            "allocation_unit": {
+              "type": "string",
+              "minLength": 1
+            },
+            "order_randomization": {
+              "const": true
+            },
+            "randomization_method": {
+              "type": "string",
+              "minLength": 1
+            },
+            "blinding": {
+              "type": "string",
+              "minLength": 1
+            },
+            "operator_cross_over": {
+              "type": "string",
+              "minLength": 1
+            },
+            "protocol_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "matching": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "matched_inputs",
+            "matched_conditions",
+            "comparator_identity",
+            "operator_effects"
+          ],
+          "properties": {
+            "matched_inputs": {
+              "type": "array",
+              "minItems": 5,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "matched_conditions": {
+              "type": "array",
+              "minItems": 3,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "comparator_identity": {
+              "const": "exact_type_plate_model_revision_firmware_accessory_kit_and_market_sku"
+            },
+            "operator_effects": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "sample_size": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "power_analysis_required",
+            "alpha",
+            "target_power",
+            "minimum_repetitions_per_condition",
+            "consumer_panel_size_per_sample",
+            "power_analysis_ref"
+          ],
+          "properties": {
+            "status": {
+              "const": "not_calculated"
+            },
+            "power_analysis_required": {
+              "const": true
+            },
+            "alpha": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "exclusiveMaximum": 0.5
+            },
+            "target_power": {
+              "type": "number",
+              "exclusiveMinimum": 0.5,
+              "exclusiveMaximum": 1
+            },
+            "minimum_repetitions_per_condition": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            },
+            "consumer_panel_size_per_sample": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            },
+            "power_analysis_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "estimands": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "primary_contrast",
+            "paired_unit",
+            "quality_noninferiority",
+            "no_composite_score"
+          ],
+          "properties": {
+            "primary_contrast": {
+              "type": "string",
+              "minLength": 1
+            },
+            "paired_unit": {
+              "type": "string",
+              "minLength": 1
+            },
+            "quality_noninferiority": {
+              "type": "string",
+              "minLength": 1
+            },
+            "no_composite_score": {
+              "const": true
+            }
+          }
+        },
+        "analysis": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "effect_estimates",
+            "intervals",
+            "clustering",
+            "multiple_comparisons",
+            "uncertainty_propagation",
+            "independent_adjudication"
+          ],
+          "properties": {
+            "effect_estimates": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "intervals": {
+              "type": "string",
+              "minLength": 1
+            },
+            "clustering": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "multiple_comparisons": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uncertainty_propagation": {
+              "type": "string",
+              "minLength": 1
+            },
+            "independent_adjudication": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "missing_data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "failed_runs",
+            "aborted_runs",
+            "unknown_measurements",
+            "withdrawals",
+            "denominator_policy"
+          ],
+          "properties": {
+            "failed_runs": {
+              "const": "retain_in_all_attempted_run_denominators"
+            },
+            "aborted_runs": {
+              "const": "retain_with_reason_and_partial_evidence"
+            },
+            "unknown_measurements": {
+              "const": "remain_unknown_never_zero_filled"
+            },
+            "withdrawals": {
+              "type": "honor_consent_and_report_counts_without_sensitive_reason"
+            },
+            "denominator_policy": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "protocol_parity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "same_inputs",
+            "same_task_graph",
+            "same_environment",
+            "same_instrumentation",
+            "external_benchmark_parity"
+          ],
+          "properties": {
+            "same_inputs": {
+              "const": true
+            },
+            "same_task_graph": {
+              "const": true
+            },
+            "same_environment": {
+              "const": true
+            },
+            "same_instrumentation": {
+              "const": true
+            },
+            "external_benchmark_parity": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "reporting": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "report_per_condition",
+            "report_distribution",
+            "report_worst_case",
+            "report_all_failed_attempts",
+            "forbid_metric_compensation"
+          ],
+          "properties": {
+            "report_per_condition": {
+              "const": true
+            },
+            "report_distribution": {
+              "const": true
+            },
+            "report_worst_case": {
+              "const": true
+            },
+            "report_all_failed_attempts": {
+              "const": true
+            },
+            "forbid_metric_compensation": {
+              "const": true
+            }
           }
         }
       }
