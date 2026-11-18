@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://luminousdynamics.io/schemas/construction-site-state-event-v0.1.json",
   "title": "Construction Site State Event v0.1",
-  "description": "Versioned JSON wire mapping for SiteEventEnvelope. The consumer must verify canonical bytes, SHA-256 values and actor signatures before reducer ingestion.",
+  "description": "Versioned JSON wire mapping for SiteEventEnvelope, including exclusive space-time resource reservations. Consumers verify canonical bytes, SHA-256 values and actor signatures before reducer ingestion.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -46,7 +46,9 @@
         "surveyor",
         "robot",
         "referee",
-        "site_quality_authority"
+        "site_quality_authority",
+        "site_resource_authority",
+        "dispatch_coordinator"
       ]
     },
     "payload": {
@@ -63,12 +65,20 @@
         {
           "$ref": "#/$defs/robot_observation_recorded"
         },
-        "{$ref:\"#/$defs/execution_interrupted\"}",
         {
           "$ref": "#/$defs/referee_assessment_recorded"
         },
         {
           "$ref": "#/$defs/human_waiver_issued"
+        },
+        {
+          "$ref": "#/$defs/resource_catalog_published"
+        },
+        {
+          "$ref": "#/$defs/space_time_reservation_committed"
+        },
+        {
+          "$ref": "#/$defs/space_time_reservation_released"
         }
       ]
     }
@@ -584,6 +594,249 @@
           "minLength": 1
         },
         "interruption_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "resource_definition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_id",
+        "definition_sha256"
+      ],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "definition_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "exclusive_resource_claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_id",
+        "definition_sha256",
+        "start_tick",
+        "end_tick"
+      ],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "definition_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "start_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_tick": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "space_time_reservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reservation_id",
+        "resource_catalog_sha256",
+        "resource_claim_manifest_sha256",
+        "claims",
+        "package_sha256",
+        "design_revision_sha256",
+        "entity_id",
+        "robot_id",
+        "envelope_sha256",
+        "readiness_receipt_sha256",
+        "occupancy_assessment_receipt_sha256",
+        "occupancy_engine_build_sha256",
+        "clearance_policy_sha256",
+        "site_snapshot_sha256",
+        "site_ledger_sequence",
+        "site_ledger_event_sha256",
+        "site_clock_domain_id",
+        "checked_at_tick",
+        "valid_until_tick",
+        "committed_at_tick",
+        "start_tick",
+        "end_tick",
+        "lease_valid_until_tick"
+      ],
+      "properties": {
+        "reservation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_catalog_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "resource_claim_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "claims": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/exclusive_resource_claim"
+          }
+        },
+        "package_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "design_revision_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "entity_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "robot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "envelope_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "readiness_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "occupancy_assessment_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "occupancy_engine_build_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "clearance_policy_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_ledger_sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "site_ledger_event_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checked_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "committed_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "start_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "lease_valid_until_tick": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "resource_catalog_published": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "catalog_sha256",
+        "resources"
+      ],
+      "properties": {
+        "kind": {
+          "const": "resource_catalog_published"
+        },
+        "catalog_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "resources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/resource_definition"
+          }
+        }
+      }
+    },
+    "space_time_reservation_committed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "reservation"
+      ],
+      "properties": {
+        "kind": {
+          "const": "space_time_reservation_committed"
+        },
+        "reservation": {
+          "$ref": "#/$defs/space_time_reservation"
+        }
+      }
+    },
+    "space_time_reservation_released": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "reservation_id",
+        "site_clock_domain_id",
+        "cleared_at_tick",
+        "site_snapshot_sha256",
+        "site_ledger_sequence",
+        "site_ledger_event_sha256",
+        "release_receipt_sha256"
+      ],
+      "properties": {
+        "kind": {
+          "const": "space_time_reservation_released"
+        },
+        "reservation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cleared_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "site_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_ledger_sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "site_ledger_event_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "release_receipt_sha256": {
           "$ref": "#/$defs/sha256"
         }
       }
