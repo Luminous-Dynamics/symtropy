@@ -12,6 +12,13 @@ pub use ifc_ids_preflight::{
 };
 pub mod site_state_ledger;
 pub mod cumulative_resource_capacity;
+pub mod robust_capacity_profile;
+pub use robust_capacity_profile::{
+    CapacityAvailabilityWindow, RobustCapacityAssessment, RobustCapacityError,
+    RobustCapacitySegment, RobustCumulativeCapacityReport,
+    RobustCumulativeCapacityScenario, RobustResourceCapacitySummary,
+    evaluate_robust_cumulative_resource_capacity,
+};
 pub use cumulative_resource_capacity::{
     CapacityDemandClaim, CapacityReservation, CapacityResourceDefinition,
     CapacityViolationSegment, CumulativeCapacityError, CumulativeCapacityReport,

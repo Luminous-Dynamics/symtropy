@@ -2,12 +2,14 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use construction_motion_oracle::{
-    AnalyticPath, CapacityDemandClaim, CapacityReservation, CapacityResourceDefinition,
-    CumulativeCapacityScenario, DesignIntentEntity, DispatchEnvelopeBinding,
+    AnalyticPath, CapacityAvailabilityWindow, CapacityDemandClaim, CapacityReservation,
+    CapacityResourceDefinition, CumulativeCapacityScenario, DesignIntentEntity,
+    DispatchEnvelopeBinding,
     DispatchReadinessRequest, ExclusiveResourceClaim, FieldAcceptanceProfile,
     FieldLayoutEntityType, OccupancyAssessmentReceipt, SiteActorRole, SiteEventEnvelope,
-    SiteEventPayload, SiteResourceDefinition, SiteStateLedger, SiteWorkPackage,
-    SpaceTimeReservation, Vec3, evaluate_cumulative_resource_capacity,
+    RobustCumulativeCapacityScenario, SiteEventPayload, SiteResourceDefinition, SiteStateLedger,
+    SiteWorkPackage, SpaceTimeReservation, Vec3, evaluate_cumulative_resource_capacity,
+    evaluate_robust_cumulative_resource_capacity,
     chord_collision, check_dispatch_readiness, endpoints_only_collision,
     verify_dispatch_readiness_receipt_current,
 };
@@ -129,6 +131,7 @@ fn main() {
     run_site_dispatch_readiness_benchmarks();
     run_exclusive_resource_reservation_index_benchmarks();
     run_cumulative_resource_capacity_sweep_benchmarks();
+    run_robust_capacity_derating_benchmarks();
 }
 
 
@@ -565,6 +568,7 @@ fn build_cumulative_capacity_benchmark_scenario(claim_count: u64) -> CumulativeC
     let resources: Vec<CapacityResourceDefinition> = (0..10_u64)
         .map(|index| CapacityResourceDefinition {
             resource_id: format!("capacity-resource-{index:02}"),
+            capacity_owner_id: format!("owner:capacity-resource-{index:02}"),
             definition_sha256: benchmark_digest(3_000 + index),
             capacity_units: 8,
             unit_label: "load-units".into(),
@@ -606,6 +610,94 @@ fn build_cumulative_capacity_benchmark_scenario(claim_count: u64) -> CumulativeC
     }
 }
 
+fn build_robust_capacity_benchmark_scenario(
+    claim_count: u64,
+) -> RobustCumulativeCapacityScenario {
+    let base = build_cumulative_capacity_benchmark_scenario(claim_count);
+    let mut availability_windows = Vec::with_capacity(base.resources.len() * 3);
+    for (resource_index, definition) in base.resources.iter().enumerate() {
+        let receipt_base = 2_000_000 + (resource_index as u64 * 3);
+        availability_windows.extend([
+            CapacityAvailabilityWindow {
+                resource_id: definition.resource_id.clone(),
+                resource_definition_sha256: definition.definition_sha256.clone(),
+                site_snapshot_sha256: base.site_snapshot_sha256.clone(),
+                site_clock_domain_id: base.site_clock_domain_id.clone(),
+                capacity_owner_id: format!("owner:{}", definition.resource_id),
+                evidence_receipt_sha256: benchmark_digest(receipt_base),
+                start_tick: 1_000,
+                end_tick: 2_500,
+                lower_capacity_units: 6,
+                nominal_capacity_units: 7,
+                upper_capacity_units: 8,
+            },
+            CapacityAvailabilityWindow {
+                resource_id: definition.resource_id.clone(),
+                resource_definition_sha256: definition.definition_sha256.clone(),
+                site_snapshot_sha256: base.site_snapshot_sha256.clone(),
+                site_clock_domain_id: base.site_clock_domain_id.clone(),
+                capacity_owner_id: format!("owner:{}", definition.resource_id),
+                evidence_receipt_sha256: benchmark_digest(receipt_base + 1),
+                start_tick: 2_500,
+                end_tick: 4_000,
+                lower_capacity_units: 3,
+                nominal_capacity_units: 5,
+                upper_capacity_units: 6,
+            },
+            CapacityAvailabilityWindow {
+                resource_id: definition.resource_id.clone(),
+                resource_definition_sha256: definition.definition_sha256.clone(),
+                site_snapshot_sha256: base.site_snapshot_sha256.clone(),
+                site_clock_domain_id: base.site_clock_domain_id.clone(),
+                capacity_owner_id: format!("owner:{}", definition.resource_id),
+                evidence_receipt_sha256: benchmark_digest(receipt_base + 2),
+                start_tick: 4_000,
+                end_tick: 6_000,
+                lower_capacity_units: 5,
+                nominal_capacity_units: 6,
+                upper_capacity_units: 8,
+            },
+        ]);
+    }
+    RobustCumulativeCapacityScenario {
+        base,
+        availability_windows,
+    }
+}
+
+fn run_robust_capacity_derating_benchmarks() {
+    println!(
+        "robust_capacity_derating,claim_count,capacity_windows,p50_us,p95_us,p99_us,boundary_count,indeterminate_segments,definitely_over_segments,impacted_reservations,robustly_feasible"
+    );
+    for claim_count in [100_u64, 1_000, 10_000, 100_000] {
+        let scenario = build_robust_capacity_benchmark_scenario(claim_count);
+        let mut durations = Vec::with_capacity(21);
+        let mut last_report = None;
+        for _ in 0..21 {
+            let start = Instant::now();
+            let report = evaluate_robust_cumulative_resource_capacity(black_box(&scenario))
+                .expect("synthetic robust-capacity scenario must validate");
+            durations.push(start.elapsed());
+            last_report = Some(report);
+        }
+        durations.sort_unstable();
+        let report = last_report.expect("at least one robust capacity sample");
+        println!(
+            "{},{},{},{},{},{},{},{},{},{}",
+            claim_count,
+            scenario.availability_windows.len(),
+            percentile(&durations, 50).as_micros(),
+            percentile(&durations, 95).as_micros(),
+            percentile(&durations, 99).as_micros(),
+            report.total_boundary_count,
+            report.indeterminate_segment_count,
+            report.definitely_over_capacity_segment_count,
+            report.impacted_reservation_ids().len(),
+            report.is_robustly_feasible
+        );
+    }
+}
+
 fn run_cumulative_resource_capacity_sweep_benchmarks() {
     println!(
         "cumulative_resource_capacity,claim_count,p50_us,p95_us,p99_us,boundary_count,violation_segments,feasible"
@@ -624,7 +716,7 @@ fn run_cumulative_resource_capacity_sweep_benchmarks() {
         durations.sort_unstable();
         let report = last_report.expect("at least one cumulative capacity sample");
         println!(
-            "{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{}",
             claim_count,
             percentile(&durations, 50).as_micros(),
             percentile(&durations, 95).as_micros(),

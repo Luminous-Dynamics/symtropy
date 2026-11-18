@@ -200,3 +200,28 @@ This is deliberately a research oracle rather than a scheduler or ledger mutatio
 Unit tests compare capacity-one behavior to a mutex model, demonstrate capacity-N sharing and weighted overload intervals, check half-open boundaries and digest/clock/resource mismatches, verify input-order determinism and compare randomized peak loads against a discrete-tick reference oracle.
 
 The CI microbenchmark evaluates 100, 1,000, 10,000 and 100,000 claims across ten resource definitions, reporting p50/p95/p99 sweep latency, boundary count, violation segment count and feasibility. These are synthetic algorithm measurements only.
+
+
+### Robust time-varying capacity derating oracle
+
+The research module robust_capacity_profile extends the capacity-N sweep with owner-attested, time-varying capacity windows. Examples include a hoist derated by wind, a shared temporary power feed whose available kW changes, a staging area partly unavailable, or a workcell with fewer active bays. Each window is bound to the resource definition digest, site snapshot, owner identity and an evidence receipt, and carries lower/nominal/upper capacity bounds over a half-open site-clock interval.
+
+The classification is deliberately asymmetric:
+- WithinLowerBound: observed demand is no greater than the qualified lower capacity bound. This is the only robustly feasible result.
+- IndeterminateWithinCapacityRange: demand exceeds the lower bound but not the upper bound. The available capacity is not established tightly enough to admit the work.
+- DefinitelyOverUpperBound: demand exceeds even the upper bound.
+
+Windows must be non-overlapping, bind to the same frozen site snapshot, resource-definition owner and explicit site clock domain, have valid evidence digest syntax and obey lower ≤ nominal ≤ upper. The site-clock domain is repeated on every availability window and must equal the base scenario clock; integer ticks from another site clock are rejected. Each resource definition carries its responsible capacity_owner_id, and the window must name exactly that owner. The canonical resource-definition digest must cover the owner identity and its scope. This is a consistency check, not authentication: callers still verify the catalog digest, owner authorization, signed evidence bytes and clock provenance upstream. This profile models derating or partial unavailability only; it cannot increase above the installed capacity in the owner-approved resource catalog. Increasing installed capacity requires a new resource definition/catalog revision, not a wider transient window.
+
+The fixed capacity-N oracle remains the baseline. The robust evaluator combines reservation interval boundaries with capacity-window boundaries, and returns every indeterminate or definitely-overloaded interval separately. Each non-robust segment includes the exact sorted reservation IDs contributing demand in that interval; impacted_reservation_ids() returns a stable deduplicated list for targeted holds and replanning. Multiple overlapping claims under one reservation are reference-counted so a contributor remains active until its final claim ends. It never converts an uncertain capacity estimate into a safe result. Every interval with active demand must be covered by explicit non-overlapping owner-attested availability windows. A normal interval is represented by a window whose lower, nominal and upper capacities all equal the installed rating. Missing coverage is `UnqualifiedCapacityInterval`; it is never silently treated as full installed capacity. Every window also repeats the site clock domain and named capacity owner, which must match the scenario and canonical resource definition. The profile is still an assessment oracle: owner/evidence signatures and canonical bytes must be verified upstream, and it does not perform scheduling or actuator authorization.
+
+Unit tests cover time-local derating, indeterminate capacity bands, exact lower-bound acceptance, zero capacity, overlapping windows, invalid receipts, stale snapshots, resource-definition mismatch, permutation invariance and prevention of transient capacity increases.
+
+The Linux microbenchmark evaluates robust windows across 10 resources and 100/1,000/10,000/100,000 weighted claims. It reports p50/p95/p99 latency and separates indeterminate from definitely-over-capacity intervals. These are synthetic algorithm measurements only.
+
+
+### Robust capacity derating input fixture and validation
+
+schema/robust-capacity-scenario-v0.1.schema.json defines the versioned input shape for capacity resources, weighted reservations and owner-attested availability windows. examples/robust-capacity-scenario-synthetic-v0.1.json demonstrates two resources: a temporary hoist derated enough to be definitely over its upper bound, and a power feed whose demand falls between lower and upper capacity, therefore indeterminate. The hashes and receipts are synthetic placeholders. Cross-field constraints such as window non-overlap, resource-definition binding, snapshot binding and upper capacity not exceeding installed capacity are checked by the Rust evaluator, not all expressible in JSON Schema.
+
+The robust evaluator is exported by the oracle crate and its Linux benchmark compares four sizes (100, 1,000, 10,000 and 100,000 claims) against ten resources with three time-varying windows per resource. The output separates indeterminate windows from definite overloads; a single boolean is not used to collapse those categories.

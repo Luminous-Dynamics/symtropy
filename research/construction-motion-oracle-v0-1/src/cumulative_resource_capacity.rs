@@ -14,6 +14,9 @@ use std::collections::{BTreeMap, BTreeSet};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CapacityResourceDefinition {
     pub resource_id: String,
+    /// Owner identity is part of the canonical resource definition digest.
+    /// Callers must verify that the digest covers this identity and its scope.
+    pub capacity_owner_id: String,
     pub definition_sha256: String,
     pub capacity_units: u64,
     /// Unit is domain-defined (e.g. kW, kg, pallet positions, parallel bays).
@@ -346,6 +349,7 @@ mod tests {
     fn definition(id: &str, capacity: u64) -> CapacityResourceDefinition {
         CapacityResourceDefinition {
             resource_id: id.into(),
+            capacity_owner_id: format!("{id}-owner"),
             definition_sha256: digest('a'),
             capacity_units: capacity,
             unit_label: "units".into(),
