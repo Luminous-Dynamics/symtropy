@@ -392,9 +392,8 @@ mod tests {
             proposal.uncertainties[0].impact,
             UncertaintyImpactV1::PlanningBlocker
         );
-        assert!(proposal.tasks.iter().all(|task| {
-            task.fact_refs.iter().all(|fact_ref| fact_ref != "fixture:unresolved")
-        }));
+        assert_eq!(proposal.tasks[0].fact_refs, vec!["fixture:recipe"]);
+        assert!(proposal.tasks[1].fact_refs.is_empty());
     }
 
     #[test]
