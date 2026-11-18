@@ -14,6 +14,28 @@ Status: draft / not run. Parent execution issue: https://github.com/Luminous-Dyn
 5. Never change `evidence_class` from simulated/modelled to measured because a prediction matched an expected value.
 
 
+## Industry comparison: what exists and where this programme is different
+
+The relevant market is not a single leaderboard. A connected multicooker, guided-cooking ecosystem, robotic manipulation policy, smart-home protocol and independently assayed food-production workcell are different product classes.
+
+| Industry/system layer | Publicly demonstrated strength | What our programme should measure beyond it |
+|---|---|---|
+| **Thermomix TM7 + Cookidoo** | Company-reported scale: over 100,000 Guided Cooking recipes, 6.3 million Cookidoo subscribers, approximately 400 million guided recipes cooked in 2025 and 1.4 million TM7 units sold in 2025. Its integrated appliance, recipe guidance, meal planning and shopping-list workflow is a strong incumbent benchmark. | Whether the whole meal is compiled across independently replaceable modules/vendors; whether the exact household lot/receipt is reconciled; measured water, wall energy and actual cost per accepted serving; independent quality/hygiene; accessibility, manual/offline completion and preservation of original user intent. Do not claim incumbents lack capabilities unless a matched product test demonstrates that. |
+| **Matter 1.6 / connected-home ecosystems** | Standardized device capability/limit communication, clearer operational status and stronger multi-controller ecosystem coordination. | Meal semantics, material flow, recipe/task provenance, food lots, food-quality assays and household acceptance sit above device transport. Matter compatibility must never imply meal-task compatibility or safety permission. |
+| **RoboCasa365 / BEHAVIOR-1K / SafeVLA-Bench** | Strong task-manipulation, long-horizon household interaction and post-hoc safety evaluation on distinct simulated benchmarks. | Preserve split/evaluator parity and add physical meal outcomes, quality, hygiene, actual household cost, accepted servings, manual resilience and non-compensatory safety/intent gates. |
+| **IEC/SABS appliance test ecosystem** | Product-specific safety/performance and dishwasher measurement methods, with accredited laboratory capability in South Africa. | Keep product conformity independent from our planner; bind local type plate, revision, firmware, test report and applicable regulatory evidence before comparator claims or import. |
+
+Vorwerk's figures are company-reported scale/usage metrics, not independent measures of food quality, energy efficiency or whole-meal household outcomes. Likewise, the absence of a claim in a public product page is not proof that a competitor lacks that feature. Comparisons must use acquired exact revisions and frozen matched tasks.
+
+**Our competitive thesis:** do not build another recipe-content silo or another device controller. Build the evidence and orchestration layer that lets the household choose among appliances and methods, compile a full meal, preserve food-lot and material lineage, understand cost/resource trade-offs, and know when the available evidence is insufficient.
+
+Primary competitive advantage hypotheses (not achieved results):
+- 100% exact proposal/acceptance/source/module revision binding and zero unknown-to-known promotions on the frozen adversarial suite.
+- 100% original hard-constraint preservation; zero unapproved exclusions/substitutions.
+- lower measured energy, water and actual cost per accepted serving without a sensory or hygiene non-inferiority failure.
+- higher offline/manual completion and accessibility agency without disabling appliance-local interlocks.
+- cross-vendor module onboarding and substitution based on capability contracts and exact revision evidence, not brand ecosystem membership.
+
 ## Whole-meal intent fidelity
 
 Task success is not the same as satisfying the household's request. The manifest now adds an independent `meal-intent-adjudication` task and two metrics:
