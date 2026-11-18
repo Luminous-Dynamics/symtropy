@@ -37,7 +37,26 @@
     "weighted_l1_condition": "q*nu < 1",
     "weighted_l1_nu": "2",
     "q_times_nu": "6-4*sqrt(2)",
-    "tail_bound": "(17/(15*sqrt(2))) * (q*nu)^(N+1)/(1-q*nu)"
+    "tail_bound": "(17/(15*sqrt(2))) * (q*nu)^(N+1)/(1-q*nu)",
+    "upstream_bilateral_conversion": {
+      "source_revision": "IlPreteRosso/RadiiPolynomial@445773960f43",
+      "source_files": {
+        "bilateral_weight": "RadiiPolynomial/Analysis/SequenceSpace/Chebyshev/Scalar.lean",
+        "symmetric_storage": "RadiiPolynomial/Analysis/SequenceSpace/Chebyshev/Symmetrize.lean",
+        "one_sided_norm": "RadiiPolynomial/Analysis/SequenceSpace/Chebyshev/OneSided.lean"
+      },
+      "basis_identity": "T_n(x)=(z^n+z^-n)/2, x=(z+z^-1)/2",
+      "coefficient_map": {
+        "c_0": "a_0",
+        "c_n_for_n_positive": "a_n/2",
+        "c_minus_n_for_n_positive": "a_n/2"
+      },
+      "norm_identity": "|c_0|+sum_{n>=1}(|c_n|+|c_-n|)*nu^n = |a_0|+sum_{n>=1}|a_n|*nu^n",
+      "tail_conversion_factor": "1 (no extra factor)",
+      "checked_algebraically": true,
+      "formalized_in_pinned_lean_source": false,
+      "executed_in_lean": false
+    }
   },
   "tail_reference_values_mpmath_80_decimal_digits": [
     {
@@ -70,9 +89,10 @@
     "geometric_tail_formula_derived": true,
     "decimal_values_high_precision_reference": true,
     "sample_point_comparisons_are_not_used_as_the_tail_proof": true,
-    "upstream_bilateral_chebyshev_normalization_conversion_proved": false,
+    "upstream_bilateral_chebyshev_normalization_conversion_proved": true,
     "lean_executed": false,
-    "black_hole_bvp_certificate": false
+    "black_hole_bvp_certificate": false,
+    "upstream_bilateral_chebyshev_conversion_formalized_in_lean": false
   },
   "claim_ceiling": "Analytic weighted coefficient tail bound for the 1/r term in one known MK metric on the compact annulus [3,6]. It is not a complete nonlinear residual bound or a radii-polynomial existence certificate."
 }
