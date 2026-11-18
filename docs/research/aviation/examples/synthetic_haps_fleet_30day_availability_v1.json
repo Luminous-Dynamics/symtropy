@@ -293,7 +293,9 @@
     "ground_ready_spares": 1,
     "launch_lead_time_h": 12,
     "recovery_duration_h": 12,
-    "reposition_duration_h": 2
+    "reposition_duration_h": 2,
+    "airborne_holding_slots": 0,
+    "simultaneous_reposition_capacity": 1
   },
   "expected_oracle": {
     "oracle_status": "independently_calculated",
@@ -364,7 +366,8 @@
       "launch_operations": 3,
       "recovery_operations": 3,
       "maintenance_overlap_violations": 0,
-      "reserve_strategy_energy_wh": 141840
+      "reserve_strategy_energy_wh": 141840,
+      "reposition_operations": 0
     }
   },
   "source_evidence_refs": [
