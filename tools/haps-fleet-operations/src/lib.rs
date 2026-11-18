@@ -136,6 +136,8 @@ pub struct ExpectedOperationsOracle {
     pub demand_weighted_available_hours: f64,
     pub demand_weighted_total_hours: f64,
     pub demand_weighted_service_availability_fraction: f64,
+    pub demand_weighted_capacity_satisfaction_units_hours: f64,
+    pub demand_weighted_capacity_satisfaction_fraction: f64,
     pub outage_episode_count: u32,
     pub total_outage_hours: f64,
     pub maximum_contiguous_outage_hours: f64,
@@ -164,6 +166,8 @@ pub struct FleetOperationsReport {
     pub demand_weighted_available_hours: f64,
     pub demand_weighted_total_hours: f64,
     pub demand_weighted_service_availability_fraction: f64,
+    pub demand_weighted_capacity_satisfaction_units_hours: f64,
+    pub demand_weighted_capacity_satisfaction_fraction: f64,
     pub outage_episode_count: u32,
     pub total_outage_hours: f64,
     pub maximum_contiguous_outage_hours: f64,
@@ -379,6 +383,8 @@ pub fn evaluate_case(case: &FleetOperationsCase) -> Result<FleetOperationsReport
         demand_weighted_available_hours: 0.0,
         demand_weighted_total_hours: 0.0,
         demand_weighted_service_availability_fraction: 0.0,
+        demand_weighted_capacity_satisfaction_units_hours: 0.0,
+        demand_weighted_capacity_satisfaction_fraction: 0.0,
         outage_episode_count: 0,
         total_outage_hours: 0.0,
         maximum_contiguous_outage_hours: 0.0,
@@ -426,6 +432,12 @@ pub fn evaluate_case(case: &FleetOperationsCase) -> Result<FleetOperationsReport
         let demand_period = case.demand_periods.iter().find(|period| period.start_hour <= hour && hour < period.end_hour)
             .ok_or_else(|| OperationsError::new(format!("no demand period for hour {hour}")))?;
         report.demand_weighted_total_hours += demand_period.demand_weight;
+        let capacity_fraction = service_capacity / case.required_service_capacity_units;
+        if capacity_fraction > 1.0 {
+            capacity_fraction = 1.0;
+        }
+        report.demand_weighted_capacity_satisfaction_units_hours +=
+            demand_period.demand_weight * capacity_fraction;
 
         if service_capacity + EPSILON >= case.required_service_capacity_units {
             report.service_adequate_hours += 1.0;
@@ -464,6 +476,8 @@ pub fn evaluate_case(case: &FleetOperationsCase) -> Result<FleetOperationsReport
     report.strict_service_availability_fraction = report.service_adequate_hours / f64::from(case.horizon_hours);
     report.demand_weighted_service_availability_fraction =
         report.demand_weighted_available_hours / report.demand_weighted_total_hours;
+    report.demand_weighted_capacity_satisfaction_fraction =
+        report.demand_weighted_capacity_satisfaction_units_hours / report.demand_weighted_total_hours;
 
     for handover in &case.handover_attempts {
         report.handover_offered_sessions += handover.offered_sessions;
@@ -507,6 +521,8 @@ pub fn verify_expected_oracle(
     close!(demand_weighted_available_hours);
     close!(demand_weighted_total_hours);
     close!(demand_weighted_service_availability_fraction);
+    close!(demand_weighted_capacity_satisfaction_units_hours);
+    close!(demand_weighted_capacity_satisfaction_fraction);
     close!(total_outage_hours);
     close!(maximum_contiguous_outage_hours);
     close!(degraded_service_hours);
@@ -548,6 +564,7 @@ mod tests {
         assert_eq!(report.service_adequate_hours, 708.0);
         assert!((report.strict_service_availability_fraction - 0.9833333333333333).abs() < 1e-12);
         assert!((report.demand_weighted_service_availability_fraction - 0.9365079365079365).abs() < 1e-12);
+        assert!((report.demand_weighted_capacity_satisfaction_fraction - 0.9841269841269841).abs() < 1e-12);
         assert_eq!(report.total_outage_hours, 12.0);
         assert_eq!(report.maximum_contiguous_outage_hours, 12.0);
     }
@@ -640,6 +657,7 @@ mod tests {
         assert_eq!(report.service_adequate_hours, 720.0);
         assert_eq!(report.strict_service_availability_fraction, 1.0);
         assert_eq!(report.demand_weighted_service_availability_fraction, 1.0);
+        assert_eq!(report.demand_weighted_capacity_satisfaction_fraction, 1.0);
         assert_eq!(report.degraded_service_hours, 12.0);
         assert!((report.minimum_service_capacity_units - 2.2).abs() < 1.0e-8);
     }
