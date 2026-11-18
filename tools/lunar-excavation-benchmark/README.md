@@ -4,12 +4,12 @@ This directory holds a run-level JSON Schema and an intentionally synthetic exam
 
 ## Files
 
-- \`benchmark-run.schema.json\`: JSON Schema Draft 2020-12 for one experiment/model-comparison record.
-- \`dataset-manifest.schema.json\`: JSON Schema for group-disjoint partition assignments and blind-test freeze policy.
-- \`examples/synthetic-calibration-run.json\`: structurally representative but non-physical run fixture.
-- \`examples/synthetic-dataset-manifest.json\`: three-partition, group-isolated synthetic manifest.
-- \`examples/synthetic-force-trace.csv\`: tiny synthetic force trace referenced by the fixture.
-- \`examples/synthetic-model-config.json\`: fixture model configuration.
+- `benchmark-run.schema.json`: JSON Schema Draft 2020-12 for one experiment/model-comparison record.
+- `dataset-manifest.schema.json`: JSON Schema for group-disjoint partition assignments and blind-test freeze policy.
+- `examples/synthetic-calibration-run.json`: structurally representative but non-physical run fixture.
+- `examples/synthetic-dataset-manifest.json`: three-partition, group-isolated synthetic manifest.
+- `examples/synthetic-force-trace.csv`: tiny synthetic force trace referenced by the fixture.
+- `examples/synthetic-model-config.json`: fixture model configuration.
 
 ## Why this contract exists
 
@@ -24,7 +24,7 @@ A benchmark therefore needs to preserve material batch, preparation, tool geomet
 
 ## Partition and leakage policy
 
-Every record declares one partition: \`calibration\`, \`validation\`, or \`blind_test\`. The manifest/evaluator (a later dataset-level validator) must enforce disjoint groups across partitions on the preregistered isolation axes:
+Every record declares one partition: `calibration`, `validation`, or `blind_test`. The manifest/evaluator (a later dataset-level validator) must enforce disjoint groups across partitions on the preregistered isolation axes:
 
 1. material batch;
 2. preparation / compaction protocol;
@@ -37,8 +37,8 @@ Do not randomly split repeated samples from the same batch/run campaign and then
 ## Measurement and artifact rules
 
 - SI units are mandatory in field names and explicit in every measurement.
-- \`unknown\` is represented by null value and null uncertainty; it is not zero.
-- \`measured\`, \`published\`, and \`estimated\` observations must retain their source artifact. Physical measurements additionally require a calibration record for the measuring instrument.
+- `unknown` is represented by null value and null uncertainty; it is not zero.
+- `measured`, `published`, and `estimated` observations must retain their source artifact. Physical measurements additionally require a calibration record for the measuring instrument.
 - Every artifact path resolves to bytes whose SHA-256 equals the declared digest. IDs are unique within a run, and all *_artifact_id references resolve to exactly one artifact.
 - Preserve the raw force-time series; peak/mean/impulse summaries do not replace it.
 - Keep observed measurements separate from model predictions and prediction intervals.
@@ -106,7 +106,7 @@ Use the best matched published or independently reproduced baseline on each test
 2. **Generalization:** reduce held-out normalized force-curve error by at least 20% versus the strongest predeclared empirical/analytical baseline, while maintaining nominal 90–95% interval coverage within a preregistered tolerance. This is a research target to test, not a claim of present capability.
 3. **Calibration efficiency:** reach the same held-out error and interval coverage with at least 25% fewer physical calibration runs than the strongest baseline. Count total specimens, operator-hours and test energy, not only solver iterations.
 4. **Robustness:** no hidden pooling across material batches; publish worst-regime error and all non-converged cases. Any critical regime failure blocks a broad-model claim.
-5. **Material chain:** close measured mass balance within combined instrument uncertainty or return \`indeterminate / reconciliation required\`; no loss is silently set to zero.
+5. **Material chain:** close measured mass balance within combined instrument uncertainty or return `indeterminate / reconciliation required`; no loss is silently set to zero.
 6. **Service productivity:** improve accepted delivered tonnes per mission-kWh and per mission-hour without reducing particle-size quality, availability, tool life or safety margins.
 
 The percentage targets above are deliberately comparative. Absolute tolerances must be set after a matched terrestrial analogue pilot and tied to the instrument uncertainty and intended use.
