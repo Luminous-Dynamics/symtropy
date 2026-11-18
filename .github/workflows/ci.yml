@@ -83,6 +83,10 @@ jobs:
     # These are standalone tool workspaces, so the main workspace matrix does not
     # automatically compile them. Keep their formatting, tests, Clippy and JSON
     # example executions explicit on Linux.
+    - name: Lunar Granular Flow Source Registry (Linux)
+      if: runner.os == 'Linux'
+      run: bash scripts/check-lunar-granular-flow-sources.sh
+
     - name: Lunar Granular Flow Rust Tools (Linux)
       if: runner.os == 'Linux'
       run: |
