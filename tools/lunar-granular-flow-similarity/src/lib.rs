@@ -228,7 +228,7 @@ fn fill_result(
         candidate_value: Some(candidate),
         deviation: Some(delta),
         declared_tolerance: Some(absolute_tolerance),
-        status: status.clone(),
+        status,
         interpretation: match status {
             CoordinateStatus::WithinTolerance => {
                 "absolute fill-fraction difference is within the declared tolerance".to_owned()
@@ -312,7 +312,7 @@ pub fn compare(input: &ComparisonInput) -> Result<SimilarityReport, String> {
         }
     }
 
-    let mut coordinates = vec![
+    let coordinates = vec![
         positive_ratio_result("froude_number", a.froude_number, b.froude_number, t.froude_factor)?,
         positive_ratio_result(
             "cohesion_to_particle_weight",
