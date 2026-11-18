@@ -270,8 +270,8 @@ pub struct ChlamydomonasTrack {
     pub path_length_um: f64,
     pub net_displacement_um: f64,
     pub net_displacement_heading_rad: Option<f64>,
-    /// Direction of light propagation, not the direction of its gradient.
-    pub stimulus_axis_heading_rad: Option<f64>,
+    /// Experiment-defined direction of positive phototactic response.
+    pub positive_phototaxis_axis_heading_rad: Option<f64>,
 }
 
 impl ChlamydomonasTrack {
@@ -290,7 +290,7 @@ impl ChlamydomonasTrack {
         if self.net_displacement_um > self.path_length_um + 1.0e-9 {
             return Err(AlgalKinematicsError::DisplacementExceedsPath);
         }
-        for heading in [self.net_displacement_heading_rad, self.stimulus_axis_heading_rad]
+        for heading in [self.net_displacement_heading_rad, self.positive_phototaxis_axis_heading_rad]
             .into_iter()
             .flatten()
         {
@@ -535,7 +535,9 @@ impl fmt::Display for AlgalKinematicsError {
             Self::InvalidClassificationPolicy => {
                 write!(formatter, "classification thresholds must be finite, ordered and in range")
             }
-            Self::NonFiniteMeasurement => write!(formatter, "curvature measurement must be finite"),
+            Self::NonFiniteMeasurement => {
+                write!(formatter, "curvature measurement must be finite")
+            }
             Self::NonFiniteHeading => {
                 write!(formatter, "track and stimulus headings must be finite")
             }
@@ -742,7 +744,7 @@ mod tests {
             path_length_um,
             net_displacement_um,
             net_displacement_heading_rad: net_heading,
-            stimulus_axis_heading_rad: stimulus_heading,
+            positive_phototaxis_axis_heading_rad: stimulus_heading,
         }
     }
 
@@ -828,6 +830,20 @@ mod tests {
             summarize_chlamydomonas_tracks(&[duplicate.clone(), duplicate], policy(), 0),
             Err(AlgalKinematicsError::DuplicateTrackId)
         );
+    }
+
+    #[test]
+    fn non_directional_tracks_are_not_assessed_for_phototaxis_sign() {
+        let stationary = track("stationary", 0.5, 0.2, 2.0, None, Some(0.0));
+        let classification = classify_chlamydomonas_track(&stationary, policy()).unwrap();
+        assert_eq!(
+            classification.phototaxis_alignment,
+            PhototaxisAlignment::NotAssessed
+        );
+        let summary =
+            summarize_chlamydomonas_tracks(&[stationary], policy(), 0).unwrap();
+        assert_eq!(summary.not_assessed_alignment_count, 1);
+        assert_eq!(summary.unresolved_alignment_count, 0);
     }
 
     #[test]
