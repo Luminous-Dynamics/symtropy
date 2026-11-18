@@ -265,7 +265,8 @@ impl CollisionResponseSummary {
         let contact_incidence_rate_hz =
             Some(observations.len() as f64 / observation_time_s);
         let evidence_qualified_contact_incidence_rate_hz =
-            Some(evidence_qualified_contact_count as f64 / observation_time_s);
+            (evidence_qualified_contact_count > 0)
+                .then(|| evidence_qualified_contact_count as f64 / observation_time_s);
         let per_contact_reversal_fraction = (evidence_qualified_contact_count > 0)
             .then(|| reversal_count as f64 / evidence_qualified_contact_count as f64);
         let population_reversal_rate_hz = if evidence_qualified_contact_count > 0
@@ -544,6 +545,7 @@ mod tests {
         assert_eq!(summary.total_contact_count, 1);
         assert_eq!(summary.excluded_contact_count, 1);
         assert_eq!(summary.evidence_qualified_contact_count, 0);
+        assert_eq!(summary.evidence_qualified_contact_incidence_rate_hz, None);
         assert_eq!(summary.per_contact_reversal_fraction, None);
         assert_eq!(summary.population_reversal_rate_hz, None);
     }
