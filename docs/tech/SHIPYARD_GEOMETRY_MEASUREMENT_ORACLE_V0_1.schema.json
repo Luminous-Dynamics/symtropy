@@ -1,0 +1,250 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synthetic registered 2D profile-comparison request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "reference",
+    "observed",
+    "registration",
+    "limits"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SHIPYARD-GEOMETRY-MEASUREMENT-ORACLE-001"
+    },
+    "reference": {
+      "$ref": "#/$defs/profile"
+    },
+    "observed": {
+      "$ref": "#/$defs/profile"
+    },
+    "registration": {
+      "$ref": "#/$defs/registration"
+    },
+    "limits": {
+      "$ref": "#/$defs/limits"
+    }
+  },
+  "$defs": {
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_class",
+        "workpiece_id",
+        "joint_revision",
+        "transition_id",
+        "scan_id",
+        "scan_sha256",
+        "coordinate_frame",
+        "captured_at_tick",
+        "points",
+        "x_grid_sha256",
+        "layer_id",
+        "predecessor_pass_id"
+      ],
+      "properties": {
+        "evidence_class": {
+          "enum": [
+            "synthetic_contract_only",
+            "measured",
+            "simulation"
+          ]
+        },
+        "workpiece_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joint_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transition_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scan_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scan_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "coordinate_frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "captured_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "points": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/point"
+          }
+        },
+        "x_grid_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "layer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "predecessor_pass_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "point": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x_um",
+        "z_um",
+        "uncertainty_um"
+      ],
+      "properties": {
+        "x_um": {
+          "type": "integer"
+        },
+        "z_um": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "uncertainty_um": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "registration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_sha256",
+        "reference_scan_sha256",
+        "observed_scan_sha256",
+        "source_frame",
+        "target_frame",
+        "calibration_id",
+        "algorithm_revision",
+        "maximum_residual_um",
+        "declared_residual_limit_um"
+      ],
+      "properties": {
+        "receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "reference_scan_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "observed_scan_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "algorithm_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "maximum_residual_um": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "declared_residual_limit_um": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "region_start_um",
+        "region_end_um",
+        "minimum_coverage_permille",
+        "maximum_unsupported_gap_um",
+        "maximum_point_uncertainty_um",
+        "maximum_registration_residual_um",
+        "maximum_integrated_uncertainty_area2_um2",
+        "decision_at_tick",
+        "maximum_observation_age_ticks"
+      ],
+      "properties": {
+        "region_start_um": {
+          "type": "integer"
+        },
+        "region_end_um": {
+          "type": "integer"
+        },
+        "minimum_coverage_permille": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "maximum_unsupported_gap_um": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximum_point_uncertainty_um": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximum_registration_residual_um": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_integrated_uncertainty_area2_um2": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "decision_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_observation_age_ticks": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

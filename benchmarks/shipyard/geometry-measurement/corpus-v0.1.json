@@ -1,0 +1,362 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "SHIPYARD-GEOMETRY-MEASUREMENT-ORACLE-001",
+  "arithmetic": {
+    "coordinates": "integer micrometres",
+    "area_representation": "twice integer square-micrometres (µm² × 2)",
+    "crossing_rule": "split opposite-sign linear segments at exact rational zero crossing; round each lobe to nearest integer µm² × 2, ties upward",
+    "uncertainty_rule": "integrate reference point uncertainty + observed point uncertainty + maximum registration residual as a piecewise-linear conservative envelope",
+    "no_gap_interpolation": true
+  },
+  "positive_known_answers": [
+    {
+      "case_id": "GMO-001",
+      "class": "positive",
+      "geometry": "identical",
+      "x_um": [
+        0,
+        1000,
+        2000
+      ],
+      "reference_z_um": [
+        0,
+        0,
+        0
+      ],
+      "observed_z_um": [
+        0,
+        0,
+        0
+      ],
+      "reference_uncertainty_um": 2,
+      "observed_uncertainty_um": 3,
+      "registration_residual_um": 1,
+      "expected": {
+        "disposition": "QUALIFIED",
+        "signed_net_area2_um2": 0,
+        "added_area2_um2": 0,
+        "removed_area2_um2": 0,
+        "absolute_change_area2_um2": 0,
+        "integrated_uncertainty_bound_area2_um2": 24000,
+        "maximum_absolute_deviation_um": 0,
+        "mean_absolute_deviation_um": 0,
+        "coverage_permille": 1000
+      }
+    },
+    {
+      "case_id": "GMO-002",
+      "class": "positive",
+      "geometry": "constant_positive_offset",
+      "x_um": [
+        0,
+        1000,
+        2000
+      ],
+      "reference_z_um": [
+        0,
+        0,
+        0
+      ],
+      "observed_z_um": [
+        1000,
+        1000,
+        1000
+      ],
+      "reference_uncertainty_um": 2,
+      "observed_uncertainty_um": 3,
+      "registration_residual_um": 1,
+      "expected": {
+        "disposition": "QUALIFIED",
+        "signed_net_area2_um2": 4000000,
+        "added_area2_um2": 4000000,
+        "removed_area2_um2": 0,
+        "absolute_change_area2_um2": 4000000,
+        "integrated_uncertainty_bound_area2_um2": 24000,
+        "maximum_absolute_deviation_um": 1000,
+        "mean_absolute_deviation_um": 1000,
+        "coverage_permille": 1000
+      }
+    },
+    {
+      "case_id": "GMO-003",
+      "class": "positive",
+      "geometry": "linear_zero_crossing",
+      "x_um": [
+        0,
+        1000
+      ],
+      "reference_z_um": [
+        0,
+        0
+      ],
+      "observed_z_um": [
+        1000,
+        -1000
+      ],
+      "reference_uncertainty_um": 2,
+      "observed_uncertainty_um": 3,
+      "registration_residual_um": 1,
+      "expected": {
+        "disposition": "QUALIFIED",
+        "signed_net_area2_um2": 0,
+        "added_area2_um2": 500000,
+        "removed_area2_um2": 500000,
+        "absolute_change_area2_um2": 1000000,
+        "integrated_uncertainty_bound_area2_um2": 12000,
+        "maximum_absolute_deviation_um": 1000,
+        "mean_absolute_deviation_um": 500,
+        "coverage_permille": 1000
+      }
+    },
+    {
+      "case_id": "GMO-004",
+      "class": "positive",
+      "geometry": "constant_negative_offset",
+      "x_um": [
+        0,
+        1000,
+        2000
+      ],
+      "reference_z_um": [
+        0,
+        0,
+        0
+      ],
+      "observed_z_um": [
+        -500,
+        -500,
+        -500
+      ],
+      "reference_uncertainty_um": 2,
+      "observed_uncertainty_um": 3,
+      "registration_residual_um": 1,
+      "expected": {
+        "disposition": "QUALIFIED",
+        "signed_net_area2_um2": -2000000,
+        "added_area2_um2": 0,
+        "removed_area2_um2": 2000000,
+        "absolute_change_area2_um2": 2000000,
+        "integrated_uncertainty_bound_area2_um2": 24000,
+        "maximum_absolute_deviation_um": 500,
+        "mean_absolute_deviation_um": 500,
+        "coverage_permille": 1000
+      }
+    }
+  ],
+  "negative_known_answers": [
+    {
+      "case_id": "GMO-005",
+      "class": "negative_control",
+      "geometry": "long_internal_missing_region",
+      "x_um": [
+        0,
+        1000,
+        2000,
+        8000,
+        9000,
+        10000
+      ],
+      "reference_z_um": [
+        0,
+        0,
+        null,
+        null,
+        0,
+        0
+      ],
+      "observed_z_um": [
+        0,
+        0,
+        null,
+        null,
+        0,
+        0
+      ],
+      "reference_uncertainty_um": 2,
+      "observed_uncertainty_um": 3,
+      "registration_residual_um": 1,
+      "expected": {
+        "disposition": "ABSTAIN",
+        "reason": "UnsupportedGapTooLarge",
+        "coverage_permille": 200,
+        "maximum_unsupported_gap_um": 8000
+      }
+    }
+  ],
+  "negative_controls": [
+    {
+      "control_id": "GMO-006",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "reference and observed workpiece IDs differ",
+      "reason": "WorkpieceMismatch"
+    },
+    {
+      "control_id": "GMO-007",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "joint revision differs",
+      "reason": "JointRevisionMismatch"
+    },
+    {
+      "control_id": "GMO-008",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "layer/pass transition identity differs",
+      "reason": "TransitionMismatch"
+    },
+    {
+      "control_id": "GMO-009",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "source scan SHA-256 does not match the registration receipt",
+      "reason": "ScanIdentityMismatch"
+    },
+    {
+      "control_id": "GMO-010",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "scan SHA-256 is malformed or absent",
+      "reason": "InvalidDigest"
+    },
+    {
+      "control_id": "GMO-011",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "registration receipt SHA-256 is malformed or absent",
+      "reason": "InvalidDigest"
+    },
+    {
+      "control_id": "GMO-012",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "reference and observed target coordinate frames differ",
+      "reason": "CoordinateFrameMismatch"
+    },
+    {
+      "control_id": "GMO-013",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "registration receipt targets a different coordinate frame",
+      "reason": "CoordinateFrameMismatch"
+    },
+    {
+      "control_id": "GMO-014",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "registration residual exceeds either declared limit",
+      "reason": "RegistrationResidualTooLarge"
+    },
+    {
+      "control_id": "GMO-015",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "reference and observed x-station grids differ",
+      "reason": "StationGridMismatch"
+    },
+    {
+      "control_id": "GMO-016",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "x stations are duplicate or reversed",
+      "reason": "NonMonotonicStations"
+    },
+    {
+      "control_id": "GMO-017",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "an observed z value exists but its uncertainty is missing or zero",
+      "reason": "MissingPointUncertainty"
+    },
+    {
+      "control_id": "GMO-018",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "point uncertainty exceeds the declared maximum",
+      "reason": "PointUncertaintyTooLarge"
+    },
+    {
+      "control_id": "GMO-019",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "capture timestamp is later than decision time",
+      "reason": "FutureObservation"
+    },
+    {
+      "control_id": "GMO-020",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "profile capture age exceeds the decision limit",
+      "reason": "ObservationTooOld"
+    },
+    {
+      "control_id": "GMO-021",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "observed profile does not follow reference profile in time",
+      "reason": "ObservationOrderMismatch"
+    },
+    {
+      "control_id": "GMO-022",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "profile does not span the region of interest exactly",
+      "reason": "RegionNotExactlyCovered"
+    },
+    {
+      "control_id": "GMO-023",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "unsupported internal interval exceeds the maximum gap",
+      "reason": "UnsupportedGapTooLarge"
+    },
+    {
+      "control_id": "GMO-024",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "valid coverage falls below the declared minimum",
+      "reason": "CoverageBelowMinimum"
+    },
+    {
+      "control_id": "GMO-025",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "integrated uncertainty exceeds the decision limit",
+      "reason": "IntegratedUncertaintyTooLarge"
+    },
+    {
+      "control_id": "GMO-026",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "physical measured or simulated evidence is submitted to synthetic-only v0",
+      "reason": "PhysicalEvidenceNotAdmitted"
+    },
+    {
+      "control_id": "GMO-027",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "checked integer area arithmetic would overflow",
+      "reason": "NumericOverflow"
+    },
+    {
+      "control_id": "GMO-028",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "reference and observed scan IDs are identical",
+      "reason": "ScanIdentityMismatch"
+    },
+    {
+      "control_id": "GMO-029",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "either profile contains fewer than two stations",
+      "reason": "ProfileTooShort"
+    },
+    {
+      "control_id": "GMO-030",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "minimum coverage is zero or exceeds 1000 permille",
+      "reason": "InvalidCoverageLimit"
+    },
+    {
+      "control_id": "GMO-031",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "reference and observed profiles contain the same number of x stations but different canonical x-grid SHA-256 identifiers",
+      "reason": "XGridDigestMismatch"
+    },
+    {
+      "control_id": "GMO-032",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "reference and observed profiles bind different layer IDs while the scan and transition IDs remain otherwise valid",
+      "reason": "LayerMismatch"
+    },
+    {
+      "control_id": "GMO-033",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "reference and observed profiles bind different predecessor pass IDs while the transition string is unchanged",
+      "reason": "PredecessorPassMismatch"
+    }
+  ],
+  "totals": {
+    "cases": 33,
+    "positive": 4,
+    "negative": 29,
+    "additional_negative_controls": 28
+  }
+}
