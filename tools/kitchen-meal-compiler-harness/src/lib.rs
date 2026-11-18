@@ -293,7 +293,47 @@ mod tests {
         assert!(report.is_compiled(), "{:?}", report.issues);
         assert_eq!(report.disposition, MealCompilationDispositionV1::Compiled);
         assert_eq!(report.recipe_graph.as_ref().unwrap().tasks.len(), 2);
-        assert_eq!(report.food_flow_graph.as_ref().unwrap().edges.len(), 4);
+        assert_eq!(report.food_flow_graph.as_ref().unwrap().edges.len(), 5);
+    }
+
+    #[test]
+    fn planned_task_inputs_must_reconcile_to_outputs_and_explicit_losses() {
+        let mut request = valid_request();
+        request.task_bindings[1]
+            .outputs
+            .retain(|output| output.output_ref != "saute-loss");
+        request
+            .food_flow_edges
+            .retain(|edge| edge.edge_id != "edge:saute-to-planned-loss");
+        let report = meal_compiler::compile_meal(&request);
+        assert_eq!(report.disposition, MealCompilationDispositionV1::Conflicted);
+        assert!(report.issues.iter().any(|issue| {
+            issue.code == MealCompilationIssueCodeV1::TaskMaterialBalanceMismatch
+        }));
+    }
+
+    #[test]
+    fn per_ingredient_output_contributions_must_equal_the_output_quantity() {
+        let mut request = valid_request();
+        request.task_bindings[0].outputs[0].ingredient_contributions[0].quantity =
+            qty(239, QuantityUnitV1::Gram);
+        let report = meal_compiler::compile_meal(&request);
+        assert_eq!(report.disposition, MealCompilationDispositionV1::Conflicted);
+        assert!(report.issues.iter().any(|issue| {
+            issue.code == MealCompilationIssueCodeV1::OutputContributionTotalMismatch
+        }));
+    }
+
+    #[test]
+    fn one_planned_output_cannot_mix_mass_and_volume_contributions() {
+        let mut request = valid_request();
+        request.task_bindings[0].outputs[0].ingredient_contributions[0].quantity =
+            qty(240, QuantityUnitV1::Millilitre);
+        let report = meal_compiler::compile_meal(&request);
+        assert_eq!(report.disposition, MealCompilationDispositionV1::Blocked);
+        assert!(report.issues.iter().any(|issue| {
+            issue.code == MealCompilationIssueCodeV1::InvalidOutputContribution
+        }));
     }
 
     #[test]
