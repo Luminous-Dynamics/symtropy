@@ -2346,7 +2346,7 @@ mod tests {
         assert_eq!(report.disposition, Disposition::Indeterminate);
         assert!(has_code(&report, "EVIDENCE_ID_CONFLICT"));
         assert!(!has_code(&report, "HOOK_LOAD_LIMIT_EXCEEDED"));
-        assert_eq!(report.maximum_hook_load_upper_mn, Some(410_000_000));
+        assert_eq!(report.maximum_hook_load_upper_mn, Some(405_000_000));
     }
 
     #[test]
