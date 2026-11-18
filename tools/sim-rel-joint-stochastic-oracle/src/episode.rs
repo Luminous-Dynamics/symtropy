@@ -511,7 +511,7 @@ impl EpisodeProvider {
             return Err(EpisodeError::IncompleteTrace);
         }
         if self.attempts.iter().any(|attempt| {
-            matches!(attempt.disposition, AttemptDisposition::HazardTerminal)
+            matches!(&attempt.disposition, AttemptDisposition::HazardTerminal)
         }) {
             return Err(EpisodeError::EpisodeAlreadyTerminal);
         }
@@ -544,7 +544,7 @@ impl EpisodeProvider {
         let applied_interventions = self
             .attempts
             .iter()
-            .filter(|attempt| matches!(attempt.disposition, AttemptDisposition::Applied { .. }))
+            .filter(|attempt| matches!(&attempt.disposition, AttemptDisposition::Applied { .. }))
             .count();
 
         Ok(EpisodeEvaluation {
@@ -591,7 +591,7 @@ impl EpisodeProvider {
                     .kernel
                     .action_ids
                     .iter()
-                    .position(|candidate| candidate == action_id)
+                    .position(|candidate| candidate.as_str() == *action_id)
                     .ok_or_else(|| EpisodeError::EvaluationFailure(
                         "applied attempt references an action outside the kernel".to_owned(),
                     ))?;
@@ -599,7 +599,7 @@ impl EpisodeProvider {
                     .kernel
                     .observation_ids
                     .iter()
-                    .position(|candidate| candidate == observation_id)
+                    .position(|candidate| candidate.as_str() == *observation_id)
                     .ok_or_else(|| EpisodeError::EvaluationFailure(
                         "applied attempt references an observation outside the kernel".to_owned(),
                     ))?;
