@@ -6,6 +6,7 @@ on:
     paths:
       - "tools/haps-fleet-operations/**"
       - "docs/research/aviation/examples/synthetic_haps_fleet_operations_case_v1.json"
+      - "docs/research/aviation/examples/synthetic_haps_fleet_weather_diverse_reserve_case_v1.json"
       - "docs/research/aviation/schemas/haps_fleet_operations_case_v1.schema.json"
 
 permissions:
@@ -35,3 +36,6 @@ jobs:
 
       - name: Replay 30-day event trace
         run: cargo run --locked --manifest-path tools/haps-fleet-operations/Cargo.toml -- docs/research/aviation/examples/synthetic_haps_fleet_operations_case_v1.json
+
+      - name: Replay weather-diverse reserve trace
+        run: cargo run --locked --manifest-path tools/haps-fleet-operations/Cargo.toml -- docs/research/aviation/examples/synthetic_haps_fleet_weather_diverse_reserve_case_v1.json
