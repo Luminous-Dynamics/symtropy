@@ -1693,8 +1693,6 @@ mod tests {
             source_id: source_id.to_owned(),
             source_revision: source_revision.to_owned(),
             sequence,
-            event_tick: tick,
-            received_tick: tick + 2,
             source_clock_domain_id: format!("source-clock::{source_id}"),
             clock_mapping_source_domain_id: format!("source-clock::{source_id}"),
             clock_mapping_target_domain_id: "yard-clock".to_owned(),
