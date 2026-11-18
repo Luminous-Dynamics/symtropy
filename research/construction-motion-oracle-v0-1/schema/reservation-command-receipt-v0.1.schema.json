@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-reservation-command-receipt-v0.1.json",
+  "title": "Construction Reservation Command Receipt v0.1",
+  "description": "Result of the software command-admission predicate. It is not an authenticated signature, actuator permit or safety-rated authorization.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "reservation_id",
+    "fencing_token",
+    "robot_id",
+    "attempt_id",
+    "package_sha256",
+    "entity_id",
+    "envelope_sha256",
+    "command_id",
+    "command_sha256",
+    "command_sequence",
+    "ledger_sequence",
+    "ledger_event_sha256",
+    "valid_until_tick"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-space-time-reservation-command/0.1"
+    },
+    "reservation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fencing_token": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "robot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "attempt_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "package_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "entity_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "envelope_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "command_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "command_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "command_sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "ledger_sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "ledger_event_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "valid_until_tick": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
