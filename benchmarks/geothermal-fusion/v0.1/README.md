@@ -43,14 +43,14 @@ Evidence class is not a confidence score. A newer or more precise value does not
 10. Reservoir-to-wellhead pressure / enthalpy / phase-path benchmark: include near-isenthalpic expansion, wellbore pressure drop, mass-flow sensitivity, transmissivity and wellhead state; never substitute reservoir temperature for delivered temperature.
 11. Superhot well integrity, thermal cycling, chemistry, materials and sensor degradation, including subcritical phase-transition windows and corrosion sensitivity around 300–350 °C where supported by the fluid chemistry.
 12. Superhot performance sensitivity: compare temperature-only ranking against a joint pressure–transmissivity–mass-flow–wellhead-exergy ranking.
-11. ORC / flash / steam / indirect sCO₂ comparisons at matched source state and service boundary.
-12. Fusion facility load breakdown by plasma heating/current drive, magnets, cryogenics, vacuum, tritium, cooling, control and buildings.
-13. Concept-dependent fusion blanket / divertor / vessel heat streams with independently sourced temperature / pressure / coolant data.
-14. Fusion heat plus an isolated thermal-store / industrial process service.
-15. Combined multi-temperature heat cascade, storage dispatch and pinch constraints.
-16. Geothermal source outage + grid outage + depleted storage + fusion startup / recovery attempt.
-17. Shared substation / cooling / water / wellfield / controls common-cause failure.
-18. South African low-enthalpy evidence case; superhot resource values remain unknown until source-backed.
+13. ORC / flash / steam / indirect sCO₂ comparisons at matched source state and service boundary.
+14. Fusion facility load breakdown by plasma heating/current drive, magnets, cryogenics, vacuum, tritium, cooling, control and buildings.
+15. Concept-dependent fusion blanket / divertor / vessel heat streams with independently sourced temperature / pressure / coolant data.
+16. Fusion heat plus an isolated thermal-store / industrial process service.
+17. Combined multi-temperature heat cascade, storage dispatch and pinch constraints.
+18. Geothermal source outage + grid outage + depleted storage + fusion startup / recovery attempt.
+19. Shared substation / cooling / water / wellfield / controls common-cause failure.
+20. South African low-enthalpy evidence case; superhot resource values remain unknown until source-backed.
 
 ## First analytic fixture
 
