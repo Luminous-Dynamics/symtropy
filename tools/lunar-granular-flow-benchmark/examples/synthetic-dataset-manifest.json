@@ -75,6 +75,16 @@
       "SYN-FLOW-CAMPAIGN-A": "calibration",
       "SYN-FLOW-CAMPAIGN-B": "validation",
       "SYN-FLOW-CAMPAIGN-C": "blind_test"
+    },
+    "feeder_geometry_id": {
+      "SYN-FEEDER-A": "calibration",
+      "SYN-FEEDER-B": "validation",
+      "SYN-FEEDER-C": "blind_test"
+    },
+    "vibration_profile_id": {
+      "SYN-VIBRATION-A": "calibration",
+      "SYN-VIBRATION-B": "validation",
+      "SYN-VIBRATION-C": "blind_test"
     }
   },
   "run_assignments": [
@@ -89,7 +99,9 @@
         "environment_profile_id": "SYN-VACUUM-A",
         "operating_regime_id": "SYN-SLUMPING-A",
         "laboratory_id": "SYN-FLOW-LAB-A",
-        "campaign_id": "SYN-FLOW-CAMPAIGN-A"
+        "campaign_id": "SYN-FLOW-CAMPAIGN-A",
+        "feeder_geometry_id": "SYN-FEEDER-A",
+        "vibration_profile_id": "SYN-VIBRATION-A"
       }
     },
     {
@@ -103,7 +115,9 @@
         "environment_profile_id": "SYN-VACUUM-B",
         "operating_regime_id": "SYN-SLUMPING-B",
         "laboratory_id": "SYN-FLOW-LAB-B",
-        "campaign_id": "SYN-FLOW-CAMPAIGN-B"
+        "campaign_id": "SYN-FLOW-CAMPAIGN-B",
+        "feeder_geometry_id": "SYN-FEEDER-B",
+        "vibration_profile_id": "SYN-VIBRATION-B"
       }
     },
     {
@@ -117,7 +131,9 @@
         "environment_profile_id": "SYN-VACUUM-C",
         "operating_regime_id": "SYN-SLUMPING-C",
         "laboratory_id": "SYN-FLOW-LAB-C",
-        "campaign_id": "SYN-FLOW-CAMPAIGN-C"
+        "campaign_id": "SYN-FLOW-CAMPAIGN-C",
+        "feeder_geometry_id": "SYN-FEEDER-C",
+        "vibration_profile_id": "SYN-VIBRATION-C"
       }
     }
   ],
