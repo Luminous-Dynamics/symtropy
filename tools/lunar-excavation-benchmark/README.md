@@ -178,6 +178,29 @@ Treat the flow of excavated material as its own benchmark:
 
 The Chang'e-6 study is unusually useful but its 1.85-g retained sample and slumping regime are strict scope limits. It should seed a targeted micro-sample flow-reproduction protocol, not a general regolith handling calibration.
 
+## Reusable dataset admission validator
+
+`scripts/validate-lunar-excavation-dataset.sh` accepts one dataset manifest plus all run-record JSON files assigned by that manifest. It enforces:
+- one-to-one equality between manifest run IDs and supplied run files;
+- exact source-class agreement between manifest and run records;
+- all active group axes map to the run's declared partition, and group IDs match the specimen and tool;
+- run-local artifact IDs are unique and referenced specimen/tool/path/force/as-built/model artifacts resolve;
+- measured values carry source and calibration-record references that resolve to declared artifacts;
+- published/estimated values retain source artifacts; unknown measurements remain null rather than zero;
+- prediction intervals are finite numeric ordered bounds with explicit nominal coverage;
+- artifact files resolve relative to the run record, cannot be absolute or parent-traversing paths, are not symlinks, and match declared SHA-256 bytes;
+- the blind-test freeze identity contains executable, revision, configuration, parameters, random seed and predictions.
+
+Example invocation:
+
+```bash
+bash scripts/validate-lunar-excavation-dataset.sh \
+  dataset-manifest.json \
+  runs/calibration-001.json runs/validation-001.json runs/blind-001.json
+```
+
+The special `--allow-synthetic-placeholders` flag is only for the committed synthetic CI fixtures. It must not be used for physical or published datasets. The validator is a semantic/provenance gate, not a general JSON Schema implementation; use a Draft 2020-12 validator as a separate schema-conformance step when admitting external corpora. Blind-test custody and independent execution freeze still require an external custodian/process and cannot be proved by parsing files alone.
+
 ## Authority boundaries
 
 - Symtropy owns immutable inputs, schemas, run orchestration, replay and evidence receipts.
