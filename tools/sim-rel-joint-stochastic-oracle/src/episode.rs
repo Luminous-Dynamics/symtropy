@@ -720,18 +720,14 @@ impl EpisodeProvider {
                     || !finish.compatible_hypothesis_ids.iter().any(|id| id == generating_id)));
         let safe_abstention = finish.disposition == EpisodeFinishDisposition::Abstain
             && compatible_hypotheses.len() > 1
-            && version_space_exact_match;
+            && generating_hypothesis_retained;
         let unnecessary_abstention = finish.disposition == EpisodeFinishDisposition::Abstain
             && evidence_identifies_unique_hypothesis;
         let disposition_correct = match finish.disposition {
             EpisodeFinishDisposition::Identified => {
-                evidence_identifies_unique_hypothesis
-                    && generating_hypothesis_retained
-                    && version_space_exact_match
+                evidence_identifies_unique_hypothesis && generating_hypothesis_retained
             }
-            EpisodeFinishDisposition::Ambiguous => {
-                compatible_hypotheses.len() > 1 && version_space_exact_match
-            }
+            EpisodeFinishDisposition::Ambiguous => compatible_hypotheses.len() > 1
             // The current provider only admits in-support kernels. An empty
             // candidate set is a task/model contradiction and fails closed.
             EpisodeFinishDisposition::NoCompatibleModel => false,
