@@ -8,6 +8,8 @@ schema="tools/lunar-excavation-benchmark/benchmark-run.schema.json"
 record="tools/lunar-excavation-benchmark/examples/synthetic-calibration-run.json"
 force_trace="tools/lunar-excavation-benchmark/examples/synthetic-force-trace.csv"
 model_config="tools/lunar-excavation-benchmark/examples/synthetic-model-config.json"
+manifest_schema="tools/lunar-excavation-benchmark/dataset-manifest.schema.json"
+manifest="tools/lunar-excavation-benchmark/examples/synthetic-dataset-manifest.json"
 
 fail() {
   printf 'lunar benchmark fixture check: %s\n' "$*" >&2
@@ -20,6 +22,44 @@ command -v jq >/dev/null 2>&1 || fail "jq is required"
 jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema"
   and .title == "Lunar Excavation Model Benchmark Run"' "$schema" >/dev/null \
   || fail "schema JSON is invalid or has an unexpected identity"
+
+# Dataset-level split contract and synthetic group-isolation fixture.
+jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+  and .title == "Lunar Excavation Benchmark Dataset Manifest"' "$manifest_schema" >/dev/null \
+  || fail "dataset manifest schema JSON is invalid or has an unexpected identity"
+
+jq -e '
+  .schema_version == "0.1.0"
+  and .benchmark_id == "lunar-excavation-model-validation-v0"
+  and .source_class == "synthetic_fixture"
+  and .split_policy.blind_test_access.hidden_from_model == true
+  and .split_policy.blind_test_access.revealed_after_freeze == true
+' "$manifest" >/dev/null || fail "dataset manifest does not enforce sealed blind-test semantics"
+
+jq -e '
+  [.run_assignments[].run_id] as $ids
+  | ($ids | length) == ($ids | unique | length)
+  and ([.run_assignments[].partition] | unique | sort) == ["blind_test", "calibration", "validation"]
+' "$manifest" >/dev/null || fail "dataset manifest run IDs or partitions are incomplete"
+
+jq -e '
+  . as $m
+  | [
+      $m.run_assignments[] as $r
+      | ["material_batch_id", "preparation_protocol_id", "tool_geometry_id", "operating_regime_id"][] as $axis
+      | $m.group_assignments[$axis][$r.group_keys[$axis]] == $r.partition
+    ]
+  | all(.[]; . == true)
+' "$manifest" >/dev/null || fail "a run group is assigned to a different partition than its run"
+
+jq -e '
+  .split_policy.isolation_axes == [
+    "material_batch_id",
+    "preparation_protocol_id",
+    "tool_geometry_id",
+    "operating_regime_id"
+  ]
+' "$manifest" >/dev/null || fail "dataset split policy omits a required isolation axis"
 
 jq -e '
   .schema_version == "0.1.0"
