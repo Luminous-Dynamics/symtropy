@@ -1,3 +1,6 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 //! CPU-first reference models for biological motility research.
 //!
 //! This crate starts with an event-based model for bacterial movement in porous
@@ -289,6 +292,7 @@ pub enum SimulationError {
     InvalidProfile(ProfileError),
     InvalidInitialState,
     InvalidGradientHeading,
+    NonFiniteTrajectory,
 }
 
 impl fmt::Display for SimulationError {
@@ -297,6 +301,7 @@ impl fmt::Display for SimulationError {
             Self::InvalidProfile(error) => write!(formatter, "invalid motility profile: {error}"),
             Self::InvalidInitialState => write!(formatter, "initial agent state must be finite with non-negative elapsed time"),
             Self::InvalidGradientHeading => write!(formatter, "gradient heading must be finite"),
+            Self::NonFiniteTrajectory => write!(formatter, "simulation produced a non-finite state; check profile magnitudes"),
         }
     }
 }
@@ -382,6 +387,9 @@ pub fn simulate(
         state.x_um += distance * state.heading_rad.cos();
         state.y_um += distance * state.heading_rad.sin();
         state.elapsed_s += run_duration;
+        if !state.is_valid() {
+            return Err(SimulationError::NonFiniteTrajectory);
+        }
 
         let (event_class, event_duration, turn_angle) =
             if rng.next_unit_f64() < profile.short_event_probability {
@@ -398,8 +406,11 @@ pub fn simulate(
                 )
             };
 
-        state.heading_rad = wrap_angle(state.heading_rad + turn_angle);
+        state.heading_rad = wrap_angle(state.heading_rad + wrap_angle(turn_angle));
         state.elapsed_s += event_duration;
+        if !state.is_valid() {
+            return Err(SimulationError::NonFiniteTrajectory);
+        }
 
         events.push(EventRecord {
             direction_before_run: direction,
