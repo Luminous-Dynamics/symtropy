@@ -247,7 +247,7 @@ fn directional_force_capacity_n(
                 (a.alpha * b.bound - b.alpha * a.bound) / determinant;
 
             if constraints_satisfied(&constraints, alpha, auxiliary_torque)
-                && best.map_or(true, |(best_alpha, _)| alpha > best_alpha)
+                && best.is_none_or(|(best_alpha, _)| alpha > best_alpha)
             {
                 best = Some((alpha, auxiliary_torque));
             }
