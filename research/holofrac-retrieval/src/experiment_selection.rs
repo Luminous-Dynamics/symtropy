@@ -551,8 +551,8 @@ mod tests {
         );
         assert!((information.mutual_information_bits - 1.0).abs() < 1.0e-12);
         assert!(
-            (decision_value.mutual_information_bits - 1.0 + 0.9_f64.log2() * 0.9
-                + 0.1_f64.log2() * 0.1)
+            (decision_value.mutual_information_bits - 1.0 - 0.9_f64.log2() * 0.9
+                - 0.1_f64.log2() * 0.1)
                 .abs()
                 < 1.0e-12
         );
