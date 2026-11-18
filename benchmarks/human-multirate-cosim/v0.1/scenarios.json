@@ -654,6 +654,25 @@
     "expected_minimum_profiled_family_gaussian_kl": 0,
     "expected_disposition": "IN_FAMILY_UNRESOLVED",
     "interpretation": "the bypass family includes a parameter endpoint that reproduces the chain; nominal separation does not establish family identifiability",
-    "claim_ceiling": "Exact least-favourable finite-grid variant-pair arithmetic only; not profile likelihood or continuous robust optimal control."
+    "claim_ceiling": "Exact least-favourable finite-grid variant-pair arithmetic only; not profile likelihood or continuous robust optimal control.",
+    "adequacy": {
+      "observation_trace": "candidate-visible sensor history with exact declared sensor IDs and observation times",
+      "residual": "sum over independent observation-time blocks of 0.5 * r^T R^(-1) r",
+      "threshold": 1e-12,
+      "threshold_semantics": "explicit exact synthetic known-answer threshold; not a calibrated chi-square test",
+      "dispositions": [
+        "IN_FAMILY_PREFERRED",
+        "PARAMETER_NOT_IDENTIFIED",
+        "IN_FAMILY_UNRESOLVED",
+        "OUT_OF_MODEL_SET"
+      ],
+      "controls": [
+        "exact chain trace fits two overlapping structural families => IN_FAMILY_UNRESOLVED",
+        "one family with two indistinguishable parameter variants => PARAMETER_NOT_IDENTIFIED",
+        "held-out bypass conductance 0.75 outside fixed candidate grid => OUT_OF_MODEL_SET",
+        "wrong sensor order or observation schedule => reject before scoring"
+      ],
+      "claim_ceiling": "Residual adequacy checks for frozen finite-grid synthetic models only; not calibrated OOD detection."
+    }
   }
 }
