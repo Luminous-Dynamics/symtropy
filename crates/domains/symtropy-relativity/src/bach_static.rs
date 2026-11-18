@@ -106,6 +106,7 @@ pub fn static_spherical_bach(
             actual: lapse.order(),
         });
     }
+    lapse.require_coordinate_center(1, radius)?;
     let b0 = lapse.value();
     if !b0.is_finite() || b0 <= 0.0 {
         return Err(StaticSphericalBachError::OutsideStaticRegion {
@@ -114,7 +115,10 @@ pub fn static_spherical_bach(
         });
     }
 
-    let r = TaylorJet4Order5::variable(radius, 1)?;
+    let expansion_point = lapse
+        .expansion_point()
+        .ok_or(TaylorJetError::MissingExpansionPoint)?;
+    let r = TaylorJet4Order5::variable_at(expansion_point, 1)?;
     let r2 = r.multiply(r)?;
     let r3 = r2.multiply(r)?;
     let r4 = r3.multiply(r)?;
@@ -314,6 +318,28 @@ mod tests {
         close(at3.radial_covariant_divergence, 0.0, 2e-12);
         close(at6.radial_covariant_divergence, 0.0, 2e-12);
         close(at3.b1_minus_b2 / at6.b1_minus_b2, 16.0, 2e-12);
+    }
+
+    #[test]
+    fn lapse_jet_expansion_point_must_match_requested_radius() {
+        let jet = mk_metric_jet(3.0, -2.0, 1.0, 0.0, 0.0);
+        assert_eq!(
+            static_spherical_bach(4.0, jet),
+            Err(StaticSphericalBachError::TaylorJet(
+                TaylorJetError::ExpansionPointCoordinateMismatch {
+                    coordinate: 1,
+                    expected: 4.0,
+                    actual: 3.0
+                }
+            ))
+        );
+        let unbound = TaylorJet4Order5::constant(1.0).unwrap();
+        assert_eq!(
+            static_spherical_bach(3.0, unbound),
+            Err(StaticSphericalBachError::TaylorJet(
+                TaylorJetError::MissingExpansionPoint
+            ))
+        );
     }
 
     #[test]
