@@ -365,3 +365,40 @@ truth whose mathematical dynamics exactly equal a registered candidate.
 The equality check ignores human-readable scenario names and undirected edge
 ordering, but preserves exact capacities, initial state, horizon and edge
 conductances. This avoids reporting a meaningless OOD rejection rate.
+
+## Continuous energy-ball optimal control
+
+The `energy_optimal_control` module lifts experiment design above finite pulse
+enumeration by optimizing real-valued forcing amplitudes in a declared
+piecewise-constant temporal/actuator basis. For one fixed candidate-model pair,
+the response difference is linear in the basis coefficients. Its covariance-
+weighted Gram matrix is whitened by the integrated-energy metric; the top
+eigenpair gives the exact global optimum over the energy ellipsoid.
+
+The module replays the resulting waveform through the existing spectral
+experiment evaluator and has a separate test-only dense KL calculation with
+a hand-inverted 2x2 covariance. If the unconstrained top-eigenvector waveform
+exceeds the peak-amplitude limit, the returned waveform is scaled into the
+feasible set and marked `PeakConstraintActive`. Its achieved score is a
+feasible lower bound, while the unconstrained energy-ball score remains an
+upper bound; no global optimum is claimed for that peak-constrained case.
+A zero Gram matrix returns `NoDiscriminatingControl`.
+
+The exactness claim is limited to one fixed model pair, fixed sensors, fixed
+observation schedule, common per-time sensor covariance, independent noise
+blocks across observation times, a finite piecewise-constant basis and an
+inactive peak constraint. It is not a Pontryagin solution for arbitrary
+waveforms, not a nuisance-profiled T-optimal solver, and not a slew-constrained
+or maximin multi-model optimizer.
+
+Run the continuous-vs-grid comparison with:
+
+    cargo run --manifest-path benchmarks/human-multirate-cosim/v0.1/Cargo.toml --release --bin energy_optimal_control
+
+The runner compares an exact spectral energy-ball optimum over a 9-dimensional
+basis (three actuators × three time segments) against a finite pulse grid under
+the same chain-vs-bypass plant, sensors, covariance, horizon and energy budget.
+The output reports exactness disposition, upper bound, replayed score, energy,
+peak and per-segment coefficients. This is a benchmark comparison, not a
+published SOTA result; the exact Rust output must be captured from a qualified
+exact-head run.

@@ -10,6 +10,10 @@
 //! This is not arbitrary-waveform Pontryagin control, nuisance-profiled
 //! T-optimal design, or a maximin multi-model-family optimizer.
 
+// Matrix kernels below use explicit row/column indices so that symmetry and
+// coefficient ordering remain visible in the reference implementation.
+#![allow(clippy::needless_range_loop)]
+
 use crate::experiment_design::{
     evaluate_input_profile, ExperimentDesignScenario, ExcitationDesignError, ForcingSegment,
     InputProfile,
@@ -726,6 +730,56 @@ mod tests {
             .abs()
             < 1.0e-8);
         assert!(report.replay_objective_abs_error < 1.0e-9);
+    }
+
+    #[test]
+    fn replayed_score_matches_independently_assembled_dense_kl() {
+        let fixture = scenario(2.0);
+        let report = optimize_pairwise_energy_ball_control(
+            &fixture,
+            1,
+            2,
+            &[10, 11],
+            &[0],
+            &[0.0, 0.5, 1.0, 2.0],
+        )
+        .unwrap();
+        let replay = evaluate_input_profile(&fixture, &report.profile, &[10, 11]).unwrap();
+        let left = replay
+            .model_observation_means
+            .iter()
+            .find(|prediction| prediction.model_id == 1)
+            .unwrap();
+        let right = replay
+            .model_observation_means
+            .iter()
+            .find(|prediction| prediction.model_id == 2)
+            .unwrap();
+
+        // Independent closed-form inverse for R = [[0.02, 0.005], [0.005, 0.03]].
+        let a = 0.02_f64;
+        let b = 0.005_f64;
+        let c = 0.03_f64;
+        let determinant = a * c - b * b;
+        let inverse = [
+            [c / determinant, -b / determinant],
+            [-b / determinant, a / determinant],
+        ];
+        let mut dense_reference = 0.0;
+        for time_index in 0..fixture.observation_times.len() {
+            let d0 = left.observations[time_index][0]
+                - right.observations[time_index][0];
+            let d1 = left.observations[time_index][1]
+                - right.observations[time_index][1];
+            dense_reference += 0.5
+                * (d0 * (inverse[0][0] * d0 + inverse[0][1] * d1)
+                    + d1 * (inverse[1][0] * d0 + inverse[1][1] * d1));
+        }
+        assert!((dense_reference - report.achieved_gaussian_kl).abs() < 1.0e-8);
+        assert!(
+            (dense_reference - report.unconstrained_energy_ball_upper_bound).abs()
+                < 1.0e-8
+        );
     }
 
     #[test]
