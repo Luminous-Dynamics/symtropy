@@ -58,7 +58,7 @@ fn earliest_resource_slot(
     candidates.sort_by(f64::total_cmp);
     candidates.dedup_by(|a, b| (*a - *b).abs() <= 1e-9);
 
-    for candidate in candidates {
+    for candidate in candidates.iter().copied() {
         let finish = candidate + duration_hours;
         let mut boundaries = vec![candidate];
         boundaries.extend(
