@@ -540,9 +540,6 @@ pub fn validate_service_availability_case(
         }
     }
 
-    if case.fleet_policy.reserve_platform_ids.len() > case.logistics_limits.ground_ready_spares {
-        return Err(ReliabilityError::new("reserve fleet declared without ground-ready spare capacity"));
-    }
     Ok(())
 }
 
