@@ -555,7 +555,14 @@ mod tests {
     }
 
     fn site_ledger() -> SiteStateLedger {
-        let mut ledger = SiteStateLedger::new();
+        let mut registry = SiteActorRegistry::new();
+        registry.grant("design-authority", SiteActorRole::DesignAuthority).unwrap();
+        registry.grant("surveyor", SiteActorRole::Surveyor).unwrap();
+        registry.grant("robot-01", SiteActorRole::Robot).unwrap();
+        registry.grant("dispatch-coordinator", SiteActorRole::DispatchCoordinator).unwrap();
+        registry.grant("referee-01", SiteActorRole::Referee).unwrap();
+        registry.grant("site-resource-authority", SiteActorRole::SiteResourceAuthority).unwrap();
+        let mut ledger = SiteStateLedger::with_actor_registry(registry);
         let package = SiteWorkPackage {
             package_sha256: digest('a'),
             source_model_sha256: digest('b'),
