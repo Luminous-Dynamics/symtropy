@@ -221,8 +221,9 @@ principal submatrix; missing values are never replaced with zero.
 The full-covariance adequacy evaluator scores the same candidate-visible trace
 against every registered finite-grid model variant using the supplied dense
 space-time covariance. Its versioned covariance and trace envelopes must agree
-on caller-supplied covariance/process/sampling/operator/availability-cutoff IDs,
-ordered sensor IDs and exact sample times. These identifiers are compared but
+on caller-supplied covariance ID, process ID, sampling-policy ID, observation-
+operator ID, availability-cutoff ID, ordered sensor IDs and exact sample times.
+The covariance ID is present in both the trace and covariance envelope. These IDs are compared but
 are not authenticated by this module; an upstream evidence layer must verify
 their manifests and event receipts. The original independent-time implementation
 remains the explicit iid baseline.
@@ -271,7 +272,10 @@ This is an evaluator-side synthetic harness: it keeps hidden truth out of the
 adequacy scorer's input and output, but the calibration function itself runs
 in-process and is not a security/process-isolation boundary. The caller must
 still put hidden truth and seeds behind the independent evaluator boundary
-before using this as an agent-facing benchmark.
+before using this as an agent-facing benchmark. An empty hidden-truth set or a
+hidden truth whose dynamics exactly match a registered candidate is rejected;
+this prevents an empty or non-OOD corpus from being reported as a successful
+OOD campaign.
 
 Threshold calibration is specific to the complete bound observation process.
 Changing the covariance, process family, sample schedule, ordered sensors,
@@ -305,3 +309,59 @@ observation-process receipt now records `DENSE_SPD` or `AR1_KRONECKER` so
 performance and calibration claims bind to the actual covariance algorithm.
 No Rust performance result is claimed until exact-head execution and matched
 benchmarks complete.
+
+## Realized coverage under dependence and delayed feedback
+
+The `coverage_inference` module is a separate method lane from covariance
+scoring/calibration. It operates on an event-time-ordered sequence of binary
+forecast-coverage outcomes, retaining forecast ID, issue time/step, event
+time and outcome availability time/step.
+
+It reports three distinct summaries:
+- IID Wilson interval: an explicit independent-Bernoulli comparison, not the
+  default uncertainty statement for a dependent sequence;
+- Newey-West/Bartlett HAC long-run variance and asymptotic normal interval,
+  with caller-specified bandwidth;
+- non-circular moving-block bootstrap percentile interval, with explicit
+  block length, replicate count and seed.
+
+The HAC and block-bootstrap intervals are diagnostics under their stated
+asymptotic/resampling assumptions. They are not distribution-free
+finite-sample coverage guarantees. Block length/bandwidth sensitivity and
+regime-stratified performance must be reported.
+
+`DelayedAciSchedulerV1` is a bounded fixed-integer-delay recurrence reference.
+It records the alpha used at forecast issue, keeps the label pending until
+the exact due step, and then updates only the corresponding interleaved
+delay lane using alpha_next = clip(alpha + gamma * (target_alpha - miss)).
+It rejects premature, late, duplicate and out-of-order settlements; any
+overdue pending label blocks new issuance. This is not a general asynchronous
+feedback protocol or a claim of universal adaptive-conformal validity.
+
+Run the frozen reference with:
+
+    cargo run --manifest-path benchmarks/human-multirate-cosim/v0.1/Cargo.toml --release --bin coverage_inference
+
+The runner uses a deterministic 120-outcome block-pattern sequence, HAC
+bandwidth 8, 5,000 moving-block bootstrap replicates with seed 20261118,
+and a separate fixed-delay ACI sequence with delay three. Exact executable
+output is not claimed until the exact Rust branch head is run.
+
+See Symtropy issue #6052 for the preregistered acceptance tests, including
+AR(1), GARCH-like and Markov-switching future regimes, delay-to-memory
+sensitivity, missing/late labels and historical decision-cutoff controls.
+
+### Covariance identity binding refinement
+
+The candidate-visible `ObservationProcessTraceV1` now repeats the exact
+covariance ID as well as process, sampling, operator and availability-cutoff
+IDs. The evaluator rejects a trace when any of these identities, ordered
+sensor IDs or exact sample times differ from the admitted covariance object.
+The identifiers remain caller-supplied references, not authenticated
+signatures; evidence-manifest verification remains an upstream authority.
+
+The evaluator also rejects an empty hidden out-of-family set and a hidden
+truth whose mathematical dynamics exactly equal a registered candidate.
+The equality check ignores human-readable scenario names and undirected edge
+ordering, but preserves exact capacities, initial state, horizon and edge
+conductances. This avoids reporting a meaningless OOD rejection rate.

@@ -50,6 +50,7 @@ pub enum CovarianceError {
     InvalidSensorOrder,
     TraceSensorOrderMismatch,
     TraceTimeScheduleMismatch,
+    TraceCovarianceIdentityMismatch,
     TraceProcessIdentityMismatch,
     TraceSamplingPolicyMismatch,
     TraceOperatorMismatch,
@@ -110,6 +111,9 @@ impl fmt::Display for CovarianceError {
             }
             Self::TraceTimeScheduleMismatch => {
                 write!(f, "bound covariance time schedule does not match the observation trace")
+            }
+            Self::TraceCovarianceIdentityMismatch => {
+                write!(f, "bound covariance ID does not match the observation trace")
             }
             Self::TraceProcessIdentityMismatch => {
                 write!(
@@ -549,6 +553,9 @@ impl ObservationCovarianceV1 {
     }
 
     fn validate_trace(&self, trace: &ObservationProcessTraceV1) -> Result<(), CovarianceError> {
+        if self.covariance_id != trace.covariance_id {
+            return Err(CovarianceError::TraceCovarianceIdentityMismatch);
+        }
         if self.observation_process_id != trace.observation_process_id {
             return Err(CovarianceError::TraceProcessIdentityMismatch);
         }
@@ -577,6 +584,7 @@ impl ObservationCovarianceV1 {
 /// must verify the referenced manifests and event receipts.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ObservationProcessTraceV1 {
+    pub covariance_id: String,
     pub observation_process_id: String,
     pub sampling_policy_id: String,
     pub observation_operator_id: String,
@@ -586,13 +594,15 @@ pub struct ObservationProcessTraceV1 {
 
 impl ObservationProcessTraceV1 {
     pub fn new(
+        covariance_id: String,
         observation_process_id: String,
         sampling_policy_id: String,
         observation_operator_id: String,
         availability_cutoff_id: String,
         trace: ObservedSensorTrace,
     ) -> Result<Self, CovarianceError> {
-        if observation_process_id.trim().is_empty()
+        if covariance_id.trim().is_empty()
+            || observation_process_id.trim().is_empty()
             || sampling_policy_id.trim().is_empty()
             || observation_operator_id.trim().is_empty()
             || availability_cutoff_id.trim().is_empty()
@@ -600,6 +610,7 @@ impl ObservationProcessTraceV1 {
             return Err(CovarianceError::InvalidObservationIdentity);
         }
         Ok(Self {
+            covariance_id,
             observation_process_id,
             sampling_policy_id,
             observation_operator_id,
@@ -1196,8 +1207,10 @@ pub enum NoiseCalibrationError {
     Robustness(NoiseRobustnessError),
     Profiled(ProfiledDiscriminationError),
     InvalidReplicateCount,
+    NoHiddenOutOfFamilyTruths,
     ExcessiveSampleCount,
     DuplicateHiddenTruthId(u32),
+    HiddenTruthMatchesCandidate(u32),
     InvalidTargetCoverage,
     SeedsMustDiffer,
     IncompatibleHiddenTruth { evaluator_id: u32 },
@@ -1229,12 +1242,19 @@ impl fmt::Display for NoiseCalibrationError {
             Self::Robustness(error) => write!(f, "noise robustness evaluation failed: {error}"),
             Self::Profiled(error) => write!(f, "profiled scenario invalid: {error}"),
             Self::InvalidReplicateCount => write!(f, "replicates per model must be positive"),
+            Self::NoHiddenOutOfFamilyTruths => {
+                write!(f, "at least one hidden out-of-family truth is required for an OOD report")
+            }
             Self::ExcessiveSampleCount => {
                 write!(f, "full-covariance calibration exceeds the 100,000-sample campaign bound")
             }
             Self::DuplicateHiddenTruthId(id) => {
                 write!(f, "duplicate hidden truth evaluator ID {id}")
             }
+            Self::HiddenTruthMatchesCandidate(id) => write!(
+                f,
+                "hidden evaluator truth {id} exactly matches a registered candidate model"
+            ),
             Self::InvalidTargetCoverage => write!(
                 f,
                 "target in-family coverage must be finite and strictly between zero and one"
@@ -1296,6 +1316,9 @@ pub fn calibrate_model_family_adequacy_full_covariance(
         .map_err(NoiseCalibrationError::Profiled)?;
     if config.replicates_per_model == 0 {
         return Err(NoiseCalibrationError::InvalidReplicateCount);
+    }
+    if hidden_out_of_family_truths.is_empty() {
+        return Err(NoiseCalibrationError::NoHiddenOutOfFamilyTruths);
     }
     if !config.target_in_family_coverage.is_finite()
         || config.target_in_family_coverage <= 0.0
@@ -1371,6 +1394,16 @@ pub fn calibrate_model_family_adequacy_full_covariance(
     for hidden in hidden_out_of_family_truths {
         if !hidden_truth_ids.insert(hidden.evaluator_id) {
             return Err(NoiseCalibrationError::DuplicateHiddenTruthId(
+                hidden.evaluator_id,
+            ));
+        }
+        if scenario
+            .experiment
+            .models
+            .iter()
+            .any(|model| same_network_dynamics(&model.network, &hidden.network))
+        {
+            return Err(NoiseCalibrationError::HiddenTruthMatchesCandidate(
                 hidden.evaluator_id,
             ));
         }
@@ -1618,6 +1651,7 @@ fn sample_bound_observation_trace(
         }
     }
     ObservationProcessTraceV1::new(
+        covariance.covariance_id.clone(),
         covariance.observation_process_id.clone(),
         covariance.sampling_policy_id.clone(),
         covariance.observation_operator_id.clone(),
@@ -1629,6 +1663,41 @@ fn sample_bound_observation_trace(
         },
     )
     .map_err(NoiseCalibrationError::Covariance)
+}
+
+fn same_network_dynamics(
+    left: &crate::network::NetworkScenario,
+    right: &crate::network::NetworkScenario,
+) -> bool {
+    if left.capacities != right.capacities
+        || left.initial != right.initial
+        || left.horizon != right.horizon
+        || left.edges.len() != right.edges.len()
+    {
+        return false;
+    }
+    let edge_signature = |network: &crate::network::NetworkScenario| {
+        let mut signature: Vec<(usize, usize, u64)> = network
+            .edges
+            .iter()
+            .map(|edge| {
+                let (first, second) = if edge.left <= edge.right {
+                    (edge.left, edge.right)
+                } else {
+                    (edge.right, edge.left)
+                };
+                let conductance = if edge.conductance == 0.0 {
+                    0.0
+                } else {
+                    edge.conductance
+                };
+                (first, second, conductance.to_bits())
+            })
+            .collect();
+        signature.sort_unstable();
+        signature
+    };
+    edge_signature(left) == edge_signature(right)
 }
 
 fn predict_hidden_network(
@@ -1714,6 +1783,149 @@ fn wilson_interval(successes: usize, total: usize) -> [f64; 2] {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn full_covariance_calibration_requires_a_hidden_out_of_family_fixture() {
+        use crate::experiment_design::{
+            ExperimentDesignScenario, ForcingSegment, ModelCandidate,
+        };
+        use crate::network::{Edge, NetworkScenario};
+        use crate::robust_discrimination::{
+            ModelFamilyAssignment, ProfiledModelFamilyScenario,
+        };
+        use crate::sensor_design::SensorCandidate;
+
+        let network = NetworkScenario {
+            name: "candidate",
+            capacities: vec![1.0, 1.0],
+            initial: vec![0.0, 0.0],
+            edges: vec![Edge {
+                left: 0,
+                right: 1,
+                conductance: 0.5,
+            }],
+            horizon: 1.0,
+        };
+        let scenario = ProfiledModelFamilyScenario {
+            experiment: ExperimentDesignScenario {
+                name: "no-hidden-truth-guard",
+                models: vec![
+                    ModelCandidate {
+                        id: 1,
+                        label: "candidate A",
+                        network: network.clone(),
+                    },
+                    ModelCandidate {
+                        id: 2,
+                        label: "candidate B",
+                        network: NetworkScenario {
+                            name: "candidate-b",
+                            capacities: vec![1.0, 1.0],
+                            initial: vec![0.0, 0.0],
+                            edges: vec![Edge {
+                                left: 0,
+                                right: 1,
+                                conductance: 0.8,
+                            }],
+                            horizon: 1.0,
+                        },
+                    },
+                ],
+                sensors: vec![SensorCandidate {
+                    id: 1,
+                    node: 0,
+                    cost: 1.0,
+                    common_cause_group: None,
+                }],
+                noise_covariance: vec![vec![1.0]],
+                observation_times: vec![0.5],
+                sensor_budget: 1.0,
+                max_abs_forcing: 1.0,
+                input_energy_budget: 1.0,
+            },
+            family_assignments: vec![
+                ModelFamilyAssignment {
+                    model_id: 1,
+                    family_id: 1,
+                },
+                ModelFamilyAssignment {
+                    model_id: 2,
+                    family_id: 2,
+                },
+            ],
+        };
+        let profile = InputProfile {
+            id: 1,
+            label: "zero forcing",
+            segments: vec![ForcingSegment {
+                start_time: 0.0,
+                end_time: 1.0,
+                forcing: vec![0.0, 0.0],
+            }],
+        };
+        let covariance = ObservationCovarianceV1::new(
+            "covariance:one-time".to_owned(),
+            "process:iid-gaussian".to_owned(),
+            "sampling:one-time".to_owned(),
+            "operator:node-zero".to_owned(),
+            "availability:immediate".to_owned(),
+            vec![1],
+            vec![0.5],
+            DenseSpdCovariance::new(vec![vec![1.0]]).unwrap(),
+        )
+        .unwrap();
+
+        let result = calibrate_model_family_adequacy_full_covariance(
+            &scenario,
+            &profile,
+            &[1],
+            &covariance,
+            &[],
+            NoiseCalibrationConfigV1 {
+                calibration_seed: 1,
+                validation_seed: 2,
+                evaluator_seed: 3,
+                replicates_per_model: 2,
+                target_in_family_coverage: 0.95,
+            },
+        );
+        assert_eq!(
+            result,
+            Err(NoiseCalibrationError::NoHiddenOutOfFamilyTruths)
+        );
+        let duplicate_truth = HiddenOutOfFamilyTruth {
+            evaluator_id: 901,
+            network: crate::network::NetworkScenario {
+                name: "renamed-and-reversed-edge",
+                capacities: vec![1.0, 1.0],
+                initial: vec![0.0, 0.0],
+                edges: vec![crate::network::Edge {
+                    left: 1,
+                    right: 0,
+                    conductance: 0.5,
+                }],
+                horizon: 1.0,
+            },
+        };
+        let duplicate_result = calibrate_model_family_adequacy_full_covariance(
+            &scenario,
+            &profile,
+            &[1],
+            &covariance,
+            &[duplicate_truth],
+            NoiseCalibrationConfigV1 {
+                calibration_seed: 1,
+                validation_seed: 2,
+                evaluator_seed: 3,
+                replicates_per_model: 2,
+                target_in_family_coverage: 0.95,
+            },
+        );
+        assert_eq!(
+            duplicate_result,
+            Err(NoiseCalibrationError::HiddenTruthMatchesCandidate(901))
+        );
+    }
 
     #[test]
     fn ar1_covariance_has_declared_lag_structure() {
@@ -2027,6 +2239,7 @@ mod tests {
         )
         .unwrap();
         let matching = ObservationProcessTraceV1::new(
+            "covariance-sha256:fixture".to_owned(),
             "noise-process:ar1-rho-0.8".to_owned(),
             "sampling-policy:two-evenly-spaced-times".to_owned(),
             "operator:scalar-node-sensor".to_owned(),
@@ -2062,6 +2275,15 @@ mod tests {
         assert_eq!(
             binding.validate_trace(&shifted),
             Err(CovarianceError::TraceTimeScheduleMismatch)
+        );
+
+        let changed_covariance = ObservationProcessTraceV1 {
+            covariance_id: "other-covariance".to_owned(),
+            ..matching.clone()
+        };
+        assert_eq!(
+            binding.validate_trace(&changed_covariance),
+            Err(CovarianceError::TraceCovarianceIdentityMismatch)
         );
 
         let changed_process = ObservationProcessTraceV1 {
@@ -2200,6 +2422,7 @@ mod tests {
         values[0][0] += 1.0;
         values[1][0] -= 0.2;
         let trace = ObservationProcessTraceV1::new(
+            "covariance:ar1-fixture".to_owned(),
             "process:gaussian-ar1-rho-0.8".to_owned(),
             "sampling:two-times".to_owned(),
             "operator:node-0-sensor".to_owned(),
