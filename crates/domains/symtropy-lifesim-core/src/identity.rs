@@ -610,6 +610,66 @@ mod tests {
     }
 
     #[test]
+    fn custom_relationships_require_a_versioned_vocabulary_reference() {
+        let custom = RelationshipConceptRef {
+            vocabulary_authority: "Example Interaction Ontology".to_owned(),
+            vocabulary_release: "1.0".to_owned(),
+            concept_id: "EIO:EXAMPLE-INTERACTION".to_owned(),
+            label: "resource-mediated association".to_owned(),
+        };
+        let graph = LivingSystemGraph {
+            nodes: vec![
+                node(
+                    "a",
+                    LivingSystemLevel::Individual,
+                    vec![member("a", bacterium())],
+                ),
+                node(
+                    "b",
+                    LivingSystemLevel::Individual,
+                    vec![member("b", bacterium())],
+                ),
+            ],
+            edges: vec![edge(
+                "custom-link",
+                "a",
+                "b",
+                LivingSystemRelation::Custom(custom),
+            )],
+        };
+        assert!(graph.validate().is_ok());
+
+        let invalid = RelationshipConceptRef {
+            vocabulary_authority: "Example Interaction Ontology".to_owned(),
+            vocabulary_release: String::new(),
+            concept_id: "EIO:EXAMPLE-INTERACTION".to_owned(),
+            label: "resource-mediated association".to_owned(),
+        };
+        assert_eq!(
+            LivingSystemRelation::Custom(invalid).validate(),
+            Err(LivingSystemIdentityError::EmptyField(
+                "relation.vocabulary_release"
+            ))
+        );
+    }
+
+    #[test]
+    fn invalid_life_stage_vocabulary_fails_closed() {
+        let invalid = LifeStageConceptRef {
+            vocabulary_authority: "Plant Ontology".to_owned(),
+            vocabulary_release: String::new(),
+            concept_id: "PO:TEST-SEEDLING".to_owned(),
+            label: "seedling".to_owned(),
+        };
+        assert_eq!(
+            invalid.validate(),
+            Err(LivingSystemIdentityError::EmptyField(
+                "life_stage.vocabulary_release"
+            ))
+        );
+    }
+
+    #[test]
     fn input_permutation_does_not_change_graph_validity() {
         let graph = LivingSystemGraph {
             nodes: vec![
