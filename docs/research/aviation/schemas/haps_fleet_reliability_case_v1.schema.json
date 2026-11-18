@@ -1,0 +1,316 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminousdynamics:aero:haps-fleet-reliability-case:v1",
+  "title": "HAPS fleet reliability case v1",
+  "description": "Static Bernoulli availability screen with explicit common-cause events and shared service dependencies. It is a synthetic-first reliability contract, not a semi-Markov maintenance or flight-operation model.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "revision",
+    "evidence_class",
+    "claim_ceiling",
+    "analysis_method",
+    "time_window_s",
+    "nodes",
+    "common_cause_events",
+    "shared_dependencies",
+    "service_contract",
+    "expected_oracle",
+    "assumptions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "haps-fleet-reliability-case/v1"
+    },
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,95}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "replayed_event_trace",
+        "measured_operational"
+      ]
+    },
+    "claim_ceiling": {
+      "enum": [
+        "synthetic_static_availability_oracle",
+        "offline_reliability_model",
+        "observed_service_campaign"
+      ]
+    },
+    "analysis_method": {
+      "enum": [
+        "static_bernoulli_exact_enumeration",
+        "semi_markov_time_dependent",
+        "discrete_event_replay"
+      ]
+    },
+    "time_window_s": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "node_id",
+          "platform_class",
+          "independent_availability_probability",
+          "service_region_ref"
+        ],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "platform_class": {
+            "enum": [
+              "solar_fixed_wing_haps",
+              "buoyant_free_balloon",
+              "buoyant_airship",
+              "unknown",
+              "terrestrial_gateway",
+              "leo_satellite_backhaul"
+            ]
+          },
+          "independent_availability_probability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "service_region_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "maintenance_profile_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "common_cause_events": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event_id",
+          "event_class",
+          "event_probability",
+          "affected_node_ids"
+        ],
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "event_class": {
+            "enum": [
+              "weather_grounding",
+              "regional_airspace_closure",
+              "shared_launch_site_loss",
+              "common_configuration_defect",
+              "shared_maintenance_supply_failure",
+              "other",
+              "shared_external_common_mode"
+            ]
+          },
+          "event_probability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "affected_node_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "source_profile_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "shared_dependencies": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "dependency_id",
+          "dependency_class",
+          "availability_probability",
+          "dependency_scope"
+        ],
+        "properties": {
+          "dependency_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dependency_class": {
+            "enum": [
+              "terrestrial_gateway",
+              "satellite_backhaul",
+              "fso_backhaul",
+              "spectrum_authority",
+              "ground_control_site",
+              "launch_recovery_site",
+              "maintenance_supply",
+              "other"
+            ]
+          },
+          "availability_probability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "dependency_scope": {
+            "enum": [
+              "fleet_wide",
+              "regional",
+              "single_node"
+            ]
+          },
+          "source_profile_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "service_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_operational_node_count",
+        "required_shared_dependency_ids",
+        "single_node_reference_id",
+        "service_region_ref"
+      ],
+      "properties": {
+        "minimum_operational_node_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "required_shared_dependency_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "single_node_reference_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "service_region_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_service_availability_fraction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "expected_oracle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "oracle_status",
+        "enumerated_scenario_count",
+        "single_node_service_availability",
+        "fleet_k_of_n_service_availability",
+        "naive_independent_k_of_n_service_availability",
+        "absolute_service_availability_gain_vs_single_node",
+        "common_cause_overstatement_probability_points",
+        "enumeration_verified"
+      ],
+      "properties": {
+        "oracle_status": {
+          "enum": [
+            "independently_calculated",
+            "not_evaluated"
+          ]
+        },
+        "enumerated_scenario_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "single_node_service_availability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "fleet_k_of_n_service_availability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "naive_independent_k_of_n_service_availability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "absolute_service_availability_gain_vs_single_node": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "common_cause_overstatement_probability_points": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "enumeration_verified": {
+          "type": "boolean"
+        }
+      }
+    },
+    "source_evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "uniqueItems": true
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  },
+  "$comment": "Semantic invariants: node IDs, common-cause event IDs and dependency IDs are unique; all affected_node_ids refer to declared nodes; required_shared_dependency_ids refer to declared dependencies; single_node_reference_id refers to a declared node; minimum_operational_node_count is <= node count; probabilities lie in [0,1]. Static Bernoulli enumeration assumes independent base node availability, independent common-cause event occurrences, and independent shared-dependency availability; common-cause events override node availability for affected nodes. The naive comparator intentionally ignores all common-cause events but keeps the same node probabilities, k-of-n threshold and shared dependencies. This is not a repairable/temporal model. The standalone v1 exact Bernoulli evaluator accepts synthetic static cases only, requires every node to declare the same service_region_ref as the fleet contract, and rejects any non-null maintenance_profile_ref because repair/maintenance timing is not modeled. Its result reports whether the declared target_service_availability_fraction is met, but does not infer operational availability."
+}
