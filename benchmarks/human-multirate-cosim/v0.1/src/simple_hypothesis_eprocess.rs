@@ -135,6 +135,7 @@ pub fn evaluate_simple_hypothesis_eprocess(
         actions.iter().map(|action| (action.action_id(), action)).collect();
     let mut seen_actions = HashSet::new();
     let mut cumulative_log_e_alternative_over_null = 0.0;
+    let mut absorbed_decision = SimpleHypothesisEProcessDecisionV1::InsufficientEvidence;
     let mut prefixes = Vec::with_capacity(history.len());
 
     for observation in history {
@@ -180,24 +181,23 @@ pub fn evaluate_simple_hypothesis_eprocess(
         cumulative_log_e_alternative_over_null += log_likelihood_ratio_increment;
         let cumulative_log_e_null_over_alternative =
             -cumulative_log_e_alternative_over_null;
-        let decision = decision_from_log_evalues(
-            cumulative_log_e_alternative_over_null,
-            cumulative_log_e_null_over_alternative,
-            log_crossing_threshold,
-        );
+        if absorbed_decision == SimpleHypothesisEProcessDecisionV1::InsufficientEvidence {
+            absorbed_decision = decision_from_log_evalues(
+                cumulative_log_e_alternative_over_null,
+                cumulative_log_e_null_over_alternative,
+                log_crossing_threshold,
+            );
+        }
         prefixes.push(SimpleHypothesisEProcessPrefixV1 {
             action_id: observation.action_id,
             log_likelihood_ratio_increment,
             cumulative_log_e_alternative_over_null,
             cumulative_log_e_null_over_alternative,
-            decision,
+            decision: absorbed_decision,
         });
     }
 
-    let final_decision = prefixes
-        .last()
-        .map(|prefix| prefix.decision)
-        .unwrap_or(SimpleHypothesisEProcessDecisionV1::InsufficientEvidence);
+    let final_decision = absorbed_decision;
     Ok(SimpleHypothesisEProcessReportV1 {
         null_model_id,
         alternative_model_id,
@@ -413,6 +413,81 @@ mod tests {
         assert!((report.log_crossing_threshold - (40.0_f64).ln()).abs() < 1.0e-12);
         assert_eq!(report.directional_false_commit_bound, 0.025);
         assert_eq!(report.two_direction_familywise_bound, 0.05);
+    }
+
+    fn scaled_trace(
+        action: &SequentialActionV1,
+        scenario: &ExperimentDesignScenario,
+        null_model_id: u32,
+        alternative_model_id: u32,
+        scale: f64,
+    ) -> ActionObservationV1 {
+        let null_means = action.model_means_for(null_model_id).unwrap();
+        let alternative_means = action.model_means_for(alternative_model_id).unwrap();
+        let values = null_means
+            .observations
+            .iter()
+            .zip(alternative_means.observations.iter())
+            .map(|(null_row, alternative_row)| {
+                null_row
+                    .iter()
+                    .zip(alternative_row.iter())
+                    .map(|(null, alternative)| null + scale * (alternative - null))
+                    .collect()
+            })
+            .collect();
+        ActionObservationV1 {
+            action_id: action.action_id(),
+            sensor_ids: action.selected_sensor_ids().to_vec(),
+            times: scenario.observation_times.clone(),
+            values,
+        }
+    }
+
+    #[test]
+    fn first_eprocess_boundary_crossing_is_absorbing() {
+        let fixture = scenario();
+        let first = action(&fixture, 1, 0, 1.0);
+        let second = action(&fixture, 2, 2, -1.0);
+        let first_trace = scaled_trace(&first, &fixture, 1, 2, 20.0);
+        let second_trace = scaled_trace(&second, &fixture, 1, 2, -20.0);
+        let first_only = evaluate_simple_hypothesis_eprocess(
+            &fixture,
+            &[first.clone(), second.clone()],
+            &prior(),
+            &[first_trace.clone()],
+            1,
+            2,
+            0.05,
+        )
+        .unwrap();
+        assert_eq!(
+            first_only.final_decision,
+            SimpleHypothesisEProcessDecisionV1::SupportAlternative
+        );
+
+        let with_later_opposing_evidence = evaluate_simple_hypothesis_eprocess(
+            &fixture,
+            &[first, second],
+            &prior(),
+            &[first_trace, second_trace],
+            1,
+            2,
+            0.05,
+        )
+        .unwrap();
+        assert_eq!(
+            with_later_opposing_evidence.prefixes[0].decision,
+            SimpleHypothesisEProcessDecisionV1::SupportAlternative
+        );
+        assert_eq!(
+            with_later_opposing_evidence.prefixes[1].decision,
+            SimpleHypothesisEProcessDecisionV1::SupportAlternative
+        );
+        assert_eq!(
+            with_later_opposing_evidence.final_decision,
+            SimpleHypothesisEProcessDecisionV1::SupportAlternative
+        );
     }
 
     #[test]
