@@ -53,7 +53,11 @@
       "f_prime": "2*u*(1-2*q*u)/(r*(1-q))",
       "g_prime": "2*r",
       "h_prime": "2*r-2*r_H^2*q*u/((1-q)*r)",
-      "w_prime": "-4*Omega_H*u^2*(1-q)/(r*D^2)"
+      "w_prime": "-4*Omega_H*u^2*(1-q)/(r*D^2)",
+      "b_second": "d^2/dr^2[1-u/D]",
+      "f_second": "2*(-3*u+10*q*u^2)/((1-q)*r^2)",
+      "h_second": "2+6*r_H^2*q*u/((1-q)*r^2)",
+      "w_second": "w_prime*(-5+8*q*u^2/D)/r"
     },
     "horizon": {
       "domain": "0<=q<1/2",
@@ -113,7 +117,11 @@
       "b_prime": "1000975/12096192",
       "f_prime": "2788/34371",
       "h_prime": "160156/26733",
-      "w_prime": "-98021/16128256"
+      "w_prime": "-98021/16128256",
+      "b_second": "-5993501405/72867460608",
+      "f_second": "-57580/721791",
+      "h_second": "53708/26733",
+      "w_second": "1636264553/161927690240"
     }
   },
   "second_positive_control": {
@@ -139,12 +147,33 @@
   },
   "implementation": {
     "crate": "crates/domains/symtropy-lovelock5d",
-    "rust_tests_authored": 14,
+    "rust_tests_authored": 18,
     "rust_tests_executed": false,
     "sympy_script": "benchmarks/akribiea_5d_mp_exact_reference.py",
-    "sympy_script_executed_in_clean_checkout": false
+    "sympy_script_executed_in_clean_checkout": false,
+    "reduced_action_module": {
+      "path": "crates/domains/symtropy-lovelock5d/src/reduced_action.rs",
+      "evaluator": "ReducedActionResiduals5D::evaluate",
+      "differentiation": "10-variable second-order multivariate forward jet (gradient and Hessian)",
+      "equations": [
+        "E_b",
+        "E_f",
+        "E_g",
+        "E_h",
+        "E_w"
+      ],
+      "canonical_momentum": "dL_eff/dw'=P_w",
+      "f_prime_momentum": "0",
+      "tests_authored": 4,
+      "tests_executed": false,
+      "exact_controls": {
+        "all_five_eoms_zero_on_alpha_zero_myers_perry": true,
+        "all_five_eoms_zero_on_finite_alpha_boulware_deser": true,
+        "off_shell_profile_mutation_detected": true
+      }
+    }
   },
-  "claim_ceiling": "Exact analytic reference and symbolic checks only. Coordinate convention is pinned to the full 2010 ansatz including the (g-h) angular cross-term. No nonzero-alpha rotating EGB solution, Rust test execution, interval enclosure, radii-polynomial proof or stability claim.",
+  "claim_ceiling": "Exact analytical MP/BD profiles and independently derived action-level ODE residuals. Rust evaluator/tests are authored but uncompiled. No nonzero-alpha rotating EGB branch, full tensor verification, interval enclosure, radii-polynomial proof, or stability claim.",
   "time_sector_radial_identity": {
     "source": "Brihaye et al. (2010), Eq. (2.14), full right-hand side including alpha corrections",
     "current": "P_t(r)=sqrt(f*h/b)*(r^2*(h*w*w'-b')+alpha*((f-4+h/r^2+r*f*h'/h)*b'+(4-3*h/r^2-f)*h*w*w'+r*f*h*w'^2))",
