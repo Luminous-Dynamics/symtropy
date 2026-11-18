@@ -508,6 +508,15 @@ fn evaluate_case(case: &Value) -> Result<Value, String> {
         for right in (left + 1)..feasible.len() {
             let first = feasible[left];
             let second = feasible[right];
+            // A simulated valve perturbation changes hydraulic state. v0.1
+            // cannot compose it with another probe without a validated
+            // state-transition/counterfactual model, so valve probes remain
+            // single-step only.
+            if first.kind == "simulated_valve_perturbation"
+                || second.kind == "simulated_valve_perturbation"
+            {
+                continue;
+            }
             let pair = [first, second];
             let combined = combine_observations(&passive, &pair, &hypothesis_ids)?;
             let (post_size, cliques, edges) = maximum_cliques(&hypothesis_ids, &combined)?;
