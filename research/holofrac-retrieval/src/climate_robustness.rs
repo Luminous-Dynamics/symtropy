@@ -366,7 +366,7 @@ pub fn evaluate_climate_robustness(
         let mut ideal = [0.0_f64; CLIMATE_CRITERION_COUNT];
         for (_, outcomes) in &feasible {
             for (ideal_value, outcome) in ideal.iter_mut().zip(outcomes.iter()) {
-                *ideal_value = ideal_value.max(*outcome);
+                *ideal_value = (*ideal_value).max(*outcome);
             }
         }
 
@@ -427,10 +427,10 @@ pub fn evaluate_climate_robustness(
                 .zip(weighted_regret.iter_mut())
                 .zip(result.outcomes.iter().zip(ideal_outcomes.iter()))
             {
-                *mean += scenario.decision_weight * outcome;
-                *worst = worst.min(*outcome);
+                *mean += scenario.decision_weight * *outcome;
+                *worst = (*worst).min(*outcome);
 
-                let regret = (ideal - outcome).max(0.0);
+                let regret = (*ideal - *outcome).max(0.0);
                 *weighted_regret_value += scenario.decision_weight * regret;
                 maximum_regret = maximum_regret.max(regret);
             }
@@ -742,7 +742,7 @@ mod tests {
                         return None;
                     }
                     for (worst_value, outcome) in worst.iter_mut().zip(row.outcomes.iter()) {
-                        *worst_value = worst_value.min(*outcome);
+                        *worst_value = (*worst_value).min(*outcome);
                     }
                 }
                 Some((candidate, worst))
