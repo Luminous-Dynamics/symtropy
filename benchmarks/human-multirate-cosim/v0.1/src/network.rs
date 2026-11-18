@@ -5,7 +5,9 @@
 //!
 //! For an undirected graph with node capacities C_i and edge conductances g_ij:
 //!
-//!     C_i * dx_i/dt = sum_j g_ij * (x_j - x_i)
+//! ```text
+//! C_i * dx_i/dt = sum_j g_ij * (x_j - x_i)
+//! ```
 //!
 //! Hence C * dx/dt = -L * x, where L is the weighted graph Laplacian.
 //! The total sum(C_i * x_i) is conserved and the C-weighted quadratic energy
