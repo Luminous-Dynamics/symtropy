@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "radii_polynomial_exact_rational_arithmetic_plumbing_fixture",
+  "status": "theorem_arithmetic_only_not_a_black_hole_certificate",
+  "source_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6019",
+  "upstream_framework": {
+    "repository": "https://github.com/IlPreteRosso/RadiiPolynomial",
+    "revision": "445773960f43",
+    "lean_toolchain": "leanprover/lean4:v4.34.1",
+    "mathlib_revision": "d13f23b7",
+    "leancert_revision": "7f91b6eb3567437f6cfac03ed279706603ee22f4"
+  },
+  "inputs": {
+    "Y0": "1/1000",
+    "Z0": "1/100",
+    "Z1": "1/100",
+    "Z2": "1/10",
+    "r0": "1/100"
+  },
+  "exact_calculation": {
+    "radii_polynomial": "Z2*r0^2-(1-Z0-Z1)*r0+Y0",
+    "p_r0": "-879/100000",
+    "p_r0_negative": true,
+    "contraction_bound": "Z0+Z1+Z2*r0",
+    "contraction_bound_value": "21/1000",
+    "contraction_bound_less_than_one": true
+  },
+  "expected_lean_kernel_obligation": {
+    "proposition": "generalRadiiPolynomial Y0 Z0 Z1 (fun _ => Z2) r0 < 0",
+    "tactic": "norm_num [RadiiPolynomial.generalRadiiPolynomial]",
+    "note": "Illustrative tactic shape; exact imports/namespaced module should be checked in the pinned Lake project."
+  },
+  "validation": {
+    "exact_rational_arithmetic_reproduced_by_independent_fraction_calculation": true,
+    "lean_executed": false,
+    "Y0_derived_from_black_hole_candidate": false,
+    "Z0_derived_from_verified_inverse": false,
+    "Z1_derived_from_operator_bound": false,
+    "Z2_derived_from_nonlinear_remainder": false,
+    "black_hole_existence_claim": false
+  },
+  "claim_ceiling": "This is a rational inequality plumbing fixture only. It does not verify any BVP operator bounds, solution existence, or black-hole physics."
+}
