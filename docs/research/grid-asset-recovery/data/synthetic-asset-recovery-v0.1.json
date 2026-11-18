@@ -81,6 +81,21 @@
       "resourceId": "CREW-HV-TX",
       "resourceType": "qualified_transformer_replacement_crew",
       "availableUnits": 1
+    },
+    {
+      "resourceId": "CRANE-200T",
+      "resourceType": "heavy_lift_crane",
+      "availableUnits": 1
+    },
+    {
+      "resourceId": "HV-TEST-RIG",
+      "resourceType": "high_voltage_test_equipment",
+      "availableUnits": 1
+    },
+    {
+      "resourceId": "HEAVY-HAULER",
+      "resourceType": "heavy_transport_vehicle",
+      "availableUnits": 1
     }
   ],
   "logisticsRoutes": [
@@ -138,7 +153,8 @@
             "stage": "detect_and_isolate",
             "durationHours": 2,
             "taskId": "detect",
-            "dependsOn": []
+            "dependsOn": [],
+            "resourceRequirements": []
           },
           {
             "stage": "diagnose",
@@ -146,7 +162,8 @@
             "taskId": "diagnose",
             "dependsOn": [
               "detect"
-            ]
+            ],
+            "resourceRequirements": []
           },
           {
             "stage": "source_part",
@@ -154,7 +171,8 @@
             "taskId": "source-part",
             "dependsOn": [
               "diagnose"
-            ]
+            ],
+            "resourceRequirements": []
           },
           {
             "stage": "transport",
@@ -162,6 +180,12 @@
             "taskId": "transport",
             "dependsOn": [
               "source-part"
+            ],
+            "resourceRequirements": [
+              {
+                "resourceId": "HEAVY-HAULER",
+                "units": 1
+              }
             ]
           },
           {
@@ -170,17 +194,26 @@
             "taskId": "crew-mobilise",
             "dependsOn": [
               "diagnose"
-            ]
+            ],
+            "resourceRequirements": []
           },
           {
             "stage": "repair_or_replace",
             "durationHours": 10,
-            "resourceId": "CREW-HV-TX",
-            "resourceUnits": 1,
             "taskId": "repair",
             "dependsOn": [
               "transport",
               "crew-mobilise"
+            ],
+            "resourceRequirements": [
+              {
+                "resourceId": "CREW-HV-TX",
+                "units": 1
+              },
+              {
+                "resourceId": "CRANE-200T",
+                "units": 1
+              }
             ]
           },
           {
@@ -189,6 +222,12 @@
             "taskId": "test-commission",
             "dependsOn": [
               "repair"
+            ],
+            "resourceRequirements": [
+              {
+                "resourceId": "HV-TEST-RIG",
+                "units": 1
+              }
             ]
           }
         ]
@@ -215,7 +254,8 @@
             "stage": "detect_and_isolate",
             "durationHours": 2,
             "taskId": "detect",
-            "dependsOn": []
+            "dependsOn": [],
+            "resourceRequirements": []
           },
           {
             "stage": "diagnose",
@@ -223,7 +263,8 @@
             "taskId": "diagnose",
             "dependsOn": [
               "detect"
-            ]
+            ],
+            "resourceRequirements": []
           },
           {
             "stage": "source_part",
@@ -231,7 +272,8 @@
             "taskId": "source-part",
             "dependsOn": [
               "diagnose"
-            ]
+            ],
+            "resourceRequirements": []
           },
           {
             "stage": "crew_mobilise",
@@ -239,17 +281,26 @@
             "taskId": "crew-mobilise",
             "dependsOn": [
               "diagnose"
-            ]
+            ],
+            "resourceRequirements": []
           },
           {
             "stage": "repair_or_replace",
             "durationHours": 10,
-            "resourceId": "CREW-HV-TX",
-            "resourceUnits": 1,
             "taskId": "repair",
             "dependsOn": [
               "source-part",
               "crew-mobilise"
+            ],
+            "resourceRequirements": [
+              {
+                "resourceId": "CREW-HV-TX",
+                "units": 1
+              },
+              {
+                "resourceId": "CRANE-200T",
+                "units": 1
+              }
             ]
           },
           {
@@ -258,6 +309,12 @@
             "taskId": "test-commission",
             "dependsOn": [
               "repair"
+            ],
+            "resourceRequirements": [
+              {
+                "resourceId": "HV-TEST-RIG",
+                "units": 1
+              }
             ]
           }
         ]
@@ -287,7 +344,8 @@
             "stage": "detect_and_isolate",
             "durationHours": 2,
             "taskId": "detect",
-            "dependsOn": []
+            "dependsOn": [],
+            "resourceRequirements": []
           },
           {
             "stage": "diagnose",
@@ -295,7 +353,8 @@
             "taskId": "diagnose",
             "dependsOn": [
               "detect"
-            ]
+            ],
+            "resourceRequirements": []
           },
           {
             "stage": "source_part",
@@ -303,7 +362,8 @@
             "taskId": "source-part",
             "dependsOn": [
               "diagnose"
-            ]
+            ],
+            "resourceRequirements": []
           },
           {
             "stage": "transport",
@@ -311,6 +371,12 @@
             "taskId": "transport",
             "dependsOn": [
               "source-part"
+            ],
+            "resourceRequirements": [
+              {
+                "resourceId": "HEAVY-HAULER",
+                "units": 1
+              }
             ]
           },
           {
@@ -319,17 +385,26 @@
             "taskId": "crew-mobilise",
             "dependsOn": [
               "diagnose"
-            ]
+            ],
+            "resourceRequirements": []
           },
           {
             "stage": "repair_or_replace",
             "durationHours": 10,
-            "resourceId": "CREW-HV-TX",
-            "resourceUnits": 1,
             "taskId": "repair",
             "dependsOn": [
               "transport",
               "crew-mobilise"
+            ],
+            "resourceRequirements": [
+              {
+                "resourceId": "CREW-HV-TX",
+                "units": 1
+              },
+              {
+                "resourceId": "CRANE-200T",
+                "units": 1
+              }
             ]
           },
           {
@@ -338,6 +413,12 @@
             "taskId": "test-commission",
             "dependsOn": [
               "repair"
+            ],
+            "resourceRequirements": [
+              {
+                "resourceId": "HV-TEST-RIG",
+                "units": 1
+              }
             ]
           }
         ]
