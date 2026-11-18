@@ -273,6 +273,7 @@ pub fn check_dispatch_readiness(
             .last_event_sha256()
             .unwrap_or_default()
             .to_owned(),
+        site_clock_domain_id: occupancy.site_clock_domain_id.clone(),
         checked_at_tick: request.now_tick,
         valid_until_tick,
     })
@@ -393,6 +394,7 @@ mod tests {
         assert_eq!(receipt.package_sha256, request.envelope.package_sha256);
         assert_eq!(receipt.envelope_sha256, request.envelope.envelope_sha256);
         assert_eq!(receipt.site_ledger_sequence, 1);
+        assert_eq!(receipt.site_clock_domain_id, "site-clock-01");
         assert_eq!(receipt.valid_until_tick, 400);
     }
 
@@ -490,4 +492,64 @@ mod tests {
             Err(DispatchReadinessFailure::OccupancyClockDomainMismatch)
         );
     }
+
+    #[test]
+    fn occupancy_assessment_must_postdate_the_bound_motion_envelope() {
+        let ledger = site_ledger();
+        let mut request = request(&ledger);
+        request.occupancy.checked_at_tick = 99;
+        assert_eq!(
+            check_dispatch_readiness(&ledger, &request),
+            Err(DispatchReadinessFailure::OccupancyAssessmentPredatesEnvelope)
+        );
+    }
+
+    #[test]
+    fn entity_with_an_existing_execution_attempt_cannot_be_dispatched_again() {
+        let mut ledger = site_ledger();
+        let package_sha256 = ledger.active_package_sha256().unwrap().to_owned();
+        ledger
+            .apply(SiteEventEnvelope {
+                event_id: "station-qualified".into(),
+                sequence: 2,
+                previous_event_sha256: ledger.last_event_sha256().map(str::to_owned),
+                event_sha256: digest('5'),
+                actor_id: "surveyor".into(),
+                actor_role: SiteActorRole::Surveyor,
+                payload: SiteEventPayload::StationQualified {
+                    package_sha256: package_sha256.clone(),
+                    station_id: "station-01".into(),
+                    frame_sha256: digest('f'),
+                    transform_sha256: digest('1'),
+                    calibration_sha256: digest('6'),
+                },
+            })
+            .unwrap();
+        ledger
+            .apply(SiteEventEnvelope {
+                event_id: "attempt-started".into(),
+                sequence: 3,
+                previous_event_sha256: ledger.last_event_sha256().map(str::to_owned),
+                event_sha256: digest('7'),
+                actor_id: "robot-01".into(),
+                actor_role: SiteActorRole::Robot,
+                payload: SiteEventPayload::ExecutionStarted {
+                    package_sha256,
+                    entity_id: "ifc4x3:0000000000000000000001".into(),
+                    attempt_id: "attempt-01".into(),
+                    station_qualification_event_id: "station-qualified".into(),
+                },
+            })
+            .unwrap();
+
+        let mut request = request(&ledger);
+        request.occupancy.site_ledger_sequence = ledger.last_sequence();
+        request.occupancy.site_ledger_event_sha256 =
+            ledger.last_event_sha256().unwrap().to_owned();
+        assert_eq!(
+            check_dispatch_readiness(&ledger, &request),
+            Err(DispatchReadinessFailure::EntityNotDispatchable)
+        );
+    }
+
 }
