@@ -2078,9 +2078,53 @@ mod tests {
         assert!((event.run_arc_length_um - 2.0).abs() < 1.0e-12);
         assert!((event.run_displacement_um - 2.0).abs() < 1.0e-10);
 
+        assert_eq!(event.mechanism, EventMechanism::ActiveMotorEvent);
+        assert_eq!(event.run_termination_evidence_status, EventEvidenceStatus::ModelLatent);
         let summary = summarize(&result);
         assert_eq!(summary.geometry_limited_run_count, 1);
         assert_eq!(summary.intrinsic_motor_terminated_run_count, 0);
+        assert_eq!(summary.unresolved_run_termination_count, 0);
+    }
+
+    #[test]
+    fn exact_geometry_motor_tie_uses_intrinsic_motor_switch_convention() {
+        let mut profile = steering_profile();
+        profile.geometry_free_path_um = Some(FreePathLaw::empirical(vec![5.0]));
+
+        let result = simulate(
+            &profile,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            1,
+            73,
+        )
+        .expect("tie-case simulation");
+        let event = result.events[0];
+
+        assert_eq!(
+            event.run_termination_cause,
+            RunTerminationCause::IntrinsicMotorSwitch
+        );
+        assert_eq!(event.run_duration_s, event.intrinsic_motor_persistence_time_s);
+    }
+
+    #[test]
+    fn unresolved_run_termination_cause_is_preserved_in_summary() {
+        let mut result = simulate(
+            &steering_profile(),
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            1,
+            74,
+        )
+        .expect("valid run");
+        result.events[0].run_termination_cause = RunTerminationCause::Unresolved;
+        result.events[0].run_termination_evidence_status = EventEvidenceStatus::Unresolved;
+
+        let summary = summarize(&result);
+        assert_eq!(summary.unresolved_run_termination_count, 1);
+        assert_eq!(summary.intrinsic_motor_terminated_run_count, 0);
+        assert_eq!(summary.geometry_limited_run_count, 0);
     }
 
     #[test]
