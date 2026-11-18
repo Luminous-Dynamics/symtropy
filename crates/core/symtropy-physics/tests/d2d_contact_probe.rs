@@ -605,7 +605,8 @@ fn tangential_probe_magnitude_changes_the_executed_observation() {
     assert!(
         (gentle.terminal_vx - strong.terminal_vx).abs() > 1e-5
             || (gentle.terminal_x - strong.terminal_x).abs() > 1e-5,
-        "declared probe intervention should change simulated outcome: gentle={gentle:?}, strong={strong:?}"
+        "declared probe intervention should change simulated outcome: \
+         gentle={gentle:?}, strong={strong:?}"
     );
 }
 
@@ -818,10 +819,17 @@ fn branch_denominator_audit_preserves_missing_unsupported_and_unexpected_cases()
     let audit = audit_expected_branches(&expected, &observed);
     assert_eq!(audit.expected_count, 3);
     assert_eq!(audit.reported_count, 4);
-    assert_eq!(audit.completed_count, 1, "duplicate completion must not inflate coverage");
+    assert_eq!(
+        audit.completed_count, 1,
+        "duplicate completion must not inflate coverage"
+    );
     assert_eq!(
         audit.expected_branches,
-        vec!["branch-a".to_string(), "branch-b".to_string(), "branch-c".to_string()]
+        vec![
+            "branch-a".to_string(),
+            "branch-b".to_string(),
+            "branch-c".to_string(),
+        ]
     );
     assert_eq!(
         audit.reported_branches,
