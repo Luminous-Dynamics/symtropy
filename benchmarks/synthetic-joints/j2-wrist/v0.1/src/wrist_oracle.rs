@@ -65,12 +65,13 @@ fn jacobian_singular_values(matrix: Matrix2) -> Option<(f64, f64)> {
 
     let discriminant = discriminant_squared.max(0.0).sqrt();
     let lambda_max = (trace + discriminant) / 2.0;
-    let lambda_min = (trace - discriminant) / 2.0;
-    if !lambda_max.is_finite()
-        || !lambda_min.is_finite()
-        || lambda_max <= 0.0
-        || lambda_min <= RELATIVE_EPSILON * lambda_max
-    {
+    if !lambda_max.is_finite() || lambda_max <= 0.0 {
+        return None;
+    }
+    // Avoid catastrophic cancellation in (trace - discriminant) / 2 for
+    // ill-conditioned matrices: lambda_max * lambda_min = det(J)^2.
+    let lambda_min = det.powi(2) / lambda_max;
+    if !lambda_min.is_finite() || lambda_min <= RELATIVE_EPSILON * lambda_max {
         return None;
     }
 
