@@ -197,7 +197,7 @@ fn structural_errors(input: &CoAvailabilityInput) -> Vec<String> {
             && stop.departure_earliest_ms <= stop.departure_latest_ms)
         {
             errors.push(format!(
-                "carrier.route_stops[{index}]: require earliest arrival <= latest arrival < earliest departure <= latest departure"
+                "carrier.route_stops[{index}]: require arrival_early <= arrival_late < depart_early <= depart_late"
             ));
         }
     }
@@ -434,13 +434,13 @@ pub fn evaluate_coavailability(
                             } else {
                                 known_infeasible = true;
                                 findings.push(
-                                    "INFEASIBLE: no launch time satisfies carrier, launch and recovery windows".into(),
+                                    "INFEASIBLE: no launch time fits carrier and sortie windows".into(),
                                 );
                             }
                         } else {
                             known_infeasible = true;
                             findings.push(
-                                "INFEASIBLE: recovery window closes before flight return and service"
+                                "INFEASIBLE: recovery window closes before flight recovery"
                                     .into(),
                             );
                         }
@@ -517,10 +517,10 @@ pub fn evaluate_coavailability(
         peak_power_margin_w: peak_margin,
         continuous_power_margin_w: continuous_margin,
         findings,
-        energy_boundary: "UAV battery-terminal mission energy + reserve; excludes truck traction and charging losses".into(),
+        energy_boundary: "UAV battery energy + reserve; excludes carrier energy and charging losses".into(),
         dispatch_authorized: false,
         physical_command_emitted: false,
-        claim_ceiling: "Contract-level feasibility only; not flight authorization, airworthiness, safety or performance evidence".into(),
+        claim_ceiling: "Contract feasibility only; not flight, airworthiness, safety or performance authorization".into(),
     })
 }
 
