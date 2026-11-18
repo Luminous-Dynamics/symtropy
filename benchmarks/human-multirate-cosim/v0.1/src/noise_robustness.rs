@@ -892,4 +892,162 @@ mod tests {
         let second = run_ar1_negative_control(4_096, 77, 0.8).unwrap();
         assert_eq!(first, second);
     }
+
+    #[test]
+    fn covariance_identity_binds_sensor_order_and_sampling_schedule() {
+        let covariance = ar1_time_covariance(2, 0.8).unwrap();
+        let binding = ObservationCovarianceV1::new(
+            "covariance-sha256:fixture".to_owned(),
+            "noise-process:ar1-rho-0.8".to_owned(),
+            "sampling-policy:two-evenly-spaced-times".to_owned(),
+            vec![7],
+            vec![0.25, 0.5],
+            covariance,
+        )
+        .unwrap();
+        let matching = ObservedSensorTrace {
+            sensor_ids: vec![7],
+            times: vec![0.25, 0.5],
+            values: vec![vec![0.0], vec![0.0]],
+        };
+        assert!(binding.validate_trace(&matching).is_ok());
+
+        let reordered = ObservedSensorTrace {
+            sensor_ids: vec![8],
+            ..matching.clone()
+        };
+        assert_eq!(
+            binding.validate_trace(&reordered),
+            Err(CovarianceError::TraceSensorOrderMismatch)
+        );
+
+        let shifted = ObservedSensorTrace {
+            times: vec![0.25, 0.75],
+            ..matching
+        };
+        assert_eq!(
+            binding.validate_trace(&shifted),
+            Err(CovarianceError::TraceTimeScheduleMismatch)
+        );
+    }
+
+    #[test]
+    fn full_space_time_adequacy_uses_joint_mahalanobis_residual() {
+        use crate::experiment_design::{
+            ExperimentDesignScenario, ForcingSegment, ModelCandidate,
+        };
+        use crate::network::{Edge, NetworkScenario};
+        use crate::robust_discrimination::{
+            ModelFamilyAssignment, ProfiledModelFamilyScenario,
+        };
+        use crate::sensor_design::SensorCandidate;
+
+        let make_network = |name: &'static str, conductance: f64| NetworkScenario {
+            name,
+            capacities: vec![1.0, 1.0],
+            initial: vec![0.0, 0.0],
+            edges: vec![Edge {
+                left: 0,
+                right: 1,
+                conductance,
+            }],
+            horizon: 1.0,
+        };
+        let experiment = ExperimentDesignScenario {
+            name: "two-model-two-time-covariance-fixture",
+            models: vec![
+                ModelCandidate {
+                    id: 1,
+                    label: "low conductance",
+                    network: make_network("low", 0.5),
+                },
+                ModelCandidate {
+                    id: 2,
+                    label: "high conductance",
+                    network: make_network("high", 1.0),
+                },
+            ],
+            sensors: vec![SensorCandidate {
+                id: 10,
+                node: 0,
+                cost: 1.0,
+                common_cause_group: None,
+            }],
+            noise_covariance: vec![vec![1.0]],
+            observation_times: vec![0.25, 0.5],
+            sensor_budget: 1.0,
+            max_abs_forcing: 2.0,
+            input_energy_budget: 2.0,
+        };
+        let profile = InputProfile {
+            id: 101,
+            label: "constant unit forcing",
+            segments: vec![ForcingSegment {
+                start_time: 0.0,
+                end_time: 1.0,
+                forcing: vec![1.0, 0.0],
+            }],
+        };
+        let scenario = ProfiledModelFamilyScenario {
+            experiment,
+            family_assignments: vec![
+                ModelFamilyAssignment {
+                    model_id: 1,
+                    family_id: 100,
+                },
+                ModelFamilyAssignment {
+                    model_id: 2,
+                    family_id: 200,
+                },
+            ],
+        };
+        let nominal = evaluate_input_profile(&scenario.experiment, &profile, &[10]).unwrap();
+        let model_one = nominal
+            .model_observation_means
+            .iter()
+            .find(|model| model.model_id == 1)
+            .unwrap();
+        let mut values = model_one.observations.clone();
+        values[0][0] += 1.0;
+        values[1][0] -= 0.2;
+        let trace = ObservedSensorTrace {
+            sensor_ids: vec![10],
+            times: vec![0.25, 0.5],
+            values,
+        };
+        let covariance = ObservationCovarianceV1::new(
+            "covariance:ar1-fixture".to_owned(),
+            "process:gaussian-ar1-rho-0.8".to_owned(),
+            "sampling:two-times".to_owned(),
+            vec![10],
+            vec![0.25, 0.5],
+            ar1_time_covariance(2, 0.8).unwrap(),
+        )
+        .unwrap();
+
+        let report = evaluate_model_family_adequacy_full_covariance(
+            &scenario,
+            &profile,
+            &[10],
+            &trace,
+            &covariance,
+            ModelFamilyAdequacyPolicy {
+                maximum_gaussian_residual: 100.0,
+            },
+        )
+        .unwrap();
+        let family_one = report
+            .adequacy
+            .family_fits
+            .iter()
+            .find(|family| family.family_id == 100)
+            .unwrap();
+        let expected = 0.5 * (1.0 + 2.0 * 0.8 * 0.2 + 0.2_f64.powi(2)) / (1.0 - 0.8_f64.powi(2));
+        assert!((family_one.minimum_gaussian_residual - expected).abs() < 1.0e-10);
+        assert_eq!(report.covariance_id, "covariance:ar1-fixture");
+        assert_eq!(report.observation_process_id, "process:gaussian-ar1-rho-0.8");
+        assert_eq!(report.sampling_policy_id, "sampling:two-times");
+        assert_eq!(report.covariance_dimension, 2);
+    }
+
 }
