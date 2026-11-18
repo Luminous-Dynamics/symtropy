@@ -685,6 +685,64 @@ mod tests {
     }
 
     #[test]
+    fn rejects_continuous_power_excess() {
+        let mut test = input();
+        test.sortie.continuous_power_w = 801;
+        let report = evaluate_coavailability(&test).expect("valid structure");
+        assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
+        assert!(report.findings.iter().any(|finding| finding.contains("continuous power")));
+    }
+
+    #[test]
+    fn revoked_permission_is_infeasible() {
+        let mut test = input();
+        test.operating_domain.permission = AirspaceStatus::Revoked;
+        let report = evaluate_coavailability(&test).expect("valid structure");
+        assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
+    }
+
+    #[test]
+    fn unsupported_aircraft_capability_is_indeterminate() {
+        let mut test = input();
+        test.aircraft.capability_evidence = EvidenceStatus::Unsupported;
+        let report = evaluate_coavailability(&test).expect("valid structure");
+        assert_eq!(report.verdict, FeasibilityVerdict::Indeterminate);
+    }
+
+    #[test]
+    fn accepts_exact_energy_reserve_boundary() {
+        let mut test = input();
+        test.sortie.flight_energy_wh = 400;
+        let report = evaluate_coavailability(&test).expect("valid structure");
+        assert_eq!(report.verdict, FeasibilityVerdict::Feasible);
+        assert_eq!(report.energy_margin_wh, Some(0));
+    }
+
+    #[test]
+    fn same_stop_return_requires_carrier_to_remain_until_recovery() {
+        let mut test = input();
+        test.sortie.recovery_stop_id = "stop-01".into();
+        test.sortie.recovery_window_open_ms = 500_000;
+        test.sortie.recovery_window_close_ms = 900_000;
+        let report = evaluate_coavailability(&test).expect("valid structure");
+        assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
+    }
+
+    #[test]
+    fn rejects_recovery_pad_conflict() {
+        let mut test = input();
+        test.existing_reservations.push(ResourceReservation {
+            reservation_id: "other-sortie".into(),
+            resource_id: "pad-hub-b-1".into(),
+            start_ms: 1_300_000,
+            end_ms: 1_360_000,
+        });
+        let report = evaluate_coavailability(&test).expect("valid structure");
+        assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
+        assert!(report.findings.iter().any(|finding| finding.contains("recovery pad")));
+    }
+
+    #[test]
     fn rejects_duplicate_route_stop_identity() {
         let mut test = input();
         test.carrier.route_stops.push(CarrierStop {
