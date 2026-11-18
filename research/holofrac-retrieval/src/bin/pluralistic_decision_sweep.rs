@@ -47,6 +47,80 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("# target_os={}", env::consts::OS);
     println!("row_type,alternative,metric,value,detail");
 
+    let mut privacy_veto = [None; CRITERION_COUNT];
+    privacy_veto[5] = Some(0.7);
+    let mut access_veto = [None; CRITERION_COUNT];
+    access_veto[4] = Some(0.7);
+    let mut comfort_veto = [None; CRITERION_COUNT];
+    comfort_veto[0] = Some(0.6);
+
+    let events = vec![
+        profile_event(
+            1,
+            "synthetic:resident-thermal",
+            ConsentScope::AnonymousAggregate,
+            ConsentStatus::Granted,
+            [0.4, 0.1, 0.1, 0.1, 0.1, 0.1, 0.05, 0.05],
+            comfort_veto,
+        ),
+        profile_event(
+            2,
+            "synthetic:resident-privacy",
+            ConsentScope::AnonymousAggregate,
+            ConsentStatus::Granted,
+            [0.1, 0.1, 0.05, 0.05, 0.05, 0.4, 0.1, 0.15],
+            privacy_veto,
+        ),
+        profile_event(
+            3,
+            "synthetic:facility-operator",
+            ConsentScope::AnonymousAggregate,
+            ConsentStatus::Granted,
+            [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.4, 0.3],
+            [None; CRITERION_COUNT],
+        ),
+        profile_event(
+            4,
+            "synthetic:accessibility-panel",
+            ConsentScope::AnonymousAggregate,
+            ConsentStatus::Granted,
+            [0.1, 0.1, 0.05, 0.05, 0.45, 0.05, 0.05, 0.15],
+            access_veto,
+        ),
+        profile_event(
+            5,
+            "synthetic:community",
+            ConsentScope::AnonymousAggregate,
+            ConsentStatus::Granted,
+            [0.05, 0.15, 0.05, 0.25, 0.1, 0.05, 0.2, 0.15],
+            [None; CRITERION_COUNT],
+        ),
+        profile_event(
+            6,
+            "synthetic:owner",
+            ConsentScope::NamedAggregate,
+            ConsentStatus::Granted,
+            [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.4, 0.3],
+            [None; CRITERION_COUNT],
+        ),
+        profile_event(
+            7,
+            "synthetic:local-only",
+            ConsentScope::LocalOnly,
+            ConsentStatus::Granted,
+            [0.125; CRITERION_COUNT],
+            [None; CRITERION_COUNT],
+        ),
+        profile_event(
+            8,
+            "synthetic:withdrawn",
+            ConsentScope::NamedAggregate,
+            ConsentStatus::Withdrawn,
+            [0.0; CRITERION_COUNT],
+            [None; CRITERION_COUNT],
+        ),
+    ];
+
     let snapshot = PreferenceLedger { events }.snapshot_as_of(100)?;
     let alternatives = vec![
         alternative(
@@ -100,10 +174,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ("leximin", report.rank_by_leximin()),
     ] {
         for (rank, alternative_id) in ranking.iter().enumerate() {
-            println!(
-                "ranking,{alternative_id},{method},{},",
-                rank + 1
-            );
+            println!("ranking,{alternative_id},{method},{},", rank + 1);
         }
     }
 
@@ -113,49 +184,42 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for assessment in &report.assessments {
         println!(
-            "candidate,{},{:.8},mean_satisfaction,",
-            assessment.alternative_id,
-            assessment.mean_satisfaction
+            "candidate,{al},{:.8},mean_satisfaction,",
+            assessment.mean_satisfaction,
+            al = assessment.alternative_id
         );
         println!(
-            "candidate,{},{:.8},minimum_satisfaction,",
-            assessment.alternative_id,
-            assessment.minimum_satisfaction
+            "candidate,{al},{:.8},minimum_satisfaction,",
+            assessment.minimum_satisfaction,
+            al = assessment.alternative_id
         );
         for stakeholder in &assessment.per_stakeholder_satisfaction {
             println!(
-                "participant,{},{:.8},satisfaction,{}",
-                assessment.alternative_id,
+                "participant,{al},satisfaction,{:.8},{id}",
                 stakeholder.satisfaction,
-                stakeholder.stakeholder_id.as_deref().unwrap_or("anonymous")
+                al = assessment.alternative_id,
+                id = stakeholder.stakeholder_id.as_deref().unwrap_or("anonymous")
             );
         }
     }
 
     for rejected in &report.rejected_alternatives {
-        let reasons = rejected
-            .veto_violations
-            .iter()
-            .map(|violation| {
-                format!(
-                    "{}:{}<{:.3}",
-                    violation
-                        .stakeholder_id
-                        .as_deref()
-                        .unwrap_or("anonymous"),
-                    violation.criterion.as_str(),
-                    violation.minimum_outcome
-                )
-            })
-            .collect::<Vec<_>>()
-            .join(";");
         println!(
-            "rejected,{},{},{},{}",
-            rejected.alternative_id,
-            "hard_constraints_satisfied",
-            rejected.hard_constraints_satisfied,
-            reasons
+            "rejected,{id},hard_constraints_satisfied,{value},",
+            id = rejected.alternative_id,
+            value = rejected.hard_constraints_satisfied
         );
+        for violation in &rejected.veto_violations {
+            println!(
+                "veto,{id},{criterion},{observed:.8},{stakeholder}:minimum={minimum:.8}",
+                id = rejected.alternative_id,
+                criterion = violation.criterion.as_str(),
+                observed = violation.observed_outcome,
+                stakeholder = violation.stakeholder_id.as_deref().unwrap_or("anonymous"),
+                minimum = violation.minimum_outcome
+            );
+        }
     }
+
     Ok(())
 }
