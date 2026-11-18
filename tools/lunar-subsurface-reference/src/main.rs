@@ -288,7 +288,7 @@ mod tests {
         let second = render_report_json().expect("valid report");
         assert_eq!(first, second);
         assert!(first.contains("\"scenario_count\": 72"));
-        assert!(first.contains("\"evidence_class\": \"geometry_only_excavation_volume_screen\""));
+        assert!(first.contains("\"geometry_evidence_class\": \"geometry_only_excavation_volume_screen\""));
         assert!(first.contains("\"total_excavation_volume_m3\": 3000000.000"));
     }
 }
