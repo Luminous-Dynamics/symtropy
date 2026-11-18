@@ -241,6 +241,7 @@ fn validate_evidence(
     clock_domain_id: &str,
     valid_from: u64,
     valid_until: u64,
+    seen_evidence: &mut BTreeMap<String, EvidenceRef>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
     let id = evidence.source_record_id.as_str();
@@ -320,6 +321,22 @@ fn validate_evidence(
             Some(id),
             "superseded evidence cannot support execution reconciliation",
         ),
+    }
+    if nonblank(id) {
+        match seen_evidence.get(id) {
+            Some(existing) if existing != evidence => add_diagnostic(
+                diagnostics,
+                "EVIDENCE_ID_CONFLICT",
+                DiagnosticSeverity::Indeterminate,
+                None,
+                Some(id),
+                "one evidence record ID was supplied with conflicting metadata",
+            ),
+            Some(_) => {}
+            None => {
+                seen_evidence.insert(id.to_owned(), evidence.clone());
+            }
+        }
     }
 }
 
@@ -476,6 +493,8 @@ pub fn reconcile(
 
     let mut events_by_channel: BTreeMap<Channel, Vec<TelemetryEvent>> = BTreeMap::new();
     let mut event_ids: BTreeMap<String, TelemetryEvent> = BTreeMap::new();
+    let mut seen_evidence: BTreeMap<String, EvidenceRef> = BTreeMap::new();
+    let mut accepted_event_count = 0_usize;
     let mut sequence_records: BTreeMap<(Channel, String, u64), TelemetryEvent> = BTreeMap::new();
     let mut exact_retransmissions = 0_usize;
 
@@ -550,6 +569,7 @@ pub fn reconcile(
             &binding.clock_domain_id,
             event.event_tick,
             event.event_tick.saturating_add(1),
+            &mut seen_evidence,
             &mut diagnostics,
         );
 
@@ -599,6 +619,7 @@ pub fn reconcile(
             .entry(event.observation.channel())
             .or_default()
             .push(event.clone());
+        accepted_event_count += 1;
     }
 
     let mut maximum_hook_load = None;
@@ -652,6 +673,7 @@ pub fn reconcile(
             &binding.clock_domain_id,
             binding.start_tick,
             binding.end_tick,
+            &mut seen_evidence,
             &mut diagnostics,
         );
 
@@ -672,13 +694,18 @@ pub fn reconcile(
                     Some(&event.event_id),
                     "event source identity/revision does not match the channel coverage statement",
                 );
+            } else {
+                maximum_lateness = Some(
+                    maximum_lateness
+                        .unwrap_or(0_u64)
+                        .max(event.received_tick.saturating_sub(event.event_tick)),
+                );
             }
-            maximum_lateness = Some(
-                maximum_lateness
-                    .unwrap_or(0_u64)
-                    .max(event.received_tick.saturating_sub(event.event_tick)),
-            );
         }
+        channel_events.retain(|event| {
+            event.source_id == stream.source_id
+                && event.source_revision == stream.source_revision
+        });
 
         let unique_sequences: BTreeSet<u64> = channel_events.iter().map(|e| e.sequence).collect();
         let expected_sequence_count = stream
@@ -976,7 +1003,7 @@ pub fn reconcile(
     });
     unknown_intervals.dedup();
 
-    let verified_event_count = event_ids.len().saturating_sub(0);
+    let verified_event_count = accepted_event_count;
     ReconciliationReport {
         contract_version: RECONCILIATION_CONTRACT_VERSION,
         disposition: disposition_for(&diagnostics),
