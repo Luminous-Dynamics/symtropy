@@ -53,6 +53,7 @@ pub struct SupervisorConfig {
     pub gamma_step: f64,
     pub initial_gamma: f64,
     pub gamma_tracking_tolerance_fraction: f64,
+    pub feeder_speed_tracking_tolerance_fraction: f64,
     pub feeder_speed_min_fraction: f64,
     pub feeder_speed_max_fraction: f64,
     pub feeder_speed_step_fraction: f64,
@@ -111,6 +112,16 @@ impl SupervisorConfig {
             if !value.is_finite() || !(0.0..=1.0).contains(&value) {
                 return Err(format!("{name} must be finite and in [0, 1]"));
             }
+        }
+
+        if !self.feeder_speed_tracking_tolerance_fraction.is_finite()
+            || !(0.0..=1.0).contains(&self.feeder_speed_tracking_tolerance_fraction)
+        {
+            return Err("feeder_speed_tracking_tolerance_fraction must be finite and in [0, 1]".to_owned());
+        }
+
+        if self.pocket_fill_tolerance_fraction > self.pocket_fill_target_fraction {
+            return Err("pocket_fill_tolerance_fraction must not exceed the target fraction".to_owned());
         }
 
         if self.feeder_speed_min_fraction > self.feeder_speed_max_fraction
@@ -295,7 +306,9 @@ impl FeederSupervisor {
             return Err("pocket fill and feeder speed fractions must not exceed 1.0".to_owned());
         }
 
-        if self.state.commanded_gamma < self.config.gamma_min_validated
+        if !self.state.commanded_gamma.is_finite()
+            || !self.state.commanded_feeder_speed_fraction.is_finite()
+            || self.state.commanded_gamma < self.config.gamma_min_validated
             || self.state.commanded_gamma > self.config.gamma_max_validated
             || self.state.commanded_feeder_speed_fraction < self.config.feeder_speed_min_fraction
             || self.state.commanded_feeder_speed_fraction > self.config.feeder_speed_max_fraction
@@ -327,15 +340,13 @@ impl FeederSupervisor {
             ));
         }
 
-        if observation.flow_status == FlowStatus::Continuous {
-            let tracking_error = (measured_gamma - self.state.commanded_gamma).abs()
-                / self.state.commanded_gamma.max(1.0e-9);
-            if tracking_error > self.config.gamma_tracking_tolerance_fraction {
-                return Ok(self.hold_all(
-                    "Measured Gamma differs from the commanded target beyond the tracking tolerance; stop feed and inspect resonance, mounting and accelerometer calibration.",
-                    DecisionMode::SensorHold,
-                ));
-            }
+        let gamma_tracking_error = (measured_gamma - self.state.commanded_gamma).abs()
+            / self.state.commanded_gamma.max(1.0e-9);
+        if gamma_tracking_error > self.config.gamma_tracking_tolerance_fraction {
+            return Ok(self.hold_all(
+                "Measured Gamma differs from the last acknowledged target beyond the tracking tolerance; stop feed and inspect resonance, mounting and accelerometer calibration before further recovery commands.",
+                DecisionMode::SensorHold,
+            ));
         }
 
         if speed_fraction < self.config.feeder_speed_min_fraction
@@ -344,6 +355,16 @@ impl FeederSupervisor {
             return Ok(self.hold_all(
                 "Measured feeder speed lies outside the commissioned range; stop withdrawal and reconcile actuator feedback.",
                 DecisionMode::CommissioningLimitReached,
+            ));
+        }
+
+        let feeder_tracking_error =
+            (speed_fraction - self.state.commanded_feeder_speed_fraction).abs()
+                / self.state.commanded_feeder_speed_fraction.max(1.0e-9);
+        if feeder_tracking_error > self.config.feeder_speed_tracking_tolerance_fraction {
+            return Ok(self.hold_all(
+                "Measured feeder speed differs from the last acknowledged setpoint beyond the tracking tolerance; stop withdrawal and reconcile encoder/drive feedback.",
+                DecisionMode::SensorHold,
             ));
         }
 
@@ -473,7 +494,7 @@ impl FeederSupervisor {
 
                 return Ok(self.decision(
                     DecisionMode::FlowRecovery,
-                    FeederCommand::Hold,
+                    FeederCommand::Stop,
                     VibrationCommand::SetGamma {
                         value: self.state.commanded_gamma,
                     },
@@ -575,6 +596,7 @@ mod tests {
             gamma_step: 1.0,
             initial_gamma: 4.4,
             gamma_tracking_tolerance_fraction: 0.2,
+            feeder_speed_tracking_tolerance_fraction: 0.2,
             feeder_speed_min_fraction: 0.1,
             feeder_speed_max_fraction: 1.0,
             feeder_speed_step_fraction: 0.1,
@@ -733,6 +755,34 @@ mod tests {
         assert_eq!(decision.mode, DecisionMode::SensorHold);
         assert_eq!(decision.feeder_command, FeederCommand::Stop);
         assert_eq!(decision.vibration_command, VibrationCommand::Off);
+    }
+
+    #[test]
+    fn gamma_tracking_is_checked_during_no_flow_recovery() {
+        let mut supervisor = FeederSupervisor::new(config()).unwrap();
+        let mut obs = observation();
+        obs.flow_status = FlowStatus::NoFlow;
+        obs.measured_gamma = Some(1.0);
+        let decision = supervisor.step(&obs).unwrap();
+        assert_eq!(decision.mode, DecisionMode::SensorHold);
+        assert_eq!(decision.feeder_command, FeederCommand::Stop);
+    }
+
+    #[test]
+    fn feeder_encoder_tracking_mismatch_stops_withdrawal() {
+        let mut supervisor = FeederSupervisor::new(config()).unwrap();
+        let mut obs = observation();
+        obs.feeder_speed_fraction = Some(0.8);
+        let decision = supervisor.step(&obs).unwrap();
+        assert_eq!(decision.mode, DecisionMode::SensorHold);
+        assert_eq!(decision.feeder_command, FeederCommand::Stop);
+    }
+
+    #[test]
+    fn invalid_pocket_fill_tolerance_is_rejected() {
+        let mut cfg = config();
+        cfg.pocket_fill_tolerance_fraction = 0.95;
+        assert!(FeederSupervisor::new(cfg).is_err());
     }
 
     #[test]
