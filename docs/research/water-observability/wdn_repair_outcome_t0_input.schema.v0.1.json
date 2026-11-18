@@ -1,0 +1,301 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WDN repair outcome T0 input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "uncertainty_expansion_factor",
+    "cases"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "wdn-repair-outcome-t0-input-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WDN-REPAIR-OUTCOME-T0-001"
+    },
+    "evidence_class": {
+      "const": "synthetic_only"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "uncertainty_expansion_factor": {
+      "const": 2
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 14,
+      "maxItems": 14,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "inspection",
+          "repair",
+          "target_pre",
+          "target_post",
+          "control_pre",
+          "control_post",
+          "comparison"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^REPAIR-T0-[0-9]{3}-"
+          },
+          "inspection": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "record_ref",
+              "independent_assessor"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "leak_confirmed",
+                  "no_leak_found",
+                  "inconclusive"
+                ]
+              },
+              "record_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "independent_assessor": {
+                "const": true
+              }
+            }
+          },
+          "repair": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "independently_verified",
+              "work_order_id",
+              "repair_evidence_digest",
+              "completed_at_utc"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "completed",
+                  "not_started",
+                  "incomplete"
+                ]
+              },
+              "independently_verified": {
+                "type": "boolean"
+              },
+              "work_order_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "repair_evidence_digest": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "completed_at_utc": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              }
+            }
+          },
+          "target_pre": {
+            "$ref": "#/$defs/reading"
+          },
+          "target_post": {
+            "$ref": "#/$defs/reading"
+          },
+          "control_pre": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/reading"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "control_post": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/reading"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "comparison": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pressure_difference_percent",
+              "maximum_pressure_difference_percent",
+              "demand_difference_percent",
+              "maximum_demand_difference_percent",
+              "pretrend_status",
+              "control_untreated",
+              "target_only_concurrent_change",
+              "control_selection_method_ref",
+              "followup_duration_seconds",
+              "minimum_followup_duration_seconds"
+            ],
+            "properties": {
+              "pressure_difference_percent": {
+                "type": "number",
+                "minimum": 0
+              },
+              "maximum_pressure_difference_percent": {
+                "type": "number",
+                "minimum": 0
+              },
+              "demand_difference_percent": {
+                "type": "number",
+                "minimum": 0
+              },
+              "maximum_demand_difference_percent": {
+                "type": "number",
+                "minimum": 0
+              },
+              "pretrend_status": {
+                "enum": [
+                  "pass",
+                  "fail",
+                  "missing"
+                ]
+              },
+              "control_untreated": {
+                "type": "boolean"
+              },
+              "target_only_concurrent_change": {
+                "type": "boolean"
+              },
+              "control_selection_method_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "followup_duration_seconds": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "minimum_followup_duration_seconds": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "reading": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reading_id",
+        "meter_id",
+        "boundary_role",
+        "location_id",
+        "unit",
+        "flow_lps",
+        "standard_uncertainty_lps",
+        "calibration_ref",
+        "calibration_valid_from_utc",
+        "calibration_valid_to_utc",
+        "start_utc",
+        "end_utc",
+        "window_seconds",
+        "raw_record_digest",
+        "validity"
+      ],
+      "properties": {
+        "reading_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "meter_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "boundary_role": {
+          "const": "dma_inlet"
+        },
+        "location_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "const": "L/s"
+        },
+        "flow_lps": {
+          "type": "number",
+          "minimum": 0
+        },
+        "standard_uncertainty_lps": {
+          "type": "number",
+          "minimum": 0
+        },
+        "calibration_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_valid_from_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "calibration_valid_to_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "start_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "window_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "raw_record_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "validity": {
+          "enum": [
+            "valid",
+            "stale",
+            "missing",
+            "contradictory"
+          ]
+        }
+      }
+    }
+  }
+}
