@@ -3,6 +3,7 @@ use sim_rel_joint_stochastic_oracle::episode::{
     EpisodeProvider, EpisodeRequest, EpisodeResponse, PublicActionDescription, PublicHypothesis,
     PublicObservationDescription, PublicResearchProfile,
 };
+use sim_rel_joint_stochastic_oracle::model_catalogue::{PublicModelCatalogue, PublicProbability};
 use sim_rel_joint_stochastic_oracle::{JointKernel, JointMass, JointOutcome, KernelRow, Rational};
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Command, Stdio};
@@ -80,6 +81,8 @@ fn fixture_provider(seed: u64) -> EpisodeProvider {
             },
         ],
     };
+    let candidate_ids = kernel.hypothesis_ids.clone();
+    let model_catalogue = PublicModelCatalogue::from_kernel(&kernel, &candidate_ids).unwrap();
     let manifest = EpisodeManifest {
         contract_sha256: "a".repeat(64),
         world_model_sha256: "b".repeat(64),
@@ -96,11 +99,13 @@ fn fixture_provider(seed: u64) -> EpisodeProvider {
                     hypothesis_id: "candidate-a".to_owned(),
                     structural_family: "process-fixture".to_owned(),
                     description: "Candidate A yields zero for both measurements.".to_owned(),
+                    prior_probability: PublicProbability::new(1, 2).unwrap(),
                 },
                 PublicHypothesis {
                     hypothesis_id: "candidate-b".to_owned(),
                     structural_family: "process-fixture".to_owned(),
                     description: "Candidate B yields one for both measurements.".to_owned(),
+                    prior_probability: PublicProbability::new(1, 2).unwrap(),
                 },
             ],
             actions: vec![
