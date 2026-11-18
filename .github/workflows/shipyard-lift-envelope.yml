@@ -41,9 +41,9 @@ jobs:
           jq -e '
             .contract_version == "shipyard-lift-envelope-v0.1"
             and .vector_set_id == "SHIPYARD-LIFT-PREFLIGHT-CONFORMANCE-V0.1"
-            and (.vectors | length) == 33
-            and ([.vectors[].id] | unique | length) == 33
-            and ([.vectors[].test_name] | unique | length) == 33
+            and (.vectors | length) == 34
+            and ([.vectors[].id] | unique | length) == 34
+            and ([.vectors[].test_name] | unique | length) == 34
             and all(.vectors[];
               .synthetic_only == true
               and (
@@ -56,7 +56,7 @@ jobs:
           ' "$vectors"
           jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.contract_version.const == "shipyard-lift-envelope-v0.1" and (.required | index("rigging_legs") != null) and (.required | index("motion") != null)' tools/shipyard-lift-envelope/schemas/lift-plan-v0.1.schema.json
           jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.disposition.enum == ["ready_for_human_review","rejected","indeterminate"]' tools/shipyard-lift-envelope/schemas/preflight-report-v0.1.schema.json
-          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.vectors.minItems == 33' tools/shipyard-lift-envelope/schemas/conformance-vectors-v0.1.schema.json
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.vectors.minItems == 34' tools/shipyard-lift-envelope/schemas/conformance-vectors-v0.1.schema.json
           while IFS= read -r test_name; do
             grep -Fq "fn ${test_name}(" tools/shipyard-lift-envelope/src/lib.rs
           done < <(jq -r '.vectors[].test_name' "$vectors")
