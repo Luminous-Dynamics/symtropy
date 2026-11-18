@@ -1400,6 +1400,26 @@ fn validate_task_bindings(
                     "output ingredient origins must be unique and declared by the producing proposal task",
                 );
             }
+            let mut contribution_origins = BTreeSet::new();
+            if output.ingredient_contributions.is_empty()
+                || output.ingredient_contributions.iter().any(|contribution| {
+                    !nonempty(&contribution.ingredient_id)
+                        || !contribution_origins.insert(contribution.ingredient_id.as_str())
+                        || !task
+                            .ingredient_refs
+                            .iter()
+                            .any(|input| input == &contribution.ingredient_id)
+                        || !contribution.quantity.is_valid()
+                })
+                || contribution_origins != origins
+            {
+                add_issue(
+                    issues,
+                    MealCompilationIssueCodeV1::InvalidOutputContribution,
+                    Some(&output.output_ref),
+                    "output contributions must have positive exact quantities and one unique contribution for every declared origin",
+                );
+            }
         }
     }
 
@@ -1570,6 +1590,26 @@ fn validate_food_flows(
                         "checked input quantity aggregation overflowed",
                     ),
                 }
+                let task_total = task_input_totals
+                    .entry((task_id.clone(), ingredient_id.clone()))
+                    .or_insert((flow_dimension, 0));
+                if task_total.0 != flow_dimension {
+                    add_issue(
+                        issues,
+                        MealCompilationIssueCodeV1::TaskMaterialBalanceMismatch,
+                        Some(&edge.edge_id),
+                        "one task cannot mix incompatible dimensions for the same ingredient lineage",
+                    );
+                } else if let Some(total) = task_total.1.checked_add(flow_base) {
+                    task_total.1 = total;
+                } else {
+                    add_issue(
+                        issues,
+                        MealCompilationIssueCodeV1::InputQuantityArithmeticOverflow,
+                        Some(&edge.edge_id),
+                        "task input aggregation overflowed",
+                    );
+                }
                 if !direct_task_ingredient_inputs.insert((task_id.clone(), ingredient_id.clone())) {
                     add_issue(
                         issues,
@@ -1655,6 +1695,30 @@ fn validate_food_flows(
                     .entry(producer.clone())
                     .or_default()
                     .extend(output.ingredient_origins.iter().cloned());
+                for contribution in &output.ingredient_contributions {
+                    if let Ok((dimension, amount)) = quantity_to_base(&contribution.quantity) {
+                        let total = task_input_totals
+                            .entry((consumer.clone(), contribution.ingredient_id.clone()))
+                            .or_insert((dimension, 0));
+                        if total.0 != dimension {
+                            add_issue(
+                                issues,
+                                MealCompilationIssueCodeV1::TaskMaterialBalanceMismatch,
+                                Some(&edge.edge_id),
+                                "intermediate input contribution has an incompatible dimension",
+                            );
+                        } else if let Some(sum) = total.1.checked_add(amount) {
+                            total.1 = sum;
+                        } else {
+                            add_issue(
+                                issues,
+                                MealCompilationIssueCodeV1::InputQuantityArithmeticOverflow,
+                                Some(&edge.edge_id),
+                                "intermediate task input contribution overflowed",
+                            );
+                        }
+                    }
+                }
                 output_use_counts
                     .entry((producer.clone(), output_ref.clone()))
                     .and_modify(|count| *count += 1)
@@ -1880,6 +1944,101 @@ fn validate_food_flows(
                 Some(&task.task_id),
                 "material-flow lineage contains an ingredient not declared by the proposal task",
             );
+        }
+    }
+
+    // Aggregate planned outputs by source ingredient. Explicit planned losses
+    // count as outputs, so a task cannot silently lose material between steps.
+    for (task_id, binding) in bindings {
+        for output in &binding.outputs {
+            let mut contribution_sum: Option<(QuantityDimensionV1, u128)> = None;
+            for contribution in &output.ingredient_contributions {
+                let Ok((dimension, amount)) = quantity_to_base(&contribution.quantity) else {
+                    add_issue(
+                        issues,
+                        MealCompilationIssueCodeV1::InvalidOutputContribution,
+                        Some(&output.output_ref),
+                        "output contribution quantity is not exactly representable",
+                    );
+                    continue;
+                };
+                let total = task_output_totals
+                    .entry((task_id.clone(), contribution.ingredient_id.clone()))
+                    .or_insert((dimension, 0));
+                if total.0 != dimension {
+                    add_issue(
+                        issues,
+                        MealCompilationIssueCodeV1::TaskMaterialBalanceMismatch,
+                        Some(&output.output_ref),
+                        "one task cannot output incompatible dimensions for the same ingredient lineage",
+                    );
+                } else if let Some(sum) = total.1.checked_add(amount) {
+                    total.1 = sum;
+                } else {
+                    add_issue(
+                        issues,
+                        MealCompilationIssueCodeV1::InputQuantityArithmeticOverflow,
+                        Some(&output.output_ref),
+                        "task output contribution aggregation overflowed",
+                    );
+                }
+                match contribution_sum {
+                    None => contribution_sum = Some((dimension, amount)),
+                    Some((sum_dimension, sum_amount)) if sum_dimension == dimension => {
+                        contribution_sum = sum_amount.checked_add(amount).map(|sum| (dimension, sum));
+                        if contribution_sum.is_none() {
+                            add_issue(
+                                issues,
+                                MealCompilationIssueCodeV1::InvalidOutputContribution,
+                                Some(&output.output_ref),
+                                "single output contribution sum overflowed",
+                            );
+                        }
+                    }
+                    Some(_) => add_issue(
+                        issues,
+                        MealCompilationIssueCodeV1::InvalidOutputContribution,
+                        Some(&output.output_ref),
+                        "all contributions to one V1 output must share the same physical dimension",
+                    ),
+                }
+            }
+            match (contribution_sum, quantity_to_base(&output.quantity)) {
+                (Some((contribution_dimension, contribution_amount)), Ok((output_dimension, output_amount)))
+                    if contribution_dimension == output_dimension && contribution_amount == output_amount => {}
+                _ => add_issue(
+                    issues,
+                    MealCompilationIssueCodeV1::OutputContributionTotalMismatch,
+                    Some(&output.output_ref),
+                    "ingredient contribution quantities must sum exactly to the planned output quantity",
+                ),
+            }
+        }
+    }
+
+    for task in &proposal.tasks {
+        if !bindings.contains_key(&task.task_id) {
+            continue;
+        }
+        for ingredient_id in &task.ingredient_refs {
+            let input = task_input_totals.get(&(task.task_id.clone(), ingredient_id.clone()));
+            let output = task_output_totals.get(&(task.task_id.clone(), ingredient_id.clone()));
+            match (input, output) {
+                (Some((input_dimension, input_amount)), Some((output_dimension, output_amount)))
+                    if input_dimension == output_dimension && input_amount == output_amount => {}
+                (None, _) | (_, None) => add_issue(
+                    issues,
+                    MealCompilationIssueCodeV1::MissingTaskOutput,
+                    Some(&task.task_id),
+                    "every material input must have an explicit, quantity-conserving task output or planned-loss allocation",
+                ),
+                _ => add_issue(
+                    issues,
+                    MealCompilationIssueCodeV1::TaskMaterialBalanceMismatch,
+                    Some(&task.task_id),
+                    "planned per-ingredient task outputs and explicit losses must exactly reconcile to task inputs",
+                ),
+            }
         }
     }
 
