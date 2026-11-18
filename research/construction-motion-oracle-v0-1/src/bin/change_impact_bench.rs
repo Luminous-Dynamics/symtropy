@@ -3,10 +3,10 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use construction_motion_oracle::{
-    ArtifactPersistence, ConstructionArtifact, ConstructionArtifactGraph,
-    ConstructionArtifactKind, ConstructionChangeSet, DependencyContractSet,
-    DependencyDomain, DependencyKey, DependencyTransition, VersionedDependency,
-    compile_change_impact_with_contract, minimum_construction_dependency_contracts,
+    ArtifactPersistence, ConstructionArtifact, ConstructionArtifactGraph, ConstructionArtifactKind,
+    ConstructionChangeSet, DependencyContractSet, DependencyDomain, DependencyKey,
+    DependencyTransition, VersionedDependency, compile_change_impact_with_contract,
+    minimum_construction_dependency_contracts,
 };
 
 const SAMPLES: usize = 25;
@@ -92,7 +92,6 @@ fn build_graph(
         artifacts,
     }
 }
-
 
 fn domain_version(domain: DependencyDomain) -> char {
     match domain {
@@ -186,10 +185,7 @@ fn global_change_set() -> ConstructionChangeSet {
         change_id: "shared-floor-transform-change".into(),
         source_event_sha256: digest('d'),
         changes: vec![DependencyTransition {
-            key: key(
-                DependencyDomain::CoordinateTransform,
-                "floor:02".into(),
-            ),
+            key: key(DependencyDomain::CoordinateTransform, "floor:02".into()),
             previous_sha256: digest('2'),
             current_sha256: digest('5'),
         }],
@@ -213,14 +209,14 @@ fn measure_case(
     } else {
         entity_count * 3
     };
-    let expected_transitive = if case == "localized-entity" {
-        2
-    } else {
-        0
-    };
+    let expected_transitive = if case == "localized-entity" { 2 } else { 0 };
 
-    let check = compile_change_impact_with_contract(black_box(graph), black_box(contracts), black_box(change_set))
-        .expect("benchmark graph and change set must be valid");
+    let check = compile_change_impact_with_contract(
+        black_box(graph),
+        black_box(contracts),
+        black_box(change_set),
+    )
+    .expect("benchmark graph and change set must be valid");
     assert_eq!(check.direct_invalidations.len(), expected_direct);
     assert_eq!(check.transitive_invalidations.len(), expected_transitive);
     assert!(check.unmatched_change_keys.is_empty());
@@ -250,9 +246,11 @@ fn measure_case(
         invalidated_counts.push(report.invalidated_artifact_count());
     }
     durations.sort_unstable();
-    assert!(invalidated_counts.iter().all(|count| {
-        *count == expected_direct + expected_transitive
-    }));
+    assert!(
+        invalidated_counts
+            .iter()
+            .all(|count| { *count == expected_direct + expected_transitive })
+    );
 
     println!(
         "{case},{entity_count},{},{},{},{},{},{},{}",
