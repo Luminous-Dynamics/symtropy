@@ -222,20 +222,31 @@ pub struct CollisionResponseSummary {
     pub excluded_contact_count: usize,
     pub reversal_count: usize,
     pub non_reversal_count: usize,
-    pub observation_time_s: f64,
-    pub contact_incidence_rate_hz: Option<f64>,
-    pub evidence_qualified_contact_incidence_rate_hz: Option<f64>,
+    /// Sum of observed cell-time across all cells, measured in cell-seconds.
+    pub cell_time_exposure_s: f64,
+    /// All detected contacts divided by total cell-time exposure.
+    pub contact_incidence_rate_per_cell_second: Option<f64>,
+    /// Evidence-qualified contact-response observations divided by cell-time.
+    pub evidence_qualified_contact_incidence_rate_per_cell_second: Option<f64>,
+    /// Fraction of evidence-qualified contacts that produced a reversal.
     pub per_contact_reversal_fraction: Option<f64>,
-    pub population_reversal_rate_hz: Option<f64>,
+    /// Evidence-qualified reversals divided by total cell-time exposure.
+    pub reversal_rate_per_cell_second: Option<f64>,
 }
 
 impl CollisionResponseSummary {
+    /// Summarize contacts using total tracked cell-time, not wall-clock time.
+    ///
+    /// `cell_time_exposure_s` is the sum of valid observation durations across
+    /// all cells in the population. This normalizes incidence across population
+    /// sizes. A single recording duration is not a valid denominator when the
+    /// number of observed cells changes.
     pub fn from_observations(
         observations: &[CollisionResponseObservation],
-        observation_time_s: f64,
+        cell_time_exposure_s: f64,
     ) -> Result<Self, CollisionResponseError> {
-        if !observation_time_s.is_finite() || observation_time_s <= 0.0 {
-            return Err(CollisionResponseError::InvalidObservationTime);
+        if !cell_time_exposure_s.is_finite() || cell_time_exposure_s <= 0.0 {
+            return Err(CollisionResponseError::InvalidCellTimeExposure);
         }
         for observation in observations {
             observation.contact.validate()?;
@@ -262,17 +273,17 @@ impl CollisionResponseSummary {
             }
         }
 
-        let contact_incidence_rate_hz =
-            Some(observations.len() as f64 / observation_time_s);
-        let evidence_qualified_contact_incidence_rate_hz =
+        let contact_incidence_rate_per_cell_second =
+            Some(observations.len() as f64 / cell_time_exposure_s);
+        let evidence_qualified_contact_incidence_rate_per_cell_second =
             (evidence_qualified_contact_count > 0)
-                .then(|| evidence_qualified_contact_count as f64 / observation_time_s);
+                .then(|| evidence_qualified_contact_count as f64 / cell_time_exposure_s);
         let per_contact_reversal_fraction = (evidence_qualified_contact_count > 0)
             .then(|| reversal_count as f64 / evidence_qualified_contact_count as f64);
-        let population_reversal_rate_hz = if evidence_qualified_contact_count > 0
+        let reversal_rate_per_cell_second = if evidence_qualified_contact_count > 0
             || observations.is_empty()
         {
-            Some(reversal_count as f64 / observation_time_s)
+            Some(reversal_count as f64 / cell_time_exposure_s)
         } else {
             None
         };
@@ -283,11 +294,11 @@ impl CollisionResponseSummary {
             excluded_contact_count,
             reversal_count,
             non_reversal_count,
-            observation_time_s,
-            contact_incidence_rate_hz,
-            evidence_qualified_contact_incidence_rate_hz,
+            cell_time_exposure_s,
+            contact_incidence_rate_per_cell_second,
+            evidence_qualified_contact_incidence_rate_per_cell_second,
             per_contact_reversal_fraction,
-            population_reversal_rate_hz,
+            reversal_rate_per_cell_second,
         })
     }
 }
@@ -358,7 +369,7 @@ pub enum CollisionResponseError {
     InvalidCharacteristicTime,
     InvalidContactAngle,
     InvalidContactDuration,
-    InvalidObservationTime,
+    InvalidCellTimeExposure,
     InvalidConstitutiveRate,
     ConstitutiveEventLimitExceeded,
     NonFiniteHeading,
@@ -376,8 +387,8 @@ impl fmt::Display for CollisionResponseError {
             Self::InvalidContactDuration => {
                 write!(formatter, "contact duration must be finite and non-negative")
             }
-            Self::InvalidObservationTime => {
-                write!(formatter, "observation time must be finite and positive")
+            Self::InvalidCellTimeExposure => {
+                write!(formatter, "cell-time exposure must be finite and positive")
             }
             Self::InvalidConstitutiveRate => {
                 write!(formatter, "constitutive reversal rate must be finite and non-negative")
@@ -525,9 +536,9 @@ mod tests {
         assert_eq!(summary.excluded_contact_count, 1);
         assert_eq!(summary.reversal_count, 1);
         assert_eq!(summary.non_reversal_count, 1);
-        assert_eq!(summary.contact_incidence_rate_hz, Some(0.75));
+        assert_eq!(summary.contact_incidence_rate_per_cell_second, Some(0.375));
         assert_eq!(summary.per_contact_reversal_fraction, Some(0.5));
-        assert_eq!(summary.population_reversal_rate_hz, Some(0.25));
+        assert_eq!(summary.reversal_rate_per_cell_second, Some(0.125));
     }
 
     #[test]
@@ -545,9 +556,9 @@ mod tests {
         assert_eq!(summary.total_contact_count, 1);
         assert_eq!(summary.excluded_contact_count, 1);
         assert_eq!(summary.evidence_qualified_contact_count, 0);
-        assert_eq!(summary.evidence_qualified_contact_incidence_rate_hz, None);
+        assert_eq!(summary.evidence_qualified_contact_incidence_rate_per_cell_second, None);
         assert_eq!(summary.per_contact_reversal_fraction, None);
-        assert_eq!(summary.population_reversal_rate_hz, None);
+        assert_eq!(summary.reversal_rate_per_cell_second, None);
     }
 
     #[test]
@@ -642,10 +653,10 @@ mod tests {
         assert_eq!(law().reversal_probability(contact).unwrap(), 0.5);
         assert_eq!(one_summary.per_contact_reversal_fraction, Some(1.0));
         assert_eq!(four_summary.per_contact_reversal_fraction, Some(1.0));
-        assert_eq!(one_summary.contact_incidence_rate_hz, Some(0.25));
-        assert_eq!(four_summary.contact_incidence_rate_hz, Some(1.0));
-        assert_eq!(one_summary.population_reversal_rate_hz, Some(0.25));
-        assert_eq!(four_summary.population_reversal_rate_hz, Some(1.0));
+        assert_eq!(one_summary.contact_incidence_rate_per_cell_second, Some(0.25));
+        assert_eq!(four_summary.contact_incidence_rate_per_cell_second, Some(1.0));
+        assert_eq!(one_summary.reversal_rate_per_cell_second, Some(0.25));
+        assert_eq!(four_summary.reversal_rate_per_cell_second, Some(1.0));
     }
 
     #[test]
