@@ -529,7 +529,6 @@ fn disposition(issues: &[MealCompilationIssueV1]) -> MealCompilationDispositionV
                 | MealCompilationIssueCodeV1::DependencyBindingMismatch
                 | MealCompilationIssueCodeV1::ScheduleLagInvalid
                 | MealCompilationIssueCodeV1::ScheduleWindowMismatch
-                | MealCompilationIssueCodeV1::DuplicatePlanningResource
                 | MealCompilationIssueCodeV1::DurationOutsideProposalWindow
                 | MealCompilationIssueCodeV1::DuplicateTaskOutput
                 | MealCompilationIssueCodeV1::DuplicateTaskIngredientFlow
@@ -2306,7 +2305,7 @@ mod tests {
 
         let proposal_sha256 = proposal_digest(&proposal).unwrap();
 
-        let mut chop_binding = MealTaskCompilationBindingV1 {
+        let chop_binding = MealTaskCompilationBindingV1 {
             task_id: "chop-onion".to_owned(),
             action_kind: RecipeActionKindV1::Chop,
             action_label: Some("chop".to_owned()),
@@ -2342,7 +2341,7 @@ mod tests {
                 },
             ],
         };
-        let mut saute_binding = MealTaskCompilationBindingV1 {
+        let saute_binding = MealTaskCompilationBindingV1 {
             task_id: "saute-onion".to_owned(),
             action_kind: RecipeActionKindV1::Saute,
             action_label: Some("saute".to_owned()),
@@ -2379,7 +2378,7 @@ mod tests {
             request_id: "compile:onion-side:1".to_owned(),
             compiled_at_epoch_ms: 1_750_000_000_000,
             as_of_time_evidence_ref: "clock:local-monotonic-wallclock-v1".to_owned(),
-            proposal_sha256,
+            proposal_sha256: proposal_sha256.clone(),
             proposal,
             acceptance: ProposalAcceptanceV1 {
                 proposal_sha256: proposal_sha256.clone(),
