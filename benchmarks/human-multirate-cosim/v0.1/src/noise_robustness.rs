@@ -1747,11 +1747,28 @@ mod tests {
         let scenario = ProfiledModelFamilyScenario {
             experiment: ExperimentDesignScenario {
                 name: "no-hidden-truth-guard",
-                models: vec![ModelCandidate {
-                    id: 1,
-                    label: "candidate",
-                    network: network.clone(),
-                }],
+                models: vec![
+                    ModelCandidate {
+                        id: 1,
+                        label: "candidate A",
+                        network: network.clone(),
+                    },
+                    ModelCandidate {
+                        id: 2,
+                        label: "candidate B",
+                        network: NetworkScenario {
+                            name: "candidate-b",
+                            capacities: vec![1.0, 1.0],
+                            initial: vec![0.0, 0.0],
+                            edges: vec![Edge {
+                                left: 0,
+                                right: 1,
+                                conductance: 0.8,
+                            }],
+                            horizon: 1.0,
+                        },
+                    },
+                ],
                 sensors: vec![SensorCandidate {
                     id: 1,
                     node: 0,
@@ -1764,10 +1781,16 @@ mod tests {
                 max_abs_forcing: 1.0,
                 input_energy_budget: 1.0,
             },
-            family_assignments: vec![ModelFamilyAssignment {
-                model_id: 1,
-                family_id: 1,
-            }],
+            family_assignments: vec![
+                ModelFamilyAssignment {
+                    model_id: 1,
+                    family_id: 1,
+                },
+                ModelFamilyAssignment {
+                    model_id: 2,
+                    family_id: 2,
+                },
+            ],
         };
         let profile = InputProfile {
             id: 1,
