@@ -465,6 +465,13 @@ impl PublicModelCatalogue {
 
     /// Verify only the canonical SHA-256, without access to an owner kernel.
     pub fn verify_sha256(&self) -> Result<(), String> {
+        let encoded = serde_json::to_vec(self).map_err(|error| error.to_string())?;
+        if encoded.len() > MAX_PUBLIC_MODEL_CATALOGUE_BYTES {
+            return Err(format!(
+                "public model catalogue exceeds {} byte cap",
+                MAX_PUBLIC_MODEL_CATALOGUE_BYTES
+            ));
+        }
         let expected = self.compute_sha256()?;
         if self.catalogue_sha256 != expected {
             return Err("public model catalogue SHA-256 mismatch".to_owned());
