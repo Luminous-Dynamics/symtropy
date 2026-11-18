@@ -65,6 +65,7 @@ pub struct CapacityNode {
     pub node_id: String,
     pub platform_class: String,
     pub service_region_ref: String,
+    pub hazard_domain: String,
     pub base_capacity_units: f64,
 }
 
@@ -220,7 +221,9 @@ pub fn validate_case(case: &FleetOperationsCase) -> Result<(), OperationsError> 
         if node.node_id.trim().is_empty() || !node_ids.insert(node.node_id.as_str()) {
             return Err(OperationsError::new(format!("empty or duplicate node_id: {}", node.node_id)));
         }
-        if node.service_region_ref.trim().is_empty() || !node.base_capacity_units.is_finite()
+        if node.service_region_ref.trim().is_empty()
+            || node.hazard_domain.trim().is_empty()
+            || !node.base_capacity_units.is_finite()
             || node.base_capacity_units < 0.0
         {
             return Err(OperationsError::new(format!("invalid node capacity or region: {}", node.node_id)));
