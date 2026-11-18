@@ -1859,7 +1859,7 @@ mod tests {
     #[test]
     fn frozen_conformance_fixture_maps_all_vectors_to_rust_tests() {
         const FIXTURE: &str = include_str!("../fixtures/conformance-vectors-v0.1.json");
-        let test_functions: [fn(); 42] = [
+        let test_functions: [fn(); 45] = [
             mismatched_source_cannot_satisfy_attested_sequence_coverage,
             conflicting_source_evidence_record_identity_is_indeterminate,
             missing_required_motion_event_is_indeterminate_even_with_complete_empty_stream,
@@ -1902,6 +1902,9 @@ mod tests {
             permitted_transport_ordering_does_not_change_report,
             clock_domain_mismatch_is_indeterminate,
             duplicate_sequence_with_new_event_id_is_indeterminate,
+            revoked_over_limit_sensor_event_is_not_promoted_to_deviation,
+            expired_limit_evidence_does_not_produce_formal_limit_deviation,
+            later_evidence_id_conflict_retroactively_quarantines_prior_sensor_event,
         ];
         let test_names = [
             stringify!(mismatched_source_cannot_satisfy_attested_sequence_coverage),
@@ -1946,6 +1949,9 @@ mod tests {
             stringify!(permitted_transport_ordering_does_not_change_report),
             stringify!(clock_domain_mismatch_is_indeterminate),
             stringify!(duplicate_sequence_with_new_event_id_is_indeterminate),
+            stringify!(revoked_over_limit_sensor_event_is_not_promoted_to_deviation),
+            stringify!(expired_limit_evidence_does_not_produce_formal_limit_deviation),
+            stringify!(later_evidence_id_conflict_retroactively_quarantines_prior_sensor_event),
         ];
         let vector_ids = [
             "REC-SOURCE-001",
@@ -1990,11 +1996,14 @@ mod tests {
             "REC-META-003",
             "REC-CLOCK-007",
             "REC-SEQUENCE-002",
+            "REC-CAL-003",
+            "REC-LIMIT-004",
+            "REC-EVID-005",
         ];
 
-        assert_eq!(test_functions.len(), 42);
+        assert_eq!(test_functions.len(), 45);
         assert_eq!(test_names.len(), vector_ids.len());
-        assert_eq!(FIXTURE.matches(r#""id": "REC-"#).count(), 42);
+        assert_eq!(FIXTURE.matches(r#""id": "REC-"#).count(), 45);
         for (test_name, vector_id) in test_names.iter().zip(vector_ids.iter()) {
             assert!(FIXTURE.contains(&format!(r#""id": "{vector_id}""#)), "missing vector {vector_id}");
             assert!(FIXTURE.contains(&format!(r#""test_name": "{test_name}""#)), "missing test mapping {test_name}");
