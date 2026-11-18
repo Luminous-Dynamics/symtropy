@@ -13,7 +13,9 @@
     "environment_profile_id": "SYN-VACUUM-B",
     "operating_regime_id": "SYN-SLUMPING-B",
     "laboratory_id": "SYN-FLOW-LAB-B",
-    "campaign_id": "SYN-FLOW-CAMPAIGN-B"
+    "campaign_id": "SYN-FLOW-CAMPAIGN-B",
+    "feeder_geometry_id": "SYN-FEEDER-B",
+    "vibration_profile_id": "SYN-VIBRATION-B"
   },
   "material": {
     "material_family": "lunar_regolith_simulant",
@@ -247,6 +249,24 @@
       "status": "unknown",
       "source_artifact_id": null,
       "calibration_record_id": null
+    },
+    "feeder_type": "rotary_pocket",
+    "feeder_geometry_id": "SYN-FEEDER-B",
+    "pocket_volume_m3": {
+      "value": 0.000001,
+      "standard_uncertainty": 5e-8,
+      "unit": "m3",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "feeder_rotational_speed_rpm": {
+      "value": 1,
+      "standard_uncertainty": 0.02,
+      "unit": "rpm",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
     }
   },
   "operation": {
@@ -310,7 +330,56 @@
       "calibration_record_id": null
     },
     "start_stop_profile_id": null,
-    "wear_state": "unknown"
+    "wear_state": "unknown",
+    "vibration_enabled": true,
+    "vibration_peak_acceleration_m_s2": {
+      "value": 8,
+      "standard_uncertainty": 0.2,
+      "unit": "m/s2",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "vibration_gamma": {
+      "value": 0.816,
+      "standard_uncertainty": 0.03,
+      "unit": "dimensionless",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "vibration_displacement_peak_m": {
+      "value": 0.0001,
+      "standard_uncertainty": 0.000005,
+      "unit": "m",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "vibration_displacement_peak_to_peak_m": {
+      "value": 0.0002,
+      "standard_uncertainty": 0.00001,
+      "unit": "m",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "vibration_phase_rad": {
+      "value": 0,
+      "standard_uncertainty": 0,
+      "unit": "rad",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "feeder_setpoint_rpm": {
+      "value": 1,
+      "standard_uncertainty": 0.02,
+      "unit": "rpm",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    }
   },
   "observations": {
     "raw_observation_artifact_id": "flow-trace-fixture",
@@ -455,7 +524,75 @@
       "calibration_record_id": null
     },
     "video_segmentation_artifact_id": "video-summary-fixture",
-    "failure_observations": "Synthetic example only; no observed physical run."
+    "failure_observations": "Synthetic example only; no observed physical run.",
+    "flow_continuity_status": "continuous",
+    "flow_interruption_count": 0,
+    "flow_interruption_duration_s": {
+      "value": 0,
+      "standard_uncertainty": 0,
+      "unit": "s",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "target_mass_flow_rate_kg_s": {
+      "value": 0.009,
+      "standard_uncertainty": 0.0005,
+      "unit": "kg/s",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "mass_flow_rate_cv": {
+      "value": 0.07,
+      "standard_uncertainty": 0.01,
+      "unit": "fraction",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "vibration_energy_j": {
+      "value": 0.1,
+      "standard_uncertainty": 0.01,
+      "unit": "J",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "vibration_power_w": {
+      "value": 0.0167,
+      "standard_uncertainty": 0.001,
+      "unit": "W",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "agglomerate_fragmentation_fraction": {
+      "value": 0.01,
+      "standard_uncertainty": 0.005,
+      "unit": "fraction",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "size_fraction_profile_artifact_id": null,
+    "composition_profile_artifact_id": null,
+    "out_of_spec_mass_kg": {
+      "value": 0.001,
+      "standard_uncertainty": 0.0001,
+      "unit": "kg",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "out_of_spec_duration_s": {
+      "value": 0.2,
+      "standard_uncertainty": 0.02,
+      "unit": "s",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    }
   },
   "model": {
     "solver_family": "force_balance",
