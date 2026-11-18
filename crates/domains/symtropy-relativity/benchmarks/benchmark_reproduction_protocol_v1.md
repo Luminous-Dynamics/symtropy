@@ -232,37 +232,61 @@ The existing Symtropy public relativity crate currently has a 4x4 metric represe
 If the paper provides no raw solution arrays, digitized curves must carry explicit digitization error and cannot be promoted to exact reference data. Akribeia's residual-threshold “certification”, a full-domain residual enclosure, and a radii-polynomial existence theorem remain three different evidence levels.
 
 
-## 12. Second radial first integral: time-sector equation (2010 Eq. 2.14)
+## 12. Time-sector source balance: full 2010 Eq. (2.14)
 
-The 2010 source also states that a particular EGB field-equation combination is a total radial derivative:
+The full Eq. (2.14) contains alpha-dependent terms inside its radial current. Define
 \[
-R_t{}^t+\frac{\alpha}{4}\left(H_t{}^t+\frac12L_{GB}\right)
-=\frac{1}{2r^2}\sqrt{\frac{f}{bh}}\,
-\frac{d}{dr}\left[
-\sqrt{\frac{fh}{b}}r^2(hww'-b')\right].
+C_b=f-4+\frac{h}{r^2}+\frac{rfh'}{h},\qquad
+C_w=4-\frac{3h}{r^2}-f,
 \]
-For a full EGB solution, this gives the constant radial quantity
 \[
-P_t=\sqrt{\frac{fh}{b}}r^2(hww'-b')=2\mathcal U,
+P_t(r)=\sqrt{\frac{fh}{b}}\left[
+r^2(hww'-b')+\alpha(C_b b'+C_w hww'+rfh(w')^2)
+\right].
 \]
-where \(\mathcal U\) is the \(1/r^2\) coefficient of the asymptotic lapse. The regular horizon limit is
-\[
-P_t=r_H^2\sqrt{\frac{f_1h_H}{b_1}}
-(h_H\Omega_Hw_1-b_1).
-\]
+Do not omit the alpha-dependent terms.
 
-This is not a second cyclic Noether momentum. It is a first integral of a particular field-equation combination. Use it as a separate constraint and independent residual diagnostic, not as a replacement for the complete EGB equations.
-
-Where \(r^2\sqrt{fh/b}\) is resolved and nonzero,
+With the field equations and the 5D trace identity \(H^\mu{}_\mu=-L_{GB}/2\), one obtains
 \[
-b'=hww'-\frac{2\mathcal U}{r^2\sqrt{fh/b}}.
+R=-\frac{\alpha}{12}L_{GB},
 \]
-Together with the angular flux equation this offers a three-profile formulation: candidate functions \(f,h\) plus an integrated \(w\) profile and the lapse \(b\) recovered from the time-sector relation. More precisely, the primary unknown profiles can be reduced to \(f,h\) with two radial quadratures for \(w\) and \(b\), subject to the remaining EGB equations and global charges \((\mathcal U,\mathcal W)\). This is a candidate architecture to benchmark, not a proved reduction of the full nonlinear BVP.
-
-For exact 5D equal-spin Myers–Perry at alpha=0, independently verify both
+and the source-balance equation
 \[
-P_w=-4\mathcal W,\qquad P_t=2\mathcal U
+\boxed{
+P_t'(r)=\frac{\alpha}{6}r^2\sqrt{\frac{bh}{f}}L_{GB}.
+}
 \]
-at held-out exterior radii and using analytic horizon limits. The Rust crate now has separate time-sector flux and b-prime reconstruction helpers. Their floating-point denominator guards prevent obvious singular division but are not rigorous enclosures.
+Thus \(P_t\) is **not a conserved quantity at finite alpha**. Its asymptotic endpoint is \(P_t(\infty)=2\mathcal U\). Only in the Einstein limit alpha=0 does the source vanish and the current become the constant \(2\mathcal U\).
 
-The complete 5D first-integral exact fixture is located at crates/domains/symtropy-lovelock5d/benchmarks/akribiea_5d_mp_exact_fixture_v1.json.
+### Static Boulware–Deser source control
+
+For \(b=f=F(r)\), \(h=r^2\), \(w=0\), the full current reduces to
+\[
+P_t(r)=-r^3F'(r)+3\alpha r(F(r)-1)F'(r).
+\]
+The independent static spherical Gauss–Bonnet scalar is
+\[
+L_{GB}=\frac{12}{r^3}\left[(F-1)(rF''+2F')+r(F')^2\right].
+\]
+The exact Boulware–Deser branch must satisfy \(P_t'=\alpha r^3L_{GB}/6\). It is an explicit negative control for the mistaken claim that this current is constant at finite alpha. At infinity, \(\mathcal U=-(r_H^2+\alpha/2)\) and \(P_t\to 2\mathcal U\).
+
+### How to use the identity
+
+The source balance is an independent equation-consistency diagnostic. It is not a second cyclic Noether charge and does not establish the remaining field equations.
+
+Where the coefficient \(-r^2+\alpha C_b\) is interval-certified away from zero, the current may be solved algebraically for \(b'\). But the local \(P_t(r)\) must itself obey the sourced equation above; never substitute \(P_t=2\mathcal U\) at every radius for finite alpha.
+
+The Rust crate now evaluates the complete alpha-corrected current, its source prefactor, and the guarded pointwise b-prime inversion. It includes an independently derived Boulware–Deser curvature scalar and a source-balance regression test. The test is authored but not compiled/executed here.
+
+### Architecture correction
+
+Withdraw the previous dual-conserved-flux reduction. The only conserved radial Noether current here is
+\[
+P_w=w'h\sqrt{\frac{fh}{b}}\left[r^2-\alpha\left(f-4+\frac{3h}{r^2}\right)\right]=-4\mathcal W.
+\]
+The time-sector current is source-driven. Compare only these honest architectures:
+1. Full four-profile solve \((b,f,h,w)\) after setting \(g=r^2\).
+2. Angular-Noether reduction: reconstruct \(w'\) from \(P_w\) only where \(K(r)\) is certified away from zero; retain \(b,f,h\).
+3. Source-balanced reduction: use the complete Eq. (2.14) current and \(L_{GB}\) equation to constrain or reconstruct \(b'\), with a separate enclosure of \(-r^2+\alpha C_b\).
+
+The third is a falsifiable numerical hypothesis, not a claimed two-profile or dual-charge formulation.
