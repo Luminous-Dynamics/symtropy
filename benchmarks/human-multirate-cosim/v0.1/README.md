@@ -603,3 +603,38 @@ model discrimination with Pontryagin's Maximum Principle
 Pagnier et al. (2026) present a closed-loop optimal-control discrimination
 framework with an electrophysiology experiment
 ([arXiv:2603.00709](https://arxiv.org/abs/2603.00709)).
+## Independent sampled-observation adjoint
+
+The `adjoint_reference` module derives the control gradient for the fixed
+linear graph pair independently of the trust-region Gram matrix. For each
+candidate model the dynamics are
+
+    C x_dot = -L x + u(t)
+
+and the total controlled Gaussian KL is
+
+    J(u) = 0.5 * d(u)^T Sigma^-1 d(u)
+
+where d stacks all selected-sensor output differences at the declared
+sample times. The covariance precision is applied through the new
+`gaussian_precision_apply` operation; the adjoint receives an observation
+jump H^T Sigma^-1 d at each sample time. Between samples, it propagates
+backward under the transpose graph dynamics. The segment gradient is the
+exact integral of C^-1 p over that segment, evaluated with the spectral graph
+oracle rather than a finite-step adjoint integrator.
+
+The energy-ball KKT check compares the adjoint gradient with
+
+    grad J(u) - lambda * W * u = 0
+
+under the same trust-region multiplier and integrated-energy metric.
+A frozen test compares every coefficient against central finite differences
+under the structured AR(1) covariance and checks that the adjoint objective
+replays the total-KL trust-region result.
+
+The convergence runner now emits both the trust-region spectral residual
+and the independent adjoint stationarity residual at each nested basis
+level. This is a finite-dimensional adjoint/PMP consistency reference for
+the fixed linear graph model and sampled Gaussian objective. It is not yet
+a nonlinear PDE adjoint, an arbitrary-waveform solver, or a general-purpose
+PMP implementation.
