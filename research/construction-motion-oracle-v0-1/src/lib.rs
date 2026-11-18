@@ -13,10 +13,12 @@ pub use ifc_ids_preflight::{
 pub mod site_state_ledger;
 pub mod change_impact;
 pub use change_impact::{
-    ArtifactImpact, ArtifactPersistence, ChangeImpactError, ChangeImpactReport,
-    ConstructionArtifact, ConstructionArtifactGraph, ConstructionArtifactKind,
-    ConstructionChangeSet, DependencyDomain, DependencyKey, DependencyTransition,
-    VersionedDependency, compile_change_impact,
+    ArtifactDependencyContract, ArtifactImpact, ArtifactPersistence, ChangeImpactError,
+    ChangeImpactReport, ConstructionArtifact, ConstructionArtifactGraph,
+    ConstructionArtifactKind, ConstructionChangeSet, DependencyContractSet,
+    DependencyCoverageAudit, DependencyCoverageGap, DependencyDomain, DependencyKey,
+    DependencyTransition, VersionedDependency, audit_dependency_coverage,
+    compile_change_impact, compile_change_impact_with_contract,
 };
 pub mod dispatch_readiness;
 pub use dispatch_readiness::{
