@@ -81,6 +81,7 @@ theorem mk_lapse_positive_on_annulus {r : ℝ}
       100 * r * mkLapse r =
         103 + (r - 3) * (-r ^ 2 + 7 * r + 91) := by
     unfold mkLapse
+    field_simp [ne_of_gt hrPositive]
     ring
   have hScale : 0 ≤ 100 * r := by positivity
   by_contra hNotPositive
