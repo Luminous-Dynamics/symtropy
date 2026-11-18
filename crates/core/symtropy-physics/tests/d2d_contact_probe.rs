@@ -599,6 +599,10 @@ fn contact_probe_emits_versioned_identity_bound_result_records() {
 
     assert_eq!(receipt_a.schema_version, 1);
     assert_eq!(receipt_a.completed_steps, STEPS);
+    assert_eq!(
+        receipt_a.scenario_fingerprint,
+        receipt_a.manifest.fingerprint()
+    );
     assert_eq!(trace_a, trace_b);
     assert_eq!(outcome_a, outcome_b);
     assert_eq!(receipt_a, receipt_b);
@@ -608,6 +612,14 @@ fn contact_probe_emits_versioned_identity_bound_result_records() {
             record_fingerprint: 0,
             ..receipt_a.clone()
         })
+    );
+
+    let mut changed_manifest = receipt_a.clone();
+    changed_manifest.manifest.solver_iterations += 1;
+    assert_ne!(
+        receipt_a.record_fingerprint,
+        record_fingerprint(&changed_manifest),
+        "a changed solver profile must invalidate the result fingerprint"
     );
 }
 
