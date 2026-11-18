@@ -1251,9 +1251,10 @@ impl fmt::Display for NoiseCalibrationError {
             Self::DuplicateHiddenTruthId(id) => {
                 write!(f, "duplicate hidden truth evaluator ID {id}")
             }
-            Self::HiddenTruthMatchesCandidate(id) => {
-                write!(f, "hidden evaluator truth {id} exactly matches a registered candidate model")
-            }
+            Self::HiddenTruthMatchesCandidate(id) => write!(
+                f,
+                "hidden evaluator truth {id} exactly matches a registered candidate model"
+            ),
             Self::InvalidTargetCoverage => write!(
                 f,
                 "target in-family coverage must be finite and strictly between zero and one"
@@ -1668,10 +1669,35 @@ fn same_network_dynamics(
     left: &crate::network::NetworkScenario,
     right: &crate::network::NetworkScenario,
 ) -> bool {
-    left.capacities == right.capacities
-        && left.initial == right.initial
-        && left.edges == right.edges
-        && left.horizon == right.horizon
+    if left.capacities != right.capacities
+        || left.initial != right.initial
+        || left.horizon != right.horizon
+        || left.edges.len() != right.edges.len()
+    {
+        return false;
+    }
+    let edge_signature = |network: &crate::network::NetworkScenario| {
+        let mut signature: Vec<(usize, usize, u64)> = network
+            .edges
+            .iter()
+            .map(|edge| {
+                let (first, second) = if edge.left <= edge.right {
+                    (edge.left, edge.right)
+                } else {
+                    (edge.right, edge.left)
+                };
+                let conductance = if edge.conductance == 0.0 {
+                    0.0
+                } else {
+                    edge.conductance
+                };
+                (first, second, conductance.to_bits())
+            })
+            .collect();
+        signature.sort_unstable();
+        signature
+    };
+    edge_signature(left) == edge_signature(right)
 }
 
 fn predict_hidden_network(
@@ -1869,7 +1895,17 @@ mod tests {
         );
         let duplicate_truth = HiddenOutOfFamilyTruth {
             evaluator_id: 901,
-            network: scenario.experiment.models[0].network.clone(),
+            network: crate::network::NetworkScenario {
+                name: "renamed-and-reversed-edge",
+                capacities: vec![1.0, 1.0],
+                initial: vec![0.0, 0.0],
+                edges: vec![crate::network::Edge {
+                    left: 1,
+                    right: 0,
+                    conductance: 0.5,
+                }],
+                horizon: 1.0,
+            },
         };
         let duplicate_result = calibrate_model_family_adequacy_full_covariance(
             &scenario,
