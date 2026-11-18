@@ -7,6 +7,7 @@ use construction_motion_oracle::{
     ConstructionArtifactGraph, ConstructionArtifactKind, ConstructionChangeSet,
     DependencyContractSet, DependencyDomain, DependencyKey, DependencyTransition,
     VersionedDependency, compile_change_impact_with_contract,
+    minimum_construction_dependency_contracts,
 };
 
 const SAMPLES: usize = 25;
@@ -37,19 +38,11 @@ fn build_graph(entity_count: usize) -> ConstructionArtifactGraph {
             artifact_sha256: digest('a'),
             kind: ConstructionArtifactKind::MotionEnvelope,
             persistence: ArtifactPersistence::Recomputable,
-            dependencies: vec![
-                VersionedDependency {
-                    key: key(
-                        DependencyDomain::EntityGeometry,
-                        entity_id,
-                    ),
-                    observed_sha256: digest('1'),
-                },
-                VersionedDependency {
-                    key: shared_transform.clone(),
-                    observed_sha256: digest('2'),
-                },
-            ],
+            dependencies: dependencies_for_kind(
+                ConstructionArtifactKind::MotionEnvelope,
+                index,
+                &entity_id,
+            ),
             depends_on_artifact_ids: Vec::new(),
         });
         artifacts.push(ConstructionArtifact {
@@ -57,28 +50,11 @@ fn build_graph(entity_count: usize) -> ConstructionArtifactGraph {
             artifact_sha256: digest('b'),
             kind: ConstructionArtifactKind::SpaceTimeOccupancyAssessment,
             persistence: ArtifactPersistence::Recomputable,
-            dependencies: vec![
-                VersionedDependency {
-                    key: key(DependencyDomain::ObstacleMap, format!("region:{index:08}")),
-                    observed_sha256: digest('3'),
-                },
-                VersionedDependency {
-                    key: key(DependencyDomain::DynamicActorManifest, format!("region:{index:08}")),
-                    observed_sha256: digest('4'),
-                },
-                VersionedDependency {
-                    key: key(DependencyDomain::SiteClockMap, "site".into()),
-                    observed_sha256: digest('5'),
-                },
-                VersionedDependency {
-                    key: key(DependencyDomain::OccupancyEngineBuild, "engine".into()),
-                    observed_sha256: digest('6'),
-                },
-                VersionedDependency {
-                    key: key(DependencyDomain::ClearancePolicy, "site".into()),
-                    observed_sha256: digest('7'),
-                },
-            ],
+            dependencies: dependencies_for_kind(
+                ConstructionArtifactKind::SpaceTimeOccupancyAssessment,
+                index,
+                &entity_id,
+            ),
             depends_on_artifact_ids: vec![motion_id],
         });
         artifacts.push(ConstructionArtifact {
@@ -86,16 +62,11 @@ fn build_graph(entity_count: usize) -> ConstructionArtifactGraph {
             artifact_sha256: digest('c'),
             kind: ConstructionArtifactKind::DispatchReadiness,
             persistence: ArtifactPersistence::Recomputable,
-            dependencies: vec![
-                VersionedDependency {
-                    key: key(DependencyDomain::WorkPackageSchedule, "work-package".into()),
-                    observed_sha256: digest('8'),
-                },
-                VersionedDependency {
-                    key: key(DependencyDomain::AuthorityPolicy, "site".into()),
-                    observed_sha256: digest('9'),
-                },
-            ],
+            dependencies: dependencies_for_kind(
+                ConstructionArtifactKind::DispatchReadiness,
+                index,
+                &entity_id,
+            ),
             depends_on_artifact_ids: vec![occupancy_id],
         });
     }
@@ -122,35 +93,74 @@ fn build_graph(entity_count: usize) -> ConstructionArtifactGraph {
 }
 
 
+fn domain_version(domain: DependencyDomain) -> char {
+    match domain {
+        DependencyDomain::EntityGeometry => '1',
+        DependencyDomain::CoordinateTransform => '2',
+        DependencyDomain::CoordinateFrame => '3',
+        DependencyDomain::DesignRevision => '4',
+        DependencyDomain::RobotConfiguration => '5',
+        DependencyDomain::ToolConfiguration => '6',
+        DependencyDomain::PayloadConfiguration => '7',
+        DependencyDomain::TrajectoryConfiguration => '8',
+        DependencyDomain::SiteClockMap => '9',
+        DependencyDomain::ObstacleMap => 'a',
+        DependencyDomain::DynamicActorManifest => 'b',
+        DependencyDomain::OccupancyEngineBuild => 'c',
+        DependencyDomain::ClearancePolicy => 'd',
+        DependencyDomain::SiteLedgerState => 'e',
+        DependencyDomain::WorkPackageSchedule => 'f',
+        DependencyDomain::AuthorityPolicy => '0',
+        _ => '1',
+    }
+}
+
+fn domain_scope(domain: DependencyDomain, index: usize, entity_id: &str) -> String {
+    match domain {
+        DependencyDomain::EntityGeometry => entity_id.to_owned(),
+        DependencyDomain::CoordinateTransform => "floor:02".into(),
+        DependencyDomain::CoordinateFrame => "site-frame:02".into(),
+        DependencyDomain::DesignRevision => "floor:02".into(),
+        DependencyDomain::RobotConfiguration => "robot:unit-01".into(),
+        DependencyDomain::ToolConfiguration => "robot:unit-01:tool".into(),
+        DependencyDomain::PayloadConfiguration => "robot:unit-01:payload".into(),
+        DependencyDomain::TrajectoryConfiguration => "robot:unit-01:trajectory".into(),
+        DependencyDomain::SiteClockMap => "site-clock".into(),
+        DependencyDomain::ObstacleMap => format!("region:{index:08}"),
+        DependencyDomain::DynamicActorManifest => format!("region:{index:08}"),
+        DependencyDomain::OccupancyEngineBuild => "occupancy-engine".into(),
+        DependencyDomain::ClearancePolicy => "site".into(),
+        DependencyDomain::SiteLedgerState => "site-ledger".into(),
+        DependencyDomain::WorkPackageSchedule => "work-package".into(),
+        DependencyDomain::AuthorityPolicy => "site-authority".into(),
+        _ => format!("{}:{index:08}", format!("{domain:?}").to_lowercase()),
+    }
+}
+
+fn dependencies_for_kind(
+    kind: ConstructionArtifactKind,
+    index: usize,
+    entity_id: &str,
+) -> Vec<VersionedDependency> {
+    let contracts = minimum_construction_dependency_contracts();
+    let contract = contracts
+        .iter()
+        .find(|contract| contract.artifact_kind == kind)
+        .expect("every benchmark artifact kind has a minimum dependency contract");
+    contract
+        .required_domains
+        .iter()
+        .map(|domain| VersionedDependency {
+            key: key(*domain, domain_scope(*domain, index, entity_id)),
+            observed_sha256: digest(domain_version(*domain)),
+        })
+        .collect()
+}
+
 fn dependency_contracts() -> DependencyContractSet {
     DependencyContractSet {
         contract_sha256: digest('c'),
-        contracts: vec![
-            ArtifactDependencyContract {
-                artifact_kind: ConstructionArtifactKind::MotionEnvelope,
-                required_domains: vec![
-                    DependencyDomain::EntityGeometry,
-                    DependencyDomain::CoordinateTransform,
-                ],
-            },
-            ArtifactDependencyContract {
-                artifact_kind: ConstructionArtifactKind::SpaceTimeOccupancyAssessment,
-                required_domains: vec![
-                    DependencyDomain::ObstacleMap,
-                    DependencyDomain::DynamicActorManifest,
-                    DependencyDomain::SiteClockMap,
-                    DependencyDomain::OccupancyEngineBuild,
-                    DependencyDomain::ClearancePolicy,
-                ],
-            },
-            ArtifactDependencyContract {
-                artifact_kind: ConstructionArtifactKind::DispatchReadiness,
-                required_domains: vec![
-                    DependencyDomain::WorkPackageSchedule,
-                    DependencyDomain::AuthorityPolicy,
-                ],
-            },
-        ],
+        contracts: minimum_construction_dependency_contracts(),
     }
 }
 
