@@ -188,6 +188,100 @@ for run_path in "${run_paths[@]}"; do
   ' "$run_path" >/dev/null || fail "derived-coordinate dependency/provenance rules failed: $run_path"
 
   jq -e '
+    def known($m): ($m.status != "unknown" and ($m.value | type) == "number");
+    def close($actual; $expected):
+      ($actual.status != "unknown")
+      and (($expected | type) == "number")
+      and ((($actual.value - $expected) | abs)
+           <= ([1e-10, (($expected | abs) * 0.01)] | max));
+    . as $r
+    | $r.derived_coordinates as $d
+    | (if known($r.material.mean_interparticle_cohesion_force_n)
+          and known($r.material.representative_particle_mass_kg)
+          and known($r.environment.gravity_m_s2)
+       then close(
+         $d.granular_bond_number;
+         ($r.material.mean_interparticle_cohesion_force_n.value
+          / ($r.material.representative_particle_mass_kg.value
+             * $r.environment.gravity_m_s2.value))
+       )
+       else $d.granular_bond_number.status == "unknown" end)
+    and (if known($r.apparatus.wall_pull_off_force_n)
+           and known($r.material.representative_particle_mass_kg)
+           and known($r.environment.gravity_m_s2)
+       then close(
+         $d.wall_adhesion_to_particle_weight;
+         ($r.apparatus.wall_pull_off_force_n.value
+          / ($r.material.representative_particle_mass_kg.value
+             * $r.environment.gravity_m_s2.value))
+       )
+       else $d.wall_adhesion_to_particle_weight.status == "unknown" end)
+    and (if known($r.operation.shear_rate_s_minus_1)
+           and known($r.operation.normal_confining_stress_pa)
+           and known($r.material.d50_um)
+           and known($r.material.bulk_density_kg_m3)
+       then close(
+         $d.inertial_number;
+         ($r.operation.shear_rate_s_minus_1.value
+          * ($r.material.d50_um.value / 1000000)
+          / sqrt($r.operation.normal_confining_stress_pa.value
+                 / $r.material.bulk_density_kg_m3.value))
+       )
+       else $d.inertial_number.status == "unknown" end)
+    and (if known($r.material.surface_charge_coulomb_per_kg)
+           and known($r.environment.electrostatic_field_v_m)
+           and known($r.environment.gravity_m_s2)
+       then close(
+         $d.electrostatic_number;
+         ($r.material.surface_charge_coulomb_per_kg.value
+          * $r.environment.electrostatic_field_v_m.value
+          / $r.environment.gravity_m_s2.value)
+       )
+       else $d.electrostatic_number.status == "unknown" end)
+    and (if known($r.operation.vibration_peak_acceleration_m_s2)
+           and known($r.environment.gravity_m_s2)
+       then close(
+         $d.vibration_gamma;
+         ($r.operation.vibration_peak_acceleration_m_s2.value
+          / $r.environment.gravity_m_s2.value)
+       )
+       else $d.vibration_gamma.status == "unknown" end)
+    and (if known($r.operation.vibration_frequency_hz)
+           and known($r.material.d50_um)
+           and known($r.environment.gravity_m_s2)
+       then close(
+         $d.vibration_frequency_gravity_scale;
+         ($r.operation.vibration_frequency_hz.value
+          * sqrt(($r.material.d50_um.value / 1000000)
+                 / $r.environment.gravity_m_s2.value))
+       )
+       else $d.vibration_frequency_gravity_scale.status == "unknown" end)
+    and (if known($r.operation.vibration_amplitude_m)
+           and known($r.material.d50_um)
+       then close(
+         $d.vibration_amplitude_to_particle_size;
+         ($r.operation.vibration_amplitude_m.value
+          / ($r.material.d50_um.value / 1000000))
+       )
+       else $d.vibration_amplitude_to_particle_size.status == "unknown" end)
+    and (if known($r.material.d50_um)
+           and known($r.apparatus.drum_inner_radius_m)
+       then close(
+         $d.particle_to_drum_ratio;
+         (($r.material.d50_um.value / 1000000)
+          / $r.apparatus.drum_inner_radius_m.value)
+       )
+       else $d.particle_to_drum_ratio.status == "unknown" end)
+    and (if known($r.apparatus.wall_roughness_ra_um)
+           and known($r.material.d50_um)
+       then close(
+         $d.wall_roughness_to_particle_ratio;
+         ($r.apparatus.wall_roughness_ra_um.value / $r.material.d50_um.value)
+       )
+       else $d.wall_roughness_to_particle_ratio.status == "unknown" end)
+  ' "$run_path" >/dev/null || fail "derived-coordinate values do not match the formula set: $run_path"
+
+  jq -e '
     [.artifacts[].artifact_id] as $ids
     | ($ids | length) == ($ids | unique | length)
       and all(.artifacts[];
