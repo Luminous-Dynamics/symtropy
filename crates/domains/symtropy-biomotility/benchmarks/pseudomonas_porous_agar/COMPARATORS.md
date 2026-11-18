@@ -43,7 +43,7 @@ Sönke Beier, Veronika Pfeifer, Agniva Datta, Robert Großmann and Carsten Beta,
 - The reported directional analysis uses up-gradient versus down-gradient run groups, not a 36-degree cone. Use a declared half-plane/projection convention and confirm the exact classifier in the supplementary analysis before claiming exact reproduction.
 - It separates short events (<= 1 second), interpreted as more likely motor-driven, from long events (> 1 second), interpreted as dominated by passive trapping.
 - Reported up-gradient orientation fractions after short events are 56.7% in 0.25% agar and 55.6% in 0.3% agar; after long events they are 44.9% and 46.8%.
-- The paper's agent-based simulations estimate that turn-angle-bias-only reaches about 72% of combined-strategy drift in agar, while run-time-bias-only reaches about 25%.
+- The paper's agent-based simulations estimate that turn-angle-bias-only reaches about 72% of combined-strategy drift in agar, while run-time-bias-only reaches about 25%. In the new model, directional turn-angle bias applies only to events explicitly assigned the active-motor mechanism; duration bins are analyzed separately. Do not implement "short = motor" or "long = trap" as deterministic causal rules.
 - Run-time bias strengths are reported as S = 0.037 ± 0.004 at 0.25% agar and S = 0.022 ± 0.002 at 0.3% agar.
 - Mean run orientations are up-gradient for 53.3% of 68,431 runs at 0.25% agar and 51.9% of 73,531 runs at 0.3% agar.
 - The study's run-after-event counts are 38,376 after short events and 17,582 after long events at 0.25% agar; 36,351 and 25,613, respectively, at 0.3% agar.
@@ -99,27 +99,30 @@ The first integration may use only source-reported summaries as literature targe
 
 ## Matched benchmark arms
 
-| Arm | Mechanisms | Purpose |
-|---|---|---|
-| A | Two-state intermittent active particle + rotational diffusion | Reproduce the 2025 baseline |
-| B | Event-separated, no chemotactic bias | Negative control |
-| C | Event-separated + run-time bias only | Isolate temporal/run-duration contribution |
-| D | Event-separated + short-event turn-angle bias only | Isolate directional reorientation contribution |
-| E | Combined run-time + short-event turn-angle bias | Test combined model |
-| F | Combined model + pore-resolved passive trapping | Test geometry dependence |
+| Arm | Physical mechanism | Duration treatment | Purpose |
+|---|---|---|---|
+| A | Two-state intermittent active particle + rotational diffusion | Empirical waiting-time distributions | Reproduce the 2025 baseline |
+| B | Active/passive/unresolved event model, no chemotactic bias | Duration bins derived after mechanism sampling | Negative control |
+| C | Active motor + passive trap, run-time bias only | Independent duration distributions | Isolate temporal/run-duration contribution |
+| D | Active motor turn-angle bias only; passive/unresolved events pooled | Short/long bins are observational strata only | Isolate active directional reorientation |
+| E | Combined run-time + active motor turn-angle bias | Mechanism and duration remain orthogonal | Test combined model |
+| F | Combined model + pore-resolved passive trapping | Overlap allowed across duration bins | Test geometry dependence |
+| G | Mechanism labels unresolved; use duration only for published subgroup comparison | Sensitivity across all threshold policies | Negative control for causal overinterpretation |
 
 All arms must use the same source split, empirical event distribution where applicable, swimming-speed inputs, gradient, time horizon, initial conditions, observation cadence, seeds and compute budget.
 
 ## Primary outcomes
 
 1. Run-time survival/distribution conditioned on preceding direction.
-2. Short-event and long-trap duration distributions, with tail fit diagnostics.
-3. Turn-angle distributions conditioned on preceding direction and event class.
-4. Up-gradient run fraction after short versus long events.
-5. Mean-squared displacement as a function of lag time.
-6. Chemotactic drift velocity and projected displacement.
-7. Sensitivity to agar fraction, pore-size/free-path distribution and mutant condition.
-8. Predictive calibration and uncertainty under held-out experimental units.
+2. Event-duration distributions and tails, stratified by independently assigned physical mechanism where evidence supports it.
+3. Turn-angle distributions conditioned on preceding run-displacement direction and active-motor evidence class.
+4. Up-gradient run fraction after short versus long duration bins, reported independently of mechanism.
+5. Mechanism-by-duration overlap matrix, only where mechanism evidence is independently available.
+6. First circular Fourier harmonic magnitude and phase of realized run-displacement orientations.
+7. Mean-squared displacement as a function of lag time.
+8. Chemotactic drift velocity and projected displacement.
+9. Sensitivity to agar fraction, pore-size/free-path distribution and mutant condition.
+10. Predictive calibration and uncertainty on held-out experimental units.
 
 Do not split adjacent observations from one trajectory or one plate across training and evaluation. The biological/recording replicate is the statistical unit when metadata supports it.
 
