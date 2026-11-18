@@ -2784,9 +2784,11 @@ mod tests {
         let mut ledger = SiteStateLedger::new();
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
+        let first_reservation =
+            reservation_for(&ledger, "reservation-1", 130, 300, 120, 100, 150);
         commit_reservation_event(
             &mut ledger,
-            reservation_for(&ledger, "reservation-1", 130, 300, 120, 100, 150),
+            first_reservation,
             "event-reservation-1",
             '3',
         )
@@ -2820,9 +2822,11 @@ mod tests {
         let mut ledger = SiteStateLedger::new();
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
+        let first_reservation =
+            reservation_for(&ledger, "reservation-1", 130, 300, 120, 100, 450);
         commit_reservation_event(
             &mut ledger,
-            reservation_for(&ledger, "reservation-1", 130, 300, 120, 100, 450),
+            first_reservation,
             "event-reservation-1",
             '3',
         )
@@ -2871,9 +2875,11 @@ mod tests {
         let mut ledger = SiteStateLedger::new();
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
+        let first_reservation =
+            reservation_for(&ledger, "reservation-1", 130, 300, 120, 100, 450);
         commit_reservation_event(
             &mut ledger,
-            reservation_for(&ledger, "reservation-1", 130, 300, 120, 100, 450),
+            first_reservation,
             "event-reservation-1",
             '3',
         )
@@ -2909,9 +2915,11 @@ mod tests {
         let mut ledger = SiteStateLedger::new();
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
+        let first_reservation =
+            reservation_for(&ledger, "reservation-1", 130, 300, 120, 100, 450);
         commit_reservation_event(
             &mut ledger,
-            reservation_for(&ledger, "reservation-1", 130, 300, 120, 100, 450),
+            first_reservation,
             "event-reservation-1",
             '3',
         )
