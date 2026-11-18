@@ -1,0 +1,205 @@
+{
+  "schema_version": "1.0.0",
+  "record_id": "pact-j3-source-comparator-2026-11-v1",
+  "candidate": {
+    "candidate_id": "pact-four-dof-finger-source",
+    "name": "PACT four-DoF tendon-driven finger",
+    "joint_class": "J3",
+    "architecture": "N+1 asymmetric pull-only flexion tendons with separate bidirectional MCP abduction/adduction actuator",
+    "topology": "four joint coordinates and four flexion tendons plus one A/A actuator",
+    "manufacturer_or_lab": "Kumar et al. research prototype",
+    "evidence_origin": "research_prototype",
+    "source_record": "arXiv:2611.05302"
+  },
+  "configuration": {
+    "configuration_id": "source-paper-prototype-description",
+    "configuration_digest": null,
+    "hardware_revision": null,
+    "software_revision": null,
+    "controller_revision": null,
+    "revision_state": "source_not_disclosed",
+    "calibration_state": "not_disclosed",
+    "service_state": "not_disclosed",
+    "unit_identifier": null
+  },
+  "task_envelope": {
+    "task_id": "pact-eight-pose-force-requirements",
+    "task_description": "Eight pose-specific fingertip force-region requirements covering pinch, tripod, extended reach, deep flexion and abduction",
+    "pose_set_id": "pact-eight-pose-library",
+    "pose_count": 8,
+    "coordinate_frame": "paper-defined MCP/PIP/DIP/AA and fingertip task coordinates",
+    "payload_state": {
+      "status": "unknown",
+      "description": "No common external payload mass is used to normalize the static fingertip force-region comparison"
+    },
+    "motion_or_wrench_envelope": {
+      "force_region_coverage_definition": "volume of intersection of feasible and required fingertip force regions divided by required-region volume",
+      "opposing_truncated_coulomb_friction_coefficient": 0.5,
+      "palmar_force_limit_N": 15.0,
+      "dorsal_force_limit_N": 4.0,
+      "minimum_isolated_flexion_extension_bandwidth_Hz": 5.0,
+      "validated_physical_pose_ids": [1]
+    },
+    "duty": {
+      "duration_s": 5.0,
+      "duty_fraction": null,
+      "thermal_condition": "Five-second steady-state sample windows; actuator current limits set to 50% of peak for the physical force validation"
+    },
+    "environment": {
+      "ambient_temperature_c": null,
+      "other_conditions": [
+        "Source physical force measurement validated one pose only",
+        "Five repetitions per actuator combination",
+        "Six-axis ATI Mini40 fingertip load cell used as external force reference",
+        "Whole-hand grasp stability not validated"
+      ]
+    }
+  },
+  "system_boundary": {
+    "mass": {
+      "status": "unknown",
+      "value": null,
+      "unit": "kg",
+      "measurement_boundary": "Complete installed mass including remote actuator, cables, electronics, supports and controller",
+      "evidence_refs": ["pact-source"],
+      "reason": "A complete installed-system mass boundary is not supplied in this comparator record"
+    },
+    "volume": {
+      "status": "unknown",
+      "value": null,
+      "unit": "m^3",
+      "measurement_boundary": "Complete installed volume including remote actuation and auxiliary systems",
+      "evidence_refs": ["pact-source"],
+      "reason": "A complete installed-system volume boundary is not transcribed"
+    },
+    "included_components": ["finger tendon routing and capstan geometry as described in the paper","paper-described QDD actuators"],
+    "excluded_components": ["unverified external power supply and controller mass","unverified cable harness and bench support mass"],
+    "power_sources": ["electrical actuator supply; full source-side energy accounting not transcribed"],
+    "boundary_notes": "No torque- or force-density value is derived because the complete installed-system mass denominator and energy boundary are not available in this record."
+  },
+  "metrics": [
+    {
+      "metric_id": "pact-minimum-pose-coverage-frictionless",
+      "category": "task_coverage",
+      "value_status": "observed",
+      "value": 0.88,
+      "unit": "fraction",
+      "statistic": "minimum across eight poses",
+      "regime": "paper-reported frictionless model result for optimized shared tendon/actuator design",
+      "denominator": "required fingertip force-region volume",
+      "source_class": "paper_reported_model",
+      "verification_state": "transcribed",
+      "uncertainty": null,
+      "calibration_ref": null,
+      "evidence_refs": ["pact-source"],
+      "stratum": "eight-pose force-region minimum",
+      "reason": null
+    },
+    {
+      "metric_id": "pact-minimum-pose-coverage-loss-aware",
+      "category": "task_coverage",
+      "value_status": "observed",
+      "value": 0.75,
+      "unit": "fraction",
+      "statistic": "minimum across eight poses",
+      "regime": "paper-reported rescoring with source-estimated joint-dependent transmission efficiencies",
+      "denominator": "required fingertip force-region volume",
+      "source_class": "paper_reported_model",
+      "verification_state": "transcribed",
+      "uncertainty": null,
+      "calibration_ref": null,
+      "evidence_refs": ["pact-source"],
+      "stratum": "loss-aware eight-pose force-region minimum",
+      "reason": null
+    },
+    {
+      "metric_id": "pact-minimum-isolated-flexion-extension-bandwidth",
+      "category": "bandwidth",
+      "value_status": "observed",
+      "value": 5.0,
+      "unit": "Hz",
+      "statistic": "minimum over isolated flexion/extension joint directions",
+      "regime": "paper-reported model prediction constrained in the actuator/drivetrain design",
+      "denominator": "isolated-joint drivetrain model; not full closed-loop hand bandwidth",
+      "source_class": "paper_reported_model",
+      "verification_state": "transcribed",
+      "uncertainty": null,
+      "calibration_ref": null,
+      "evidence_refs": ["pact-source"],
+      "stratum": "MCP/PIP/DIP flexion and extension directions",
+      "reason": null
+    },
+    {
+      "metric_id": "pact-measured-force-magnitude-deviation",
+      "category": "model_error",
+      "value_status": "observed",
+      "value": 24.5,
+      "unit": "percent",
+      "statistic": "reported force magnitude shortfall relative to frictionless model",
+      "regime": "one physically validated pose, five-second steady-state sample windows, five repetitions per actuator combination, 50% peak-current limit",
+      "denominator": "frictionless-model fingertip force magnitude",
+      "source_class": "paper_reported_physical_measurement",
+      "verification_state": "transcribed",
+      "uncertainty": null,
+      "calibration_ref": null,
+      "evidence_refs": ["pact-source"],
+      "stratum": "single tested pose",
+      "reason": null
+    },
+    {
+      "metric_id": "pact-measured-force-direction-error",
+      "category": "model_error",
+      "value_status": "observed",
+      "value": 14.82,
+      "unit": "degree",
+      "statistic": "reported angle between predicted and measured force",
+      "regime": "one physically validated pose",
+      "denominator": "angle between source-predicted and six-axis-load-cell-measured force vectors",
+      "source_class": "paper_reported_physical_measurement",
+      "verification_state": "transcribed",
+      "uncertainty": null,
+      "calibration_ref": null,
+      "evidence_refs": ["pact-source"],
+      "stratum": "single tested pose",
+      "reason": null
+    },
+    {
+      "metric_id": "pact-complete-installed-mass",
+      "category": "other",
+      "value_status": "unknown",
+      "value": null,
+      "unit": "kg",
+      "statistic": null,
+      "regime": "complete installed system",
+      "denominator": "finger, remote actuators, electronics, cabling, power and mounts",
+      "source_class": "source_transcription",
+      "verification_state": "transcribed",
+      "uncertainty": null,
+      "calibration_ref": null,
+      "evidence_refs": ["pact-source"],
+      "stratum": null,
+      "reason": "Complete installed mass has not been transcribed from the source"
+    }
+  ],
+  "run_summary": {
+    "planned_runs": null,
+    "completed_runs": null,
+    "failed_runs": null,
+    "excluded_runs": null,
+    "censored_runs": null,
+    "failure_reasons": ["Full physical eight-pose campaign is not reported","Whole-hand grasp stability was not validated"],
+    "outcome_disposition": "partially_accepted"
+  },
+  "evidence": [
+    {
+      "evidence_id": "pact-source",
+      "source_type": "paper",
+      "uri": "https://arxiv.org/abs/2611.05302",
+      "locator": "arXiv:2611.05302; source sections/tables on tendon routing, eight-pose library, task force coverage, actuator selection and prototype force validation",
+      "digest": null,
+      "publication_or_acquisition_date": "2026-11-03",
+      "notes": "Preprint. Model predictions, source-reported physical measurement and loss-aware model rescoring are separately classified in metric observations."
+    }
+  ],
+  "claim_ceiling": "This record transcribes source-reported PACT metrics and one-pose physical force validation. It does not reproduce the prototype, validate the full eight-pose physical force coverage, establish whole-hand grasp stability, or qualify any Luminous hardware."
+}
