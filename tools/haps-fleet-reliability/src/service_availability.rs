@@ -328,7 +328,10 @@ pub fn validate_service_availability_case(
         let platform = platform_by_id
             .get(id.as_str())
             .ok_or_else(|| ReliabilityError::new(format!("unknown reserve platform {id}")))?;
-        if platform.role != "reserve" || !reserve_ids.insert(id.as_str()) || primary_ids.contains(id.as_str()) {
+        if platform.role != "reserve"
+            || !reserve_ids.insert(id.as_str())
+            || primary_ids.contains(id.as_str())
+        {
             return Err(ReliabilityError::new(format!(
                 "reserve platform {id} has a duplicate ID, primary overlap, or mismatched role"
             )));
@@ -391,7 +394,12 @@ pub fn validate_service_availability_case(
         if event.event_id.trim().is_empty() || !event_ids.insert(event.event_id.as_str()) {
             return Err(ReliabilityError::new("common-cause event_id is empty or duplicated"));
         }
-        validate_interval(event.start_h, event.end_h, case.evaluation_window_h, "common-cause event")?;
+        validate_interval(
+            event.start_h,
+            event.end_h,
+            case.evaluation_window_h,
+            "common-cause event",
+        )?;
         validate_probability(event.service_capacity_multiplier, "service_capacity_multiplier")?;
         if event.affected_platform_ids.is_empty() {
             return Err(ReliabilityError::new(format!(
@@ -446,13 +454,25 @@ pub fn validate_service_availability_case(
     }
     let mut operation_ids = HashSet::new();
     for operation in &case.launch_recovery_events {
-        if operation.event_id.trim().is_empty() || !operation_ids.insert(operation.event_id.as_str()) {
+        if operation.event_id.trim().is_empty()
+            || !operation_ids.insert(operation.event_id.as_str())
+        {
             return Err(ReliabilityError::new("launch/recovery event_id is empty or duplicated"));
         }
         let platform = platform_by_id
             .get(operation.platform_id.as_str())
-            .ok_or_else(|| ReliabilityError::new(format!("unknown operation platform {}", operation.platform_id)))?;
-        validate_interval(operation.start_h, operation.end_h, case.evaluation_window_h, "launch/recovery")?;
+            .ok_or_else(|| {
+                ReliabilityError::new(format!(
+                    "unknown operation platform {}",
+                    operation.platform_id
+                ))
+            })?;
+        validate_interval(
+            operation.start_h,
+            operation.end_h,
+            case.evaluation_window_h,
+            "launch/recovery",
+        )?;
         if !operation.site_available {
             return Err(ReliabilityError::new(format!(
                 "operation {} is declared when its site is unavailable",
@@ -463,7 +483,12 @@ pub fn validate_service_availability_case(
             "launch" => ("launching", case.logistics_limits.launch_lead_time_h, Some(true)),
             "recovery" => ("recovering", case.logistics_limits.recovery_duration_h, Some(false)),
             "reposition" => ("repositioning", case.logistics_limits.reposition_duration_h, None),
-            _ => return Err(ReliabilityError::new(format!("unknown operation {}", operation.operation))),
+            _ => {
+                return Err(ReliabilityError::new(format!(
+                    "unknown operation {}",
+                    operation.operation
+                )));
+            }
         };
         if (operation.end_h - operation.start_h - expected_duration).abs() > TIME_TOLERANCE_H {
             return Err(ReliabilityError::new(format!(
@@ -522,7 +547,10 @@ pub fn validate_service_availability_case(
             .filter(|segment| {
                 mid >= segment.start_h
                     && mid < segment.end_h
-                    && matches!(segment.state.as_str(), "planned_maintenance" | "unscheduled_repair")
+                    && matches!(
+                        segment.state.as_str(),
+                        "planned_maintenance" | "unscheduled_repair"
+                    )
             })
             .count();
         if maintenance_count > case.logistics_limits.maintenance_bays {
@@ -534,7 +562,9 @@ pub fn validate_service_availability_case(
         let launch_count = case
             .launch_recovery_events
             .iter()
-            .filter(|event| event.operation == "launch" && mid >= event.start_h && mid < event.end_h)
+            .filter(|event| {
+                event.operation == "launch" && mid >= event.start_h && mid < event.end_h
+            })
             .count();
         if launch_count > case.logistics_limits.simultaneous_launch_capacity {
             return Err(ReliabilityError::new(format!(
@@ -545,7 +575,9 @@ pub fn validate_service_availability_case(
         let recovery_count = case
             .launch_recovery_events
             .iter()
-            .filter(|event| event.operation == "recovery" && mid >= event.start_h && mid < event.end_h)
+            .filter(|event| {
+                event.operation == "recovery" && mid >= event.start_h && mid < event.end_h
+            })
             .count();
         if recovery_count > case.logistics_limits.simultaneous_recovery_capacity {
             return Err(ReliabilityError::new(format!(
@@ -556,7 +588,9 @@ pub fn validate_service_availability_case(
         let reposition_count = case
             .launch_recovery_events
             .iter()
-            .filter(|event| event.operation == "reposition" && mid >= event.start_h && mid < event.end_h)
+            .filter(|event| {
+                event.operation == "reposition" && mid >= event.start_h && mid < event.end_h
+            })
             .count();
         if reposition_count > case.logistics_limits.simultaneous_reposition_capacity {
             return Err(ReliabilityError::new(format!(
@@ -666,12 +700,16 @@ fn evaluate_platform_set(
                     for event in &case.common_cause_events {
                         if mid >= event.start_h
                             && mid < event.end_h
-                            && event.affected_platform_ids.iter().any(|affected| affected.as_str() == *id)
+                            && event
+                                .affected_platform_ids
+                                .iter()
+                                .any(|affected| affected.as_str() == *id)
                         {
                             multiplier *= event.service_capacity_multiplier;
                         }
                     }
-                    capacity += platform.service_capacity_units * segment.capacity_fraction * multiplier;
+                    capacity +=
+                        platform.service_capacity_units * segment.capacity_fraction * multiplier;
                 }
             }
         }
@@ -730,7 +768,11 @@ fn evaluate_platform_set(
                     "unscheduled_repair" => case.reserve_state_power_w.unscheduled_repair_power_w,
                     "grounded_weather" => case.reserve_state_power_w.grounded_weather_power_w,
                     "inactive" => case.reserve_state_power_w.inactive_power_w,
-                    _ => return Err(ReliabilityError::new("unknown reserve state while charging energy")),
+                    _ => {
+                        return Err(ReliabilityError::new(
+                            "unknown reserve state while charging energy",
+                        ));
+                    }
                 };
                 reserve_strategy_energy_wh += power_w * (segment.end_h - segment.start_h);
             }
@@ -761,7 +803,9 @@ fn validate_interval(
     validate_finite(start, &format!("{label} start"))?;
     validate_finite(end, &format!("{label} end"))?;
     if start < -TIME_TOLERANCE_H || end > window + TIME_TOLERANCE_H || end <= start {
-        return Err(ReliabilityError::new(format!("{label} interval is outside the evaluation window")));
+        return Err(ReliabilityError::new(format!(
+            "{label} interval is outside the evaluation window"
+        )));
     }
     Ok(())
 }
@@ -812,7 +856,8 @@ mod tests {
     );
 
     fn parse() -> FleetServiceAvailabilityCase {
-        parse_service_availability_case_json(CASE.as_bytes()).expect("synthetic fleet case is valid")
+        parse_service_availability_case_json(CASE.as_bytes())
+            .expect("synthetic fleet case is valid")
     }
 
     fn close(actual: f64, expected: f64) {
