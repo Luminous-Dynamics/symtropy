@@ -1661,6 +1661,16 @@ mod tests {
         assert_eq!(active.events[0].mechanism, EventMechanism::ActiveMotorEvent);
         assert_eq!(active.events[0].duration_bin, EventDurationBin::Long);
         assert_eq!(active.events[0].evidence_status, EventEvidenceStatus::ModelLatent);
+        let active_summary = summarize(&active);
+        assert_eq!(
+            active_summary.mechanism_duration_contingency.active_motor_long,
+            1
+        );
+        assert_eq!(
+            active_summary.mechanism_duration_contingency.active_motor_short,
+            0
+        );
+        assert_eq!(active_summary.evidence_status_counts.model_latent, 1);
 
         profile.mechanism_probabilities = MechanismProbabilities {
             active_motor: 0.0,
@@ -1682,6 +1692,15 @@ mod tests {
             EventMechanism::PassiveMechanicalTrap
         );
         assert_eq!(passive.events[0].duration_bin, EventDurationBin::Short);
+        let passive_summary = summarize(&passive);
+        assert_eq!(
+            passive_summary.mechanism_duration_contingency.passive_trap_short,
+            1
+        );
+        assert_eq!(
+            passive_summary.mechanism_duration_contingency.passive_trap_long,
+            0
+        );
     }
 
     #[test]
@@ -1709,6 +1728,11 @@ mod tests {
         assert_eq!(summary.unresolved_mechanism_event_count, 3);
         assert_eq!(summary.active_motor_event_count, 0);
         assert_eq!(summary.passive_trap_event_count, 0);
+        assert_eq!(
+            summary.mechanism_duration_contingency.unresolved_short,
+            3
+        );
+        assert_eq!(summary.evidence_status_counts.model_latent, 3);
     }
 
     #[test]
