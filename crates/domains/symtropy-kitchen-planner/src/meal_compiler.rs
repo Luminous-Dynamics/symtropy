@@ -355,6 +355,8 @@ pub struct MealCompilationRequestV1 {
     pub schema_version: u32,
     pub request_id: String,
     pub compiled_at_epoch_ms: u64,
+    /// Reference to the clock/measurement evidence that establishes the as-of time.
+    pub as_of_time_evidence_ref: String,
     /// SHA-256 over serde_json serialization of the typed MealProposalV1.
     pub proposal_sha256: String,
     pub proposal: MealProposalV1,
@@ -393,6 +395,9 @@ pub enum MealCompilationIssueCodeV1 {
     UnknownQuantity,
     InvalidFactTimeWindow,
     StaleFact,
+    MissingAsOfTimeEvidence,
+    InvalidPriceFactScope,
+    InvalidAvailabilityFactScope,
     FactIngredientMismatch,
     InvalidAllergenFactScope,
     DuplicateUncertainty,
@@ -981,6 +986,26 @@ fn validate_proposal(
                 MealCompilationIssueCodeV1::InvalidProposal,
                 Some(&fact.fact_id),
                 "quantitative facts require explicit unit and basis",
+            );
+        }
+        if fact.kind == CulinaryFactKindV1::Price
+            && !matches!(fact.scope, FactScopeV1::ProductSku | FactScopeV1::SupplierLot)
+        {
+            add_issue(
+                issues,
+                MealCompilationIssueCodeV1::InvalidPriceFactScope,
+                Some(&fact.fact_id),
+                "price facts must be scoped to an exact product SKU or supplier lot, not a generic ingredient",
+            );
+        }
+        if fact.kind == CulinaryFactKindV1::Availability
+            && !matches!(fact.scope, FactScopeV1::ProductSku | FactScopeV1::SupplierLot)
+        {
+            add_issue(
+                issues,
+                MealCompilationIssueCodeV1::InvalidAvailabilityFactScope,
+                Some(&fact.fact_id),
+                "availability facts must be scoped to an exact product SKU or supplier lot",
             );
         }
         if matches!(
@@ -1854,8 +1879,29 @@ fn compilation_resolution_refs(request: &MealCompilationRequestV1) -> Vec<String
     if nonempty(&request.acceptance.accepted_by_ref) {
         refs.insert(request.acceptance.accepted_by_ref.clone());
     }
+    if nonempty(&request.as_of_time_evidence_ref) {
+        refs.insert(request.as_of_time_evidence_ref.clone());
+    }
     if nonempty(&request.proposal.source.source_ref) {
         refs.insert(request.proposal.source.source_ref.clone());
+    }
+    for source_ref in [
+        request.proposal.source.license_ref.as_ref(),
+        request.proposal.source.attribution.as_ref(),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        if nonempty(source_ref) {
+            refs.insert(source_ref.clone());
+        }
+    }
+    for ingredient in &request.proposal.ingredients {
+        if let Some(lot_ref) = ingredient.product_lot_ref.as_ref() {
+            if nonempty(lot_ref) {
+                refs.insert(lot_ref.clone());
+            }
+        }
     }
     if nonempty(&request.source_resolution.reviewed_resolution_ref) {
         refs.insert(request.source_resolution.reviewed_resolution_ref.clone());
@@ -1892,6 +1938,17 @@ fn compilation_resolution_refs(request: &MealCompilationRequestV1) -> Vec<String
         }
         if nonempty(&fact.source_version) {
             refs.insert(fact.source_version.clone());
+        }
+        if nonempty(&fact.fact_id) {
+            refs.insert(fact.fact_id.clone());
+        }
+        for reference in [fact.market_ref.as_ref(), fact.license_ref.as_ref()]
+            .into_iter()
+            .flatten()
+        {
+            if nonempty(reference) {
+                refs.insert(reference.clone());
+            }
         }
     }
     refs.into_iter().collect()
@@ -1997,6 +2054,14 @@ pub fn compile_meal(request: &MealCompilationRequestV1) -> MealCompilationReport
             MealCompilationIssueCodeV1::MissingRequiredValue,
             Some("request"),
             "request ID and explicit as-of timestamp are required",
+        );
+    }
+    if !nonempty(&request.as_of_time_evidence_ref) {
+        add_issue(
+            &mut issues,
+            MealCompilationIssueCodeV1::MissingAsOfTimeEvidence,
+            Some("as_of_time_evidence_ref"),
+            "fact freshness checks require a clock/as-of evidence reference",
         );
     }
     if request.claim_ceiling != MEAL_COMPILATION_CLAIM_CEILING {
@@ -2296,6 +2361,7 @@ mod tests {
             schema_version: 1,
             request_id: "compile:onion-side:1".to_owned(),
             compiled_at_epoch_ms: 1_750_000_000_000,
+            as_of_time_evidence_ref: "clock:local-monotonic-wallclock-v1".to_owned(),
             proposal_sha256,
             proposal,
             acceptance: ProposalAcceptanceV1 {
