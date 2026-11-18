@@ -327,3 +327,20 @@ The IEA's *Electricity 2026* identifies more than 2,500 GW of projects stalled i
 The IEA's *World Energy Investment 2026* estimates global grid spending rose to nearly USD 450 billion in 2025 and projects a further 17% increase in 2026, while noting inflationary pressure, constrained supply chains and shortages in specialised manufacturing capacity. [IEA World Energy Investment 2026](https://www.iea.org/reports/world-energy-investment-2026).
 
 **Our global competitive target is not a one-number world record.** It is a reproducible, region-by-region proof that a chosen architecture delivers equal or better service, reliability and resilience with lower lifecycle cost, shorter time-to-service or improved maintainability under local conditions.
+
+
+## 10. Lifecycle economics and cross-country comparability
+
+The `data/lifecycle-economics-v0.1.schema.json` contract separates:
+- the local decision case in the project's actual currency, price year and tax treatment;
+- real versus nominal valuation and a matching discount-rate basis;
+- study horizon and service denominator;
+- itemised cost/credit categories across design, equipment, materials, fabrication, logistics, civil works, installation, commissioning, energy losses, maintenance, replacements, outages, land, permitting, environmental mitigation, decommissioning and residual value;
+- imported versus local cost exposure and evidence references;
+- an optional normalised comparison currency with explicit FX basis/date/source and a separately identified PPP sensitivity.
+
+PPP is not a substitute for actual procurement cost. The schema requires the local case and normalised comparison to remain separate. A future evaluator must also enforce cross-field identities (currency consistency, period bounds, compatible real/nominal discounting, FX requirements, evidence references and no double counting).
+
+The included `synthetic-lifecycle-economics-v0.1.json` is only a contract fixture with synthetic dollar values. It is not a cost estimate, discount-rate recommendation, NPV result or procurement benchmark.
+
+The current GitHub Actions workflow now validates the route, global portability and lifecycle economics JSON Schemas against their fixtures, including date/URI formats; runs the Rust semantic-validator tests; checks Rust formatting and Clippy with warnings denied; and validates the checked-in route fixture. The run must still pass on the exact PR head before any CI claim is made.
