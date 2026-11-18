@@ -789,6 +789,33 @@
       ],
       "safety_boundary": "The evaluator records evidence and scope only. It does not issue LOAs, certificates, test reports or market authorization. A missing, stale or mismatched approval cannot be inferred from a retailer listing, foreign certificate or manufacturer marketing claim.",
       "control_condition": "Compare retailer-listing-only, manufacturer-document-only and complete exact-unit reviewed dossiers on the same appliance/module set; include stale, expired, wrong-region, wrong-revision and wrong-lab-scope negative controls."
+    },
+    {
+      "task_id": "meal-compiler-cross-repository-conformance",
+      "domain": "workflow",
+      "operation": "Compile a frozen Symthaea MealProposalV1 into linked Symtropy action and typed food-flow graphs",
+      "input_manifest_required": [
+        "exact Symthaea schema and fixture revision",
+        "accepted proposal digest and revision receipt",
+        "source-rights resolution",
+        "task action/ontology mapping references",
+        "duration and scheduling method references",
+        "planning resource resolution references",
+        "explicit ingredient and task-output quantity allocations",
+        "all material-flow evidence references",
+        "compiler source and toolchain revision"
+      ],
+      "primary_metrics": [
+        "meal_compiler_false_compiled_rate",
+        "meal_compiler_unknown_promotion_rate",
+        "meal_compiler_material_lineage_completeness",
+        "meal_compiler_decision_evidence_coverage",
+        "meal_compiler_exact_acceptance_binding_rate",
+        "meal_compiler_deterministic_replay_rate",
+        "meal_compiler_p95_latency_ms"
+      ],
+      "safety_boundary": "Software-only deterministic compilation; no pantry retrieval, schedule feasibility, module admission, food-safety approval, appliance control, physical execution or actuation authority.",
+      "control_condition": "Run exact same typed proposal, acceptance and resolution bundle on the fixed compiler revision; keep adversarial negative controls and all failed/indeterminate cases in the denominator."
     }
   ],
   "metrics": [
@@ -1751,6 +1778,62 @@
       "method": "Count changes with a documented impact review and invalidation of all dependent qualification/admission receipts until reverified.",
       "evidence_class": "simulated",
       "notes": "Relevant changes must not silently inherit older product evidence."
+    },
+    {
+      "metric_id": "meal_compiler_false_compiled_rate",
+      "unit": "false compiled dispositions / adversarial case",
+      "denominator": "all frozen adversarial proposal/task/material-flow cases whose correct disposition is not compiled",
+      "method": "Run the exact Symtropy meal compiler and count any compiled report for a case independently adjudicated as blocked, indeterminate or conflicted; retain every case and expected disposition.",
+      "evidence_class": "declared",
+      "notes": "Hard-failure metric. Target zero false compiled results; report count and rate, and never let pass rate compensate for one false compile."
+    },
+    {
+      "metric_id": "meal_compiler_unknown_promotion_rate",
+      "unit": "unknown-to-known promotions / unknown field",
+      "denominator": "all intentionally unknown quantity, fact, stock, lot, price, availability and equipment fields in the frozen proposal suite",
+      "method": "Compare typed proposal inputs with report and output graph fields; count any absent/unknown input converted to a concrete value without a scoped resolution reference.",
+      "evidence_class": "declared",
+      "notes": "Hard-failure metric. Target zero promotions; unknown values must remain absent or indeterminate."
+    },
+    {
+      "metric_id": "meal_compiler_material_lineage_completeness",
+      "unit": "lineage-complete material edges / required material edges",
+      "denominator": "all independently adjudicated ingredient, intermediate, planned-loss and planned-edible output edges",
+      "method": "Recompute ingredient-origin ancestry and exact integer quantity allocations from raw fixtures, independently of compiler report.",
+      "evidence_class": "declared",
+      "notes": "Target 1.000; missing or duplicated lineage is a hard failure. Planned flow is not measured yield."
+    },
+    {
+      "metric_id": "meal_compiler_decision_evidence_coverage",
+      "unit": "bound evidence references / required decision evidence references",
+      "denominator": "all source, acceptance, fact, action, duration, schedule, resource, quantity-basis and flow evidence references required by the frozen case",
+      "method": "Compare report resolution_refs and graph references with an independently maintained required-reference manifest.",
+      "evidence_class": "declared",
+      "notes": "Target 1.000; no critical decision may lose its provenance reference."
+    },
+    {
+      "metric_id": "meal_compiler_exact_acceptance_binding_rate",
+      "unit": "correct exact proposal acceptance bindings / accepted proposal cases",
+      "denominator": "all cases with accepted or deliberately mismatched acceptance receipts",
+      "method": "Check accepted_by_ref, acceptance_ref, proposal digest, revision and acceptance timestamp against the immutable typed proposal used for compilation.",
+      "evidence_class": "declared",
+      "notes": "Target 1.000 exact binding and zero false acceptance on wrong digest, wrong revision, future timestamp or missing reviewer."
+    },
+    {
+      "metric_id": "meal_compiler_deterministic_replay_rate",
+      "unit": "bit-identical repeat reports / repeated identical input bundles",
+      "denominator": "all frozen input/compiler-version pairs executed at least twice",
+      "method": "Serialize reports canonically and compare exact bytes and SHA-256 digests; preserve toolchain, dependency and compiler version.",
+      "evidence_class": "declared",
+      "notes": "Target 1.000 bit-identical reports for the same typed input and compiler version."
+    },
+    {
+      "metric_id": "meal_compiler_p95_latency_ms",
+      "unit": "milliseconds",
+      "denominator": "all valid 100-task / 500-edge synthetic compilation runs on the declared reference host",
+      "method": "Measure wall-clock compile duration separately from setup and report validation; freeze host CPU, memory, toolchain, build mode, workload generator and sample count.",
+      "evidence_class": "declared",
+      "notes": "Research target p95 below 50 ms. Report full distribution; performance never compensates for correctness, provenance or safety failures."
     }
   ],
   "target_hypotheses": [
@@ -2444,6 +2527,82 @@
       "stop_conditions": [
         "a relevant change silently inherits previous safety or food-contact qualification",
         "prototype deviation is not disclosed"
+      ]
+    },
+    {
+      "hypothesis_id": "H-MEAL-COMPILER-FALSE-COMPILED-ZERO",
+      "metric_id": "meal_compiler_false_compiled_rate",
+      "target": "0 false compiled dispositions across at least 10,000 independently adjudicated adversarial proposal/task/material-flow cases; zero tolerance for false accepts.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any blocked, indeterminate or conflicted case is reported compiled",
+        "expected dispositions or challenge cases are changed after outputs",
+        "failed cases or malformed inputs are omitted"
+      ]
+    },
+    {
+      "hypothesis_id": "H-MEAL-COMPILER-UNKNOWN-PROMOTION-ZERO",
+      "metric_id": "meal_compiler_unknown_promotion_rate",
+      "target": "0 unknown-to-known promotions without a scoped, versioned, reviewable resolution.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "an unknown quantity, stock, lot, price, allergen fact or module revision is inferred",
+        "a generic fact is promoted to SKU/lot scope",
+        "a proposal description becomes an action binding without provenance"
+      ]
+    },
+    {
+      "hypothesis_id": "H-MEAL-COMPILER-LINEAGE-100",
+      "metric_id": "meal_compiler_material_lineage_completeness",
+      "target": "1.000 exact lineage completeness for all raw inputs, intermediate outputs, planned edible outputs and planned loss paths; all explicit input quantities allocated exactly once or explicitly residualized.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any quantity is silently dropped, duplicated or overallocated",
+        "task output lacks ingredient-origin lineage",
+        "planned output is described as measured edible yield"
+      ]
+    },
+    {
+      "hypothesis_id": "H-MEAL-COMPILER-EVIDENCE-100",
+      "metric_id": "meal_compiler_decision_evidence_coverage",
+      "target": "1.000 required decision-evidence reference coverage in the compilation report and both output graphs.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any decision-affecting source, resolution, method, quantity basis or acceptance reference is lost",
+        "evidence URI resolves to a different revision without invalidation"
+      ]
+    },
+    {
+      "hypothesis_id": "H-MEAL-COMPILER-ACCEPTANCE-100",
+      "metric_id": "meal_compiler_exact_acceptance_binding_rate",
+      "target": "1.000 exact proposal digest/revision binding; zero acceptance reuse across revisions or mutated proposal contents.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "an acceptance receipt applies to a different proposal digest/revision",
+        "review timestamp is after compile as-of time",
+        "missing or revoked acceptance is treated as accepted"
+      ]
+    },
+    {
+      "hypothesis_id": "H-MEAL-COMPILER-REPLAY-100",
+      "metric_id": "meal_compiler_deterministic_replay_rate",
+      "target": "1.000 bit-identical output reports for identical canonical inputs and exact compiler/dependency revisions.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "report changes with input field ordering or nondeterministic iteration",
+        "compiler/dependency/toolchain revision is not bound",
+        "failed or error reports are excluded from repeatability measurement"
+      ]
+    },
+    {
+      "hypothesis_id": "H-MEAL-COMPILER-P95-50MS",
+      "metric_id": "meal_compiler_p95_latency_ms",
+      "target": "p95 below 50 ms for 100 tasks / 500 food-flow edges on a frozen declared reference host, after correctness suite passes.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "compile timing omits report construction or validation",
+        "host/compiler/input workload is changed between systems",
+        "optimizations cause any correctness or provenance regression"
       ]
     }
   ],
