@@ -938,5 +938,4 @@ mod tests {
             Err(FieldAcceptanceError::InvalidMeasurement(id)) if id == "point-1"
         ));
     }
-
 }
