@@ -39,6 +39,8 @@ These are evidence of project-specific procurement practice, not proof of univer
 
 Pressure-test safety is an unsupported claim under every mapped test profile. The classifier never interprets the absence of an explicit exclusion as permission to infer safe pressurization.
 
+The classifier is also temporally scoped. Each standard profile binds `catalog_snapshot_date`; each scenario binds `assessment_as_of`. A mismatch returns EVIDENCE_INCOMPLETE, because a current public catalogue snapshot cannot prove historical standard status. Purchaser agreement, fitting agreement and product-standard presence flags must be paired with exact reference identifiers. This verifies declared binding consistency only; it does not authenticate the referenced contract or standard record.
+
 The classifier reports only:
 - `APPLICABLE`: declared metadata passes this finite scope profile;
 - `NOT_APPLICABLE`: product/test/fluid/facility lies outside this profile;
@@ -58,4 +60,4 @@ cargo test --locked --all-targets
 cargo run --locked -- --report
 ```
 
-The synthetic fixture corpus contains 31 cases with a separate expected-disposition file. The QUALIFIED_TEST_FACILITY prerequisite is imposed by this local profile; it is not presented as normative text from the referenced standards. All standard-status dates and source links are frozen; they must be refreshed against the official catalogue before a real contract or physical test.
+The synthetic fixture corpus contains 35 cases with a separate expected-disposition file, including missing agreement references, missing product-standard references and historical assessments without a matching catalogue snapshot. The QUALIFIED_TEST_FACILITY prerequisite is imposed by this local profile; it is not presented as normative text from the referenced standards. All standard-status dates and source links are frozen; they must be refreshed against the official catalogue before a real contract or physical test.
