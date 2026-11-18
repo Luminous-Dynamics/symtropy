@@ -368,13 +368,13 @@ pub fn evaluate_coavailability(
                     .launch_window_close_ms
                     .checked_sub(sortie.launch_service_ms);
                 let launch_latest_from_stop = launch
-                    .departure_latest_ms
+                    .departure_earliest_ms
                     .checked_sub(sortie.launch_service_ms);
                 let recovery_latest_from_window = sortie
                     .recovery_window_close_ms
                     .checked_sub(sortie.recovery_service_ms);
                 let recovery_latest_from_stop = recovery
-                    .departure_latest_ms
+                    .departure_earliest_ms
                     .checked_sub(sortie.recovery_service_ms);
 
                 match (
@@ -385,9 +385,9 @@ pub fn evaluate_coavailability(
                 ) {
                     (Some(launch_window_hi), Some(launch_stop_hi), Some(recovery_window_hi), Some(recovery_stop_hi)) => {
                         let launch_lo = sortie.launch_window_open_ms.max(launch.arrival_latest_ms);
-                        let launch_hi = launch_window_hi.min(launch_stop_hi.min(launch.departure_earliest_ms.saturating_sub(sortie.launch_service_ms)));
+                        let launch_hi = launch_window_hi.min(launch_stop_hi);
                         let recovery_lo = sortie.recovery_window_open_ms.max(recovery.arrival_latest_ms);
-                        let recovery_hi = recovery_window_hi.min(recovery_stop_hi.min(recovery.departure_earliest_ms.saturating_sub(sortie.recovery_service_ms)));
+                        let recovery_hi = recovery_window_hi.min(recovery_stop_hi);
 
                         let recovery_launch_lo = recovery_lo.saturating_sub(sortie.flight_duration_ms);
                         let recovery_launch_hi = recovery_hi.checked_sub(sortie.flight_duration_ms);
