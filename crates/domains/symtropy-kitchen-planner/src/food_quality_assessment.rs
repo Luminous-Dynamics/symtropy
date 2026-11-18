@@ -1446,6 +1446,21 @@ mod tests {
     }
 
     #[test]
+    fn assessment_report_does_not_disclose_respondent_tokens_or_consent_receipts() {
+        let request = valid_request();
+        let report = assess_food_quality(&request);
+        let serialized = serde_json::to_string(&report).unwrap();
+        for response in &request.consumer_responses {
+            assert!(!serialized.contains(&response.respondent_token_ref));
+            assert!(!serialized.contains(&response.consent_receipt_ref));
+        }
+        assert_eq!(
+            report.randomization_assignment_sha256.len(),
+            request.presentation_assignments.len()
+        );
+    }
+
+    #[test]
     fn external_failure_remains_visible_but_is_not_rewritten_as_quality() {
         let mut request = valid_request();
         request.external_safety_gate.state = ExternalSafetyGateStateV1::ExternallyFailed;
