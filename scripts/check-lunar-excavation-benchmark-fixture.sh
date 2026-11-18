@@ -37,6 +37,18 @@ jq -e '
 ' "$manifest" >/dev/null || fail "dataset manifest does not enforce sealed blind-test semantics"
 
 jq -e '
+  .split_policy.blind_test_access.freeze_required
+  | unique == [
+      "configuration_artifact_id",
+      "executable_sha256",
+      "parameters_artifact_id",
+      "prediction_artifacts",
+      "random_seed",
+      "source_revision"
+    ]
+' "$manifest" >/dev/null || fail "blind-test freeze identity is incomplete"
+
+jq -e '
   [.run_assignments[].run_id] as $ids
   | ($ids | length) == ($ids | unique | length)
   and ([.run_assignments[].partition] | unique | sort) == ["blind_test", "calibration", "validation"]
