@@ -20,13 +20,15 @@ article_license_does_not_imply_dataset_license = true
 source_version_and_file_sha256_required_before_admission = true
 
 [benchmarks.archaea_halobacterium]
-taxon_display_name = "Halobacterium salinarum"
+taxon_display_name = "Haloferax sp. Boulby Mine; Haloarcula sp. Great Salt Lake"
 taxon_provider = "Catalogue of Life or NCBI Taxonomy"
-taxon_concept_id = "NOT_RESOLVED"
+taxon_concept_id = "NOT_RESOLVED_PER_ISOLATE"
 lineage = "ARCHAEA_HALOPHILES"
 movement_mechanism = ["ARCHAELLUM_ROTARY_SWIMMING", "CHEMOTAXIS", "PHOTOTAXIS"]
-primary_reference_doi = "10.1038/s41467-020-182 prod"
+primary_reference_doi = "10.1038/s41467-020-18253-7"
 motility_reference_doi = "10.1038/nmicrobiol.2016.148"
+motility_reference_taxon = "Halobacterium salinarum"
+motility_reference_scope = "ARCHAELLUM_ROTARY_STEP_OBSERVATION_SEPARATE_FROM_ENVIRONMENTAL_ISOLATE_CHEMOTAXIS_ARCHIVE"
 data_doi = "10.15124/6b44e8e4-a22c-4a55-a2fc-b2976a06d2b4"
 data_repository = "University of York Research Database"
 data_record_date = "2020-07-16"
@@ -94,7 +96,7 @@ limitations = ["DO_NOT_REDUCE_CILIARY_PHYSICS_TO_RUN_TUMBLE", "ELECTROPHYSIOLOGY
 [portfolio_coverage]
 bacteria = "ACTIVE_BENCHMARKS_EXIST_PUTIDA_AEROBRASILENSE_PAE_SURFACE_TWITCHING"
 archaea = "THIS_ISSUE_ADDS_HALOPHILE_ARCHAELLUM_ANCHOR"
-amoebozoa = "THIS_ISSUE_ADDS_DICYOSTELIUM_AMOEBOID_AND_COLLECTIVE_ANCHORS"
+amoebozoa = "THIS_ISSUE_ADDS_DICTYOSTELIUM_AMOEBOID_AND_COLLECTIVE_ANCHORS"
 alveolata_ciliates = "THIS_ISSUE_ADDS_PARAMECIUM_CILIARY_AND_AVOIDANCE_ANCHOR"
 fungi = "EXISTING_MYCO_OWNERS_5379_5413_5562"
 plants = "EXISTING_ROOT_AND_HYDRAULIC_OWNERS_242_5780"
