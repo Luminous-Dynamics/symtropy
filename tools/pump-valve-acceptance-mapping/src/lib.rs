@@ -114,8 +114,11 @@ pub struct Evaluation {
     pub fluid_profile: String,
     pub facility_profile: String,
     pub includes_fittings: bool,
+    pub fitting_agreement: String,
     pub fitting_agreement_ref: String,
+    pub product_standard_link: String,
     pub product_standard_ref: String,
+    pub purchaser_agreement: bool,
     pub purchaser_agreement_ref: String,
     pub acceptance_grade: String,
     pub evidence_status: String,
@@ -514,8 +517,11 @@ pub fn evaluate(
             fluid_profile: scenario.fluid_profile.clone(),
             facility_profile: scenario.facility_profile.clone(),
             includes_fittings: scenario.includes_fittings,
+            fitting_agreement: scenario.fitting_agreement.clone(),
             fitting_agreement_ref: scenario.fitting_agreement_ref.clone(),
+            product_standard_link: scenario.product_standard_link.clone(),
             product_standard_ref: scenario.product_standard_ref.clone(),
+            purchaser_agreement: scenario.purchaser_agreement,
             purchaser_agreement_ref: scenario.purchaser_agreement_ref.clone(),
             acceptance_grade: scenario.acceptance_grade.clone(),
             evidence_status: scenario.evidence_status.clone(),
@@ -790,11 +796,11 @@ pub fn evaluate_corpus(
 
 pub fn render_report(results: &[Evaluation]) -> String {
     let mut report = String::from(
-        "scenario_id\tprofile_id\tstandard_id\tedition\tpublication_state\tstandard_source_ref\tcatalog_snapshot_date\tassessment_as_of\tproduct_family\ttest_family\tseat_family\tfluid_profile\tfacility_profile\tincludes_fittings\tfitting_agreement_ref\tproduct_standard_ref\tpurchaser_agreement_ref\tacceptance_grade\tevidence_status\tclaim_kind\tdisposition\treason\n",
+        "scenario_id\tprofile_id\tstandard_id\tedition\tpublication_state\tstandard_source_ref\tcatalog_snapshot_date\tassessment_as_of\tproduct_family\ttest_family\tseat_family\tfluid_profile\tfacility_profile\tincludes_fittings\tfitting_agreement\tfitting_agreement_ref\tproduct_standard_link\tproduct_standard_ref\tpurchaser_agreement\tpurchaser_agreement_ref\tacceptance_grade\tevidence_status\tclaim_kind\tdisposition\treason\n",
     );
     for row in results {
         report.push_str(&format!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
             row.scenario_id,
             row.profile_id,
             row.standard_id,
@@ -809,8 +815,11 @@ pub fn render_report(results: &[Evaluation]) -> String {
             row.fluid_profile,
             row.facility_profile,
             if row.includes_fittings { "YES" } else { "NO" },
+            row.fitting_agreement,
             row.fitting_agreement_ref,
+            row.product_standard_link,
             row.product_standard_ref,
+            if row.purchaser_agreement { "YES" } else { "NO" },
             row.purchaser_agreement_ref,
             row.acceptance_grade,
             row.evidence_status,
