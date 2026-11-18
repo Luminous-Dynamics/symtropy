@@ -964,7 +964,8 @@ mod tests {
     #[test]
     fn identical_source_evidence_may_support_multiple_claims() {
         let mut plan = baseline();
-        plan.rigging_legs[1].wll_evidence = plan.rigging_legs[0].wll_evidence.clone();
+        plan.pick_point_and_load_share_evidence =
+            plan.centre_of_gravity_envelope_evidence.clone();
         let report = evaluate(&plan);
         assert_eq!(report.disposition, Disposition::ReadyForHumanReview);
     }
