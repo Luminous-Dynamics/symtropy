@@ -3,11 +3,10 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use construction_motion_oracle::{
-    ArtifactDependencyContract, ArtifactPersistence, ConstructionArtifact,
-    ConstructionArtifactGraph, ConstructionArtifactKind, ConstructionChangeSet,
-    DependencyContractSet, DependencyDomain, DependencyKey, DependencyTransition,
-    VersionedDependency, compile_change_impact_with_contract,
-    minimum_construction_dependency_contracts,
+    ArtifactPersistence, ConstructionArtifact, ConstructionArtifactGraph,
+    ConstructionArtifactKind, ConstructionChangeSet, DependencyContractSet,
+    DependencyDomain, DependencyKey, DependencyTransition, VersionedDependency,
+    compile_change_impact_with_contract, minimum_construction_dependency_contracts,
 };
 
 const SAMPLES: usize = 25;
@@ -20,11 +19,10 @@ fn key(domain: DependencyDomain, scope_id: String) -> DependencyKey {
     DependencyKey { domain, scope_id }
 }
 
-fn build_graph(entity_count: usize) -> ConstructionArtifactGraph {
-    let shared_transform = key(
-        DependencyDomain::CoordinateTransform,
-        "floor:02".to_owned(),
-    );
+fn build_graph(
+    entity_count: usize,
+    contracts: &[construction_motion_oracle::ArtifactDependencyContract],
+) -> ConstructionArtifactGraph {
     let mut artifacts = Vec::with_capacity(entity_count.saturating_mul(3));
 
     for index in 0..entity_count {
@@ -39,6 +37,7 @@ fn build_graph(entity_count: usize) -> ConstructionArtifactGraph {
             kind: ConstructionArtifactKind::MotionEnvelope,
             persistence: ArtifactPersistence::Recomputable,
             dependencies: dependencies_for_kind(
+                contracts,
                 ConstructionArtifactKind::MotionEnvelope,
                 index,
                 &entity_id,
@@ -51,6 +50,7 @@ fn build_graph(entity_count: usize) -> ConstructionArtifactGraph {
             kind: ConstructionArtifactKind::SpaceTimeOccupancyAssessment,
             persistence: ArtifactPersistence::Recomputable,
             dependencies: dependencies_for_kind(
+                contracts,
                 ConstructionArtifactKind::SpaceTimeOccupancyAssessment,
                 index,
                 &entity_id,
@@ -63,6 +63,7 @@ fn build_graph(entity_count: usize) -> ConstructionArtifactGraph {
             kind: ConstructionArtifactKind::DispatchReadiness,
             persistence: ArtifactPersistence::Recomputable,
             dependencies: dependencies_for_kind(
+                contracts,
                 ConstructionArtifactKind::DispatchReadiness,
                 index,
                 &entity_id,
@@ -138,11 +139,11 @@ fn domain_scope(domain: DependencyDomain, index: usize, entity_id: &str) -> Stri
 }
 
 fn dependencies_for_kind(
+    contracts: &[construction_motion_oracle::ArtifactDependencyContract],
     kind: ConstructionArtifactKind,
     index: usize,
     entity_id: &str,
 ) -> Vec<VersionedDependency> {
-    let contracts = minimum_construction_dependency_contracts();
     let contract = contracts
         .iter()
         .find(|contract| contract.artifact_kind == kind)
@@ -210,9 +211,13 @@ fn measure_case(
     let expected_direct = if case == "localized-entity" {
         1
     } else {
-        entity_count
+        entity_count * 3
     };
-    let expected_transitive = expected_direct * 2;
+    let expected_transitive = if case == "localized-entity" {
+        2
+    } else {
+        0
+    };
 
     let check = compile_change_impact_with_contract(black_box(graph), black_box(contracts), black_box(change_set))
         .expect("benchmark graph and change set must be valid");
@@ -266,8 +271,8 @@ fn main() {
         "case,entities,artifacts,direct_invalidations,transitive_invalidations,total_invalidations,p50_us,p95_us,p99_us"
     );
     for entity_count in [1_000_usize, 10_000, 50_000] {
-        let graph = build_graph(entity_count);
         let contracts = dependency_contracts();
+        let graph = build_graph(entity_count, &contracts.contracts);
         measure_case(
             entity_count,
             "localized-entity",
