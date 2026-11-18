@@ -62,7 +62,7 @@ A policy may finish with an epistemic status: identified, ambiguous, no-compatib
 
 **Claim ceiling:** this is a finite synthetic mechanism-adequacy benchmark with an explicit public candidate family and an evaluator-hidden owner generator. It measures intervention choice, exact candidate-set recovery and OOD/model-family detection. It does not score a free-form mechanism/model description or prove ansatz-free scientific discovery. The candidate family is supplied; do not call this a no-ansatz result. A future genuinely open-world track must generate candidate-independent mechanisms and score proposed model descriptions against sealed held-out interventions or independently measured physical observations.
 
-The 34 authored adapter tests include a known-answer confounding world, exact-optimizer-to-provider policy replay on both hidden initial states, versioned request/response JSON round trips, public semantic-profile visibility, candidate-subset validation, protocol-version fail-closed behavior, false-unique detection before a discriminating probe, exact candidate-set comparison, hidden out-of-catalogue overlap and post-calibration divergence controls, OOD false-positive detection on an in-catalogue world, and correct unique-status scoring after calibration/measurement. They also cover manifest validation, action accounting, request/execution chronology, receipt-cap overflow, rejected requests not consuming randomness, and sampler-resolution rejection. These tests are authored but have not yet passed an exact-head Rust run.
+The 34 authored adapter tests include a known-answer confounding world, exact-optimizer-to-provider policy replay on both hidden initial states, versioned request/response JSON round trips, public semantic-profile visibility, candidate-subset validation, protocol-version fail-closed behavior, false-unique detection before a discriminating probe, exact candidate-set comparison, hidden out-of-catalogue overlap and post-calibration divergence controls, OOD false-positive detection on an in-catalogue world, and correct unique-status scoring after calibration/measurement. They also cover manifest validation, action accounting, request/execution chronology, receipt-cap overflow, rejected requests not consuming randomness, and sampler-resolution rejection. The separate policy module adds six tests, and the real JSONL child-process integration suite adds two more (42 authored tests total across the new episode/policy/process slices). These tests are authored but have not yet passed an exact-head Rust run.
 
 The first profile is synchronous and discrete: for each emitted observation, event, acquisition, and availability steps are equal. Each action receipt records its pre-action request step and post-transition execution step separately. It does not simulate delayed acquisition or late delivery. Add those semantics only with an owner model that represents the relevant clock and process evolution.
 
@@ -77,6 +77,27 @@ The public JSON Schemas and example frames live under `benchmarks/scientific-wor
 A finish command reports one of `identified`, `ambiguous`, `no_compatible_model`, or `abstain`, plus a bounded rationale. The trusted provider then computes `EpisodeEvaluation` from exact rational likelihood propagation over the supplied joint kernel and the recorded action/observation history. Its exact compatible-hypothesis list and false-unique/abstention outcomes are evaluator-only and are never placed in a public request or response.
 
 **Claim ceiling:** v0 evaluates epistemic-status calibration against a finite supplied hypothesis family. It does not yet score the semantic correctness of a free-form mechanism/model description, nor discover mechanisms outside the kernel's candidate family. Because a valid episode is generated from the supplied candidate family, `no_compatible_model` cannot be a correct outcome on an ordinary in-support fixture; genuine open-world/OOD qualification requires a separately modelled external mechanism and an independent task oracle. Do not call this an ansatz-free discovery result.
+
+### Executable baseline policies
+
+The crate includes a process-ready baseline executable, `episode_baseline_agent`, which reads one EpisodeRequest JSONL frame at a time and emits one EpisodeResponse frame. It supports four explicit arms:
+
+- `no_intervention`: no experiments; report the full public candidate set and abstain.
+- `fixed_order`: try each affordable public action once in catalogue order, then report the full declared candidate set.
+- `seeded_random`: reproducibly choose an unattempted affordable action from the public catalogue; seed is an agent-side control, not the hidden world seed.
+- `metadata_only`: negative control that identifies the first public candidate without using observations.
+
+Example build/run:
+
+```sh
+cargo build --locked --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml --bin episode_baseline_agent
+./target/debug/episode_baseline_agent --strategy fixed_order
+./target/debug/episode_baseline_agent --strategy seeded_random --seed 23
+```
+
+The integration tests launch this executable as an actual child process, exchange typed JSONL frames, keep the provider/evaluator in the parent process, and evaluate after the child exits. These are intentionally weak transparent baselines; they do not claim to be model-based EIG policies or learned Symthaea agents.
+
+**Important next dependency:** the public profile currently exposes semantic descriptions but not a formal probabilistic predictive catalogue. A policy cannot independently reproduce exact Bayesian posterior updates, joint EIG, expected hazard or action regret from prose alone. [SIM-REL-017 #6024](https://github.com/Luminous-Dynamics/symtropy/issues/6024) tracks the separation of the public candidate model catalogue from the hidden owner generator and independent evaluator. Until that exists, EIG and exact finite-horizon policies remain evaluator-side diagnostic baselines, not valid child-process policy arms.
 
 ### Randomness and claim ceiling
 
