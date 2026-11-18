@@ -624,6 +624,45 @@ mod tests {
     }
 
     #[test]
+    fn robust_frontier_is_empty_when_no_candidate_is_feasible_in_every_scenario() {
+        let candidates = vec![
+            candidate(
+                "present_only",
+                [0.9, 0.8, 0.7],
+                [0.7, 0.7, 0.7],
+                [0.6, 0.6, 0.6],
+                [true, false, false],
+            ),
+            candidate(
+                "future_only",
+                [0.7, 0.7, 0.7],
+                [0.9, 0.8, 0.7],
+                [0.6, 0.6, 0.6],
+                [false, true, false],
+            ),
+            candidate(
+                "compound_only",
+                [0.7, 0.7, 0.7],
+                [0.6, 0.6, 0.6],
+                [0.9, 0.8, 0.7],
+                [false, false, true],
+            ),
+        ];
+
+        let report = evaluate_climate_robustness(&scenario_set(), &candidates).unwrap();
+        assert!(report.robust_frontier_candidate_ids.is_empty());
+        assert!(report
+            .candidate_reports
+            .iter()
+            .all(|row| !row.guaranteed_feasible));
+        assert_eq!(report.scenario_frontiers.len(), 3);
+        assert!(report
+            .scenario_frontiers
+            .iter()
+            .all(|frontier| !frontier.frontier_candidate_ids.is_empty()));
+    }
+
+    #[test]
     fn probability_weights_require_explicit_provenance() {
         let mut scenarios = scenario_set();
         scenarios.semantics = ScenarioWeightSemantics::ProbabilityWeights {
