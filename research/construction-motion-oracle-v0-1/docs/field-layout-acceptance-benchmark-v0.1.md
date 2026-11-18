@@ -37,6 +37,28 @@ Add a **pre-deployment model challenge track** before any physical robot operati
 
 Measure detection recall, false alarms, diagnosis time and the rate of unsafe packages correctly held before dispatch. The acceptance target is zero dispatch from an unresolved source identity/frame/units/revision contradiction—not merely a warning in a report. This directly addresses a field-study finding that inaccurate source information uploaded to a layout robot can produce inaccurate physical layout, and its recommendation for automatic coordinate-system checks.
 
+### IDS implementation parity challenge
+
+buildingSMART's 2026 IDS community survey collected 186 responses; 58% reported using IDS on real projects, while respondents called for improved documentation and implementation quality. This is a specialist community survey, not a representative estimate of all construction firms. It nevertheless highlights a practical interoperability problem: a formally standardized information contract does not guarantee equivalent checking across software implementations.
+
+The pre-deployment challenge must therefore test more than whether an IDS file parses:
+- validate the IDS document itself against the official IDS 1.0 schema/audit rules;
+- run the same frozen IFC/IDS corpus through at least two independent IDS engines;
+- compare applicability selection, cardinality, property/type/value/unit constraints, classifications, materials and relations;
+- preserve the exact engine build, rule ID, source IFC digest, IDS digest, GlobalId, evaluation result and signed receipt;
+- include positive, negative, boundary, missing-property, wrong-type, unit-conversion, duplicate, unsupported-facet and malformed-input cases;
+- treat unsupported or unevaluated requirements as held, not as pass;
+- separately run geometry, coordinate-frame, representation and physical-location validation.
+
+Important standards boundary: IDS 1.0 is scoped to alphanumeric information requirements such as properties, quantities, classifications, materials and relations. It does not validate the geometric correctness of the IFC representation. A successful IDS result is therefore not proof that the geometry, site transform, survey control, physical placement or robot envelope is correct.
+
+**Proposed conformance target:** 100% agreement on pass/fail/unsupported dispositions across the declared supported IDS 1.0 corpus, zero false-pass negative controls, and explicit typed rejection for every unsupported construct. Report disagreements by facet and engine build; do not average them away.
+
+Sources:
+- buildingSMART IDS 1.0 final-standard status and information scope: https://www.buildingsmart.org/standards/bsi-standards/information-delivery-specification-ids/
+- buildingSMART 2026 IDS survey: https://www.buildingsmart.org/ids-survey-results-2026/
+- Official IFC 4.3.2.0 release documentation: https://standards.buildingsmart.org/IFC/RELEASE/IFC4_3/index.html
+
 ## 2. Published comparator envelope (not a league table)
 
 The preregistration must freeze a dated source snapshot and exact configuration for every vendor run.
@@ -212,7 +234,7 @@ Use these as a clause-by-clause applicability map, not as a claim that this benc
 - **ISO 12100:2010** provides machinery risk-assessment and risk-reduction methodology; ISO says it was confirmed current after its 2022 review, while ISO/DIS 12100.3 is now under development. Recheck status at each design freeze: https://www.iso.org/standard/51528.html
 - **ASTM F45** supplies useful A-UGV method components: F3327 configuration recording, F3218 environmental conditions, F3381 stationary obstacles, F3244 defined-area navigation and F3243 communications impairments: https://www.astm.org/committee-f45
 - **NIST Mobility Performance of Robotic Systems (MPRS)** is an ongoing measurement-science programme for mobility-system test methods, artifacts and performance assessment; its current page was updated 24 April 2026: https://www.nist.gov/programs-projects/mobility-performance-robotic-systems
-- **IFC 4.3.2.0 / ISO 16739-1:2024** is the current official IFC schema release for exchanging built-asset information. **buildingSMART IDS 1.0** is an official computer-interpretable standard for specifying and automatically checking IFC information requirements. Use them as the source-model and preflight interchange layer, then compile a frozen robot-neutral manifest rather than sending vendor-specific CAD as the only source of truth: https://www.buildingsmart.org/standards/bsi-standards/industry-foundation--classes/ ; https://www.iso.org/standard/84123.html ; https://www.buildingsmart.org/standards/bsi-standards/information-delivery-specification-ids/
+- **IFC 4.3.2.0 / ISO 16739-1:2024** is the current official IFC schema release for exchanging built-asset information. **buildingSMART IDS 1.0** is an official computer-interpretable standard for specifying and automatically checking IFC information requirements. The 2026 IDS community survey received 186 responses, 58% of respondents had used IDS on real projects, and implementation/documentation quality remained a reported pain point; this is a specialist survey, not a market-wide adoption estimate. Use IFC/IDS as the source-model and information-preflight interchange layer, then compile a frozen robot-neutral manifest rather than sending vendor-specific CAD as the only source of truth: https://www.buildingsmart.org/standards/bsi-standards/industry-foundation--classes/ ; https://www.iso.org/standard/84123.html ; https://www.buildingsmart.org/standards/bsi-standards/information-delivery-specification-ids/
 
 A competent safety assessor must determine the actual robot/platform/system/site obligations, applicable national law, machinery classification, risk assessment and required validation. In particular, a generic mobile-robot standard, a manipulator standard, and a driverless-truck standard have different scopes. This benchmark does not replace those processes.
 
