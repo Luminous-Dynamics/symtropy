@@ -529,7 +529,8 @@
               "water_l_per_accepted_serving",
               "meal_actual_cost_per_accepted_serving",
               "user_present_time_per_accepted_meal",
-              "sensory_liking_9pt"
+              "sensory_liking_9pt",
+              "meal_intent_fidelity_rate"
             ]
           }
         },
