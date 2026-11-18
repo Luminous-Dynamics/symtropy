@@ -1,0 +1,238 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/shipyard-lift-execution-binding-v0.1.schema.json",
+  "title": "Shipyard Lift Execution Binding V0.1",
+  "description": "Exact plan/preflight/authorisation/limit/motion binding for reconciliation. Shape does not verify authority or physical truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "session_id",
+    "plan_id",
+    "plan_revision",
+    "plan_input_sha256",
+    "preflight_bound_input_sha256",
+    "preflight_report_sha256",
+    "event_ledger_sha256",
+    "coverage_bundle_sha256",
+    "preflight_disposition",
+    "authorisation_id",
+    "authorisation_revision",
+    "authorisation_evidence",
+    "block_id",
+    "block_revision",
+    "crane_id",
+    "crane_configuration_revision",
+    "site_epoch_id",
+    "frame_id",
+    "clock_domain_id",
+    "start_tick",
+    "end_tick",
+    "maximum_hook_load_mn",
+    "hook_load_limit_evidence",
+    "maximum_gust_mm_per_s",
+    "gust_limit_profile_id",
+    "gust_limit_profile_revision",
+    "gust_limit_evidence",
+    "motion_report_id",
+    "motion_report_sha256",
+    "occupancy_projection_id",
+    "occupancy_projection_sha256",
+    "outcome"
+  ],
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "plan_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "plan_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "plan_input_sha256": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{64}$"
+    },
+    "preflight_bound_input_sha256": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{64}$"
+    },
+    "preflight_report_sha256": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{64}$"
+    },
+    "event_ledger_sha256": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{64}$"
+    },
+    "coverage_bundle_sha256": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{64}$"
+    },
+    "preflight_disposition": {
+      "enum": [
+        "ready_for_human_review",
+        "rejected",
+        "indeterminate"
+      ]
+    },
+    "authorisation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authorisation_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authorisation_evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "block_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "block_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "crane_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "crane_configuration_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "site_epoch_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "frame_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "clock_domain_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "start_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "end_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "maximum_hook_load_mn": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "hook_load_limit_evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "maximum_gust_mm_per_s": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "gust_limit_profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "gust_limit_profile_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "gust_limit_evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "motion_report_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "motion_report_sha256": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{64}$"
+    },
+    "occupancy_projection_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "occupancy_projection_sha256": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{64}$"
+    },
+    "outcome": {
+      "enum": [
+        "completed",
+        "aborted",
+        "unknown"
+      ]
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_record_id",
+        "owner_id",
+        "revision",
+        "subject_id",
+        "subject_revision",
+        "sha256",
+        "validity_clock_domain_id",
+        "valid_from_tick",
+        "valid_until_tick",
+        "state"
+      ],
+      "properties": {
+        "source_record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{64}$"
+        },
+        "validity_clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "valid_from_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "state": {
+          "enum": [
+            "current",
+            "revoked",
+            "superseded"
+          ]
+        }
+      }
+    }
+  }
+}
