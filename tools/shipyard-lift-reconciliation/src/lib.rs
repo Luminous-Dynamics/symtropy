@@ -899,7 +899,7 @@ pub fn reconcile(
     let mut conflicted_sequences: BTreeSet<(Channel, String, u64)> = BTreeSet::new();
     let mut seen_evidence: BTreeMap<String, EvidenceRef> = BTreeMap::new();
     let mut conflicted_evidence_ids: BTreeSet<String> = BTreeSet::new();
-    let authorisation_evidence_valid = validate_evidence(
+    let _authorisation_evidence_valid = validate_evidence(
         &binding.authorisation_evidence,
         &binding.plan_id,
         &binding.plan_revision,
@@ -1179,6 +1179,46 @@ pub fn reconcile(
         // Count only conflict-free events after source coverage matches below.
     }
 
+    // Validate every coverage attestation before interpreting any sensor data.
+    // This lets a later evidence-ID collision invalidate all earlier references.
+    for channel in &channels {
+        if let Some(stream) = coverage_by_channel.get(channel) {
+            let _ = validate_evidence(
+                &stream.evidence,
+                &stream.source_id,
+                &stream.source_revision,
+                &binding.clock_domain_id,
+                binding.start_tick,
+                binding.end_tick,
+                &mut seen_evidence,
+                &mut conflicted_evidence_ids,
+                &mut diagnostics,
+            );
+        }
+    }
+    let hook_limit_trustworthy = hook_load_limit_evidence_valid
+        && !conflicted_evidence_ids.contains(&binding.hook_load_limit_evidence.source_record_id);
+    let gust_limit_trustworthy = gust_limit_evidence_valid
+        && !conflicted_evidence_ids.contains(&binding.gust_limit_evidence.source_record_id);
+    if !hook_limit_trustworthy {
+        add_unknown(
+            &mut unknown_intervals,
+            Channel::HookLoad,
+            binding.start_tick,
+            binding.end_tick,
+            "hook_load_limit_evidence_invalid",
+        );
+    }
+    if !gust_limit_trustworthy {
+        add_unknown(
+            &mut unknown_intervals,
+            Channel::WindGust,
+            binding.start_tick,
+            binding.end_tick,
+            "gust_limit_evidence_invalid",
+        );
+    }
+
     let mut maximum_hook_load = None;
     let mut maximum_wind_gust = None;
     let mut maximum_lateness = None;
@@ -1233,18 +1273,6 @@ pub fn reconcile(
                 "coverage_incomplete",
             );
         }
-        let _coverage_evidence_valid = validate_evidence(
-            &stream.evidence,
-            &stream.source_id,
-            &stream.source_revision,
-            &binding.clock_domain_id,
-            binding.start_tick,
-            binding.end_tick,
-            &mut seen_evidence,
-            &mut conflicted_evidence_ids,
-            &mut diagnostics,
-        );
-
         let mut channel_events = events_by_channel.remove(channel).unwrap_or_default();
         channel_events.sort_by(|a, b| {
             a.source_id
@@ -1439,28 +1467,28 @@ pub fn reconcile(
             match event.observation {
                 Observation::HookLoad { upper_mn } => {
                     maximum_hook_load = Some(maximum_hook_load.unwrap_or(0).max(upper_mn));
-                    if upper_mn > binding.maximum_hook_load_mn {
+                    if upper_mn > binding.maximum_hook_load_mn && hook_limit_trustworthy {
                         add_diagnostic(
                             &mut diagnostics,
                             "HOOK_LOAD_LIMIT_EXCEEDED",
                             DiagnosticSeverity::Deviation,
                             Some(Channel::HookLoad),
                             Some(&event.event_id),
-                            "conservative observed hook-load upper bound exceeds the declared limit",
+                            "conservative observed hook-load upper bound exceeds the source-bound declared limit",
                         );
                     }
                 }
                 Observation::WindGust { upper_mm_per_s } => {
                     maximum_wind_gust =
                         Some(maximum_wind_gust.unwrap_or(0).max(upper_mm_per_s));
-                    if upper_mm_per_s > binding.maximum_gust_mm_per_s {
+                    if upper_mm_per_s > binding.maximum_gust_mm_per_s && gust_limit_trustworthy {
                         add_diagnostic(
                             &mut diagnostics,
                             "WIND_GUST_LIMIT_EXCEEDED",
                             DiagnosticSeverity::Deviation,
                             Some(Channel::WindGust),
                             Some(&event.event_id),
-                            "conservative observed gust upper bound exceeds the declared operation limit",
+                            "conservative observed gust upper bound exceeds the source-bound declared operation limit",
                         );
                     }
                 }
