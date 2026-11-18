@@ -38,6 +38,9 @@ Therefore B' decreases on the interval, and B'(6)=49/1800>0. The lapse is positi
 Change only c0 from 7/10 to 11/10. Then Q=18/25, B(3)=223/300 and B(6)=317/300. The independent angular component and reduced projection are nonzero:
 B_theta_theta = Q/(3r²),
 B1_minus_B2 = 4Q/(3r⁴).
+Meanwhile the first factorized reduced equation
+B1_plus_B2 = -B(r)*(r*B''''(r)+4*B'''(r))/(3r)
+remains exactly zero for both on-shell and off-shell four-term profiles. This is intentional: the first equation selects the four-term family; the second imposes Q=0. A verifier that checks only B1_plus_B2 has a false-positive control.
 Consequently B1_minus_B2(3)=8/675 and B1_minus_B2(6)=1/1350, a factor-16 ratio. A verifier must exclude zero for this mutated vacuum residual; it must never silently treat this metric as an on-shell Bach vacuum.
 
 ## 3. Exact Chebyshev tail control
@@ -187,3 +190,11 @@ Current files provide exact analytic controls, rational tail enclosures and theo
 The static spherical Bach vacuum family has an independent symbolic reduction in `static_bach_vacuum_classification_v1.md`. On a connected interval with r>0 and B(r)>0, the first reduced projection integrates to the four-term Mannheim–Kazanas form, and the second projection imposes Q=c0²−3c1c_-1−1=0. This exact family is a known-answer control, not the first substantive numerical discovery target.
 
 Issue #6048 owns the Lean formal classification. The radii-polynomial path in #6019 is now reserved for genuinely non-integrable sourced/modified-action/rotating BVPs after their equation and constraints have been frozen.
+
+
+## 10. Factorized static operator and parameter-kernel control
+
+The generic static sum equation factors as
+`B1_plus_B2=-B(r)*(r*B''''+4*B''')/(3r)`. On a static annulus with r>0 and B>0 it integrates to the complete four-term profile. The difference equation imposes the remaining Q=0 constraint. This factorization and its three-dimensional MK tangent kernel are documented in `bach_static_reduction_factorization_v1.md`.
+
+For every four-term case, record both equations separately. The off-shell c0 mutation must still have B1_plus_B2=0 and B1_minus_B2!=0. In a radii-polynomial setup, the three exact MK parameter directions must be projected or augmented; an unhandled approximate inverse is singular.
