@@ -282,6 +282,7 @@
                       "enum": [
                         "unknown",
                         "analyst_scenario",
+                        "modelled",
                         "published_literature",
                         "manufacturer_declared",
                         "measured",
@@ -442,6 +443,7 @@
                       "enum": [
                         "unknown",
                         "analyst_scenario",
+                        "modelled",
                         "published_literature",
                         "manufacturer_declared",
                         "measured",
@@ -540,6 +542,7 @@
           "classification": {
             "enum": [
               "analyst_scenario",
+              "modelled",
               "published_literature",
               "manufacturer_declared",
               "measured",
