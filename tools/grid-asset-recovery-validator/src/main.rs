@@ -120,12 +120,16 @@ struct RecoveryPlan {
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum PartSource {
     DepotStock {
+        #[serde(rename = "depotId")]
         depot_id: String,
+        #[serde(rename = "partId")]
         part_id: String,
         quantity: u32,
     },
     OemProcurement {
+        #[serde(rename = "supplierId")]
         supplier_id: String,
+        #[serde(rename = "partId")]
         part_id: String,
     },
 }
@@ -222,6 +226,12 @@ fn validate(case: &Case) -> Vec<String> {
         }
 
         let plan = &event.selected_plan;
+        if event.failure_mode.trim().is_empty() {
+            errors.push(format!("{} has empty failureMode", event.event_id));
+        }
+        if plan.plan_id.trim().is_empty() {
+            errors.push(format!("{} has empty planId", event.event_id));
+        }
         let mut stages = BTreeSet::new();
         let mut elapsed = 0.0;
         for task in &plan.tasks {
@@ -255,12 +265,11 @@ fn validate(case: &Case) -> Vec<String> {
                         errors.push(format!("{} references unknown resource {}", event.event_id, resource_id));
                     }
                 }
-                (Some(resource_id), None) | (None, Some(_)) => {
+                (Some(_), None) | (None, Some(_)) => {
                     errors.push(format!(
                         "{} task {} must declare resourceId and resourceUnits together",
                         event.event_id, task.stage
                     ));
-                    if !resource_id.is_empty() {}
                 }
                 (None, None) => {}
             }
@@ -370,6 +379,12 @@ fn validate(case: &Case) -> Vec<String> {
             errors.push(format!("{} references unknown part {}", event.event_id, part_id));
             continue;
         };
+        if part.part_class != asset.asset_class {
+            errors.push(format!(
+                "{} part {} class {} does not match asset class {}",
+                event.event_id, part.part_id, part.part_class, asset.asset_class
+            ));
+        }
         if !part.approved_interface_profiles.iter().any(|x| x == &asset.interface_profile_id) {
             errors.push(format!(
                 "{} part {} is not approved for interface profile {}",
@@ -529,7 +544,7 @@ mod tests {
     #[test]
     fn accepts_hand_calculable_two_event_fixture() {
         let errors = run(FIXTURE).expect("fixture should pass");
-        assert_eq!(errors, ());
+        assert!(errors.is_empty());
     }
 
     #[test]
