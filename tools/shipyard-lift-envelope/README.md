@@ -64,7 +64,7 @@ A gust observation and a crane's permitted wind limit are different claims. V0 b
 
 An `EvidenceRef` binds a record ID, owner ID, document revision, exact subject ID/revision, digest and validity interval. Reusing a source record is allowed only when the complete reference metadata is identical; the same record ID with conflicting metadata is indeterminate.
 
-The implementation checks that a digest *looks like* SHA-256, binds each evidence record to its exact subject ID/revision, and checks that the declared record state/validity covers the lift interval. The `PreflightReport::canonical_json()` output provides stable result bytes for caller-side hashing. It does **not** authenticate the digest, signer, issuing authority, certificate, measured value, OEM chart, engineering calculation or physical truth. A caller-provided `Current` state is not proof of authenticity.
+The implementation checks that a digest *looks like* SHA-256, binds each evidence record to its exact subject ID/revision, and checks that the declared record state/validity covers the lift interval. `LiftPlan::canonical_json()` and `PreflightReport::canonical_json()` provide separate stable input and result bytes for caller-side hashing and replay comparison. It does **not** authenticate the digest, signer, issuing authority, certificate, measured value, OEM chart, engineering calculation or physical truth. A caller-provided `Current` state is not proof of authenticity.
 
 `ReadyForHumanReview` means only that the supplied references and declared arithmetic are internally consistent under this bounded contract. It is not equivalent to `SafeToLift`, `Approved`, a permit or operational authorization. The responsible engineer, lift planner, crane/rigging owners, site authority and applicable regulatory/class process remain authoritative.
 
@@ -81,7 +81,7 @@ These remain unsupported, not implicitly passed.
 
 ## Tests
 
-The dependency-free unit suite currently covers:
+The dependency-free unit suite currently contains 27 tests and covers:
 
 - nominal arithmetic and human-review-only disposition;
 - crane chart capacity and exact-cell mismatch/no interpolation;
@@ -89,7 +89,7 @@ The dependency-free unit suite currently covers:
 - stale/revoked/malformed/conflicting evidence;
 - exact subject/revision binding for blocks and rigging components;
 - independent weather-observation and crane-limit provenance, plus motion/occupancy binding;
-- deterministic canonical JSON result bytes under input permutation, suitable for caller-side SHA-256 binding;
+- deterministic canonical input and result JSON bytes under input permutation, with input digest and crane-configuration changes reflected in the input bytes;
 - upward rounding, overflow and invalid time intervals.
 
 Run:
