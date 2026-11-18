@@ -523,7 +523,7 @@ mod tests {
     fn orientation_order_distinguishes_polar_and_nematic_alignment() {
         let parallel_and_antiparallel = [0.0, PI];
         let nematic = orientation_order(&parallel_and_antiparallel).unwrap();
-        assert_eq!(nematic.polar_order, Some(0.0));
+        assert!(nematic.polar_order.unwrap() < 1.0e-12);
         assert!((nematic.nematic_order.unwrap() - 1.0).abs() < 1.0e-12);
 
         let parallel = [0.0, 0.0];
