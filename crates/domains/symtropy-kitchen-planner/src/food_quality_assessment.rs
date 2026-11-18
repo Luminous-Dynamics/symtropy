@@ -420,8 +420,7 @@ fn summarize_sensory(
     raw_digests: &mut BTreeSet<String>,
 ) -> Vec<SampleSensorySummaryV1> {
     let protocol = &request.protocol;
-    let valid_samples: BTreeSet<&str> =
-        protocol.sample_refs.iter().map(String::as_str).collect();
+    let valid_samples: BTreeSet<&str> = protocol.sample_refs.iter().map(String::as_str).collect();
     let mut by_sample: BTreeMap<String, Vec<&ConsumerResponseV1>> = BTreeMap::new();
     let mut response_ids = BTreeSet::new();
     let mut respondent_sample_pairs = BTreeSet::new();
@@ -596,8 +595,7 @@ fn summarize_instrumental(
     raw_digests: &mut BTreeSet<String>,
 ) -> Vec<InstrumentalMetricSummaryV1> {
     let protocol = &request.protocol;
-    let valid_samples: BTreeSet<&str> =
-        protocol.sample_refs.iter().map(String::as_str).collect();
+    let valid_samples: BTreeSet<&str> = protocol.sample_refs.iter().map(String::as_str).collect();
     let mut observed = BTreeMap::<(String, String), Vec<&InstrumentalQualityObservationV1>>::new();
     let mut seen = BTreeSet::new();
 
@@ -641,7 +639,10 @@ fn summarize_instrumental(
             );
             continue;
         };
-        let key = (observation.sample_ref.clone(), observation.metric_id.clone());
+        let key = (
+            observation.sample_ref.clone(),
+            observation.metric_id.clone(),
+        );
         if !seen.insert(key.clone()) {
             add_issue(
                 issues,
@@ -796,7 +797,11 @@ fn summarize_instrumental(
                 minimum_value_scaled: minimum,
                 maximum_value_scaled: maximum,
                 mean_value_scaled: i64::try_from(mean).unwrap_or_else(|_| {
-                    if mean.is_negative() { i64::MIN } else { i64::MAX }
+                    if mean.is_negative() {
+                        i64::MIN
+                    } else {
+                        i64::MAX
+                    }
                 }),
                 maximum_uncertainty_scaled: maximum_uncertainty,
                 declared_limits_met: Some(limits_met),
@@ -991,8 +996,16 @@ mod tests {
                     run_ref: "run:rice-comparison-01".to_owned(),
                     sample_ref: sample_ref.to_owned(),
                     respondent_token_ref: format!("token:{index}"),
-                    response_value: if sample_ref == "sample:workcell" { 7 } else { 6 },
-                    presentation_order: if sample_ref == "sample:workcell" { 2 } else { 1 },
+                    response_value: if sample_ref == "sample:workcell" {
+                        7
+                    } else {
+                        6
+                    },
+                    presentation_order: if sample_ref == "sample:workcell" {
+                        2
+                    } else {
+                        1
+                    },
                     consent_receipt_ref: format!("consent:session:{index}"),
                     raw_response_sha256: format!("{:064x}", index + 1),
                 });
@@ -1021,10 +1034,18 @@ mod tests {
     #[test]
     fn complete_quality_evidence_never_grants_a_serving_permit() {
         let report = assess_food_quality(&valid_request());
-        assert_eq!(report.disposition, QualityDispositionV1::Complete, "{:?}", report.issues);
+        assert_eq!(
+            report.disposition,
+            QualityDispositionV1::Complete,
+            "{:?}",
+            report.issues
+        );
         assert!(report.has_complete_quality_evidence());
         assert!(!report.grants_serving_permit());
-        assert_eq!(report.external_safety_gate.state, ExternalSafetyGateStateV1::Unknown);
+        assert_eq!(
+            report.external_safety_gate.state,
+            ExternalSafetyGateStateV1::Unknown
+        );
         assert_eq!(report.sensory_summaries.len(), 2);
         assert_eq!(report.instrumental_summaries.len(), 2);
     }
@@ -1042,12 +1063,17 @@ mod tests {
     #[test]
     fn missing_consumer_responses_remain_indeterminate() {
         let mut request = valid_request();
-        request.consumer_responses.retain(|response| response.sample_ref != "sample:workcell");
+        request
+            .consumer_responses
+            .retain(|response| response.sample_ref != "sample:workcell");
         let report = assess_food_quality(&request);
         assert_eq!(report.disposition, QualityDispositionV1::Indeterminate);
-        assert!(report.issues.iter().any(|entry| {
-            entry.code == QualityIssueCodeV1::InsufficientConsumerResponses
-        }));
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|entry| { entry.code == QualityIssueCodeV1::InsufficientConsumerResponses })
+        );
     }
 
     #[test]
@@ -1060,9 +1086,12 @@ mod tests {
         }
         let report = assess_food_quality(&request);
         assert_eq!(report.disposition, QualityDispositionV1::NotQualified);
-        assert!(report.issues.iter().any(|entry| {
-            entry.code == QualityIssueCodeV1::ConsumerScoreBelowThreshold
-        }));
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|entry| { entry.code == QualityIssueCodeV1::ConsumerScoreBelowThreshold })
+        );
     }
 
     #[test]
@@ -1083,15 +1112,20 @@ mod tests {
         request.instrumental_observations[0].calibration_ref.clear();
         let report = assess_food_quality(&request);
         assert_eq!(report.disposition, QualityDispositionV1::Indeterminate);
-        assert!(report.issues.iter().any(|entry| {
-            entry.code == QualityIssueCodeV1::MissingCalibration
-        }));
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|entry| { entry.code == QualityIssueCodeV1::MissingCalibration })
+        );
     }
 
     #[test]
     fn duplicate_respondent_sample_pair_is_conflicted() {
         let mut request = valid_request();
-        request.consumer_responses.push(request.consumer_responses[0].clone());
+        request
+            .consumer_responses
+            .push(request.consumer_responses[0].clone());
         let report = assess_food_quality(&request);
         assert_eq!(report.disposition, QualityDispositionV1::Conflicted);
     }
@@ -1102,9 +1136,12 @@ mod tests {
         request.protocol.revision = 2;
         let report = assess_food_quality(&request);
         assert_eq!(report.disposition, QualityDispositionV1::Conflicted);
-        assert!(report.issues.iter().any(|entry| {
-            entry.code == QualityIssueCodeV1::InvalidProtocolDigest
-        }));
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|entry| { entry.code == QualityIssueCodeV1::InvalidProtocolDigest })
+        );
     }
 
     #[test]
@@ -1114,7 +1151,10 @@ mod tests {
         request.external_safety_gate.evidence_ref = Some("external:evidence:failed".to_owned());
         let report = assess_food_quality(&request);
         assert_eq!(report.disposition, QualityDispositionV1::Complete);
-        assert_eq!(report.external_safety_gate.state, ExternalSafetyGateStateV1::ExternallyFailed);
+        assert_eq!(
+            report.external_safety_gate.state,
+            ExternalSafetyGateStateV1::ExternallyFailed
+        );
         assert!(!report.grants_serving_permit());
     }
 }
