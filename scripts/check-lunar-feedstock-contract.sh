@@ -270,18 +270,21 @@ jq -e '
           .measurement.value == null
           and .measurement.standard_uncertainty == null
         elif .measurement.status == "measured" then
-          ((.measurement.value | type) == "number")
-          and ((.measurement.standard_uncertainty | type) == "number" and .measurement.standard_uncertainty >= 0)
-          and (.measurement.source_artifact_id | type == "string" and length > 0)
-          and any($r.artifacts[]; .artifact_id == .measurement.source_artifact_id)
-          and (.measurement.calibration_record_id | type == "string" and length > 0)
-          and any($r.artifacts[];
-            .artifact_id == .measurement.calibration_record_id and .role == "calibration_record")
+          (.measurement.source_artifact_id as $source_id
+           | .measurement.calibration_record_id as $calibration_id
+           | ((.measurement.value | type) == "number")
+             and ((.measurement.standard_uncertainty | type) == "number" and .measurement.standard_uncertainty >= 0)
+             and ($source_id | type == "string" and length > 0)
+             and any($r.artifacts[]; .artifact_id == $source_id)
+             and ($calibration_id | type == "string" and length > 0)
+             and any($r.artifacts[];
+               .artifact_id == $calibration_id and .role == "calibration_record"))
         elif .measurement.status == "published" or .measurement.status == "estimated" then
-          ((.measurement.value | type) == "number")
-          and ((.measurement.standard_uncertainty | type) == "number" and .measurement.standard_uncertainty >= 0)
-          and (.measurement.source_artifact_id | type == "string" and length > 0)
-          and any($r.artifacts[]; .artifact_id == .measurement.source_artifact_id)
+          (.measurement.source_artifact_id as $source_id
+           | ((.measurement.value | type) == "number")
+             and ((.measurement.standard_uncertainty | type) == "number" and .measurement.standard_uncertainty >= 0)
+             and ($source_id | type == "string" and length > 0)
+             and any($r.artifacts[]; .artifact_id == $source_id))
         elif .measurement.status == "synthetic" then
           ((.measurement.value | type) == "number")
           and ((.measurement.standard_uncertainty | type) == "number" and .measurement.standard_uncertainty >= 0)
