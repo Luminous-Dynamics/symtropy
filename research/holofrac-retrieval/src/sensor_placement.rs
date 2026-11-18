@@ -351,6 +351,47 @@ mod tests {
     }
 
     #[test]
+    fn deterministic_policies_are_seed_invariant_and_random_metrics_change_by_seed() {
+        let first = run_sensor_placement_benchmark(16, 8, 9, 6, 42).unwrap();
+        let second = run_sensor_placement_benchmark(16, 8, 9, 6, 43).unwrap();
+
+        for policy in [
+            SensorPlacementPolicy::RegularGrid,
+            SensorPlacementPolicy::GreedyMaximin,
+        ] {
+            let left = first.iter().find(|report| report.policy == policy).unwrap();
+            let right = second.iter().find(|report| report.policy == policy).unwrap();
+            assert_eq!(left.mean_nearest_distance, right.mean_nearest_distance);
+            assert_eq!(left.max_nearest_distance, right.max_nearest_distance);
+            assert_eq!(left.mean_absolute_error, right.mean_absolute_error);
+            assert_eq!(left.root_mean_squared_error, right.root_mean_squared_error);
+        }
+
+        let random_first = first
+            .iter()
+            .find(|report| report.policy == SensorPlacementPolicy::Random)
+            .unwrap();
+        let random_second = second
+            .iter()
+            .find(|report| report.policy == SensorPlacementPolicy::Random)
+            .unwrap();
+        assert_ne!(
+            (
+                random_first.mean_nearest_distance,
+                random_first.max_nearest_distance,
+                random_first.mean_absolute_error,
+                random_first.root_mean_squared_error,
+            ),
+            (
+                random_second.mean_nearest_distance,
+                random_second.max_nearest_distance,
+                random_second.mean_absolute_error,
+                random_second.root_mean_squared_error,
+            )
+        );
+    }
+
+    #[test]
     fn every_policy_returns_finite_metrics_for_all_channels() {
         let reports = run_sensor_placement_benchmark(12, 6, 6, 4, 77).unwrap();
         assert_eq!(reports.len(), SensorPlacementPolicy::ALL.len());
