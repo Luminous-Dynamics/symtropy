@@ -45,6 +45,7 @@ pub enum FeasibilityVerdict {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CarrierStop {
+    pub stop_id: String,
     pub node_id: String,
     /// Earliest supported carrier arrival at this stop, in Unix-relative ms.
     pub arrival_earliest_ms: u64,
@@ -78,8 +79,8 @@ pub struct AircraftEnvelope {
 pub struct SortieProposal {
     pub sortie_id: String,
     pub payload_mass_g: u64,
-    pub launch_node_id: String,
-    pub recovery_node_id: String,
+    pub launch_stop_id: String,
+    pub recovery_stop_id: String,
     pub launch_pad_resource_id: String,
     pub recovery_pad_resource_id: String,
     /// Half-open service windows; service must finish no later than close.
@@ -163,8 +164,8 @@ fn structural_errors(input: &CoAvailabilityInput) -> Vec<String> {
         || input.carrier.carrier_id.trim().is_empty()
         || input.aircraft.aircraft_id.trim().is_empty()
         || input.sortie.sortie_id.trim().is_empty()
-        || input.sortie.launch_node_id.trim().is_empty()
-        || input.sortie.recovery_node_id.trim().is_empty()
+        || input.sortie.launch_stop_id.trim().is_empty()
+        || input.sortie.recovery_stop_id.trim().is_empty()
         || input.sortie.launch_pad_resource_id.trim().is_empty()
         || input.sortie.recovery_pad_resource_id.trim().is_empty()
     {
@@ -175,12 +176,12 @@ fn structural_errors(input: &CoAvailabilityInput) -> Vec<String> {
     }
     let mut stop_ids = BTreeSet::new();
     for (index, stop) in input.carrier.route_stops.iter().enumerate() {
-        if stop.node_id.trim().is_empty() {
-            errors.push(format!("carrier.route_stops[{index}].node_id: must be non-empty"));
+        if stop.stop_id.trim().is_empty() || stop.node_id.trim().is_empty() {
+            errors.push(format!("carrier.route_stops[{index}]: stop and node identifiers must be non-empty"));
         }
-        if !stop_ids.insert(stop.node_id.as_str()) {
+        if !stop_ids.insert(stop.stop_id.as_str()) {
             errors.push(format!(
-                "carrier.route_stops[{index}].node_id: duplicate physical node identity"
+                "carrier.route_stops[{index}].stop_id: duplicate route-stop identity"
             ));
         }
         if stop.arrival_earliest_ms >= stop.departure_latest_ms {
@@ -234,17 +235,12 @@ fn structural_errors(input: &CoAvailabilityInput) -> Vec<String> {
             errors.push(format!("existing_reservations[{index}].reservation_id: duplicate identity"));
         }
     }
-    if input.carrier.route_stops.iter().any(|stop| {
-        stop.arrival_earliest_ms > input.sortie.launch_window_close_ms.max(input.sortie.recovery_window_close_ms)
-    }) {
-        errors.push("carrier route contains a stop outside the declared sortie time horizon".into());
-    }
     errors
 }
 
-fn find_stop(input: &CoAvailabilityInput, node_id: &str) -> Option<StopWindow> {
+fn find_stop(input: &CoAvailabilityInput, stop_id: &str) -> Option<StopWindow> {
     input.carrier.route_stops.iter().enumerate().find_map(|(index, stop)| {
-        (stop.node_id == node_id).then_some(StopWindow {
+        (stop.stop_id == stop_id).then_some(StopWindow {
             index,
             arrival_earliest_ms: stop.arrival_earliest_ms,
             departure_latest_ms: stop.departure_latest_ms,
@@ -342,19 +338,19 @@ pub fn evaluate_coavailability(
         }
     }
 
-    let launch_stop = find_stop(input, &sortie.launch_node_id);
-    let recovery_stop = find_stop(input, &sortie.recovery_node_id);
+    let launch_stop = find_stop(input, &sortie.launch_stop_id);
+    let recovery_stop = find_stop(input, &sortie.recovery_stop_id);
     let mut selected_launch = None;
     let mut selected_recovery = None;
 
     match (launch_stop, recovery_stop) {
         (None, _) => {
             known_infeasible = true;
-            findings.push("INFEASIBLE: launch node is not a carrier route stop".into());
+            findings.push("INFEASIBLE: launch stop is not in the carrier itinerary".into());
         }
         (_, None) => {
             known_infeasible = true;
-            findings.push("INFEASIBLE: recovery node is not a carrier route stop".into());
+            findings.push("INFEASIBLE: recovery stop is not in the carrier itinerary".into());
         }
         (Some(launch), Some(recovery)) => {
             if launch.index > recovery.index {
@@ -493,11 +489,13 @@ mod tests {
                 carrier_id: "carrier-01".into(),
                 route_stops: vec![
                     CarrierStop {
+                        stop_id: "stop-01".into(),
                         node_id: "depot".into(),
                         arrival_earliest_ms: 0,
                         departure_latest_ms: 1_000_000,
                     },
                     CarrierStop {
+                        stop_id: "stop-02".into(),
                         node_id: "hub-b".into(),
                         arrival_earliest_ms: 1_300_000,
                         departure_latest_ms: 1_900_000,
@@ -516,8 +514,8 @@ mod tests {
             sortie: SortieProposal {
                 sortie_id: "sortie-01".into(),
                 payload_mass_g: 1_000,
-                launch_node_id: "depot".into(),
-                recovery_node_id: "hub-b".into(),
+                launch_stop_id: "stop-01".into(),
+                recovery_stop_id: "stop-02".into(),
                 launch_pad_resource_id: "pad-depot-1".into(),
                 recovery_pad_resource_id: "pad-hub-b-1".into(),
                 launch_window_open_ms: 100_000,
@@ -617,16 +615,17 @@ mod tests {
     #[test]
     fn rejects_recovery_before_launch_in_carrier_route() {
         let mut test = input();
-        test.sortie.launch_node_id = "hub-b".into();
-        test.sortie.recovery_node_id = "depot".into();
+        test.sortie.launch_stop_id = "stop-02".into();
+        test.sortie.recovery_stop_id = "stop-01".into();
         let report = evaluate_coavailability(&test).expect("valid structure");
         assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
     }
 
     #[test]
-    fn rejects_duplicate_route_node_identity() {
+    fn rejects_duplicate_route_stop_identity() {
         let mut test = input();
         test.carrier.route_stops.push(CarrierStop {
+            stop_id: "stop-01".into(),
             node_id: "depot".into(),
             arrival_earliest_ms: 2_000_000,
             departure_latest_ms: 3_000_000,
