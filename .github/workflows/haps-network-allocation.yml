@@ -2,7 +2,6 @@ name: HAPS Network Allocation
 
 on:
   pull_request:
-    branches: [main]
     paths:
       - "tools/haps-network-allocation/**"
       - "docs/research/aviation/examples/synthetic_haps_disaster_traffic_trace_v1.json"
