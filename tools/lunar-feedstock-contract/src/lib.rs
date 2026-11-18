@@ -134,7 +134,7 @@ fn size_bin_key(entry: &Value) -> Result<(f64, f64), String> {
     Ok((low, high))
 }
 
-fn compare_size_bins(from: &Value, to: &Value) -> Result<Value, String> {
+fn compare_size_bins(from: &Value, to: &Value) -> Result<(Value, bool), String> {
     let from_bins = from
         .get("size_bins")
         .and_then(Value::as_array)
@@ -145,35 +145,39 @@ fn compare_size_bins(from: &Value, to: &Value) -> Result<Value, String> {
         .ok_or_else(|| "destination sample has no size_bins array".to_owned())?;
 
     if from_bins.len() != to_bins.len() {
-        return Ok(json!({
+        return Ok((json!({
             "status": "incompatible_bin_partitions",
             "from_bin_count": from_bins.len(),
             "to_bin_count": to_bins.len(),
+            "measurements_available": false,
             "bins": [],
             "claim_ceiling": "No bin-by-bin change is inferred when the two assays use different bin partitions."
-        }));
+        }), false));
     }
 
     let mut output = Vec::with_capacity(from_bins.len());
+    let mut all_measurements_available = true;
     for from_bin in from_bins {
         let from_key = size_bin_key(from_bin)?;
         let to_bin = to_bins
             .iter()
             .find(|candidate| size_bin_key(candidate).ok() == Some(from_key));
         let Some(to_bin) = to_bin else {
-            return Ok(json!({
+            return Ok((json!({
                 "status": "incompatible_bin_partitions",
                 "from_bin_count": from_bins.len(),
                 "to_bin_count": to_bins.len(),
+                "measurements_available": false,
                 "bins": [],
                 "claim_ceiling": "No bin-by-bin change is inferred when the two assays use different bin edges."
-            }));
+            }), false));
         };
 
-        let (comparison, _) = compare_measurements(
+        let (comparison, available) = compare_measurements(
             from_bin.get("mass_fraction").unwrap_or(&Value::Null),
             to_bin.get("mass_fraction").unwrap_or(&Value::Null),
         );
+        all_measurements_available &= available;
         output.push(json!({
             "d_min_um": from_key.0,
             "d_max_um": from_key.1,
@@ -181,13 +185,14 @@ fn compare_size_bins(from: &Value, to: &Value) -> Result<Value, String> {
         }));
     }
 
-    Ok(json!({
+    Ok((json!({
         "status": "matched_bin_partitions",
         "from_bin_count": from_bins.len(),
         "to_bin_count": to_bins.len(),
+        "measurements_available": all_measurements_available,
         "bins": output,
         "claim_ceiling": "Bin-wise changes compare reported fractions only; they do not establish a physical segregation mechanism."
-    }))
+    }), all_measurements_available))
 }
 
 pub fn compare_quality_samples(
@@ -250,7 +255,7 @@ pub fn compare_quality_samples(
         from.get("target_size_mass_fraction").unwrap_or(&Value::Null),
         to.get("target_size_mass_fraction").unwrap_or(&Value::Null),
     );
-    let size_bins = compare_size_bins(from, to)?;
+    let (size_bins, size_bins_available) = compare_size_bins(from, to)?;
 
     let has_unknown_phase = phase_results.iter().any(|entry| {
         entry.get("status").and_then(Value::as_str)
@@ -262,12 +267,12 @@ pub fn compare_quality_samples(
                 == Some(DeltaStatus::UnknownMissingMeasurement.as_str())
     });
 
-    let report_status = if has_unknown_phase || !target_size_available {
-        "indeterminate_missing_quality_measurement"
-    } else if size_bins.get("status").and_then(Value::as_str)
+    let report_status = if size_bins.get("status").and_then(Value::as_str)
         == Some("incompatible_bin_partitions")
     {
         "indeterminate_incompatible_size_bins"
+    } else if has_unknown_phase || !target_size_available || !size_bins_available {
+        "indeterminate_missing_quality_measurement"
     } else {
         "comparisons_available"
     };
