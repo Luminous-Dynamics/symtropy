@@ -682,6 +682,33 @@
       ],
       "safety_boundary": "Manifest evaluation is planning admission only. It never supplies appliance commands or transfers pressure, thermal, blade, lid, electrical or other safety authority from the module-local controller.",
       "control_condition": "Compare human-reviewed manual compatibility, manufacturer declarations, generic smart-appliance capability exposure and the versioned KMCM evaluator on an identical held-out exact-revision module/task matrix with stale, missing and adversarial manifests."
+    },
+    {
+      "task_id": "human-factors-accessibility-agency",
+      "domain": "workflow",
+      "operation": "evaluate accessible reach, force, sensory/cognitive status communication, manual handoff, consent and maintenance across complete meal workflows",
+      "input_manifest_required": [
+        "frozen task and user study protocol",
+        "consent and privacy data map",
+        "participant inclusion and recruitment protocol",
+        "physical workspace and control geometry",
+        "instrument identity and calibration for force/reach measurements",
+        "interaction modality and state inventory",
+        "manual operation and interruption scenarios",
+        "food quality and safety prerequisites"
+      ],
+      "primary_metrics": [
+        "accessibility_independent_task_completion_rate",
+        "accessibility_assistance_rate",
+        "accessibility_state_comprehension_rate",
+        "accessibility_manual_handoff_success_rate",
+        "accessibility_control_force_n",
+        "accessibility_critical_state_multimodal_coverage",
+        "accessibility_consent_revocation_success_rate",
+        "accessibility_user_abandonment_rate"
+      ],
+      "safety_boundary": "Human-factors assessment does not change appliance-local safety authority. No test may bypass blade, lid, pressure, thermal or electrical protections; participants may withdraw or request assistance at any time.",
+      "control_condition": "Compare existing specialist appliance workflows, integrated-appliance workflow and modular-workcell workflow under matched task/ingredient conditions; randomize/counterbalance task order and preserve user-requested assistance."
     }
   ],
   "metrics": [
@@ -1436,6 +1463,70 @@
       "method": "Count changes that invalidate dependent admission receipts and require a fresh exact-revision conformance result before reuse.",
       "evidence_class": "simulated",
       "notes": "No downstream receipt may silently survive a relevant capability revision change."
+    },
+    {
+      "metric_id": "accessibility_independent_task_completion_rate",
+      "unit": "fraction",
+      "denominator": "all consented participants × preregistered eligible task/configuration attempts",
+      "method": "Count attempts meeting frozen task success criteria without unplanned human assistance; report per task and tested interaction/configuration, with withdrawals/missing observations visible.",
+      "evidence_class": "assayed",
+      "notes": "Human study metric; must not be represented by a simulator score."
+    },
+    {
+      "metric_id": "accessibility_assistance_rate",
+      "unit": "fraction",
+      "denominator": "all consented participant task attempts",
+      "method": "Count attempts requiring unplanned assistance or takeover; distinguish planned caregiver assistance, requested assistance and system failure.",
+      "evidence_class": "assayed",
+      "notes": "Assistance is not automatically a failure; report its type and participant preference."
+    },
+    {
+      "metric_id": "accessibility_state_comprehension_rate",
+      "unit": "fraction",
+      "denominator": "all blinded plan/status interpretation trials across known, unknown, blocked, manual-handoff and complete states",
+      "method": "Participants interpret task state from the declared output modalities; score exact state and safe next action using a frozen rubric.",
+      "evidence_class": "assayed",
+      "notes": "Do not infer comprehension from click completion or voice-command success."
+    },
+    {
+      "metric_id": "accessibility_manual_handoff_success_rate",
+      "unit": "fraction",
+      "denominator": "all eligible non-hazardous interrupted-task manual handoff trials",
+      "method": "Count trials where participant can find, understand and complete the declared manual handoff/stop path without hidden restart or safety bypass.",
+      "evidence_class": "assayed",
+      "notes": "Hazardous physical operations remain subject to appliance-local instructions and interlocks."
+    },
+    {
+      "metric_id": "accessibility_control_force_n",
+      "unit": "N",
+      "denominator": "all instrumented control, lid, fixture and connector actions in the physical test fixture",
+      "method": "Measure peak and sustained force using a calibrated force gauge and frozen action protocol; report distribution and uncertainty by task/control.",
+      "evidence_class": "measured",
+      "notes": "No universal accessible-force threshold is asserted by this manifest; interpretation requires relevant human-factors evidence."
+    },
+    {
+      "metric_id": "accessibility_critical_state_multimodal_coverage",
+      "unit": "fraction",
+      "denominator": "all critical known/unknown/blocked/stop/complete states in the frozen interaction inventory",
+      "method": "Count states with two independent communication modalities, including at least one non-audio modality, tested for correctness and availability.",
+      "evidence_class": "simulated",
+      "notes": "UI conformance coverage only; user comprehension is separately assayed."
+    },
+    {
+      "metric_id": "accessibility_consent_revocation_success_rate",
+      "unit": "fraction",
+      "denominator": "all deterministic consent scopes and revocation scenarios in the privacy conformance suite",
+      "method": "Count cases where revoked/expired/wrong-scope consent blocks subsequent private-data access/export and produces a non-sensitive audit receipt.",
+      "evidence_class": "simulated",
+      "notes": "Privacy behavior is not proved by a UI toggle; test the data boundary."
+    },
+    {
+      "metric_id": "accessibility_user_abandonment_rate",
+      "unit": "fraction",
+      "denominator": "all consented participant task attempts",
+      "method": "Count tasks voluntarily abandoned before task success; classify reason using participant choice without requiring personal or diagnostic disclosure.",
+      "evidence_class": "assayed",
+      "notes": "Preserve voluntary withdrawal without treating it as a negative personal outcome."
     }
   ],
   "target_hypotheses": [
@@ -1969,6 +2060,50 @@
       "stop_conditions": [
         "a relevant revision change leaves a dependent admission valid",
         "the new manifest is not linked to exact hardware/firmware identity"
+      ]
+    },
+    {
+      "hypothesis_id": "H-ACCESS-MANUAL-HANDOFF-990",
+      "metric_id": "accessibility_manual_handoff_success_rate",
+      "target": ">=0.990 successful manual stop/handoff on eligible non-hazardous task interruptions, with zero hidden restarts.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any hidden automatic restart after takeover",
+        "a manual handoff requires cloud/planner connectivity",
+        "a safety interlock is bypassed"
+      ]
+    },
+    {
+      "hypothesis_id": "H-ACCESS-STATE-COVERAGE-100",
+      "metric_id": "accessibility_critical_state_multimodal_coverage",
+      "target": "1.000 of critical plan/unknown/blocked/stop/complete states communicated via at least two independent modalities, including one non-audio modality.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any critical state is conveyed only by sound or colour",
+        "the second channel fails to communicate the same state",
+        "unknown physical state is presented as known"
+      ]
+    },
+    {
+      "hypothesis_id": "H-ACCESS-CONSENT-REVOCATION-100",
+      "metric_id": "accessibility_consent_revocation_success_rate",
+      "target": "1.000 successful consent revocation in the frozen deterministic privacy conformance suite.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "private data remains accessible/exportable after revocation",
+        "revocation is silently ignored offline",
+        "audit logs expose household inventory payloads"
+      ]
+    },
+    {
+      "hypothesis_id": "H-ACCESS-COMPLETION-950",
+      "metric_id": "accessibility_independent_task_completion_rate",
+      "target": ">=0.950 independent completion on the preregistered eligible human-factors task set; report task and tested configuration separately.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "participant or task exclusions are added after results",
+        "requested assistance or withdrawal is suppressed",
+        "any safety prerequisite is weakened to improve completion"
       ]
     }
   ],
