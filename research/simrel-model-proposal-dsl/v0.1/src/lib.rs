@@ -382,6 +382,7 @@ pub struct ModelProgramV0 {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ModelError {
+    WrongSchemaVersion,
     EmptyModelId,
     InvalidModelId,
     TooManyVariables,
@@ -425,6 +426,7 @@ pub enum ModelError {
     DivisionByZero,
     NonFiniteEvaluation,
     StateOutsideRange(VariableId),
+    ObservableOutsideRange(VariableId),
     InternalMissingValue(VariableId),
     InvalidBudget,
 }
@@ -432,6 +434,7 @@ pub enum ModelError {
 impl fmt::Display for ModelError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::WrongSchemaVersion => write!(f, "model program schema version is unsupported"),
             Self::EmptyModelId => write!(f, "model identity must not be empty"),
             Self::InvalidModelId => write!(f, "model identity must use the admitted ASCII token syntax"),
             Self::TooManyVariables => write!(f, "model proposal exceeds the variable limit"),
@@ -475,6 +478,7 @@ impl fmt::Display for ModelError {
             Self::DivisionByZero => write!(f, "model expression divided by zero"),
             Self::NonFiniteEvaluation => write!(f, "model expression produced a non-finite value"),
             Self::StateOutsideRange(id) => write!(f, "updated state {} is outside its admitted range", id.0),
+            Self::ObservableOutsideRange(id) => write!(f, "computed observable {} is outside its admitted range", id.0),
             Self::InternalMissingValue(id) => write!(f, "interpreter environment lacks variable {}", id.0),
             Self::InvalidBudget => write!(f, "interpreter budget must have positive step and expression limits"),
         }
@@ -645,6 +649,12 @@ impl ValidatedModelProgramV0 {
                 let declaration = symbols
                     .get(&assignment.target)
                     .ok_or(ModelError::UnknownVariable(assignment.target))?;
+                if declaration
+                    .admissible_range
+                    .is_some_and(|range| !range.contains(value))
+                {
+                    return Err(ModelError::ObservableOutsideRange(assignment.target));
+                }
                 observed.push(ObservableValue {
                     variable: assignment.target,
                     name: declaration.name.clone(),
@@ -772,7 +782,7 @@ fn validate_program(program: &ModelProgramV0) -> Result<(), ModelError> {
                 .initial_value
                 .ok_or(ModelError::MissingInitialValue(declaration.id))?;
             if !initial.is_finite() {
-                return Err(ModelError::NonFiniteConstant);
+                return Err(ModelError::NonFiniteInitialState(declaration.id));
             }
             if declaration
                 .admissible_range
@@ -1328,6 +1338,70 @@ mod tests {
     }
 
     #[test]
+    fn all_state_updates_read_the_same_pre_step_snapshot() {
+        let program = ModelProgramV0 {
+            schema_version: SCHEMA_VERSION_V0,
+            model_id: "parallel_state_swap".to_owned(),
+            variables: vec![
+                declaration(
+                    1,
+                    "left_state",
+                    VariableRole::State,
+                    Dimension::DIMENSIONLESS,
+                    Some(ValueRange { minimum: -10.0, maximum: 10.0 }),
+                    Some(1.0),
+                ),
+                declaration(
+                    2,
+                    "right_state",
+                    VariableRole::State,
+                    Dimension::DIMENSIONLESS,
+                    Some(ValueRange { minimum: -10.0, maximum: 10.0 }),
+                    Some(2.0),
+                ),
+                declaration(3, "left_out", VariableRole::Observable, Dimension::DIMENSIONLESS, None, None),
+                declaration(4, "right_out", VariableRole::Observable, Dimension::DIMENSIONLESS, None, None),
+            ],
+            class: ProposalClass::DiscreteState,
+            transitions: vec![
+                Assignment {
+                    target: VariableId(1),
+                    expression: Expr::variable(VariableId(2)),
+                },
+                Assignment {
+                    target: VariableId(2),
+                    expression: Expr::variable(VariableId(1)),
+                },
+            ],
+            outputs: vec![
+                Assignment {
+                    target: VariableId(3),
+                    expression: Expr::variable(VariableId(1)),
+                },
+                Assignment {
+                    target: VariableId(4),
+                    expression: Expr::variable(VariableId(2)),
+                },
+            ],
+            maximum_horizon_steps: 2,
+        };
+        let validated = ValidatedModelProgramV0::new(program).unwrap();
+        let run = validated.simulate(&[], 2, 0, budget()).unwrap();
+        assert_eq!(
+            run.samples[0].values.iter().map(|value| value.value).collect::<Vec<_>>(),
+            vec![1.0, 2.0]
+        );
+        assert_eq!(
+            run.samples[1].values.iter().map(|value| value.value).collect::<Vec<_>>(),
+            vec![2.0, 1.0]
+        );
+        assert_eq!(
+            run.final_state.iter().map(|value| value.value).collect::<Vec<_>>(),
+            vec![1.0, 2.0]
+        );
+    }
+
+    #[test]
     fn stochastic_proposal_is_reproducible_for_a_frozen_seed() {
         let validated = ValidatedModelProgramV0::new(stochastic_program()).unwrap();
         let bindings = [bound(2, 0.25)];
@@ -1381,6 +1455,20 @@ mod tests {
     }
 
     #[test]
+    fn computed_observables_are_checked_against_declared_ranges() {
+        let mut program = algebraic_program();
+        program.variables[3].admissible_range = Some(ValueRange {
+            minimum: -1.0,
+            maximum: 1.0,
+        });
+        let validated = ValidatedModelProgramV0::new(program).unwrap();
+        assert_eq!(
+            validated.simulate(&[bound(1, 3.0), bound(2, 2.0), bound(3, 1.0)], 1, 1, budget()),
+            Err(ModelError::ObservableOutsideRange(VariableId(4)))
+        );
+    }
+
+    #[test]
     fn duplicate_missing_and_unknown_bindings_fail_closed() {
         let validated = ValidatedModelProgramV0::new(algebraic_program()).unwrap();
         assert_eq!(
@@ -1425,7 +1513,6 @@ mod tests {
             "hidden_state",
             VariableRole::Latent,
             Dimension::DIMENSIONLESS,
-            None,
             Some(ValueRange { minimum: -1.0, maximum: 1.0 }),
             Some(0.0),
         ));
