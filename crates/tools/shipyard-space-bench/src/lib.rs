@@ -412,6 +412,160 @@ mod tests {
         }
     }
 
+    // Test-only oracle: enumerate discrete unit cells and integer time ticks.
+    // It deliberately does not call Rect::intersects or Interval::overlaps.
+    fn tiny_grid_oracle_overlap(first: &Placement, second: &Placement) -> bool {
+        let (Some(a), Some(b)) = (first.footprint, second.footprint) else {
+            return false;
+        };
+
+        for tick in 0..3_u32 {
+            let first_active = first.occupied.start <= tick && tick < first.occupied.end;
+            let second_active = second.occupied.start <= tick && tick < second.occupied.end;
+            if !first_active || !second_active {
+                continue;
+            }
+
+            for x in 0..3_i64 {
+                for y in 0..3_i64 {
+                    let first_covers_cell =
+                        a.min_x <= x && x < a.max_x && a.min_y <= y && y < a.max_y;
+                    let second_covers_cell =
+                        b.min_x <= x && x < b.max_x && b.min_y <= y && y < b.max_y;
+                    if first_covers_cell && second_covers_cell {
+                        return true;
+                    }
+                }
+            }
+        }
+        false
+    }
+
+    // Test-only capacity oracle: count active units at each integer tick.
+    // It does not use the production event sweep or its sort ordering.
+    fn tiny_tick_oracle_over_capacity(
+        first: &Reservation,
+        second: &Reservation,
+        capacity: u32,
+    ) -> bool {
+        for tick in 0..3_u32 {
+            let mut active = 0_u64;
+            if first.interval.start <= tick && tick < first.interval.end {
+                active += u64::from(first.units);
+            }
+            if second.interval.start <= tick && tick < second.interval.end {
+                active += u64::from(second.units);
+            }
+            if active > u64::from(capacity) {
+                return true;
+            }
+        }
+        false
+    }
+
+    #[test]
+    fn exhaustive_tiny_grid_oracle_matches_rectangle_time_overlap() {
+        let mut rectangles = Vec::new();
+        for min_x in 0..3_i64 {
+            for max_x in (min_x + 1)..=3_i64 {
+                for min_y in 0..3_i64 {
+                    for max_y in (min_y + 1)..=3_i64 {
+                        rectangles.push(Rect::new(min_x, min_y, max_x, max_y));
+                    }
+                }
+            }
+        }
+
+        let mut intervals = Vec::new();
+        for start in 0..3_u32 {
+            for end in (start + 1)..=3_u32 {
+                intervals.push(Interval::new(start, end));
+            }
+        }
+
+        for first_rect in &rectangles {
+            for first_interval in &intervals {
+                let first = placement("first", Some(*first_rect), *first_interval);
+                for second_rect in &rectangles {
+                    for second_interval in &intervals {
+                        let second = placement("second", Some(*second_rect), *second_interval);
+                        let expected = tiny_grid_oracle_overlap(&first, &second);
+                        let plan = Plan {
+                            placements: vec![first.clone(), second.clone()],
+                            ..Plan::default()
+                        };
+                        let result = verify(&plan);
+                        let observed = result.violations.iter().any(|violation| matches!(
+                            violation,
+                            Violation::BlockOverlap { .. }
+                        ));
+                        assert_eq!(
+                            observed,
+                            expected,
+                            "oracle mismatch: first={first:?}, second={second:?}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn exhaustive_tiny_tick_oracle_matches_resource_capacity_sweep() {
+        let mut intervals = Vec::new();
+        for start in 0..3_u32 {
+            for end in (start + 1)..=3_u32 {
+                intervals.push(Interval::new(start, end));
+            }
+        }
+
+        for first_interval in &intervals {
+            for second_interval in &intervals {
+                for first_units in 1..=2_u32 {
+                    for second_units in 1..=2_u32 {
+                        for capacity in 1..=3_u32 {
+                            let first = Reservation {
+                                reservation_id: "first".to_owned(),
+                                resource_id: "vehicle".to_owned(),
+                                interval: *first_interval,
+                                units: first_units,
+                            };
+                            let second = Reservation {
+                                reservation_id: "second".to_owned(),
+                                resource_id: "vehicle".to_owned(),
+                                interval: *second_interval,
+                                units: second_units,
+                            };
+                            let expected = tiny_tick_oracle_over_capacity(
+                                &first,
+                                &second,
+                                capacity,
+                            );
+                            let plan = Plan {
+                                resources: vec![ResourceSpec {
+                                    resource_id: "vehicle".to_owned(),
+                                    capacity: Some(capacity),
+                                }],
+                                reservations: vec![first, second],
+                                ..Plan::default()
+                            };
+                            let result = verify(&plan);
+                            let observed = result.violations.iter().any(|violation| matches!(
+                                violation,
+                                Violation::ResourceOverCapacity { .. }
+                            ));
+                            assert_eq!(
+                                observed,
+                                expected,
+                                "capacity oracle mismatch: capacity={capacity}, plan={plan:?}"
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     #[test]
     fn back_to_back_plan_is_feasible() {
         assert_eq!(verify(&baseline()).disposition, Disposition::Feasible);
