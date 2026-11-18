@@ -713,9 +713,11 @@ impl EpisodeProvider {
         let correct_candidate_count = claimed_set.intersection(&exact_set).count();
         let version_space_exact_match = claimed_set == exact_set;
         let evidence_identifies_unique_hypothesis = compatible_hypotheses.len() == 1;
-        let false_unique_claim = finish.compatible_hypothesis_ids.len() == 1
-            && (!evidence_identifies_unique_hypothesis
-                || !finish.compatible_hypothesis_ids.iter().any(|id| id == generating_id));
+        let false_unique_claim = (finish.disposition == EpisodeFinishDisposition::Identified
+            && !evidence_identifies_unique_hypothesis)
+            || (finish.compatible_hypothesis_ids.len() == 1
+                && (!evidence_identifies_unique_hypothesis
+                    || !finish.compatible_hypothesis_ids.iter().any(|id| id == generating_id)));
         let safe_abstention = finish.disposition == EpisodeFinishDisposition::Abstain
             && compatible_hypotheses.len() > 1
             && version_space_exact_match;
