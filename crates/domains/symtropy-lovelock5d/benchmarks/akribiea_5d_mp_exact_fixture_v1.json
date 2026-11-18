@@ -170,10 +170,40 @@
         "all_five_eoms_zero_on_alpha_zero_myers_perry": true,
         "all_five_eoms_zero_on_finite_alpha_boulware_deser": true,
         "off_shell_profile_mutation_detected": true
+      },
+      "all_five_equation_exact_controls": [
+        "alpha=0 equal-spin Myers-Perry",
+        "finite-alpha static Boulware-Deser Einstein branch"
+      ],
+      "local_hessian_jet_replay": {
+        "language": "Python development-session reimplementation of the same 10-variable second-order jet rule",
+        "executed": true,
+        "rust_code_executed": false,
+        "max_abs_residual_myers_perry_alpha_zero": "2.842170943040401e-14",
+        "sample_radii_myers_perry": [
+          "1.1",
+          "1.25",
+          "1.5",
+          "2",
+          "3",
+          "5",
+          "10"
+        ],
+        "max_abs_residual_boulware_deser_alpha_0_7": "1.2434497875801753e-14",
+        "sample_radii_boulware_deser": [
+          "1.1",
+          "1.25",
+          "1.5",
+          "2",
+          "3",
+          "5",
+          "10"
+        ],
+        "purpose": "sanity-check the AD gradient/Hessian residual formula and select conservative Rust test tolerances"
       }
     }
   },
-  "claim_ceiling": "Exact analytical MP/BD profiles and independently derived action-level ODE residuals. Rust evaluator/tests are authored but uncompiled. No nonzero-alpha rotating EGB branch, full tensor verification, interval enclosure, radii-polynomial proof, or stability claim.",
+  "claim_ceiling": "Exact analytic MP/BD profiles and independently derived action-level ODE residuals. A separate Python Hessian-jet reimplementation gives ~1e-14 residuals on exact branches. Rust evaluator/tests are authored but uncompiled. No full arbitrary-coordinate 5D tensor verification, nonzero-alpha rotating branch, interval enclosure, radii-polynomial proof, or stability claim.",
   "time_sector_radial_identity": {
     "source": "Brihaye et al. (2010), Eq. (2.14), full right-hand side including alpha corrections",
     "current": "P_t(r)=sqrt(f*h/b)*(r^2*(h*w*w'-b')+alpha*((f-4+h/r^2+r*f*h'/h)*b'+(4-3*h/r^2-f)*h*w*w'+r*f*h*w'^2))",
