@@ -500,6 +500,7 @@ pub fn preflight_ifc_ids_work_package(
                 .applicable_ids_requirement_ids
                 .clone(),
             ids_requirement_evaluations: source_entity.ids_requirement_evaluations.clone(),
+            geometry_preflight: source_entity.geometry_preflight.clone(),
         });
     }
 
