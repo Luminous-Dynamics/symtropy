@@ -10,6 +10,7 @@
 use std::fmt;
 
 pub mod network;
+pub mod experiment_design;
 pub mod sensor_design;
 
 /// Arbitrary two-compartment exchange system:

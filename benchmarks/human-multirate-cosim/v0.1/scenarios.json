@@ -382,5 +382,216 @@
       "worst_case_minimum_information_eigenvalue"
     ],
     "claim_ceiling": "Exact subset and observability mathematics for tiny synthetic graph cases only."
+  },
+  "excitation_design_extension": {
+    "benchmark_id": "HUMAN-NESTED-EXCITATION-DESIGN-001",
+    "evidence_class": "synthetic_mathematical_software_only",
+    "candidate_models": [
+      {
+        "id": 1,
+        "label": "chain",
+        "capacities": [
+          1,
+          1,
+          1
+        ],
+        "initial": [
+          0,
+          0,
+          0
+        ],
+        "edges": [
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            2,
+            1
+          ]
+        ]
+      },
+      {
+        "id": 2,
+        "label": "chain_with_bypass",
+        "capacities": [
+          1,
+          1,
+          1
+        ],
+        "initial": [
+          0,
+          0,
+          0
+        ],
+        "edges": [
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            2,
+            1
+          ],
+          [
+            0,
+            2,
+            0.5
+          ]
+        ]
+      }
+    ],
+    "horizon": 2,
+    "selected_sensor_ids": [
+      30
+    ],
+    "sensors": [
+      {
+        "id": 30,
+        "node": 2,
+        "cost": 1,
+        "common_cause_group": null
+      }
+    ],
+    "observation_times": [
+      0.25,
+      0.5,
+      1,
+      2
+    ],
+    "noise_covariance": [
+      [
+        0.01
+      ]
+    ],
+    "sensor_budget": 1,
+    "max_abs_forcing": 1,
+    "integrated_squared_input_budget": 0.5,
+    "profiles": [
+      {
+        "id": 1,
+        "label": "passive_zero_input",
+        "segments": [
+          {
+            "start": 0,
+            "end": 2,
+            "forcing": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "label": "bounded_node_zero_pulse",
+        "segments": [
+          {
+            "start": 0,
+            "end": 0.5,
+            "forcing": [
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "start": 0.5,
+            "end": 2,
+            "forcing": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      }
+    ],
+    "objective": "maximize minimum pairwise equal-covariance Gaussian KL divergence over fixed-parameter candidate models",
+    "metrics": [
+      "integrated_squared_input",
+      "maximum_abs_forcing",
+      "pairwise_gaussian_kl_separation",
+      "minimum_pairwise_gaussian_kl",
+      "mean_pairwise_gaussian_kl",
+      "worst_case_indistinguishable",
+      "feasible_profile_count",
+      "rejected_candidate_count"
+    ],
+    "assumptions": [
+      "same initial state and capacities across candidate models",
+      "fixed candidate parameters",
+      "known strictly positive definite sensor covariance",
+      "noise blocks independent across observation times",
+      "piecewise-constant forcing and fixed graph within each candidate",
+      "candidate-specific nuisance parameters are fixed; profile likelihood / parameter profiling is not included"
+    ],
+    "claim_ceiling": "Exact piecewise-constant forced response and equal-covariance Gaussian KL discrimination arithmetic for this frozen synthetic graph family; not general T-optimal or optimal-control design.",
+    "pulse_grid": {
+      "nodes": [
+        0,
+        1,
+        2
+      ],
+      "amplitudes": [
+        -1,
+        -0.5,
+        0.5,
+        1
+      ],
+      "durations": [
+        0.25,
+        0.5,
+        1
+      ],
+      "first_profile_id": 100,
+      "expected_total_candidates": 36,
+      "expected_feasible_candidates": 30,
+      "expected_rejected_candidates": 6,
+      "rejection_reasons": [
+        "maximum_amplitude_exceeded",
+        "integrated_squared_input_exceeded"
+      ],
+      "known_best_discrete_profiles": [
+        {
+          "profile_id": 101,
+          "node": 0,
+          "amplitude": -1,
+          "duration": 0.5,
+          "integrated_squared_input": 0.5,
+          "minimum_pairwise_gaussian_kl": 0.3344981676303682
+        },
+        {
+          "profile_id": 110,
+          "node": 0,
+          "amplitude": 1,
+          "duration": 0.5,
+          "integrated_squared_input": 0.5,
+          "minimum_pairwise_gaussian_kl": 0.3344981676303682
+        },
+        {
+          "profile_id": 125,
+          "node": 2,
+          "amplitude": -1,
+          "duration": 0.5,
+          "integrated_squared_input": 0.5,
+          "minimum_pairwise_gaussian_kl": 0.3344981676303682
+        },
+        {
+          "profile_id": 134,
+          "node": 2,
+          "amplitude": 1,
+          "duration": 0.5,
+          "integrated_squared_input": 0.5,
+          "minimum_pairwise_gaussian_kl": 0.3344981676303682
+        }
+      ],
+      "optimization_scope": "exact enumeration over a finite single-node rectangular pulse catalogue only; no continuous-control optimality guarantee"
+    }
   }
 }

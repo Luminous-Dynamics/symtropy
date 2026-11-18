@@ -130,3 +130,28 @@ The `sensor_design` module composes the graph spectral oracle with a small exact
 The exact selector compares E-optimal, D-optimal and A-optimal objectives over all budget-feasible subsets (up to 16 candidate sensors). A separate robust lane enumerates every single declared common-cause group loss and scores the remaining observable subspace. Unknown groups and independent sensor failures are not inferred.
 
 This is a tiny known-truth mathematical reference, not a scalable sensor-placement solver and not a physical sensor-performance result. It is designed to export candidate-visible layouts and event histories to Symthaea #12728 while keeping evaluator truth sealed. The work is tracked in [HUMAN-NESTED-SENSOR-CO-DESIGN-001 / #5977](https://github.com/Luminous-Dynamics/symtropy/issues/5977).
+
+## Active input design and model discrimination
+
+The `network::SpectralOracle` now evaluates exact constant-forcing response for a frozen linear graph. It solves `C * dx/dt = -L*x + forcing` through the symmetric spectral basis, including zero modes without division by zero. Piecewise-constant forcing profiles are composed by carrying the exact state from one segment into the next.
+
+The `experiment_design` module compares candidate graph structures under a shared bounded input and selected sensors. Its first reference score is covariance-aware pairwise Gaussian equal-covariance Gaussian KL separation:
+
+`0.5 * sum_time[(mu_i - mu_j)^T * R^(-1) * (mu_i - mu_j)]`.
+
+The tournament maximizes the minimum pairwise separation across candidate model pairs, with deterministic ties resolved by lower integrated squared input, lower peak amplitude and profile ID. It compares a passive zero-input profile with a bounded pulse on a three-node chain versus a chain with a bypass edge.
+
+This is a deterministic known-covariance, fixed-candidate-parameter reference. It does not yet solve a continuous optimal-control problem, profile nuisance parameters, infer model probabilities, account for temporal noise correlation or claim that the candidate set contains the true system. It is not a physiological model. Work is tracked in [HUMAN-NESTED-EXCITATION-DESIGN-001 / #5982](https://github.com/Luminous-Dynamics/symtropy/issues/5982).
+
+The score is the equal-covariance Gaussian KL divergence for fixed candidate parameters and observation covariance, summed over independent observation-time blocks. It is not the general nuisance-parameter-profiled T-optimal design objective. The next qualification layer must profile candidate-specific nuisance parameters, account for model discrepancy and compare against a Pontryagin/optimal-control reference before making a broader optimal-design claim.
+
+### Finite pulse-catalogue search
+
+The active-input runner now enumerates a deterministic finite grid over:
+- injection node: 0, 1, 2;
+- pulse amplitude: -1.0, -0.5, +0.5, +1.0;
+- pulse duration: 0.25, 0.5, 1.0.
+
+Every candidate gets a stable profile ID. Feasible profiles are scored; over-amplitude and over-energy candidates are retained as explicit rejection rows. On this frozen fixture, the finite grid contains 30 feasible profiles and 6 rejected profiles. The best worst-case pairwise Gaussian KL score is approximately 0.334498 for a unit-amplitude, 0.5-duration pulse at node 0 or node 2.
+
+This is exact enumeration of a small, preregistered pulse family. It is not the continuous-control optimum and does not imply that the best discrete candidate is globally optimal. A future comparison should use the low-dimensional Pontryagin/optimal-control formulation from the cited model-discrimination literature and report the continuous-vs-grid optimality gap.
