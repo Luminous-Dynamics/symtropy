@@ -122,6 +122,7 @@ pub enum ProfiledDiscriminationError {
     MissingModelFamilyAssignment(u32),
     InsufficientModelFamilies,
     MissingVariantPair { left_family: u32, right_family: u32 },
+    MissingFamilyVariant(u32),
     NoProfiles,
     DuplicateProfileId(u32),
     InvalidAdequacyThreshold,
@@ -157,6 +158,9 @@ impl fmt::Display for ProfiledDiscriminationError {
                 f,
                 "no model-variant pair exists for families {left_family} and {right_family}"
             ),
+            Self::MissingFamilyVariant(id) => {
+                write!(f, "family {id} has no registered model variant")
+            }
             Self::NoProfiles => write!(f, "at least one input profile is required"),
             Self::DuplicateProfileId(id) => write!(f, "duplicate input profile ID {id}"),
             Self::InvalidAdequacyThreshold => {
@@ -214,10 +218,10 @@ impl ProfiledModelFamilyScenario {
             family_ids.insert(assignment.family_id);
         }
 
-        for model_id in model_ids {
-            if !assigned_model_ids.contains(&model_id) {
+        for model in &self.experiment.models {
+            if !assigned_model_ids.contains(&model.id) {
                 return Err(ProfiledDiscriminationError::MissingModelFamilyAssignment(
-                    model_id,
+                    model.id,
                 ));
             }
         }
@@ -462,10 +466,7 @@ pub fn evaluate_model_family_adequacy(
             .collect();
         variants.sort_by_key(|(model_id, _)| *model_id);
         if variants.is_empty() {
-            return Err(ProfiledDiscriminationError::MissingVariantPair {
-                left_family: family_id,
-                right_family: family_id,
-            });
+            return Err(ProfiledDiscriminationError::MissingFamilyVariant(family_id));
         }
 
         let minimum_gaussian_residual = variants
