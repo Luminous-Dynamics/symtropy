@@ -1,0 +1,298 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/shipyard-lift-telemetry-event-v0.1.schema.json",
+  "title": "Shipyard Lift Telemetry Event V0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "source_id",
+    "source_revision",
+    "sequence",
+    "source_clock_domain_id",
+    "clock_mapping_source_domain_id",
+    "clock_mapping_target_domain_id",
+    "clock_mapping_id",
+    "clock_mapping_revision",
+    "event_time_lower_tick",
+    "event_time_upper_tick",
+    "received_tick",
+    "clock_domain_id",
+    "calibration_or_source_evidence",
+    "clock_mapping_evidence",
+    "observation"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_clock_domain_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "clock_mapping_source_domain_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "clock_mapping_target_domain_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "clock_mapping_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "clock_mapping_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "event_time_lower_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "event_time_upper_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "received_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "clock_domain_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "calibration_or_source_evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "clock_mapping_evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "observation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "upper_mn"
+          ],
+          "properties": {
+            "kind": {
+              "const": "hook_load"
+            },
+            "upper_mn": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "upper_mm_per_s"
+          ],
+          "properties": {
+            "kind": {
+              "const": "wind_gust"
+            },
+            "upper_mm_per_s": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "crane_id",
+            "configuration_revision"
+          ],
+          "properties": {
+            "kind": {
+              "const": "crane_configuration"
+            },
+            "crane_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "configuration_revision": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "report_id",
+            "report_sha256",
+            "within_envelope"
+          ],
+          "properties": {
+            "kind": {
+              "const": "motion_envelope"
+            },
+            "report_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "report_sha256": {
+              "type": "string",
+              "pattern": "^[0-9A-Fa-f]{64}$"
+            },
+            "within_envelope": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "projection_id",
+            "projection_sha256",
+            "covers_lift"
+          ],
+          "properties": {
+            "kind": {
+              "const": "occupancy_projection"
+            },
+            "projection_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "projection_sha256": {
+              "type": "string",
+              "pattern": "^[0-9A-Fa-f]{64}$"
+            },
+            "covers_lift": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "active"
+          ],
+          "properties": {
+            "kind": {
+              "const": "overload_alarm"
+            },
+            "active": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "state"
+          ],
+          "properties": {
+            "kind": {
+              "const": "hoist_state"
+            },
+            "state": {
+              "enum": [
+                "hoisting",
+                "lowering",
+                "paused",
+                "idle",
+                "unknown"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_record_id",
+        "owner_id",
+        "revision",
+        "subject_id",
+        "subject_revision",
+        "sha256",
+        "validity_clock_domain_id",
+        "valid_from_tick",
+        "valid_until_tick",
+        "state"
+      ],
+      "properties": {
+        "source_record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{64}$"
+        },
+        "validity_clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "valid_from_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "state": {
+          "enum": [
+            "current",
+            "revoked",
+            "superseded"
+          ]
+        }
+      }
+    }
+  }
+}
