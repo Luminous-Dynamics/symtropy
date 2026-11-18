@@ -25,6 +25,8 @@ pub struct EvidenceRef {
     pub subject_id: String,
     pub subject_revision: String,
     pub sha256: String,
+    /// Clock domain used by the validity interval ticks.
+    pub validity_clock_domain_id: String,
     /// Inclusive start of the evidence-validity interval.
     pub valid_from_tick: u64,
     /// Exclusive end of the evidence-validity interval.
@@ -193,6 +195,7 @@ fn validate_evidence(
     evidence: &EvidenceRef,
     start_tick: u64,
     end_tick: u64,
+    expected_clock_domain_id: &str,
     seen_ids: &mut BTreeMap<String, EvidenceRef>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
@@ -202,13 +205,14 @@ fn validate_evidence(
         || !nonblank(&evidence.revision)
         || !nonblank(&evidence.subject_id)
         || !nonblank(&evidence.subject_revision)
+        || !nonblank(&evidence.validity_clock_domain_id)
     {
         diagnostic(
             diagnostics,
             "EVIDENCE_IDENTITY_INCOMPLETE",
             DiagnosticSeverity::Indeterminate,
             Some(id),
-            "source record, owner, document revision and exact subject binding must be nonblank",
+            "source record, owner, document revision, exact subject binding and validity clock domain must be nonblank",
         );
     }
     if !is_sha256(&evidence.sha256) {
@@ -218,6 +222,15 @@ fn validate_evidence(
             DiagnosticSeverity::Indeterminate,
             Some(id),
             "evidence digest must be exactly 64 hexadecimal characters",
+        );
+    }
+    if evidence.validity_clock_domain_id != expected_clock_domain_id {
+        diagnostic(
+            diagnostics,
+            "EVIDENCE_CLOCK_DOMAIN_MISMATCH",
+            DiagnosticSeverity::Indeterminate,
+            Some(id),
+            "evidence validity ticks must use the exact lift-plan clock domain",
         );
     }
     if evidence.valid_from_tick >= evidence.valid_until_tick
@@ -479,13 +492,14 @@ fn evidence_state_name(value: EvidenceState) -> &'static str {
 
 fn evidence_json(evidence: &EvidenceRef) -> String {
     format!(
-        "{{\"source_record_id\":{},\"owner_id\":{},\"revision\":{},\"subject_id\":{},\"subject_revision\":{},\"sha256\":{},\"valid_from_tick\":{},\"valid_until_tick\":{},\"state\":{}}}",
+        "{{\"source_record_id\":{},\"owner_id\":{},\"revision\":{},\"subject_id\":{},\"subject_revision\":{},\"sha256\":{},\"validity_clock_domain_id\":{},\"valid_from_tick\":{},\"valid_until_tick\":{},\"state\":{}}}",
         json_quote(&evidence.source_record_id),
         json_quote(&evidence.owner_id),
         json_quote(&evidence.revision),
         json_quote(&evidence.subject_id),
         json_quote(&evidence.subject_revision),
         json_quote(&evidence.sha256.to_ascii_lowercase()),
+        json_quote(&evidence.validity_clock_domain_id),
         evidence.valid_from_tick,
         evidence.valid_until_tick,
         json_quote(evidence_state_name(evidence.state)),
@@ -709,6 +723,7 @@ pub fn evaluate(plan: &LiftPlan) -> PreflightReport {
             evidence,
             plan.start_tick,
             plan.end_tick,
+            &plan.clock_domain_id,
             &mut seen_evidence_ids,
             &mut diagnostics,
         );
@@ -848,6 +863,7 @@ pub fn evaluate(plan: &LiftPlan) -> PreflightReport {
             &leg.wll_evidence,
             plan.start_tick,
             plan.end_tick,
+            &plan.clock_domain_id,
             &mut seen_evidence_ids,
             &mut diagnostics,
         );
@@ -989,6 +1005,7 @@ mod tests {
             subject_id: subject.to_owned(),
             subject_revision: subject_revision.to_owned(),
             sha256: "a".repeat(64),
+            validity_clock_domain_id: "yard-monotonic-ms".to_owned(),
             valid_from_tick: 0,
             valid_until_tick: 1_000,
             state: EvidenceState::Current,
@@ -1250,6 +1267,15 @@ mod tests {
         let report = evaluate(&plan);
         assert_eq!(report.disposition, Disposition::Indeterminate);
         assert!(has_code(&report, "EVIDENCE_ID_CONFLICT"));
+    }
+
+    #[test]
+    fn evidence_validity_in_a_different_clock_domain_is_indeterminate() {
+        let mut plan = baseline();
+        plan.mass_evidence.validity_clock_domain_id = "utc-wall-clock".to_owned();
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "EVIDENCE_CLOCK_DOMAIN_MISMATCH"));
     }
 
     #[test]
