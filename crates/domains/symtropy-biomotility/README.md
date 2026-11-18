@@ -7,12 +7,14 @@ CPU-first reference models and benchmark analysis for biological movement.
 The first executable model represents a run/event process with distinct:
 
 - run durations conditioned on the preceding run direction;
-- short reorientation events (operationally <= 1 second), with turn-angle samples conditioned on the preceding direction;
-- long mechanical-trap events (> 1 second), with a pooled turn-angle distribution.
+- short reorientation events around a declared 1-second cut, with turn-angle samples conditioned on incoming direction;
+- long mechanical-trap events around the same cut, with a pooled turn-angle distribution.
+
+The exact 1.0-second boundary is a versioned `ThresholdBoundaryPolicy`. The 2026 paper uses <=1 s in the Figure 3/4 descriptions but also uses <1 s in other prose; the 2025 paper describes short <1 s and long >1 s. The default test fixture selects `ShortInclusive` for reproducing the 2026 figure caption convention. A source reproduction must also run `LongInclusive` and `ExcludeExactBoundary` sensitivity cases. Do not silently treat this boundary policy as a biological truth.
 
 This separation is important for the Pseudomonas putida porous-agar evidence base. A passive trap is not an active motor turn, and a model that pools them can erase the directional mechanism under investigation.
 
-The code is an **event-based reference kernel**, not a validated flagellar motor model, hydrodynamic solver, pore-resolved simulator, growth model or biological prediction system. It includes seeded rotational diffusion during runs (Euler–Maruyama-style heading increments) and sampled event durations/angles, but it does not yet resolve agar pore geometry, cell-body hydrodynamics, flagellar motor states, nutrient diffusion, population growth or ensemble mean-squared displacement.
+The code is an **event-based reference kernel**, not a validated flagellar motor model, hydrodynamic solver, pore-resolved simulator, growth model or biological prediction system. It includes seeded rotational diffusion during runs (Euler–Maruyama-style heading increments), sampled event durations/angles, and a trajectory-level time-origin-averaged MSD evaluator. It does not yet resolve agar pore geometry, cell-body hydrodynamics, flagellar motor states, nutrient diffusion or population growth.
 
 ## Research anchor
 
@@ -67,6 +69,12 @@ The model distinguishes:
 
 Rotational diffusion acts during runs and is controlled by a declared coefficient and integration step. The integration loop fails closed if a step cannot advance simulated time or exceeds the per-run step budget.
 
+## Mean-squared displacement (MSD)
+
+Every simulation retains time-stamped positions during run integration and at stationary-event endpoints. `mean_squared_displacement` interpolates the trace at requested lag/origin times, computes a time-origin average for each trajectory, and then computes the mean and sample standard deviation across trajectories. Each trajectory contributes one track-level estimate; frames and overlapping time origins are not treated as independent biological replicates.
+
+This is an evaluator for the generated model traces, not a reproduction of the 2025 published MSD. It currently reports between-trajectory SD, not a biological-replicate bootstrap confidence interval. The observation interval, integration step and interpolation error must be matched/quantified before source comparison.
+
 ## Interpretation of conditional orientation metrics
 
 The summary attaches an event in record i to the run in record i+1. The final event has no observed following run and is excluded from the conditional denominator. Therefore short-event and long-trap fractions are not calculated from the run that occurred before the event. Direction is classified at the beginning of the following run; rotational diffusion during that following run is a separate trajectory effect.
@@ -76,9 +84,10 @@ The summary attaches an event in record i to the run in record i+1. The final ev
 1. Verify dataset rights, exact version, file listing, checksums, schemas and experimental-unit metadata.
 2. Map source event data into a documented, versioned normalized record format.
 3. Reproduce the reported conditional statistics with replicate-aware uncertainty, keeping plate/day/track grouping intact.
-4. Reproduce Datta et al.'s intermittent active-particle baseline, including rotational diffusion and mean-squared displacement, before claiming incremental value from event separation.
-5. Compare no-bias, run-time-only, turn-angle-only and combined models under identical seeds and parameter/data budgets.
-6. Add geometry-resolved pore obstruction and passive trapping as an independent physical process.
-7. Generalize only after held-out validation across media conditions and other organisms.
+4. Compare the trajectory-level MSD evaluator against analytic straight-run fixtures and then reproduce Datta et al.'s 2025 MSD with source-admitted waiting-time distributions.
+5. Add renewal-process dwell-time distributions (piecewise power-law with finite-size cutoff) and matched event-model alternatives; do not assume exponential or fixed event durations.
+6. Compare no-bias, run-time-only, turn-angle-only and combined models under identical seeds and parameter/data budgets.
+7. Add geometry-resolved pore obstruction and passive trapping as an independent physical process.
+8. Generalize only after held-out validation across media conditions and other organisms.
 
 No wet-lab work, bacterial culture, ecological release, or physical intervention is authorized by this software.
