@@ -10,6 +10,7 @@ V0 independently checks a proposed synthetic plan for:
 - declared shared-resource capacity using half-open time intervals;
 - operation precedence;
 - unique reservation identities, even when duplicate reservations remain below declared resource capacity;
+- nonblank block, area, access-window, resource, reservation, and operation identifiers; duplicate access-window, resource, operation and reservation identities are rejected;
 - invalid intervals/footprints;
 - explicit unknowns for missing footprints and resource capability/capacity.
 
