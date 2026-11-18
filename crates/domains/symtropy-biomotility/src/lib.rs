@@ -387,11 +387,17 @@ impl fmt::Display for SimulationError {
                 write!(formatter, "invalid motility profile: {error}")
             }
             Self::InvalidInitialState => {
-                write!(formatter, "initial agent state must be finite with non-negative elapsed time")
+                write!(
+                    formatter,
+                    "initial agent state must be finite with non-negative elapsed time"
+                )
             }
             Self::InvalidGradientHeading => write!(formatter, "gradient heading must be finite"),
             Self::NonFiniteTrajectory => {
-                write!(formatter, "simulation produced a non-finite state; check profile magnitudes")
+                write!(
+                    formatter,
+                    "simulation produced a non-finite state; check profile magnitudes"
+                )
             }
             Self::IntegrationStepBudgetExceeded => {
                 write!(formatter, "run exceeded the maximum integration-step budget")
