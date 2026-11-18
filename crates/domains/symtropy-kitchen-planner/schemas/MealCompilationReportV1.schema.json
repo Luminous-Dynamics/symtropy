@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/kitchen/MealCompilationReportV1.schema.json",
+  "title": "MealCompilationReportV1",
+  "description": "Deterministic compilation disposition and linked proposal-derived action/material graphs. Compiled does not mean scheduled, admitted, safe, measured, accepted or actuated.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "proposal_id",
+    "proposal_revision",
+    "proposal_sha256",
+    "compiler_version_ref",
+    "disposition",
+    "issues",
+    "resolution_refs",
+    "recipe_graph",
+    "food_flow_graph",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "request_id": { "type": "string" },
+    "proposal_id": { "type": "string" },
+    "proposal_revision": { "type": "integer", "minimum": 0 },
+    "proposal_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "compiler_version_ref": { "const": "symtropy-kitchen-meal-compiler-v1" },
+    "disposition": { "enum": ["compiled", "indeterminate", "blocked", "conflicted"] },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "reference", "detail"],
+        "properties": {
+          "code": { "type": "string", "minLength": 1 },
+          "reference": { "type": ["string", "null"] },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "resolution_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "recipe_graph": {
+      "anyOf": [
+        { "$ref": "https://luminousdynamics.io/schemas/kitchen/RecipeTaskGraphV1.schema.json" },
+        { "type": "null" }
+      ]
+    },
+    "food_flow_graph": {
+      "anyOf": [
+        { "$ref": "#/$defs/food_flow_graph" },
+        { "type": "null" }
+      ]
+    },
+    "claim_ceiling": {
+      "const": "Deterministic compilation of a supplied, accepted meal proposal and explicit reviewed task/material-flow resolutions only; not proof of household inventory, freshness, food safety, allergen status, physical compatibility, measured process yield, sensory acceptance, appliance safety, schedule feasibility, or authority to actuate."
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "disposition": { "const": "compiled" } }, "required": ["disposition"] },
+      "then": {
+        "properties": {
+          "issues": { "maxItems": 0 },
+          "recipe_graph": { "type": "object" },
+          "food_flow_graph": { "type": "object" }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "food_flow_graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "proposal_id", "proposal_revision", "edges", "claim_ceiling"],
+      "properties": {
+        "schema_version": { "const": 1 },
+        "proposal_id": { "type": "string" },
+        "proposal_revision": { "type": "integer", "minimum": 1 },
+        "edges": {
+          "type": "array",
+          "items": { "$ref": "https://luminousdynamics.io/schemas/kitchen/MealCompilationRequestV1.schema.json#/$defs/food_flow_edge" }
+        },
+        "claim_ceiling": {
+          "const": "Planned typed ingredient and intermediate material allocations only; not measured process yield, mass-balance closure, physical inventory, food safety, sensory acceptance, or disposal evidence."
+        }
+      }
+    }
+  }
+}
