@@ -481,4 +481,64 @@ make_negative "size bin straddles the process target-size boundary but claims in
    | .d_min_um.value) = 15
 '
 
+make_negative "process requires thermal conductivity but no matching reactor-inlet measurement exists" '
+  .acceptance_profile.property_constraints = [{
+    "property_id": "thermal_conductivity",
+    "minimum_value": 0.5,
+    "maximum_value": null,
+    "unit": "W/mK",
+    "test_condition_id": "SYN-VACUUM-300K",
+    "rationale": "synthetic negative control",
+    "source_scope": "synthetic fixture only"
+  }]
+'
+
+make_negative "thermal property interval crosses the required minimum but claims in-spec" '
+  .acceptance_profile.property_constraints = [{
+    "property_id": "thermal_conductivity",
+    "minimum_value": 1.0,
+    "maximum_value": null,
+    "unit": "W/mK",
+    "test_condition_id": "SYN-VACUUM-300K",
+    "rationale": "synthetic negative control",
+    "source_scope": "synthetic fixture only"
+  }]
+  | (.quality_samples[] | select(.sample_id == "Q-REACTOR-001") | .property_measurements) += [{
+      "property_id": "thermal_conductivity",
+      "test_condition_id": "SYN-VACUUM-300K",
+      "measurement": {
+        "value": 1.0,
+        "standard_uncertainty": 0.2,
+        "unit": "W/mK",
+        "status": "synthetic",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      }
+    }]
+'
+
+make_negative "property measured under a different test condition is treated as accepted" '
+  .acceptance_profile.property_constraints = [{
+    "property_id": "thermal_conductivity",
+    "minimum_value": 0.5,
+    "maximum_value": null,
+    "unit": "W/mK",
+    "test_condition_id": "SYN-VACUUM-300K",
+    "rationale": "synthetic negative control",
+    "source_scope": "synthetic fixture only"
+  }]
+  | (.quality_samples[] | select(.sample_id == "Q-REACTOR-001") | .property_measurements) += [{
+      "property_id": "thermal_conductivity",
+      "test_condition_id": "SYN-AIR-298K",
+      "measurement": {
+        "value": 2.0,
+        "standard_uncertainty": 0.1,
+        "unit": "W/mK",
+        "status": "synthetic",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      }
+    }]
+'
+
 printf 'lunar feedstock contract: PASS (synthetic chain only; no physical process qualification)\n'
