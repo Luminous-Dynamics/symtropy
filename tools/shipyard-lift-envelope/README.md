@@ -79,10 +79,6 @@ The current V0 does not calculate:
 
 These remain unsupported, not implicitly passed.
 
-## Comparative benchmark protocol
-
-See [BENCHMARK-PROTOCOL.md](BENCHMARK-PROTOCOL.md) for the separate preflight, exact-arithmetic, downstream hoisting/path-planning and commercial-workflow comparison contracts. It includes the 2026 A*HNSA literature anchor, 3D Lift Plan capability matrix, ISO/ASME applicability boundaries, adversarial strata and release gates. Those references are not results produced by this crate.
-
 ## Tests
 
 The dependency-free unit suite currently contains 28 tests and covers:
@@ -104,7 +100,10 @@ cargo fmt --manifest-path tools/shipyard-lift-envelope/Cargo.toml -- --check
 cargo test --locked --offline --manifest-path tools/shipyard-lift-envelope/Cargo.toml
 cargo check --locked --offline --manifest-path tools/shipyard-lift-envelope/Cargo.toml --all-targets
 cargo clippy --locked --offline --manifest-path tools/shipyard-lift-envelope/Cargo.toml --all-targets -- -D warnings
+cargo run --locked --offline --manifest-path tools/shipyard-lift-envelope/Cargo.toml --example synthetic_preflight
 ```
+
+The exact-head workflow also runs the synthetic example, verifies its canonical input/report fields, checks the expected human-review-only disposition, computes separate SHA-256 digests for both byte streams, and retains a small evidence receipt/artifact. This example remains synthetic; it is not a real crane chart or lift instruction.
 
 The Rust toolchain is unavailable in the current authoring environment. These tests have been authored but have **not** been compiled or run locally; the exact-head workflow is the next gate.
 
