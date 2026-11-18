@@ -10,6 +10,7 @@
 use std::collections::BTreeSet;
 
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 pub const COAVAILABILITY_SCHEMA_VERSION: u16 = 1;
 
@@ -139,6 +140,8 @@ pub struct CoAvailabilityInput {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CoAvailabilityReport {
     pub schema_version: u16,
+    /// SHA-256 of normalized typed input; integrity binding, not source authentication.
+    pub input_digest_sha256: String,
     pub scenario_id: String,
     pub sortie_id: String,
     pub verdict: FeasibilityVerdict,
@@ -280,6 +283,30 @@ fn structural_errors(input: &CoAvailabilityInput) -> Vec<String> {
     errors
 }
 
+fn canonical_input_digest(input: &CoAvailabilityInput) -> Result<String, String> {
+    let mut canonical = input.clone();
+    for stop in &mut canonical.carrier.route_stops {
+        stop.available_pad_resource_ids.sort();
+    }
+    canonical.existing_reservations.sort_by(|left, right| {
+        (
+            left.resource_id.as_str(),
+            left.start_ms,
+            left.end_ms,
+            left.reservation_id.as_str(),
+        )
+            .cmp(&(
+                right.resource_id.as_str(),
+                right.start_ms,
+                right.end_ms,
+                right.reservation_id.as_str(),
+            ))
+    });
+    let encoded = serde_json::to_vec(&canonical)
+        .map_err(|error| format!("cannot serialize canonical co-availability input: {error}"))?;
+    Ok(format!("{:x}", Sha256::digest(encoded)))
+}
+
 fn record_evidence_status(
     status: EvidenceStatus,
     label: &str,
@@ -329,6 +356,8 @@ pub fn evaluate_coavailability(
     if !errors.is_empty() {
         return Err(errors);
     }
+    let input_digest_sha256 =
+        canonical_input_digest(input).map_err(|error| vec![error])?;
 
     let mut findings = Vec::new();
     let mut known_infeasible = false;
@@ -592,6 +621,7 @@ pub fn evaluate_coavailability(
 
     Ok(CoAvailabilityReport {
         schema_version: COAVAILABILITY_SCHEMA_VERSION,
+        input_digest_sha256,
         scenario_id: input.scenario_id.clone(),
         sortie_id: sortie.sortie_id.clone(),
         verdict,
@@ -676,6 +706,62 @@ mod tests {
             },
             existing_reservations: vec![],
         }
+    }
+
+    #[test]
+    fn canonical_input_digest_ignores_pad_and_reservation_input_order() {
+        let mut first = input();
+        first.carrier.route_stops[0]
+            .available_pad_resource_ids
+            .push("secondary-pad".into());
+        first.existing_reservations = vec![
+            ResourceReservation {
+                reservation_id: "reservation-a".into(),
+                resource_id: "unused-pad-a".into(),
+                start_ms: 10,
+                end_ms: 20,
+            },
+            ResourceReservation {
+                reservation_id: "reservation-b".into(),
+                resource_id: "unused-pad-b".into(),
+                start_ms: 30,
+                end_ms: 40,
+            },
+        ];
+        let mut second = first.clone();
+        second.carrier.route_stops[0]
+            .available_pad_resource_ids
+            .reverse();
+        second.existing_reservations.reverse();
+
+        let first_report = evaluate_coavailability(&first).expect("first input");
+        let second_report = evaluate_coavailability(&second).expect("permuted input");
+        assert_eq!(
+            first_report.input_digest_sha256,
+            second_report.input_digest_sha256
+        );
+        assert_eq!(first_report.verdict, second_report.verdict);
+    }
+
+    #[test]
+    fn canonical_input_digest_changes_when_mission_requirement_changes() {
+        let first = evaluate_coavailability(&input()).expect("first input");
+        let mut changed = input();
+        changed.sortie.flight_energy_wh += 1;
+        let second = evaluate_coavailability(&changed).expect("changed input");
+        assert_ne!(first.input_digest_sha256, second.input_digest_sha256);
+    }
+
+    #[test]
+    fn input_digest_is_lowercase_sha256() {
+        let report = evaluate_coavailability(&input()).expect("valid input");
+        assert_eq!(report.input_digest_sha256.len(), 64);
+        assert!(
+            report
+                .input_digest_sha256
+                .chars()
+                .all(|ch| ch.is_ascii_digit() || ('a'..='f').contains(&ch))
+        );
     }
 
     #[test]
