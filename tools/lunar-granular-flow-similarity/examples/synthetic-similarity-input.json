@@ -21,7 +21,8 @@
       "atmosphere": "high_vacuum",
       "wall_material": "PTFE",
       "wall_grounding": "floating",
-      "flow_regime": "slumping"
+      "flow_regime": "slumping",
+      "electrostatic_axis_id": "vertical_up_positive"
     }
   },
   "candidate": {
@@ -46,7 +47,8 @@
       "atmosphere": "high_vacuum",
       "wall_material": "PTFE",
       "wall_grounding": "floating",
-      "flow_regime": "slumping"
+      "flow_regime": "slumping",
+      "electrostatic_axis_id": "vertical_up_positive"
     }
   },
   "tolerances": {
