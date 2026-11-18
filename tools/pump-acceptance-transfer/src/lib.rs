@@ -319,6 +319,17 @@ fn validate_case(case: &Case) -> Result<(), String> {
     if !valid_date(&case.catalog_snapshot_date) || !valid_date(&case.assessment_as_of) {
         return Err(format!("case {}: invalid direct date", case.case_id));
     }
+    for (field, value) in [
+        ("test_fluid", case.test_fluid.as_str()),
+        ("test_boundary_ref", case.test_boundary_ref.as_str()),
+        ("site_fluid", case.site_fluid.as_str()),
+        ("repair_state", case.repair_state.as_str()),
+        ("site_evidence_state", case.site_evidence_state.as_str()),
+    ] {
+        if !valid_ref(value) {
+            return Err(format!("case {}: invalid direct {field}", case.case_id));
+        }
+    }
     if case.test_speed_rpm == 0 || case.flow_ml_s == 0 {
         return Err(format!("case {}: speed and flow must be positive", case.case_id));
     }
@@ -353,7 +364,8 @@ pub fn parse_curve_points(input: &str) -> Result<Vec<CurvePoint>, String> {
         }
         let point = CurvePoint {
             case_id: row[0].to_owned(),
-            point_index: parse_u64(row[1], "curve points", index + 2, "point_index")? as usize,
+            point_index: usize::try_from(parse_u64(row[1], "curve points", index + 2, "point_index")?)
+                .map_err(|_| format!("curve points:{}: point_index exceeds platform range", index + 2))?,
             flow_ml_s: parse_u64(row[2], "curve points", index + 2, "flow_ml_s")?,
             head_mm: parse_u64(row[3], "curve points", index + 2, "head_mm")?,
             head_uncertainty_mm: parse_u64(row[4], "curve points", index + 2, "head_uncertainty_mm")?,
@@ -404,7 +416,8 @@ fn interpolate_ceil(a: u64, b: u64, numerator: u64, denominator: u64) -> Option<
         .checked_mul((denominator - numerator) as u128)?
         .checked_add((b as u128).checked_mul(numerator as u128)?)?;
     let d = denominator as u128;
-    u64::try_from((n + d - 1) / d).ok()
+    let rounded = n.checked_add(d - 1)?;
+    u64::try_from(rounded / d).ok()
 }
 
 fn curve_head_interval(points: &[CurvePoint], flow: u64) -> Result<(u64, u64), Disposition> {
@@ -530,9 +543,22 @@ fn eval_one(case: &Case, points: &[CurvePoint]) -> Evaluation {
     if case.test_boundary_ref != case.site_boundary_ref {
         finish!(Disposition::NotTransferable, "factory curve and installed duty use different hydraulic boundaries");
     }
-    if case.test_speed_rpm != case.site_speed_rpm.unwrap_or(0)
-        || case.test_speed_rpm != case.manufacturer_speed_rpm.unwrap_or(0)
+    let manufacturer_speed = match case.manufacturer_speed_rpm {
+        Some(value) if value > 0 => value,
+        _ => finish!(Disposition::EvidenceIncomplete, "manufacturer NPSHr curve speed is missing"),
+    };
+    let site_speed = match case.site_speed_rpm {
+        Some(value) if value > 0 => value,
+        _ => finish!(Disposition::EvidenceIncomplete, "site duty speed is missing"),
+    };
+    if !valid_ref(&case.manufacturer_curve_ref)
+        || case.manufacturer_curve_ref == "-"
+        || case.manufacturer_npshr_low_mm.is_none()
+        || case.manufacturer_npshr_high_mm.is_none()
     {
+        finish!(Disposition::EvidenceIncomplete, "manufacturer-supplied NPSHr curve and interval are missing");
+    }
+    if case.test_speed_rpm != site_speed || case.test_speed_rpm != manufacturer_speed {
         finish!(Disposition::OutOfDomain, "site or manufacturer NPSHr speed differs from the exact tested speed; no speed-law correction is admitted");
     }
 
@@ -596,8 +622,14 @@ fn eval_one(case: &Case, points: &[CurvePoint]) -> Evaluation {
         finish!(Disposition::Indeterminate, "measured pump-head and required system-head intervals overlap");
     }
 
-    let required_npsha_low = npshr_low.saturating_add(margin);
-    let required_npsha_high = npshr_high.saturating_add(margin);
+    let required_npsha_low = match npshr_low.checked_add(margin) {
+        Some(value) => value,
+        None => finish!(Disposition::ProfileIncomplete, "NPSHr plus application margin exceeds the representable unit range"),
+    };
+    let required_npsha_high = match npshr_high.checked_add(margin) {
+        Some(value) => value,
+        None => finish!(Disposition::ProfileIncomplete, "NPSHr plus application margin exceeds the representable unit range"),
+    };
     if npsha_high < required_npsha_low {
         finish!(Disposition::InsufficientNpshMargin, "site NPSHa upper bound is below manufacturer NPSHr plus the approved application margin");
     }
