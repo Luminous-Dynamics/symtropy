@@ -219,7 +219,7 @@ impl Expr {
         match self {
             Self::Constant { value, dimension } => {
                 if !value.is_finite() {
-                    return Err(ModelError::NonFiniteInitialState(declaration.id));
+                    return Err(ModelError::NonFiniteConstant);
                 }
                 Ok(*dimension)
             }
@@ -938,7 +938,9 @@ fn validate_program(program: &ModelProgramV0) -> Result<(), ModelError> {
         }
     }
 
-    if program.class == ProposalClass::StochasticState && noise_node_count == 0 {
+    if program.class == ProposalClass::StochasticState
+        && validation_context.noise_node_count == 0
+    {
         return Err(ModelError::StochasticModelWithoutNoise);
     }
     Ok(())
