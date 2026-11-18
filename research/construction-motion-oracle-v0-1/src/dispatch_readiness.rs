@@ -50,9 +50,11 @@ pub struct OccupancyAssessmentReceipt {
     pub broadphase_pair_coverage_complete: bool,
     pub narrowphase_coverage_complete: bool,
     pub candidate_pair_count: u64,
+    pub narrowphase_evaluated_pair_count: u64,
     pub conflict_count: u64,
     pub unresolved_pair_count: u64,
     pub invalid_bound_count: u64,
+    pub unqualified_bound_count: u64,
     pub stale_actor_count: u64,
     pub unmodelled_occupant_count: u64,
     /// Digest of canonical occupancy assessment bytes, verified by caller.
@@ -62,6 +64,9 @@ pub struct OccupancyAssessmentReceipt {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DispatchReadinessRequest {
     pub envelope: DispatchEnvelopeBinding,
+    /// Owner-approved immutable occupancy engine build and clearance policy.
+    pub trusted_occupancy_engine_build_sha256: String,
+    pub required_clearance_policy_sha256: String,
     pub occupancy: OccupancyAssessmentReceipt,
     /// Current tick in the declared site clock domain, from a qualified
     /// clock source. This is not a wall-clock timestamp.
@@ -98,6 +103,8 @@ pub enum DispatchReadinessFailure {
     EnvelopeNotYetValid,
     OccupancyEnvelopeMismatch,
     OccupancyPrimitiveManifestMismatch,
+    OccupancyEngineBuildMismatch,
+    ClearancePolicyMismatch,
     OccupancyClockDomainMismatch,
     SiteSnapshotSequenceMismatch,
     SiteSnapshotHeadMismatch,
@@ -146,6 +153,8 @@ pub fn check_dispatch_readiness(
         ("actor manifest", occupancy.actor_manifest_sha256.as_str()),
         ("occupancy engine build", occupancy.occupancy_engine_build_sha256.as_str()),
         ("clearance policy", occupancy.clearance_policy_sha256.as_str()),
+        ("trusted occupancy engine build", request.trusted_occupancy_engine_build_sha256.as_str()),
+        ("required clearance policy", request.required_clearance_policy_sha256.as_str()),
         ("assessment receipt", occupancy.assessment_receipt_sha256.as_str()),
     ] {
         if !is_sha256(digest) {
@@ -214,6 +223,12 @@ pub fn check_dispatch_readiness(
     if occupancy.site_clock_domain_id != envelope.site_clock_domain_id {
         return Err(DispatchReadinessFailure::OccupancyClockDomainMismatch);
     }
+    if occupancy.occupancy_engine_build_sha256 != request.trusted_occupancy_engine_build_sha256 {
+        return Err(DispatchReadinessFailure::OccupancyEngineBuildMismatch);
+    }
+    if occupancy.clearance_policy_sha256 != request.required_clearance_policy_sha256 {
+        return Err(DispatchReadinessFailure::ClearancePolicyMismatch);
+    }
     if occupancy.site_ledger_sequence != ledger.last_sequence() {
         return Err(DispatchReadinessFailure::SiteSnapshotSequenceMismatch);
     }
@@ -241,19 +256,22 @@ pub fn check_dispatch_readiness(
     if !occupancy.broadphase_pair_coverage_complete {
         return Err(DispatchReadinessFailure::IncompleteBroadphaseCoverage);
     }
-    if !occupancy.narrowphase_coverage_complete {
+    if !occupancy.narrowphase_coverage_complete
+        || occupancy.narrowphase_evaluated_pair_count < occupancy.candidate_pair_count
+    {
         return Err(DispatchReadinessFailure::IncompleteNarrowphaseCoverage);
     }
     if occupancy.conflict_count != 0
         || occupancy.unresolved_pair_count != 0
         || occupancy.invalid_bound_count != 0
+        || occupancy.unqualified_bound_count != 0
         || occupancy.stale_actor_count != 0
         || occupancy.unmodelled_occupant_count != 0
     {
         return Err(DispatchReadinessFailure::OccupancyNotClear {
             conflicts: occupancy.conflict_count,
             unresolved_pairs: occupancy.unresolved_pair_count,
-            invalid_bounds: occupancy.invalid_bound_count,
+            invalid_bounds: occupancy.invalid_bound_count + occupancy.unqualified_bound_count,
             stale_actors: occupancy.stale_actor_count,
             unmodelled_occupants: occupancy.unmodelled_occupant_count,
         });
@@ -357,6 +375,8 @@ mod tests {
                 generated_at_tick: 100,
                 valid_until_tick: 500,
             },
+            trusted_occupancy_engine_build_sha256: digest('e'),
+            required_clearance_policy_sha256: digest('f'),
             occupancy: OccupancyAssessmentReceipt {
                 assessed_envelope_sha256: digest('a'),
                 primitive_manifest_sha256: digest('8'),
@@ -375,9 +395,11 @@ mod tests {
                 broadphase_pair_coverage_complete: true,
                 narrowphase_coverage_complete: true,
                 candidate_pair_count: 0,
+                narrowphase_evaluated_pair_count: 0,
                 conflict_count: 0,
                 unresolved_pair_count: 0,
                 invalid_bound_count: 0,
+                unqualified_bound_count: 0,
                 stale_actor_count: 0,
                 unmodelled_occupant_count: 0,
                 assessment_receipt_sha256: digest('9'),
@@ -592,6 +614,36 @@ mod tests {
         let ledger = site_ledger();
         let mut request = make_request(&ledger);
         request.occupancy.narrowphase_coverage_complete = false;
+        assert_eq!(
+            check_dispatch_readiness(&ledger, &request),
+            Err(DispatchReadinessFailure::IncompleteNarrowphaseCoverage)
+        );
+    }
+
+
+    #[test]
+    fn unapproved_occupancy_engine_or_clearance_policy_blocks_readiness() {
+        let ledger = site_ledger();
+        let mut request = make_request(&ledger);
+        request.trusted_occupancy_engine_build_sha256 = digest('0');
+        assert_eq!(
+            check_dispatch_readiness(&ledger, &request),
+            Err(DispatchReadinessFailure::OccupancyEngineBuildMismatch)
+        );
+        request.trusted_occupancy_engine_build_sha256 = digest('e');
+        request.required_clearance_policy_sha256 = digest('0');
+        assert_eq!(
+            check_dispatch_readiness(&ledger, &request),
+            Err(DispatchReadinessFailure::ClearancePolicyMismatch)
+        );
+    }
+
+    #[test]
+    fn narrowphase_pair_count_must_cover_every_broadphase_candidate() {
+        let ledger = site_ledger();
+        let mut request = make_request(&ledger);
+        request.occupancy.candidate_pair_count = 3;
+        request.occupancy.narrowphase_evaluated_pair_count = 2;
         assert_eq!(
             check_dispatch_readiness(&ledger, &request),
             Err(DispatchReadinessFailure::IncompleteNarrowphaseCoverage)
