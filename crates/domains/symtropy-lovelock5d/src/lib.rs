@@ -717,6 +717,125 @@ impl BoulwareDeser5D {
     }
 }
 
+/// First-order slow-rotation expansion of the 5D static
+/// Boulware-Deser Einstein branch.
+///
+/// The exact first-order solution is from Brihaye et al. (2010), Eq. (2.21).
+/// The static metric functions remain Boulware-Deser through O(a), while
+/// w(r) is linear in the rotation parameter. Backreaction in b,f,h starts
+/// at O(a^2), so this is a perturbative control, not an exact finite-spin
+/// solution at nonzero alpha.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SlowRotationBoulwareDeser5D {
+    pub background: BoulwareDeser5D,
+    pub rotation_parameter: f64,
+}
+
+/// Metric and derivatives for the first-order slow-rotation expansion.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SlowRotationProfile5D {
+    pub sample: RadialMetricSample5D,
+    pub second_order_jet: reduced_action::RadialMetricJet5D,
+    pub w_horizon: f64,
+    pub angular_asymptotic_coefficient: f64,
+    pub conserved_angular_flux: f64,
+    pub perturbative_order: &'static str,
+}
+
+impl SlowRotationBoulwareDeser5D {
+    pub fn new(
+        horizon_radius: f64,
+        alpha: f64,
+        rotation_parameter: f64,
+    ) -> Result<Self, ReferenceError> {
+        if !rotation_parameter.is_finite() {
+            return Err(ReferenceError::NonFiniteParameter("rotation_parameter"));
+        }
+        Ok(Self {
+            background: BoulwareDeser5D::new(horizon_radius, alpha)?,
+            rotation_parameter,
+        })
+    }
+
+    pub fn horizon_angular_velocity(self) -> f64 {
+        self.rotation_parameter / self.background.horizon_radius.powi(2)
+    }
+
+    /// Coefficient W in w(r)=W/r^4+O(r^-6), at first order in spin.
+    pub fn angular_asymptotic_coefficient(self) -> f64 {
+        self.rotation_parameter
+            * (2.0 * self.background.horizon_radius.powi(2) + self.background.alpha)
+            / 2.0
+    }
+
+    /// The exact first-order angular Noether flux P_w=-4W.
+    pub fn conserved_angular_flux(self) -> f64 {
+        -2.0
+            * self.rotation_parameter
+            * (2.0 * self.background.horizon_radius.powi(2) + self.background.alpha)
+    }
+
+    pub fn evaluate(self, radius: f64) -> Result<SlowRotationProfile5D, ReferenceError> {
+        let curvature = self.background.curvature_data(radius)?;
+        let r_h = self.background.horizon_radius;
+        let alpha = self.background.alpha;
+        let a = self.rotation_parameter;
+        let coupling_factor = 2.0 * r_h.powi(2) + alpha;
+        let radical = (1.0 + alpha * coupling_factor / radius.powi(4)).sqrt();
+        let w = a * coupling_factor / (radius.powi(4) * (1.0 + radical));
+        let w_prime = -2.0 * a * coupling_factor / (radius.powi(5) * radical);
+        let w_second = w_prime
+            * (-5.0 / radius
+                + 2.0 * alpha * coupling_factor
+                    / (radical.powi(2) * radius.powi(5)));
+        let g = radius.powi(2);
+        let radial_sample = RadialMetricSample5D {
+            radius,
+            b: curvature.lapse,
+            f: curvature.lapse,
+            g,
+            h: g,
+            w,
+            b_prime: curvature.lapse_prime,
+            f_prime: curvature.lapse_prime,
+            g_prime: 2.0 * radius,
+            h_prime: 2.0 * radius,
+            w_prime,
+        };
+        let jet = reduced_action::RadialMetricJet5D::areal_base(
+            radius,
+            curvature.lapse,
+            curvature.lapse,
+            g,
+            w,
+            curvature.lapse_prime,
+            curvature.lapse_prime,
+            2.0 * radius,
+            w_prime,
+            curvature.lapse_second,
+            curvature.lapse_second,
+            2.0,
+            w_second,
+        )
+        .map_err(|_| ReferenceError::InvalidMetricSample(
+            "slow-rotation reduced-action jet",
+        ))?;
+
+        let outputs = [w, w_prime, w_second];
+        if outputs.iter().any(|value| !value.is_finite()) {
+            return Err(ReferenceError::NonFiniteResult("slow-rotation profile"));
+        }
+        Ok(SlowRotationProfile5D {
+            sample: radial_sample,
+            second_order_jet: jet,
+            w_horizon: self.horizon_angular_velocity(),
+            angular_asymptotic_coefficient: self.angular_asymptotic_coefficient(),
+            conserved_angular_flux: self.conserved_angular_flux(),
+            perturbative_order: "linear in rotation parameter a; metric backreaction starts at O(a^2)",
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -953,6 +1072,40 @@ mod tests {
         let asymptotic = -2.0 * (bd.horizon_radius.powi(2) + alpha / 2.0);
         assert!((near - far).abs() > 1e-3);
         close(far, asymptotic, 2e-5);
+    }
+
+
+    #[test]
+    fn slow_rotation_bd_flux_is_exactly_constant_at_finite_alpha() {
+        let slow = SlowRotationBoulwareDeser5D::new(1.0, 0.7, 0.02).unwrap();
+        let expected = slow.conserved_angular_flux();
+        close(slow.angular_asymptotic_coefficient(), 0.027, 2e-15);
+        close(expected, -0.108, 2e-15);
+        close(slow.horizon_angular_velocity(), 0.02, 2e-15);
+        for radius in [1.01, 1.1, 1.5, 2.0, 3.0, 5.0, 10.0, 100.0] {
+            let profile = slow.evaluate(radius).unwrap();
+            close(profile.w_horizon, 0.02, 2e-15);
+            close(profile.conserved_angular_flux, expected, 0.0);
+            close(
+                egb_angular_momentum_flux(profile.sample, 0.7).unwrap(),
+                expected,
+                2e-13,
+            );
+        }
+    }
+
+    #[test]
+    fn slow_rotation_bd_matches_linearized_myers_perry_when_alpha_zero() {
+        let r_h = 1.0;
+        let a = 0.01;
+        let slow = SlowRotationBoulwareDeser5D::new(r_h, 0.0, a).unwrap();
+        let mp = MyersPerry5D::new(r_h, a / r_h.powi(2)).unwrap();
+        for radius in [1.1, 1.5, 2.0, 3.0, 5.0, 10.0] {
+            let slow_profile = slow.evaluate(radius).unwrap();
+            let mp_profile = mp.evaluate(radius).unwrap();
+            close(slow_profile.sample.w, mp_profile.w, 2e-6 * a.powi(3));
+            close(slow_profile.sample.w_prime, mp_profile.w_prime, 2e-6 * a.powi(3));
+        }
     }
 
     #[test]
