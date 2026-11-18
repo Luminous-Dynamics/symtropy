@@ -6,7 +6,10 @@
 //! safety-rated protective system. The caller must verify canonical receipt
 //! bytes and actor signatures before constructing these typed records.
 
-use crate::site_state_ledger::{SiteEntityState, SiteStateLedger};
+use crate::site_state_ledger::{
+    SiteActorRole, SiteApplyOutcome, SiteEntityState, SiteEventEnvelope, SiteEventPayload,
+    SiteLedgerError, SiteStateLedger,
+};
 
 pub const DISPATCH_READINESS_REQUEST_SCHEMA_VERSION: &str =
     "construction-dispatch-readiness-request/0.1";
@@ -128,6 +131,10 @@ pub enum DispatchReadinessFailure {
     IncompleteDynamicActorCoverage,
     IncompleteBroadphaseCoverage,
     IncompleteNarrowphaseCoverage,
+    ReservationEventMismatch,
+    ReservationReceiptBindingMismatch,
+    ReservationEventRejected(SiteLedgerError),
+    ReservationReleaseRejected(SiteLedgerError),
     OccupancyNotClear {
         conflicts: u64,
         unresolved_pairs: u64,
@@ -403,6 +410,131 @@ pub fn verify_dispatch_readiness_receipt_current(
         Some(_) => Err(DispatchReadinessFailure::EntityNotDispatchable),
         None => Err(DispatchReadinessFailure::UnknownDesignEntity),
     }
+}
+
+/// Atomically consume a still-current readiness receipt into the append-only
+/// site ledger. The caller must verify the canonical readiness receipt digest
+/// and the dispatch-coordinator event signature before calling this function.
+///
+/// The reservation event is committed against the exact ledger sequence/head
+/// that was checked by readiness. A successful append advances the ledger and
+/// makes the same readiness receipt stale, preventing two consumers from using
+/// one occupancy snapshot. Exclusive-resource overlap is checked again inside
+/// the ledger reducer, in the same mutation that appends the event.
+pub fn commit_dispatch_reservation(
+    ledger: &mut SiteStateLedger,
+    receipt: &DispatchReadinessReceipt,
+    verified_readiness_receipt_sha256: &str,
+    trusted_occupancy_engine_build_sha256: &str,
+    required_clearance_policy_sha256: &str,
+    now_tick: u64,
+    event: SiteEventEnvelope,
+) -> Result<SiteApplyOutcome, DispatchReadinessFailure> {
+    verify_dispatch_readiness_receipt_current(
+        ledger,
+        receipt,
+        trusted_occupancy_engine_build_sha256,
+        required_clearance_policy_sha256,
+        now_tick,
+    )?;
+    if !is_sha256(verified_readiness_receipt_sha256) {
+        return Err(DispatchReadinessFailure::InvalidDigest(
+            "verified readiness receipt",
+        ));
+    }
+    if event.actor_role != SiteActorRole::DispatchCoordinator {
+        return Err(DispatchReadinessFailure::ReservationEventMismatch);
+    }
+    let SiteEventPayload::SpaceTimeReservationCommitted { reservation } = &event.payload else {
+        return Err(DispatchReadinessFailure::ReservationEventMismatch);
+    };
+    if reservation.readiness_receipt_sha256 != verified_readiness_receipt_sha256
+        || reservation.package_sha256 != receipt.package_sha256
+        || reservation.design_revision_sha256 != receipt.design_revision_sha256
+        || reservation.entity_id != receipt.entity_id
+        || reservation.robot_id != receipt.robot_id
+        || reservation.envelope_sha256 != receipt.envelope_sha256
+        || reservation.site_snapshot_sha256 != receipt.site_snapshot_sha256
+        || reservation.occupancy_assessment_receipt_sha256
+            != receipt.occupancy_assessment_receipt_sha256
+        || reservation.occupancy_engine_build_sha256 != receipt.occupancy_engine_build_sha256
+        || reservation.clearance_policy_sha256 != receipt.clearance_policy_sha256
+        || reservation.site_ledger_sequence != receipt.site_ledger_sequence
+        || reservation.site_ledger_event_sha256 != receipt.site_ledger_event_sha256
+        || reservation.site_clock_domain_id != receipt.site_clock_domain_id
+        || reservation.checked_at_tick != receipt.checked_at_tick
+        || reservation.valid_until_tick != receipt.valid_until_tick
+        || reservation.committed_at_tick != now_tick
+    {
+        return Err(DispatchReadinessFailure::ReservationReceiptBindingMismatch);
+    }
+    ledger
+        .apply(event)
+        .map_err(DispatchReadinessFailure::ReservationEventRejected)
+}
+
+/// Release an exclusive reservation only against a fresh, referee-authored
+/// clearance receipt. Lease expiry alone never releases a reservation.
+pub fn release_space_time_reservation(
+    ledger: &mut SiteStateLedger,
+    reservation_id: &str,
+    verified_clearance_receipt_sha256: &str,
+    site_snapshot_sha256: &str,
+    site_ledger_sequence: u64,
+    site_ledger_event_sha256: &str,
+    site_clock_domain_id: &str,
+    cleared_at_tick: u64,
+    event: SiteEventEnvelope,
+) -> Result<SiteApplyOutcome, DispatchReadinessFailure> {
+    if !is_sha256(verified_clearance_receipt_sha256) || !is_sha256(site_snapshot_sha256) {
+        return Err(DispatchReadinessFailure::InvalidDigest(
+            "reservation release evidence",
+        ));
+    }
+    if !is_sha256(site_ledger_event_sha256) {
+        return Err(DispatchReadinessFailure::InvalidDigest(
+            "reservation release ledger head",
+        ));
+    }
+    let record = ledger
+        .space_time_reservation(reservation_id)
+        .ok_or(DispatchReadinessFailure::ReservationEventMismatch)?;
+    if !record.is_active()
+        || record.reservation.site_clock_domain_id != site_clock_domain_id
+        || cleared_at_tick < record.reservation.committed_at_tick
+        || ledger.last_sequence() != site_ledger_sequence
+        || ledger.last_event_sha256() != Some(site_ledger_event_sha256)
+    {
+        return Err(DispatchReadinessFailure::ReservationReceiptBindingMismatch);
+    }
+    if event.actor_role != SiteActorRole::Referee {
+        return Err(DispatchReadinessFailure::ReservationEventMismatch);
+    }
+    let SiteEventPayload::SpaceTimeReservationReleased {
+        reservation_id: event_reservation_id,
+        site_clock_domain_id: event_clock_domain,
+        cleared_at_tick: event_cleared_at_tick,
+        site_snapshot_sha256: event_snapshot_sha256,
+        site_ledger_sequence: event_sequence,
+        site_ledger_event_sha256: event_ledger_head,
+        release_receipt_sha256: event_release_receipt,
+    } = &event.payload
+    else {
+        return Err(DispatchReadinessFailure::ReservationEventMismatch);
+    };
+    if event_reservation_id != reservation_id
+        || event_clock_domain != site_clock_domain_id
+        || *event_cleared_at_tick != cleared_at_tick
+        || event_snapshot_sha256 != site_snapshot_sha256
+        || *event_sequence != site_ledger_sequence
+        || event_ledger_head != site_ledger_event_sha256
+        || event_release_receipt != verified_clearance_receipt_sha256
+    {
+        return Err(DispatchReadinessFailure::ReservationReceiptBindingMismatch);
+    }
+    ledger
+        .apply(event)
+        .map_err(DispatchReadinessFailure::ReservationReleaseRejected)
 }
 
 fn is_sha256(value: &str) -> bool {
