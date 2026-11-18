@@ -210,16 +210,24 @@ pub fn score_raphe_curvature_model(
         let x = observation.active_raphe_curvature_inv_um.unwrap();
         let y = observation.observed_path_curvature_inv_um.unwrap();
         eligible_sample_count += 1;
-        let (fit, residuals) = match observation.contact_mode {
-            RapheContactMode::OneRapheBranch => (calibration.one_branch, &mut one_branch),
-            RapheContactMode::TwoRapheBranches => (calibration.two_branches, &mut two_branches),
+        let fit = match observation.contact_mode {
+            RapheContactMode::OneRapheBranch => calibration.one_branch,
+            RapheContactMode::TwoRapheBranches => calibration.two_branches,
             RapheContactMode::NoContact | RapheContactMode::Unresolved => unreachable!(),
         };
         let fit = fit.ok_or(AlgalKinematicsError::MissingRapheModeCalibration)?;
         let predicted = fit
             .predict_path_curvature_inv_um(x)
             .ok_or(AlgalKinematicsError::NonFinitePrediction)?;
-        residuals.push(y - predicted);
+        let residual = y - predicted;
+        if !residual.is_finite() {
+            return Err(AlgalKinematicsError::NonFinitePrediction);
+        }
+        match observation.contact_mode {
+            RapheContactMode::OneRapheBranch => one_branch.push(residual),
+            RapheContactMode::TwoRapheBranches => two_branches.push(residual),
+            RapheContactMode::NoContact | RapheContactMode::Unresolved => unreachable!(),
+        }
     }
     Ok(RapheCurvatureScore {
         one_branch: residual_metrics(&one_branch),
