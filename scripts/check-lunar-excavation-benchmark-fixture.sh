@@ -63,6 +63,18 @@ jq -e '
   and (.split_policy.optional_isolation_axes | unique == ["campaign_id", "laboratory_id"])
 ' "$manifest" >/dev/null || fail "dataset split policy omits a required isolation axis"
 
+jq -e -s '
+  .[0] as $r
+  | .[1] as $m
+  | [$m.run_assignments[] | select(.run_id == $r.run_id)] as $matches
+  | ($matches | length) == 1
+    and $matches[0].partition == $r.partition
+    and all(
+      ($m.split_policy.isolation_axes + $m.split_policy.optional_isolation_axes)[];
+      . as $axis | $r.group_keys[$axis] == $matches[0].group_keys[$axis]
+    )
+' "$record" "$manifest" >/dev/null || fail "run example does not match exactly one manifest assignment"
+
 jq -e '
   .schema_version == "0.1.0"
   and .benchmark_id == "lunar-excavation-model-validation-v0"
