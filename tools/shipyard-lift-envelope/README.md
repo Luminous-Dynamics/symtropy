@@ -15,7 +15,7 @@ The evaluator checks:
 - upward-rounded integer load/tension arithmetic;
 - each leg's configuration-specific axial tensile WLL;
 - an exact crane chart cell keyed by crane, configuration revision, radius band and working quadrant;
-- observed gust upper bound against the operation's declared weather limit;
+- observed gust upper bound bound to its observation source and sensor revision, separately from the exact crane operating-limit profile and revision;
 - binding of an existing motion-envelope report and occupancy projection to the same block, revision, site epoch, frame, clock domain and full lift interval.
 
 The crate consumes motion and occupancy identities from the existing construction trajectory/occupancy work. It does not create paths, swept volumes, collision results, crane reservations or actuator commands.
@@ -58,6 +58,8 @@ This project does not claim to replace these tools or outperform their rigging c
 
 [ASME B30.5-2025](https://www.asme.org/codes-standards/find-codes-standards/mobile-and-locomotive-cranes) is specific to mobile and locomotive crane types; it is not a universal standard for all gantry, overhead, floating or vessel-mounted cranes. The applicable standard set must be selected by crane type, jurisdiction, site and operation. No standard conformance is claimed here.
 
+A gust observation and a crane's permitted wind limit are different claims. V0 binds the measured/forecast gust upper bound to its observation source and sensor revision; the maximum permitted gust is bound to a separate operating-limit profile and revision. Both references must be current for the complete lift interval. One cannot substitute for the other.
+
 ## Evidence and authority boundaries
 
 An `EvidenceRef` binds a record ID, owner ID, document revision, exact subject ID/revision, digest and validity interval. Reusing a source record is allowed only when the complete reference metadata is identical; the same record ID with conflicting metadata is indeterminate.
@@ -86,7 +88,7 @@ The dependency-free unit suite currently covers:
 - rigging WLL, missing share bounds and conservative over-coverage;
 - stale/revoked/malformed/conflicting evidence;
 - exact subject/revision binding for blocks and rigging components;
-- weather limit and motion/occupancy binding;
+- independent weather-observation and crane-limit provenance, plus motion/occupancy binding;
 - deterministic canonical JSON result bytes under input permutation, suitable for caller-side SHA-256 binding;
 - upward rounding, overflow and invalid time intervals.
 
