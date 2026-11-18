@@ -271,6 +271,9 @@ fn tendon_007_same_length_signal_does_not_identify_force_without_stiffness() {
     assert_close(measured_resistance, 5.0, "shared length-sensor resistance [ohm]");
     assert_close(candidate_force_a, 50.0, "candidate force A [N]");
     assert_close(candidate_force_b, 100.0, "candidate force B [N]");
-    assert!(candidate_force_a != candidate_force_b);
+    assert!(
+        (candidate_force_a - candidate_force_b).abs() > 1.0e-12,
+        "different unknown stiffness values must produce distinct candidate forces"
+    );
 }
 
