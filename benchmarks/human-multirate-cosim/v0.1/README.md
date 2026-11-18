@@ -569,3 +569,37 @@ The IID-assumed optimum differs materially from the AR(1)-qualified optimum
 on this fixture. The covariance misspecification is therefore decision-
 relevant, not merely a small score adjustment. These values are independent
 mathematical reproductions, not Rust runner output or CI qualification.
+## Nested continuous-control basis convergence
+
+The `continuous_control_convergence` runner evaluates nested piecewise-
+constant control spaces with 1, 2, 4 and 8 temporal segments and actuators
+at graph nodes 0 and 2. All levels use the same chain-versus-bypass models,
+selected sensors, five uniform observation times, AR(1) rho 0.6 covariance
+identity, integrated-energy budget and peak cap.
+
+The partitions are nested: every coarse feasible control is representable
+on each finer partition by copying its segment value to child segments.
+With an inactive peak cap, the globally optimized total-KL objective must
+therefore be non-decreasing. Both the runner and a frozen unit test reject a
+decrease beyond numerical tolerance.
+
+The scorecard reports basis dimension, total/passive/incremental KL, energy,
+peak, multiplier, stationarity and replay residuals, objective gain over the
+previous mesh, normalized L2 control difference on the refined comparison
+grid, and elapsed wall time. Wall time is diagnostic, not a portable
+performance claim.
+
+Run with:
+
+    cargo run --manifest-path benchmarks/human-multirate-cosim/v0.1/Cargo.toml --release --bin continuous_control_convergence
+
+This is still a sequence of exact optima over finite piecewise-constant
+spaces, not a proof of convergence to the arbitrary-waveform L2 optimum.
+The next #6121 increment must add an independent adjoint/Pontryagin reference
+and compare direct collocation or high-resolution controls under matched
+constraints. Liu, Maini and Baker (2026) explicitly formulate control-based
+model discrimination with Pontryagin's Maximum Principle
+([DOI 10.1016/j.mbs.2026.109710](https://doi.org/10.1016/j.mbs.2026.109710));
+Pagnier et al. (2026) present a closed-loop optimal-control discrimination
+framework with an electrophysiology experiment
+([arXiv:2603.00709](https://arxiv.org/abs/2603.00709)).
