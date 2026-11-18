@@ -2137,7 +2137,7 @@ mod tests {
                 EventEvidenceStatus::DirectlyObserved,
             ),
             event_record(
-                EventMechanism::Unresolved,
+                EventMechanism::ActiveMotorEvent,
                 EventDurationBin::Short,
                 EventEvidenceStatus::AlgorithmInferred,
             ),
@@ -2145,6 +2145,11 @@ mod tests {
                 EventMechanism::ActiveMotorEvent,
                 EventDurationBin::ExactBoundaryExcluded,
                 EventEvidenceStatus::ModelLatent,
+            ),
+            event_record(
+                EventMechanism::Unresolved,
+                EventDurationBin::Long,
+                EventEvidenceStatus::Unresolved,
             ),
         ];
 
@@ -2154,6 +2159,7 @@ mod tests {
         assert_eq!(diagnostic.true_negative_passive_long, 1);
         assert_eq!(diagnostic.false_negative_active_long, 1);
         assert_eq!(diagnostic.excluded_algorithm_inferred, 1);
+        assert_eq!(diagnostic.excluded_unresolved, 1);
         assert_eq!(diagnostic.excluded_exact_boundary, 1);
         assert_eq!(diagnostic.known_event_count, 4);
         assert_eq!(diagnostic.sensitivity, Some(0.5));
