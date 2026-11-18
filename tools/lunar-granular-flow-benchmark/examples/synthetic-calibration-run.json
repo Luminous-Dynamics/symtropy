@@ -803,6 +803,8 @@
       "psd-fixture",
       "apparatus-geometry-fixture",
       "flow-trace-fixture"
-    ]
+    ],
+    "formula_set_id": "lunar-granular-dimensionless-groups-v1",
+    "uncertainty_propagation_method": "not_applicable_synthetic"
   }
 }
