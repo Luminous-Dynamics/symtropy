@@ -275,12 +275,12 @@ The `mfb-evaluate-coavailability` binary screens one proposed delivery-UAV sorti
 - route-stop identity, chronological route-stop time envelopes and carrier stop windows;
 - pad-resource identity bound to the exact launch and recovery route stops;
 - conservative rendezvous bounds: the latest possible arrival and earliest possible departure define the guaranteed carrier-presence interval (not optimistic ETA bounds);
-- launch and recovery service windows with interval arithmetic;
+- launch and recovery service windows with interval arithmetic (launch service time is added before flight duration);
 - payload, usable battery energy plus protected reserve, peak power and continuous power;
 - declared operating permission and freshness/domain status of carrier route timing, pad/site resources, aircraft capability, permission and weather evidence;
 - launch/recovery pad reservations using half-open intervals.
 
-It returns `feasible`, `infeasible` or `indeterminate`. Unknown / stale / conflicted evidence and unknown / expired permission never become a pass. A known hard constraint violation is reported as infeasible. The output hard-codes `dispatch_authorized=false` and `physical_command_emitted=false`.
+It returns `feasible`, `infeasible` or `indeterminate`, plus a canonical SHA-256 input digest. Pad-resource and reservation ordering is normalized for hashing, while carrier route-stop order is preserved as semantic. This digest binds the report to serialized input content but does not authenticate issuers or prove the truth of source evidence. Unknown / stale / conflicted evidence and unknown / expired permission never become a pass. A known hard constraint violation is reported as infeasible. The output hard-codes `dispatch_authorized=false` and `physical_command_emitted=false`.
 
 Run the synthetic arithmetic fixture from the repository root:
 
