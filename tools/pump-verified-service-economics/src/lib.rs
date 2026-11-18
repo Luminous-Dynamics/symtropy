@@ -133,13 +133,29 @@ pub struct Evaluation {
     pub reason: String,
     pub asset_ref: String,
     pub serial_ref: String,
+    pub config_ref: String,
     pub transferability_ref: String,
+    pub transferability_disposition: String,
     pub cost_bundle_ref: String,
     pub cost_allocation_ref: String,
-    pub energy_evidence_ref: String,
-    pub service_profile_ref: String,
+    pub cost_evidence_ref: String,
     pub currency: String,
     pub amount_unit: String,
+    pub cost_period_start: String,
+    pub cost_period_end: String,
+    pub energy_evidence_ref: String,
+    pub energy_meter_ref: String,
+    pub energy_calibration_ref: String,
+    pub energy_boundary_ref: String,
+    pub energy_unit: String,
+    pub energy_window_start: String,
+    pub energy_window_end: String,
+    pub service_profile_ref: String,
+    pub service_boundary_ref: String,
+    pub study_start: String,
+    pub study_end: String,
+    pub required_area_count: usize,
+    pub area_evidence_manifest: String,
     pub qualified_area_count: usize,
     pub breached_area_count: usize,
     pub unknown_area_count: usize,
@@ -408,10 +424,23 @@ fn eval_one(case: &Case, areas: &[ServiceArea]) -> Evaluation {
         case_id: case.case_id.clone(),
         disposition: Disposition::EvidenceIncomplete,
         reason: "service economics evidence is incomplete".into(),
-        asset_ref: case.asset_ref.clone(), serial_ref: case.serial_ref.clone(),
-        transferability_ref: case.transferability_ref.clone(), cost_bundle_ref: case.cost_bundle_ref.clone(),
-        cost_allocation_ref: case.cost_allocation_ref.clone(), energy_evidence_ref: case.energy_evidence_ref.clone(),
-        service_profile_ref: case.service_profile_ref.clone(), currency: case.currency.clone(), amount_unit: case.amount_unit.clone(),
+        asset_ref: case.asset_ref.clone(), serial_ref: case.serial_ref.clone(), config_ref: case.config_ref.clone(),
+        transferability_ref: case.transferability_ref.clone(),
+        transferability_disposition: case.transferability_disposition.clone(),
+        cost_bundle_ref: case.cost_bundle_ref.clone(), cost_allocation_ref: case.cost_allocation_ref.clone(),
+        cost_evidence_ref: case.cost_evidence_ref.clone(), currency: case.currency.clone(), amount_unit: case.amount_unit.clone(),
+        cost_period_start: case.cost_period_start.clone(), cost_period_end: case.cost_period_end.clone(),
+        energy_evidence_ref: case.energy_evidence_ref.clone(), energy_meter_ref: case.energy_meter_ref.clone(),
+        energy_calibration_ref: case.energy_calibration_ref.clone(), energy_boundary_ref: case.energy_boundary_ref.clone(),
+        energy_unit: case.energy_unit.clone(), energy_window_start: case.energy_window_start.clone(),
+        energy_window_end: case.energy_window_end.clone(), service_profile_ref: case.service_profile_ref.clone(),
+        service_boundary_ref: case.service_boundary_ref.clone(), study_start: case.study_start.clone(),
+        study_end: case.study_end.clone(), required_area_count: case.required_area_count,
+        area_evidence_manifest: areas.iter().map(|a| format!(
+            "{}|{}|{}|{}|{}|{}|{}|{}",
+            a.area_id,a.floor_disposition,a.floor_receipt_ref,a.observation_ref,a.volume_calibration_ref,
+            a.service_boundary_ref,a.volume_low_ml,a.volume_high_ml
+        )).collect::<Vec<_>>().join(";"),
         qualified_area_count: 0, breached_area_count: 0, unknown_area_count: 0,
         qualified_volume_low_ml: None, qualified_volume_high_ml: None,
         cost_per_m3_milli_minor_low: None, cost_per_m3_milli_minor_high: None,
@@ -620,16 +649,47 @@ fn opt_u64(value:Option<u64>)->String{
 }
 
 pub fn render_report(rows:&[Evaluation])->String{
-    let mut out=String::from("case_id\tdisposition\treason\tasset_ref\tserial_ref\ttransferability_ref\tcost_bundle_ref\tcost_allocation_ref\tenergy_evidence_ref\tservice_profile_ref\tcurrency\tamount_unit\tqualified_area_count\tbreached_area_count\tunknown_area_count\tqualified_volume_low_ml\tqualified_volume_high_ml\tcost_per_m3_milli_minor_low\tcost_per_m3_milli_minor_high\tkwh_per_m3_milli_low\tkwh_per_m3_milli_high\n");
+    let mut out=String::from("case_id\tdisposition\treason\tasset_ref\tserial_ref\tconfig_ref\ttransferability_ref\ttransferability_disposition\tcost_bundle_ref\tcost_allocation_ref\tcost_evidence_ref\tcurrency\tamount_unit\tcost_period_start\tcost_period_end\tenergy_evidence_ref\tenergy_meter_ref\tenergy_calibration_ref\tenergy_boundary_ref\tenergy_unit\tenergy_window_start\tenergy_window_end\tservice_profile_ref\tservice_boundary_ref\tstudy_start\tstudy_end\trequired_area_count\tarea_evidence_manifest\tqualified_area_count\tbreached_area_count\tunknown_area_count\tqualified_volume_low_ml\tqualified_volume_high_ml\tcost_per_m3_milli_minor_low\tcost_per_m3_milli_minor_high\tkwh_per_m3_milli_low\tkwh_per_m3_milli_high\n");
     for r in rows{
         out.push_str(&format!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
-            r.case_id,r.disposition.as_str(),r.reason,r.asset_ref,r.serial_ref,r.transferability_ref,
-            r.cost_bundle_ref,r.cost_allocation_ref,r.energy_evidence_ref,r.service_profile_ref,
-            r.currency,r.amount_unit,r.qualified_area_count,r.breached_area_count,r.unknown_area_count,
-            opt_u64(r.qualified_volume_low_ml),opt_u64(r.qualified_volume_high_ml),
-            opt_u128(r.cost_per_m3_milli_minor_low),opt_u128(r.cost_per_m3_milli_minor_high),
-            opt_u128(r.kwh_per_m3_milli_low),opt_u128(r.kwh_per_m3_milli_high)
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
+            r.case_id,
+            r.disposition.as_str(),
+            r.reason,
+            r.asset_ref,
+            r.serial_ref,
+            r.config_ref,
+            r.transferability_ref,
+            r.transferability_disposition,
+            r.cost_bundle_ref,
+            r.cost_allocation_ref,
+            r.cost_evidence_ref,
+            r.currency,
+            r.amount_unit,
+            r.cost_period_start,
+            r.cost_period_end,
+            r.energy_evidence_ref,
+            r.energy_meter_ref,
+            r.energy_calibration_ref,
+            r.energy_boundary_ref,
+            r.energy_unit,
+            r.energy_window_start,
+            r.energy_window_end,
+            r.service_profile_ref,
+            r.service_boundary_ref,
+            r.study_start,
+            r.study_end,
+            r.required_area_count,
+            r.area_evidence_manifest,
+            r.qualified_area_count,
+            r.breached_area_count,
+            r.unknown_area_count,
+            opt_u64(r.qualified_volume_low_ml),
+            opt_u64(r.qualified_volume_high_ml),
+            opt_u128(r.cost_per_m3_milli_minor_low),
+            opt_u128(r.cost_per_m3_milli_minor_high),
+            opt_u128(r.kwh_per_m3_milli_low),
+            opt_u128(r.kwh_per_m3_milli_high)
         ));
     }
     out
@@ -641,7 +701,7 @@ mod tests{
     fn run()->Vec<Evaluation>{evaluate_corpus(CASES,AREAS,EXPECTED).unwrap()}
     fn one(id:&str)->Evaluation{run().into_iter().find(|r|r.case_id==id).unwrap()}
 
-    #[test] fn frozen_thirty_two_case_oracle_matches(){assert_eq!(run().len(),32);}
+    #[test] fn frozen_thirty_three_case_oracle_matches(){assert_eq!(run().len(),33);}
     #[test] fn positive_case_emits_cost_and_energy_intervals(){
         let r=one("positive_verified_service");
         assert_eq!(r.disposition,Disposition::QualifiedCostPerService);
@@ -732,11 +792,14 @@ mod tests{
         assert!(report.contains("qualified_volume_low_ml"));
         assert!(report.contains("breached_area_count"));
         assert!(report.contains("cost_per_m3_milli_minor_low"));
+        assert!(report.contains("energy_calibration_ref"));
+        assert!(report.contains("area_evidence_manifest"));
+        assert!(report.contains("cost_allocation_ref"));
     }
     #[test] fn report_rows_have_fixed_tsv_width(){
         let report=render_report(&run());
         let widths:BTreeSet<usize>=report.lines().map(|l|l.split('\t').count()).collect();
-        assert_eq!(widths,BTreeSet::from([22]));
+        assert_eq!(widths,BTreeSet::from([37]));
     }
     #[test] fn cost_and_energy_interval_rounding_is_outward(){
         assert_eq!(floor_ratio_floor(2,1_000_000_000,3),Ok(666_666_666));
