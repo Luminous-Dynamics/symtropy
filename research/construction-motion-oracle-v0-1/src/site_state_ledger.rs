@@ -312,8 +312,11 @@ impl SiteStateLedger {
     /// history. The input must contain each committed event exactly once.
     /// Sequence and previous-digest links are validated by apply; a duplicate
     /// record in a persisted history is corruption, not an idempotent replay.
-    pub fn replay(events: &[SiteEventEnvelope]) -> Result<Self, SiteLedgerError> {
-        let mut ledger = Self::new();
+    pub fn replay(
+        events: &[SiteEventEnvelope],
+        actor_registry: SiteActorRegistry,
+    ) -> Result<Self, SiteLedgerError> {
+        let mut ledger = Self::with_actor_registry(actor_registry);
         for event in events {
             if ledger.apply(event.clone())? == SiteApplyOutcome::DuplicateIgnored {
                 return Err(SiteLedgerError::EventHistoryContainsDuplicate(
@@ -2232,7 +2235,8 @@ mod tests {
         );
         ledger.apply(referee).unwrap();
 
-        let replayed = SiteStateLedger::replay(ledger.event_history()).unwrap();
+        let replayed =
+            SiteStateLedger::replay(ledger.event_history(), ledger.actor_registry().clone()).unwrap();
         assert_eq!(replayed, ledger);
         assert_eq!(replayed.accepted_count(&package_digest), Some(1));
     }
@@ -2244,7 +2248,7 @@ mod tests {
         let first = ledger.event_history()[0].clone();
         let duplicate_history = vec![first.clone(), first];
         assert_eq!(
-            SiteStateLedger::replay(&duplicate_history),
+            SiteStateLedger::replay(&duplicate_history, ledger.actor_registry().clone()),
             Err(SiteLedgerError::EventHistoryContainsDuplicate(
                 "event-publish".into()
             ))
@@ -2256,7 +2260,7 @@ mod tests {
         next.event_sha256 = digest('2');
         broken.push(next);
         assert_eq!(
-            SiteStateLedger::replay(&broken),
+            SiteStateLedger::replay(&broken, ledger.actor_registry().clone()),
             Err(SiteLedgerError::PreviousEventDigestMismatch)
         );
     }
