@@ -10,6 +10,7 @@ use crate::experiment_design::{
     ExcitationDesignError, ExperimentDesignScenario, ExperimentDesignScore, InputProfile,
     evaluate_input_profile,
 };
+use crate::sensor_design::{invert_spd, principal_submatrix};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 
@@ -59,6 +60,59 @@ pub struct ProfiledDiscriminationTournament {
     pub best_worst_case: Option<ProfiledDiscriminationScore>,
 }
 
+
+/// Candidate-visible observation history used for a declared model-family adequacy check.
+/// Channel order follows sensor_ids; time order follows times.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ObservedSensorTrace {
+    pub sensor_ids: Vec<u32>,
+    pub times: Vec<f64>,
+    pub values: Vec<Vec<f64>>,
+}
+
+/// Explicit residual threshold for the deterministic Gaussian score.
+/// It is not automatically a chi-square threshold or a calibrated false-alarm rate.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ModelFamilyAdequacyPolicy {
+    pub maximum_gaussian_residual: f64,
+}
+
+/// Best finite-grid fit and all parameter variants within the declared threshold.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ModelFamilyFitScore {
+    pub family_id: u32,
+    pub best_fit_model_id: u32,
+    pub minimum_gaussian_residual: f64,
+    pub compatible_model_ids: Vec<u32>,
+}
+
+/// Interpretation of candidate-family adequacy under the declared residual policy.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ModelFamilyAdequacyDisposition {
+    InFamilyPreferred {
+        family_id: u32,
+        model_id: u32,
+    },
+    ParameterNotIdentified {
+        family_id: u32,
+        compatible_model_ids: Vec<u32>,
+    },
+    InFamilyUnresolved {
+        compatible_family_ids: Vec<u32>,
+    },
+    OutOfModelSet,
+}
+
+/// Model-family adequacy result. OUT_OF_MODEL_SET means no registered finite-grid
+/// variant met the explicit threshold; it does not identify the omitted cause.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ModelFamilyAdequacyScore {
+    pub profile_id: u32,
+    pub maximum_gaussian_residual: f64,
+    pub family_fits: Vec<ModelFamilyFitScore>,
+    pub disposition: ModelFamilyAdequacyDisposition,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProfiledDiscriminationError {
     Experiment(ExcitationDesignError),
@@ -70,6 +124,11 @@ pub enum ProfiledDiscriminationError {
     MissingVariantPair { left_family: u32, right_family: u32 },
     NoProfiles,
     DuplicateProfileId(u32),
+    InvalidAdequacyThreshold,
+    TraceSensorOrderMismatch,
+    TraceTimeScheduleMismatch,
+    TraceShapeMismatch,
+    NonFiniteObservedValue,
 }
 
 impl fmt::Display for ProfiledDiscriminationError {
@@ -100,6 +159,21 @@ impl fmt::Display for ProfiledDiscriminationError {
             ),
             Self::NoProfiles => write!(f, "at least one input profile is required"),
             Self::DuplicateProfileId(id) => write!(f, "duplicate input profile ID {id}"),
+            Self::InvalidAdequacyThreshold => {
+                write!(f, "maximum Gaussian residual threshold must be finite and nonnegative")
+            }
+            Self::TraceSensorOrderMismatch => {
+                write!(f, "observation trace sensor IDs/order do not match the selected sensors")
+            }
+            Self::TraceTimeScheduleMismatch => {
+                write!(f, "observation trace times do not match the declared experiment schedule")
+            }
+            Self::TraceShapeMismatch => {
+                write!(f, "observation trace shape does not match the time and sensor dimensions")
+            }
+            Self::NonFiniteObservedValue => {
+                write!(f, "observation trace contains a non-finite value")
+            }
         }
     }
 }
@@ -264,6 +338,197 @@ pub fn evaluate_profiled_input(
         mean_profiled_family_separation,
         worst_case_family_overlap: minimum_profiled_family_separation <= OVERLAP_TOLERANCE,
     })
+}
+
+/// Compare a candidate-visible observation trace with every finite-grid model variant.
+///
+/// The declared threshold is applied to the summed equal-covariance Gaussian
+/// residual score. No automatic threshold calibration, posterior inference,
+/// model-discrepancy distribution or hidden-truth access is performed.
+pub fn evaluate_model_family_adequacy(
+    scenario: &ProfiledModelFamilyScenario,
+    profile: &InputProfile,
+    selected_sensor_ids: &[u32],
+    observations: &ObservedSensorTrace,
+    policy: ModelFamilyAdequacyPolicy,
+) -> Result<ModelFamilyAdequacyScore, ProfiledDiscriminationError> {
+    scenario.validate()?;
+    if !policy.maximum_gaussian_residual.is_finite()
+        || policy.maximum_gaussian_residual < 0.0
+    {
+        return Err(ProfiledDiscriminationError::InvalidAdequacyThreshold);
+    }
+
+    let base_score = evaluate_input_profile(
+        &scenario.experiment,
+        profile,
+        selected_sensor_ids,
+    )
+    .map_err(ProfiledDiscriminationError::Experiment)?;
+
+    if observations.sensor_ids != base_score.selected_sensor_ids {
+        return Err(ProfiledDiscriminationError::TraceSensorOrderMismatch);
+    }
+    if observations.times.len() != scenario.experiment.observation_times.len()
+        || observations
+            .times
+            .iter()
+            .zip(scenario.experiment.observation_times.iter())
+            .any(|(observed, expected)| {
+                !observed.is_finite() || (observed - expected).abs() > TIE_TOLERANCE
+            })
+    {
+        return Err(ProfiledDiscriminationError::TraceTimeScheduleMismatch);
+    }
+    if observations.values.len() != observations.times.len()
+        || observations
+            .values
+            .iter()
+            .any(|row| row.len() != observations.sensor_ids.len())
+    {
+        return Err(ProfiledDiscriminationError::TraceShapeMismatch);
+    }
+    if observations.values.iter().flatten().any(|value| !value.is_finite()) {
+        return Err(ProfiledDiscriminationError::NonFiniteObservedValue);
+    }
+
+    let sensor_lookup: HashMap<u32, usize> = scenario
+        .experiment
+        .sensors
+        .iter()
+        .enumerate()
+        .map(|(index, sensor)| (sensor.id, index))
+        .collect();
+    let selected_indices: Vec<usize> = base_score
+        .selected_sensor_ids
+        .iter()
+        .map(|id| {
+            sensor_lookup
+                .get(id)
+                .copied()
+                .ok_or(ProfiledDiscriminationError::TraceSensorOrderMismatch)
+        })
+        .collect::<Result<_, _>>()?;
+    let covariance = principal_submatrix(
+        &scenario.experiment.noise_covariance,
+        &selected_indices,
+    );
+    let covariance_inverse = invert_spd(&covariance).map_err(|error| {
+        ProfiledDiscriminationError::Experiment(
+            ExcitationDesignError::SensorCovariance(error),
+        )
+    })?;
+
+    let family_by_model: HashMap<u32, u32> = scenario
+        .family_assignments
+        .iter()
+        .map(|assignment| (assignment.model_id, assignment.family_id))
+        .collect();
+    let mut model_residuals: HashMap<u32, f64> = HashMap::new();
+    for prediction in &base_score.model_observation_means {
+        let mut residual_score = 0.0;
+        for time_index in 0..observations.times.len() {
+            let residual: Vec<f64> = observations.values[time_index]
+                .iter()
+                .zip(prediction.observations[time_index].iter())
+                .map(|(observed, predicted)| observed - predicted)
+                .collect();
+            let weighted = matrix_vector_product(&covariance_inverse, &residual);
+            residual_score += 0.5
+                * residual
+                    .iter()
+                    .zip(weighted.iter())
+                    .map(|(value, weighted_value)| value * weighted_value)
+                    .sum::<f64>();
+        }
+        model_residuals.insert(prediction.model_id, residual_score.max(0.0));
+    }
+
+    let mut ordered_families: Vec<u32> = family_by_model.values().copied().collect();
+    ordered_families.sort_unstable();
+    ordered_families.dedup();
+    let mut family_fits = Vec::with_capacity(ordered_families.len());
+
+    for family_id in ordered_families {
+        let mut variants: Vec<(u32, f64)> = family_by_model
+            .iter()
+            .filter(|(_, candidate_family)| **candidate_family == family_id)
+            .filter_map(|(model_id, _)| {
+                model_residuals
+                    .get(model_id)
+                    .copied()
+                    .map(|residual| (*model_id, residual))
+            })
+            .collect();
+        variants.sort_by_key(|(model_id, _)| *model_id);
+        if variants.is_empty() {
+            return Err(ProfiledDiscriminationError::MissingVariantPair {
+                left_family: family_id,
+                right_family: family_id,
+            });
+        }
+
+        let minimum_gaussian_residual = variants
+            .iter()
+            .map(|(_, residual)| *residual)
+            .fold(f64::INFINITY, f64::min);
+        let best_fit_model_id = variants
+            .iter()
+            .find(|(_, residual)| {
+                (*residual - minimum_gaussian_residual).abs() <= TIE_TOLERANCE
+            })
+            .map(|(model_id, _)| *model_id)
+            .ok_or(ProfiledDiscriminationError::MissingFamilyAssignments)?;
+        let compatible_model_ids = variants
+            .iter()
+            .filter(|(_, residual)| {
+                *residual <= policy.maximum_gaussian_residual + TIE_TOLERANCE
+            })
+            .map(|(model_id, _)| *model_id)
+            .collect();
+
+        family_fits.push(ModelFamilyFitScore {
+            family_id,
+            best_fit_model_id,
+            minimum_gaussian_residual,
+            compatible_model_ids,
+        });
+    }
+
+    let compatible_families: Vec<&ModelFamilyFitScore> = family_fits
+        .iter()
+        .filter(|family| !family.compatible_model_ids.is_empty())
+        .collect();
+    let disposition = match compatible_families.as_slice() {
+        [] => ModelFamilyAdequacyDisposition::OutOfModelSet,
+        [family] if family.compatible_model_ids.len() == 1 => {
+            ModelFamilyAdequacyDisposition::InFamilyPreferred {
+                family_id: family.family_id,
+                model_id: family.compatible_model_ids[0],
+            }
+        }
+        [family] => ModelFamilyAdequacyDisposition::ParameterNotIdentified {
+            family_id: family.family_id,
+            compatible_model_ids: family.compatible_model_ids.clone(),
+        },
+        families => ModelFamilyAdequacyDisposition::InFamilyUnresolved {
+            compatible_family_ids: families.iter().map(|family| family.family_id).collect(),
+        },
+    };
+
+    Ok(ModelFamilyAdequacyScore {
+        profile_id: profile.id,
+        maximum_gaussian_residual: policy.maximum_gaussian_residual,
+        family_fits,
+        disposition,
+    })
+}
+
+fn matrix_vector_product(matrix: &[Vec<f64>], vector: &[f64]) -> Vec<f64> {
+    matrix
+        .iter()
+        .map(|row| row.iter().zip(vector.iter()).map(|(a, b)| a * b).sum())
+        .collect()
 }
 
 /// Select the design maximizing the minimum least-favourable family separation.
