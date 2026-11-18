@@ -21,6 +21,17 @@ Agniva Datta, Sönke Beier, Veronika Pfeifer, Robert Großmann and Carsten Beta,
 
 This is the primary mechanistic/trajectory baseline. The new model must reproduce the baseline on the shared observables before claiming that its event separation adds value.
 
+Source-reported quantitative targets:
+- 20 frames/s phase-contrast tracking; 60-second recordings; a separate 100 frames/s fluorescence subset to resolve flagellar swimming modes.
+- Wild-type mean run times: 0.35 s at 0.25% agar and 0.23 s at 0.3% agar.
+- Mean immobile-event dwell times: 2.07 s and 3.63 s, respectively.
+- Intermediate event survival exponent alpha = 0.79; large-time cutoff exponent beta = 2.63 (as fitted in the paper).
+- Mean-squared displacement crosses near 0.5 s from a short-time ballistic regime to an intermediate subdiffusive regime.
+- Analytical long-time diffusion coefficients: approximately 5.25 and 2.56 µm²/s for wild-type at 0.25% and 0.3% agar; approximately 8.55 and 6.81 µm²/s for delta-motAB and delta-motCD at 0.25% agar.
+- The model uses the empirical run and event waiting-time distributions, mean speed, within-run rotational diffusion and turn-angle statistics. Do not replace measured event dwell-time behavior with a fixed pause or a simple exponential when reproducing this baseline.
+
+All values are literature-reported targets. A new result must independently fit or measure parameters from admitted data and report fitting uncertainty.
+
 ### 2. Beier et al. (2026): dual chemotaxis mechanism comparator
 
 Sönke Beier, Veronika Pfeifer, Agniva Datta, Robert Großmann and Carsten Beta, "Dual chemotaxis strategy of bacteria in porous media: Run-time and turn-angle bias", Biophysical Journal 125(14), 3570–3579 (2026).
@@ -32,7 +43,11 @@ Sönke Beier, Veronika Pfeifer, Agniva Datta, Robert Großmann and Carsten Beta,
 - Reported up-gradient orientation fractions after short events are 56.7% in 0.25% agar and 55.6% in 0.3% agar; after long events they are 44.9% and 46.8%.
 - The paper's agent-based simulations estimate that turn-angle-bias-only reaches about 72% of combined-strategy drift in agar, while run-time-bias-only reaches about 25%.
 
-Those proportions and drift ratios are source-reported reference targets, not output of this crate and not direct raw-data measurements. Preserve this distinction in all reports.
+The 2026 agent-based simulation used 5,000 bacteria over 30,000 time steps (25 experimental minutes). Those proportions and drift ratios are source-reported reference targets, not output of this crate and not direct raw-data measurements. Preserve this distinction in all reports.
+
+The study analyzed 10 one-minute recordings from different plates across two days for each agar concentration. It reports 17,703 trajectories (median 66 frames) at 0.25% agar and 18,714 trajectories (median 79 frames) at 0.3%. The trajectory count is not the independent replicate count: preserve recording/plate/day identity in uncertainty estimates and held-out splits.
+
+The event threshold needs a sensitivity panel: the 2026 article uses <= 1 s in some figure descriptions and < 1 s elsewhere, while the 2025 article describes a strict short/long split. Record the convention, reproduce inclusive and exclusive boundary policies, and report whether results change.
 
 ### 3. Grognot and Taute (2021): 3D chemotaxis measurement control
 
