@@ -177,7 +177,7 @@ fn run_child(strategy: &str, seed: u64) -> EpisodeEvaluation {
         assert!(count > 0, "baseline child exited before responding");
         let response: EpisodeResponse =
             serde_json::from_str(&response_frame).expect("parse typed policy response");
-        let finishing = matches!(response.command, EpisodeCommand::Finish { .. });
+        let finishing = matches!(&response.command, EpisodeCommand::Finish { .. });
         provider
             .apply_response(response)
             .expect("apply policy command in trusted runner");
