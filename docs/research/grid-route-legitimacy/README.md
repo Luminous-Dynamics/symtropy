@@ -39,9 +39,9 @@ None substitutes for another. Silence or absence of objections is never evidence
 
 ## 4. v0.1 process contract
 
-The schema defines jurisdiction profile and source URLs; route and service boundary; anonymised rights-holder/stakeholder categories (no personal names/contact data); evidence records with maturity and source boundary; decision instruments with distinct decision types/status; process gates with accountable role, evidence and optional required decision type; engagement records, access/language/notice and concern-resolution records; workfront status, required gates and release evidence; and impact records kept as separate dimensions.
+The schema defines a jurisdiction profile and source URLs; an explicit evidence snapshot date; route and service boundary; anonymised rights-holder/stakeholder categories (no personal names/contact data); evidence records with maturity and source boundary; decision instruments with distinct decision types/status/effective periods; process gates with accountable role, evidence and exact required decision types; engagement records, access/language/notice and concern-resolution records; workfront status, required gates and release evidence; and impact records kept as separate dimensions.
 
-A gate marked complete must carry evidence. Where a gate requires a decision, the referenced decision type must match exactly and its status must be appropriate. A released workfront must have every required gate complete and release evidence with an authority/instrument class.
+A gate marked complete must carry evidence. Public participation, land access/servitude, statutory-decision and compensation gates require explicit decision types when marked complete. The referenced decision type must match the gate, and the decision must be effective and unexpired at the case snapshot date. A released workfront must have every required gate complete and release evidence with an authority/instrument class. Synthetic fixtures can never assert a released workfront.
 
 The synthetic fixture intentionally has incomplete rights-holder, participation, environmental and land-access gates. Its workfront is not released.
 
