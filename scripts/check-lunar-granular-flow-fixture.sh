@@ -104,6 +104,13 @@ jq -e '
   and ([.polydisperse_agglutinate_breakage_screen.cells[].initial_agglutinate_volume_fraction] | unique | sort) == [0.1,0.3,0.6]
   and ([.polydisperse_agglutinate_breakage_screen.cells[].electrostatic_boundary] | unique | sort)
       == ["grounded_contact_system","isolated_contact_system"]
+  and .polydisperse_agglutinate_breakage_screen.unique_cells == 36
+  and (.polydisperse_agglutinate_breakage_screen.cells | length) == 36
+  and ([.polydisperse_agglutinate_breakage_screen.cells[].test_id] | length == (unique | length))
+  and all(.polydisperse_agglutinate_breakage_screen.cells[]; .execution_status == "planned_not_run")
+  and ([.polydisperse_agglutinate_breakage_screen.cells[].initial_agglutinate_volume_fraction] | unique | sort) == [0.1,0.3,0.6]
+  and ([.polydisperse_agglutinate_breakage_screen.cells[].electrostatic_boundary] | unique | sort)
+      == ["grounded_contact_system","isolated_contact_system"]
   and .cross_gravity_material_transfer_screen.unique_cells == 80
   and (.cross_gravity_material_transfer_screen.cells | length) == 80
   and ([.cross_gravity_material_transfer_screen.cells[].test_id] | length == (unique | length))
