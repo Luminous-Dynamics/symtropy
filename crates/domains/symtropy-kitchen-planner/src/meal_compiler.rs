@@ -567,7 +567,6 @@ fn disposition(issues: &[MealCompilationIssueV1]) -> MealCompilationDispositionV
                 | MealCompilationIssueCodeV1::TaskOutputLineageIncomplete
                 | MealCompilationIssueCodeV1::DependencyCycle
                 | MealCompilationIssueCodeV1::ProposalRejected
-                | MealCompilationIssueCodeV1::IngredientAllocationIncomplete
                 | MealCompilationIssueCodeV1::InsufficientSourceRights
                 | MealCompilationIssueCodeV1::FlowEndpointMismatch
                 | MealCompilationIssueCodeV1::UnknownFlowIngredient
@@ -1661,12 +1660,21 @@ fn validate_food_flows(
                     ..
                 },
             ) => {
-                let Some(binding) = bindings.get(producer) else {
+                if !tasks.contains_key(producer.as_str()) {
                     add_issue(
                         issues,
                         MealCompilationIssueCodeV1::UnknownFlowTask,
                         Some(&edge.edge_id),
-                        "planned output flow references an unknown producer task",
+                        "planned output flow references a task absent from the proposal",
+                    );
+                    continue;
+                }
+                let Some(binding) = bindings.get(producer) else {
+                    add_issue(
+                        issues,
+                        MealCompilationIssueCodeV1::MissingTaskBinding,
+                        Some(producer),
+                        "planned output producer task has no explicit compilation binding",
                     );
                     continue;
                 };
@@ -2457,7 +2465,7 @@ mod tests {
     fn compiles_linked_action_and_material_flow_graphs_without_recounting_inputs() {
         let request = valid_request();
         let report = compile_meal(&request);
-        assert_eq!(report.disposition, MealCompilationDispositionV1::Compiled);
+        assert_eq!(report.disposition, MealCompilationDispositionV1::Compiled, "{:?}", report.issues);
         assert!(report.is_compiled(), "{:?}", report.issues);
         let graph = report.recipe_graph.unwrap();
         let chop = graph
@@ -2472,7 +2480,7 @@ mod tests {
             .unwrap();
         assert_eq!(chop.ingredient_inputs.len(), 1);
         assert!(saute.ingredient_inputs.is_empty());
-        assert_eq!(report.food_flow_graph.unwrap().edges.len(), 3);
+        assert_eq!(report.food_flow_graph.unwrap().edges.len(), 4);
     }
 
     #[test]
@@ -2588,11 +2596,11 @@ mod tests {
     #[test]
     fn planned_loss_and_edible_outputs_remain_plans_not_measured_acceptance() {
         let mut request = valid_request();
-        request.food_flow_edges[2].destination = FoodFlowDestinationV1::PlannedLossOutput {
+        request.food_flow_edges[3].destination = FoodFlowDestinationV1::PlannedLossOutput {
             output_ref: "planned-loss:sauteed-onion".to_owned(),
             loss_kind: PlannedLossKindV1::ExpectedReject,
         };
-        request.food_flow_edges[2].material_ref = "material:planned-loss-onion".to_owned();
+        request.food_flow_edges[3].material_ref = "material:planned-loss-onion".to_owned();
         let report = compile_meal(&request);
         assert_eq!(report.disposition, MealCompilationDispositionV1::Compiled);
         assert!(
