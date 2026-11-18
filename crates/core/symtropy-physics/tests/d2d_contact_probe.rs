@@ -82,6 +82,8 @@ struct ProbeManifestV1 {
     scenario_id: String,
     engine_package: String,
     engine_version: String,
+    build_context_sha: String,
+    build_ref: String,
     dimension: u32,
     gravity: [f64; 3],
     solver_iterations: usize,
@@ -113,6 +115,12 @@ impl ProbeManifestV1 {
             scenario_id: "contact-probe-sphere-floor-v1".to_string(),
             engine_package: env!("CARGO_PKG_NAME").to_string(),
             engine_version: env!("CARGO_PKG_VERSION").to_string(),
+            build_context_sha: option_env!("GITHUB_SHA")
+                .unwrap_or("UNPINNED_LOCAL_BUILD")
+                .to_string(),
+            build_ref: option_env!("GITHUB_REF")
+                .unwrap_or("UNPINNED_LOCAL_BUILD")
+                .to_string(),
             dimension: 3,
             gravity: [0.0, GRAVITY_Y, 0.0],
             solver_iterations: 8,
@@ -145,6 +153,8 @@ impl ProbeManifestV1 {
         hash_text(&mut hash, &self.scenario_id);
         hash_text(&mut hash, &self.engine_package);
         hash_text(&mut hash, &self.engine_version);
+        hash_text(&mut hash, &self.build_context_sha);
+        hash_text(&mut hash, &self.build_ref);
         hash_u64(&mut hash, u64::from(self.dimension));
         for value in self.gravity {
             hash_u64(&mut hash, value.to_bits());
