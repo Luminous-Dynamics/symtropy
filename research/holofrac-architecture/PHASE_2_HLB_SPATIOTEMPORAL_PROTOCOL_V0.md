@@ -399,3 +399,39 @@ Targets on the finite fixture:
 - independent-oracle agreement for transition validity and impact closure.
 
 Do not claim real whole-life carbon, circularity, building safety or reuse permission from synthetic data. Real case studies require product-specific passport/EPD/condition evidence, qualified disassembly records and a frozen lifecycle boundary.
+
+
+## 14. Lifecycle evidence applicability and source-bound currentness
+
+A lifecycle digital twin must not merely retain a history of component events. It must know which evidence was valid for which exact component/design state, and which receipts remain applicable after repair, functional change, interface modification, material substitution or reuse.
+
+A relevant 3 November 2026 material-passport study argues that product-centric passport fields alone do not bridge end-of-use to next-use; it proposes process, organizational and information requirements for continuity across maintenance, planning for next use, disassembly, reprocessing and reinstallation. A 15 November 2026 review of regenerative digital twins explicitly frames lifecycle twins around material flows, embodied carbon and end-of-life reuse potential. These references reinforce the need to model evidence/process continuity, rather than just store a static product passport:
+- Contextualizing a process information approach in material passports (3 November 2026), DOI 10.1080/09613218.2026.2743409.
+- Regenerative twins as catalysts for circular, net-zero readiness in built environments (15 November 2026), DOI 10.1016/j.enbuild.2026.118243.
+
+Symtropy #5959 remains the source-manifest and solver-receipt integration track. The HoloFrac executable extension in src/lifecycle_impact.rs composes the existing exact dependency closure with four component mutations: condition, connection/interface, material passport and functional use. It includes a frozen independent oracle for seven current evidence receipts and an incomplete-inventory negative control.
+
+### T10 hypotheses
+
+- T10.1 — Exact lifecycle invalidation: a component/assembly mutation invalidates every and only current receipts whose declared source dependencies transitively include that mutation.
+- T10.2 — Historical/current distinction: a receipt remains queryable as historical for its original state but cannot be represented as current for a later state without an explicit applicability relation.
+- T10.3 — Completeness fail-closed: missing, stale, contradictory or partial dependency inventories produce unknown/conservative invalidation, never a positive current result.
+- T10.4 — Reuse transfer: when a recovered component enters a second-life assembly, material/passport identity may carry forward, but load, use, interface, condition and solver evidence must be re-qualified for the new context.
+
+### T10 benchmark and baselines
+
+Compare exact dependency-DAG closure, full-project rebuild/revalidation, manual project-level invalidation and owner-authored rule-based applicability. HDC/HLB may propose candidate dependency edges, but the exact source owner or verified adapter must authorize each edge before it enters the authoritative manifest.
+
+Use matched source inventories and frozen receipts. Test local condition change, interface change, material substitution, use-class adaptation, common-cause weather/site/model changes, stale solver/build digest, omitted source artifact, incomplete manifest, incorrect receipt input digest and a late-arriving correction. Independent oracle output must be authored separately from the production adjacency/closure implementation.
+
+Report:
+- exact stale/current/historical/unknown receipt identifiers;
+- false-current classifications (target zero);
+- unnecessary invalidations where complete inventory proves independence (target zero);
+- incomplete-inventory conservative invalidation (target 100%);
+- exact agreement with independent oracle (target 100% on frozen finite corpus);
+- evidence revalidation avoided relative to full rebuild;
+- graph build/update cost, closure p50/p95/p99 and peak RSS;
+- all missing/contradictory/rejected states.
+
+The finite lifecycle fixture's present current-evidence graph is synthetic and explicitly complete by construction. It is not evidence that a real building inventory is complete. Source-manifest integration and adapter-level dependency enumeration remain required before any real project claim.
