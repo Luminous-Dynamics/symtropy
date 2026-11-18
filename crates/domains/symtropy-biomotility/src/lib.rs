@@ -25,7 +25,8 @@ mod geometry;
 mod renewal;
 pub use collective::{
     CollisionContact, CollisionResponseError, CollisionResponseObservation,
-    CollisionResponseSummary, CollisionReversalLaw, OrientationOrder, orientation_order,
+    CollisionResponseSummary, CollisionReversalLaw, ConstitutiveReversalLaw,
+    OrientationOrder, ReversalPhenotype, orientation_order,
 };
 pub use geometry::{FreePathLaw, FreePathLawError};
 pub use renewal::{
