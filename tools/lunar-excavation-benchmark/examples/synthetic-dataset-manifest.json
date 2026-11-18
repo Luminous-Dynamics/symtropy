@@ -24,7 +24,8 @@
         "source_revision",
         "configuration_artifact_id",
         "parameters_artifact_id",
-        "prediction_artifacts"
+        "prediction_artifacts",
+        "random_seed"
       ]
     },
     "optional_isolation_axes": [
