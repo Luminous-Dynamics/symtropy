@@ -1,0 +1,299 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/shipyard-lift-reconciliation-report-v0.1.schema.json",
+  "title": "Shipyard Lift Reconciliation Report V0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "disposition",
+    "session_id",
+    "plan_id",
+    "plan_revision",
+    "plan_input_sha256",
+    "preflight_report_sha256",
+    "event_ledger_sha256",
+    "coverage_bundle_sha256",
+    "authorisation_id",
+    "authorisation_revision",
+    "preflight_disposition",
+    "block_id",
+    "block_revision",
+    "crane_id",
+    "crane_configuration_revision",
+    "site_epoch_id",
+    "frame_id",
+    "clock_domain_id",
+    "start_tick",
+    "end_tick",
+    "maximum_hook_load_mn",
+    "maximum_gust_mm_per_s",
+    "motion_report_id",
+    "motion_report_sha256",
+    "occupancy_projection_id",
+    "occupancy_projection_sha256",
+    "execution_outcome",
+    "policy_id",
+    "policy_revision",
+    "policy_sha256",
+    "matched_event_count",
+    "exact_retransmission_count",
+    "maximum_hook_load_upper_mn",
+    "maximum_wind_gust_upper_mm_per_s",
+    "maximum_ingest_lateness_ticks",
+    "unknown_intervals",
+    "diagnostics"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "shipyard-lift-reconciliation-v0.1"
+    },
+    "disposition": {
+      "enum": [
+        "conforming_to_declared_envelope",
+        "deviation_observed",
+        "indeterminate"
+      ]
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "plan_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "plan_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "plan_input_sha256": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{64}$"
+    },
+    "preflight_report_sha256": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{64}$"
+    },
+    "event_ledger_sha256": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{64}$"
+    },
+    "coverage_bundle_sha256": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{64}$"
+    },
+    "authorisation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authorisation_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "preflight_disposition": {
+      "enum": [
+        "ready_for_human_review",
+        "rejected",
+        "indeterminate"
+      ]
+    },
+    "block_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "block_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "crane_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "crane_configuration_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "site_epoch_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "frame_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "clock_domain_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "start_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "end_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "maximum_hook_load_mn": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "maximum_gust_mm_per_s": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "motion_report_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "motion_report_sha256": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{64}$"
+    },
+    "occupancy_projection_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "occupancy_projection_sha256": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{64}$"
+    },
+    "execution_outcome": {
+      "enum": [
+        "completed",
+        "aborted",
+        "unknown"
+      ]
+    },
+    "policy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policy_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policy_sha256": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{64}$"
+    },
+    "matched_event_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "exact_retransmission_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "maximum_hook_load_upper_mn": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "maximum_wind_gust_upper_mm_per_s": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "maximum_ingest_lateness_ticks": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "unknown_intervals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "channel",
+          "start_tick",
+          "end_tick",
+          "reason"
+        ],
+        "properties": {
+          "channel": {
+            "enum": [
+              "hook_load",
+              "wind_gust",
+              "crane_configuration",
+              "motion_envelope",
+              "occupancy_projection",
+              "overload_alarm",
+              "hoist_state"
+            ]
+          },
+          "start_tick": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end_tick": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "severity",
+          "channel",
+          "subject_id",
+          "detail"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "severity": {
+            "enum": [
+              "indeterminate",
+              "deviation"
+            ]
+          },
+          "channel": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "hook_load",
+              "wind_gust",
+              "crane_configuration",
+              "motion_envelope",
+              "occupancy_projection",
+              "overload_alarm",
+              "hoist_state",
+              null
+            ]
+          },
+          "subject_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
