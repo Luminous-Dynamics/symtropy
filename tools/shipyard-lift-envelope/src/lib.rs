@@ -10,14 +10,14 @@ pub const CONTRACT_VERSION: &str = "shipyard-lift-envelope-v0.1";
 pub const PPM_SCALE: u64 = 1_000_000;
 pub const GRAVITY_MILLINEWTONS_PER_KG: u128 = 9_807;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum EvidenceState {
     Current,
     Revoked,
     Superseded,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EvidenceRef {
     pub source_record_id: String,
     pub owner_id: String,
@@ -34,7 +34,7 @@ pub struct EvidenceRef {
     pub state: EvidenceState,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RiggingLeg {
     pub leg_id: String,
     pub component_revision: String,
@@ -152,7 +152,7 @@ pub struct Diagnostic {
     pub detail: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct LegAssessment {
     pub leg_id: String,
     pub tension_upper_mn: Option<u64>,
@@ -512,7 +512,7 @@ impl LiftPlan {
     /// The serializer does not authenticate evidence or certify physical truth.
     pub fn canonical_json(&self) -> String {
         let mut legs = self.rigging_legs.clone();
-        legs.sort_by(|left, right| left.leg_id.cmp(&right.leg_id));
+        legs.sort();
         let legs_json = legs
             .iter()
             .map(|leg| {
@@ -622,7 +622,7 @@ impl PreflightReport {
     /// This serializes the verifier's result; it does not authenticate inputs.
     pub fn canonical_json(&self) -> String {
         let mut legs = self.leg_assessments.clone();
-        legs.sort_by(|left, right| left.leg_id.cmp(&right.leg_id));
+        legs.sort();
         let mut diagnostics = self.diagnostics.clone();
         diagnostics.sort_by(|left, right| {
             left.code
@@ -976,7 +976,7 @@ pub fn evaluate(plan: &LiftPlan) -> PreflightReport {
         );
     }
 
-    leg_assessments.sort_by(|left, right| left.leg_id.cmp(&right.leg_id));
+    leg_assessments.sort();
     diagnostics.sort_by(|left, right| {
         left.code
             .cmp(right.code)
@@ -1100,6 +1100,22 @@ mod tests {
         report.diagnostics.iter().any(|item| item.code == code)
     }
 
+
+    #[test]
+    fn duplicate_leg_id_permutations_preserve_canonical_input_and_result_bytes() {
+        let mut first = baseline();
+        first.rigging_legs[1].leg_id = first.rigging_legs[0].leg_id.clone();
+        first.rigging_legs[1].component_revision = "leg-Z-r1".to_owned();
+        let mut second = first.clone();
+        second.rigging_legs.reverse();
+
+        assert_eq!(first.canonical_json(), second.canonical_json());
+        assert_eq!(
+            evaluate(&first).canonical_json(),
+            evaluate(&second).canonical_json()
+        );
+        assert_eq!(evaluate(&first).disposition, Disposition::Indeterminate);
+    }
 
     #[test]
     fn frozen_conformance_fixture_maps_all_vectors_to_rust_tests() {
