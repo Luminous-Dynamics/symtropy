@@ -338,6 +338,14 @@ pub struct EventRecord {
     pub heading_after_event_rad: f64,
 }
 
+/// Time-stamped position along a simulated path.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TrajectoryPoint {
+    pub time_s: f64,
+    pub x_um: f64,
+    pub y_um: f64,
+}
+
 /// Result of a deterministic, seeded event-based simulation.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SimulationResult {
@@ -345,6 +353,9 @@ pub struct SimulationResult {
     pub final_state: AgentState,
     pub gradient_heading_rad: f64,
     pub events: Vec<EventRecord>,
+    /// Run integration points plus stationary-event endpoints. This trace is
+    /// the source for time-origin-averaged trajectory statistics.
+    pub trace: Vec<TrajectoryPoint>,
 }
 
 /// Summary measures calculated from a simulated trajectory.
@@ -502,6 +513,11 @@ pub fn simulate_with_bias_mode(
     state.heading_rad = wrap_angle(state.heading_rad);
     let initial_state = state;
     let mut events = Vec::with_capacity(event_count);
+    let mut trace = vec![TrajectoryPoint {
+        time_s: state.elapsed_s,
+        x_um: state.x_um,
+        y_um: state.y_um,
+    }];
 
     for _ in 0..event_count {
         let direction = classify_direction(
@@ -538,6 +554,11 @@ pub fn simulate_with_bias_mode(
             if !state.is_valid() {
                 return Err(SimulationError::NonFiniteTrajectory);
             }
+            trace.push(TrajectoryPoint {
+                time_s: state.elapsed_s,
+                x_um: state.x_um,
+                y_um: state.y_um,
+            });
             remaining_run_s = next_remaining_run_s;
             integration_steps += 1;
         }
@@ -573,6 +594,11 @@ pub fn simulate_with_bias_mode(
         if !state.is_valid() {
             return Err(SimulationError::NonFiniteTrajectory);
         }
+        trace.push(TrajectoryPoint {
+            time_s: state.elapsed_s,
+            x_um: state.x_um,
+            y_um: state.y_um,
+        });
 
         events.push(EventRecord {
             direction_before_run: direction,
@@ -590,6 +616,7 @@ pub fn simulate_with_bias_mode(
         final_state: state,
         gradient_heading_rad: wrap_angle(gradient_heading_rad),
         events,
+        trace,
     })
 }
 
