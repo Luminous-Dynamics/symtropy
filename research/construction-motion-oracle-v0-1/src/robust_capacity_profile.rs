@@ -128,7 +128,7 @@ pub enum RobustCapacityError {
     ArithmeticOverflow,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 struct BoundaryDemand {
     starts: u128,
     ends: u128,
@@ -293,7 +293,7 @@ pub fn evaluate_robust_cumulative_resource_capacity(
         let boundaries: Vec<(u64, BoundaryDemand)> = sweep
             .boundaries
             .iter()
-            .map(|(tick, demand)| (*tick, *demand))
+            .map(|(tick, demand)| (*tick, demand.clone()))
             .collect();
         let boundary_count = u64::try_from(boundaries.len())
             .map_err(|_| vec![RobustCapacityError::ArithmeticOverflow])?;
