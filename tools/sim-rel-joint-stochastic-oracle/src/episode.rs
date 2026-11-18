@@ -426,8 +426,20 @@ pub struct EpisodeEvaluation {
     pub version_space_exact_match: bool,
     /// Number of correctly reported candidates.
     pub correct_candidate_count: usize,
+    /// Whether the sampled generating mechanism is present in the public candidate catalogue.
+    pub generating_hypothesis_declared: bool,
+    /// Whether the sampled generating mechanism is outside the public candidate catalogue.
+    pub outside_candidate_family: bool,
     /// Whether the sampled generating hypothesis remains in the exact version space.
     pub generating_hypothesis_retained: bool,
+    /// Whether the policy reported model inadequacy/OOD by either no-compatible or outside-family.
+    pub outside_family_detected: bool,
+    /// Whether the OOD detection decision matches the evaluator-only generating mechanism.
+    pub outside_family_detection_correct: bool,
+    /// OOD was reported for an in-catalogue generating mechanism.
+    pub outside_family_false_positive: bool,
+    /// An out-of-catalogue generating mechanism was not detected by the policy.
+    pub outside_family_missed: bool,
     /// Whether the evidence identifies exactly one candidate.
     pub evidence_identifies_unique_hypothesis: bool,
     /// A false-unique claim: the agent reports unique identification when the exact version
@@ -696,6 +708,13 @@ impl EpisodeProvider {
             .ok_or_else(|| EpisodeError::EvaluationFailure(
                 "sampled hypothesis index is outside the kernel catalogue".to_owned(),
             ))?;
+        let generating_hypothesis_declared = self
+            .manifest
+            .public_profile
+            .candidate_hypotheses
+            .iter()
+            .any(|candidate| candidate.hypothesis_id == *generating_id);
+        let outside_candidate_family = !generating_hypothesis_declared;
         let generating_hypothesis_retained =
             compatible_hypotheses.iter().any(|candidate| candidate == generating_id);
 
@@ -720,18 +739,29 @@ impl EpisodeProvider {
         let safe_abstention = finish.disposition == EpisodeFinishDisposition::Abstain
             && (!generating_hypothesis_retained || compatible_hypotheses.len() > 1);
         let unnecessary_abstention = finish.disposition == EpisodeFinishDisposition::Abstain
-            && evidence_identifies_unique_hypothesis;
+            && evidence_identifies_unique_hypothesis
+            && generating_hypothesis_retained;
+        let outside_family_detected = matches!(
+            finish.disposition,
+            EpisodeFinishDisposition::NoCompatibleModel
+                | EpisodeFinishDisposition::OutsideCandidateFamily
+        );
+        let outside_family_detection_correct =
+            outside_family_detected == outside_candidate_family;
+        let outside_family_false_positive =
+            outside_family_detected && !outside_candidate_family;
+        let outside_family_missed =
+            outside_candidate_family && !outside_family_detected;
         let disposition_correct = match finish.disposition {
             EpisodeFinishDisposition::Identified => {
                 evidence_identifies_unique_hypothesis && generating_hypothesis_retained
             }
-            EpisodeFinishDisposition::Ambiguous => compatible_hypotheses.len() > 1
-            // The current provider only admits in-support kernels. An empty
-            // candidate set is a task/model contradiction and fails closed.
-            EpisodeFinishDisposition::NoCompatibleModel => {
-                compatible_hypotheses.is_empty() && !generating_hypothesis_retained
+            EpisodeFinishDisposition::Ambiguous => {
+                compatible_hypotheses.len() > 1
+                    || (outside_candidate_family && !compatible_hypotheses.is_empty())
             }
-            EpisodeFinishDisposition::OutsideCandidateFamily => !generating_hypothesis_retained,
+            EpisodeFinishDisposition::NoCompatibleModel => compatible_hypotheses.is_empty(),
+            EpisodeFinishDisposition::OutsideCandidateFamily => outside_candidate_family,
             EpisodeFinishDisposition::Abstain => safe_abstention,
         };
         let applied_interventions = self
@@ -747,7 +777,13 @@ impl EpisodeProvider {
             claimed_compatible_hypotheses: finish.compatible_hypothesis_ids.clone(),
             version_space_exact_match,
             correct_candidate_count,
+            generating_hypothesis_declared,
+            outside_candidate_family,
             generating_hypothesis_retained,
+            outside_family_detected,
+            outside_family_detection_correct,
+            outside_family_false_positive,
+            outside_family_missed,
             evidence_identifies_unique_hypothesis,
             false_unique_claim,
             safe_abstention,
