@@ -575,6 +575,7 @@ pub enum WaitingTimeComparisonError {
     TimeGridBeyondObservedSupport,
     InvalidCandidateName,
     DuplicateCandidateName,
+    InvalidInformationCriterionSampleSize,
     InvalidLaw(WaitingTimeLawError),
     EmpiricalCandidateWithRightCensoring,
 }
@@ -599,6 +600,9 @@ impl fmt::Display for WaitingTimeComparisonError {
             }
             Self::DuplicateCandidateName => {
                 write!(formatter, "candidate names must be unique")
+            }
+            Self::InvalidInformationCriterionSampleSize => {
+                write!(formatter, "independent likelihood sample size must be positive")
             }
             Self::InvalidLaw(error) => {
                 write!(formatter, "invalid candidate waiting-time law: {error}")
@@ -625,11 +629,19 @@ impl Error for WaitingTimeComparisonError {}
 /// Completed-only empirical resampling is allowed only when no censoring is
 /// present. The grid is constrained to the observed time support; no
 /// extrapolated tail is included in the score.
+///
+/// Information criteria are returned only when the caller supplies
+/// `independent_likelihood_sample_size`, and should be supplied only when
+/// the likelihood contributions are independent at that declared unit.
 pub fn compare_waiting_time_models(
     observations: &[SurvivalObservation],
     time_grid_s: &[f64],
     candidates: &[WaitingTimeCandidate<'_>],
+    independent_likelihood_sample_size: Option<usize>,
 ) -> Result<WaitingTimeComparison, WaitingTimeComparisonError> {
+    if independent_likelihood_sample_size == Some(0) {
+        return Err(WaitingTimeComparisonError::InvalidInformationCriterionSampleSize);
+    }
     if candidates.is_empty() {
         return Err(WaitingTimeComparisonError::EmptyCandidates);
     }
@@ -709,10 +721,12 @@ pub fn compare_waiting_time_models(
         let parameter_count = law_parameter_count(candidate.law);
         let censored_log_likelihood =
             censored_log_likelihood(candidate.law, observations);
-        let akaike_information_criterion =
-            information_criterion(censored_log_likelihood, parameter_count, observations.len(), false);
-        let bayesian_information_criterion =
-            information_criterion(censored_log_likelihood, parameter_count, observations.len(), true);
+        let akaike_information_criterion = independent_likelihood_sample_size.and_then(|count| {
+            information_criterion(censored_log_likelihood, parameter_count, count, false)
+        });
+        let bayesian_information_criterion = independent_likelihood_sample_size.and_then(|count| {
+            information_criterion(censored_log_likelihood, parameter_count, count, true)
+        });
 
         scores.push(WaitingTimeCandidateScore {
             name: candidate.name.to_owned(),
@@ -1067,7 +1081,7 @@ mod tests {
             law: &exponential,
         }];
         let comparison =
-            compare_waiting_time_models(&observations, &[0.0, 1.0, 2.0, 3.0], &candidates)
+            compare_waiting_time_models(&observations, &[0.0, 1.0, 2.0, 3.0], &candidates, Some(3))
                 .expect("valid matched-window comparison");
 
         assert_eq!(
@@ -1123,7 +1137,7 @@ mod tests {
         ];
         let grid = [0.0, 0.5, 1.0, 1.5, 2.0];
         let comparison =
-            compare_waiting_time_models(&observations, &grid, &candidates)
+            compare_waiting_time_models(&observations, &grid, &candidates, None)
                 .expect("valid candidates");
 
         assert_eq!(comparison.time_grid_s, grid);
@@ -1156,7 +1170,7 @@ mod tests {
             law: &empirical,
         }];
         assert_eq!(
-            compare_waiting_time_models(&observations, &[0.0, 1.0, 2.0], &candidates),
+            compare_waiting_time_models(&observations, &[0.0, 1.0, 2.0], &candidates, None),
             Err(WaitingTimeComparisonError::EmpiricalCandidateWithRightCensoring)
         );
     }
@@ -1209,12 +1223,16 @@ mod tests {
         }];
 
         assert_eq!(
-            compare_waiting_time_models(&observations, &[0.0, 1.0, 3.0], &candidates),
+            compare_waiting_time_models(&observations, &[0.0, 1.0, 3.0], &candidates, None),
             Err(WaitingTimeComparisonError::TimeGridBeyondObservedSupport)
         );
         assert_eq!(
-            compare_waiting_time_models(&observations, &[0.1, 1.0, 2.0], &candidates),
+            compare_waiting_time_models(&observations, &[0.1, 1.0, 2.0], &candidates, None),
             Err(WaitingTimeComparisonError::InvalidTimeGrid)
+        );
+        assert_eq!(
+            compare_waiting_time_models(&observations, &[0.0, 1.0, 2.0], &candidates, Some(0)),
+            Err(WaitingTimeComparisonError::InvalidInformationCriterionSampleSize)
         );
         let duplicate_candidates = [
             WaitingTimeCandidate {
@@ -1230,7 +1248,8 @@ mod tests {
             compare_waiting_time_models(
                 &observations,
                 &[0.0, 1.0, 2.0],
-                &duplicate_candidates
+                &duplicate_candidates,
+                None
             ),
             Err(WaitingTimeComparisonError::DuplicateCandidateName)
         );
@@ -1259,7 +1278,7 @@ mod tests {
             law: &power_law,
         }];
         let comparison =
-            compare_waiting_time_models(&observations, &[0.0, 0.1, 1.0], &candidates)
+            compare_waiting_time_models(&observations, &[0.0, 0.1, 1.0], &candidates, None)
                 .expect("valid comparison inputs");
         let score = &comparison.scores[0];
         assert_eq!(score.censored_log_likelihood, Some(f64::NEG_INFINITY));
