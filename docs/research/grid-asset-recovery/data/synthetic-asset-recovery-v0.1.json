@@ -1,0 +1,210 @@
+{
+  "schemaVersion": "0.1.0",
+  "caseId": "SYNTHETIC-TX-FLEET-01",
+  "caseMaturity": "synthetic_fixture",
+  "serviceBoundary": {
+    "serviceId": "regional-firm-ac-transfer",
+    "serviceUnit": "MW",
+    "energyUnit": "MWh"
+  },
+  "assets": [
+    {
+      "assetId": "TX-A1",
+      "assetClass": "large_power_transformer",
+      "variantId": "TX-A-500",
+      "interfaceProfileId": "IFACE-A",
+      "locationId": "SITE-NORTH"
+    },
+    {
+      "assetId": "TX-A2",
+      "assetClass": "large_power_transformer",
+      "variantId": "TX-A-500",
+      "interfaceProfileId": "IFACE-A",
+      "locationId": "SITE-EAST"
+    },
+    {
+      "assetId": "TX-B1",
+      "assetClass": "large_power_transformer",
+      "variantId": "TX-B-500",
+      "interfaceProfileId": "IFACE-B",
+      "locationId": "SITE-EAST"
+    }
+  ],
+  "parts": [
+    {
+      "partId": "SPARE-A",
+      "partClass": "large_power_transformer",
+      "variantId": "TX-A-500",
+      "approvedInterfaceProfiles": [
+        "IFACE-A"
+      ],
+      "evidenceRecordId": "EV-SYN-A"
+    },
+    {
+      "partId": "SPARE-B",
+      "partClass": "large_power_transformer",
+      "variantId": "TX-B-500",
+      "approvedInterfaceProfiles": [
+        "IFACE-B"
+      ],
+      "evidenceRecordId": "EV-SYN-B"
+    }
+  ],
+  "depots": [
+    {
+      "depotId": "DEPOT-CENTRAL",
+      "locationId": "WAREHOUSE-CENTRAL",
+      "inventory": [
+        {
+          "partId": "SPARE-A",
+          "quantityOnHand": 1,
+          "quantityReserved": 0,
+          "quantityServiceable": 1
+        }
+      ]
+    },
+    {
+      "depotId": "DEPOT-EAST",
+      "locationId": "WAREHOUSE-EAST",
+      "inventory": [
+        {
+          "partId": "SPARE-B",
+          "quantityOnHand": 1,
+          "quantityReserved": 0,
+          "quantityServiceable": 1
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "resourceId": "CREW-HV-TX",
+      "resourceType": "qualified_transformer_replacement_crew",
+      "availableUnits": 1
+    }
+  ],
+  "logisticsRoutes": [
+    {
+      "routeId": "ROUTE-CENTRAL-NORTH",
+      "fromLocationId": "WAREHOUSE-CENTRAL",
+      "toLocationId": "SITE-NORTH",
+      "transitHours": 12,
+      "maxCargoKg": 100000
+    }
+  ],
+  "evidenceRecords": [
+    {
+      "evidenceRecordId": "EV-SYN-A",
+      "evidenceClass": "synthetic_fixture",
+      "description": "Synthetic contract-only interface profile A; no real asset qualification.",
+      "sourceUri": null
+    },
+    {
+      "evidenceRecordId": "EV-SYN-B",
+      "evidenceClass": "synthetic_fixture",
+      "description": "Synthetic contract-only interface profile B; no real asset qualification.",
+      "sourceUri": null
+    }
+  ],
+  "events": [
+    {
+      "eventId": "OUTAGE-001",
+      "assetId": "TX-A1",
+      "startHour": 0,
+      "failureMode": "synthetic_major_internal_failure",
+      "firmCapacityLostMw": 120,
+      "selectedPlan": {
+        "planId": "RECOVERY-001",
+        "partSource": {
+          "kind": "depot_stock",
+          "depotId": "DEPOT-CENTRAL",
+          "partId": "SPARE-A",
+          "quantity": 1
+        },
+        "logisticsRouteId": "ROUTE-CENTRAL-NORTH",
+        "transportMassKg": 90000,
+        "alternativeFirmCapacityMw": 40,
+        "claimedRestorationHours": 36,
+        "expectedUnservedEnergyMwh": 2880,
+        "tasks": [
+          {
+            "stage": "detect_and_isolate",
+            "durationHours": 2
+          },
+          {
+            "stage": "diagnose",
+            "durationHours": 3
+          },
+          {
+            "stage": "source_part",
+            "durationHours": 1
+          },
+          {
+            "stage": "transport",
+            "durationHours": 12
+          },
+          {
+            "stage": "crew_mobilise",
+            "durationHours": 4
+          },
+          {
+            "stage": "repair_or_replace",
+            "durationHours": 10,
+            "resourceId": "CREW-HV-TX",
+            "resourceUnits": 1
+          },
+          {
+            "stage": "test_and_commission",
+            "durationHours": 4
+          }
+        ]
+      }
+    },
+    {
+      "eventId": "OUTAGE-002",
+      "assetId": "TX-A2",
+      "startHour": 48,
+      "failureMode": "synthetic_second_failure_same_family",
+      "firmCapacityLostMw": 70,
+      "selectedPlan": {
+        "planId": "RECOVERY-002",
+        "partSource": {
+          "kind": "oem_procurement",
+          "supplierId": "SYNTHETIC-OEM-A",
+          "partId": "SPARE-A"
+        },
+        "alternativeFirmCapacityMw": 20,
+        "claimedRestorationHours": 1223,
+        "expectedUnservedEnergyMwh": 61150,
+        "tasks": [
+          {
+            "stage": "detect_and_isolate",
+            "durationHours": 2
+          },
+          {
+            "stage": "diagnose",
+            "durationHours": 3
+          },
+          {
+            "stage": "source_part",
+            "durationHours": 1200
+          },
+          {
+            "stage": "crew_mobilise",
+            "durationHours": 4
+          },
+          {
+            "stage": "repair_or_replace",
+            "durationHours": 10,
+            "resourceId": "CREW-HV-TX",
+            "resourceUnits": 1
+          },
+          {
+            "stage": "test_and_commission",
+            "durationHours": 4
+          }
+        ]
+      }
+    }
+  ]
+}
