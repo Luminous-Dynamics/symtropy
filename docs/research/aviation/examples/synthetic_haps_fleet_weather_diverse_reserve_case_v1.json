@@ -1,0 +1,414 @@
+{
+  "schema_version": "haps-fleet-operations-case/v1",
+  "case_id": "synthetic.haps.fleet.diverse-reserve.weather-domain.001",
+  "revision": 1,
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_deterministic_event_replay",
+  "horizon_hours": 720,
+  "step_hours": 1,
+  "required_service_capacity_units": 2,
+  "degraded_margin_units": 0.75,
+  "nodes": [
+    {
+      "node_id": "haps-a",
+      "platform_class": "solar_fixed_wing_haps",
+      "service_region_ref": "region-disaster-north",
+      "base_capacity_units": 1,
+      "hazard_domain": "stratospheric-domain-north-01"
+    },
+    {
+      "node_id": "haps-b",
+      "platform_class": "buoyant_airship",
+      "service_region_ref": "region-disaster-north",
+      "base_capacity_units": 1,
+      "hazard_domain": "stratospheric-domain-north-01"
+    },
+    {
+      "node_id": "haps-c",
+      "platform_class": "solar_fixed_wing_haps",
+      "service_region_ref": "region-disaster-north",
+      "base_capacity_units": 1,
+      "hazard_domain": "stratospheric-domain-north-01"
+    },
+    {
+      "node_id": "haps-d",
+      "platform_class": "solar_fixed_wing_haps",
+      "service_region_ref": "region-disaster-north",
+      "hazard_domain": "stratospheric-domain-west-22km",
+      "base_capacity_units": 1
+    }
+  ],
+  "fallback_sources": [
+    {
+      "source_id": "terrestrial-gateway",
+      "source_class": "terrestrial_gateway",
+      "service_region_ref": "region-disaster-north",
+      "base_capacity_units": 0.5,
+      "independence_domain": "ground-core-power-domain"
+    },
+    {
+      "source_id": "leo-backhaul",
+      "source_class": "leo_backhaul",
+      "service_region_ref": "region-disaster-north",
+      "base_capacity_units": 0.5,
+      "independence_domain": "space-segment-independent-unless-shared-ground-core"
+    }
+  ],
+  "events": [
+    {
+      "event_id": "launch-c",
+      "event_type": "launch_transit",
+      "event_class": "planned_operation",
+      "start_hour": 0,
+      "end_hour": 6,
+      "capacity_factor": 0,
+      "affected_node_ids": [
+        "haps-c"
+      ],
+      "affected_fallback_ids": [],
+      "shared_cause_id": null,
+      "resource_pool": "launch_pad"
+    },
+    {
+      "event_id": "handover-a-to-b",
+      "event_type": "group_handover",
+      "event_class": "service_handover",
+      "start_hour": 48,
+      "end_hour": 50,
+      "capacity_factor": 0.5,
+      "affected_node_ids": [
+        "haps-a",
+        "haps-b"
+      ],
+      "affected_fallback_ids": [],
+      "shared_cause_id": "handover-cohort-001",
+      "resource_pool": "handover_channel"
+    },
+    {
+      "event_id": "maint-a",
+      "event_type": "planned_maintenance",
+      "event_class": "planned_operation",
+      "start_hour": 96,
+      "end_hour": 120,
+      "capacity_factor": 0,
+      "affected_node_ids": [
+        "haps-a"
+      ],
+      "affected_fallback_ids": [],
+      "shared_cause_id": null,
+      "resource_pool": "maintenance_bay"
+    },
+    {
+      "event_id": "weather-layer-ab",
+      "event_type": "shared_weather_derate",
+      "event_class": "shared_weather",
+      "start_hour": 168,
+      "end_hour": 180,
+      "capacity_factor": 0.5,
+      "affected_node_ids": [
+        "haps-a",
+        "haps-b"
+      ],
+      "affected_fallback_ids": [],
+      "shared_cause_id": "weather-front-01",
+      "resource_pool": "none"
+    },
+    {
+      "event_id": "fault-a",
+      "event_type": "unplanned_fault",
+      "event_class": "independent_asset",
+      "start_hour": 240,
+      "end_hour": 252,
+      "capacity_factor": 0,
+      "affected_node_ids": [
+        "haps-a"
+      ],
+      "affected_fallback_ids": [],
+      "shared_cause_id": null,
+      "resource_pool": "maintenance_bay"
+    },
+    {
+      "event_id": "maint-b",
+      "event_type": "planned_maintenance",
+      "event_class": "planned_operation",
+      "start_hour": 288,
+      "end_hour": 312,
+      "capacity_factor": 0,
+      "affected_node_ids": [
+        "haps-b"
+      ],
+      "affected_fallback_ids": [],
+      "shared_cause_id": null,
+      "resource_pool": "maintenance_bay"
+    },
+    {
+      "event_id": "fault-b",
+      "event_type": "unplanned_fault",
+      "event_class": "independent_asset",
+      "start_hour": 360,
+      "end_hour": 372,
+      "capacity_factor": 0,
+      "affected_node_ids": [
+        "haps-b"
+      ],
+      "affected_fallback_ids": [],
+      "shared_cause_id": null,
+      "resource_pool": "maintenance_bay"
+    },
+    {
+      "event_id": "recover-b",
+      "event_type": "recovery_transit",
+      "event_class": "planned_operation",
+      "start_hour": 372,
+      "end_hour": 378,
+      "capacity_factor": 0,
+      "affected_node_ids": [
+        "haps-b"
+      ],
+      "affected_fallback_ids": [],
+      "shared_cause_id": null,
+      "resource_pool": "recovery_slot"
+    },
+    {
+      "event_id": "weather-main-domain-ground-outage",
+      "event_type": "shared_weather_outage",
+      "event_class": "shared_weather",
+      "start_hour": 432,
+      "end_hour": 444,
+      "capacity_factor": 0.4,
+      "affected_node_ids": [
+        "haps-a",
+        "haps-b",
+        "haps-c"
+      ],
+      "affected_fallback_ids": [],
+      "shared_cause_id": "weather-storm-02",
+      "resource_pool": "none"
+    },
+    {
+      "event_id": "shared-ground-core",
+      "event_type": "shared_infrastructure_outage",
+      "event_class": "shared_infrastructure",
+      "start_hour": 432,
+      "end_hour": 444,
+      "capacity_factor": 0,
+      "affected_node_ids": [],
+      "affected_fallback_ids": [
+        "terrestrial-gateway",
+        "leo-backhaul"
+      ],
+      "shared_cause_id": "ground-core-power-02",
+      "resource_pool": "none"
+    },
+    {
+      "event_id": "maint-c",
+      "event_type": "planned_maintenance",
+      "event_class": "planned_operation",
+      "start_hour": 480,
+      "end_hour": 504,
+      "capacity_factor": 0,
+      "affected_node_ids": [
+        "haps-c"
+      ],
+      "affected_fallback_ids": [],
+      "shared_cause_id": null,
+      "resource_pool": "maintenance_bay"
+    },
+    {
+      "event_id": "weather-main-domain-degraded",
+      "event_type": "shared_weather_derate",
+      "event_class": "shared_weather",
+      "start_hour": 650,
+      "end_hour": 660,
+      "capacity_factor": 0.5,
+      "affected_node_ids": [
+        "haps-a",
+        "haps-b",
+        "haps-c"
+      ],
+      "affected_fallback_ids": [],
+      "shared_cause_id": "weather-front-03",
+      "resource_pool": "none"
+    },
+    {
+      "event_id": "fault-c",
+      "event_type": "unplanned_fault",
+      "event_class": "independent_asset",
+      "start_hour": 600,
+      "end_hour": 612,
+      "capacity_factor": 0,
+      "affected_node_ids": [
+        "haps-c"
+      ],
+      "affected_fallback_ids": [],
+      "shared_cause_id": null,
+      "resource_pool": "maintenance_bay"
+    },
+    {
+      "event_id": "recover-c",
+      "event_type": "recovery_transit",
+      "event_class": "planned_operation",
+      "start_hour": 612,
+      "end_hour": 618,
+      "capacity_factor": 0,
+      "affected_node_ids": [
+        "haps-c"
+      ],
+      "affected_fallback_ids": [],
+      "shared_cause_id": null,
+      "resource_pool": "recovery_slot"
+    },
+    {
+      "event_id": "launch-d-reserve",
+      "event_type": "launch_transit",
+      "event_class": "planned_operation",
+      "start_hour": 6,
+      "end_hour": 18,
+      "capacity_factor": 0,
+      "affected_node_ids": [
+        "haps-d"
+      ],
+      "affected_fallback_ids": [],
+      "shared_cause_id": null,
+      "resource_pool": "launch_pad"
+    },
+    {
+      "event_id": "maint-d-reserve",
+      "event_type": "planned_maintenance",
+      "event_class": "planned_operation",
+      "start_hour": 620,
+      "end_hour": 644,
+      "capacity_factor": 0,
+      "affected_node_ids": [
+        "haps-d"
+      ],
+      "affected_fallback_ids": [],
+      "shared_cause_id": null,
+      "resource_pool": "maintenance_bay"
+    },
+    {
+      "event_id": "recover-d-reserve",
+      "event_type": "recovery_transit",
+      "event_class": "planned_operation",
+      "start_hour": 644,
+      "end_hour": 648,
+      "capacity_factor": 0,
+      "affected_node_ids": [
+        "haps-d"
+      ],
+      "affected_fallback_ids": [],
+      "shared_cause_id": null,
+      "resource_pool": "recovery_slot"
+    }
+  ],
+  "demand_periods": [
+    {
+      "start_hour": 0,
+      "end_hour": 432,
+      "demand_weight": 1,
+      "demand_class": "baseline"
+    },
+    {
+      "start_hour": 432,
+      "end_hour": 444,
+      "demand_weight": 4,
+      "demand_class": "emergency_surge"
+    },
+    {
+      "start_hour": 444,
+      "end_hour": 720,
+      "demand_weight": 1,
+      "demand_class": "baseline"
+    }
+  ],
+  "resource_limits": [
+    {
+      "resource_pool": "maintenance_bay",
+      "maximum_concurrent_operations": 1
+    },
+    {
+      "resource_pool": "launch_pad",
+      "maximum_concurrent_operations": 1
+    },
+    {
+      "resource_pool": "recovery_slot",
+      "maximum_concurrent_operations": 1
+    },
+    {
+      "resource_pool": "reposition_slot",
+      "maximum_concurrent_operations": 1
+    },
+    {
+      "resource_pool": "handover_channel",
+      "maximum_concurrent_operations": 1
+    }
+  ],
+  "handover_attempts": [
+    {
+      "handover_id": "cohort-disaster-zone-001",
+      "source_node_id": "haps-a",
+      "target_node_id": "haps-b",
+      "offered_sessions": 10000,
+      "prepared_sessions": 9950,
+      "accepted_sessions": 9900,
+      "completed_sessions": 9850,
+      "timed_out_sessions": 50,
+      "p95_interruption_s": 4.2,
+      "maximum_interruption_s": 24,
+      "state_transfer_failures": 30
+    }
+  ],
+  "expected_oracle": {
+    "oracle_status": "independently_calculated",
+    "total_hours": 720,
+    "service_adequate_hours": 720,
+    "strict_service_availability_fraction": 1,
+    "demand_weighted_available_hours": 756,
+    "demand_weighted_total_hours": 756,
+    "demand_weighted_service_availability_fraction": 1,
+    "outage_episode_count": 0,
+    "total_outage_hours": 0,
+    "maximum_contiguous_outage_hours": 0,
+    "degraded_service_hours": 12,
+    "minimum_service_capacity_units": 2.2,
+    "capacity_deficit_units_hours": 0,
+    "capacity_surplus_units_hours": 1931.4000000000005,
+    "maximum_resource_concurrency": {
+      "maintenance_bay": 1,
+      "launch_pad": 1,
+      "recovery_slot": 1,
+      "reposition_slot": 0,
+      "handover_channel": 1
+    },
+    "resource_limit_violations": [],
+    "handover_offered_sessions": 10000,
+    "handover_prepared_sessions": 9950,
+    "handover_accepted_sessions": 9900,
+    "handover_completed_sessions": 9850,
+    "handover_success_fraction": 0.985,
+    "handover_p95_interruption_s_max": 4.2,
+    "handover_maximum_interruption_s_max": 24,
+    "state_transfer_failures": 30
+  },
+  "source_evidence_refs": [
+    "https://sceye.com/press-releases/sceye-softbank-sign-agreement-for-fleet-of-stratospheric-platforms/",
+    "https://www.itu.int/rec/dologin_pub.asp?id=T-REC-Y.3212-202409-I%21%21PDF-E&lang=e&type=items",
+    "https://www.sciencedirect.com/science/article/pii/S0951832025006507"
+  ],
+  "assumptions": [
+    "All node capacities, outages, maintenance durations, weather impacts and fallback capacities are synthetic; this is a deterministic trace, not an estimated operational failure distribution.",
+    "Each HAPS node is represented as one service-capacity unit. The two fallback sources each provide 0.5 service units when available.",
+    "Service is adequate in an hour if total HAPS plus fallback capacity is greater than or equal to two service-capacity units.",
+    "All capacity factors for overlapping events multiply. Shared weather and infrastructure events apply once to every target listed in the event.",
+    "The 30-day timeline uses one-hour bins and half-open event intervals [start_hour, end_hour).",
+    "Planned maintenance is staggered across the three HAPS, and the fixture allows at most one concurrent operation in each declared resource pool.",
+    "The emergency-surge period coincides with the synthetic shared weather plus shared ground-core/LEO outage, making the same event particularly costly to demand-weighted service.",
+    "The group handover cohort is a separate service-continuity observation; a completed session does not imply the fleet capacity schedule alone establishes a real telecom SLA.",
+    "The static Bernoulli/Semi-Markov reliability owner remains separate. This fixture replays a known deterministic event trace and does not estimate probabilities or mean repair times.",
+    "No real fleet count, launch cadence, maintenance turnaround, HAPS weather susceptibility, gateway independence or LEO availability is asserted.",
+    "This is a reserve-capacity sensitivity case: HAPS-D is launched between hours 6 and 18, then supplies one service-capacity unit in the same service region.",
+    "HAPS-D is assigned a distinct hazard_domain to test a hypothesized different altitude/geographic weather exposure; this is a synthetic assumption, not a validated meteorological independence claim.",
+    "The shared weather event at hours 432–444 affects HAPS-A/B/C at 0.4 capacity and the shared ground/core event simultaneously removes both fallback layers; HAPS-D remains at full capacity and keeps aggregate service above the 2-unit threshold.",
+    "A negative control that adds HAPS-D to the shared weather event should restore the common-cause outage; platform diversity must be proven from real exposure/operating traces before any independence claim."
+  ]
+}
