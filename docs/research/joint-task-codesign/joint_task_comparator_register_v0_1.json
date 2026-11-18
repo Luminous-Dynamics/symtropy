@@ -1,0 +1,727 @@
+{
+  "schema": "luminous.joint_task_comparator_register",
+  "version": "0.1.5",
+  "status": "paper_vendor_reference_only",
+  "created_utc": "2026-11-18",
+  "owner": "https://github.com/Luminous-Dynamics/symtropy/issues/6064",
+  "parent": "https://github.com/Luminous-Dynamics/symtropy/issues/6037",
+  "units": {
+    "mass": "kg",
+    "torque": "N*m",
+    "torque_density": "N*m/kg",
+    "voltage": "V",
+    "distance": "m",
+    "speed": "rpm",
+    "volume": "cm^3",
+    "frequency": "Hz"
+  },
+  "comparison_policy": [
+    "Rated continuous, peak transient, model estimate, measured prototype and vendor-reported peak are distinct metric kinds.",
+    "Unknown or unmatched denominator, duty, thermal, bus or load boundaries are NOT_COMPARABLE.",
+    "Every candidate includes the complete installed mass and energy boundary.",
+    "J1 leg actuator, J2 wrist and J3 tendon hand are separate leaderboards."
+  ],
+  "comparators": [
+    {
+      "id": "J1-TASK-CO-DESIGN-2026",
+      "family": "geared_leg_actuator",
+      "source": {
+        "title": "Task-Oriented Co-Design and Optimization of Geared Actuators for Robotic Applications",
+        "date": "2026-09-19",
+        "url": "https://arxiv.org/abs/2609.22795",
+        "source_kind": "peer_review_preprint",
+        "status": "paper_reported",
+        "version": "arXiv:2609.22795v1"
+      },
+      "task": {
+        "name": "two_dof_vertical_guide_jump",
+        "full_robot_validation": false,
+        "bench_load_kg": 5.5,
+        "dc_bus_voltage_v": 48,
+        "notes": "Reduced-order two-DOF vertical-guide jumping-leg bench; source task envelopes include simulated Unitree G1 fast walking, stair ascent and jumping, but the physical bench is not a whole humanoid.",
+        "simulated_g1_profiles": {
+          "evidence_kind": "simulated_MuJoCo_task_inputs_not_physical_robot_test",
+          "peak_torque_nm": {
+            "fast_walking": 103,
+            "jumping": 139,
+            "stair_ascent": 109
+          },
+          "peak_speed_rad_s": {
+            "fast_walking": 16.6,
+            "jumping": 20.1,
+            "stair_ascent": 14.3
+          },
+          "requirement_envelopes": "moving-window maxima over 1 rad/s neighborhoods; 0.75 rad/s smoothing bandwidth"
+        },
+        "model_equations": {
+          "guide_constraint": "x_h(q)=l_s*cos(q1)-l_t*cos(q1-q2)=0",
+          "slider_height": "y_h(q)=l_s*sin(q1)-l_t*sin(q1-q2)",
+          "generalized_torque_map": "[-tau_hip, tau_hip+tau_knee]^T",
+          "contact": [
+            "Fn >= 0",
+            "abs(Ft) <= mu*Fn"
+          ],
+          "control": "two fifth-order Bezier torque profiles, six bounded [0,1] coefficients each",
+          "braking_predictor": "d_stop=omega_plus*t_delay + J_eff*omega_plus^2/(2*tau_brake) + position_margin",
+          "whole_body_balance_included": false,
+          "lateral_dynamics_included": false
+        }
+      },
+      "devices": {
+        "commercial_dm8009": {
+          "mass_kg": 0.896,
+          "rated_output_torque_nm": 20,
+          "rated_torque_density_nm_per_kg": 22.3,
+          "peak_torque_nm": 40,
+          "maximum_speed_rpm": 320,
+          "measurement_kind": "paper_table_reference"
+        },
+        "fabricated_18s20p": {
+          "mass_kg": 0.729,
+          "rated_output_torque_nm": 26,
+          "rated_torque_density_nm_per_kg": 35.7,
+          "peak_torque_nm": 51.5,
+          "maximum_speed_rpm": 250,
+          "measurement_kind": "measured_prototype_mass_and_bench_nominal"
+        }
+      },
+      "normalized_jump_sweep": [
+        {
+          "level": 0.75,
+          "dm8009": {
+            "command_torque_nm": 15,
+            "slider_rise_m": null,
+            "result": "no_jump"
+          },
+          "fabricated": {
+            "command_torque_nm": 19.5,
+            "slider_rise_m": 0.49,
+            "result": "jump"
+          }
+        },
+        {
+          "level": 1,
+          "dm8009": {
+            "command_torque_nm": 20,
+            "slider_rise_m": 0.49,
+            "result": "jump"
+          },
+          "fabricated": {
+            "command_torque_nm": 26,
+            "slider_rise_m": 0.58,
+            "result": "jump"
+          }
+        },
+        {
+          "level": 1.5,
+          "dm8009": {
+            "command_torque_nm": 30,
+            "slider_rise_m": 0.615,
+            "result": "jump"
+          },
+          "fabricated": {
+            "command_torque_nm": 39,
+            "slider_rise_m": 0.745,
+            "result": "jump"
+          }
+        },
+        {
+          "level": 2,
+          "dm8009": {
+            "command_torque_nm": 40,
+            "slider_rise_m": 0.75,
+            "result": "jump"
+          },
+          "fabricated": {
+            "command_torque_nm": 52,
+            "slider_rise_m": 0.84,
+            "result": "jump"
+          }
+        }
+      ],
+      "model_validation": {
+        "design_stage_predicted_slider_rise_m": 1.008,
+        "measured_prototype_slider_rise_m": 0.84,
+        "total_prediction_overestimate_percent": 16.6,
+        "predicted_push_off_duration_s": 0.194,
+        "measured_push_off_duration_s": 0.24,
+        "predicted_push_off_rise_m": 0.287,
+        "measured_push_off_rise_m": 0.343,
+        "discrepancy_explained_by_measured_motor_and_mass_percentage_points": 11.3,
+        "residual_transmission_guide_control_percentage_points": 5.3,
+        "interpretation": "The model underpredicts push-off duration and rise but overpredicts total post-release rise. The 16.6% total error is not a uniform actuator torque error."
+      },
+      "fair_compare_requirements": [
+        "same 5.5 kg bench load",
+        "same 48 V DC bus",
+        "same command normalization and rated-current assumptions",
+        "measured complete actuator mass",
+        "same output-torque and slider-rise boundaries",
+        "report all command levels and no-jump outcomes"
+      ],
+      "command_vs_rating_note": "The 2.0x nominal command is 52 N*m, slightly above the 51.5 N*m tabulated peak rating. Reported measured hip/knee torque peaks are 42.96/49.28 N*m. Do not equate normalized command, tabulated rating and measured joint torque.",
+      "design_space": {
+        "slot_pole_families": [
+          {
+            "slots": 18,
+            "poles": 16
+          },
+          {
+            "slots": 18,
+            "poles": 20
+          },
+          {
+            "slots": 18,
+            "poles": 22
+          },
+          {
+            "slots": 24,
+            "poles": 22
+          },
+          {
+            "slots": 24,
+            "poles": 26
+          },
+          {
+            "slots": 24,
+            "poles": 28
+          },
+          {
+            "slots": 27,
+            "poles": 30
+          }
+        ],
+        "cross_sectional_geometry_dimensions": 8,
+        "geometry_variables": [
+          "outer_stator_diameter",
+          "bore_diameter",
+          "tooth_width",
+          "slot_height",
+          "tooth_tip_height",
+          "slot_opening",
+          "magnet_thickness",
+          "magnet_arc"
+        ],
+        "motor_axial_length_mm": [
+          1,
+          30
+        ],
+        "reducer_topologies": [
+          "NGW",
+          "NW",
+          "3K"
+        ],
+        "target_reduction_ratio": {
+          "min": 1,
+          "max": 50,
+          "step": 0.5
+        },
+        "package_constraints": {
+          "diameter_mm_max": 98,
+          "axial_length_mm_max": 50
+        },
+        "winding_factor_fundamental_min_exclusive": 0.9,
+        "rated_current_density_a_per_mm2": 6
+      },
+      "optimization_method": {
+        "per_slot_pole_surrogate": {
+          "family_count": 7,
+          "training_valid_designs_per_family": 1000,
+          "sampling": "Latin hypercube",
+          "geometry_dimensions": 8,
+          "model": "standardized quadratic ridge regression",
+          "outputs": [
+            "Kt",
+            "Ke",
+            "torque",
+            "speed",
+            "efficiency",
+            "inductance",
+            "motor_mass",
+            "rotor_inertia"
+          ],
+          "independent_validation_cases": 200,
+          "representative_18S20P_reported_r2_range": [
+            0.9681,
+            0.9993
+          ],
+          "qualification_note": "The quoted R2 range is reported for representative 18S/20P outputs only; it must not be generalized to all seven slot-pole families."
+        },
+        "outer_optimizer": {
+          "name": "constrained NSGA-II",
+          "population": 48,
+          "generations": 30,
+          "evaluations_including_initialization": 1488,
+          "feasibility_first": true
+        },
+        "inner_policy_optimizer": {
+          "name": "bounded L-BFGS-B",
+          "variables": 12,
+          "parameterization": "two fifth-order Bezier torque profiles; six coefficients each for hip and knee"
+        }
+      },
+      "reproduction_status": "published design-space/method transcription; motor surrogate, gearbox sizing, optimizer and jumping task not independently reproduced"
+    },
+    {
+      "id": "J2-COMPLIANT-WRIST-2026",
+      "family": "two_dof_pitch_yaw_wrist",
+      "source": {
+        "title": "A compact wrist mechanism with integrated compliant transmission for high-torque-density and variable-stiffness actuation",
+        "date": "2026-11",
+        "url": "https://doi.org/10.1016/j.mechmachtheory.2026.106577",
+        "source_kind": "peer_reviewed_article",
+        "status": "paper_reported"
+      },
+      "task": {
+        "name": "two_axis_wrist_control_and_interaction",
+        "physical_prototype": true,
+        "control_loop_frequency_hz": 1000,
+        "notes": "Serial pitch-yaw wrist with integrated compliant transmission, dual-encoder torque estimation and transmission-error compensation."
+      },
+      "device": {
+        "mass_kg": 0.59,
+        "external_dimensions_mm": [
+          59,
+          83,
+          102
+        ],
+        "stated_volume_cm3": 499.5,
+        "continuous_pitch_torque_nm": 8.1,
+        "continuous_yaw_torque_nm": 8.3,
+        "reported_torque_density_nm_per_kg": 14,
+        "measurement_kind": "paper_reported"
+      },
+      "fair_compare_requirements": [
+        "confirm torque-density numerator and mass boundary",
+        "match continuous-output duty and thermal state",
+        "compare pitch and yaw axes separately",
+        "match workspace, load orientation and dimensions",
+        "compare embedded torque estimate against independent reference transducer",
+        "report stiffness modulation, backdrive, uncertainty and control rate"
+      ]
+    },
+    {
+      "id": "INDUSTRY-UNITREE-H1-PEAK",
+      "family": "humanoid_joint_actuation_vendor_context",
+      "source": {
+        "title": "Unitree H1 manufacturer specification",
+        "url": "https://www.unitree.com/h1/",
+        "source_kind": "manufacturer_product_page",
+        "status": "vendor_reported"
+      },
+      "device": {
+        "peak_torque_density_nm_per_kg": 189,
+        "maximum_joint_torque_nm": 360,
+        "measurement_kind": "vendor_peak_specification"
+      },
+      "comparable_to_j1_j2": false,
+      "missing_for_matched_comparison": [
+        "actuator-level complete mass denominator",
+        "peak torque duration",
+        "continuous rated torque",
+        "thermal starting state and duty",
+        "bus voltage and test protocol",
+        "measurement boundary"
+      ],
+      "comparison_rule": "Use as industry context only. Do not compare this peak/vendor figure to the rated research-prototype densities until boundaries match."
+    },
+    {
+      "id": "J3-TENDON-GRIPPER-BASELINE-TO-ESTABLISH",
+      "family": "tendon_coupled_finger_gripper",
+      "source": {
+        "source_kind": "luminous_benchmark_definition",
+        "status": "not_run"
+      },
+      "task": {
+        "name": "two_to_four_coupled_finger_joint_grasp_and_recovery",
+        "human_contact": false
+      },
+      "reference_metrics": [
+        "accepted_grasp_rate",
+        "slip_detection_latency",
+        "contact_localization_error",
+        "tendon_tension_estimation_error",
+        "object_damage",
+        "recovery_success",
+        "electrical_energy_per_accepted_grasp",
+        "sensor_and_communication_energy",
+        "tendon_creep_and_fatigue",
+        "service_and_requalification_time"
+      ],
+      "baseline_requirement": "Establish matched geared-finger and tendon-driven candidate articles with independent contact/tension instrumentation before setting numerical SOTA thresholds."
+    },
+    {
+      "id": "J2-PARALLEL-ORIGAMI-WRIST-2026",
+      "family": "parallel_origami_variable_stiffness_wrist",
+      "source": {
+        "title": "Bioinspired wrist joint with variable stiffness using a parallel mechanism and origami coupling",
+        "date": "2026-10-15",
+        "url": "https://doi.org/10.1016/j.mechmachtheory.2026.106545",
+        "source_kind": "peer_reviewed_article",
+        "status": "paper_reported_qualitative"
+      },
+      "architecture": {
+        "kinematics": "3-PRS/SS parallel mechanism",
+        "compliant_structure": "Yoshimura origami coupling",
+        "actuation": "antagonistic tendon-pneumatic",
+        "reported_capabilities": [
+          "variable_stiffness",
+          "motion_flexibility",
+          "modular_reconfigurability"
+        ]
+      },
+      "numeric_metrics": {
+        "mass_kg": null,
+        "torque_nm": null,
+        "stiffness_range": null,
+        "workspace": null,
+        "modulation_latency": null
+      },
+      "comparability": "qualitative_architecture_only",
+      "fair_compare_requirements": [
+        "obtain full article and extract numeric stiffness, torque, workspace and mass boundaries",
+        "include pneumatic source, reservoir, valves, lines and conditioning in installed mass and energy",
+        "compare serial and parallel kinematics at a matched task pose/load set",
+        "measure stiffness matrix, parasitic motion and workspace conditioning",
+        "measure stiffness modulation time, bandwidth, hold power and lifecycle drift"
+      ]
+    },
+    {
+      "id": "J3-TENDON-SELF-SENSING-CONTINUUM-2026",
+      "family": "sensorized_tendon_continuum_manipulator",
+      "source": {
+        "title": "Worm-inspired proprioceptive continuum robot with retractile motion and sensorized tendons",
+        "date": "2026-09",
+        "url": "https://doi.org/10.1016/j.mechatronics.2026.103524",
+        "source_kind": "peer_reviewed_article",
+        "status": "paper_reported"
+      },
+      "device": {
+        "sections": 2,
+        "tendons_per_section": 3,
+        "tendon_construction": "four 0.10 mm nylon filaments braided with one 0.08 mm nichrome wire",
+        "braided_tendon_diameter_mm": 0.55,
+        "length_calibration_rmse_mm": 1.19,
+        "calibration_range_mm": [
+          40,
+          80
+        ],
+        "nominal_task_space_tracking_rmse_mm": {
+          "x": 2.5,
+          "y": 3,
+          "z": 1.8
+        },
+        "max_absolute_tracking_error_mm": 11,
+        "measurement_kind": "paper_reported"
+      },
+      "sensor_stack": {
+        "tendon_resistance_length_sensing": true,
+        "tendon_tension_transducers": true,
+        "motor_encoders": true,
+        "base_and_tip_imus": true
+      },
+      "task": {
+        "name": "two_section_retractile_continuum_manipulator",
+        "load_bearing_joint_qualification": false
+      },
+      "comparability": "adjacent_sensing_architecture_not_joint_torque_comparator",
+      "fair_compare_requirements": [
+        "ablate tendon resistance, encoders, tension transducers and IMUs one at a time",
+        "compare against independent tension and shape ground truth",
+        "test held-out load, temperature, routing, remount and aging conditions",
+        "report calibration drift, fault identifiability, energy and wiring mass"
+      ]
+    },
+    {
+      "id": "SYNTH-MUSCLE-TPU-PATTERNED-STRUCTURES-2026",
+      "family": "printed_compliant_musculoskeletal_structures",
+      "source": {
+        "title": "Accelerating Musculoskeletal Robotics Through Parametric Design and 3D-Printed Flexible Structures",
+        "date": "2026",
+        "url": "https://doi.org/10.1002/aisy.70537",
+        "source_kind": "peer_reviewed_article",
+        "status": "paper_reported"
+      },
+      "material": "thermoplastic_polyurethane",
+      "architecture": {
+        "manufacturing": "parameterized_fused_deposition_modeling",
+        "functional_analogues": [
+          "muscle",
+          "tendon",
+          "ligament",
+          "cushioning"
+        ],
+        "life_scale_leg_demonstration": true
+      },
+      "task_boundary": {
+        "multijoint_motion": true,
+        "external_suspension": true,
+        "body_weight_support": "partial",
+        "torso_roll_pitch_yaw_constraint_deg": [
+          -20,
+          20
+        ],
+        "unsupported_full_body_locomotion_claim": false
+      },
+      "numeric_metrics": {
+        "joint_torque_nm": null,
+        "fatigue_cycles": null,
+        "creep": null,
+        "mass_kg": null
+      },
+      "comparability": "manufacturing_and_compliance_architecture_only",
+      "fair_compare_requirements": [
+        "compare solid and patterned TPU coupons under matched fixture and strain-rate conditions",
+        "measure force-displacement hysteresis, anisotropy and rate/temperature dependence",
+        "measure creep, stress relaxation, fatigue and repairability",
+        "quantify print-to-print variation and orientation sensitivity",
+        "do not infer unsupported full-body load capability from suspended motion"
+      ]
+    },
+    {
+      "id": "ARTIFICIAL-MUSCLE-SELF-HEALING-DEA-2026",
+      "family": "self_healing_dielectric_elastomer_artificial_muscle",
+      "source": {
+        "title": "A self healable dielectric elastomer artificial muscle",
+        "date": "2026-05-15",
+        "url": "https://doi.org/10.1038/s41467-026-72611-5",
+        "source_kind": "peer_reviewed_article",
+        "status": "paper_reported"
+      },
+      "material": {
+        "architecture": "bimodal_network_with_zwitterionic_side_groups",
+        "stable_strain_percent": 125,
+        "electric_field_mv_per_m": 25,
+        "stable_cycles": 150000,
+        "self_healing_after_mechanical_or_electrical_damage": true,
+        "healing_temperature_c": 60,
+        "reported_recovery_efficiency_percent": 90,
+        "reported_recovery_time_hours": 60
+      },
+      "safety_and_system_boundary": {
+        "high_voltage_required": true,
+        "dielectric_breakdown_risk": true,
+        "complete_joint_qualification": false,
+        "human_contact_qualification": false
+      },
+      "comparability": "material_coupon_and_laboratory_actuator_reference_only",
+      "fair_compare_requirements": [
+        "keep material coupon and complete joint evidence classes separate",
+        "measure force, stroke, leakage, breakdown margin and temperature over the cycle life",
+        "test pristine, damaged, healed and repeatedly healed samples",
+        "measure healing time and recovered mechanical/electrical properties",
+        "requalify the full assembly after healing"
+      ]
+    },
+    {
+      "id": "INDUSTRY-UNITREE-GO-M8010-6-MAX",
+      "family": "integrated_bionic_robot_joint_motor",
+      "source": {
+        "title": "Unitree GO-M8010-6 manufacturer motor specification",
+        "url": "https://unitree-robot.com/go1/motor.html",
+        "captured_date": "2026-11-18",
+        "source_kind": "manufacturer_product_page",
+        "status": "vendor_reported"
+      },
+      "device": {
+        "listed_approximate_mass_kg": 0.53,
+        "manufacturer_maximum_torque_nm": 23.7,
+        "derived_maximum_torque_to_listed_mass_nm_per_kg": 44.71698113207547,
+        "reduction_ratio": 6.33,
+        "maximum_rotational_speed_rad_s": 30,
+        "speed_voltage_context_v": 24,
+        "maximum_current_a": 40,
+        "torque_constant_nm_per_a": 0.63895,
+        "communication_control_frequency_hz": 6000,
+        "motor_encoder_resolution_bits": 15,
+        "feedback": [
+          "torque",
+          "angle",
+          "angular_velocity",
+          "temperature"
+        ],
+        "command_modes": [
+          "torque",
+          "angle",
+          "angular_velocity",
+          "stiffness",
+          "damping"
+        ]
+      },
+      "measurement_kind": "vendor_maximum_torque_divided_by_approximate_listed_mass",
+      "comparable_to_j1_rated_density": false,
+      "missing_for_matched_comparison": [
+        "continuous rated output torque and duration",
+        "maximum torque duration and thermal starting state",
+        "complete installed mass boundary and included electronics",
+        "torque-speed curve and maximum-speed output boundary",
+        "efficiency and thermal derating curves",
+        "measurement and calibration protocol"
+      ],
+      "comparison_rule": "Use as manufacturer maximum/context only. The 44.72 N*m/kg value is calculated from approximate published mass and maximum torque; do not compare to continuous rated output density."
+    },
+    {
+      "id": "DEA-LOW-VOLTAGE-HIGH_K-SELF_HEALING-2026",
+      "family": "low_voltage_high_permittivity_self_healing_dea",
+      "source": {
+        "title": "A Skin-Inspired High-κ Self-Healing Polymer for Low-Voltage Dielectric Elastomer Actuators",
+        "date": "2026-10",
+        "epub_date": "2026-08-08",
+        "url": "https://doi.org/10.1002/adma.202523659",
+        "pubmed_url": "https://pubmed.ncbi.nlm.nih.gov/42569803/",
+        "source_kind": "peer_reviewed_article",
+        "status": "abstract_and_publisher_record_reported"
+      },
+      "material": {
+        "polymer": "PABTU",
+        "dielectric_constant_at_1khz": 15,
+        "bilayer_actuator": "PABTU/PDMS-based ULTRA bilayer",
+        "reported_breakdown_strength_v_per_micron": {
+          "before_bilayer": 33,
+          "after_bilayer": 43
+        },
+        "film_thickness_um": 3,
+        "visible_deformation_at_voltage_v": 30,
+        "areal_strain_percent_at_voltage_120v": ">130",
+        "self_healing_claim": true,
+        "cycle_life": null,
+        "healed_property_recovery": null
+      },
+      "comparability": "material_and_low_voltage_dea_reference_only",
+      "missing_for_joint_comparison": [
+        "complete article cycle-life and fatigue protocol",
+        "quantified healed-property recovery and healing conditions",
+        "blocked force and dynamic force-displacement curves",
+        "specific energy and power at matched load/frequency",
+        "complete drive electronics, insulation, encapsulation and installed mass",
+        "thermal/leakage-current and breakdown statistics"
+      ],
+      "comparison_rule": "Keep applied voltage, electric field, film thickness, area strain and useful mechanical work as separate quantities; no load-bearing joint claim."
+    },
+    {
+      "id": "SYSTEM-PACE-ENERGY-TRANSFER-2026",
+      "family": "whole_robot_actuator_energy_and_sim2real_transfer",
+      "source": {
+        "title": "Towards bridging the gap: Systematic sim-to-real transfer for diverse legged robots",
+        "date": "2026-07-31",
+        "url": "https://doi.org/10.1177/02783649261459628",
+        "arxiv": "https://arxiv.org/abs/2509.06342v2",
+        "source_kind": "peer_reviewed_article",
+        "status": "paper_reported"
+      },
+      "platform": {
+        "primary_platforms": [
+          "ANYmal",
+          "Tytan",
+          "Minimal"
+        ],
+        "additional_robot_platform_count": 10,
+        "transfer": "reported zero-shot transfer without dynamic-parameter randomization"
+      },
+      "system_energy": {
+        "full_cost_of_transport_reduction_percent": 32,
+        "reported_anymal_full_cost_of_transport": 1.27,
+        "metric_boundary": "whole_robot_full_cost_of_transport",
+        "measurement_kind": "paper_reported"
+      },
+      "reproducibility": {
+        "code_url": "https://github.com/leggedrobotics/pace-sim2real",
+        "dataset_url": "https://doi.org/10.3929/ethz-c-000783505",
+        "dataset_license": "CC BY 4.0"
+      },
+      "comparability": "whole_robot_energy_and_transfer_context_only",
+      "comparison_rule": "Do not compare this full-robot COT directly to joint torque density or the reduced J1 jump bench. Match COT definitions, robot mass, payload, terrain, speed and energy boundary."
+    },
+    {
+      "id": "SYSTEM-RAIBO2-MARATHON-COT-2026",
+      "family": "whole_robot_endurance_and_energy_efficiency",
+      "source": {
+        "title": "A quadruped robot designed to complete a marathon on a single battery charge",
+        "date": "2026-09-23",
+        "url": "https://doi.org/10.1038/s41586-026-11102-5",
+        "source_kind": "peer_reviewed_article",
+        "status": "paper_reported"
+      },
+      "platform": {
+        "name": "RAIBO2",
+        "class": "quadruped"
+      },
+      "task": {
+        "name": "marathon",
+        "completion_time_hours": 4.330555555555556,
+        "completion_time_text": "4 h 19 min 52 s",
+        "distance_km": 42.195
+      },
+      "system_energy": {
+        "total_cost_of_transport": 0.25,
+        "human_reference_cost_of_transport": 0.37,
+        "metric_boundary": "whole_robot_battery_level_cost_of_transport",
+        "measurement_kind": "paper_reported"
+      },
+      "comparability": "whole_robot_endurance_context_only",
+      "comparison_rule": "Not a joint metric. Direct comparison requires harmonized COT definition, robot mass, payload, terrain, speed and electrical-energy boundary."
+    },
+    {
+      "id": "HIGH_RATIO-STRIBECK-TRANSFER-2026",
+      "family": "high_reduction_actuator_friction_and_sim2real",
+      "source": {
+        "title": "Enhancing Sim-to-Real Transfer for a High-Gear-Ratio Quadruped Robot via Extended Actuator Dynamics Identification",
+        "date": "2026-09-09",
+        "url": "https://doi.org/10.3390/machines14091031",
+        "source_kind": "peer_reviewed_article",
+        "status": "paper_reported"
+      },
+      "platform": {
+        "robot_mass_kg": 55,
+        "actuator_reduction_ratio_class": "greater_than_40_to_1",
+        "task": "quadruped locomotion"
+      },
+      "model_comparison": {
+        "baseline": "PACE-style Coulomb-Viscous identification",
+        "extension": "Coulomb-Viscous plus Stribeck friction",
+        "identification_error_reduction_percent": 16,
+        "unseen_trajectory_generalization": true
+      },
+      "sim2real_velocity_degradation_percent": {
+        "command_0_3_m_s": {
+          "coulomb_viscous": 40.2,
+          "stribeck": 27.2
+        },
+        "command_1_0_m_s": {
+          "coulomb_viscous": 26.8,
+          "stribeck": 21.6
+        }
+      },
+      "comparability": "high_ratio_actuator_dynamics_transfer_context",
+      "comparison_rule": "Reproduce only with matched high-reduction actuator, excitation and trajectory protocol. Values are not transferable performance guarantees."
+    }
+  ],
+  "stretch_targets": {
+    "J1": {
+      "rated_torque_density_nm_per_kg": ">35.7 only if matched measured denominator and duty",
+      "pareto_improvement_percent": ">=20 on at least one preregistered dimension, subject to all hard constraints"
+    },
+    "J2": {
+      "reported_density_nm_per_kg": ">14 only if matched continuous output, mass and volume boundaries",
+      "pareto_improvement_percent": ">=20 on one preregistered dimension without losing workspace or sensing accuracy"
+    },
+    "J3": {
+      "numeric_targets": "freeze after repeatability and baseline variance are measured"
+    }
+  },
+  "claim_ceiling": "The source figures are paper/vendor references, not Luminous reproductions. Missing boundaries remain NOT_COMPARABLE.",
+  "source_addendum": [
+    "Hu et al. add a parallel 3-PRS/SS origami wrist architecture; currently qualitative only because a complete numeric matched boundary was not established.",
+    "The sensorized tendon continuum reference uses redundant tension transducers, encoders and IMUs in addition to tendon resistance sensing; it is not a sensorless or load-bearing-joint qualification.",
+    "The printed TPU musculoskeletal leg demonstrates coordinated motion under external suspension and partial body-weight support, not unsupported full-body locomotion.",
+    "Self-healing DEA figures are material/lab-actuator results under high electric field and thermal repair conditions, not a qualified joint result.",
+    "J1 prediction error is concentrated after release: the design model underpredicts push-off phase duration and push-off rise but overpredicts total rise by 16.6%; measured motor parameters and mass explain 11.3 percentage points, leaving 5.3 for transmission, guide and control effects. The nominal 52 N*m 2x command slightly exceeds the tabulated 51.5 N*m peak, so command, rating and actual measured joint torque must remain distinct.",
+    "Unitree GO-M8010-6 provides a more concrete commercial motor reference than H1 peak density alone: approx 0.530 kg and 23.7 N*m maximum torque; 44.72 N*m/kg is calculated maximum torque divided by approximate listed mass and is not continuous rated density.",
+    "Lai et al. 2026 report a high-k self-healing PABTU bilayer DEA with visible deformation at 30 V and >130% area strain at 120 V; complete joint work, fatigue and healed recovery remain to be established from the full article.",
+    "Corrected from arXiv:2609.22795v1 Table I: seven slot-pole families, including 27S/30P; diameter <=98 mm and axial length <=50 mm package constraints; winding factor k_w,1 >0.9.",
+    "The paper reports seven slot-pole-specific standardized quadratic ridge motor surrogates, each trained on 1000 valid LHS designs from an eight-dimensional cross-sectional design space and checked against 200 independent validation cases. Reported R2 0.9681–0.9993 applies to representative 18S/20P outputs only.",
+    "The source uses constrained NSGA-II with population 48 for 30 generations and an inner L-BFGS-B over twelve Bezier torque-profile variables. These methods are transcribed, not reproduced.",
+    "Add cross-layer whole-robot references separately from joint torque-density comparators: PACE reports 32% lower ANYmal full COT (reported value 1.27) across three primary and ten additional platforms; RAIBO2 reports marathon completion in 4 h 19 min 52 s with COT 0.25.",
+    "Kang et al. 2026 provides a high-ratio friction transfer comparator: Stribeck extension lowers identification error by 16% and reduces mean-velocity sim-to-real degradation at 0.3 and 1.0 m/s command levels."
+  ]
+}
