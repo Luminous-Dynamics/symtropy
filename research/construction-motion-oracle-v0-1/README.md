@@ -200,3 +200,21 @@ This is deliberately a research oracle rather than a scheduler or ledger mutatio
 Unit tests compare capacity-one behavior to a mutex model, demonstrate capacity-N sharing and weighted overload intervals, check half-open boundaries and digest/clock/resource mismatches, verify input-order determinism and compare randomized peak loads against a discrete-tick reference oracle.
 
 The CI microbenchmark evaluates 100, 1,000, 10,000 and 100,000 claims across ten resource definitions, reporting p50/p95/p99 sweep latency, boundary count, violation segment count and feasibility. These are synthetic algorithm measurements only.
+
+
+### Robust time-varying capacity derating oracle
+
+The research module robust_capacity_profile extends the capacity-N sweep with owner-attested, time-varying capacity windows. Examples include a hoist derated by wind, a shared temporary power feed whose available kW changes, a staging area partly unavailable, or a workcell with fewer active bays. Each window is bound to the resource definition digest, site snapshot, owner identity and an evidence receipt, and carries lower/nominal/upper capacity bounds over a half-open site-clock interval.
+
+The classification is deliberately asymmetric:
+- WithinLowerBound: observed demand is no greater than the qualified lower capacity bound. This is the only robustly feasible result.
+- IndeterminateWithinCapacityRange: demand exceeds the lower bound but not the upper bound. The available capacity is not established tightly enough to admit the work.
+- DefinitelyOverUpperBound: demand exceeds even the upper bound.
+
+Windows must be non-overlapping, bind to the same frozen site snapshot and resource definition, have valid evidence digest syntax and obey lower ≤ nominal ≤ upper. This profile models derating or partial unavailability only; it cannot increase above the installed capacity in the owner-approved resource catalog. Increasing installed capacity requires a new resource definition/catalog revision, not a wider transient window.
+
+The fixed capacity-N oracle remains the baseline. The robust evaluator combines reservation interval boundaries with capacity-window boundaries, and returns every indeterminate or definitely-overloaded interval separately. It never converts an uncertain capacity estimate into a safe result. The profile is still an assessment oracle: owner/evidence signatures and canonical bytes must be verified upstream, and it does not perform scheduling or actuator authorization.
+
+Unit tests cover time-local derating, indeterminate capacity bands, exact lower-bound acceptance, zero capacity, overlapping windows, invalid receipts, stale snapshots, resource-definition mismatch, permutation invariance and prevention of transient capacity increases.
+
+The Linux microbenchmark evaluates robust windows across 10 resources and 100/1,000/10,000/100,000 weighted claims. It reports p50/p95/p99 latency and separates indeterminate from definitely-over-capacity intervals. These are synthetic algorithm measurements only.
