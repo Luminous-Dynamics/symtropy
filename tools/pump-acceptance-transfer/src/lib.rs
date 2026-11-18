@@ -129,11 +129,26 @@ pub struct Evaluation {
     pub serial: String,
     pub config_ref: String,
     pub applicability_ref: String,
+    pub applicability_disposition: String,
     pub standard_ref: String,
     pub standard_edition: String,
+    pub catalog_snapshot_date: String,
+    pub assessment_as_of: String,
+    pub test_fluid: String,
+    pub site_fluid: String,
+    pub test_boundary_ref: String,
+    pub site_boundary_ref: String,
+    pub unit_profile: String,
+    pub test_speed_rpm: u64,
+    pub manufacturer_speed_rpm: Option<u64>,
+    pub site_speed_rpm: Option<u64>,
+    pub facility_ref: String,
+    pub acceptance_grade: String,
     pub test_report_ref: String,
     pub calibration_ref: String,
     pub flow_ml_s: u64,
+    pub required_head_low_mm: Option<u64>,
+    pub required_head_high_mm: Option<u64>,
     pub interpolated_head_low_mm: Option<u64>,
     pub interpolated_head_high_mm: Option<u64>,
     pub npsh3_source_ref: String,
@@ -149,6 +164,8 @@ pub struct Evaluation {
     pub npsha_high_mm: Option<u64>,
     pub margin_profile_ref: String,
     pub margin_required_mm: Option<u64>,
+    pub repair_state: String,
+    pub site_evidence_state: String,
 }
 
 fn valid_ref(value: &str) -> bool {
@@ -480,11 +497,26 @@ fn eval_one(case: &Case, points: &[CurvePoint]) -> Evaluation {
         serial: case.serial.clone(),
         config_ref: case.config_ref.clone(),
         applicability_ref: case.applicability_ref.clone(),
+        applicability_disposition: case.applicability_disposition.clone(),
         standard_ref: case.standard_ref.clone(),
         standard_edition: case.standard_edition.clone(),
+        catalog_snapshot_date: case.catalog_snapshot_date.clone(),
+        assessment_as_of: case.assessment_as_of.clone(),
+        test_fluid: case.test_fluid.clone(),
+        site_fluid: case.site_fluid.clone(),
+        test_boundary_ref: case.test_boundary_ref.clone(),
+        site_boundary_ref: case.site_boundary_ref.clone(),
+        unit_profile: case.unit_profile.clone(),
+        test_speed_rpm: case.test_speed_rpm,
+        manufacturer_speed_rpm: case.manufacturer_speed_rpm,
+        site_speed_rpm: case.site_speed_rpm,
+        facility_ref: case.facility_ref.clone(),
+        acceptance_grade: case.acceptance_grade.clone(),
         test_report_ref: case.test_report_ref.clone(),
         calibration_ref: case.calibration_ref.clone(),
         flow_ml_s: case.flow_ml_s,
+        required_head_low_mm: case.required_head_low_mm,
+        required_head_high_mm: case.required_head_high_mm,
         interpolated_head_low_mm: None,
         interpolated_head_high_mm: None,
         npsh3_source_ref: case.npsh3_source_ref.clone(),
@@ -500,6 +532,8 @@ fn eval_one(case: &Case, points: &[CurvePoint]) -> Evaluation {
         npsha_high_mm: case.npsha_high_mm,
         margin_profile_ref: case.margin_profile_ref.clone(),
         margin_required_mm: case.margin_required_mm,
+        repair_state: case.repair_state.clone(),
+        site_evidence_state: case.site_evidence_state.clone(),
     };
 
     macro_rules! finish {
@@ -727,28 +761,58 @@ pub fn evaluate_corpus(
     Ok(results)
 }
 
+fn render_optional_u64(value: Option<u64>) -> String {
+    value.map_or_else(|| "-".to_owned(), |number| number.to_string())
+}
+
 pub fn render_report(results: &[Evaluation]) -> String {
-    let mut output = String::from(
-        "case_id\tdisposition\treason\tserial\tconfig_ref\tapplicability_ref\tstandard_ref\tstandard_edition\ttest_report_ref\ttest_calibration_ref\tflow_ml_s\tpump_head_low_mm\tpump_head_high_mm\tnpsh3_source_ref\tnpsh3_low_mm\tnpsh3_high_mm\tmanufacturer_curve_ref\tnpshr_low_mm\tnpshr_high_mm\tnpsha_source_ref\tnpsha_method_ref\tnpsha_calibration_ref\tnpsha_low_mm\tnpsha_high_mm\tmargin_profile_ref\tmargin_required_mm\n",
-    );
+    let mut output = String::from("case_id\tdisposition\treason\tserial\tconfig_ref\tapplicability_ref\tapplicability_disposition\tstandard_ref\tstandard_edition\tcatalog_snapshot_date\tassessment_as_of\ttest_fluid\tsite_fluid\ttest_boundary_ref\tsite_boundary_ref\tunit_profile\ttest_speed_rpm\tmanufacturer_speed_rpm\tsite_speed_rpm\tfacility_ref\tacceptance_grade\ttest_report_ref\ttest_calibration_ref\tflow_ml_s\trequired_head_low_mm\trequired_head_high_mm\tpump_head_low_mm\tpump_head_high_mm\tnpsh3_source_ref\tnpsh3_low_mm\tnpsh3_high_mm\tmanufacturer_curve_ref\tmanufacturer_npshr_low_mm\tmanufacturer_npshr_high_mm\tnpsha_source_ref\tnpsha_method_ref\tnpsha_calibration_ref\tnpsha_low_mm\tnpsha_high_mm\tmargin_profile_ref\tmargin_required_mm\trepair_state\tsite_evidence_state\n");
     for row in results {
         output.push_str(&format!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
-            row.case_id, row.disposition.as_str(), row.reason, row.serial, row.config_ref,
-            row.applicability_ref, row.standard_ref, row.standard_edition, row.test_report_ref,
-            row.calibration_ref, row.flow_ml_s,
-            row.interpolated_head_low_mm.map_or("-".into(), |x| x.to_string()),
-            row.interpolated_head_high_mm.map_or("-".into(), |x| x.to_string()),
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
+            row.case_id,
+            row.disposition.as_str(),
+            row.reason,
+            row.serial,
+            row.config_ref,
+            row.applicability_ref,
+            row.applicability_disposition,
+            row.standard_ref,
+            row.standard_edition,
+            row.catalog_snapshot_date,
+            row.assessment_as_of,
+            row.test_fluid,
+            row.site_fluid,
+            row.test_boundary_ref,
+            row.site_boundary_ref,
+            row.unit_profile,
+            row.test_speed_rpm.to_string(),
+            render_optional_u64(row.manufacturer_speed_rpm),
+            render_optional_u64(row.site_speed_rpm),
+            row.facility_ref,
+            row.acceptance_grade,
+            row.test_report_ref,
+            row.calibration_ref,
+            row.flow_ml_s.to_string(),
+            render_optional_u64(row.required_head_low_mm),
+            render_optional_u64(row.required_head_high_mm),
+            render_optional_u64(row.interpolated_head_low_mm),
+            render_optional_u64(row.interpolated_head_high_mm),
             row.npsh3_source_ref,
-            row.npsh3_low_mm.map_or("-".into(), |x| x.to_string()),
-            row.npsh3_high_mm.map_or("-".into(), |x| x.to_string()),
+            render_optional_u64(row.npsh3_low_mm),
+            render_optional_u64(row.npsh3_high_mm),
             row.manufacturer_curve_ref,
-            row.manufacturer_npshr_low_mm.map_or("-".into(), |x| x.to_string()),
-            row.manufacturer_npshr_high_mm.map_or("-".into(), |x| x.to_string()),
-            row.npsha_source_ref, row.npsha_method_ref, row.npsha_calibration_ref,
-            row.npsha_low_mm.map_or("-".into(), |x| x.to_string()),
-            row.npsha_high_mm.map_or("-".into(), |x| x.to_string()),
-            row.margin_profile_ref, row.margin_required_mm.map_or("-".into(), |x| x.to_string())
+            render_optional_u64(row.manufacturer_npshr_low_mm),
+            render_optional_u64(row.manufacturer_npshr_high_mm),
+            row.npsha_source_ref,
+            row.npsha_method_ref,
+            row.npsha_calibration_ref,
+            render_optional_u64(row.npsha_low_mm),
+            render_optional_u64(row.npsha_high_mm),
+            row.margin_profile_ref,
+            render_optional_u64(row.margin_required_mm),
+            row.repair_state,
+            row.site_evidence_state
         ));
     }
     output
@@ -929,6 +993,10 @@ mod tests {
         assert!(report.contains("npsha_source_ref"));
         assert!(report.contains("npsha_method_ref"));
         assert!(report.contains("npsha_calibration_ref"));
+        assert!(report.contains("test_speed_rpm"));
+        assert!(report.contains("site_speed_rpm"));
+        assert!(report.contains("required_head_low_mm"));
+        assert!(report.contains("repair_state"));
         assert!(report.contains("applicability:positive_bracketed_curve"));
     }
 
@@ -936,7 +1004,7 @@ mod tests {
     fn all_report_rows_have_same_tsv_width() {
         let report = render_report(&run());
         let widths: BTreeSet<usize> = report.lines().map(|line| line.split('\t').count()).collect();
-        assert_eq!(widths, BTreeSet::from([26]));
+        assert_eq!(widths, BTreeSet::from([44]));
     }
 
     #[test]
