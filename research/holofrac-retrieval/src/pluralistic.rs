@@ -1064,6 +1064,30 @@ mod tests {
     }
 
     #[test]
+    fn three_person_anonymous_group_is_still_suppressed() {
+        let events = (0..3)
+            .map(|index| {
+                granted_event(
+                    &format!("anonymous-{index}"),
+                    index as u64 + 1,
+                    1,
+                    None,
+                    10,
+                    ConsentScope::AnonymousAggregate,
+                    balanced_weights(index),
+                    [None; CRITERION_COUNT],
+                )
+            })
+            .collect();
+        let snapshot = PreferenceLedger { events }.snapshot_as_of(10).unwrap();
+
+        assert!(matches!(
+            evaluate_group(&[alternative("a", 0.5, 0.5, 0.5)], &snapshot),
+            Err(PreferenceError::InsufficientAnonymousGroupSize)
+        ));
+    }
+
+    #[test]
     fn anonymous_vetoes_preserve_the_block_without_exposing_thresholds_or_counts() {
         let mut first_veto = [None; CRITERION_COUNT];
         first_veto[5] = Some(0.7);
