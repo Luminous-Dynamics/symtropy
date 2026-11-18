@@ -8,13 +8,17 @@
         "stop_id": "stop-01",
         "node_id": "synthetic-depot",
         "arrival_earliest_ms": 0,
-        "departure_latest_ms": 1000000
+        "departure_latest_ms": 1000000,
+        "arrival_latest_ms": 0,
+        "departure_earliest_ms": 1000000
       },
       {
         "stop_id": "stop-02",
         "node_id": "synthetic-hub-b",
         "arrival_earliest_ms": 1300000,
-        "departure_latest_ms": 1900000
+        "departure_latest_ms": 1900000,
+        "arrival_latest_ms": 1300000,
+        "departure_earliest_ms": 1900000
       }
     ]
   },
