@@ -18,7 +18,8 @@
     "claim_boundary",
     "separate_force_duality_control",
     "step_map_case",
-    "trajectory_case"
+    "trajectory_case",
+    "conditioning_stress_case"
   ],
   "properties": {
     "schema_version": {
@@ -423,11 +424,11 @@
       ],
       "properties": {
         "step_count": {
-          "const": 32
+          "const": 64
         },
         "time_step": {
           "type": "number",
-          "exclusiveMinimum": 0
+          "const": 0.005
         },
         "solver_profile": {
           "type": "object",
@@ -523,6 +524,89 @@
         "reference_state_recurrence": {
           "type": "string",
           "minLength": 1
+        },
+        "claim_boundary": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "conditioning_stress_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "basis_id",
+        "construction",
+        "determinant_exact",
+        "basis_matrix",
+        "inverse_basis_matrix",
+        "condition_number_2_reference",
+        "transformed_mass_metric_condition_number_2_reference",
+        "step_case",
+        "claim_boundary"
+      ],
+      "properties": {
+        "basis_id": {
+          "const": "dense_shear_3"
+        },
+        "construction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "determinant_exact": {
+          "const": 1
+        },
+        "basis_matrix": {
+          "$ref": "#/$defs/matrix9Integer"
+        },
+        "inverse_basis_matrix": {
+          "$ref": "#/$defs/matrix9Integer"
+        },
+        "condition_number_2_reference": {
+          "type": "number",
+          "exclusiveMinimum": 1
+        },
+        "transformed_mass_metric_condition_number_2_reference": {
+          "type": "number",
+          "exclusiveMinimum": 1
+        },
+        "step_case": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "dt",
+            "comparison_against",
+            "lifted_position_max_abs_tolerance",
+            "lifted_velocity_max_abs_tolerance",
+            "per_edge_squared_length_residual_max_abs",
+            "endpoint_tangency_max_abs"
+          ],
+          "properties": {
+            "dt": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "comparison_against": {
+              "type": "string",
+              "minLength": 1
+            },
+            "lifted_position_max_abs_tolerance": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "lifted_velocity_max_abs_tolerance": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "per_edge_squared_length_residual_max_abs": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "endpoint_tangency_max_abs": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
         },
         "claim_boundary": {
           "type": "string",
