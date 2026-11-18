@@ -265,7 +265,7 @@ impl TaylorJet4Order5 {
     }
 
     pub fn coefficient(&self, alpha: [u8; 4]) -> Result<f64, TaylorJetError> {
-        if total_degree(alpha) > self.order {
+        if total_degree(alpha) > u16::from(self.order) {
             return Err(TaylorJetError::InvalidMultiIndex(alpha));
         }
         let index = index_of(alpha).ok_or(TaylorJetError::InvalidMultiIndex(alpha))?;
@@ -351,7 +351,7 @@ impl TaylorJet4Order5 {
         let order = self.order.min(other.order);
         let mut coefficients = [0.0; COEFFICIENT_COUNT];
         for (index, alpha) in MULTI_INDICES.iter().enumerate() {
-            if total_degree(alpha.0) <= order {
+            if total_degree(alpha.0) <= u16::from(order) {
                 coefficients[index] = self.coefficients[index] + other.coefficients[index];
             }
         }
@@ -381,7 +381,7 @@ impl TaylorJet4Order5 {
         let order = self.order.min(other.order);
         let mut coefficients = [0.0; COEFFICIENT_COUNT];
         for (left_index, left_alpha) in MULTI_INDICES.iter().enumerate() {
-            if total_degree(left_alpha.0) > order {
+            if total_degree(left_alpha.0) > u16::from(order) {
                 continue;
             }
             let left_value = self.coefficients[left_index];
@@ -389,7 +389,7 @@ impl TaylorJet4Order5 {
                 continue;
             }
             for (right_index, right_alpha) in MULTI_INDICES.iter().enumerate() {
-                if total_degree(right_alpha.0) > order {
+                if total_degree(right_alpha.0) > u16::from(order) {
                     continue;
                 }
                 let right_value = other.coefficients[right_index];
@@ -402,7 +402,7 @@ impl TaylorJet4Order5 {
                     left_alpha.0[2] + right_alpha.0[2],
                     left_alpha.0[3] + right_alpha.0[3],
                 ];
-                if total_degree(alpha) > order {
+                if total_degree(alpha) > u16::from(order) {
                     continue;
                 }
                 let output_index =
@@ -530,7 +530,7 @@ mod tests {
         for degree in 0..=MAX_ORDER {
             let actual = MULTI_INDICES
                 .iter()
-                .filter(|alpha| total_degree(alpha.0) == degree)
+                .filter(|alpha| total_degree(alpha.0) == u16::from(degree))
                 .count();
             assert_eq!(actual, expected[usize::from(degree)]);
         }
