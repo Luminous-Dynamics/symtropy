@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ResourceRequirement {
     pub resource_id: String,
     pub units: u32,
@@ -556,7 +557,7 @@ mod tests {
 
     #[test]
     fn waits_until_all_simultaneous_resources_are_available() {
-        let mut block = spec("A", "block", &[], 0.0, 5.0, Some("crane"), 1);
+        let block = spec("A", "block", &[], 0.0, 5.0, Some("crane"), 1);
         let mut repair = spec("B", "repair", &[], 0.0, 2.0, None, 0);
         repair.resource_requirements = vec![
             ResourceRequirement {
@@ -582,6 +583,31 @@ mod tests {
         let repair = result.iter().find(|x| x.event_id == "B").unwrap();
         assert_eq!(repair.start_hour, 5.0);
         assert_eq!(repair.end_hour, 7.0);
+    }
+
+    #[test]
+    fn rejects_duplicate_resource_requirements() {
+        let mut task = spec("E1", "repair", &[], 0.0, 2.0, None, 0);
+        task.resource_requirements = vec![
+            ResourceRequirement { resource_id: "crew".to_string(), units: 1 },
+            ResourceRequirement { resource_id: "crew".to_string(), units: 1 },
+        ];
+        let capacities = BTreeMap::from([("crew".to_string(), 1)]);
+        assert!(schedule(&[task], &capacities)
+            .unwrap_err()[0]
+            .contains("repeats resource requirement"));
+    }
+
+    #[test]
+    fn rejects_requirement_above_resource_capacity() {
+        let mut task = spec("E1", "repair", &[], 0.0, 2.0, None, 0);
+        task.resource_requirements = vec![
+            ResourceRequirement { resource_id: "crew".to_string(), units: 2 },
+        ];
+        let capacities = BTreeMap::from([("crew".to_string(), 1)]);
+        assert!(schedule(&[task], &capacities)
+            .unwrap_err()[0]
+            .contains("requires 2 units"));
     }
 
     #[test]
