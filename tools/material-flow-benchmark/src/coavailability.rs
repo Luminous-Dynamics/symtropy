@@ -611,7 +611,7 @@ mod tests {
         let report = evaluate_coavailability(&input()).expect("valid input");
         assert_eq!(report.verdict, FeasibilityVerdict::Feasible);
         assert_eq!(report.selected_launch_time_ms, Some(100_000));
-        assert_eq!(report.selected_recovery_time_ms, Some(1_300_000));
+        assert_eq!(report.selected_recovery_time_ms, Some(1_360_000));
         assert_eq!(report.energy_margin_wh, Some(100));
         assert!(!report.dispatch_authorized);
         assert!(!report.physical_command_emitted);
@@ -758,6 +758,35 @@ mod tests {
         let report = evaluate_coavailability(&test).expect("valid structure");
         assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
         assert!(report.findings.iter().any(|finding| finding.contains("recovery pad")));
+    }
+
+    #[test]
+    fn rejects_non_chronological_carrier_route_stop_envelopes() {
+        let mut test = input();
+        test.carrier.route_stops[1].arrival_earliest_ms = 900_000;
+        test.carrier.route_stops[1].arrival_latest_ms = 1_300_000;
+        let errors = evaluate_coavailability(&test).expect_err("overlapping route chronology");
+        assert!(errors.iter().any(|error| error.contains("time envelopes overlap or reverse")));
+    }
+
+    #[test]
+    fn rejects_zero_protected_reserve() {
+        let mut test = input();
+        test.aircraft.reserve_energy_wh = 0;
+        let errors = evaluate_coavailability(&test).expect_err("reserve must be explicit");
+        assert!(errors.iter().any(|error| error.contains("non-zero protected reserve")));
+    }
+
+    #[test]
+    fn launch_service_time_is_added_before_flight_duration() {
+        let mut test = input();
+        test.sortie.launch_service_ms = 180_000;
+        test.sortie.flight_duration_ms = 1_200_000;
+        test.sortie.recovery_window_open_ms = 1_400_000;
+        let report = evaluate_coavailability(&test).expect("valid input");
+        assert_eq!(report.verdict, FeasibilityVerdict::Feasible);
+        assert_eq!(report.selected_launch_time_ms, Some(100_000));
+        assert_eq!(report.selected_recovery_time_ms, Some(1_480_000));
     }
 
     #[test]
