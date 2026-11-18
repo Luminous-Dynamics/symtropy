@@ -136,7 +136,8 @@
       "additionalProperties": false,
       "required": [
         "route_id",
-        "segments"
+        "segments",
+        "designs"
       ],
       "properties": {
         "route_id": {
@@ -314,91 +315,155 @@
             }
           }
         },
-        "transitions": {
+        "designs": {
           "type": "array",
+          "minItems": 1,
           "items": {
             "type": "object",
             "additionalProperties": false,
             "required": [
-              "transition_id",
-              "after_segment_sequence",
-              "technology",
-              "input_carrier",
-              "output_carrier",
-              "evidence_state",
+              "design_id",
+              "role",
+              "segment_choices",
+              "transitions",
               "evidence_ids"
             ],
             "properties": {
-              "transition_id": {
+              "design_id": {
                 "type": "string",
                 "minLength": 1
               },
-              "after_segment_sequence": {
-                "type": "integer",
-                "minimum": 0
-              },
-              "technology": {
+              "role": {
                 "enum": [
-                  "transformer",
-                  "ac_dc_converter",
-                  "dc_ac_converter",
-                  "rectifier",
-                  "inverter",
-                  "electrolyser",
-                  "fuel_cell",
-                  "compression",
-                  "purification",
-                  "hydrogen_storage",
-                  "ammonia_synthesis",
-                  "ammonia_cracker",
-                  "heat_pump",
-                  "heat_exchanger",
-                  "power_beam_receiver",
-                  "other"
+                  "reference_baseline",
+                  "alternative",
+                  "hybrid_alternative"
                 ]
               },
-              "input_carrier": {
-                "enum": [
-                  "electricity_ac",
-                  "electricity_dc",
-                  "hydrogen",
-                  "ammonia",
-                  "methanol",
-                  "synthetic_methane",
-                  "liquid_fuel",
-                  "thermal",
-                  "mechanical",
-                  "rf",
-                  "optical",
-                  "other"
-                ]
+              "segment_choices": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "segment_id",
+                    "candidate_id"
+                  ],
+                  "properties": {
+                    "segment_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "candidate_id": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
               },
-              "output_carrier": {
-                "enum": [
-                  "electricity_ac",
-                  "electricity_dc",
-                  "hydrogen",
-                  "ammonia",
-                  "methanol",
-                  "synthetic_methane",
-                  "liquid_fuel",
-                  "thermal",
-                  "mechanical",
-                  "rf",
-                  "optical",
-                  "other"
-                ]
-              },
-              "evidence_state": {
-                "enum": [
-                  "unknown",
-                  "analyst_scenario",
-                  "published_literature",
-                  "manufacturer_declared",
-                  "measured",
-                  "independently_verified",
-                  "field_qualified"
-                ]
+              "transitions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "transition_id",
+                    "after_segment_sequence",
+                    "technology",
+                    "input_carrier",
+                    "output_carrier",
+                    "evidence_state",
+                    "evidence_ids"
+                  ],
+                  "properties": {
+                    "transition_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "after_segment_sequence": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "technology": {
+                      "enum": [
+                        "transformer",
+                        "ac_dc_converter",
+                        "dc_ac_converter",
+                        "rectifier",
+                        "inverter",
+                        "electrolyser",
+                        "fuel_cell",
+                        "compression",
+                        "purification",
+                        "hydrogen_storage",
+                        "ammonia_synthesis",
+                        "ammonia_cracker",
+                        "heat_pump",
+                        "heat_exchanger",
+                        "power_beam_receiver",
+                        "other"
+                      ]
+                    },
+                    "input_carrier": {
+                      "enum": [
+                        "electricity_ac",
+                        "electricity_dc",
+                        "hydrogen",
+                        "ammonia",
+                        "methanol",
+                        "synthetic_methane",
+                        "liquid_fuel",
+                        "thermal",
+                        "mechanical",
+                        "rf",
+                        "optical",
+                        "other"
+                      ]
+                    },
+                    "output_carrier": {
+                      "enum": [
+                        "electricity_ac",
+                        "electricity_dc",
+                        "hydrogen",
+                        "ammonia",
+                        "methanol",
+                        "synthetic_methane",
+                        "liquid_fuel",
+                        "thermal",
+                        "mechanical",
+                        "rf",
+                        "optical",
+                        "other"
+                      ]
+                    },
+                    "evidence_state": {
+                      "enum": [
+                        "unknown",
+                        "analyst_scenario",
+                        "published_literature",
+                        "manufacturer_declared",
+                        "measured",
+                        "independently_verified",
+                        "field_qualified"
+                      ]
+                    },
+                    "evidence_ids": {
+                      "type": "array",
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "applicability_limitations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
               },
               "evidence_ids": {
                 "type": "array",
@@ -406,12 +471,6 @@
                 "items": {
                   "type": "string",
                   "minLength": 1
-                }
-              },
-              "applicability_limitations": {
-                "type": "array",
-                "items": {
-                  "type": "string"
                 }
               }
             }
