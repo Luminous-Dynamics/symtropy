@@ -1,0 +1,25 @@
+{
+  "evidence_class": "synthetic_fixture_only",
+  "settings": [
+    {
+      "event_id": "EV-MAG-001",
+      "magnet_stages": [
+        "N-52",
+        "N-42"
+      ],
+      "notes": "Illustrative settings only."
+    },
+    {
+      "event_id": "EV-ELECTRO-001",
+      "voltage_peak_kv": 4.5,
+      "frequency_hz": 22.5,
+      "duty_fraction": 0.5,
+      "notes": "Illustrative settings only."
+    },
+    {
+      "event_id": "EV-TRANSFER-001",
+      "transfer_profile_id": "SYN-TRANSFER-A",
+      "notes": "Illustrative settings only."
+    }
+  ]
+}
