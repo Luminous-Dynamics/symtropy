@@ -256,3 +256,74 @@ Report the full Pareto vector rather than a weighted scalar:
 ---
 
 **Claim boundary:** This document is a research map and proposed benchmark protocol. It does not provide route-specific prices, electrical ratings, construction drawings, cable/pipeline dimensions, tower calculations, protection settings, certified designs or evidence of SOTA performance. Numerical results from external publications remain attached to their original study assumptions.
+
+
+## 9. Global portability: global core, local profiles
+
+The Power Fabric is intended to work globally, but **global portability does not mean one universal engineering rulebook**. The programme uses common schemas, service boundaries, evidence semantics and benchmark methods, while physical designs, climate inputs, standards, grid codes, costs, permitting and accepted practices are attached to jurisdiction/region profiles.
+
+New programme owners:
+- [#6105 POWER-FABRIC-GLOBAL-PORTABILITY-001](https://github.com/Luminous-Dynamics/symtropy/issues/6105): standards, regional hazards, cost normalisation and global reference archetypes.
+- [#6106 TRANSMISSION-INDUSTRIALISATION-001](https://github.com/Luminous-Dynamics/symtropy/issues/6106): tower families, fabrication, supply networks, logistics and construction throughput.
+- [#6080 GRID-ENHANCEMENT-FIRM-CAPACITY-001](https://github.com/Luminous-Dynamics/symtropy/issues/6080): firm capacity and non-additive GET portfolios.
+
+The global profile file at `data/global-portability-v0.1.json` provides 10 initial regional templates:
+1. Southern Africa / SAPP.
+2. North America.
+3. Europe / United Kingdom.
+4. India / South Asia.
+5. East Asia.
+6. Latin America.
+7. Middle East / North Africa.
+8. Sub-Saharan Africa beyond SAPP.
+9. Oceania / Pacific Islands.
+10. Arctic / High Latitude.
+
+They are deliberately marked `template_unpopulated` with local standards adoption and cost data unknown. These are coverage templates, not national engineering profiles or legal-compliance determinations.
+
+### Standards metadata snapshot (18 November 2026)
+
+The machine-readable register records exact editions and status boundaries for 11 reference documents. Particularly important details:
+- IEEE 738-2023 is active for conductor current-temperature modelling, but does not prescribe the weather or conductor inputs that a line-rating assessment must use.
+- IEC 60840:2020+AMD1:2023 has a 2025 corrigendum in the current consolidated publication.
+- IEC 62067:2022 covers extruded-insulation cable systems from above 150 kV through 500 kV, in its stated scope.
+- IEC 60071-2:2023 remains the published edition in the current catalogue snapshot, while Edition 6 is under development.
+- IEC TS 60071-4:2026 was published on 23 October 2026 and provides simulation-based insulation-coordination modelling guidance.
+- ASME B31.12-2023 and ISO 14687:2025 are hydrogen references with different scopes: pipeline/piping design versus fuel quality. ISO/AWI 14687 Edition 3 is under development and is not yet a published replacement.
+- NERC TPL-001-5.1 is listed as mandatory in the relevant NERC jurisdictional framework, while TPL-001-6 is filed/pending regulatory approval in the checked catalogue.
+- India's CEA Manual on Transmission Planning Criteria 2023 is an India-specific planning reference, not a global HVDC break-even rule.
+
+The registry intentionally does **not** infer national adoption. Standards, amendments, local deviations and utility grid codes must be checked with the relevant national standards body, regulator, system operator and project authority.
+
+Primary sources:
+- [IEC 60826:2017](https://webstore.iec.ch/en/publication/59954)
+- [IEEE 738-2023](https://standards.ieee.org/ieee/738/10207/)
+- [IEC 60840 consolidated version and 2025 corrigendum](https://webstore.iec.ch/en/publication/107576)
+- [IEC 62067:2022](https://webstore.iec.ch/en/publication/66951)
+- [IEC 60071-2:2023](https://webstore.iec.ch/en/publication/64145)
+- [IEC TS 60071-4:2026](https://webstore.iec.ch/en/publication/107140)
+- [IEC 60071-11:2022](https://webstore.iec.ch/en/publication/66648)
+- [ASME B31.12-2023](https://www.asme.org/codes-standards/find-codes-standards/b31-12-hydrogen-piping-pipelines)
+- [ISO 14687:2025](https://www.iso.org/standard/82660.html) and [ISO/AWI 14687 Edition 3 work item](https://www.iso.org/standard/94693.html)
+- [NERC TPL standards catalogue](https://www.nerc.com/standards/reliability-standards/tpl)
+- [India CEA Transmission Planning Criteria 2023](https://www.cea.nic.in/api/dashboardReports/view-pdf/en/8da5cbc3-88c4-461c-8694-e2a050cc4dbf)
+
+### Global design and economics
+
+Each route must carry:
+- climate/hazard distributions and their time horizon, not a single "typical weather" value;
+- site geology, groundwater, soil thermal resistivity, corrosivity and seismic/landslide/flood context;
+- jurisdiction-specific standards, editions, national adoption, amendments and grid-code references;
+- local labour, skills, factory capacity, import duties, logistics, FX and finance;
+- land/wayleave, community rights, ecological, water and heritage constraints;
+- local decision economics and a separately normalised technology-comparison view.
+
+Local procurement costs must not be replaced by purchasing-power-parity estimates. Report local currency and real project cost as well as any normalised comparison currency and base year. A global average must not hide regional uncertainty or poor maintainability.
+
+### Current global pressure and benchmark framing
+
+The IEA's *Electricity 2026* identifies more than 2,500 GW of projects stalled in grid connection queues worldwide and says annual grid investment would need to rise roughly 50% by 2030 from about USD 400 billion today. The IEA also highlights that transmission planning and construction commonly take 5–15 years, much longer than many generation and large-load projects. This makes time-to-first-usable-capacity a first-class benchmark, alongside installed cost and firm capacity. [IEA Electricity 2026](https://www.iea.org/reports/electricity-2026/grids).
+
+The IEA's *World Energy Investment 2026* estimates global grid spending rose to nearly USD 450 billion in 2025 and projects a further 17% increase in 2026, while noting inflationary pressure, constrained supply chains and shortages in specialised manufacturing capacity. [IEA World Energy Investment 2026](https://www.iea.org/reports/world-energy-investment-2026).
+
+**Our global competitive target is not a one-number world record.** It is a reproducible, region-by-region proof that a chosen architecture delivers equal or better service, reliability and resilience with lower lifecycle cost, shorter time-to-service or improved maintainability under local conditions.
