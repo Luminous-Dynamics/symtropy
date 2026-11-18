@@ -35,6 +35,7 @@ pub struct HandoverCase {
     pub evidence_class: String,
     pub claim_ceiling: String,
     pub source: Source,
+    pub source_node_id: String,
     pub authority_policy: String,
     pub target: Target,
     pub cohorts: Vec<Cohort>,
@@ -171,6 +172,7 @@ pub struct HandoverReport {
     pub case_id: String,
     pub evidence_class: String,
     pub claim_ceiling: String,
+    pub source_node_id: String,
     pub target_node_id: String,
     pub scenarios: Vec<ScenarioReport>,
 }
@@ -195,6 +197,13 @@ pub fn validate_case(case: &HandoverCase) -> Result<(), HandoverError> {
         || case.source.available_at_decision_time
     {
         return Err(HandoverError::new("executable accepts synthetic offline cases only"));
+    }
+    if case.source_node_id.trim().is_empty()
+        || case.source_node_id == case.target.target_node_id
+    {
+        return Err(HandoverError::new(
+            "source_node_id must be non-empty and differ from target_node_id",
+        ));
     }
     if case.authority_policy != "release_source_only_after_target_completion_ack" {
         return Err(HandoverError::new("unsupported authority policy"));
@@ -353,6 +362,15 @@ pub fn evaluate_case(case: &HandoverCase) -> Result<HandoverReport, HandoverErro
 
     for scenario in &case.scenarios {
         let result = evaluate_scenario(case, scenario)?;
+        if !result.all_offered_users_accounted_for
+            || !result.source_release_after_ack_only
+            || result.duplicate_authority_violations != 0
+        {
+            return Err(HandoverError::new(format!(
+                "handover accounting or authority invariant failed for scenario {}",
+                scenario.scenario_id
+            )));
+        }
         let matched = result == scenario.expected_oracle;
         if !matched {
             return Err(HandoverError::new(format!(
@@ -371,6 +389,7 @@ pub fn evaluate_case(case: &HandoverCase) -> Result<HandoverReport, HandoverErro
         case_id: case.case_id.clone(),
         evidence_class: case.evidence_class.clone(),
         claim_ceiling: case.claim_ceiling.clone(),
+        source_node_id: case.source_node_id.clone(),
         target_node_id: case.target.target_node_id.clone(),
         scenarios: reports,
     })
