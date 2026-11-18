@@ -47,9 +47,13 @@ pub enum FeasibilityVerdict {
 pub struct CarrierStop {
     pub stop_id: String,
     pub node_id: String,
-    /// Earliest supported carrier arrival at this stop, in Unix-relative ms.
+    /// Earliest possible carrier arrival, in scenario-relative ms.
     pub arrival_earliest_ms: u64,
-    /// Latest supported carrier departure from this stop, in Unix-relative ms.
+    /// Latest possible carrier arrival; carrier presence is not guaranteed before this.
+    pub arrival_latest_ms: u64,
+    /// Earliest possible carrier departure; carrier presence is not guaranteed after this.
+    pub departure_earliest_ms: u64,
+    /// Latest possible carrier departure, in scenario-relative ms.
     pub departure_latest_ms: u64,
 }
 
@@ -148,8 +152,8 @@ pub struct CoAvailabilityReport {
 #[derive(Debug, Clone, Copy)]
 struct StopWindow {
     index: usize,
-    arrival_earliest_ms: u64,
-    departure_latest_ms: u64,
+    arrival_latest_ms: u64,
+    departure_earliest_ms: u64,
 }
 
 fn structural_errors(input: &CoAvailabilityInput) -> Vec<String> {
@@ -184,9 +188,12 @@ fn structural_errors(input: &CoAvailabilityInput) -> Vec<String> {
                 "carrier.route_stops[{index}].stop_id: duplicate route-stop identity"
             ));
         }
-        if stop.arrival_earliest_ms >= stop.departure_latest_ms {
+        if !(stop.arrival_earliest_ms <= stop.arrival_latest_ms
+            && stop.arrival_latest_ms < stop.departure_earliest_ms
+            && stop.departure_earliest_ms <= stop.departure_latest_ms)
+        {
             errors.push(format!(
-                "carrier.route_stops[{index}]: arrival must precede departure"
+                "carrier.route_stops[{index}]: require earliest arrival <= latest arrival < earliest departure <= latest departure"
             ));
         }
     }
@@ -242,8 +249,8 @@ fn find_stop(input: &CoAvailabilityInput, stop_id: &str) -> Option<StopWindow> {
     input.carrier.route_stops.iter().enumerate().find_map(|(index, stop)| {
         (stop.stop_id == stop_id).then_some(StopWindow {
             index,
-            arrival_earliest_ms: stop.arrival_earliest_ms,
-            departure_latest_ms: stop.departure_latest_ms,
+            arrival_latest_ms: stop.arrival_latest_ms,
+            departure_earliest_ms: stop.departure_earliest_ms,
         })
     })
 }
@@ -377,10 +384,10 @@ pub fn evaluate_coavailability(
                     recovery_latest_from_stop,
                 ) {
                     (Some(launch_window_hi), Some(launch_stop_hi), Some(recovery_window_hi), Some(recovery_stop_hi)) => {
-                        let launch_lo = sortie.launch_window_open_ms.max(launch.arrival_earliest_ms);
-                        let launch_hi = launch_window_hi.min(launch_stop_hi);
-                        let recovery_lo = sortie.recovery_window_open_ms.max(recovery.arrival_earliest_ms);
-                        let recovery_hi = recovery_window_hi.min(recovery_stop_hi);
+                        let launch_lo = sortie.launch_window_open_ms.max(launch.arrival_latest_ms);
+                        let launch_hi = launch_window_hi.min(launch_stop_hi.min(launch.departure_earliest_ms.saturating_sub(sortie.launch_service_ms)));
+                        let recovery_lo = sortie.recovery_window_open_ms.max(recovery.arrival_latest_ms);
+                        let recovery_hi = recovery_window_hi.min(recovery_stop_hi.min(recovery.departure_earliest_ms.saturating_sub(sortie.recovery_service_ms)));
 
                         let recovery_launch_lo = recovery_lo.saturating_sub(sortie.flight_duration_ms);
                         let recovery_launch_hi = recovery_hi.checked_sub(sortie.flight_duration_ms);
@@ -492,12 +499,16 @@ mod tests {
                         stop_id: "stop-01".into(),
                         node_id: "depot".into(),
                         arrival_earliest_ms: 0,
+                        arrival_latest_ms: 0,
+                        departure_earliest_ms: 1_000_000,
                         departure_latest_ms: 1_000_000,
                     },
                     CarrierStop {
                         stop_id: "stop-02".into(),
                         node_id: "hub-b".into(),
                         arrival_earliest_ms: 1_300_000,
+                        arrival_latest_ms: 1_300_000,
+                        departure_earliest_ms: 1_900_000,
                         departure_latest_ms: 1_900_000,
                     },
                 ],
@@ -628,6 +639,8 @@ mod tests {
             stop_id: "stop-01".into(),
             node_id: "depot".into(),
             arrival_earliest_ms: 2_000_000,
+            arrival_latest_ms: 2_000_000,
+            departure_earliest_ms: 3_000_000,
             departure_latest_ms: 3_000_000,
         });
         assert!(evaluate_coavailability(&test).is_err());
