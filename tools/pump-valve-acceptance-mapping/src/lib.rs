@@ -631,7 +631,7 @@ mod tests {
     #[test]
     fn frozen_twenty_seven_case_oracle_matches() {
         let result = evaluate_corpus(PROFILES, SCENARIOS, EXPECTED).unwrap();
-        assert_eq!(result.len(), 29);
+        assert_eq!(result.len(), 30);
         assert_eq!(
             result
                 .iter()
@@ -727,6 +727,17 @@ mod tests {
             .find(|row| row.scenario_id == "submersible_hi116_field_agreed")
             .unwrap();
         assert_eq!(row.disposition, Disposition::Applicable);
+    }
+
+    #[test]
+    fn unqualified_valve_test_facility_does_not_qualify() {
+        let (profiles, scenarios) = parsed();
+        let row = evaluate(&profiles, &scenarios)
+            .unwrap()
+            .into_iter()
+            .find(|row| row.scenario_id == "valve_iso5208_unqualified_facility")
+            .unwrap();
+        assert_eq!(row.disposition, Disposition::ProfileIncomplete);
     }
 
     #[test]
