@@ -2,10 +2,12 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use construction_motion_oracle::{
-    AnalyticPath, DesignIntentEntity, DispatchEnvelopeBinding, DispatchReadinessRequest,
-    ExclusiveResourceClaim, FieldAcceptanceProfile, FieldLayoutEntityType,
-    OccupancyAssessmentReceipt, SiteActorRole, SiteEventEnvelope, SiteEventPayload,
-    SiteResourceDefinition, SiteStateLedger, SiteWorkPackage, SpaceTimeReservation, Vec3,
+    AnalyticPath, CapacityDemandClaim, CapacityReservation, CapacityResourceDefinition,
+    CumulativeCapacityScenario, DesignIntentEntity, DispatchEnvelopeBinding,
+    DispatchReadinessRequest, ExclusiveResourceClaim, FieldAcceptanceProfile,
+    FieldLayoutEntityType, OccupancyAssessmentReceipt, SiteActorRole, SiteEventEnvelope,
+    SiteEventPayload, SiteResourceDefinition, SiteStateLedger, SiteWorkPackage,
+    SpaceTimeReservation, Vec3, evaluate_cumulative_resource_capacity,
     chord_collision, check_dispatch_readiness, endpoints_only_collision,
     verify_dispatch_readiness_receipt_current,
 };
@@ -126,6 +128,7 @@ fn main() {
     run_site_ledger_append_scaling_benchmarks();
     run_site_dispatch_readiness_benchmarks();
     run_exclusive_resource_reservation_index_benchmarks();
+    run_cumulative_resource_capacity_sweep_benchmarks();
 }
 
 
@@ -553,6 +556,82 @@ fn run_exclusive_resource_reservation_index_benchmarks() {
             percentile(&conflict_durations, 95).as_nanos(),
             percentile(&conflict_durations, 99).as_nanos(),
             ledger.active_resource_claim_count(),
+        );
+    }
+}
+
+
+fn build_cumulative_capacity_benchmark_scenario(claim_count: u64) -> CumulativeCapacityScenario {
+    let resources: Vec<CapacityResourceDefinition> = (0..10_u64)
+        .map(|index| CapacityResourceDefinition {
+            resource_id: format!("capacity-resource-{index:02}"),
+            definition_sha256: benchmark_digest(3_000 + index),
+            capacity_units: 8,
+            unit_label: "load-units".into(),
+        })
+        .collect();
+    let resource_digests: Vec<String> = (0..10_u64)
+        .map(|index| benchmark_digest(3_000 + index))
+        .collect();
+    let mut seed = 0xC0FF_EE_u64;
+    let mut reservations = Vec::with_capacity(claim_count as usize);
+    for index in 0..claim_count {
+        seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+        let resource_index = (index % 10) as usize;
+        let start_tick = 1_000 + (seed % 4_000);
+        seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+        let duration = 1 + seed % 500;
+        seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+        let demand_units = 1 + seed % 4;
+        reservations.push(CapacityReservation {
+            reservation_id: format!("capacity-reservation-{index:08}"),
+            reservation_receipt_sha256: benchmark_digest(1_000_000 + index),
+            site_clock_domain_id: "benchmark-site-clock".into(),
+            claims: vec![CapacityDemandClaim {
+                resource_id: format!("capacity-resource-{resource_index:02}"),
+                resource_definition_sha256: resource_digests[resource_index].clone(),
+                start_tick,
+                end_tick: start_tick + duration,
+                demand_units,
+            }],
+        });
+    }
+    CumulativeCapacityScenario {
+        scenario_id: format!("capacity-benchmark-{claim_count}"),
+        resource_catalog_sha256: benchmark_digest(2_900),
+        site_snapshot_sha256: benchmark_digest(2_901),
+        site_clock_domain_id: "benchmark-site-clock".into(),
+        resources,
+        reservations,
+    }
+}
+
+fn run_cumulative_resource_capacity_sweep_benchmarks() {
+    println!(
+        "cumulative_resource_capacity,claim_count,p50_us,p95_us,p99_us,boundary_count,violation_segments,feasible"
+    );
+    for claim_count in [100_u64, 1_000, 10_000, 100_000] {
+        let scenario = build_cumulative_capacity_benchmark_scenario(claim_count);
+        let mut durations = Vec::with_capacity(21);
+        let mut last_report = None;
+        for _ in 0..21 {
+            let start = Instant::now();
+            let report = evaluate_cumulative_resource_capacity(black_box(&scenario))
+                .expect("synthetic capacity scenario must validate");
+            durations.push(start.elapsed());
+            last_report = Some(report);
+        }
+        durations.sort_unstable();
+        let report = last_report.expect("at least one cumulative capacity sample");
+        println!(
+            "{},{},{},{},{},{},{},{}",
+            claim_count,
+            percentile(&durations, 50).as_micros(),
+            percentile(&durations, 95).as_micros(),
+            percentile(&durations, 99).as_micros(),
+            report.total_boundary_count,
+            report.violations.len(),
+            report.is_feasible
         );
     }
 }
