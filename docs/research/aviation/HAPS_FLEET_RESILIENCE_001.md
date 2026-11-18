@@ -106,15 +106,15 @@ No public source cited here establishes an achieved commercial HAPS nationwide a
 5. Integrate the demand trace and edge workload scheduler so availability is measured for required service, not merely platform heartbeat.
 6. Compare 1/2/3/5 platform fleet layouts and diverse fallback by cost per served critical task and availability nine.
 
-## 7. Executable analytic evaluator
+## 7. Executable fleet reliability evaluator
 
-A standalone Rust evaluator now exists at `tools/haps-fleet-availability`:
-- parser validates the synthetic evidence ceiling, probability domains, conditional-independence contract, fleet-size rows and maintenance accounting;
-- evaluator computes HAPS-only, HAPS+terrestrial and HAPS+terrestrial+LEO availability;
-- the CLI prints a JSON report from the checked-in case or a supplied case path;
-- eight unit tests cover all 45 fixture rows, common-weather saturation, layered fallback, correlated external outage, monotonicity, invalid probabilities and maintenance double-counting.
+The canonical executable owner is the existing standalone Rust tool at `tools/haps-fleet-reliability`. It uses exact enumeration of independent Bernoulli node states, explicit common-cause events and shared dependencies. It also calculates a deliberately naïve k-out-of-n comparator that ignores common-cause events, making the resilience overstatement visible. It rejects temporal/semi-Markov or maintenance-profile inputs rather than silently treating them as static probabilities.
 
-The evaluator is dependency-pinned (`serde 1.0.228`, `serde_json 1.0.150`) with a dedicated path-scoped workflow for rustfmt, Clippy, unit/fixture tests and CLI replay. The source and independent arithmetic were structurally checked, but the Rust workflow has not yet been observed passing in this response. Do not claim compilation or test success until exact-head CI reports success.
+A new heterogeneous cross-layer fixture, [synthetic_haps_fleet_cross_layer_common_mode_reliability_v1.json](examples/synthetic_haps_fleet_cross_layer_common_mode_reliability_v1.json), models three HAPS, a terrestrial gateway and LEO backhaul. A shared stratospheric-weather event grounds all three HAPS; a separate common external event disables the terrestrial and LEO fallback together. The exact enumerator evaluates 128 states and reports 99.9698437% service availability against the illustrative 99.99% target. The naïve independent-provider comparator reports 99.99999996%, overstating service availability by approximately 0.03016 percentage points. This is the failure mode the explicit dependency model is meant to expose.
+
+The eight earlier reliability tests now include a ninth exact cross-layer test. The closed-form [fleet availability matrix](examples/synthetic_haps_fleet_availability_case_v1.json) remains as an independent 45-row analytic sensitivity oracle; it is not a second Rust implementation. Both models are synthetic. The current exact enumerator is still static: it does not simulate outage duration, weather episode persistence, repair, maintenance scheduling or group handover.
+
+The general fleet reliability tool has a dedicated path-scoped workflow for rustfmt, Clippy and fixture replay. Exact-head CI status is tracked separately; no Rust test or physical reliability pass is inferred from structural inspection alone.
 
 ## 8. Ownership
 
