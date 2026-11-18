@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "run_id": "NOT_RUN",
+  "case_id": "Weyl-MK-ON-SHELL-ANNULUS-001",
+  "status": "planned",
+  "physics": {
+    "theory_id": "4d_conformal_weyl_gravity_static_spherical",
+    "action_digest": null,
+    "equation_digest": null,
+    "dimension": 4,
+    "symmetry": "static_spherical",
+    "chart": "static_spherical",
+    "signature": "-+++",
+    "coordinates": [
+      "t",
+      "r",
+      "theta",
+      "phi"
+    ],
+    "units": {
+      "length": "geometric_length_unit",
+      "metric_function": "dimensionless"
+    },
+    "domain": {
+      "r_min": "3",
+      "r_max": "6"
+    },
+    "boundary_conditions": [],
+    "couplings": {
+      "c_inverse": "-17/10",
+      "c_constant": "7/10",
+      "c_linear": "1/10",
+      "c_quadratic": "-1/100"
+    },
+    "branch_id": "MK-ON-SHELL-CONTROL",
+    "continuation_parameter": "none_exact_control"
+  },
+  "solver": {
+    "method": "not_run",
+    "candidate_generator": "not_run",
+    "refinement_method": "not_run",
+    "precision_bits": 53,
+    "basis": "Chebyshev",
+    "truncation_order": 0,
+    "collocation_grid": "not_run"
+  },
+  "environment": {
+    "source_revision": "research/bach-taylor-jets-2026-11-18",
+    "toolchain": "not_run",
+    "cpu": "not_run",
+    "gpu": null,
+    "memory_bytes": null,
+    "wall_time_ms": null,
+    "energy_joules": null
+  },
+  "numerics": {
+    "collocation_residual": {
+      "value": null,
+      "unit": "dimensionful_by_component",
+      "norm": "not_run",
+      "status": "not_measured"
+    },
+    "held_out_residual": {
+      "value": null,
+      "unit": "dimensionful_by_component",
+      "norm": "not_run",
+      "status": "not_measured"
+    },
+    "full_domain_residual_enclosure": {
+      "lower": null,
+      "upper": null,
+      "unit": "dimensionful_by_component",
+      "norm": "not_run",
+      "status": "not_attempted",
+      "proof_artifact_digest": null
+    },
+    "spectral_tail_enclosure": {
+      "lower": null,
+      "upper": null,
+      "unit": "weighted_coefficient_norm",
+      "norm": "analytic_mk_1_over_r_tail",
+      "status": "not_attempted",
+      "proof_artifact_digest": null
+    },
+    "boundary_residual_enclosures": [],
+    "condition_estimate": {
+      "value": null,
+      "unit": "dimensionless",
+      "norm": "not_run",
+      "status": "not_measured"
+    },
+    "convergence_levels": []
+  },
+  "approximation": {
+    "reference_solution_difference": {
+      "value": null,
+      "unit": "dimensionless",
+      "norm": "not_run",
+      "status": "not_measured"
+    },
+    "reference_source": null,
+    "matched_conventions": false
+  },
+  "qualification": {
+    "interval_backend": "not_run",
+    "interval_extension_digest": null,
+    "operator_inverse_enclosure": {
+      "lower": null,
+      "upper": null,
+      "unit": "operator_norm",
+      "norm": "not_run",
+      "status": "not_attempted",
+      "proof_artifact_digest": null
+    },
+    "Y0": {
+      "lower": null,
+      "upper": null,
+      "unit": "operator_norm",
+      "norm": "not_run",
+      "status": "not_attempted",
+      "proof_artifact_digest": null
+    },
+    "Z0": {
+      "lower": null,
+      "upper": null,
+      "unit": "operator_norm",
+      "norm": "not_run",
+      "status": "not_attempted",
+      "proof_artifact_digest": null
+    },
+    "Z1": {
+      "lower": null,
+      "upper": null,
+      "unit": "operator_norm",
+      "norm": "not_run",
+      "status": "not_attempted",
+      "proof_artifact_digest": null
+    },
+    "Z2": {
+      "lower": null,
+      "upper": null,
+      "unit": "operator_norm",
+      "norm": "not_run",
+      "status": "not_attempted",
+      "proof_artifact_digest": null
+    },
+    "radii_polynomial": {
+      "lower": null,
+      "upper": null,
+      "unit": "dimensionless",
+      "norm": "exact_rational",
+      "status": "not_attempted",
+      "proof_artifact_digest": null
+    },
+    "theorem_status": "not_attempted",
+    "lean_theorem": null,
+    "axiom_report_digest": null
+  },
+  "physical_validity": {
+    "chart_regular": {
+      "status": "not_attempted",
+      "reason": "No run performed"
+    },
+    "scalar_invariants_bounded": {
+      "status": "not_attempted",
+      "reason": "No run performed"
+    },
+    "observer_frame_tidal_bounded": {
+      "status": "not_attempted",
+      "reason": "No observer manifest or run"
+    },
+    "extra_fields_regular": {
+      "status": "not_applicable",
+      "reason": "Pure metric vacuum control"
+    },
+    "eft_expansion_ordered": {
+      "status": "not_applicable",
+      "reason": "No EFT truncation asserted for the exact classical control"
+    },
+    "observationally_admissible": {
+      "status": "not_attempted",
+      "reason": "No observational likelihood"
+    },
+    "observer_manifest_digest": null
+  },
+  "provenance": {
+    "input_manifest_digest": null,
+    "source_tree_digest": null,
+    "replay_command": "NOT_RUN",
+    "stdout_digest": null,
+    "exit_code": null,
+    "artifact_digests": []
+  }
+}
