@@ -249,3 +249,31 @@ dropout processes, MCAR/MAR/MNAR generators, covariance estimation error,
 or a general dependent-data conformal guarantee. Unknown noise-family semantics
 must remain NOT_ASSESSED / ABSTAIN. The benchmark is synthetic-only and does not
 establish any physical sensor or human-subject validity.
+
+### Full-covariance empirical threshold calibration
+
+The `calibrate_model_family_adequacy_full_covariance` reference calibrator
+uses the same admitted full time-by-sensor covariance as the candidate-visible
+adequacy evaluator. It generates calibration traces with one deterministic
+stream, fits a nearest-rank empirical residual threshold, and evaluates
+registered candidate truths and held-out hidden out-of-family mathematical
+truths with a distinct validation stream.
+
+The report keeps true-family retention, false OUT_OF_MODEL_SET, wrong-family
+preference, ambiguous disposition and held-out out-of-family rejection
+separate. It also repeats the covariance/process/sampling/operator/availability
+identity, ordered sensor IDs and observation schedule used for calibration.
+The campaign is bounded to 100,000 total generated traces across calibration,
+validation and hidden-truth validation.
+
+This is an evaluator-side synthetic harness: it keeps hidden truth out of the
+adequacy scorer's input and output, but the calibration function itself runs
+in-process and is not a security/process-isolation boundary. The caller must
+still put hidden truth and seeds behind the independent evaluator boundary
+before using this as an agent-facing benchmark.
+
+Threshold calibration is specific to the complete bound observation process.
+Changing the covariance, process family, sample schedule, ordered sensors,
+observation operator or availability cutoff requires a new calibration or an
+explicitly verified compatibility rule. Unknown and unsupported observation
+processes remain NOT_ASSESSED / ABSTAIN; they do not inherit an iid threshold.
