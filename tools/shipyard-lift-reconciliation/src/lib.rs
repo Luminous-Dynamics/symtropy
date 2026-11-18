@@ -124,6 +124,10 @@ pub struct ExecutionBinding {
     /// Input digest to which the preflight report says it applies.
     pub preflight_bound_input_sha256: String,
     pub preflight_report_sha256: String,
+    /// SHA-256 of the canonical raw telemetry ledger supplied to this run.
+    pub event_ledger_sha256: String,
+    /// SHA-256 of the canonical source-coverage bundle supplied to this run.
+    pub coverage_bundle_sha256: String,
     pub preflight_disposition: PreflightDisposition,
     /// Separately authenticated by the owner-authority workflow before admission.
     pub authorisation_id: String,
@@ -206,6 +210,8 @@ pub struct ReconciliationReport {
     pub plan_revision: String,
     pub plan_input_sha256: String,
     pub preflight_report_sha256: String,
+    pub event_ledger_sha256: String,
+    pub coverage_bundle_sha256: String,
     pub authorisation_id: String,
     pub policy_id: String,
     pub policy_revision: String,
@@ -310,7 +316,7 @@ impl ReconciliationReport {
             .collect::<Vec<_>>()
             .join(",");
         format!(
-            "{{\"contract_version\":{},\"disposition\":{},\"session_id\":{},\"plan_id\":{},\"plan_revision\":{},\"plan_input_sha256\":{},\"preflight_report_sha256\":{},\"authorisation_id\":{},\"policy_id\":{},\"policy_revision\":{},\"policy_sha256\":{},\"verified_event_count\":{},\"exact_retransmission_count\":{},\"maximum_hook_load_upper_mn\":{},\"maximum_wind_gust_upper_mm_per_s\":{},\"maximum_ingest_lateness_ticks\":{},\"unknown_intervals\":[{}],\"diagnostics\":[{}]}}",
+            "{{\"contract_version\":{},\"disposition\":{},\"session_id\":{},\"plan_id\":{},\"plan_revision\":{},\"plan_input_sha256\":{},\"preflight_report_sha256\":{},\"event_ledger_sha256\":{},\"coverage_bundle_sha256\":{},\"authorisation_id\":{},\"policy_id\":{},\"policy_revision\":{},\"policy_sha256\":{},\"verified_event_count\":{},\"exact_retransmission_count\":{},\"maximum_hook_load_upper_mn\":{},\"maximum_wind_gust_upper_mm_per_s\":{},\"maximum_ingest_lateness_ticks\":{},\"unknown_intervals\":[{}],\"diagnostics\":[{}]}}",
             json_quote(self.contract_version),
             json_quote(disposition_name(self.disposition)),
             json_quote(&self.session_id),
@@ -318,6 +324,8 @@ impl ReconciliationReport {
             json_quote(&self.plan_revision),
             json_quote(&self.plan_input_sha256.to_ascii_lowercase()),
             json_quote(&self.preflight_report_sha256.to_ascii_lowercase()),
+            json_quote(&self.event_ledger_sha256.to_ascii_lowercase()),
+            json_quote(&self.coverage_bundle_sha256.to_ascii_lowercase()),
             json_quote(&self.authorisation_id),
             json_quote(&self.policy_id),
             json_quote(&self.policy_revision),
@@ -577,6 +585,8 @@ pub fn reconcile(
     if !valid_sha256(&binding.plan_input_sha256)
         || !valid_sha256(&binding.preflight_bound_input_sha256)
         || !valid_sha256(&binding.preflight_report_sha256)
+        || !valid_sha256(&binding.event_ledger_sha256)
+        || !valid_sha256(&binding.coverage_bundle_sha256)
         || !valid_sha256(&policy.policy_sha256)
         || !valid_sha256(&binding.motion_report_sha256)
         || !valid_sha256(&binding.occupancy_projection_sha256)
@@ -1216,6 +1226,8 @@ pub fn reconcile(
         plan_revision: binding.plan_revision.clone(),
         plan_input_sha256: binding.plan_input_sha256.clone(),
         preflight_report_sha256: binding.preflight_report_sha256.clone(),
+        event_ledger_sha256: binding.event_ledger_sha256.clone(),
+        coverage_bundle_sha256: binding.coverage_bundle_sha256.clone(),
         authorisation_id: binding.authorisation_id.clone(),
         policy_id: policy.policy_id.clone(),
         policy_revision: policy.policy_revision.clone(),
@@ -1257,6 +1269,8 @@ mod tests {
             plan_input_sha256: "1".repeat(64),
             preflight_bound_input_sha256: "1".repeat(64),
             preflight_report_sha256: "2".repeat(64),
+            event_ledger_sha256: "6".repeat(64),
+            coverage_bundle_sha256: "7".repeat(64),
             preflight_disposition: PreflightDisposition::ReadyForHumanReview,
             authorisation_id: "authorisation-01".to_owned(),
             authorisation_revision: "auth-r2".to_owned(),
