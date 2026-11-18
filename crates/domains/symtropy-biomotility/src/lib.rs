@@ -306,7 +306,11 @@ impl AgentState {
 /// One completed run followed by one reorientation or trap event.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct EventRecord {
+    /// Direction class at the beginning of this run; used for run-time bias.
     pub direction_before_run: DirectionClass,
+    /// Direction class immediately before the interruption, after run-phase
+    /// rotational diffusion; used for short-event turn-angle bias.
+    pub direction_before_event: DirectionClass,
     pub run_duration_s: f64,
     pub event_class: EventClass,
     pub event_duration_s: f64,
@@ -486,13 +490,20 @@ pub fn simulate_with_bias_mode(
             remaining_run_s -= step_s;
         }
 
+        let direction_before_event = classify_direction(
+            state.heading_rad,
+            gradient_heading_rad,
+            DIRECTION_CONE_HALF_ANGLE_DEG,
+        )
+        .expect("validated finite headings produce a direction class");
+
         let (event_class, event_duration, turn_angle) =
             if rng.next_unit_f64() < profile.short_event_probability {
                 (
                     EventClass::ShortReorientation,
                     profile.short_event_duration_s.sample(&mut rng),
                     if bias_mode.uses_turn_angle_bias() {
-                        profile.short_turn_angle_rad.sample(direction, &mut rng)
+                        profile.short_turn_angle_rad.sample(direction_before_event, &mut rng)
                     } else {
                         profile.short_turn_angle_unconditional_rad.sample(&mut rng)
                     },
@@ -513,6 +524,7 @@ pub fn simulate_with_bias_mode(
 
         events.push(EventRecord {
             direction_before_run: direction,
+            direction_before_event,
             run_duration_s: run_duration,
             event_class,
             event_duration_s: event_duration,
