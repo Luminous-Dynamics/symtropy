@@ -204,17 +204,17 @@ impl EpisodeManifest {
             || candidate_ids
                 .iter()
                 .zip(&kernel.hypothesis_ids)
-                .any(|(public, owner)| *public != owner)
+                .any(|(public, owner)| *public != owner.as_str())
             || action_ids.len() != kernel.action_ids.len()
             || action_ids
                 .iter()
                 .zip(&kernel.action_ids)
-                .any(|(public, owner)| *public != owner)
+                .any(|(public, owner)| *public != owner.as_str())
             || observation_ids.len() != kernel.observation_ids.len()
             || observation_ids
                 .iter()
                 .zip(&kernel.observation_ids)
-                .any(|(public, owner)| *public != owner)
+                .any(|(public, owner)| *public != owner.as_str())
         {
             return Err(EpisodeError::InvalidManifest);
         }
