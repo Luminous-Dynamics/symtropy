@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-robust-capacity-scenario-v0.1.json",
+  "title": "Construction Robust Capacity Scenario v0.1",
+  "description": "Typed scenario input for evaluating capacity-N reservations against owner-evidenced time-varying lower/nominal/upper capacity windows. Digest shape and binding identity are checked; canonical receipt bytes and signatures must be verified upstream.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "base",
+    "availability_windows"
+  ],
+  "properties": {
+    "base": {
+      "$ref": "#/$defs/base_scenario"
+    },
+    "availability_windows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/availability_window"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_id",
+        "definition_sha256",
+        "capacity_units",
+        "unit_label"
+      ],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "definition_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "capacity_units": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "unit_label": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_id",
+        "resource_definition_sha256",
+        "start_tick",
+        "end_tick",
+        "demand_units"
+      ],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_definition_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "start_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "demand_units": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "reservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reservation_id",
+        "reservation_receipt_sha256",
+        "site_clock_domain_id",
+        "claims"
+      ],
+      "properties": {
+        "reservation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reservation_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claims": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/claim"
+          }
+        }
+      }
+    },
+    "base_scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "resource_catalog_sha256",
+        "site_snapshot_sha256",
+        "site_clock_domain_id",
+        "resources",
+        "reservations"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_catalog_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/resource"
+          }
+        },
+        "reservations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/reservation"
+          }
+        }
+      }
+    },
+    "availability_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_id",
+        "resource_definition_sha256",
+        "site_snapshot_sha256",
+        "capacity_owner_id",
+        "evidence_receipt_sha256",
+        "start_tick",
+        "end_tick",
+        "lower_capacity_units",
+        "nominal_capacity_units",
+        "upper_capacity_units"
+      ],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_definition_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "capacity_owner_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "start_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "lower_capacity_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "nominal_capacity_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "upper_capacity_units": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
