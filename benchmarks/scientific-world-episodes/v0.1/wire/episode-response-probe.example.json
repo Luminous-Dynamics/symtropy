@@ -1,0 +1,9 @@
+{
+  "protocol_version": "symtropy-joint-world-episode-v0",
+  "command": {
+    "command": "probe",
+    "payload": {
+      "action_id": "calibrate-sensor"
+    }
+  }
+}
