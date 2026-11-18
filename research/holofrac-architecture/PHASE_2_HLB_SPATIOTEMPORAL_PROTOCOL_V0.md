@@ -511,3 +511,42 @@ Targets on the finite synthetic corpus:
 - per-stakeholder outcomes and unmet preferences always visible; group averages alone are insufficient.
 
 No camera, biometrics, psychological-state inference or demographic proxy should be a default input. Preference data is supplied explicitly, revocable and limited to the participant-authorized scope. Real deployments require informed consent, data minimization, accessible participation, appropriate ethics review and human control.
+
+
+## 17. Decision-value experiment selection and budgeted learning
+
+Symtropy issue #5961 owns budgeted experiment requests and independent execution/receipt validation:
+https://github.com/Luminous-Dynamics/symtropy/issues/5961
+
+The current HoloFrac implementation branch adds a finite exact value-of-information fixture:
+- src/experiment_selection.rs
+- src/bin/experiment_selection_sweep.rs
+- EXPERIMENT_SELECTION_VOI_PROTOCOL_V0.md
+
+It demonstrates a key distinction. One synthetic measurement gives 1 bit of information about a latent variable that is irrelevant to the current design decision; another gives less information but changes the optimal decision and reduces expected regret. The finite oracle computes posterior values, mutual information, EVSI minus experiment cost and regret by exact enumeration, not Monte Carlo.
+
+### T13 hypotheses
+
+- T13.1 — Decision relevance: expected-decision-value selection chooses tests that improve the declared decision, not merely those with the greatest entropy reduction.
+- T13.2 — Budget efficiency: a sequential policy achieves non-inferior feasible Pareto quality with fewer high-fidelity solver calls than random, space-filling, uncertainty-only and A-optimal baselines.
+- T13.3 — Calibration: predicted value of information is calibrated against realized decision improvement; the selector learns when to request no test.
+- T13.4 — Evidence integration: every executed measurement/solver call is bound to an admitted source snapshot, exact input digest, solver identity/version/fidelity, budget reservation and immutable result receipt.
+- T13.5 — Pluralistic value: where no scalar social utility is authorized, the selector evaluates changes in the Pareto set and stakeholder-specific regret rather than inventing a hidden group objective.
+
+### T13 baselines and metrics
+
+Compare no-test, seeded-random, Latin hypercube/maximin, maximum information gain, sequential A-optimal, expected value of sample information (EVSI), decision-regret and appropriate Bayesian optimization baselines.
+
+Freeze:
+- source and candidate digests;
+- observation and solver likelihood/fidelity model;
+- decision alternatives and utility/constraint contracts;
+- test action costs and total budget;
+- initial priors/training data;
+- stopping criteria, tie-breaks and fallback/no-test behavior.
+
+Report selected actions, mutual information, expected posterior value, EVSI, net expected value after cost, realized decision regret, feasible Pareto hypervolume/IGD+, high-fidelity call count, cost, wall-clock, solver failures, abstentions and receipt completeness.
+
+Prospective target from #5961: at least 20% fewer high-fidelity solver evaluations than the strongest matched baseline at non-inferior feasible Pareto quality, with a predeclared 2% relative hypervolume non-inferiority margin. The target must be frozen before evaluation and measured across held-out problem families, not selected after observing results.
+
+The synthetic fixture proves only exact finite arithmetic and policy behavior for its declared likelihoods. It does not establish calibrated real-world solver value, causal truth, or real engineering-cost savings. The integrated path must wait for #5959 source/solver receipts and #5961 request admission/execution before making such claims.
