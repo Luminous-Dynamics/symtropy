@@ -558,3 +558,184 @@ fn forced_state_at_calibration(
     }
     Ok(state)
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::experiment_design::{ForcingSegment, ModelCandidate};
+    use crate::network::Edge;
+    use crate::robust_discrimination::{ModelFamilyAssignment, ProfiledModelFamilyScenario};
+    use crate::sensor_design::SensorCandidate;
+
+    fn candidate(id: u32, label: &'static str, bypass: f64) -> ModelCandidate {
+        let mut edges = vec![
+            Edge {
+                left: 0,
+                right: 1,
+                conductance: 1.0,
+            },
+            Edge {
+                left: 1,
+                right: 2,
+                conductance: 1.0,
+            },
+        ];
+        if bypass > 0.0 {
+            edges.push(Edge {
+                left: 0,
+                right: 2,
+                conductance: bypass,
+            });
+        }
+        ModelCandidate {
+            id,
+            label,
+            network: NetworkScenario {
+                name: label,
+                capacities: vec![1.0, 1.0, 1.0],
+                initial: vec![0.0, 0.0, 0.0],
+                edges,
+                horizon: 2.0,
+            },
+        }
+    }
+
+    fn scenario() -> ProfiledModelFamilyScenario {
+        ProfiledModelFamilyScenario {
+            experiment: ExperimentDesignScenario {
+                name: "synthetic_adequacy_noise_calibration",
+                models: vec![
+                    candidate(1, "chain", 0.0),
+                    candidate(2, "bypass_half", 0.5),
+                    candidate(3, "bypass_zero_limit", 0.0),
+                ],
+                sensors: vec![SensorCandidate {
+                    id: 30,
+                    node: 2,
+                    cost: 1.0,
+                    common_cause_group: None,
+                }],
+                noise_covariance: vec![vec![1.0e-5]],
+                observation_times: vec![0.25, 0.5, 1.0, 2.0],
+                sensor_budget: 1.0,
+                max_abs_forcing: 1.0,
+                input_energy_budget: 0.5,
+            },
+            family_assignments: vec![
+                ModelFamilyAssignment {
+                    model_id: 1,
+                    family_id: 100,
+                },
+                ModelFamilyAssignment {
+                    model_id: 2,
+                    family_id: 200,
+                },
+                ModelFamilyAssignment {
+                    model_id: 3,
+                    family_id: 200,
+                },
+            ],
+        }
+    }
+
+    fn pulse() -> InputProfile {
+        InputProfile {
+            id: 2,
+            label: "bounded_node_zero_pulse",
+            segments: vec![
+                ForcingSegment {
+                    start_time: 0.0,
+                    end_time: 0.5,
+                    forcing: vec![1.0, 0.0, 0.0],
+                },
+                ForcingSegment {
+                    start_time: 0.5,
+                    end_time: 2.0,
+                    forcing: vec![0.0, 0.0, 0.0],
+                },
+            ],
+        }
+    }
+
+    fn config() -> AdequacyCalibrationConfig {
+        AdequacyCalibrationConfig {
+            calibration_seed: 0xCA11_BA7E,
+            validation_seed: 0xB01D_5EED,
+            replicates_per_model: 128,
+            target_in_family_coverage: 0.95,
+        }
+    }
+
+    #[test]
+    fn threshold_calibration_uses_disjoint_seeds_and_reports_empirical_rates() {
+        let problem = scenario();
+        let hidden = HiddenOutOfFamilyTruth {
+            evaluator_id: 900,
+            network: candidate(900, "held_out_bypass_three_quarters", 0.75).network,
+        };
+        let report = calibrate_model_family_adequacy(
+            &problem,
+            &pulse(),
+            &[30],
+            &[hidden],
+            config(),
+        )
+        .unwrap();
+
+        assert!(report.threshold.is_finite());
+        assert!(report.threshold > 0.0);
+        assert_eq!(report.calibration_samples, 3 * 128);
+        assert_eq!(report.validation_samples, 3 * 128);
+        assert!(report.calibration_in_family_coverage >= 0.95);
+        assert!(report.validation_in_family_coverage >= 0.90);
+        assert!(report.validation_false_out_of_model_set_rate <= 0.10);
+        assert!(report.out_of_family_rejection_rate >= 0.95);
+        assert_eq!(report.calibration_seed, config().calibration_seed);
+        assert_eq!(report.validation_seed, config().validation_seed);
+    }
+
+    #[test]
+    fn threshold_calibration_is_reproducible_for_fixed_seeds() {
+        let problem = scenario();
+        let hidden = HiddenOutOfFamilyTruth {
+            evaluator_id: 900,
+            network: candidate(900, "held_out_bypass_three_quarters", 0.75).network,
+        };
+        let first = calibrate_model_family_adequacy(
+            &problem,
+            &pulse(),
+            &[30],
+            &[hidden.clone()],
+            config(),
+        )
+        .unwrap();
+        let second = calibrate_model_family_adequacy(
+            &problem,
+            &pulse(),
+            &[30],
+            &[hidden],
+            config(),
+        )
+        .unwrap();
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn calibration_rejects_reused_seeds_and_invalid_coverage_targets() {
+        let problem = scenario();
+        let mut invalid = config();
+        invalid.validation_seed = invalid.calibration_seed;
+        assert_eq!(
+            calibrate_model_family_adequacy(&problem, &pulse(), &[30], &[], invalid),
+            Err(AdequacyCalibrationError::SeedsMustDiffer)
+        );
+
+        let mut invalid = config();
+        invalid.target_in_family_coverage = 1.0;
+        assert_eq!(
+            calibrate_model_family_adequacy(&problem, &pulse(), &[30], &[], invalid),
+            Err(AdequacyCalibrationError::InvalidTargetCoverage)
+        );
+    }
+}
