@@ -1896,6 +1896,24 @@ mod tests {
     }
 
     #[test]
+    fn coverage_in_a_different_clock_domain_is_indeterminate() {
+        let (binding, policy, mut coverage, events) = baseline();
+        coverage[0].clock_domain_id = "another-clock".to_owned();
+        let report = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "COVERAGE_CLOCK_DOMAIN_MISMATCH"));
+    }
+
+    #[test]
+    fn mapping_evidence_for_another_mapping_revision_is_indeterminate() {
+        let (binding, policy, coverage, mut events) = baseline();
+        events[0].clock_mapping_evidence.subject_revision = "obsolete-map-r0".to_owned();
+        let report = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "EVIDENCE_SUBJECT_MISMATCH"));
+    }
+
+    #[test]
     fn preflight_rejection_cannot_be_upgraded_by_clean_telemetry() {
         let (mut binding, policy, coverage, events) = baseline();
         binding.preflight_disposition = PreflightDisposition::Rejected;
