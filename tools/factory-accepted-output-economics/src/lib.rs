@@ -183,6 +183,15 @@ fn valid_currency(value: &str) -> bool {
     value.len() == 3 && value.bytes().all(|byte| byte.is_ascii_uppercase())
 }
 
+fn valid_money_unit(currency: &str, unit: &str) -> bool {
+    unit.len() > 4
+        && unit.starts_with(currency)
+        && unit.as_bytes().get(3) == Some(&b'_')
+        && unit[4..]
+            .bytes()
+            .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit() || byte == b'_')
+}
+
 fn valid_date(value: &str) -> bool {
     let bytes = value.as_bytes();
     if bytes.len() != 10
@@ -295,7 +304,7 @@ pub fn parse_cases(input: &str) -> Result<Vec<CaseManifest>, String> {
         if declared_units_started == 0 {
             return Err(format!("cases:{}: declared_units_started must be positive", index + 2));
         }
-        if !valid_currency(row[7]) || !valid_date(row[8]) || !valid_ref(row[9]) {
+        if !valid_currency(row[7]) || !valid_date(row[8]) || !valid_money_unit(row[7], row[9]) {
             return Err(format!("cases:{}: invalid currency, price date or amount unit", index + 2));
         }
         if !ids.insert(row[0].to_owned()) {
@@ -350,7 +359,7 @@ pub fn parse_cost_items(input: &str) -> Result<Vec<CostItem>, String> {
                 return Err(format!("cost items:{}: invalid {label}: {value}", index + 2));
             }
         }
-        if !valid_currency(row[6]) || !valid_date(row[7]) {
+        if !valid_currency(row[6]) || !valid_date(row[7]) || !valid_money_unit(row[6], row[8]) {
             return Err(format!("cost items:{}: invalid currency or price date", index + 2));
         }
         if !matches!(row[9], "SYNTHETIC" | "ESTIMATE" | "QUOTE" | "PAID" | "PUBLIC" | "MEASURED") {
@@ -480,7 +489,10 @@ pub fn evaluate(
         if case.declared_units_started == 0 {
             return Err(format!("case {}: declared_units_started must be positive", case.case_id));
         }
-        if !valid_currency(&case.currency) || !valid_date(&case.price_date) {
+        if !valid_currency(&case.currency)
+            || !valid_date(&case.price_date)
+            || !valid_money_unit(&case.currency, &case.amount_unit)
+        {
             return Err(format!("case {}: invalid currency or price date", case.case_id));
         }
         if cases_by_id.insert(case.case_id.as_str(), case).is_some() {
@@ -509,7 +521,10 @@ pub fn evaluate(
                 item.case_id, item.cost_item_id
             ));
         }
-        if !valid_currency(&item.currency) || !valid_date(&item.price_date) {
+        if !valid_currency(&item.currency)
+            || !valid_date(&item.price_date)
+            || !valid_money_unit(&item.currency, &item.amount_unit)
+        {
             return Err(format!("cost item {}: invalid currency or price date", item.cost_item_id));
         }
         if !matches!(item.evidence_class.as_str(), "SYNTHETIC" | "ESTIMATE" | "QUOTE" | "PAID" | "PUBLIC" | "MEASURED") {
@@ -1030,6 +1045,36 @@ mod tests {
         assert!(evaluate(&cases, &costs, &outputs)
             .unwrap_err()
             .contains("currency/date/unit"));
+    }
+
+    #[test]
+    fn case_currency_and_amount_unit_prefix_must_match() {
+        let (mut cases, costs, outputs) = parsed();
+        cases[0].amount_unit = "USD_CENT".into();
+        assert!(evaluate(&cases, &costs, &outputs)
+            .unwrap_err()
+            .contains("invalid currency or price date"));
+    }
+
+    #[test]
+    fn parser_rejects_currency_unit_prefix_mismatch() {
+        let corrupted = CASES.replacen(
+            "ZAR\\t2026-11-01\\tZAR_CENT",
+            "ZAR\\t2026-11-01\\tUSD_CENT",
+            1,
+        );
+        assert!(parse_cases(&corrupted)
+            .unwrap_err()
+            .contains("invalid currency, price date or amount unit"));
+    }
+
+    #[test]
+    fn direct_cost_item_currency_and_unit_prefix_must_match() {
+        let (cases, mut costs, outputs) = parsed();
+        costs[0].amount_unit = "USD_CENT".into();
+        assert!(evaluate(&cases, &costs, &outputs)
+            .unwrap_err()
+            .contains("invalid currency or price date"));
     }
 
     #[test]
