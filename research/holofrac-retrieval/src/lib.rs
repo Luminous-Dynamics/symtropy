@@ -21,6 +21,7 @@ pub mod lifecycle;
 pub mod lifecycle_impact;
 pub mod multichannel;
 pub mod partial;
+pub mod pluralistic;
 pub mod sensor_placement;
 pub mod temporal;
 
