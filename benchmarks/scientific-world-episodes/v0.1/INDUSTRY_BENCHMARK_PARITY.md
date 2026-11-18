@@ -56,12 +56,13 @@ These pilot PRs are open branches and their evidence applies only to the exact c
 Use these across our internal and external tasks where the metric's assumptions apply:
 
 ### Discovery and identifiability
-- Exact candidate-version-space match.
+- Exact candidate-version-space match, candidate-set precision/recall, and correct-candidate intersection count.
 - Structural-family set precision/recall and exact-set match.
-- Generating mechanism retained.
+- Generating mechanism declared in the public candidate family vs hidden out-of-catalogue.
+- OOD detection sensitivity, specificity, false-positive rate, false-negative/missed rate, and action cost to first supported mismatch claim.
 - False-unique mechanism/model rate.
-- Correct non-identifiability and open-support detection.
-- Correct abstention vs unnecessary abstention.
+- Correct non-identifiability, no-compatible-model and open-support detection.
+- Correct abstention vs unnecessary abstention, including OOD cases where one declared candidate still fits the observed prefix.
 - Measurement-map recovery separated from latent/mechanism recovery.
 
 ### Experiment and decision quality
