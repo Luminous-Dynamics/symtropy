@@ -169,6 +169,7 @@ The current executable research slices are intentionally separated:
 - [Append-only component lifecycle and mass ledger](../holofrac-retrieval/src/lifecycle.rs)
 - [Lifecycle mutation to exact evidence-impact qualification](../holofrac-retrieval/src/lifecycle_impact.rs)
 - [Consent-first pluralistic decision support](../holofrac-retrieval/src/pluralistic.rs)
+- [Exact finite-state value-of-information selection](../holofrac-retrieval/src/experiment_selection.rs)
 - [Continuous-field benchmark CLI](../holofrac-retrieval/src/bin/field_sweep.rs)
 - [Multi-channel field benchmark CLI](../holofrac-retrieval/src/bin/multichannel_sweep.rs)
 - [Geometric scale benchmark CLI](../holofrac-retrieval/src/bin/fractal_sweep.rs)
@@ -177,11 +178,13 @@ The current executable research slices are intentionally separated:
 - [Component lifecycle benchmark CLI](../holofrac-retrieval/src/bin/lifecycle_sweep.rs)
 - [Lifecycle evidence-impact benchmark CLI](../holofrac-retrieval/src/bin/lifecycle_impact_sweep.rs)
 - [Pluralistic decision benchmark CLI](../holofrac-retrieval/src/bin/pluralistic_decision_sweep.rs)
+- [Value-of-information selection benchmark CLI](../holofrac-retrieval/src/bin/experiment_selection_sweep.rs)
 - [Temporal observation protocol](TEMPORAL_FIXTURE_PROTOCOL_V0.md)
 - [Sensor-placement protocol](SENSOR_PLACEMENT_PROTOCOL_V0.md)
 - [Component lifecycle protocol](LIFECYCLE_FIXTURE_PROTOCOL_V0.md)
 - [Lifecycle evidence-impact protocol](LIFECYCLE_EVIDENCE_IMPACT_PROTOCOL_V0.md)
 - [Pluralistic decision protocol](PLURALISTIC_DECISION_PROTOCOL_V0.md)
+- [Experiment-selection and value-of-information protocol](EXPERIMENT_SELECTION_VOI_PROTOCOL_V0.md)
 
 The graph benchmark measures exact relations and partial-context candidates; the continuous-field tracks measure positional encoding, multi-channel binding, bundling, unbinding, cleanup and held-out reconstruction against classical storage/interpolation. The geometry track tests a declared scale estimator against known-dimension controls. The dependency track computes exact evidence invalidation. The temporal fixture separates evaluator-only truth from observations and models late delivery/corrections with decision-time snapshots. The sensor-placement fixture compares regular-grid, seeded-random and greedy-maximin layouts using a deliberately simple nearest-sensor virtual-sensing baseline. The temporal, placement, component-lifecycle, lifecycle evidence-impact and pluralistic decision fixtures are synthetic and do not represent measured buildings, actual material passports, real solver qualification or real occupant preferences. None substitutes for physical simulation or engineering authority.
 
