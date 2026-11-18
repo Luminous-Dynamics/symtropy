@@ -89,6 +89,7 @@ pub enum SelectiveRiskError {
     Sequential(SequentialEvidenceError),
     UnknownAction(u32),
     ActionAlreadyObserved,
+    NoRemainingExperimentCapacity,
     InvalidReplicateCount,
     ExcessiveReplicateCount,
     InvalidPolicyThreshold,
@@ -107,6 +108,9 @@ impl fmt::Display for SelectiveRiskError {
             Self::UnknownAction(id) => write!(f, "risk evaluation references unknown action {id}"),
             Self::ActionAlreadyObserved => {
                 write!(f, "risk action already occurs in campaign history")
+            }
+            Self::NoRemainingExperimentCapacity => {
+                write!(f, "campaign experiment limit has already been reached")
             }
             Self::InvalidReplicateCount => {
                 write!(f, "risk estimator requires at least one replicate")
@@ -128,7 +132,9 @@ impl fmt::Display for SelectiveRiskError {
             Self::InvalidPredictionShape => {
                 write!(f, "evaluator prediction does not match the action output shape")
             }
-            Self::NonFiniteSample => write!(f, "evaluator generated a non-finite observation"),
+            Self::NonFiniteSample => {
+                write!(f, "evaluator generated a non-finite observation")
+            }
         }
     }
 }
@@ -164,6 +170,9 @@ pub fn estimate_action_selective_risk_evaluator_only(
         .ok_or(SelectiveRiskError::UnknownAction(action_id))?;
     if history.iter().any(|entry| entry.action_id == action_id) {
         return Err(SelectiveRiskError::ActionAlreadyObserved);
+    }
+    if history.len() >= config.maximum_experiments {
+        return Err(SelectiveRiskError::NoRemainingExperimentCapacity);
     }
     let spent_cost = campaign_cost(actions, history)?;
     if spent_cost + action.cost() > config.maximum_total_cost + 1.0e-10 {
@@ -338,6 +347,13 @@ pub fn estimate_held_out_model_false_acceptance_evaluator_only(
     replicates: usize,
     seed: u64,
 ) -> Result<HeldOutModelSelectiveRiskV1, SelectiveRiskError> {
+    if candidate_scenario
+        .models
+        .iter()
+        .any(|model| model.id == held_out_model_id)
+    {
+        return Err(SelectiveRiskError::HeldOutModelIsRegistered(held_out_model_id));
+    }
     validate_action_catalogue(candidate_scenario, actions, prior)
         .map_err(SelectiveRiskError::Sequential)?;
     validate_risk_config(config)?;
@@ -347,13 +363,7 @@ pub fn estimate_held_out_model_false_acceptance_evaluator_only(
     if replicates > MAX_RISK_REPLICATES_PER_MODEL {
         return Err(SelectiveRiskError::ExcessiveReplicateCount);
     }
-    if candidate_scenario
-        .models
-        .iter()
-        .any(|model| model.id == held_out_model_id)
-    {
-        return Err(SelectiveRiskError::HeldOutModelIsRegistered(held_out_model_id));
-    }
+
     evaluator_scenario
         .validate()
         .map_err(|_| SelectiveRiskError::InvalidEvaluatorScenario)?;
@@ -389,6 +399,9 @@ pub fn estimate_held_out_model_false_acceptance_evaluator_only(
         .ok_or(SelectiveRiskError::UnknownAction(action_id))?;
     if history.iter().any(|entry| entry.action_id == action_id) {
         return Err(SelectiveRiskError::ActionAlreadyObserved);
+    }
+    if history.len() >= config.maximum_experiments {
+        return Err(SelectiveRiskError::NoRemainingExperimentCapacity);
     }
     let spent_cost = campaign_cost(actions, history)?;
     if spent_cost + action.cost() > config.maximum_total_cost + 1.0e-10 {
