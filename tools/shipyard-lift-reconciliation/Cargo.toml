@@ -1,0 +1,13 @@
+[package]
+name = "shipyard-lift-reconciliation"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Evidence-bounded reconciliation of synthetic shipyard lift execution telemetry"
+
+[dependencies]
+shipyard-lift-envelope = { path = "../shipyard-lift-envelope" }
+
+[workspace]
