@@ -1,0 +1,11 @@
+[package]
+name = "grid-route-legitimacy-validator"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Fail-closed semantic validator for transmission route legitimacy evidence fixtures"
+
+[dependencies]
+serde_json = "1.0"
