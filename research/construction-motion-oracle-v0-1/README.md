@@ -135,3 +135,22 @@ The benchmark should separately measure readiness-check p50/p95/p99, stale-snaps
 
 
 The dispatch-readiness receipt is a typed assessment result, not yet a cryptographically signed authorization token. Before handing it to an authorization authority, the consuming application must bind its canonical serialization to a digest/signature or an authenticated Mycelix attestation, verify that proof, and call verify_dispatch_readiness_receipt_current against the current ledger and approved engine/policy identities. The helper only checks logical currentness and schema/digest syntax; it does not authenticate the receipt itself. A rejected physical mark is intentionally not eligible for ordinary dispatch: the ledger must first record a specific remediation disposition or referee-confirmed physical absence. No actuator API is exposed by this crate.
+
+
+### Atomic exclusive space-time resource reservations v0.1
+
+The reservation API closes the gap between a readiness assessment and an actual exclusive resource claim.
+
+- dispatch_readiness::commit_dispatch_reservation revalidates the short-lived readiness receipt against the current package, entity, ledger sequence/head, occupancy-engine build and clearance policy, then appends one SpaceTimeReservationCommitted event through the same site-state reducer.
+- The reservation binds the current package/revision/entity/robot, envelope digest, occupancy-assessment receipt, approved engine/policy, resource-catalog digest, site ledger sequence/head and site clock domain.
+- Every reservation contains one or more exclusive resource claims with half-open integer-tick intervals [start_tick, end_tick). A claim must fit within the reservation window.
+- The ledger performs overlap rejection as part of the same atomic event preparation/commit. A readiness receipt is thereby consumed: the ledger sequence/head changes and verify_dispatch_readiness_receipt_current rejects reuse of the older receipt.
+- The active conflict index is keyed by resource ID and ordered by start tick. Since the reducer invariant forbids overlapping active intervals, checking only the predecessor and successor is sufficient. Commit and release update that index in the same mutation as the durable event, giving O(log active intervals for each claimed resource) conflict checks instead of scanning every active reservation.
+- dispatch_readiness::release_space_time_reservation accepts only a fresh referee-authored release event bound to the current ledger snapshot, reservation ID, site-clock domain, clear time, site snapshot and verified release receipt.
+- Lease expiry prevents use of an old readiness/lease token but does not release physical occupancy. The resource remains locked until the referee records independently evidenced clearance. Publishing a replacement resource catalogue or work-package revision cannot silently orphan an active reservation.
+
+The ledger is a deterministic single-writer reducer. It is not distributed consensus. A production multi-process deployment must place the append and index mutation behind a serializable transaction or compare-and-append primitive keyed by (ledger_sequence, previous_event_digest); every replica must replay the same canonical, authenticated event stream. Two disconnected writers cannot safely assume they have reserved the same physical resource. Event/signature/canonical-digest verification remains the caller's responsibility. None of these functions is a safety permit, actuator command or protective stop.
+
+The v0.1 resource model is deliberately exclusive capacity 1. It is appropriate for a crane slew sector, protected workface, narrow passage, lift exclusion volume or single-occupancy tool cell. It does not yet support capacity-N resources, cumulative loads, precedence constraints, flexible time windows or probabilistic reservations. Those require typed resource-capacity and physical consequence models rather than silently treating all resources as a mutex.
+
+The differential benchmark now measures successful reservation commits and conflicting-claim rejections with 100, 1,000 and 10,000 existing reservations. It reports p50/p95/p99 nanoseconds separately. The unit corpus compares the BTree interval index's decisions against a deterministic brute-force interval-overlap oracle over 256 generated claims, and verifies that active-index entry counts equal the active event-sourced reservation projection after each step. These are software/synthetic measurements; no field throughput claim is made.
