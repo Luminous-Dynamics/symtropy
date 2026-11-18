@@ -109,6 +109,11 @@ pub struct ConstructionArtifact {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ConstructionArtifactGraph {
     pub graph_snapshot_sha256: String,
+    /// Authoritative dependency values in the frozen pre-change snapshot.
+    /// Artifact dependencies are compared to this registry to detect already
+    /// stale artifacts; change.previous_sha256 must match this registry before
+    /// a transition can be applied.
+    pub current_dependencies: Vec<VersionedDependency>,
     pub artifacts: Vec<ConstructionArtifact>,
 }
 
@@ -153,6 +158,10 @@ pub enum ChangeImpactError {
     EmptyDependencyScope,
     DuplicateChangedDependency(DependencyKey),
     NoOpDependencyTransition(DependencyKey),
+    MissingCurrentDependencyVersion(DependencyKey),
+    ChangeTargetMissingCurrentState(DependencyKey),
+    ChangePreviousVersionMismatch(DependencyKey),
+    DuplicateCurrentDependencyVersion(DependencyKey),
     EmptyArtifactId,
     DuplicateArtifactId(String),
     InvalidArtifactDigest(String),
@@ -265,11 +274,37 @@ pub fn compile_change_impact(
     validate_change_set(changes)?;
     let topological_order = validate_and_topologically_sort(graph)?;
 
+    let current_by_key: BTreeMap<DependencyKey, &str> = graph
+        .current_dependencies
+        .iter()
+        .map(|dependency| {
+            (
+                dependency.key.clone(),
+                dependency.observed_sha256.as_str(),
+            )
+        })
+        .collect();
     let transition_by_key: BTreeMap<DependencyKey, &DependencyTransition> = changes
         .changes
         .iter()
         .map(|transition| (transition.key.clone(), transition))
         .collect();
+
+    // Change events are transitions from the authoritative pre-change site
+    // snapshot. A caller cannot invent a previous version or apply a change
+    // against a different snapshot.
+    for transition in &changes.changes {
+        let Some(snapshot_version) = current_by_key.get(&transition.key) else {
+            return Err(ChangeImpactError::ChangeTargetMissingCurrentState(
+                transition.key.clone(),
+            ));
+        };
+        if *snapshot_version != transition.previous_sha256 {
+            return Err(ChangeImpactError::ChangePreviousVersionMismatch(
+                transition.key.clone(),
+            ));
+        }
+    }
 
     let mut direct_dependencies_by_artifact =
         BTreeMap::<&str, Vec<DependencyKey>>::new();
@@ -278,11 +313,26 @@ pub fn compile_change_impact(
     for artifact in &graph.artifacts {
         let mut stale_dependencies = Vec::new();
         for dependency in &artifact.dependencies {
-            if let Some(transition) = transition_by_key.get(&dependency.key) {
+            let snapshot_version = current_by_key
+                .get(&dependency.key)
+                .ok_or_else(|| {
+                    ChangeImpactError::MissingCurrentDependencyVersion(
+                        dependency.key.clone(),
+                    )
+                })?;
+            let effective_version = transition_by_key
+                .get(&dependency.key)
+                .map_or(*snapshot_version, |transition| {
+                    transition.current_sha256.as_str()
+                });
+            if transition_by_key.contains_key(&dependency.key) {
                 declared_change_keys.insert(dependency.key.clone());
-                if dependency.observed_sha256 != transition.current_sha256 {
-                    stale_dependencies.push(dependency.key.clone());
-                }
+            }
+            // Check every dependency against the post-change version, not
+            // only dependencies named in this event. This also discovers
+            // pre-existing stale artifacts in the frozen graph snapshot.
+            if dependency.observed_sha256 != effective_version {
+                stale_dependencies.push(dependency.key.clone());
             }
         }
         if !stale_dependencies.is_empty() {
@@ -570,6 +620,26 @@ fn validate_and_topologically_sort(
         return Err(ChangeImpactError::InvalidDigest("artifact graph snapshot"));
     }
 
+    let mut current_dependency_by_key = BTreeMap::<&DependencyKey, &str>::new();
+    for dependency in &graph.current_dependencies {
+        if dependency.key.scope_id.trim().is_empty() {
+            return Err(ChangeImpactError::EmptyDependencyScope);
+        }
+        if !is_sha256(&dependency.observed_sha256) {
+            return Err(ChangeImpactError::InvalidDigest(
+                "current dependency version",
+            ));
+        }
+        if current_dependency_by_key
+            .insert(&dependency.key, dependency.observed_sha256.as_str())
+            .is_some()
+        {
+            return Err(ChangeImpactError::DuplicateCurrentDependencyVersion(
+                dependency.key.clone(),
+            ));
+        }
+    }
+
     let mut artifact_by_id = BTreeMap::<&str, &ConstructionArtifact>::new();
     for artifact in &graph.artifacts {
         if artifact.artifact_id.trim().is_empty() {
@@ -624,6 +694,11 @@ fn validate_and_topologically_sort(
                     artifact_id: artifact.artifact_id.clone(),
                     key: dependency.key.clone(),
                 });
+            }
+            if !current_dependency_by_key.contains_key(&dependency.key) {
+                return Err(ChangeImpactError::MissingCurrentDependencyVersion(
+                    dependency.key.clone(),
+                ));
             }
         }
 
@@ -741,8 +816,23 @@ mod tests {
     }
 
     fn graph(artifacts: Vec<ConstructionArtifact>) -> ConstructionArtifactGraph {
+        let mut current_by_key = BTreeMap::<DependencyKey, String>::new();
+        for artifact in &artifacts {
+            for dependency in &artifact.dependencies {
+                current_by_key
+                    .entry(dependency.key.clone())
+                    .or_insert_with(|| dependency.observed_sha256.clone());
+            }
+        }
         ConstructionArtifactGraph {
             graph_snapshot_sha256: digest('f'),
+            current_dependencies: current_by_key
+                .into_iter()
+                .map(|(key, observed_sha256)| VersionedDependency {
+                    key,
+                    observed_sha256,
+                })
+                .collect(),
             artifacts,
         }
     }
@@ -952,7 +1042,7 @@ mod tests {
 
     #[test]
     fn any_old_dependency_version_is_stale_even_when_not_the_immediate_previous_version() {
-        let graph = graph(vec![artifact(
+        let mut graph = graph(vec![artifact(
             "old-trajectory",
             ConstructionArtifactKind::RobotTrajectory,
             ArtifactPersistence::Recomputable,
@@ -960,6 +1050,7 @@ mod tests {
             &[],
             'a',
         )]);
+        graph.current_dependencies[0].observed_sha256 = digest('1');
         let report = compile_change_impact(
             &graph,
             &change_set(vec![change(
@@ -1338,6 +1429,128 @@ mod tests {
             Err(ChangeImpactError::MissingArtifactKindContract(
                 ConstructionArtifactKind::MotionEnvelope
             ))
+        );
+    }
+
+
+    #[test]
+    fn change_previous_version_must_match_authoritative_graph_snapshot() {
+        let graph = graph(vec![artifact(
+            "motion:A",
+            ConstructionArtifactKind::MotionEnvelope,
+            ArtifactPersistence::Recomputable,
+            vec![dependency(DependencyDomain::EntityGeometry, "entity:A", '1')],
+            &[],
+            'a',
+        )]);
+        let wrong_previous = change_set(vec![change(
+            DependencyDomain::EntityGeometry,
+            "entity:A",
+            '0',
+            '2',
+        )]);
+        assert_eq!(
+            compile_change_impact(&graph, &wrong_previous),
+            Err(ChangeImpactError::ChangePreviousVersionMismatch(key(
+                DependencyDomain::EntityGeometry,
+                "entity:A"
+            )))
+        );
+    }
+
+    #[test]
+    fn artifacts_stale_before_the_current_change_are_detected_too() {
+        let mut graph = graph(vec![
+            artifact(
+                "motion:A",
+                ConstructionArtifactKind::MotionEnvelope,
+                ArtifactPersistence::Recomputable,
+                vec![dependency(DependencyDomain::EntityGeometry, "entity:A", '0')],
+                &[],
+                'a',
+            ),
+            artifact(
+                "motion:B",
+                ConstructionArtifactKind::MotionEnvelope,
+                ArtifactPersistence::Recomputable,
+                vec![dependency(DependencyDomain::EntityGeometry, "entity:B", '1')],
+                &[],
+                'b',
+            ),
+        ]);
+        graph.current_dependencies[0].observed_sha256 = digest('1');
+        let report = compile_change_impact(
+            &graph,
+            &change_set(vec![change(
+                DependencyDomain::EntityGeometry,
+                "entity:B",
+                '1',
+                '2',
+            )]),
+        )
+        .unwrap();
+
+        assert_eq!(
+            report
+                .direct_invalidations
+                .iter()
+                .map(|item| item.artifact_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["motion:A", "motion:B"]
+        );
+        assert!(report.unmatched_change_keys.is_empty());
+    }
+
+    #[test]
+    fn artifact_dependencies_without_authoritative_current_versions_fail_closed() {
+        let mut graph = graph(vec![artifact(
+            "motion:A",
+            ConstructionArtifactKind::MotionEnvelope,
+            ArtifactPersistence::Recomputable,
+            vec![dependency(DependencyDomain::EntityGeometry, "entity:A", '1')],
+            &[],
+            'a',
+        )]);
+        graph.current_dependencies.clear();
+        assert_eq!(
+            compile_change_impact(
+                &graph,
+                &change_set(vec![change(
+                    DependencyDomain::EntityGeometry,
+                    "entity:A",
+                    '1',
+                    '2'
+                )])
+            ),
+            Err(ChangeImpactError::MissingCurrentDependencyVersion(key(
+                DependencyDomain::EntityGeometry,
+                "entity:A"
+            )))
+        );
+    }
+
+    #[test]
+    fn unmatched_change_key_must_still_exist_in_authoritative_snapshot() {
+        let graph = graph(vec![artifact(
+            "motion:A",
+            ConstructionArtifactKind::MotionEnvelope,
+            ArtifactPersistence::Recomputable,
+            vec![dependency(DependencyDomain::EntityGeometry, "entity:A", '1')],
+            &[],
+            'a',
+        )]);
+        let unknown = change_set(vec![change(
+            DependencyDomain::MaterialLot,
+            "lot:LOT-44",
+            '1',
+            '2',
+        )]);
+        assert_eq!(
+            compile_change_impact(&graph, &unknown),
+            Err(ChangeImpactError::ChangeTargetMissingCurrentState(key(
+                DependencyDomain::MaterialLot,
+                "lot:LOT-44"
+            )))
         );
     }
 
