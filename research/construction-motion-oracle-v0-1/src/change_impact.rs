@@ -104,7 +104,14 @@ pub struct ConstructionArtifact {
     pub artifact_sha256: String,
     pub kind: ConstructionArtifactKind,
     pub persistence: ArtifactPersistence,
+    /// Full versioned inputs actually observed by this artifact.
     pub dependencies: Vec<VersionedDependency>,
+    /// Exact complete set of scoped dependency keys the artifact claims it
+    /// required. This must be independently derived from its source contract,
+    /// included in artifact_sha256, and reconciled exactly with dependencies.
+    /// Domain-only coverage is insufficient: EntityGeometry/entity:B must not
+    /// satisfy a MotionEnvelope for entity:A.
+    pub expected_dependency_keys: Vec<DependencyKey>,
     /// Other artifacts used to produce or qualify this artifact.
     pub depends_on_artifact_ids: Vec<String>,
 }
@@ -429,12 +436,20 @@ pub struct DependencyCoverageGap {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DependencyScopeCoverageGap {
+    pub artifact_id: String,
+    pub missing_expected_keys: Vec<DependencyKey>,
+    pub unexpected_observed_keys: Vec<DependencyKey>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DependencyCoverageAudit {
     pub graph_snapshot_sha256: String,
     pub contract_sha256: String,
     pub artifacts_checked: u64,
     pub complete_artifacts: u64,
     pub gaps: Vec<DependencyCoverageGap>,
+    pub scope_gaps: Vec<DependencyScopeCoverageGap>,
     pub source_records_mutated: bool,
 }
 
@@ -484,6 +499,10 @@ pub enum ChangeImpactError {
     DuplicateRequiredDependencyDomain {
         artifact_kind: ConstructionArtifactKind,
         domain: DependencyDomain,
+    },
+    DuplicateExpectedArtifactDependency {
+        artifact_id: String,
+        key: DependencyKey,
     },
     MissingArtifactKindContract(ConstructionArtifactKind),
     DependencyCoverageIncomplete(usize),
@@ -791,30 +810,71 @@ pub fn audit_dependency_coverage(
     }
 
     let mut gaps = Vec::new();
+    let mut scope_gaps = Vec::new();
     let mut complete_artifacts = 0_u64;
     for artifact in &graph.artifacts {
         let required_domains = contract_by_kind.get(&artifact.kind).ok_or(
             ChangeImpactError::MissingArtifactKindContract(artifact.kind),
         )?;
-        let observed_domains: BTreeSet<DependencyDomain> = artifact
-            .dependencies
-            .iter()
-            .map(|dependency| dependency.key.domain)
-            .collect();
+
+        let mut expected_keys = BTreeSet::new();
+        for key in &artifact.expected_dependency_keys {
+            if key.scope_id.trim().is_empty() {
+                return Err(ChangeImpactError::EmptyDependencyScope);
+            }
+            if !expected_keys.insert(key.clone()) {
+                return Err(ChangeImpactError::DuplicateExpectedArtifactDependency {
+                    artifact_id: artifact.artifact_id.clone(),
+                    key: key.clone(),
+                });
+            }
+        }
+
+        // Evaluate the domain floor from the artifact's expected manifest,
+        // never from whichever same-domain keys happened to be observed.
+        let expected_domains: BTreeSet<DependencyDomain> =
+            expected_keys.iter().map(|key| key.domain).collect();
         let mut missing_domains: Vec<DependencyDomain> = required_domains
             .iter()
             .copied()
-            .filter(|domain| !observed_domains.contains(domain))
+            .filter(|domain| !expected_domains.contains(domain))
             .collect();
         missing_domains.sort();
-        if missing_domains.is_empty() {
-            complete_artifacts += 1;
-        } else {
+
+        let observed_keys: BTreeSet<DependencyKey> = artifact
+            .dependencies
+            .iter()
+            .map(|dependency| dependency.key.clone())
+            .collect();
+        let mut missing_expected_keys: Vec<DependencyKey> = expected_keys
+            .difference(&observed_keys)
+            .cloned()
+            .collect();
+        let mut unexpected_observed_keys: Vec<DependencyKey> = observed_keys
+            .difference(&expected_keys)
+            .cloned()
+            .collect();
+        missing_expected_keys.sort();
+        unexpected_observed_keys.sort();
+
+        let has_scope_gap =
+            !missing_expected_keys.is_empty() || !unexpected_observed_keys.is_empty();
+        if !missing_domains.is_empty() {
             gaps.push(DependencyCoverageGap {
                 artifact_id: artifact.artifact_id.clone(),
                 artifact_kind: artifact.kind,
                 missing_domains,
             });
+        }
+        if has_scope_gap {
+            scope_gaps.push(DependencyScopeCoverageGap {
+                artifact_id: artifact.artifact_id.clone(),
+                missing_expected_keys,
+                unexpected_observed_keys,
+            });
+        }
+        if missing_domains.is_empty() && !has_scope_gap {
+            complete_artifacts += 1;
         }
     }
 
@@ -824,6 +884,7 @@ pub fn audit_dependency_coverage(
         artifacts_checked: graph.artifacts.len() as u64,
         complete_artifacts,
         gaps,
+        scope_gaps,
         source_records_mutated: false,
     })
 }
@@ -838,9 +899,9 @@ pub fn compile_change_impact_with_contract(
     changes: &ConstructionChangeSet,
 ) -> Result<ChangeImpactReport, ChangeImpactError> {
     let audit = audit_dependency_coverage(graph, contracts)?;
-    if !audit.gaps.is_empty() {
+    if !audit.gaps.is_empty() || !audit.scope_gaps.is_empty() {
         return Err(ChangeImpactError::DependencyCoverageIncomplete(
-            audit.gaps.len(),
+            audit.gaps.len() + audit.scope_gaps.len(),
         ));
     }
     let mut report = compile_change_impact(graph, changes)?;
@@ -1105,6 +1166,10 @@ mod tests {
             artifact_sha256: digest(digest_char),
             kind,
             persistence,
+            expected_dependency_keys: dependencies
+                .iter()
+                .map(|dependency| dependency.key.clone())
+                .collect(),
             dependencies,
             depends_on_artifact_ids: depends_on.iter().map(|id| (*id).into()).collect(),
         }
@@ -2195,6 +2260,68 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn same_dependency_domain_at_the_wrong_scope_does_not_satisfy_coverage() {
+        use ConstructionArtifactKind::*;
+        use DependencyDomain::*;
+
+        let dependencies = vec![
+            dependency(DesignRevision, "project:alpha", '1'),
+            dependency(EntityGeometry, "entity:B", '2'),
+            dependency(CoordinateFrame, "floor:02", '3'),
+            dependency(CoordinateTransform, "floor:02", '4'),
+            dependency(RobotConfiguration, "robot:1", '5'),
+            dependency(ToolConfiguration, "tool:gripper", '6'),
+            dependency(PayloadConfiguration, "payload:panel", '7'),
+            dependency(TrajectoryConfiguration, "trajectory:panel-A", '8'),
+            dependency(SiteClockMap, "site:alpha", '9'),
+        ];
+        let mut motion = artifact(
+            "motion:panel-A",
+            MotionEnvelope,
+            ArtifactPersistence::Recomputable,
+            dependencies,
+            &[],
+            'a',
+        );
+        motion
+            .expected_dependency_keys
+            .retain(|key| key.domain != EntityGeometry);
+        motion
+            .expected_dependency_keys
+            .push(key(EntityGeometry, "entity:A"));
+
+        let graph = graph(vec![motion]);
+        let contracts = DependencyContractSet {
+            contract_sha256: digest('c'),
+            contracts: vec![ArtifactDependencyContract {
+                artifact_kind: MotionEnvelope,
+                required_domains: minimum_required_domains(MotionEnvelope).to_vec(),
+            }],
+        };
+
+        let audit = audit_dependency_coverage(&graph, &contracts).unwrap();
+        assert!(audit.gaps.is_empty(), "all required domains are represented");
+        assert_eq!(audit.scope_gaps.len(), 1);
+        assert_eq!(
+            audit.scope_gaps[0].missing_expected_keys,
+            vec![key(EntityGeometry, "entity:A")]
+        );
+        assert_eq!(
+            audit.scope_gaps[0].unexpected_observed_keys,
+            vec![key(EntityGeometry, "entity:B")]
+        );
+        assert_eq!(audit.complete_artifacts, 0);
+        assert_eq!(
+            compile_change_impact_with_contract(
+                &graph,
+                &contracts,
+                &change_set(vec![change(EntityGeometry, "entity:A", '2', 'f')]),
+            ),
+            Err(ChangeImpactError::DependencyCoverageIncomplete(1))
+        );
     }
 
     #[test]
