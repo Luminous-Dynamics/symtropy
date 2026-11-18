@@ -190,4 +190,38 @@ if bash scripts/validate-lunar-granular-flow-dataset.sh \
   fail "negative control accepted post-freeze raw artifact tampering"
 fi
 
+# Negative control 3: do not manufacture a dimensionless value when its
+# required primitive measurements are explicitly unknown.
+jq '
+  .derived_coordinates.granular_bond_number = {
+    "value": 0.0,
+    "standard_uncertainty": 0.0,
+    "unit": "dimensionless",
+    "status": "synthetic",
+    "source_artifact_id": null,
+    "calibration_record_id": null
+  }
+' "$negative_root/examples/calibration.json" > "$negative_root/examples/calibration-fabricated-derived.json"
+if bash scripts/validate-lunar-granular-flow-dataset.sh \
+  --allow-synthetic-placeholders \
+  "$negative_root/examples/manifest.json" \
+  "$negative_root/examples/calibration-fabricated-derived.json" \
+  "$negative_root/examples/validation.json" \
+  "$negative_root/examples/blind-test.json"; then
+  fail "negative control accepted a derived number whose primitive inputs are unknown"
+fi
+
+# Negative control 4: the central value of a reported dimensionless group
+# must reconcile with the raw primitive measurements in the same run.
+jq '.derived_coordinates.vibration_gamma.value = 0.4' \
+  "$negative_root/examples/calibration.json" > "$negative_root/examples/calibration-tampered-derived.json"
+if bash scripts/validate-lunar-granular-flow-dataset.sh \
+  --allow-synthetic-placeholders \
+  "$negative_root/examples/manifest.json" \
+  "$negative_root/examples/calibration-tampered-derived.json" \
+  "$negative_root/examples/validation.json" \
+  "$negative_root/examples/blind-test.json"; then
+  fail "negative control accepted a dimensionless coordinate inconsistent with its primitives"
+fi
+
 printf 'lunar granular-flow fixture check: PASS (synthetic fixtures and planned DOE only)\n'
