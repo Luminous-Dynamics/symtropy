@@ -233,6 +233,35 @@ fn validate(case: &Case) -> Vec<String> {
     let routes: BTreeMap<_, _> = case.logistics_routes.iter().map(|x| (x.route_id.as_str(), x)).collect();
     let evidence: BTreeMap<_, _> = case.evidence_records.iter().map(|x| (x.evidence_record_id.as_str(), x)).collect();
 
+    for depot in &case.depots {
+        let mut inventory_part_ids = BTreeSet::new();
+        if depot.depot_id.trim().is_empty() || depot.location_id.trim().is_empty() {
+            errors.push("depotId and depot locationId must not be empty".to_string());
+        }
+        for item in &depot.inventory {
+            if !inventory_part_ids.insert(item.part_id.as_str()) {
+                errors.push(format!(
+                    "duplicate partId {} in depot {} inventory",
+                    item.part_id, depot.depot_id
+                ));
+            }
+            if !parts.contains_key(item.part_id.as_str()) {
+                errors.push(format!(
+                    "depot {} inventory references unknown part {}",
+                    depot.depot_id, item.part_id
+                ));
+            }
+            if item.quantity_reserved > item.quantity_serviceable
+                || item.quantity_serviceable > item.quantity_on_hand
+            {
+                errors.push(format!(
+                    "depot {} part {} has inconsistent inventory counts",
+                    depot.depot_id, item.part_id
+                ));
+            }
+        }
+    }
+
     let mut stock_demand: BTreeMap<(String, String), u32> = BTreeMap::new();
     let mut schedule_tasks = Vec::new();
     let capacities: BTreeMap<String, u32> = case
@@ -745,6 +774,14 @@ mod tests {
         let mut value = fixture();
         value["depots"][0]["inventory"][0]["quantityReserved"] = Value::from(1);
         assert!(check(&value).iter().any(|x| x.contains("only 0 serviceable unreserved")));
+    }
+
+    #[test]
+    fn rejects_duplicate_inventory_rows() {
+        let mut value = fixture();
+        let duplicate = value["depots"][0]["inventory"][0].clone();
+        value["depots"][0]["inventory"].as_array_mut().unwrap().push(duplicate);
+        assert!(check(&value).iter().any(|x| x.contains("duplicate partId SPARE-A in depot DEPOT-CENTRAL")));
     }
 
     #[test]
