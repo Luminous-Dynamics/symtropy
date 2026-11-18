@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-change-impact-v0.1.json",
+  "title": "Construction Change Impact Input v0.1",
+  "description": "Versioned, read-only graph/change input for deterministic dependency invalidation. Digests and signatures must be verified by the ingestion owner.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "graph",
+    "change_set"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-change-impact/0.1"
+    },
+    "graph": {
+      "$ref": "#/$defs/graph"
+    },
+    "change_set": {
+      "$ref": "#/$defs/change_set"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "dependency_domain": {
+      "enum": [
+        "source_model",
+        "ifc_schema",
+        "ids_specification",
+        "ids_engine_build",
+        "design_revision",
+        "entity_geometry",
+        "coordinate_frame",
+        "coordinate_transform",
+        "acceptance_profile",
+        "survey_control",
+        "station_calibration",
+        "robot_configuration",
+        "tool_configuration",
+        "payload_configuration",
+        "trajectory_configuration",
+        "obstacle_map",
+        "dynamic_actor_manifest",
+        "site_clock_map",
+        "occupancy_engine_build",
+        "clearance_policy",
+        "material_lot",
+        "work_package_schedule",
+        "authority_policy"
+      ]
+    },
+    "dependency_key": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain",
+        "scope_id"
+      ],
+      "properties": {
+        "domain": {
+          "$ref": "#/$defs/dependency_domain"
+        },
+        "scope_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "dependency_transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "previous_sha256",
+        "current_sha256"
+      ],
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/dependency_key"
+        },
+        "previous_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "current_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "not": {
+        "properties": {
+          "previous_sha256": {
+            "const": ""
+          },
+          "current_sha256": {
+            "const": ""
+          }
+        }
+      }
+    },
+    "change_set": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "change_id",
+        "source_event_sha256",
+        "changes"
+      ],
+      "properties": {
+        "change_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_event_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "changes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/dependency_transition"
+          }
+        }
+      }
+    },
+    "artifact_kind": {
+      "enum": [
+        "ifc_ids_preflight",
+        "design_work_package",
+        "station_qualification",
+        "material_readiness",
+        "production_task",
+        "robot_trajectory",
+        "motion_envelope",
+        "space_time_occupancy_assessment",
+        "dispatch_readiness",
+        "inspection_plan",
+        "as_built_measurement",
+        "accepted_construction_record",
+        "handover_record"
+      ]
+    },
+    "artifact_persistence": {
+      "enum": [
+        "recomputable",
+        "historical_immutable"
+      ]
+    },
+    "versioned_dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "observed_sha256"
+      ],
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/dependency_key"
+        },
+        "observed_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "artifact_sha256",
+        "kind",
+        "persistence",
+        "dependencies",
+        "depends_on_artifact_ids"
+      ],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifact_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "kind": {
+          "$ref": "#/$defs/artifact_kind"
+        },
+        "persistence": {
+          "$ref": "#/$defs/artifact_persistence"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/versioned_dependency"
+          }
+        },
+        "depends_on_artifact_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "graph_snapshot_sha256",
+        "artifacts"
+      ],
+      "properties": {
+        "graph_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifact"
+          }
+        }
+      }
+    }
+  }
+}
