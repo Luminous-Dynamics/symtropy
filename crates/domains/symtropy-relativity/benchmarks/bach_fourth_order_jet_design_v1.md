@@ -227,3 +227,8 @@ This document is a design contract only. It does not implement Taylor jets or a 
 
 - C. A. Mantica and L. G. Molinari, “The covariant approach to static spacetimes in Einstein and extended gravity theories”, *General Relativity and Gravitation* 55, 100 (2023), [DOI: 10.1007/s10714-023-03149-w](https://doi.org/10.1007/s10714-023-03149-w).
 - Luminous Dynamics Symtropy [#5937](https://github.com/Luminous-Dynamics/symtropy/issues/5937), [#5965](https://github.com/Luminous-Dynamics/symtropy/issues/5965), [#3981](https://github.com/Luminous-Dynamics/symtropy/issues/3981), and [PR #5814](https://github.com/Luminous-Dynamics/symtropy/pull/5814).
+
+
+## Derivative-order contract for the static evaluator
+
+The four Bach component values depend on fourth derivatives of B(r). The Rust API currently returns those components **and** a numerical covariant-divergence diagnostic formed by differentiating the radial Bach component. That derivative consumes fifth-order metric data. The full `static_spherical_bach` call therefore rejects an order-four jet and requires order five. The component-only algebra can be split into a separate order-four API later if callers need it; no order-four divergence check is claimed.
