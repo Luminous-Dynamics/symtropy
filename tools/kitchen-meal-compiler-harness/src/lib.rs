@@ -362,6 +362,42 @@ mod tests {
     }
 
     #[test]
+    fn frozen_symthaea_proposal_contract_deserializes_without_inference() {
+        let bundle: serde_json::Value = serde_json::from_str(include_str!(
+            "../fixtures/symthaea-meal-proposal-v1.json"
+        ))
+        .expect("frozen Symthaea proposal fixture must parse");
+        assert_eq!(bundle["source"]["repository"], "Luminous-Dynamics/symthaea");
+        assert_eq!(bundle["source"]["pull_request"], 12715);
+        assert_eq!(
+            bundle["source"]["head_sha"],
+            "146c70d73315067efca35cf14c9916d340e7fee7"
+        );
+
+        let proposal: MealProposalV1 =
+            serde_json::from_value(bundle["proposal"].clone())
+                .expect("Symthaea MealProposalV1 wire shape must deserialize in Symtropy");
+        assert_eq!(proposal.proposal_id, "fixture:meal-proposal-001");
+        assert_eq!(proposal.constraints.currency_code.as_deref(), Some("ZAR"));
+        assert_eq!(proposal.review_state, ProposalReviewStateV1::Proposed);
+        assert_eq!(
+            proposal.ingredients[1].quantity_state,
+            IngredientQuantityStateV1::Unknown
+        );
+        assert!(proposal.ingredients[1].quantity.is_none());
+        assert!(proposal.ingredients.iter().all(|ingredient| {
+            ingredient.product_lot_ref.is_none()
+        }));
+        assert_eq!(
+            proposal.uncertainties[0].impact,
+            UncertaintyImpactV1::PlanningBlocker
+        );
+        assert!(proposal.tasks.iter().all(|task| {
+            task.fact_refs.iter().all(|fact_ref| fact_ref != "fixture:unresolved")
+        }));
+    }
+
+    #[test]
     fn benchmark_manifest_is_versioned_and_has_unique_scenarios() {
         let manifest: serde_json::Value = serde_json::from_str(include_str!(
             "../../../crates/domains/symtropy-kitchen-planner/schemas/fixtures/meal-compilation-v1.json"
