@@ -208,7 +208,7 @@ pub fn export_synthetic_observation_frames(
             },
             observation_frame: PlasmaObservationFrameExport {
                 schema_version: PLASMA_OBSERVATION_FRAME_SCHEMA.to_owned(),
-                shot_id: body.scenario_id.clone(),
+                shot_id: format!("synthetic-shot:{}", body.scenario_id),
                 frame_id,
                 clock_domain: "synthetic-waveform-relative-ns".to_owned(),
                 frame_time_ns: sample.time_ns,
@@ -296,7 +296,7 @@ pub fn verify_synthetic_observation_export(
             || metadata.sample_index != index
             || metadata.sample_time_ns != frame.frame_time_ns
             || frame.schema_version != PLASMA_OBSERVATION_FRAME_SCHEMA
-            || frame.shot_id != body.scenario_id
+            || frame.shot_id != format!("synthetic-shot:{}", body.scenario_id)
             || frame.clock_domain != "synthetic-waveform-relative-ns"
             || frame.expected_channel_ids.len() != 1
             || frame.expected_channel_ids[0] != body.channel_id
@@ -446,6 +446,11 @@ mod tests {
         verify_synthetic_observation_export(&export).expect("export should verify");
 
         assert_eq!(export.body.frames.len(), 6);
+        assert_eq!(
+            export.body.frames[0].observation_frame.shot_id,
+            "synthetic-shot:synthetic-observation-export-shot"
+        );
+        assert!(export.body.frames[0].observation_frame.shot_id.starts_with("synthetic-shot:"));
         assert_eq!(export.body.evidence_class, WAVEFORM_EVIDENCE_CLASS);
         assert!(!export.body.physical_measurements);
         assert_eq!(export.body.waveform_receipt_sha256, receipt.receipt_sha256);
