@@ -560,6 +560,8 @@ fn disposition(issues: &[MealCompilationIssueV1]) -> MealCompilationDispositionV
                 | MealCompilationIssueCodeV1::QuantityStateMismatch
                 | MealCompilationIssueCodeV1::InvalidFactTimeWindow
                 | MealCompilationIssueCodeV1::InvalidAllergenFactScope
+                | MealCompilationIssueCodeV1::InvalidPriceFactScope
+                | MealCompilationIssueCodeV1::InvalidAvailabilityFactScope
                 | MealCompilationIssueCodeV1::FactIngredientMismatch
                 | MealCompilationIssueCodeV1::UnknownFactIngredient
                 | MealCompilationIssueCodeV1::ProposalNotAccepted
