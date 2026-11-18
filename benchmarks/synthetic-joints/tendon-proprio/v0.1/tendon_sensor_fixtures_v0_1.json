@@ -1,6 +1,6 @@
 {
   "schema": "luminous.tendon_length_sensor_fixtures",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "status": "synthetic_analytic_oracles_plus_paper_reference_only",
   "created_utc": "2026-11-18",
   "owner": "https://github.com/Luminous-Dynamics/symtropy/issues/6078",
@@ -159,6 +159,36 @@
         "length_standard_uncertainty_mm": 0.5385164807134505
       },
       "evidence_class": "synthetic_known_answer"
+    },
+    {
+      "id": "TENDON-SENSE-006",
+      "name": "same_length_signal_does_not_identify_force_without_constitutive_calibration",
+      "inputs": {
+        "reference_length_mm": 40,
+        "reference_resistance_ohm": 4,
+        "resistance_slope_ohm_per_mm": 0.2,
+        "measured_length_mm": 45,
+        "candidate_axial_stiffness_a_n_per_mm": 10,
+        "candidate_axial_stiffness_b_n_per_mm": 20
+      },
+      "equations": {
+        "resistance": "R=R0+kL*(L-L0)",
+        "candidate_force_a": "F_A=k_A*(L-L0)",
+        "candidate_force_b": "F_B=k_B*(L-L0)"
+      },
+      "expected": {
+        "resistance_ohm": 5,
+        "candidate_force_a_n": 50,
+        "candidate_force_b_n": 100,
+        "force_identifiable_from_resistance_only": false
+      },
+      "assumptions": [
+        "The two candidate axial stiffnesses are synthetic and intentionally differ.",
+        "Each candidate uses a simple linear axial spring only as a counterexample.",
+        "The resistance channel observes length; stiffness/constitutive law is not an input to the electrical calibration."
+      ],
+      "evidence_class": "synthetic_non_identifiability_negative_control",
+      "claim_ceiling": "Shows that tendon length resistance alone does not identify force when axial stiffness is unknown; does not model a real tendon constitutive law."
     }
   ],
   "validation_rules": [
@@ -166,7 +196,8 @@
     "Reject resistance-to-length inversion outside the calibrated 40-80 mm domain.",
     "Duty factor must lie in [0,1], excitation voltage must be nonnegative, resistance strictly positive.",
     "Do not infer tension or joint torque from tendon length without an independently qualified mechanical/load model.",
-    "Do not treat source paper calibration RMSE as a Luminous result or universal sensor accuracy."
+    "Do not treat source paper calibration RMSE as a Luminous result or universal sensor accuracy.",
+    "Identical tendon resistance/length observations may correspond to different forces when axial stiffness or constitutive state is unknown; do not report force from length alone."
   ],
   "claim_ceiling": "The source demonstrates tendon arc-length sensing within a calibrated range in one continuum robot, with separate tension transducers, encoders and IMUs. This crate tests only synthetic equations."
 }
