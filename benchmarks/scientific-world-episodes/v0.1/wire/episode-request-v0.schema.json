@@ -286,6 +286,7 @@
             "identified",
             "ambiguous",
             "no_compatible_model",
+            "outside_candidate_family",
             "abstain"
           ]
         },
