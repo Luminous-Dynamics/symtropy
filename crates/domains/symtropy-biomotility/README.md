@@ -60,7 +60,12 @@ The model uses only the Rust standard library. The seeded generator is for deter
 
 The unconditional sample sets must be derived from the same admitted condition and observation protocol as the directional distributions. Do not substitute arbitrary constants or fit each ablation on a different split. The convenience `simulate` function uses `Combined`.
 
-Rotational diffusion acts during runs and is controlled by a declared coefficient and integration step.
+The model distinguishes:
+- run-start orientation, used to select the run-time distribution;
+- incoming orientation immediately before an event, after run-phase rotational diffusion, used to select a short-event turn-angle distribution;
+- following-run start orientation, used for the post-event outcome statistic.
+
+Rotational diffusion acts during runs and is controlled by a declared coefficient and integration step. The integration loop fails closed if a step cannot advance simulated time or exceeds the per-run step budget.
 
 ## Interpretation of conditional orientation metrics
 
