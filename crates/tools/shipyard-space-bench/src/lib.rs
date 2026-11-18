@@ -117,6 +117,8 @@ pub struct Plan {
 pub enum Violation {
     InvalidInterval { entity_id: String },
     InvalidFootprint { entity_id: String },
+    InvalidIdentity { entity_kind: String, entity_id: String },
+    DuplicateAccessWindow { access_id: String },
     DuplicateResourceSpec { resource_id: String },
     DuplicateOperation { operation_id: String },
     InvalidReservation { reservation_id: String },
@@ -153,6 +155,18 @@ pub fn verify(plan: &Plan) -> Verification {
     let mut unknowns = Vec::new();
 
     for placement in &plan.placements {
+        if placement.block_id.trim().is_empty() {
+            violations.push(Violation::InvalidIdentity {
+                entity_kind: "block".to_owned(),
+                entity_id: placement.block_id.clone(),
+            });
+        }
+        if placement.area_id.trim().is_empty() {
+            violations.push(Violation::InvalidIdentity {
+                entity_kind: "area".to_owned(),
+                entity_id: placement.area_id.clone(),
+            });
+        }
         if !placement.occupied.is_valid() {
             violations.push(Violation::InvalidInterval {
                 entity_id: format!("placement:{}", placement.block_id),
@@ -169,7 +183,25 @@ pub fn verify(plan: &Plan) -> Verification {
         }
     }
 
+    let mut access_ids = BTreeSet::new();
     for access in &plan.access_windows {
+        if access.access_id.trim().is_empty() {
+            violations.push(Violation::InvalidIdentity {
+                entity_kind: "access_window".to_owned(),
+                entity_id: access.access_id.clone(),
+            });
+        }
+        if !access_ids.insert(access.access_id.clone()) {
+            violations.push(Violation::DuplicateAccessWindow {
+                access_id: access.access_id.clone(),
+            });
+        }
+        if access.area_id.trim().is_empty() {
+            violations.push(Violation::InvalidIdentity {
+                entity_kind: "area".to_owned(),
+                entity_id: access.area_id.clone(),
+            });
+        }
         if !access.required.is_valid() {
             violations.push(Violation::InvalidInterval {
                 entity_id: format!("access:{}", access.access_id),
@@ -244,6 +276,13 @@ pub fn verify(plan: &Plan) -> Verification {
 
     let mut capacities: BTreeMap<String, Option<u32>> = BTreeMap::new();
     for resource in &plan.resources {
+        if resource.resource_id.trim().is_empty() {
+            violations.push(Violation::InvalidIdentity {
+                entity_kind: "resource".to_owned(),
+                entity_id: resource.resource_id.clone(),
+            });
+            continue;
+        }
         if capacities.contains_key(&resource.resource_id) {
             violations.push(Violation::DuplicateResourceSpec {
                 resource_id: resource.resource_id.clone(),
@@ -256,16 +295,27 @@ pub fn verify(plan: &Plan) -> Verification {
     let mut events: BTreeMap<String, Vec<(u32, i64)>> = BTreeMap::new();
     let mut reservation_ids = BTreeSet::new();
     for reservation in &plan.reservations {
+        if reservation.reservation_id.trim().is_empty() {
+            violations.push(Violation::InvalidIdentity {
+                entity_kind: "reservation".to_owned(),
+                entity_id: reservation.reservation_id.clone(),
+            });
+            continue;
+        }
         if !reservation_ids.insert(reservation.reservation_id.clone()) {
             violations.push(Violation::DuplicateReservation {
                 reservation_id: reservation.reservation_id.clone(),
             });
             continue;
         }
-        if reservation.reservation_id.trim().is_empty()
-            || !reservation.interval.is_valid()
-            || reservation.units == 0
-        {
+        if reservation.resource_id.trim().is_empty() {
+            violations.push(Violation::InvalidIdentity {
+                entity_kind: "resource_reference".to_owned(),
+                entity_id: reservation.resource_id.clone(),
+            });
+            continue;
+        }
+        if !reservation.interval.is_valid() || reservation.units == 0 {
             violations.push(Violation::InvalidReservation {
                 reservation_id: reservation.reservation_id.clone(),
             });
@@ -308,6 +358,13 @@ pub fn verify(plan: &Plan) -> Verification {
 
     let mut operations: BTreeMap<String, Interval> = BTreeMap::new();
     for operation in &plan.operations {
+        if operation.operation_id.trim().is_empty() {
+            violations.push(Violation::InvalidIdentity {
+                entity_kind: "operation".to_owned(),
+                entity_id: operation.operation_id.clone(),
+            });
+            continue;
+        }
         if !operation.interval.is_valid() {
             violations.push(Violation::InvalidInterval {
                 entity_id: format!("operation:{}", operation.operation_id),
@@ -324,12 +381,32 @@ pub fn verify(plan: &Plan) -> Verification {
     }
 
     for edge in &plan.precedences {
-        let before = operations.get(&edge.before);
-        let after = operations.get(&edge.after);
-        if before.is_none() {
+        if edge.before.trim().is_empty() {
+            violations.push(Violation::InvalidIdentity {
+                entity_kind: "precedence_before_reference".to_owned(),
+                entity_id: edge.before.clone(),
+            });
+        }
+        if edge.after.trim().is_empty() {
+            violations.push(Violation::InvalidIdentity {
+                entity_kind: "precedence_after_reference".to_owned(),
+                entity_id: edge.after.clone(),
+            });
+        }
+        let before = if edge.before.trim().is_empty() {
+            None
+        } else {
+            operations.get(&edge.before)
+        };
+        let after = if edge.after.trim().is_empty() {
+            None
+        } else {
+            operations.get(&edge.after)
+        };
+        if before.is_none() && !edge.before.trim().is_empty() {
             unknowns.push(Unknown::MissingOperation { operation_id: edge.before.clone() });
         }
-        if after.is_none() {
+        if after.is_none() && !edge.after.trim().is_empty() {
             unknowns.push(Unknown::MissingOperation { operation_id: edge.after.clone() });
         }
         if let (Some(before), Some(after)) = (before, after) {
@@ -564,6 +641,99 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn blank_block_identity_is_rejected() {
+        let mut plan = baseline();
+        plan.placements[0].block_id = "   ".to_owned();
+        let result = verify(&plan);
+        assert_eq!(result.disposition, Disposition::Infeasible);
+        assert!(result.violations.iter().any(|violation| matches!(
+            violation,
+            Violation::InvalidIdentity { entity_kind, .. } if entity_kind == "block"
+        )));
+    }
+
+    #[test]
+    fn blank_area_identity_is_rejected() {
+        let mut plan = baseline();
+        plan.placements[0].area_id.clear();
+        let result = verify(&plan);
+        assert_eq!(result.disposition, Disposition::Infeasible);
+        assert!(result.violations.iter().any(|violation| matches!(
+            violation,
+            Violation::InvalidIdentity { entity_kind, .. } if entity_kind == "area"
+        )));
+    }
+
+    #[test]
+    fn blank_and_duplicate_access_window_identities_are_rejected() {
+        let mut plan = baseline();
+        plan.access_windows.push(plan.access_windows[0].clone());
+        plan.access_windows[0].access_id = " ".to_owned();
+
+        let result = verify(&plan);
+        assert_eq!(result.disposition, Disposition::Infeasible);
+        assert!(result.violations.iter().any(|violation| matches!(
+            violation,
+            Violation::InvalidIdentity { entity_kind, .. } if entity_kind == "access_window"
+        )));
+        assert!(result.violations.iter().any(|violation| matches!(
+            violation,
+            Violation::DuplicateAccessWindow { .. }
+        )));
+    }
+
+    #[test]
+    fn blank_resource_identity_is_rejected() {
+        let mut plan = baseline();
+        plan.resources[0].resource_id.clear();
+        let result = verify(&plan);
+        assert_eq!(result.disposition, Disposition::Infeasible);
+        assert!(result.violations.iter().any(|violation| matches!(
+            violation,
+            Violation::InvalidIdentity { entity_kind, .. } if entity_kind == "resource"
+        )));
+    }
+
+    #[test]
+    fn blank_reservation_resource_reference_is_rejected() {
+        let mut plan = baseline();
+        plan.reservations[0].resource_id = " ".to_owned();
+        let result = verify(&plan);
+        assert_eq!(result.disposition, Disposition::Infeasible);
+        assert!(result.violations.iter().any(|violation| matches!(
+            violation,
+            Violation::InvalidIdentity { entity_kind, .. } if entity_kind == "resource_reference"
+        )));
+    }
+
+    #[test]
+    fn blank_operation_identity_is_rejected() {
+        let mut plan = baseline();
+        plan.operations[0].operation_id.clear();
+        let result = verify(&plan);
+        assert_eq!(result.disposition, Disposition::Infeasible);
+        assert!(result.violations.iter().any(|violation| matches!(
+            violation,
+            Violation::InvalidIdentity { entity_kind, .. } if entity_kind == "operation"
+        )));
+    }
+
+    #[test]
+    fn blank_precedence_reference_is_rejected_not_reported_as_missing_only() {
+        let mut plan = baseline();
+        plan.precedences[0].before = " ".to_owned();
+        let result = verify(&plan);
+        assert_eq!(result.disposition, Disposition::Infeasible);
+        assert!(result.violations.iter().any(|violation| matches!(
+            violation,
+            Violation::InvalidIdentity { entity_kind, .. } if entity_kind == "precedence_before_reference"
+        )));
+        assert!(!result.unknowns.contains(&Unknown::MissingOperation {
+            operation_id: " ".to_owned()
+        }));
     }
 
     #[test]
