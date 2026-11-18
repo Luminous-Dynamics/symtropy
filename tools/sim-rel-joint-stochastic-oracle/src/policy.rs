@@ -852,6 +852,7 @@ mod tests {
         request.view.attempts[0].disposition = AttemptDisposition::Applied {
             observation_id: "not-declared".to_owned(),
         };
+        request.view.observations[0].observation_id = "not-declared".to_owned();
         assert!(matches!(
             public_kernel_and_belief(&request.view),
             Err(PolicyError::InvalidPublicModel(_))
