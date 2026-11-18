@@ -193,7 +193,7 @@ The current synthetic case enumerates 36 assignments for three tasks across HAPS
 | H10 | Lift-class comparison | Fixed-wing versus buoyant free balloon versus propelled airship; payload, solar area, wind field, altitude control and launch/recovery | Which lift class delivers the same coverage service with the lowest robust system burden? |
 | H11 | Demand-aware network orchestration | Cell demand surge, finite beams, traffic forecast uncertainty, positioning/maneuver energy, backhaul and node loss | Does joint demand/beam/position/fleet scheduling increase useful service per total system Wh without service or safety regressions? |
 | H12 | Edge-compute placement and co-scheduling | Application deadlines, p95/p99 tails, platform/ground/drone/space placement, compute power/heat, backhaul outage and platform reserve | Where should each workload execute to meet its deadline with the lowest robust total-system energy and thermal burden? |
-| H13 | Fleet common-cause and repair availability | k-out-of-n redundancy, correlated weather grounding, shared gateway/launch/maintenance dependencies, repair duration, spare/recovery logistics, handover | Does the fleet meet its service availability under independent and correlated node/dependency failures? |
+| H13 | Fleet common-cause and repair availability | k-out-of-n redundancy, correlated weather grounding, shared gateway/launch/maintenance dependencies, repair duration, spare/recovery logistics, handover | Does the fleet meet its service availability under independent and correlated node/dependency failures? See [HAPS fleet resilience](HAPS_FLEET_RESILIENCE_001.md). |
 
 Preserve weather autocorrelation, synoptic regime, altitude correlations and geography. Do not shuffle hourly irradiance and wind independently. Hold out entire weather campaigns, seasons or locations. Monte Carlo seeds are not independent weather campaigns. Wind-layer control must also be evaluated against strong passive-drift, fixed-altitude, rule-based/greedy, A*, SOO/receding-horizon and RL baselines with the same forecast data, horizon, actuation limits and compute budget. Forecast error alone is insufficient: report achieved footprint time, p95 target distance, request/coverage outage, altitude transitions and associated actuator/propulsion Wh. Hold out full seasons, geographies and years; report the energy/coverage regret caused by forecast error.
 
@@ -228,6 +228,10 @@ The allocation work now also has a full 30-day replay and a separate temporal ho
 
 
 The service profile references a separate [HAPS wind-navigation case schema](schemas/haps_wind_navigation_case_v1.schema.json) and [synthetic wind-column fixture](examples/synthetic_haps_wind_column_case_v1.json). That fixture carries 36 synthetic wind samples across three ensemble labels, three altitudes and four valid-time offsets; it deliberately has no forecast availability, altitude-control authority, trajectory or energy solution. The contract records data source, coordinate frame, vertical reference, time cadence, forecast initialization/lead-time semantics, ensemble identity and platform-specific control-model references. In particular, ERA5 reanalysis must not be replayed as an operational forecast that was available to a historical controller.
+
+### Fleet continuity and common-cause qualification
+
+The detailed fleet service continuity benchmark is separated into [AERO-HAPS-FLEET-RESILIENCE-001](HAPS_FLEET_RESILIENCE_001.md) and its machine-readable reliability contract. H13/Q9 require common-cause weather, external backhaul correlation, maintenance/repair, spares, service-zone demand and handover cohort evidence. The analytic product-form case is only a starting point; a field claim requires event-trace or operational evidence under measured dependencies and service boundaries.
 
 ## 5. Qualification gates
 
