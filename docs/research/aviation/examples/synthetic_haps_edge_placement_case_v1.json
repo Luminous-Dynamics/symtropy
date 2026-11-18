@@ -1,0 +1,342 @@
+{
+  "schema_version": "haps-edge-placement-case/v1",
+  "case_id": "synthetic.haps.edge.placement.power-thermal-deadline.001",
+  "revision": 1,
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_edge_placement_oracle",
+  "source": {
+    "source_kind": "synthetic_generator",
+    "trace_ref": null,
+    "source_digest": null,
+    "rights_or_license_ref": null,
+    "available_at_decision_time": false,
+    "reanalysis_not_used_as_live_forecast": true
+  },
+  "measurement_window_s": 60,
+  "objective": "minimum_total_system_power_w",
+  "nodes": [
+    {
+      "node_id": "haps",
+      "node_class": "platform_edge",
+      "compute_capacity_tops": 2.2,
+      "power_budget_w": 90,
+      "heat_rejection_budget_w": 70,
+      "availability_fraction": 0.999
+    },
+    {
+      "node_id": "drone",
+      "node_class": "drone_edge",
+      "compute_capacity_tops": 0.6,
+      "power_budget_w": 45,
+      "heat_rejection_budget_w": 40,
+      "availability_fraction": 0.995
+    },
+    {
+      "node_id": "gateway",
+      "node_class": "terrestrial_gateway_edge",
+      "compute_capacity_tops": 10,
+      "power_budget_w": 70,
+      "heat_rejection_budget_w": 60,
+      "availability_fraction": 0.99
+    },
+    {
+      "node_id": "cloud",
+      "node_class": "remote_cloud",
+      "compute_capacity_tops": 100,
+      "power_budget_w": 150,
+      "heat_rejection_budget_w": 120,
+      "availability_fraction": 0.9999
+    }
+  ],
+  "system_limits": {
+    "haps_incremental_power_budget_w": 90,
+    "haps_heat_rejection_budget_w": 70,
+    "haps_backhaul_capacity_mbps": 10
+  },
+  "workloads": [
+    {
+      "workload_id": "emergency-alert-fusion",
+      "workload_class": "emergency_alert_fusion",
+      "priority_weight": 5,
+      "criticality": "emergency_critical",
+      "compute_demand_tops": 0.05,
+      "input_data_rate_mbps": 0.05,
+      "max_response_ms": 250,
+      "response_metric_basis": "application_round_trip",
+      "required_completion_fraction": 1,
+      "stateful": false,
+      "fallback_policy": "store_and_forward",
+      "placement_options": [
+        {
+          "node_id": "haps",
+          "response_ms": 55,
+          "node_power_w": 10,
+          "node_waste_heat_w": 9,
+          "haps_network_power_w": 0,
+          "haps_network_waste_heat_w": 0,
+          "haps_backhaul_mbps": 0
+        },
+        {
+          "node_id": "gateway",
+          "response_ms": 90,
+          "node_power_w": 16,
+          "node_waste_heat_w": 13,
+          "haps_network_power_w": 2,
+          "haps_network_waste_heat_w": 1,
+          "haps_backhaul_mbps": 0.05
+        },
+        {
+          "node_id": "cloud",
+          "response_ms": 160,
+          "node_power_w": 20,
+          "node_waste_heat_w": 16,
+          "haps_network_power_w": 4,
+          "haps_network_waste_heat_w": 2,
+          "haps_backhaul_mbps": 0.05
+        }
+      ]
+    },
+    {
+      "workload_id": "drone-control-telemetry",
+      "workload_class": "drone_telemetry_control",
+      "priority_weight": 10,
+      "criticality": "safety_critical",
+      "compute_demand_tops": 0.5,
+      "input_data_rate_mbps": 2,
+      "max_response_ms": 100,
+      "response_metric_basis": "control_loop_round_trip",
+      "required_completion_fraction": 1,
+      "stateful": true,
+      "fallback_policy": "drone_local_safe_mode",
+      "placement_options": [
+        {
+          "node_id": "haps",
+          "response_ms": 65,
+          "node_power_w": 40,
+          "node_waste_heat_w": 36,
+          "haps_network_power_w": 0,
+          "haps_network_waste_heat_w": 0,
+          "haps_backhaul_mbps": 0
+        },
+        {
+          "node_id": "drone",
+          "response_ms": 18,
+          "node_power_w": 40,
+          "node_waste_heat_w": 36,
+          "haps_network_power_w": 3,
+          "haps_network_waste_heat_w": 2,
+          "haps_backhaul_mbps": 2
+        },
+        {
+          "node_id": "gateway",
+          "response_ms": 140,
+          "node_power_w": 45,
+          "node_waste_heat_w": 36,
+          "haps_network_power_w": 5,
+          "haps_network_waste_heat_w": 3,
+          "haps_backhaul_mbps": 2
+        },
+        {
+          "node_id": "cloud",
+          "response_ms": 210,
+          "node_power_w": 50,
+          "node_waste_heat_w": 40,
+          "haps_network_power_w": 8,
+          "haps_network_waste_heat_w": 4,
+          "haps_backhaul_mbps": 2
+        }
+      ]
+    },
+    {
+      "workload_id": "wildfire-video-analytics",
+      "workload_class": "wildfire_video_analytics",
+      "priority_weight": 3,
+      "criticality": "mission_critical",
+      "compute_demand_tops": 2,
+      "input_data_rate_mbps": 8,
+      "max_response_ms": 1000,
+      "response_metric_basis": "application_round_trip",
+      "required_completion_fraction": 1,
+      "stateful": false,
+      "fallback_policy": "store_and_forward",
+      "placement_options": [
+        {
+          "node_id": "haps",
+          "response_ms": 80,
+          "node_power_w": 60,
+          "node_waste_heat_w": 54,
+          "haps_network_power_w": 0,
+          "haps_network_waste_heat_w": 0,
+          "haps_backhaul_mbps": 0
+        },
+        {
+          "node_id": "gateway",
+          "response_ms": 100,
+          "node_power_w": 35,
+          "node_waste_heat_w": 28,
+          "haps_network_power_w": 8,
+          "haps_network_waste_heat_w": 4,
+          "haps_backhaul_mbps": 8
+        },
+        {
+          "node_id": "cloud",
+          "response_ms": 190,
+          "node_power_w": 48,
+          "node_waste_heat_w": 38,
+          "haps_network_power_w": 12,
+          "haps_network_waste_heat_w": 6,
+          "haps_backhaul_mbps": 8
+        }
+      ]
+    }
+  ],
+  "expected_oracle": {
+    "oracle_status": "independently_calculated",
+    "all_platform_baseline": {
+      "feasible": false,
+      "assignments": [
+        {
+          "workload_id": "emergency-alert-fusion",
+          "node_id": "haps",
+          "response_ms": 55
+        },
+        {
+          "workload_id": "drone-control-telemetry",
+          "node_id": "haps",
+          "response_ms": 65
+        },
+        {
+          "workload_id": "wildfire-video-analytics",
+          "node_id": "haps",
+          "response_ms": 80
+        }
+      ],
+      "node_usage": [
+        {
+          "node_id": "haps",
+          "compute_tops": 2.55,
+          "power_w": 110,
+          "waste_heat_w": 99
+        }
+      ],
+      "haps_incremental_power_w": 110,
+      "haps_total_waste_heat_w": 99,
+      "haps_backhaul_mbps": 0,
+      "total_system_power_w": 110,
+      "priority_weighted_response_ms": 1165,
+      "violations": [
+        "compute:haps",
+        "node_power:haps",
+        "node_heat:haps",
+        "haps_power",
+        "haps_heat"
+      ]
+    },
+    "lowest_latency_feasible": {
+      "feasible": true,
+      "assignments": [
+        {
+          "workload_id": "emergency-alert-fusion",
+          "node_id": "haps",
+          "response_ms": 55
+        },
+        {
+          "workload_id": "drone-control-telemetry",
+          "node_id": "drone",
+          "response_ms": 18
+        },
+        {
+          "workload_id": "wildfire-video-analytics",
+          "node_id": "haps",
+          "response_ms": 80
+        }
+      ],
+      "node_usage": [
+        {
+          "node_id": "haps",
+          "compute_tops": 2.05,
+          "power_w": 70,
+          "waste_heat_w": 63
+        },
+        {
+          "node_id": "drone",
+          "compute_tops": 0.5,
+          "power_w": 40,
+          "waste_heat_w": 36
+        }
+      ],
+      "haps_incremental_power_w": 73,
+      "haps_total_waste_heat_w": 65,
+      "haps_backhaul_mbps": 2,
+      "total_system_power_w": 113,
+      "priority_weighted_response_ms": 695,
+      "violations": []
+    },
+    "minimum_system_power_feasible": {
+      "feasible": true,
+      "assignments": [
+        {
+          "workload_id": "emergency-alert-fusion",
+          "node_id": "haps",
+          "response_ms": 55
+        },
+        {
+          "workload_id": "drone-control-telemetry",
+          "node_id": "haps",
+          "response_ms": 65
+        },
+        {
+          "workload_id": "wildfire-video-analytics",
+          "node_id": "gateway",
+          "response_ms": 100
+        }
+      ],
+      "node_usage": [
+        {
+          "node_id": "haps",
+          "compute_tops": 0.55,
+          "power_w": 50,
+          "waste_heat_w": 45
+        },
+        {
+          "node_id": "gateway",
+          "compute_tops": 2,
+          "power_w": 35,
+          "waste_heat_w": 28
+        }
+      ],
+      "haps_incremental_power_w": 58,
+      "haps_total_waste_heat_w": 49,
+      "haps_backhaul_mbps": 8,
+      "total_system_power_w": 93,
+      "priority_weighted_response_ms": 1225,
+      "violations": []
+    },
+    "minimum_system_power_objective_value_w": 93,
+    "optimality_verified_by_exhaustive_enumeration": true
+  },
+  "source_evidence_refs": [
+    "https://doi.org/10.1016/j.icte.2026.10.009",
+    "https://doi.org/10.1109/TMC.2026.3712259",
+    "https://doi.org/10.1016/j.comcom.2026.108684",
+    "https://doi.org/10.1109/JIOT.2025.3629556",
+    "https://www.itu.int/ITU-T/recommendations/rec.aspx?rec=16109",
+    "https://sceye.com/press-releases/sceye-and-softbank-complete-stratospheric-connectivity-demonstration-in-japan/"
+  ],
+  "assumptions": [
+    "All task, capacity, response, power and heat values are synthetic screening inputs. They are not measured HAPS, drone, gateway or cloud platform specifications.",
+    "The measurement window is 60 seconds and the per-task response values are synthetic end-to-end values with the metric basis declared for each task.",
+    "All three workloads must complete 100% within their declared response budgets; no task is silently dropped or converted to best effort.",
+    "The HAPS power budget and HAPS heat-rejection budget are additional incremental limits for this example, not vehicle-wide propulsion/thermal ratings.",
+    "For HAPS placement, node_power_w and node_waste_heat_w are the compute-side HAPS loads; haps_network_power_w and haps_network_waste_heat_w are additional HAPS communication loads to reach remote compute nodes.",
+    "For non-HAPS placement, node_power_w and node_waste_heat_w are charged to the destination node; HAPS network power, heat and backhaul are charged separately to the HAPS.",
+    "HAPS incremental power is HAPS-node compute power plus HAPS network power. HAPS waste heat is HAPS-node waste heat plus HAPS network waste heat.",
+    "Total system power is the sum of all selected node power and HAPS network power; it is not the same as HAPS incremental power.",
+    "The all-platform baseline is intentionally infeasible: combined compute demand 2.55 TOPS, power 110 W and heat 99 W exceed the HAPS node/whole-platform budgets.",
+    "The lowest-latency feasible comparator assigns alert fusion and wildfire analytics to HAPS and drone control to the drone, yielding 155 priority-weighted response-ms and 113 W total system power.",
+    "The minimum-system-power assignment places alert fusion and drone control on HAPS and wildfire analytics at the terrestrial gateway, yielding 93 W total system power while satisfying all deadlines and limits.",
+    "The exhaustive oracle enumerates all 3 × 4 × 3 = 36 allowed combinations and minimizes total system power over feasible assignments; no learned model is used in this tiny fixture.",
+    "The fixture is a scheduler arithmetic benchmark only. It contains no measured network paths, queueing distributions, thermal-fluid simulation, HVAC/cooling model, battery chemistry, HAPS propulsion, flight dynamics or safety validation.",
+    "The Sceye / SoftBank reported 68 ms value is an average round-trip processing response in one source-attributed trial; it is not used as an input or as a direct p95/p99 comparison target."
+  ]
+}
