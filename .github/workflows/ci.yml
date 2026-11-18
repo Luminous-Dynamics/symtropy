@@ -74,6 +74,12 @@ jobs:
       if: runner.os == 'Linux'
       run: bash scripts/check-licenses.sh
 
+    # This guard checks the committed synthetic benchmark fixture and its
+    # digests/arithmetic. It is not a general JSON Schema or physical-data validator.
+    - name: Lunar Excavation Benchmark Fixture (Linux)
+      if: runner.os == 'Linux'
+      run: bash scripts/check-lunar-excavation-benchmark-fixture.sh
+
     - name: Run Clippy
       run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
