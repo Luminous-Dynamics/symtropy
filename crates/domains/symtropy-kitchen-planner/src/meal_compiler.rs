@@ -264,6 +264,16 @@ pub struct MealSourceResolutionV1 {
     pub reviewed_resolution_ref: String,
 }
 
+/// Exact portion of a planned task output attributable to one source ingredient.
+/// V1 requires all contributions to share the output dimension and sum exactly
+/// to the output quantity; no density or cross-dimension conversion is inferred.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PlannedIngredientContributionV1 {
+    pub ingredient_id: String,
+    pub quantity: ExactIngredientQuantityV1,
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct PlannedTaskOutputV1 {
@@ -271,6 +281,8 @@ pub struct PlannedTaskOutputV1 {
     pub quantity: ExactIngredientQuantityV1,
     /// Original proposal ingredient IDs represented by this output.
     pub ingredient_origins: Vec<String>,
+    /// Exact contribution of each source ingredient to this output quantity.
+    pub ingredient_contributions: Vec<PlannedIngredientContributionV1>,
     /// Reference to the declared/modelled planning basis, not a measurement.
     pub quantity_basis_ref: String,
 }
@@ -427,6 +439,10 @@ pub enum MealCompilationIssueCodeV1 {
     MissingTaskOutput,
     DuplicateTaskOutput,
     InvalidTaskOutput,
+    InvalidOutputContribution,
+    OutputContributionTotalMismatch,
+    TaskMaterialBalanceMismatch,
+    MissingTaskOutput,
     MissingTaskOutputFlow,
     DuplicateFlowId,
     DuplicateMaterialRef,
@@ -535,6 +551,8 @@ fn disposition(issues: &[MealCompilationIssueV1]) -> MealCompilationDispositionV
                 | MealCompilationIssueCodeV1::DuplicateFlowId
                 | MealCompilationIssueCodeV1::DuplicateMaterialRef
                 | MealCompilationIssueCodeV1::FlowQuantityMismatch
+                | MealCompilationIssueCodeV1::OutputContributionTotalMismatch
+                | MealCompilationIssueCodeV1::TaskMaterialBalanceMismatch
                 | MealCompilationIssueCodeV1::InputQuantityExceedsProposal
                 | MealCompilationIssueCodeV1::InputQuantityArithmeticOverflow
                 | MealCompilationIssueCodeV1::TaskIngredientLineageMismatch
@@ -573,6 +591,7 @@ fn disposition(issues: &[MealCompilationIssueV1]) -> MealCompilationDispositionV
                 | MealCompilationIssueCodeV1::UnknownFlowTask
                 | MealCompilationIssueCodeV1::UnknownFlowOutput
                 | MealCompilationIssueCodeV1::InvalidTaskOutput
+                | MealCompilationIssueCodeV1::InvalidOutputContribution
                 | MealCompilationIssueCodeV1::InvalidCompiledRecipeGraph
         )
     }) {
@@ -1422,6 +1441,10 @@ fn validate_food_flows(
     let mut output_use_counts: BTreeMap<(String, String), usize> = BTreeMap::new();
     let mut terminal_output_refs = BTreeSet::new();
     let mut task_input_origins: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    let mut task_input_totals: BTreeMap<(String, String), (QuantityDimensionV1, u128)> =
+        BTreeMap::new();
+    let mut task_output_totals: BTreeMap<(String, String), (QuantityDimensionV1, u128)> =
+        BTreeMap::new();
     let mut direct_task_ingredient_inputs: BTreeSet<(String, String)> = BTreeSet::new();
     let mut task_output_origins: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
 
