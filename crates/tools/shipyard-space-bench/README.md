@@ -27,4 +27,6 @@ The geometry profile uses axis-aligned rectangles on an integer lattice and half
 
 A known hard violation yields `Infeasible`. Missing evidence yields `Indeterminate`, never implied free space or unlimited capacity. The result preserves violations and unknowns simultaneously.
 
+Tests include separately implemented exhaustive tiny-instance oracles for rectangle/time occupancy (unit-cell enumeration) and shared-resource capacity (integer-tick counting), independent of the production intersection and event-sweep helpers. They are finite exact checks over the declared small integer domain, not a general polygon, routing, or scheduling oracle.
+
 The tests are intended as a starter oracle contract. This initial slice has not yet been run with a Rust toolchain in the current authoring environment; do not treat it as a passing exact-head result until the exact command above succeeds on the proposed commit.
