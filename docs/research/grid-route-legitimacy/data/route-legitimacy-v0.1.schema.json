@@ -1,0 +1,574 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/grid-route-legitimacy-v0.1.schema.json",
+  "title": "Grid Route Legitimacy Evidence Contract v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "caseId",
+    "caseMaturity",
+    "jurisdiction",
+    "route",
+    "stakeholders",
+    "evidenceRecords",
+    "decisions",
+    "gates",
+    "engagements",
+    "impacts",
+    "workfronts"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "caseId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "caseMaturity": {
+      "enum": [
+        "synthetic_fixture",
+        "engineering_estimate",
+        "field_observed",
+        "independently_reviewed"
+      ]
+    },
+    "jurisdiction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "jurisdictionCode",
+        "authoritySources"
+      ],
+      "properties": {
+        "jurisdictionCode": {
+          "type": "string",
+          "minLength": 2
+        },
+        "authoritySources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      }
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "routeId",
+        "alternativeId",
+        "deliveredServiceMw",
+        "voltageKv",
+        "routeLengthKm"
+      ],
+      "properties": {
+        "routeId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "alternativeId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "deliveredServiceMw": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "voltageKv": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "routeLengthKm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "stakeholders": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "stakeholderId",
+          "category",
+          "identityStatus",
+          "representationBasis",
+          "disclosureLevel"
+        ],
+        "properties": {
+          "stakeholderId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "enum": [
+              "private_landowner",
+              "tenant",
+              "farm_worker",
+              "communal_customary_holder",
+              "indigenous_people",
+              "local_resident",
+              "business",
+              "public_user",
+              "municipality",
+              "environmental_authority",
+              "other_affected_interest"
+            ]
+          },
+          "identityStatus": {
+            "enum": [
+              "verified",
+              "partially_verified",
+              "unverified",
+              "not_applicable"
+            ]
+          },
+          "representationBasis": {
+            "enum": [
+              "self_represented",
+              "documented_mandate",
+              "customary_or_collective_process",
+              "public_body_role",
+              "unknown",
+              "not_applicable"
+            ]
+          },
+          "disclosureLevel": {
+            "enum": [
+              "aggregate_only",
+              "public_safe"
+            ]
+          }
+        }
+      }
+    },
+    "evidenceRecords": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidenceId",
+          "evidenceClass",
+          "description"
+        ],
+        "properties": {
+          "evidenceId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidenceClass": {
+            "enum": [
+              "synthetic_fixture",
+              "public_source",
+              "application_receipt",
+              "authority_decision",
+              "executed_instrument",
+              "field_verified",
+              "independent_review"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceUri": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "asOfDate": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          }
+        }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "decisionId",
+          "decisionType",
+          "status",
+          "scope",
+          "partyStakeholderIds",
+          "evidenceIds"
+        ],
+        "properties": {
+          "decisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "decisionType": {
+            "enum": [
+              "statutory_authorisation",
+              "environmental_authorisation",
+              "land_access",
+              "servitude",
+              "compensation_agreement",
+              "community_agreement",
+              "consultation_record",
+              "other_authority_decision"
+            ]
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "submitted",
+              "granted",
+              "executed",
+              "refused",
+              "expired",
+              "under_appeal",
+              "unknown",
+              "not_applicable"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "minLength": 1
+          },
+          "partyStakeholderIds": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "effectiveFrom": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "expiresOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "evidenceIds": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "gates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "gateId",
+          "gateType",
+          "status",
+          "accountableRole",
+          "evidenceIds"
+        ],
+        "properties": {
+          "gateId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "gateType": {
+            "enum": [
+              "jurisdiction_and_authority",
+              "rights_holder_identification",
+              "early_engagement",
+              "route_alternatives",
+              "environmental_water_cultural_review",
+              "public_participation",
+              "land_access_and_servitude",
+              "compensation_and_mitigation",
+              "statutory_decisions",
+              "monitoring_commitments",
+              "other"
+            ]
+          },
+          "status": {
+            "enum": [
+              "unknown",
+              "not_started",
+              "in_progress",
+              "blocked",
+              "complete",
+              "not_applicable"
+            ]
+          },
+          "accountableRole": {
+            "type": "string",
+            "minLength": 1
+          },
+          "requiredDecisionType": {
+            "enum": [
+              "statutory_authorisation",
+              "environmental_authorisation",
+              "land_access",
+              "servitude",
+              "compensation_agreement",
+              "community_agreement",
+              "consultation_record",
+              "other_authority_decision"
+            ]
+          },
+          "decisionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidenceIds": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "applicabilityRationale": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "engagements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "engagementId",
+          "stakeholderIds",
+          "noticeMethod",
+          "language",
+          "accessibilityPlan",
+          "windowStart",
+          "windowEnd",
+          "status",
+          "concerns"
+        ],
+        "properties": {
+          "engagementId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stakeholderIds": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "noticeMethod": {
+            "type": "string",
+            "minLength": 1
+          },
+          "language": {
+            "type": "string",
+            "minLength": 1
+          },
+          "accessibilityPlan": {
+            "type": "string",
+            "minLength": 1
+          },
+          "windowStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "windowEnd": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "enum": [
+              "planned",
+              "open",
+              "closed",
+              "under_review",
+              "completed",
+              "unknown"
+            ]
+          },
+          "noticeEvidenceIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "concerns": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "concernId",
+                "topic",
+                "status"
+              ],
+              "properties": {
+                "concernId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "topic": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "status": {
+                  "enum": [
+                    "raised",
+                    "responded",
+                    "resolved",
+                    "referred",
+                    "withdrawn",
+                    "unresolved"
+                  ]
+                },
+                "responseEvidenceIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "impacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "impactId",
+          "category",
+          "measure",
+          "unit",
+          "scope",
+          "evidenceIds"
+        ],
+        "properties": {
+          "impactId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "enum": [
+              "land_footprint",
+              "livelihood",
+              "biodiversity",
+              "water",
+              "cultural_heritage",
+              "access",
+              "displacement",
+              "visual",
+              "other"
+            ]
+          },
+          "measure": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidenceIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "workfronts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workfrontId",
+          "routeSegmentId",
+          "status",
+          "requiredGateIds",
+          "releaseEvidenceIds"
+        ],
+        "properties": {
+          "workfrontId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "routeSegmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "not_released",
+              "released",
+              "suspended"
+            ]
+          },
+          "requiredGateIds": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "releaseEvidenceIds": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}
