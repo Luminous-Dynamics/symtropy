@@ -208,10 +208,10 @@ fn fixed_order_baseline_runs_through_real_jsonl_child_and_exact_evaluator() {
     assert_eq!(evaluation.total_requests, 2);
     assert_eq!(
         evaluation.reported_disposition,
-        EpisodeFinishDisposition::Ambiguous
+        EpisodeFinishDisposition::Identified
     );
-    assert!(!evaluation.version_space_exact_match);
-    assert!(!evaluation.disposition_correct);
+    assert!(evaluation.version_space_exact_match);
+    assert!(evaluation.disposition_correct);
     assert_eq!(evaluation.correct_candidate_count, 1);
 }
 
@@ -227,4 +227,20 @@ fn no_intervention_baseline_uses_same_wire_and_evaluator_custody() {
     assert!(evaluation.safe_abstention);
     assert!(evaluation.version_space_exact_match);
     assert!(evaluation.disposition_correct);
+}
+
+
+#[test]
+fn one_step_joint_eig_child_uses_public_model_catalogue_and_exact_evaluator() {
+    let evaluation = run_child("one_step_eig", 3);
+    assert_eq!(evaluation.applied_interventions, 1);
+    assert_eq!(evaluation.total_requests, 1);
+    assert_eq!(
+        evaluation.reported_disposition,
+        EpisodeFinishDisposition::Identified
+    );
+    assert!(evaluation.version_space_exact_match);
+    assert!(evaluation.disposition_correct);
+    assert!(evaluation.evidence_identifies_unique_hypothesis);
+    assert!(!evaluation.false_unique_claim);
 }
