@@ -115,6 +115,21 @@ impl RadialMetricSample5D {
         if self.radius <= 0.0 || self.g <= 0.0 {
             return Err(ReferenceError::InvalidMetricSample("radius and g must be positive"));
         }
+        // The implemented first integral is specialized to the areal-base
+        // gauge g(r)=r^2. Reject a sample from another radial gauge rather
+        // than silently applying the gauge-fixed expression.
+        let expected_g = self.radius.powi(2);
+        let expected_g_prime = 2.0 * self.radius;
+        let g_scale = expected_g.abs().max(1.0);
+        let gp_scale = expected_g_prime.abs().max(1.0);
+        if (self.g - expected_g).abs() > 32.0 * f64::EPSILON * g_scale
+            || (self.g_prime - expected_g_prime).abs()
+                > 32.0 * f64::EPSILON * gp_scale
+        {
+            return Err(ReferenceError::InvalidMetricSample(
+                "angular flux requires the fixed gauge g(r)=r^2",
+            ));
+        }
         if self.b <= 0.0 || self.f <= 0.0 || self.h <= 0.0 {
             return Err(ReferenceError::OutsideStaticExterior {
                 b: self.b,
