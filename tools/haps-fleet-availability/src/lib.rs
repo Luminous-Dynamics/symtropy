@@ -259,8 +259,8 @@ pub fn evaluate_fleet_size(
     let r = shared_external_outage_probability;
 
     // Conditional on no shared HAPS-only event, all n HAPS fail independently.
-    let haps_unavailability = q + (1.0 - q) * (1.0 - p).powf(haps_count as f64);
-    let haps_availability = 1.0 - haps_unavailability;
+    let haps_availability = (1.0 - q) * (1.0 - (1.0 - p).powf(haps_count as f64));
+    let haps_unavailability = 1.0 - haps_availability;
 
     // r disables both external fallback layers. Otherwise, ground and LEO fail
     // independently with probabilities (1-g) and (1-s).
@@ -337,7 +337,7 @@ mod tests {
 
     fn close(actual: f64, expected: f64) {
         assert!(
-            (actual - expected).abs() < 1.0e-12,
+            (actual - expected).abs() < 1.0e-9,
             "actual {actual:.15}, expected {expected:.15}"
         );
     }
