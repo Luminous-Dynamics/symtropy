@@ -275,3 +275,26 @@ The advanced DOE also separates two planned transfers:
 - **63-cell LHS-1 hopper regime extension** based on the 2026 Journal of Rheology paper's four flow morphologies and vibration response, using a three-frequency band × seven Gamma levels × three rated fill/charge levels. Exact frequencies and displacement must be commissioned from the apparatus response curve, and source levels must be recovered from the paper before calling this a reproduction.
 
 These extensions keep **material identity, flow morphology and gravity** visible rather than treating one simulant's operating point as a universal lunar control law.
+
+## Source-data ingestion registry
+
+The exact source/access ledger is pinned in `data-sources.json`; CI checks its identity, declared status and known source checksums. The current ingest state is **zero datasets ingested**:
+
+| Source | Access / scope | Best first step |
+|---|---|---|
+| Wylęgała–Uhl 2026 rotating drum | Public Zenodo record, DOI 10.5281/zenodo.18749190; frame-level CSV 38.8 MB with MD5 recorded; raw/processed videos 39.4 GB with MD5 recorded | Retrieve the CSV first to reproduce the published angle/stability metrics, then selectively audit videos |
+| Lappa–Watson–Bonnieu 2026 LHS-1 hopper | University of Strathclyde dataset DOI 10.15129/22b792eb-7ca4-46b1-b2eb-6ef15b95a281; 558 MB video ZIP, listed CC BY 4.0 | Reconstruct flow morphology/clogging and vibration/fill/frequency effects from the figure-labelled video folders |
+| Stepanova–Dreyer–Garvey 2026 parabolic feeder | Data available from corresponding author on reasonable request; no public 480-row archive | Request load-cell, accelerometer, video, per-parabola condition map and calibration records; only then populate the 480 empty import templates |
+
+The Wylęgała–Uhl Zenodo record lists `metrics_frame_level.csv` (38.8 MB, MD5 `55c298d9edccc571f0ca0a3ec8e36fbd`) and `materials.zip` (39.4 GB, MD5 `2bf754879dc088c2cb648c5441c7d640`). The public record is [here](https://zenodo.org/records/18749190). The Lappa dataset record lists the 558-MB video corpus and CC BY 4.0 [here](https://pureportal.strath.ac.uk/en/datasets/data-for-vibrationally-aided-flow-of-lunar-regolith-simulant-in-a/). The Stepanova paper explicitly says that its sensor/video records are available by corresponding-author request [here](https://link.springer.com/article/10.1007/s44461-026-00021-y).
+
+Download attempts for the Wylęgała CSV and Lappa ZIP returned access errors in this authoring session. Accordingly no bytes, extracted labels, frame metrics or video analysis are committed. A public DOI is not evidence that the actual archive was downloaded, decoded, licensed for redistribution or validated. At ingestion:
+1. record exact retrieval timestamp, URL, license, filename and source DOI;
+2. verify any source-provided MD5 only as an integrity cross-check;
+3. calculate SHA-256 on the exact downloaded bytes and create a content-addressed artifact record;
+4. preserve the unmodified source archive; extract to a separate derived-data path;
+5. pin decoder, frame rate, crop/ROI, calibration, segmentation/model version and parameters;
+6. compare automated metrics with source-published summary tables and manually adjudicated frames;
+7. keep source material, batch, apparatus, pressure and test protocol boundaries intact.
+
+The CI source registry check only validates metadata and claim boundaries. It does not download, validate or qualify these datasets.
