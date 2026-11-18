@@ -1,0 +1,52 @@
+{
+  "target": {
+    "profile_id": "SYNTHETIC-TARGET",
+    "evidence_class": "synthetic_target_fixture",
+    "numeric": {
+      "froude_number": 0.001,
+      "cohesion_to_particle_weight": 0.2,
+      "wall_adhesion_to_particle_weight": 0.1,
+      "particle_to_drum_ratio": 0.0009,
+      "wall_roughness_to_particle_ratio": 0.1,
+      "fill_fraction": 0.25,
+      "gravity_m_s2": 9.81,
+      "chamber_pressure_pa": 0.08
+    },
+    "categorical": {
+      "atmosphere": "high_vacuum",
+      "wall_material": "PTFE",
+      "wall_grounding": "floating",
+      "flow_regime": "slumping"
+    }
+  },
+  "candidate": {
+    "profile_id": "SYNTHETIC-CANDIDATE",
+    "evidence_class": "synthetic_candidate_fixture",
+    "numeric": {
+      "froude_number": 0.0011,
+      "cohesion_to_particle_weight": 0.22,
+      "wall_adhesion_to_particle_weight": 0.09,
+      "particle_to_drum_ratio": 0.00095,
+      "wall_roughness_to_particle_ratio": 0.11,
+      "fill_fraction": 0.27,
+      "gravity_m_s2": 9.81,
+      "chamber_pressure_pa": 0.08
+    },
+    "categorical": {
+      "atmosphere": "high_vacuum",
+      "wall_material": "PTFE",
+      "wall_grounding": "floating",
+      "flow_regime": "slumping"
+    }
+  },
+  "tolerances": {
+    "froude_factor": 1.25,
+    "cohesion_factor": 1.25,
+    "wall_adhesion_factor": 1.25,
+    "particle_to_drum_factor": 1.2,
+    "wall_roughness_factor": 1.2,
+    "fill_fraction_absolute": 0.05,
+    "gravity_factor": 1.1,
+    "pressure_factor": 1.25
+  }
+}
