@@ -629,6 +629,36 @@ mod tests {
         assert!(validate_case(&case).is_err());
     }
 
+
+    const DIVERSE_FIXTURE: &str = include_str!("../../../docs/research/aviation/examples/synthetic_haps_fleet_weather_diverse_reserve_case_v1.json");
+
+    #[test]
+    fn weather_diverse_reserve_preserves_service_during_shared_haps_and_ground_outage() {
+        let case = parse_case_json(DIVERSE_FIXTURE.as_bytes()).unwrap();
+        let report = evaluate_case(&case).unwrap();
+        verify_expected_oracle(&report, &case.expected_oracle).unwrap();
+        assert_eq!(report.service_adequate_hours, 720.0);
+        assert_eq!(report.strict_service_availability_fraction, 1.0);
+        assert_eq!(report.demand_weighted_service_availability_fraction, 1.0);
+        assert_eq!(report.degraded_service_hours, 12.0);
+        assert!((report.minimum_service_capacity_units - 2.2).abs() < 1.0e-8);
+    }
+
+    #[test]
+    fn reserve_sharing_the_weather_event_restores_the_common_cause_outage() {
+        let mut case = parse_case_json(DIVERSE_FIXTURE.as_bytes()).unwrap();
+        let event = case.events.iter_mut()
+            .find(|event| event.event_id == "weather-main-domain-ground-outage")
+            .unwrap();
+        event.affected_node_ids.push("haps-d".to_owned());
+
+        let report = evaluate_case(&case).unwrap();
+        assert_eq!(report.total_outage_hours, 12.0);
+        assert_eq!(report.maximum_contiguous_outage_hours, 12.0);
+        assert!((report.minimum_service_capacity_units - 1.6).abs() < 1.0e-8);
+        assert!((report.capacity_deficit_units_hours - 4.8).abs() < 1.0e-8);
+    }
+
     #[test]
     fn shared_cause_must_be_named() {
         let mut case = case();
