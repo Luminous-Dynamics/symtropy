@@ -384,7 +384,9 @@
         "handover_success_fraction",
         "handover_p95_interruption_s_max",
         "handover_maximum_interruption_s_max",
-        "state_transfer_failures"
+        "state_transfer_failures",
+        "demand_weighted_capacity_satisfaction_units_hours",
+        "demand_weighted_capacity_satisfaction_fraction"
       ],
       "properties": {
         "oracle_status": {
@@ -492,6 +494,15 @@
         "state_transfer_failures": {
           "type": "integer",
           "minimum": 0
+        },
+        "demand_weighted_capacity_satisfaction_units_hours": {
+          "type": "number",
+          "minimum": 0
+        },
+        "demand_weighted_capacity_satisfaction_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         }
       }
     },
