@@ -2,12 +2,14 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use construction_motion_oracle::{
-    AnalyticPath, CapacityDemandClaim, CapacityReservation, CapacityResourceDefinition,
-    CumulativeCapacityScenario, DesignIntentEntity, DispatchEnvelopeBinding,
+    AnalyticPath, CapacityAvailabilityWindow, CapacityDemandClaim, CapacityReservation,
+    CapacityResourceDefinition, CumulativeCapacityScenario, DesignIntentEntity,
+    DispatchEnvelopeBinding,
     DispatchReadinessRequest, ExclusiveResourceClaim, FieldAcceptanceProfile,
     FieldLayoutEntityType, OccupancyAssessmentReceipt, SiteActorRole, SiteEventEnvelope,
-    SiteEventPayload, SiteResourceDefinition, SiteStateLedger, SiteWorkPackage,
-    SpaceTimeReservation, Vec3, evaluate_cumulative_resource_capacity,
+    RobustCumulativeCapacityScenario, SiteEventPayload, SiteResourceDefinition, SiteStateLedger,
+    SiteWorkPackage, SpaceTimeReservation, Vec3, evaluate_cumulative_resource_capacity,
+    evaluate_robust_cumulative_resource_capacity,
     chord_collision, check_dispatch_readiness, endpoints_only_collision,
     verify_dispatch_readiness_receipt_current,
 };
@@ -129,6 +131,7 @@ fn main() {
     run_site_dispatch_readiness_benchmarks();
     run_exclusive_resource_reservation_index_benchmarks();
     run_cumulative_resource_capacity_sweep_benchmarks();
+    run_robust_capacity_derating_benchmarks();
 }
 
 
@@ -603,6 +606,89 @@ fn build_cumulative_capacity_benchmark_scenario(claim_count: u64) -> CumulativeC
         site_clock_domain_id: "benchmark-site-clock".into(),
         resources,
         reservations,
+    }
+}
+
+fn build_robust_capacity_benchmark_scenario(
+    claim_count: u64,
+) -> RobustCumulativeCapacityScenario {
+    let base = build_cumulative_capacity_benchmark_scenario(claim_count);
+    let mut availability_windows = Vec::with_capacity(base.resources.len() * 3);
+    for definition in &base.resources {
+        availability_windows.extend([
+            CapacityAvailabilityWindow {
+                resource_id: definition.resource_id.clone(),
+                resource_definition_sha256: definition.definition_sha256.clone(),
+                site_snapshot_sha256: base.site_snapshot_sha256.clone(),
+                capacity_owner_id: format!("owner:{}", definition.resource_id),
+                evidence_receipt_sha256: benchmark_digest(2_000_000 + availability_windows.len() as u64),
+                start_tick: 1_000,
+                end_tick: 2_500,
+                lower_capacity_units: 6,
+                nominal_capacity_units: 7,
+                upper_capacity_units: 8,
+            },
+            CapacityAvailabilityWindow {
+                resource_id: definition.resource_id.clone(),
+                resource_definition_sha256: definition.definition_sha256.clone(),
+                site_snapshot_sha256: base.site_snapshot_sha256.clone(),
+                capacity_owner_id: format!("owner:{}", definition.resource_id),
+                evidence_receipt_sha256: benchmark_digest(2_000_000 + availability_windows.len() as u64),
+                start_tick: 2_500,
+                end_tick: 4_000,
+                lower_capacity_units: 3,
+                nominal_capacity_units: 5,
+                upper_capacity_units: 6,
+            },
+            CapacityAvailabilityWindow {
+                resource_id: definition.resource_id.clone(),
+                resource_definition_sha256: definition.definition_sha256.clone(),
+                site_snapshot_sha256: base.site_snapshot_sha256.clone(),
+                capacity_owner_id: format!("owner:{}", definition.resource_id),
+                evidence_receipt_sha256: benchmark_digest(2_000_000 + availability_windows.len() as u64),
+                start_tick: 4_000,
+                end_tick: 6_000,
+                lower_capacity_units: 5,
+                nominal_capacity_units: 6,
+                upper_capacity_units: 8,
+            },
+        ]);
+    }
+    RobustCumulativeCapacityScenario {
+        base,
+        availability_windows,
+    }
+}
+
+fn run_robust_capacity_derating_benchmarks() {
+    println!(
+        "robust_capacity_derating,claim_count,capacity_windows,p50_us,p95_us,p99_us,boundary_count,indeterminate_segments,definitely_over_segments,robustly_feasible"
+    );
+    for claim_count in [100_u64, 1_000, 10_000, 100_000] {
+        let scenario = build_robust_capacity_benchmark_scenario(claim_count);
+        let mut durations = Vec::with_capacity(21);
+        let mut last_report = None;
+        for _ in 0..21 {
+            let start = Instant::now();
+            let report = evaluate_robust_cumulative_resource_capacity(black_box(&scenario))
+                .expect("synthetic robust-capacity scenario must validate");
+            durations.push(start.elapsed());
+            last_report = Some(report);
+        }
+        durations.sort_unstable();
+        let report = last_report.expect("at least one robust capacity sample");
+        println!(
+            "{},{},{},{},{},{},{},{},{},{}",
+            claim_count,
+            scenario.availability_windows.len(),
+            percentile(&durations, 50).as_micros(),
+            percentile(&durations, 95).as_micros(),
+            percentile(&durations, 99).as_micros(),
+            report.total_boundary_count,
+            report.indeterminate_segment_count,
+            report.definitely_over_capacity_segment_count,
+            report.is_robustly_feasible
+        );
     }
 }
 
