@@ -991,7 +991,10 @@ fn validate_proposal(
             );
         }
         if fact.kind == CulinaryFactKindV1::Price
-            && !matches!(fact.scope, FactScopeV1::ProductSku | FactScopeV1::SupplierLot)
+            && !matches!(
+                fact.scope,
+                FactScopeV1::ProductSku | FactScopeV1::SupplierLot
+            )
         {
             add_issue(
                 issues,
@@ -1001,7 +1004,10 @@ fn validate_proposal(
             );
         }
         if fact.kind == CulinaryFactKindV1::Availability
-            && !matches!(fact.scope, FactScopeV1::ProductSku | FactScopeV1::SupplierLot)
+            && !matches!(
+                fact.scope,
+                FactScopeV1::ProductSku | FactScopeV1::SupplierLot
+            )
         {
             add_issue(
                 issues,
@@ -1195,7 +1201,9 @@ fn validate_task_bindings(
             );
         }
         if binding.schedule.dependencies.iter().any(|dependency| {
-            dependency.max_lag_ms.is_some_and(|maximum| maximum < dependency.min_lag_ms)
+            dependency
+                .max_lag_ms
+                .is_some_and(|maximum| maximum < dependency.min_lag_ms)
         }) {
             add_issue(
                 issues,
@@ -1204,7 +1212,9 @@ fn validate_task_bindings(
                 "dependency maximum lag cannot be less than its minimum lag",
             );
         }
-        if binding.schedule.earliest_start_ms
+        if binding
+            .schedule
+            .earliest_start_ms
             .zip(binding.schedule.latest_finish_ms)
             .is_some_and(|(earliest, latest)| {
                 binding.schedule.duration_ms > latest.saturating_sub(earliest)
@@ -1275,7 +1285,12 @@ fn validate_task_bindings(
             );
         }
         let mut resource_ids = BTreeSet::new();
-        if binding.schedule.resource_ids.iter().any(|id| !resource_ids.insert(id.as_str())) {
+        if binding
+            .schedule
+            .resource_ids
+            .iter()
+            .any(|id| !resource_ids.insert(id.as_str()))
+        {
             add_issue(
                 issues,
                 MealCompilationIssueCodeV1::DuplicatePlanningResource,
