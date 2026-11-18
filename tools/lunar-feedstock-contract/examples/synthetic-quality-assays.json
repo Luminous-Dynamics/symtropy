@@ -1,0 +1,20 @@
+{
+  "evidence_class": "synthetic_fixture_only",
+  "samples": [
+    {
+      "sample_id": "Q-SEP-001",
+      "stream_id": "S3-ANORTHITE-PRODUCT",
+      "point": "separator_outlet",
+      "plagioclase_mass_fraction": 0.706,
+      "target_size_mass_fraction": 0.95
+    },
+    {
+      "sample_id": "Q-REACTOR-001",
+      "stream_id": "S5-REACTOR-INLET",
+      "point": "reactor_inlet",
+      "plagioclase_mass_fraction": 0.72,
+      "target_size_mass_fraction": 0.95
+    }
+  ],
+  "notes": "Illustrative assays only; no XRD or particle-size instrument operated."
+}
