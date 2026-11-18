@@ -613,17 +613,30 @@ pub fn simulate_with_bias_mode(
         } else {
             profile.run_duration_unconditional_s.sample(&mut rng)
         };
-        let mut remaining_run_s = run_duration;
+        let run_end_time_s = state.elapsed_s + run_duration;
+        if !run_end_time_s.is_finite() {
+            return Err(SimulationError::NonFiniteTrajectory);
+        }
+        if run_end_time_s <= state.elapsed_s {
+            return Err(SimulationError::IntegrationStepDidNotAdvance);
+        }
+
         let mut integration_steps = 0;
-        while remaining_run_s > 0.0 {
+        while state.elapsed_s < run_end_time_s {
             if integration_steps >= MAX_INTEGRATION_STEPS_PER_RUN {
                 return Err(SimulationError::IntegrationStepBudgetExceeded);
             }
-            let step_s = remaining_run_s.min(profile.integration_step_s);
-            let next_remaining_run_s = remaining_run_s - step_s;
-            if next_remaining_run_s == remaining_run_s {
+            let remaining_run_s = run_end_time_s - state.elapsed_s;
+            let nominal_step_s = remaining_run_s.min(profile.integration_step_s);
+            let next_elapsed_s = if remaining_run_s <= profile.integration_step_s {
+                run_end_time_s
+            } else {
+                state.elapsed_s + nominal_step_s
+            };
+            if !next_elapsed_s.is_finite() || next_elapsed_s <= state.elapsed_s {
                 return Err(SimulationError::IntegrationStepDidNotAdvance);
             }
+            let step_s = next_elapsed_s - state.elapsed_s;
             let angular_std = (2.0 * profile.rotational_diffusion_rad2_s * step_s).sqrt();
             let angular_increment = angular_std * rng.next_standard_normal();
             let midpoint_heading = wrap_angle(state.heading_rad + 0.5 * angular_increment);
@@ -631,7 +644,7 @@ pub fn simulate_with_bias_mode(
             state.x_um += distance * midpoint_heading.cos();
             state.y_um += distance * midpoint_heading.sin();
             state.heading_rad = wrap_angle(state.heading_rad + angular_increment);
-            state.elapsed_s += step_s;
+            state.elapsed_s = next_elapsed_s;
             if !state.is_valid() {
                 return Err(SimulationError::NonFiniteTrajectory);
             }
@@ -640,7 +653,6 @@ pub fn simulate_with_bias_mode(
                 x_um: state.x_um,
                 y_um: state.y_um,
             });
-            remaining_run_s = next_remaining_run_s;
             integration_steps += 1;
         }
 
@@ -1211,15 +1223,14 @@ mod tests {
 
     #[test]
     fn non_advancing_integration_step_fails_closed() {
-        let mut profile = steering_profile();
-        profile.integration_step_s = 1.0e-300;
-        let result = simulate(
-            &profile,
-            AgentState::new(0.0, 0.0, 0.0),
-            0.0,
-            1,
-            1,
-        );
+        let profile = steering_profile();
+        let initial = AgentState {
+            x_um: 0.0,
+            y_um: 0.0,
+            heading_rad: 0.0,
+            elapsed_s: 1.0e300,
+        };
+        let result = simulate(&profile, initial, 0.0, 1, 1);
         assert_eq!(result, Err(SimulationError::IntegrationStepDidNotAdvance));
     }
 
