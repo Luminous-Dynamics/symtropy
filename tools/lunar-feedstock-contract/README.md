@@ -161,7 +161,7 @@ For each mineral phase it reports:
 u_{\Delta x}=\sqrt{u_{to}^{2}+u_{from}^{2}}
 ]
 
-A change is labelled resolved increase/decrease only when the one-standard-uncertainty interval excludes zero. Otherwise it is indeterminate. Unknown measurements remain unknown. This is a descriptive paired-assay comparison, not a causal test that transfer or segregation caused the change.
+A change is labelled resolved increase/decrease only when the one-standard-uncertainty interval excludes zero. Otherwise it is indeterminate. Unknown measurements remain unknown, and values are never subtracted across different or missing units. This is a descriptive paired-assay comparison, not a causal test that transfer or segregation caused the change.
 
 PSD bins are compared only when the source and destination assays use matching bin edges. Different partitions return `incompatible_bin_partitions`; the program does not interpolate or pretend that unmatched bins are equivalent. The report separately compares the process target-size fraction and preserves each bin's own interval.
 
