@@ -46,6 +46,25 @@ jq -e '
   and (.artifacts | type == "array" and length >= 1)
 ' "$run_path" >/dev/null || fail "run identity or required collections invalid"
 
+jq -e '
+  . as $r
+  | ([ $r.acceptance_profile.phase_constraints[].phase_id ] | length == (unique | length))
+    and all($r.acceptance_profile.phase_constraints[];
+      (.minimum_mass_fraction != null or .maximum_mass_fraction != null)
+      and (.minimum_mass_fraction == null or (.minimum_mass_fraction >= 0 and .minimum_mass_fraction <= 1))
+      and (.maximum_mass_fraction == null or (.maximum_mass_fraction >= 0 and .maximum_mass_fraction <= 1))
+      and (.minimum_mass_fraction == null or .maximum_mass_fraction == null
+           or .minimum_mass_fraction <= .maximum_mass_fraction))
+    and ([ $r.acceptance_profile.property_constraints[].property_id ] | length == (unique | length))
+    and all($r.acceptance_profile.property_constraints[];
+      (.minimum_value != null or .maximum_value != null)
+      and (.unit | type == "string" and length > 0)
+      and (.test_condition_id | type == "string" and length > 0)
+      and (.minimum_value == null or (.minimum_value | type == "number"))
+      and (.maximum_value == null or (.maximum_value | type == "number"))
+      and (.minimum_value == null or .maximum_value == null or .minimum_value <= .maximum_value))
+' "$run_path" >/dev/null || fail "acceptance profile constraints are duplicate, incomplete or unordered"
+
 run_dir="$(cd -- "$(dirname "$run_path")" && pwd -P)"
 
 jq -e '
@@ -242,6 +261,32 @@ jq -e '
              or any($r.artifacts[];
                .artifact_id == $sample.uncertainty_budget_artifact_id and .role == "uncertainty_budget")))
 ' "$run_path" >/dev/null || fail "stream or quality-sample artifact pointer/role is invalid"
+
+jq -e '
+  . as $r
+  | all($r.quality_samples[];
+      all(.property_measurements[];
+        if .measurement.status == "unknown" then
+          .measurement.value == null
+          and .measurement.standard_uncertainty == null
+        elif .measurement.status == "measured" then
+          ((.measurement.value | type) == "number")
+          and ((.measurement.standard_uncertainty | type) == "number" and .measurement.standard_uncertainty >= 0)
+          and (.measurement.source_artifact_id | type == "string" and length > 0)
+          and any($r.artifacts[]; .artifact_id == .measurement.source_artifact_id)
+          and (.measurement.calibration_record_id | type == "string" and length > 0)
+          and any($r.artifacts[];
+            .artifact_id == .measurement.calibration_record_id and .role == "calibration_record")
+        elif .measurement.status == "published" or .measurement.status == "estimated" then
+          ((.measurement.value | type) == "number")
+          and ((.measurement.standard_uncertainty | type) == "number" and .measurement.standard_uncertainty >= 0)
+          and (.measurement.source_artifact_id | type == "string" and length > 0)
+          and any($r.artifacts[]; .artifact_id == .measurement.source_artifact_id)
+        elif .measurement.status == "synthetic" then
+          ((.measurement.value | type) == "number")
+          and ((.measurement.standard_uncertainty | type) == "number" and .measurement.standard_uncertainty >= 0)
+        else false end))
+' "$run_path" >/dev/null || fail "property assay measurement or calibration provenance is invalid"
 
 jq -e --slurpfile mass "$run_dir/$mass_artifact_path" '
   . as $r
