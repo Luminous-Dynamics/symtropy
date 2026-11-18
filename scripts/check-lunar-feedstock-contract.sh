@@ -371,4 +371,12 @@ make_negative "tampered expected artifact digest" '
   .artifacts[0].sha256 = ("0" + .artifacts[0].sha256[1:])
 '
 
+make_negative "output stream claims a parent not present in its creating operation inputs" '
+  (.material_streams[] | select(.stream_id == "S5-REACTOR-INLET") | .parent_stream_ids) = ["S4-BASALT-REJECT"]
+'
+
+make_negative "required thermal property is absent but final result remains in-spec" '
+  .acceptance_profile.required_properties = ["thermal_properties"]
+'
+
 printf 'lunar feedstock contract: PASS (synthetic chain only; no physical process qualification)\n'
