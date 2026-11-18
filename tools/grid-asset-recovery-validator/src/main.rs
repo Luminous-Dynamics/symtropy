@@ -288,7 +288,7 @@ fn validate(case: &Case) -> Vec<String> {
             }
         }
 
-        let is_depot_stock = matches!(plan.part_source, PartSource::DepotStock { .. });
+        let is_depot_stock = matches!(&plan.part_source, PartSource::DepotStock { .. });
         for task in &plan.tasks {
             let dependency_has_stage = |required_stage: &str| {
                 task.depends_on.iter().any(|dependency| {
