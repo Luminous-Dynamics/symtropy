@@ -36,7 +36,7 @@ fn calculate_mass_range(
     })
 }
 
-fn render_report_json() -> Result<String, String> {
+pub(super) fn render_report_json() -> Result<String, String> {
     // These bulk-density ranges apply only to their declared geological classes.
     // They are not site-specific measurements and are not interchangeable.
     let highland_crust = DensityRange {
