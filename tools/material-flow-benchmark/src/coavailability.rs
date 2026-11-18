@@ -641,7 +641,7 @@ mod tests {
         test.carrier.route_stops[1].departure_latest_ms = 1_700_000;
         let report = evaluate_coavailability(&test).expect("valid structure");
         assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
-        assert!(report.findings.iter().any(|finding| finding.contains("rendezvous")));
+        assert!(report.findings.iter().any(|finding| finding.contains("no launch time")));
     }
 
     #[test]
