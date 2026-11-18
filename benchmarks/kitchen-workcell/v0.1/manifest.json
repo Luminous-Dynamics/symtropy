@@ -657,6 +657,31 @@
       ],
       "safety_boundary": "Advisory planning only. Never restart pressure, heat, blade or other safety-relevant operations. Unknown or stale physical state blocks continuation and requires local-controller evidence or manual/qualified review.",
       "control_condition": "Compare manual baseline, deterministic fixed-rule recovery, abort/no-replan baseline and Symtropy resilience planner on identical frozen feasible and infeasible disturbances. Include unknown-state, stale-revision, network restoration and partial-progress negative controls."
+    },
+    {
+      "task_id": "workflow-module-capability-conformance",
+      "domain": "workflow",
+      "operation": "evaluate exact hardware/firmware module manifests for semantic compatibility and evidence-bounded admission to kitchen task graphs",
+      "input_manifest_required": [
+        "vendor/model/SKU/type-plate and market region",
+        "exact hardware and firmware revision",
+        "versioned module capability manifest and digest",
+        "task action/material-flow requirements",
+        "electrical/water/resource envelopes",
+        "container/fixture interface revision",
+        "evidence and calibration references",
+        "adapter and conformance-suite revision"
+      ],
+      "primary_metrics": [
+        "module_manifest_false_admission_rate",
+        "module_exact_revision_rejection_rate",
+        "module_cross_vendor_task_compatibility_coverage",
+        "module_onboarding_effort_hours",
+        "module_safe_state_observability_coverage",
+        "module_firmware_change_revalidation_rate"
+      ],
+      "safety_boundary": "Manifest evaluation is planning admission only. It never supplies appliance commands or transfers pressure, thermal, blade, lid, electrical or other safety authority from the module-local controller.",
+      "control_condition": "Compare human-reviewed manual compatibility, manufacturer declarations, generic smart-appliance capability exposure and the versioned KMCM evaluator on an identical held-out exact-revision module/task matrix with stale, missing and adversarial manifests."
     }
   ],
   "metrics": [
@@ -1363,6 +1388,54 @@
       "method": "Count output/task records retaining a complete provenance link to original human intent, affected proposal/task revision, disturbance record and explicit human-approved partial/substitute decision.",
       "evidence_class": "simulated",
       "notes": "A replan must not silently redefine success."
+    },
+    {
+      "metric_id": "module_manifest_false_admission_rate",
+      "unit": "fraction",
+      "denominator": "all adversarial manifest/task combinations where at least one required capability, revision, resource or evidence field is absent, stale, mismatched or unsupported",
+      "method": "Count candidates admitted despite a required blocker or unknown being present; evaluate against an independently adjudicated gold manifest/task suite.",
+      "evidence_class": "simulated",
+      "notes": "Critical false-admission metric; target zero on the frozen adversarial conformance suite."
+    },
+    {
+      "metric_id": "module_exact_revision_rejection_rate",
+      "unit": "fraction",
+      "denominator": "all candidates containing stale, revoked or mismatched hardware, firmware, adapter or capability-manifest revisions",
+      "method": "Count all incompatible revision candidates correctly rejected or made indeterminate; report block versus unknown classification separately.",
+      "evidence_class": "simulated",
+      "notes": "Every admission receipt must bind exact relevant revisions."
+    },
+    {
+      "metric_id": "module_cross_vendor_task_compatibility_coverage",
+      "unit": "fraction",
+      "denominator": "all predeclared task/module pairs in the held-out vendor capability-manifest conformance set",
+      "method": "Count independently reviewable pairs that pass typed semantic compatibility for the same task-family contract; do not count a vendor device with missing evidence as compatible.",
+      "evidence_class": "simulated",
+      "notes": "Report by task family, vendor, hardware/firmware revision and reason for exclusions."
+    },
+    {
+      "metric_id": "module_onboarding_effort_hours",
+      "unit": "hours",
+      "denominator": "each new exact hardware/firmware module revision added to the conformance corpus",
+      "method": "Measure engineer/lab hours from receipt of type-plate and source documents to a valid manifest, conformance report and reproducible admission fixture; include failed attempts.",
+      "evidence_class": "measured",
+      "notes": "Physical onboarding effort requires time-study evidence; synthetic estimates are not measured."
+    },
+    {
+      "metric_id": "module_safe_state_observability_coverage",
+      "unit": "fraction",
+      "denominator": "all safety-relevant task/module states required by the frozen state-observability contract",
+      "method": "Count states that can be independently observed with valid, fresh, revision-bound evidence; missing states remain unknown.",
+      "evidence_class": "simulated",
+      "notes": "Observability does not grant safety authority or prove sensor truth."
+    },
+    {
+      "metric_id": "module_firmware_change_revalidation_rate",
+      "unit": "fraction",
+      "denominator": "all simulated firmware/hardware revision changes that affect one or more declared capabilities",
+      "method": "Count changes that invalidate dependent admission receipts and require a fresh exact-revision conformance result before reuse.",
+      "evidence_class": "simulated",
+      "notes": "No downstream receipt may silently survive a relevant capability revision change."
     }
   ],
   "target_hypotheses": [
@@ -1854,6 +1927,48 @@
         "a replan silently changes the requested meal or serving count",
         "a substitute is not explicitly approved",
         "the old compilation is overwritten rather than invalidated and superseded"
+      ]
+    },
+    {
+      "hypothesis_id": "H-MODULE-FALSE-ADMISSION-ZERO",
+      "metric_id": "module_manifest_false_admission_rate",
+      "target": "0 false admissions on the frozen adversarial exact-revision manifest/task suite.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any stale, missing, contradictory or unsupported required field is treated as qualified",
+        "unknown evidence is promoted to measured or independently qualified",
+        "generic device type is mistaken for task-specific capability"
+      ]
+    },
+    {
+      "hypothesis_id": "H-MODULE-REVISION-100",
+      "metric_id": "module_exact_revision_rejection_rate",
+      "target": "1.000 rejection or indeterminate disposition for exact hardware, firmware, adapter or capability-manifest mismatches.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any changed relevant firmware or hardware revision reuses an old admission receipt",
+        "manufacturer/model match is used instead of exact revision binding"
+      ]
+    },
+    {
+      "hypothesis_id": "H-MODULE-COMPAT-900",
+      "metric_id": "module_cross_vendor_task_compatibility_coverage",
+      "target": ">=0.900 semantic compatibility coverage across eligible, fully evidenced vendor/task pairs in the held-out common task-family suite; report coverage and false admissions separately.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "task or vendor families are selected after results are seen",
+        "missing evidence is treated as compatibility",
+        "a shared transport protocol is mistaken for physical/mechanical interchangeability"
+      ]
+    },
+    {
+      "hypothesis_id": "H-MODULE-FIRMWARE-INVALIDATION-100",
+      "metric_id": "module_firmware_change_revalidation_rate",
+      "target": "1.000 of capability-affecting revision changes invalidate dependent admission evidence until requalified.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "a relevant revision change leaves a dependent admission valid",
+        "the new manifest is not linked to exact hardware/firmware identity"
       ]
     }
   ],
