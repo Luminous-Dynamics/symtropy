@@ -28,7 +28,7 @@ jobs:
           components: clippy
 
       - name: Install JSON Schema validator
-        run: python3 -m pip install 'jsonschema>=4.20,<5'
+        run: python3 -m pip install 'jsonschema==4.26.0'
 
       - name: Validate JSON syntax and JSON Schema contracts
         run: |
