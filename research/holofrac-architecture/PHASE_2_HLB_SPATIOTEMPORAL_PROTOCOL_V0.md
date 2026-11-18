@@ -435,3 +435,43 @@ Report:
 - all missing/contradictory/rejected states.
 
 The finite lifecycle fixture's present current-evidence graph is synthetic and explicitly complete by construction. It is not evidence that a real building inventory is complete. Source-manifest integration and adapter-level dependency enumeration remain required before any real project claim.
+
+
+## 15. External benchmark and standards qualification map
+
+Symtropy issue #6007 establishes an external qualification suite:
+https://github.com/Luminous-Dynamics/symtropy/issues/6007
+
+The benchmark system must be layered. A result in one layer does not qualify the others.
+
+### Exchange and information requirements
+
+Use buildingSMART IDS 1.0 for machine-readable IFC information requirements: entity applicability, attributes, classifications, property sets, materials, values and supported relationships. IDS is useful for exchange/data completeness, but its first version does not perform geometry/clash checks, calculated/dynamic-value checks or checks that require external data. Pair IDS with exact geometry/physics oracles and source/receipt checks.
+
+### Geometry and building simulation
+
+Use ASHRAE Standard 140 for applicable first-principles building-performance simulation software. The 2023 edition adds weather-data interpretation tests to the existing 2020 cases. Do not claim ASHRAE 140 qualification for a learned HDC/CfC predictor merely because it forecasts energy or temperature: the standard's test methods are primarily for first-principles simulation software, and its user manual identifies data-driven models as out of scope for some methods.
+
+### Operational building control
+
+Use BOPTEST as the external benchmark for building-control strategies and fault detection. Its Modelica building emulators, standardized sensor/actuator API and KPI reporting provide a stronger matched test than a private synthetic control environment. Compare schedules/rule-based control (including ASHRAE Guideline 36 sequences where applicable), MPC, robust/stochastic MPC where supported, published learned/RL controllers and HLB-assisted policies using identical test cases, weather, occupancy, actuators, constraints, evaluation horizon and cost/comfort metrics.
+
+The 15 October 2026 scoping review of operational building twins filtered 2,301 records and retained 37 deployments with real-time connectivity, physical instrumentation and operational use. It reported 48.6% descriptive systems, 24.3% prescriptive systems and quantitative outcomes in only 27% of the corpus; prescriptive studies reported quantified outcomes roughly four times as often as descriptive ones. Treat this as a maturity/evidence benchmark: HoloFrac should not call a simulation-only artifact an operational twin or claim real outcomes without measured deployment evidence.
+
+### Circular design and disassembly
+
+Use ISO 20887:2020 as the design-for-disassembly and adaptability principles/guidance reference. ISO reviewed and confirmed it in June 2025; it remains current. It does not set universal numeric performance levels, so HoloFrac must declare measurable thresholds for disassembly sequence feasibility, access, damage, recovery, reuse compatibility and retained function. Use BCEF's separate circularity indicators—GWP, land use, reused content, disassembly potential, functional adaptation and product-service systems—rather than a single unconstrained scalar.
+
+### Qualification matrix
+
+Map every HoloFrac claim to one of:
+1. Exchange: IFC round-trip, IDS checks, stable IDs, units/frames and unmapped semantics.
+2. Geometry/physics: analytic controls, numerical convergence, geometry invariants and independent solver tests.
+3. Forecast: held-out time/space accuracy, probabilistic calibration, missing/delayed/corrupted observations and no knowledge-time leakage.
+4. Control/decision: BOPTEST matched controllers, cost/comfort trade-offs, calibrated value of information, safe failure and occupant override.
+5. Lifecycle: ISO 20887 principles, BCEF indicators, exact component lineage, disassembly/recovery evidence and material mass balance.
+6. Evidence: exact source manifests, solver-input/result receipts, zero false-current status, selective invalidation and independent oracle agreement.
+
+All external comparisons must freeze versions, datasets/test cases, weather, occupancy, geometry, functional units, system boundaries, fidelity, resource budgets and seeds. Split by complete buildings/projects, climate zones, component families and temporal episodes. Publish per-case raw outputs, failed/infeasible/timeouts and toolchain/source manifests.
+
+Prospective targets in #6007 are research goals, not achieved results: zero false-current evidence and admitted hard-infeasible control actions; non-inferior comfort/fault safety plus at least 10% lower energy/cost on a predeclared BOPTEST case; at least 20% fewer high-fidelity evaluations than the strongest matched experiment-selection baseline at non-inferior Pareto quality; and 100% identity/mass/oracle correctness on finite lifecycle fixtures.
