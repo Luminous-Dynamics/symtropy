@@ -57,6 +57,15 @@ jq -e '
   and .vibration_assisted_feeder_source_reconstruction.proposed_gamma_threshold_screen.unique_cells == 800
   and (.vibration_assisted_feeder_source_reconstruction.proposed_gamma_threshold_screen.cells | length) == 800
   and all(.vibration_assisted_feeder_source_reconstruction.proposed_gamma_threshold_screen.cells[]; .execution_status == "planned_not_run")
+  and .lhs1_ground_hopper_regime_extension.unique_cells == 63
+  and (.lhs1_ground_hopper_regime_extension.cells | length) == 63
+  and ([.lhs1_ground_hopper_regime_extension.cells[].test_id] | length == (unique | length))
+  and all(.lhs1_ground_hopper_regime_extension.cells[]; .execution_status == "planned_not_run")
+  and ([.lhs1_ground_hopper_regime_extension.cells[].target_gamma] | unique | length) == 7
+  and ([.lhs1_ground_hopper_regime_extension.cells[].frequency_band] | unique | sort)
+      == ["high", "low", "middle"]
+  and ([.lhs1_ground_hopper_regime_extension.cells[].charge_mass_role] | unique | sort)
+      == ["0.25_rated_mass", "0.50_rated_mass", "1.00_rated_mass"]
   and .vibration_assisted_feeder_source_reconstruction.proposed_segregation_shear_cell.unique_cells == 90
   and (.vibration_assisted_feeder_source_reconstruction.proposed_segregation_shear_cell.cells | length) == 90
   and all(.vibration_assisted_feeder_source_reconstruction.proposed_segregation_shear_cell.cells[]; .execution_status == "planned_not_run")
