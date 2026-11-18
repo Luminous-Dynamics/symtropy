@@ -47,6 +47,10 @@ pub enum CovarianceError {
     InvalidSensorOrder,
     TraceSensorOrderMismatch,
     TraceTimeScheduleMismatch,
+    TraceProcessIdentityMismatch,
+    TraceSamplingPolicyMismatch,
+    TraceOperatorMismatch,
+    TraceAvailabilityCutoffMismatch,
 }
 
 impl fmt::Display for CovarianceError {
@@ -80,6 +84,10 @@ impl fmt::Display for CovarianceError {
             Self::InvalidSensorOrder => write!(f, "sensor IDs must be non-empty and unique"),
             Self::TraceSensorOrderMismatch => write!(f, "bound covariance sensor order does not match the observation trace"),
             Self::TraceTimeScheduleMismatch => write!(f, "bound covariance time schedule does not match the observation trace"),
+            Self::TraceProcessIdentityMismatch => write!(f, "bound covariance observation process does not match the observation trace"),
+            Self::TraceSamplingPolicyMismatch => write!(f, "bound covariance sampling policy does not match the observation trace"),
+            Self::TraceOperatorMismatch => write!(f, "bound covariance observation operator does not match the observation trace"),
+            Self::TraceAvailabilityCutoffMismatch => write!(f, "bound covariance availability cutoff does not match the observation trace"),
         }
     }
 }
@@ -275,14 +283,64 @@ impl ObservationCovarianceV1 {
         &self.covariance
     }
 
-    fn validate_trace(&self, trace: &ObservedSensorTrace) -> Result<(), CovarianceError> {
-        if self.sensor_ids != trace.sensor_ids {
+    fn validate_trace(&self, trace: &ObservationProcessTraceV1) -> Result<(), CovarianceError> {
+        if self.observation_process_id != trace.observation_process_id {
+            return Err(CovarianceError::TraceProcessIdentityMismatch);
+        }
+        if self.sampling_policy_id != trace.sampling_policy_id {
+            return Err(CovarianceError::TraceSamplingPolicyMismatch);
+        }
+        if self.observation_operator_id != trace.observation_operator_id {
+            return Err(CovarianceError::TraceOperatorMismatch);
+        }
+        if self.availability_cutoff_id != trace.availability_cutoff_id {
+            return Err(CovarianceError::TraceAvailabilityCutoffMismatch);
+        }
+        if self.sensor_ids != trace.trace.sensor_ids {
             return Err(CovarianceError::TraceSensorOrderMismatch);
         }
-        if self.times != trace.times {
+        if self.times != trace.trace.times {
             return Err(CovarianceError::TraceTimeScheduleMismatch);
         }
         Ok(())
+    }
+}
+
+/// Versioned candidate-visible observation trace metadata. These caller-supplied
+/// references are compared to the covariance binding before any model scoring.
+/// They are identifiers, not authenticated claims; an upstream evidence layer
+/// must verify the referenced manifests and event receipts.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ObservationProcessTraceV1 {
+    pub observation_process_id: String,
+    pub sampling_policy_id: String,
+    pub observation_operator_id: String,
+    pub availability_cutoff_id: String,
+    pub trace: ObservedSensorTrace,
+}
+
+impl ObservationProcessTraceV1 {
+    pub fn new(
+        observation_process_id: String,
+        sampling_policy_id: String,
+        observation_operator_id: String,
+        availability_cutoff_id: String,
+        trace: ObservedSensorTrace,
+    ) -> Result<Self, CovarianceError> {
+        if observation_process_id.trim().is_empty()
+            || sampling_policy_id.trim().is_empty()
+            || observation_operator_id.trim().is_empty()
+            || availability_cutoff_id.trim().is_empty()
+        {
+            return Err(CovarianceError::InvalidObservationIdentity);
+        }
+        Ok(Self {
+            observation_process_id,
+            sampling_policy_id,
+            observation_operator_id,
+            availability_cutoff_id,
+            trace,
+        })
     }
 }
 
@@ -474,13 +532,15 @@ pub fn evaluate_model_family_adequacy_full_covariance(
     scenario: &ProfiledModelFamilyScenario,
     profile: &InputProfile,
     selected_sensor_ids: &[u32],
-    observations: &ObservedSensorTrace,
+    observations: &ObservationProcessTraceV1,
     covariance: &ObservationCovarianceV1,
     policy: ModelFamilyAdequacyPolicy,
 ) -> Result<ObservationProcessAdequacyReportV1, NoiseRobustnessError> {
     scenario
         .validate()
         .map_err(NoiseRobustnessError::Profiled)?;
+    covariance.validate_trace(observations)?;
+    let observations = &observations.trace;
     if !policy.maximum_gaussian_residual.is_finite()
         || policy.maximum_gaussian_residual < 0.0
     {
@@ -532,7 +592,6 @@ pub fn evaluate_model_family_adequacy_full_covariance(
         ));
     }
 
-    covariance.validate_trace(observations)?;
     let expected_dimension = observations
         .times
         .len()
@@ -962,15 +1021,25 @@ mod tests {
             covariance,
         )
         .unwrap();
-        let matching = ObservedSensorTrace {
-            sensor_ids: vec![7],
-            times: vec![0.25, 0.5],
-            values: vec![vec![0.0], vec![0.0]],
-        };
+        let matching = ObservationProcessTraceV1::new(
+            "noise-process:ar1-rho-0.8".to_owned(),
+            "sampling-policy:two-evenly-spaced-times".to_owned(),
+            "operator:scalar-node-sensor".to_owned(),
+            "availability:cutoff-v1".to_owned(),
+            ObservedSensorTrace {
+                sensor_ids: vec![7],
+                times: vec![0.25, 0.5],
+                values: vec![vec![0.0], vec![0.0]],
+            },
+        )
+        .unwrap();
         assert!(binding.validate_trace(&matching).is_ok());
 
-        let reordered = ObservedSensorTrace {
-            sensor_ids: vec![8],
+        let reordered = ObservationProcessTraceV1 {
+            trace: ObservedSensorTrace {
+                sensor_ids: vec![8],
+                ..matching.trace.clone()
+            },
             ..matching.clone()
         };
         assert_eq!(
@@ -978,8 +1047,11 @@ mod tests {
             Err(CovarianceError::TraceSensorOrderMismatch)
         );
 
-        let shifted = ObservedSensorTrace {
-            times: vec![0.25, 0.75],
+        let shifted = ObservationProcessTraceV1 {
+            trace: ObservedSensorTrace {
+                times: vec![0.25, 0.75],
+                ..matching.trace.clone()
+            },
             ..matching
         };
         assert_eq!(
@@ -1067,11 +1139,18 @@ mod tests {
         let mut values = model_one.observations.clone();
         values[0][0] += 1.0;
         values[1][0] -= 0.2;
-        let trace = ObservedSensorTrace {
-            sensor_ids: vec![10],
-            times: vec![0.25, 0.5],
-            values,
-        };
+        let trace = ObservationProcessTraceV1::new(
+            "process:gaussian-ar1-rho-0.8".to_owned(),
+            "sampling:two-times".to_owned(),
+            "operator:node-0-sensor".to_owned(),
+            "availability:fixture-cutoff".to_owned(),
+            ObservedSensorTrace {
+                sensor_ids: vec![10],
+                times: vec![0.25, 0.5],
+                values,
+            },
+        )
+        .unwrap();
         let covariance = ObservationCovarianceV1::new(
             "covariance:ar1-fixture".to_owned(),
             "process:gaussian-ar1-rho-0.8".to_owned(),
