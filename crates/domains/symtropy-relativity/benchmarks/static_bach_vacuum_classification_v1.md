@@ -171,3 +171,27 @@ The positivity proof uses
 whose factors are positive/nonnegative on the declared annulus. This confirms the entire MK reference annulus lies in the static chart, not merely the two sampled endpoints.
 
 This Lean file is authored and has not been compiled. The full differential integration, equivalence of the reduced projections to all covariant components, and the complete classification theorem remain in #6048.
+
+
+## 9. Kernel-checkable coefficient-manifold facts
+
+The Lean coefficient fixture now also proves that the gradient of
+[
+Q(c_{-1},c_0,c_1)=c_0^2-3c_1c_{-1}-1
+]
+cannot vanish at any point satisfying Q=0. Its gradient is
+[
+
+abla Q=(-3c_1,,2c_0,,-3c_{-1},,0).
+]
+Thus Q=0 is a regular hypersurface in the four coefficient variables, and the c2 direction is free. At the non-Einstein MK control point the first three components are
+[
+(-3/10,,7/5,,51/10),
+]
+so the tangent condition is
+[
+-rac3{10}delta c_{-1}+rac75delta c_0+rac{51}{10}delta c_1=0,
+]
+with `delta c2` arbitrary.
+
+This is a finite-dimensional algebraic regularity result. The full function-space linearized Bach operator and its kernel still need separate formal/numerical analysis.
