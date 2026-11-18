@@ -108,6 +108,13 @@ pub struct StreamCoverage {
     pub evidence: EvidenceRef,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PreflightDisposition {
+    ReadyForHumanReview,
+    Rejected,
+    Indeterminate,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecutionBinding {
     pub session_id: String,
@@ -117,6 +124,11 @@ pub struct ExecutionBinding {
     /// Input digest to which the preflight report says it applies.
     pub preflight_bound_input_sha256: String,
     pub preflight_report_sha256: String,
+    pub preflight_disposition: PreflightDisposition,
+    /// Separately authenticated by the owner-authority workflow before admission.
+    pub authorisation_id: String,
+    pub authorisation_revision: String,
+    pub authorisation_evidence: EvidenceRef,
     pub block_id: String,
     pub block_revision: String,
     pub crane_id: String,
@@ -140,6 +152,9 @@ pub struct ExecutionBinding {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReconciliationPolicy {
+    pub policy_id: String,
+    pub policy_revision: String,
+    pub policy_sha256: String,
     /// Every channel listed here requires a source coverage attestation.
     pub required_channels: Vec<Channel>,
     /// Maximum permitted interval between samples for continuous channels.
@@ -183,6 +198,14 @@ pub struct ReconciliationReport {
     pub contract_version: &'static str,
     pub disposition: Disposition,
     pub session_id: String,
+    pub plan_id: String,
+    pub plan_revision: String,
+    pub plan_input_sha256: String,
+    pub preflight_report_sha256: String,
+    pub authorisation_id: String,
+    pub policy_id: String,
+    pub policy_revision: String,
+    pub policy_sha256: String,
     pub verified_event_count: usize,
     pub exact_retransmission_count: usize,
     pub maximum_hook_load_upper_mn: Option<u64>,
@@ -389,6 +412,10 @@ pub fn reconcile(
     for (field, value) in [
         ("session_id", binding.session_id.as_str()),
         ("plan_id", binding.plan_id.as_str()),
+        ("authorisation_id", binding.authorisation_id.as_str()),
+        ("authorisation_revision", binding.authorisation_revision.as_str()),
+        ("policy_id", policy.policy_id.as_str()),
+        ("policy_revision", policy.policy_revision.as_str()),
         ("plan_revision", binding.plan_revision.as_str()),
         ("block_id", binding.block_id.as_str()),
         ("block_revision", binding.block_revision.as_str()),
@@ -424,6 +451,7 @@ pub fn reconcile(
     if !valid_sha256(&binding.plan_input_sha256)
         || !valid_sha256(&binding.preflight_bound_input_sha256)
         || !valid_sha256(&binding.preflight_report_sha256)
+        || !valid_sha256(&policy.policy_sha256)
         || !valid_sha256(&binding.motion_report_sha256)
         || !valid_sha256(&binding.occupancy_projection_sha256)
     {
@@ -434,6 +462,26 @@ pub fn reconcile(
             None,
             Some(&binding.session_id),
             "plan, preflight, motion and occupancy digests must be SHA-256 lexical values",
+        );
+    }
+    if binding.preflight_disposition != PreflightDisposition::ReadyForHumanReview {
+        add_diagnostic(
+            &mut diagnostics,
+            "PREFLIGHT_NOT_REVIEWABLE",
+            DiagnosticSeverity::Indeterminate,
+            None,
+            Some(&binding.session_id),
+            "the source preflight report must be human-reviewable before execution reconciliation",
+        );
+    }
+    if binding.authorisation_evidence.source_record_id != binding.authorisation_id {
+        add_diagnostic(
+            &mut diagnostics,
+            "AUTHORISATION_REFERENCE_MISMATCH",
+            DiagnosticSeverity::Indeterminate,
+            None,
+            Some(&binding.authorisation_id),
+            "authorisation evidence must bind the exact admitted authorisation record ID",
         );
     }
     if binding.plan_input_sha256 != binding.preflight_bound_input_sha256 {
@@ -494,6 +542,16 @@ pub fn reconcile(
     let mut events_by_channel: BTreeMap<Channel, Vec<TelemetryEvent>> = BTreeMap::new();
     let mut event_ids: BTreeMap<String, TelemetryEvent> = BTreeMap::new();
     let mut seen_evidence: BTreeMap<String, EvidenceRef> = BTreeMap::new();
+    validate_evidence(
+        &binding.authorisation_evidence,
+        &binding.plan_id,
+        &binding.plan_revision,
+        &binding.clock_domain_id,
+        binding.start_tick,
+        binding.end_tick,
+        &mut seen_evidence,
+        &mut diagnostics,
+    );
     let mut verified_event_count = 0_usize;
     let mut sequence_records: BTreeMap<(Channel, String, u64), TelemetryEvent> = BTreeMap::new();
     let mut exact_retransmissions = 0_usize;
@@ -1008,6 +1066,14 @@ pub fn reconcile(
         contract_version: RECONCILIATION_CONTRACT_VERSION,
         disposition: disposition_for(&diagnostics),
         session_id: binding.session_id.clone(),
+        plan_id: binding.plan_id.clone(),
+        plan_revision: binding.plan_revision.clone(),
+        plan_input_sha256: binding.plan_input_sha256.clone(),
+        preflight_report_sha256: binding.preflight_report_sha256.clone(),
+        authorisation_id: binding.authorisation_id.clone(),
+        policy_id: policy.policy_id.clone(),
+        policy_revision: policy.policy_revision.clone(),
+        policy_sha256: policy.policy_sha256.clone(),
         verified_event_count,
         exact_retransmission_count: exact_retransmissions,
         maximum_hook_load_upper_mn: maximum_hook_load,
@@ -1045,6 +1111,10 @@ mod tests {
             plan_input_sha256: "1".repeat(64),
             preflight_bound_input_sha256: "1".repeat(64),
             preflight_report_sha256: "2".repeat(64),
+            preflight_disposition: PreflightDisposition::ReadyForHumanReview,
+            authorisation_id: "authorisation-01".to_owned(),
+            authorisation_revision: "auth-r2".to_owned(),
+            authorisation_evidence: evidence("authorisation-evidence-01", "plan-001", "plan-r4"),
             block_id: "block-001".to_owned(),
             block_revision: "block-r7".to_owned(),
             crane_id: "gantry-01".to_owned(),
@@ -1066,6 +1136,9 @@ mod tests {
 
     fn policy() -> ReconciliationPolicy {
         ReconciliationPolicy {
+            policy_id: "reconciliation-policy-01".to_owned(),
+            policy_revision: "policy-r1".to_owned(),
+            policy_sha256: "5".repeat(64),
             required_channels: vec![
                 Channel::HookLoad,
                 Channel::WindGust,
