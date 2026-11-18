@@ -881,6 +881,20 @@ mod tests {
     }
 
     #[test]
+    fn non_advancing_integration_step_fails_closed() {
+        let mut profile = steering_profile();
+        profile.integration_step_s = 1.0e-300;
+        let result = simulate(
+            &profile,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            1,
+            1,
+        );
+        assert_eq!(result, Err(SimulationError::IntegrationStepDidNotAdvance));
+    }
+
+    #[test]
     fn invalid_rotational_diffusion_and_step_are_rejected() {
         let mut profile = steering_profile();
         profile.rotational_diffusion_rad2_s = -0.1;
