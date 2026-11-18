@@ -145,7 +145,6 @@ pub struct LifecycleAccounting {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct LifecycleFixtureConfig {
-    pub seed: u64,
     pub initial_mass_kg: f64,
     pub first_recovery_loss_fraction: f64,
     pub second_recovery_loss_fraction: f64,
@@ -155,7 +154,6 @@ pub struct LifecycleFixtureConfig {
 impl Default for LifecycleFixtureConfig {
     fn default() -> Self {
         Self {
-            seed: 0x484f_4c4f_4c49_4645,
             initial_mass_kg: 100.0,
             first_recovery_loss_fraction: 0.05,
             second_recovery_loss_fraction: 0.05,
@@ -529,7 +527,6 @@ fn feed_text(hash: &mut u64, value: &str) {
 fn stable_digest(config: &LifecycleFixtureConfig, ledger: &ComponentLifecycleLedger) -> u64 {
     let mut hash = 0xcbf2_9ce4_8422_2325_u64;
     feed_u64(&mut hash, LIFECYCLE_SCHEMA_VERSION as u64);
-    feed_u64(&mut hash, config.seed);
     feed_u64(&mut hash, config.initial_mass_kg.to_bits());
     feed_u64(&mut hash, config.first_recovery_loss_fraction.to_bits());
     feed_u64(&mut hash, config.second_recovery_loss_fraction.to_bits());
