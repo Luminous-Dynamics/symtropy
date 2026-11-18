@@ -6,10 +6,34 @@
 //! This crate is deliberately CPU-first. It proves that `symtropy-lifesim-core`
 //! is not ant-specific by reusing the same dense field substrate for a sessile,
 //! graph-like living system.
+//!
+//! The explicit topology-only graph reference is available in [`hyphal_graph`].
+//! It is intentionally separate from the legacy field-growth model below.
+
+pub mod bmx_exchange_reference;
+pub mod crossing_qualification;
+pub mod cytoplasmic_flow;
+pub mod hyphal_graph;
+pub mod hyphal_highway;
+pub mod hyphal_spectroscopy;
+pub mod isotope_transfer;
+pub mod legacy_accounting;
+pub mod multimodal_imaging;
+pub mod network_evidence;
+pub mod observation_evidence;
+pub mod pareto_front;
+pub mod root_anatomy_energy;
+pub mod spatial_field_evidence;
+pub mod study_comparability;
+pub mod symbiosis_checkpoints;
+pub mod temporal_alignment;
+pub mod transport;
 
 use std::collections::{HashMap, VecDeque};
 
 use symtropy_lifesim_core::{DiffusionParams, FieldGrid, FieldLayer};
+
+use crate::legacy_accounting::LegacyMyceliumStepReport;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct MyceliumMetrics {
@@ -158,6 +182,31 @@ impl MyceliumWorld {
     }
 
     pub fn step(&mut self) {
+        let _ = self.step_internal(false);
+    }
+
+    /// Execute the legacy step and collect a model-unit accounting report.
+    ///
+    /// This diagnostic path does not convert legacy heuristics into physical
+    /// units or claim mass conservation. The ordinary `step()` path avoids
+    /// the extra full-field summations required only for reporting.
+    pub fn step_with_report(&mut self) -> LegacyMyceliumStepReport {
+        self.step_internal(true)
+            .expect("report collection is enabled for step_with_report")
+    }
+
+    fn step_internal(&mut self, collect_report: bool) -> Option<LegacyMyceliumStepReport> {
+        let tick_before = self.tick;
+        let totals_before = if collect_report {
+            Some((
+                self.total_layer(FieldLayer::Biomass),
+                self.total_layer(FieldLayer::Nutrient),
+                self.total_layer(FieldLayer::Toxin),
+            ))
+        } else {
+            None
+        };
+
         self.tick += 1;
         self.fields.step_diffuse_decay(
             FieldLayer::Nutrient,
@@ -178,10 +227,26 @@ impl MyceliumWorld {
             },
         );
 
+        let totals_after_diffusion = if collect_report {
+            Some((
+                self.total_layer(FieldLayer::Nutrient),
+                self.total_layer(FieldLayer::Toxin),
+            ))
+        } else {
+            None
+        };
         let mut biomass_delta = HashMap::<(usize, usize), f32>::new();
         let mut nutrient_delta = HashMap::<(usize, usize), f32>::new();
         let mut transported_to_origin = 0.0;
+        let mut assimilation_total = 0.0;
+        let mut growth_target_biomass_credit = 0.0;
+        let mut growth_source_biomass_debit = 0.0;
+        let mut growth_nutrient_debit = 0.0;
 
+        // The field layers are not mutated until all deltas are applied below.
+        // Cache the global nutrient peak once instead of rescanning the whole
+        // grid for every biomass-bearing cell.
+        let nutrient_peak = self.strongest_nutrient_cell();
         for y in 0..self.fields.height() {
             for x in 0..self.fields.width() {
                 let biomass = self.fields.get(FieldLayer::Biomass, x, y);
@@ -196,13 +261,15 @@ impl MyceliumWorld {
                     *biomass_delta.entry((x, y)).or_default() += assimilation;
                     *nutrient_delta.entry((x, y)).or_default() -= assimilation;
                     transported_to_origin += assimilation * 0.25;
+                    if collect_report {
+                        assimilation_total += assimilation;
+                    }
                 }
 
                 if biomass < 0.05 {
                     continue;
                 }
 
-                let nutrient_peak = self.strongest_nutrient_cell();
                 let Some(target) = self.best_growth_neighbor(x, y, nutrient_peak) else {
                     continue;
                 };
@@ -216,6 +283,11 @@ impl MyceliumWorld {
                     *biomass_delta.entry(target).or_default() += growth;
                     *biomass_delta.entry((x, y)).or_default() -= growth * 0.05;
                     *nutrient_delta.entry(target).or_default() -= growth * 0.35;
+                    if collect_report {
+                        growth_target_biomass_credit += growth;
+                        growth_source_biomass_debit += growth * 0.05;
+                        growth_nutrient_debit += growth * 0.35;
+                    }
                 }
             }
         }
@@ -233,6 +305,15 @@ impl MyceliumWorld {
             transported_to_origin,
         );
 
+        let (biomass_before_decay, nutrient_after_step) = if collect_report {
+            (
+                Some(self.total_layer(FieldLayer::Biomass)),
+                Some(self.total_layer(FieldLayer::Nutrient)),
+            )
+        } else {
+            (None, None)
+        };
+
         self.fields.step_diffuse_decay(
             FieldLayer::Biomass,
             DiffusionParams {
@@ -242,6 +323,50 @@ impl MyceliumWorld {
                 max_value: 1_000.0,
             },
         );
+
+        if !collect_report {
+            return None;
+        }
+
+        let biomass_after_decay = self.total_layer(FieldLayer::Biomass);
+        let (biomass_before, nutrient_before, toxin_before) =
+            totals_before.expect("report collection captured initial totals");
+        let (nutrient_after_diffusion_decay, toxin_after_diffusion_decay) =
+            totals_after_diffusion.expect("report collection captured diffusion totals");
+        let biomass_before_decay =
+            biomass_before_decay.expect("report collection captured pre-decay biomass");
+        let nutrient_after_step =
+            nutrient_after_step.expect("report collection captured post-step nutrient");
+
+        Some(LegacyMyceliumStepReport {
+            tick_before,
+            tick_after: self.tick,
+            biomass_before,
+            biomass_before_decay,
+            biomass_after_decay,
+            nutrient_before,
+            nutrient_after_diffusion_decay,
+            nutrient_after_step,
+            toxin_before,
+            toxin_after_diffusion_decay,
+            assimilation_nutrient_debit: assimilation_total,
+            assimilation_local_biomass_credit: assimilation_total,
+            origin_biomass_extra_credit: transported_to_origin,
+            growth_target_biomass_credit,
+            growth_source_biomass_debit,
+            growth_nutrient_debit,
+            observed_biomass_decay_loss: biomass_before_decay - biomass_after_decay,
+        })
+    }
+
+    fn total_layer(&self, layer: FieldLayer) -> f32 {
+        let mut total = 0.0;
+        for y in 0..self.fields.height() {
+            for x in 0..self.fields.width() {
+                total += self.fields.get(layer, x, y);
+            }
+        }
+        total
     }
 
     pub fn has_biomass_path_to(&self, goal: (usize, usize), threshold: f32) -> bool {
@@ -298,7 +423,7 @@ impl MyceliumWorld {
         y: usize,
         nutrient_peak: Option<(usize, usize)>,
     ) -> Option<(usize, usize)> {
-        self.neighbors(x, y).into_iter().max_by(|a, b| {
+        self.neighbors(x, y).max_by(|a, b| {
             self.growth_score(*a, nutrient_peak)
                 .partial_cmp(&self.growth_score(*b, nutrient_peak))
                 .unwrap_or(std::cmp::Ordering::Equal)
@@ -333,27 +458,39 @@ impl MyceliumWorld {
         best
     }
 
-    fn neighbors(&self, x: usize, y: usize) -> Vec<(usize, usize)> {
-        let mut out = Vec::with_capacity(4);
-        if x > 0 {
-            out.push((x - 1, y));
-        }
-        if x + 1 < self.fields.width() {
-            out.push((x + 1, y));
-        }
-        if y > 0 {
-            out.push((x, y - 1));
-        }
-        if y + 1 < self.fields.height() {
-            out.push((x, y + 1));
-        }
-        out
+    fn neighbors(&self, x: usize, y: usize) -> impl Iterator<Item = (usize, usize)> {
+        let left = if x > 0 { Some((x - 1, y)) } else { None };
+        let right = (x + 1 < self.fields.width()).then_some((x + 1, y));
+        let up = if y > 0 { Some((x, y - 1)) } else { None };
+        let down = (y + 1 < self.fields.height()).then_some((x, y + 1));
+        [left, right, up, down].into_iter().flatten()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn neighbor_iteration_preserves_order_without_heap_collection() {
+        let world = MyceliumWorld::new(3, 3, (1, 1));
+        assert_eq!(
+            world.neighbors(1, 1).collect::<Vec<_>>(),
+            vec![(0, 1), (2, 1), (1, 0), (1, 2)]
+        );
+        assert_eq!(
+            world.neighbors(0, 0).collect::<Vec<_>>(),
+            vec![(1, 0), (0, 1)]
+        );
+    }
+
+    #[test]
+    fn strongest_nutrient_peak_is_stable_before_deferred_field_updates() {
+        let mut world = MyceliumWorld::new(4, 3, (0, 1));
+        world.add_dead_biomass(3, 2, 10.0);
+        world.add_dead_biomass(1, 0, 10.0);
+        assert_eq!(world.strongest_nutrient_cell(), Some((1, 0)));
+    }
 
     #[test]
     fn growth_follows_nutrient_gradient() {
@@ -417,6 +554,56 @@ mod tests {
         world.run_steps(100);
 
         assert!(world.metrics().central_biomass > before);
+    }
+
+    #[test]
+    fn legacy_step_report_exposes_unpaired_origin_credit() {
+        let mut world = MyceliumWorld::new(5, 5, (1, 1));
+        world.fields.add(FieldLayer::Biomass, 3, 3, 10.0);
+        world.fields.add(FieldLayer::Nutrient, 3, 3, 100.0);
+
+        let report = world.step_with_report();
+
+        assert!(report.assimilation_local_biomass_credit > 0.0);
+        assert_eq!(
+            report.assimilation_local_biomass_credit,
+            report.assimilation_nutrient_debit
+        );
+        assert!(
+            (report.origin_biomass_extra_credit - report.assimilation_local_biomass_credit * 0.25)
+                .abs()
+                < 0.000_001
+        );
+        assert!((report.origin_credit_fraction_of_assimilation() - 0.25).abs() < 0.000_001);
+        assert!(report.biomass_after_decay < report.biomass_before_decay);
+        assert_eq!(report.tick_after, report.tick_before + 1);
+    }
+
+    #[test]
+    fn legacy_step_and_reported_step_preserve_identical_field_behavior() {
+        let mut legacy = MyceliumWorld::new(8, 5, (1, 2));
+        let mut audited = MyceliumWorld::new(8, 5, (1, 2));
+        legacy.add_dead_biomass(6, 2, 200.0);
+        audited.add_dead_biomass(6, 2, 200.0);
+        legacy.add_toxin(4, 1, 50.0);
+        audited.add_toxin(4, 1, 50.0);
+
+        for _ in 0..8 {
+            legacy.step();
+            let report = audited.step_with_report();
+            assert_eq!(report.tick_after, audited.tick());
+
+            for y in 0..5 {
+                for x in 0..8 {
+                    for layer in [FieldLayer::Biomass, FieldLayer::Nutrient, FieldLayer::Toxin] {
+                        assert_eq!(
+                            legacy.fields.get(layer, x, y),
+                            audited.fields.get(layer, x, y)
+                        );
+                    }
+                }
+            }
+        }
     }
 
     #[test]
