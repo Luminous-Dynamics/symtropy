@@ -89,11 +89,17 @@ The 30 cells are listed in `design-of-experiments.json`.
 
 ### Track B — extend by Froude number and fill fraction
 
-The extension has 90 proposed cells: five wall materials × two pressure classes × three target Fr levels (3.3×10^-4, 1.0×10^-3, 3.3×10^-3) × three fill fractions (0.15, 0.25, 0.35).
+The extension has 90 proposed cells: five wall materials × two pressure classes × three target Fr levels (3.3×10^-4, 1.0×10^-3, 3.3×10^-3) × three fill fractions (0.15, 0.25, 0.35). The 36-cell batch-transfer sentinel matrix is a separate experiment and must not be pooled into the source-reproduction score.
 
 The fill levels and middle Fr are analyst-selected experimental levels, not values claimed from the source. Derive actual angular speed at execution from measured drum radius and gravity. Do not silently assume that the source apparatus has the same radius.
 
 Use a screening stage followed by preregistered confirmatory repeats. Establish reset/reconditioning and sample-independence rules before calling repeated runs independent. Returned CE60100 data remain in a separate source-matched micro-sample track.
+
+### Track C — batch-transfer sentinel experiment
+
+A third, smaller matrix contains 36 planned cells: three independently characterized material batches (calibration, validation and blind-test roles) × three representative wall materials (smooth PETG, PTFE, copper) × two pressure classes × two Fr levels (3.3×10^-4 and 3.3×10^-3), at a fixed analyst-selected fill fraction of 0.25.
+
+This is the explicit test of whether a model trained on one lot transfers to another. The batch roles must be assigned to real independently characterized lots at execution; the names in the design file are role labels, not material records. Keep the blind lot and raw outcomes under an independent custodian until the executable, source revision, configuration, parameters, seed and predictions are frozen. Never distribute repeats from one physical lot across calibration and blind partitions.
 
 ### Track C — transfer and discharge
 
