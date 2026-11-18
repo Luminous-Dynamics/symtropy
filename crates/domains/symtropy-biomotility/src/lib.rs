@@ -363,7 +363,10 @@ impl fmt::Display for ProfileError {
                 write!(formatter, "integration_step_s must be finite and positive")
             }
             Self::InvalidMechanismProbabilities => {
-                write!(formatter, "event mechanism probabilities must be finite, bounded and sum to one")
+                write!(
+                    formatter,
+                    "event mechanism probabilities must be finite, bounded and sum to one"
+                )
             }
             Self::InvalidEventDuration => {
                 write!(formatter, "event duration must be finite and positive")
@@ -580,10 +583,16 @@ impl fmt::Display for BootstrapError {
             Self::InsufficientIndependentClusters => {
                 write!(formatter, "cluster bootstrap requires at least two independent clusters")
             }
-            Self::EmptyCluster => write!(formatter, "each bootstrap cluster must contain at least one run"),
+            Self::EmptyCluster => {
+                write!(formatter, "each bootstrap cluster must contain at least one run")
+            }
             Self::NonFiniteAngle => write!(formatter, "orientation angles must be finite"),
-            Self::InvalidConfidenceLevel => write!(formatter, "confidence level must be strictly between zero and one"),
-            Self::ZeroResamples => write!(formatter, "bootstrap resample count must be positive"),
+            Self::InvalidConfidenceLevel => {
+                write!(formatter, "confidence level must be strictly between zero and one")
+            }
+            Self::ZeroResamples => {
+                write!(formatter, "bootstrap resample count must be positive")
+            }
         }
     }
 }
@@ -646,7 +655,7 @@ fn summarize_relative_headings(headings: &[f64]) -> Option<OrientationSummary> {
         first_harmonic_imag,
         first_harmonic_magnitude,
         first_harmonic_phase_rad: (first_harmonic_magnitude > 1.0e-14)
-            .then_some(first_harmonic_imag.atan2(first_harmonic_real)),
+            .then(|| first_harmonic_imag.atan2(first_harmonic_real)),
     })
 }
 
@@ -1272,42 +1281,42 @@ pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
         resolved_run_direction_count,
         up_gradient_run_count,
         up_gradient_run_fraction: (resolved_run_direction_count > 0)
-            .then_some(up_gradient_run_count as f64 / resolved_run_direction_count as f64),
+            .then(|| up_gradient_run_count as f64 / resolved_run_direction_count as f64),
         short_duration_followed_run_count,
         short_duration_followed_up_gradient_count,
         short_duration_followed_up_gradient_fraction: (short_duration_followed_run_count > 0)
-            .then_some(
+            .then(|| {
                 short_duration_followed_up_gradient_count as f64
-                    / short_duration_followed_run_count as f64,
-            ),
+                    / short_duration_followed_run_count as f64
+            }),
         long_duration_followed_run_count,
         long_duration_followed_up_gradient_count,
         long_duration_followed_up_gradient_fraction: (long_duration_followed_run_count > 0)
-            .then_some(
+            .then(|| {
                 long_duration_followed_up_gradient_count as f64
-                    / long_duration_followed_run_count as f64,
-            ),
+                    / long_duration_followed_run_count as f64
+            }),
         active_motor_followed_run_count,
         active_motor_followed_up_gradient_count,
         active_motor_followed_up_gradient_fraction: (active_motor_followed_run_count > 0)
-            .then_some(
+            .then(|| {
                 active_motor_followed_up_gradient_count as f64
-                    / active_motor_followed_run_count as f64,
-            ),
+                    / active_motor_followed_run_count as f64
+            }),
         passive_trap_followed_run_count,
         passive_trap_followed_up_gradient_count,
         passive_trap_followed_up_gradient_fraction: (passive_trap_followed_run_count > 0)
-            .then_some(
+            .then(|| {
                 passive_trap_followed_up_gradient_count as f64
-                    / passive_trap_followed_run_count as f64,
-            ),
+                    / passive_trap_followed_run_count as f64
+            }),
         unresolved_mechanism_followed_run_count,
         unresolved_mechanism_followed_up_gradient_count,
         unresolved_mechanism_followed_up_gradient_fraction:
-            (unresolved_mechanism_followed_run_count > 0).then_some(
+            (unresolved_mechanism_followed_run_count > 0).then(|| {
                 unresolved_mechanism_followed_up_gradient_count as f64
-                    / unresolved_mechanism_followed_run_count as f64,
-            ),
+                    / unresolved_mechanism_followed_run_count as f64
+            }),
         mean_run_duration_s: (!result.events.is_empty())
             .then(|| total_run_duration / result.events.len() as f64),
         projected_drift_um_s: (elapsed > 0.0)
