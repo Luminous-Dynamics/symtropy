@@ -153,26 +153,61 @@ impl fmt::Display for CoverageInferenceError {
         match self {
             Self::EmptySeriesIdentity => write!(f, "coverage series identity must be non-empty"),
             Self::EmptySequence => write!(f, "coverage sequence must be non-empty"),
-            Self::SequenceTooLong => write!(f, "coverage sequence exceeds the declared size limit"),
+            Self::SequenceTooLong => {
+                write!(f, "coverage sequence exceeds the declared size limit")
+            }
             Self::DuplicateForecastId(id) => write!(f, "duplicate forecast ID {id}"),
             Self::NonFiniteTime => write!(f, "coverage times must be finite"),
-            Self::InvalidOutcomeTimeOrder => write!(f, "issue, event and availability times are inconsistent"),
-            Self::NonMonotonicIssueStep => write!(f, "coverage issue steps must be strictly increasing"),
-            Self::NonMonotonicIssueTime => write!(f, "coverage issue times must be strictly increasing"),
-            Self::NonMonotonicEventTime => write!(f, "coverage event times must be strictly increasing"),
-            Self::InvalidTargetCoverage => write!(f, "target coverage must be finite and strictly between zero and one"),
-            Self::BandwidthTooLarge => write!(f, "HAC bandwidth must be smaller than the sequence length"),
-            Self::InvalidBlockLength => write!(f, "block length must be between one and the sequence length"),
-            Self::InvalidBootstrapReplicateCount => write!(f, "bootstrap replicate count is outside the admitted range"),
-            Self::NegativeLongRunVariance => write!(f, "HAC long-run variance is materially negative or non-finite"),
+            Self::InvalidOutcomeTimeOrder => {
+                write!(f, "issue, event and availability times are inconsistent")
+            }
+            Self::NonMonotonicIssueStep => {
+                write!(f, "coverage issue steps must be strictly increasing")
+            }
+            Self::NonMonotonicIssueTime => {
+                write!(f, "coverage issue times must be strictly increasing")
+            }
+            Self::NonMonotonicEventTime => {
+                write!(f, "coverage event times must be strictly increasing")
+            }
+            Self::InvalidTargetCoverage => {
+                write!(f, "target coverage must be finite and strictly between zero and one")
+            }
+            Self::BandwidthTooLarge => {
+                write!(f, "HAC bandwidth must be smaller than the sequence length")
+            }
+            Self::InvalidBlockLength => {
+                write!(f, "block length must be between one and the sequence length")
+            }
+            Self::InvalidBootstrapReplicateCount => {
+                write!(f, "bootstrap replicate count is outside the admitted range")
+            }
+            Self::NegativeLongRunVariance => {
+                write!(f, "HAC long-run variance is materially negative or non-finite")
+            }
             Self::InvalidAciConfig => write!(f, "delayed ACI configuration is invalid"),
-            Self::DuplicateForecastIssue(id) => write!(f, "forecast ID {id} has already been issued"),
-            Self::NonMonotonicIssueStepForAci => write!(f, "ACI issue steps must be strictly increasing"),
-            Self::DueFeedbackMustSettleBeforeIssue(id) => write!(f, "due forecast {id} must settle before this lane is reused"),
-            Self::UnknownForecastId(id) => write!(f, "forecast ID {id} is unknown or already settled"),
-            Self::PrematureFeedback(id, due) => write!(f, "forecast {id} cannot settle before step {due}"),
-            Self::LateFeedback(id, due) => write!(f, "forecast {id} missed its fixed due step {due}"),
-            Self::OutOfOrderFeedback(id) => write!(f, "feedback must settle in due-step order; expected forecast {id}"),
+            Self::DuplicateForecastIssue(id) => {
+                write!(f, "forecast ID {id} has already been issued")
+            }
+            Self::NonMonotonicIssueStepForAci => {
+                write!(f, "ACI issue steps must be strictly increasing")
+            }
+            Self::DueFeedbackMustSettleBeforeIssue(id) => {
+                write!(f, "due forecast {id} must settle before this lane is reused")
+            }
+            Self::UnknownForecastId(id) => {
+                write!(f, "forecast ID {id} is unknown or already settled")
+            }
+            Self::PrematureFeedback(id, due) => {
+                write!(f, "forecast {id} cannot settle before step {due}")
+            }
+            Self::LateFeedback(id, due) => {
+                write!(f, "forecast {id} missed its fixed due step {due}")
+            }
+            Self::OutOfOrderFeedback(id) => write!(
+                f,
+                "feedback must settle in due-step order; expected forecast {id}"
+            ),
         }
     }
 }
