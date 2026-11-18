@@ -281,6 +281,9 @@ pub fn validate_case(case: &HandoverCase) -> Result<(), HandoverError> {
             .checked_add(cohort.offered_user_count)
             .ok_or_else(|| HandoverError::new("total offered UE count overflow"))?;
     }
+    if total_offered_ues == 0 {
+        return Err(HandoverError::new("total offered UE count must be positive"));
+    }
 
     let mut scenario_ids = HashSet::with_capacity(case.scenarios.len());
     for scenario in &case.scenarios {
@@ -651,7 +654,7 @@ mod tests {
     #[test]
     fn duplicate_ack_injection_is_rejected_for_failed_transfers() {
         let mut case = fixture();
-        case.scenarios[1].duplicate_completion_ack_delivery = true;
+        case.scenarios[2].duplicate_completion_ack_delivery = true;
         assert!(validate_case(&case).is_err());
     }
 
