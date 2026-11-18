@@ -1,0 +1,429 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminousdynamics:aero:haps-fleet-availability-case:v1",
+  "title": "HAPS fleet availability case v1",
+  "description": "Deterministic event-schedule contract for evaluating service availability under k-out-of-n coverage, scheduled maintenance and common-cause regional stand-downs. It is not a stochastic reliability solver or flight operations model.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "revision",
+    "evidence_class",
+    "claim_ceiling",
+    "campaign",
+    "source",
+    "variants",
+    "assumptions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "haps-fleet-availability-case/v1"
+    },
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,95}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "measured_campaign",
+        "replayed_operations"
+      ]
+    },
+    "claim_ceiling": {
+      "enum": [
+        "synthetic_event_schedule_oracle",
+        "offline_operations_replay"
+      ]
+    },
+    "campaign": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "duration_days",
+        "step_days",
+        "required_active_platforms",
+        "service_boundary",
+        "availability_target"
+      ],
+      "properties": {
+        "duration_days": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "step_days": {
+          "const": 1
+        },
+        "required_active_platforms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "service_boundary": {
+          "enum": [
+            "platform_count_only",
+            "coverage_and_backhaul_qualified",
+            "end_to_end_customer_sla"
+          ]
+        },
+        "availability_target": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "service_profile_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_kind",
+        "source_uri",
+        "source_digest",
+        "rights_or_license_ref",
+        "available_at_decision_time"
+      ],
+      "properties": {
+        "source_kind": {
+          "enum": [
+            "synthetic_generator",
+            "operator_maintenance_log",
+            "measured_flight_campaign",
+            "replayed_operations_log"
+          ]
+        },
+        "source_uri": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "source_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rights_or_license_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "available_at_decision_time": {
+          "type": "boolean"
+        }
+      }
+    },
+    "variants": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "variant_id",
+          "description",
+          "required_active_platforms",
+          "platforms",
+          "maintenance_windows",
+          "common_cause_events",
+          "logistics",
+          "expected_oracle"
+        ],
+        "properties": {
+          "variant_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]{2,95}$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "required_active_platforms": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "platforms": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "platform_id",
+                "weather_domain_id",
+                "initial_state"
+              ],
+              "properties": {
+                "platform_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "weather_domain_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "initial_state": {
+                  "const": "on_station"
+                }
+              }
+            }
+          },
+          "maintenance_windows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "maintenance_id",
+                "platform_id",
+                "start_day",
+                "duration_days",
+                "maintenance_class"
+              ],
+              "properties": {
+                "maintenance_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "platform_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "start_day": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "duration_days": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "maintenance_class": {
+                  "enum": [
+                    "scheduled_inspection",
+                    "planned_reconditioning",
+                    "unscheduled_repair"
+                  ]
+                }
+              }
+            }
+          },
+          "common_cause_events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "event_id",
+                "event_class",
+                "start_day",
+                "duration_days",
+                "affected_weather_domain_ids",
+                "impact"
+              ],
+              "properties": {
+                "event_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "event_class": {
+                  "enum": [
+                    "regional_weather_standdown",
+                    "common_part_shortage",
+                    "launch_site_loss",
+                    "gateway_outage",
+                    "other_declared"
+                  ]
+                },
+                "start_day": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "duration_days": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "affected_weather_domain_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "uniqueItems": true
+                },
+                "impact": {
+                  "enum": [
+                    "platform_standdown",
+                    "maintenance_unavailable",
+                    "launch_unavailable",
+                    "backhaul_unavailable"
+                  ]
+                }
+              }
+            }
+          },
+          "logistics": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ready_ground_spares",
+              "launch_capacity_per_day",
+              "launch_to_service_days",
+              "recovery_capacity_per_day",
+              "recovery_to_ready_days",
+              "recovery_turnaround_evidence",
+              "included_in_availability_oracle"
+            ],
+            "properties": {
+              "ready_ground_spares": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "launch_capacity_per_day": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "launch_to_service_days": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "recovery_capacity_per_day": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "recovery_to_ready_days": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "recovery_turnaround_evidence": {
+                "enum": [
+                  "measured",
+                  "source_attributed_unquantified",
+                  "synthetic_assumption",
+                  "unknown"
+                ]
+              },
+              "turnaround_source_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri"
+              },
+              "included_in_availability_oracle": {
+                "const": false
+              }
+            }
+          },
+          "expected_oracle": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "oracle_status",
+              "daily_active_platforms",
+              "daily_service_available",
+              "unavailable_day_offsets",
+              "service_available_days",
+              "service_unavailable_days",
+              "availability_fraction",
+              "longest_continuous_outage_days",
+              "maintenance_unavailable_platform_days",
+              "weather_unavailable_platform_days",
+              "maximum_simultaneous_unavailable_platforms"
+            ],
+            "properties": {
+              "oracle_status": {
+                "enum": [
+                  "independently_calculated",
+                  "not_evaluated"
+                ]
+              },
+              "daily_active_platforms": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "daily_service_available": {
+                "type": "array",
+                "items": {
+                  "type": "boolean"
+                }
+              },
+              "unavailable_day_offsets": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "uniqueItems": true
+              },
+              "service_available_days": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "service_unavailable_days": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "availability_fraction": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "longest_continuous_outage_days": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "maintenance_unavailable_platform_days": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "weather_unavailable_platform_days": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "maximum_simultaneous_unavailable_platforms": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  },
+  "$comment": "Semantic validation: variant IDs/platform IDs unique; k does not exceed platform count; every maintenance platform exists; all event windows lie within campaign; maintenance/weather availability is unioned per platform/day (a node counts unavailable once even when multiple causes overlap); daily active count equals deployed nodes minus unavailable nodes; service is available iff active count >= required_active_platforms; availability fraction is available days / duration; unavailable offsets and longest outage are recomputed. Common-cause events affect every platform assigned to an affected weather domain. This v1 oracle does not model launching, recovery or return-to-ready logistics; null logistics values remain unknown and must not be inferred."
+}
