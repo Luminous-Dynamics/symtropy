@@ -673,6 +673,58 @@
         "wrong sensor order or observation schedule => reject before scoring"
       ],
       "claim_ceiling": "Residual adequacy checks for frozen finite-grid synthetic models only; not calibrated OOD detection."
+    },
+    "adequacy_calibration": {
+      "method": "empirical nearest-rank residual threshold",
+      "calibration_seed": "0xCA11_BA7E",
+      "validation_seed": "0xB01D_5EED",
+      "replicates_per_candidate_model": 128,
+      "candidate_model_count": 3,
+      "calibration_samples": 384,
+      "validation_samples": 384,
+      "target_in_family_coverage": 0.95,
+      "calibration_covariance": [
+        [
+          0.00001
+        ]
+      ],
+      "hidden_out_of_family_truth": {
+        "evaluator_id": 900,
+        "label": "held_out_bypass_three_quarters",
+        "bypass_conductance": 0.75
+      },
+      "expected_independent_reproduction": {
+        "calibrated_threshold": 4.462410038741245,
+        "calibration_in_family_accepts": 365,
+        "calibration_in_family_coverage": 0.9505208333333334,
+        "validation_in_family_accepts": 358,
+        "validation_in_family_coverage": 0.9322916666666666,
+        "validation_false_out_of_model_set": 26,
+        "validation_false_out_of_model_set_rate": 0.06770833333333333,
+        "out_of_family_samples": 128,
+        "out_of_family_rejections": 128,
+        "out_of_family_rejection_rate": 1,
+        "wilson95_validation_coverage": [
+          0.9026415058945665,
+          0.9533783765839834
+        ],
+        "wilson95_false_ood": [
+          0.04662162341601646,
+          0.09735849410575444
+        ],
+        "wilson95_out_of_family_rejection": [
+          0.9708630437264916,
+          1
+        ]
+      },
+      "assumptions": [
+        "additive zero-mean Gaussian noise",
+        "known full covariance shared by all candidate models",
+        "independent noise blocks across observation times",
+        "fixed candidate model parameters within each run",
+        "finite synthetic Monte Carlo results only"
+      ],
+      "claim_ceiling": "Empirical threshold calibration for the declared synthetic graph families and noise assumptions only."
     }
   }
 }
