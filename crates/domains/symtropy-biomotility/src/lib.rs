@@ -365,11 +365,15 @@ impl AgentState {
 /// One completed run followed by one reorientation or trap event.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct EventRecord {
-    /// Direction class at the beginning of this run; used for run-time bias.
+    /// Heading class at run start; used to select the causal run-time policy.
     pub direction_before_run: DirectionClass,
-    /// Direction class immediately before the interruption, after run-phase
-    /// rotational diffusion; used for short-event turn-angle bias.
-    pub direction_before_event: DirectionClass,
+    /// Direction class of the realized net run displacement; used to condition
+    /// empirical turn-angle distributions and post-event outcome statistics.
+    pub completed_run_direction: DirectionClass,
+    /// Net run-displacement heading from the first to last simulated position.
+    pub run_displacement_heading_rad: f64,
+    /// Instantaneous tangent at the end of the run, before the interruption.
+    pub incoming_heading_rad: f64,
     pub run_duration_s: f64,
     pub event_class: EventClass,
     pub event_duration_s: f64,
@@ -616,6 +620,9 @@ pub fn simulate_with_bias_mode(
         let direction = classify_direction(state.heading_rad, gradient_heading_rad)
         .expect("validated finite headings produce a direction class");
 
+        let run_start_x_um = state.x_um;
+        let run_start_y_um = state.y_um;
+
         let run_duration = if bias_mode.uses_run_time_bias() {
             profile.run_duration_s.sample(direction, &mut rng)
         } else {
@@ -664,8 +671,22 @@ pub fn simulate_with_bias_mode(
             integration_steps += 1;
         }
 
-        let direction_before_event = classify_direction(state.heading_rad, gradient_heading_rad)
-        .expect("validated finite headings produce a direction class");
+        let run_displacement_x_um = state.x_um - run_start_x_um;
+        let run_displacement_y_um = state.y_um - run_start_y_um;
+        let has_run_displacement = run_displacement_x_um.hypot(run_displacement_y_um)
+            > f64::MIN_POSITIVE;
+        let run_displacement_heading_rad = if has_run_displacement {
+            run_displacement_y_um.atan2(run_displacement_x_um)
+        } else {
+            state.heading_rad
+        };
+        let completed_run_direction = if has_run_displacement {
+            classify_direction(run_displacement_heading_rad, gradient_heading_rad)
+                .expect("validated finite headings produce a direction class")
+        } else {
+            DirectionClass::CrossGradient
+        };
+        let incoming_heading_rad = state.heading_rad;
 
         let (event_class, event_duration, turn_angle) =
             if rng.next_unit_f64() < profile.short_event_probability {
@@ -673,7 +694,7 @@ pub fn simulate_with_bias_mode(
                     EventClass::ShortReorientation,
                     profile.short_event_duration_s.sample(&mut rng),
                     if bias_mode.uses_turn_angle_bias() {
-                        profile.short_turn_angle_rad.sample(direction_before_event, &mut rng)
+                        profile.short_turn_angle_rad.sample(completed_run_direction, &mut rng)
                     } else {
                         profile.short_turn_angle_unconditional_rad.sample(&mut rng)
                     },
@@ -686,7 +707,9 @@ pub fn simulate_with_bias_mode(
                 )
             };
 
-        state.heading_rad = wrap_angle(state.heading_rad + wrap_angle(turn_angle));
+        // The observed event turn is the change from the preceding run's
+        // net displacement direction to the following run's initial heading.
+        state.heading_rad = wrap_angle(run_displacement_heading_rad + wrap_angle(turn_angle));
         let event_end_time_s = state.elapsed_s + event_duration;
         if !event_end_time_s.is_finite() {
             return Err(SimulationError::NonFiniteTrajectory);
@@ -706,7 +729,9 @@ pub fn simulate_with_bias_mode(
 
         events.push(EventRecord {
             direction_before_run: direction,
-            direction_before_event,
+            completed_run_direction,
+            run_displacement_heading_rad,
+            incoming_heading_rad,
             run_duration_s: run_duration,
             event_class,
             event_duration_s: event_duration,
@@ -761,7 +786,7 @@ pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
         let event = pair[0];
         let following_run = pair[1];
         let is_up_gradient =
-            following_run.direction_before_run == DirectionClass::UpGradient;
+            following_run.completed_run_direction == DirectionClass::UpGradient;
 
         match event.event_class {
             EventClass::ShortReorientation => {
