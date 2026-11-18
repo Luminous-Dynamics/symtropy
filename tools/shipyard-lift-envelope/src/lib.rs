@@ -1120,7 +1120,7 @@ mod tests {
     #[test]
     fn frozen_conformance_fixture_maps_all_vectors_to_rust_tests() {
         const FIXTURE: &str = include_str!("../fixtures/conformance-vectors-v0.1.json");
-        let test_functions: [fn(); 33] = [
+        let test_functions: [fn(); 34] = [
             bounded_valid_input_is_ready_for_human_review_only,
             exact_chart_cell_capacity_is_a_hard_gate,
             no_chart_interpolation_or_configuration_substitution_is_permitted,
@@ -1153,7 +1153,8 @@ mod tests {
             crane_capacity_equal_to_conservative_demand_is_accepted_for_human_review,
             crane_capacity_one_millinewton_below_demand_is_rejected,
             rigging_wll_equal_to_conservative_tension_is_accepted_for_human_review,
-            rigging_wll_one_millinewton_below_conservative_tension_is_rejected
+            rigging_wll_one_millinewton_below_conservative_tension_is_rejected,
+            duplicate_leg_id_permutations_preserve_canonical_input_and_result_bytes
         ];
         let test_names = [
             stringify!(bounded_valid_input_is_ready_for_human_review_only),
@@ -1188,7 +1189,8 @@ mod tests {
             stringify!(crane_capacity_equal_to_conservative_demand_is_accepted_for_human_review),
             stringify!(crane_capacity_one_millinewton_below_demand_is_rejected),
             stringify!(rigging_wll_equal_to_conservative_tension_is_accepted_for_human_review),
-            stringify!(rigging_wll_one_millinewton_below_conservative_tension_is_rejected)
+            stringify!(rigging_wll_one_millinewton_below_conservative_tension_is_rejected),
+            stringify!(duplicate_leg_id_permutations_preserve_canonical_input_and_result_bytes)
         ];
         let vector_ids = [
             "LEV-BASE-001",
@@ -1223,12 +1225,13 @@ mod tests {
             "LEV-CRANE-003",
             "LEV-CRANE-004",
             "LEV-RIG-007",
-            "LEV-RIG-008"
+            "LEV-RIG-008",
+            "LEV-META-005"
         ];
 
-        assert_eq!(test_functions.len(), 33);
+        assert_eq!(test_functions.len(), 34);
         assert_eq!(test_names.len(), vector_ids.len());
-        assert_eq!(FIXTURE.matches(r#""id": "LEV-"#).count(), 33);
+        assert_eq!(FIXTURE.matches(r#""id": "LEV-"#).count(), 34);
         for (test_name, vector_id) in test_names.iter().zip(vector_ids.iter()) {
             assert!(
                 FIXTURE.contains(&format!(r#""id": "{vector_id}""#)),
