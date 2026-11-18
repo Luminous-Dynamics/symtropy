@@ -4,7 +4,7 @@
 #![forbid(unsafe_code)]
 
 use serde_json::{json, Value};
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::env;
 use std::fs;
 use std::process::ExitCode;
@@ -51,9 +51,6 @@ struct SegmentInfo {
 
 #[derive(Debug, Clone)]
 struct CandidateInfo {
-    id: String,
-    segment_id: String,
-    sequence: u64,
     carrier: String,
 }
 
@@ -593,12 +590,7 @@ fn validate_portfolio(value: &Value) -> Report {
                                 if !candidate_id.is_empty() && !carrier.is_empty() {
                                     candidates.insert(
                                         candidate_id.clone(),
-                                        CandidateInfo {
-                                            id: candidate_id,
-                                            segment_id: id.clone(),
-                                            sequence,
-                                            carrier,
-                                        },
+                                        CandidateInfo { carrier },
                                     );
                                 }
                             }
@@ -765,6 +757,17 @@ fn validate_portfolio(value: &Value) -> Report {
                     let source_boundary = design.get("source_boundary");
                     let source_carrier = source_boundary
                         .and_then(|b| nonempty_string(b.get("carrier")));
+                    if source_boundary
+                        .and_then(|b| nonempty_string(b.get("boundary_id")))
+                        .is_none()
+                    {
+                        violation(
+                            &mut violations,
+                            "missing_source_boundary_id",
+                            format!("{path}.source_boundary.boundary_id"),
+                            "Source boundary ID must be non-empty.",
+                        );
+                    }
                     let source_evidence = string_set(
                         source_boundary.and_then(|b| b.get("evidence_ids")),
                     );
