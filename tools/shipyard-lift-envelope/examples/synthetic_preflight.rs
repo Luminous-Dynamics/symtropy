@@ -51,6 +51,8 @@ fn synthetic_plan() -> LiftPlan {
             "synthetic-block-001",
             "block-r7",
         ),
+        rigging_assembly_id: "synthetic-rigging-assembly-01".to_owned(),
+        rigging_assembly_revision: "assembly-r3".to_owned(),
         dynamic_factor_evidence: evidence(
             "synthetic-dynamic-factor-001",
             "synthetic-dynamic-profile-01",
@@ -77,6 +79,17 @@ fn synthetic_plan() -> LiftPlan {
             RiggingLeg {
                 leg_id: "synthetic-leg-A".to_owned(),
                 component_revision: "leg-A-r1".to_owned(),
+                lifting_point_id: "synthetic-padeye-A".to_owned(),
+                load_case_evidence: evidence(
+                    "synthetic-load-case-leg-A",
+                    "synthetic-rigging-assembly-01",
+                    "assembly-r3",
+                ),
+                lifting_point_evidence: evidence(
+                    "synthetic-lifting-point-A",
+                    "synthetic-block-001",
+                    "block-r7",
+                ),
                 maximum_vertical_share_ppm: 500_000,
                 minimum_sine_angle_ppm: 707_107,
                 working_load_limit_mn: 350_000_000,
@@ -89,6 +102,17 @@ fn synthetic_plan() -> LiftPlan {
             RiggingLeg {
                 leg_id: "synthetic-leg-B".to_owned(),
                 component_revision: "leg-B-r1".to_owned(),
+                lifting_point_id: "synthetic-padeye-B".to_owned(),
+                load_case_evidence: evidence(
+                    "synthetic-load-case-leg-B",
+                    "synthetic-rigging-assembly-01",
+                    "assembly-r3",
+                ),
+                lifting_point_evidence: evidence(
+                    "synthetic-lifting-point-B",
+                    "synthetic-block-001",
+                    "block-r7",
+                ),
                 maximum_vertical_share_ppm: 500_000,
                 minimum_sine_angle_ppm: 707_107,
                 working_load_limit_mn: 350_000_000,
