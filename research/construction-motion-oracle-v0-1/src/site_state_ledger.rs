@@ -348,6 +348,10 @@ pub struct SiteStateLedger {
     resource_catalog_sha256: Option<String>,
     resource_catalog: BTreeMap<String, String>,
     space_time_reservations: BTreeMap<String, SpaceTimeReservationRecord>,
+    /// One non-overlapping interval index per exclusive resource. Since
+    /// committed intervals cannot overlap, predecessor/successor checks are
+    /// sufficient for O(log n) conflict detection on each claim.
+    active_resource_windows: BTreeMap<String, BTreeMap<u64, (u64, String)>>,
 }
 
 impl SiteStateLedger {
@@ -508,6 +512,17 @@ impl SiteStateLedger {
             .filter(|record| record.is_active())
     }
 
+    pub fn active_resource_claim_count(&self) -> usize {
+        self.active_resource_windows
+            .values()
+            .map(BTreeMap::len)
+            .sum()
+    }
+
+    pub fn active_resource_count(&self) -> usize {
+        self.active_resource_windows.len()
+    }
+
     pub fn event_history(&self) -> &[SiteEventEnvelope] {
         &self.events
     }
@@ -632,25 +647,32 @@ impl SiteStateLedger {
                         reservation.reservation_id.clone(),
                     ));
                 }
-                for existing in self.active_space_time_reservations() {
-                    for claim in &reservation.claims {
-                        for active_claim in &existing.reservation.claims {
-                            if claim.resource_id == active_claim.resource_id
-                                && intervals_overlap(
-                                    claim.start_tick,
-                                    claim.end_tick,
-                                    active_claim.start_tick,
-                                    active_claim.end_tick,
-                                )
-                            {
-                                return Err(SiteLedgerError::SpaceTimeReservationConflict {
-                                    resource_id: claim.resource_id.clone(),
-                                    conflicting_reservation_id: existing
-                                        .reservation
-                                        .reservation_id
-                                        .clone(),
-                                });
-                            }
+                for claim in &reservation.claims {
+                    let Some(index) = self.active_resource_windows.get(&claim.resource_id) else {
+                        continue;
+                    };
+
+                    // The index invariant is that committed intervals for a
+                    // resource never overlap. Therefore only the adjacent
+                    // predecessor and successor can conflict with this claim.
+                    if let Some((_, (previous_end, previous_id))) =
+                        index.range(..claim.start_tick).next_back()
+                    {
+                        if *previous_end > claim.start_tick {
+                            return Err(SiteLedgerError::SpaceTimeReservationConflict {
+                                resource_id: claim.resource_id.clone(),
+                                conflicting_reservation_id: previous_id.clone(),
+                            });
+                        }
+                    }
+                    if let Some((next_start, (_, next_id))) =
+                        index.range(claim.start_tick..).next()
+                    {
+                        if *next_start < claim.end_tick {
+                            return Err(SiteLedgerError::SpaceTimeReservationConflict {
+                                resource_id: claim.resource_id.clone(),
+                                conflicting_reservation_id: next_id.clone(),
+                            });
                         }
                     }
                 }
@@ -700,6 +722,7 @@ impl SiteStateLedger {
                 }
                 Ok(PreparedSiteMutation::ReleaseSpaceTimeReservation {
                     reservation_id: reservation_id.clone(),
+                    claims: record.reservation.claims.clone(),
                     released_event_id: event.event_id.clone(),
                     cleared_at_tick: *cleared_at_tick,
                     release_receipt_sha256: release_receipt_sha256.clone(),
@@ -984,6 +1007,15 @@ impl SiteStateLedger {
                 committed_event_id,
                 committed_sequence,
             } => {
+                for claim in &reservation.claims {
+                    self.active_resource_windows
+                        .entry(claim.resource_id.clone())
+                        .or_default()
+                        .insert(
+                            claim.start_tick,
+                            (claim.end_tick, reservation.reservation_id.clone()),
+                        );
+                }
                 self.space_time_reservations.insert(
                     reservation.reservation_id.clone(),
                     SpaceTimeReservationRecord {
@@ -998,10 +1030,25 @@ impl SiteStateLedger {
             }
             PreparedSiteMutation::ReleaseSpaceTimeReservation {
                 reservation_id,
+                claims,
                 released_event_id,
                 cleared_at_tick,
                 release_receipt_sha256,
             } => {
+                for claim in &claims {
+                    let index = self
+                        .active_resource_windows
+                        .get_mut(&claim.resource_id)
+                        .expect("prepared active resource index remains present");
+                    let removed = index.remove(&claim.start_tick);
+                    debug_assert!(
+                        removed.as_ref().is_some_and(|(_, id)| id == &reservation_id),
+                        "active resource index must point to the released reservation"
+                    );
+                    if index.is_empty() {
+                        self.active_resource_windows.remove(&claim.resource_id);
+                    }
+                }
                 let record = self
                     .space_time_reservations
                     .get_mut(&reservation_id)
@@ -1224,6 +1271,7 @@ enum PreparedSiteMutation {
     },
     ReleaseSpaceTimeReservation {
         reservation_id: String,
+        claims: Vec<ExclusiveResourceClaim>,
         released_event_id: String,
         cleared_at_tick: u64,
         release_receipt_sha256: String,
