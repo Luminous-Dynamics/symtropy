@@ -339,18 +339,18 @@
       "calibration_record_id": null
     },
     "vibration_frequency_hz": {
-      "value": null,
-      "standard_uncertainty": null,
+      "value": 45,
+      "standard_uncertainty": 0.5,
       "unit": "Hz",
-      "status": "unknown",
+      "status": "synthetic",
       "source_artifact_id": null,
       "calibration_record_id": null
     },
     "vibration_amplitude_m": {
-      "value": null,
-      "standard_uncertainty": null,
+      "value": 0.0001,
+      "standard_uncertainty": 0.000005,
       "unit": "m",
-      "status": "unknown",
+      "status": "synthetic",
       "source_artifact_id": null,
       "calibration_record_id": null
     },
@@ -405,7 +405,23 @@
       "source_artifact_id": null,
       "calibration_record_id": null
     },
-    "vibration_profile_id": "SYN-VIBRATION-B"
+    "vibration_profile_id": "SYN-VIBRATION-B",
+    "shear_rate_s_minus_1": {
+      "value": null,
+      "standard_uncertainty": null,
+      "unit": "1/s",
+      "status": "unknown",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "normal_confining_stress_pa": {
+      "value": null,
+      "standard_uncertainty": null,
+      "unit": "Pa",
+      "status": "unknown",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    }
   },
   "observations": {
     "raw_observation_artifact_id": "flow-trace-fixture",
@@ -709,5 +725,84 @@
     }
   ],
   "source_citation": null,
-  "notes": "NON-PHYSICAL SYNTHETIC FIXTURE. validation partition example only. No returned lunar sample, no physical apparatus test, no model run, and no claim of lunar regolith properties."
+  "notes": "NON-PHYSICAL SYNTHETIC FIXTURE. validation partition example only. No returned lunar sample, no physical apparatus test, no model run, and no claim of lunar regolith properties.",
+  "derived_coordinates": {
+    "granular_bond_number": {
+      "value": null,
+      "standard_uncertainty": null,
+      "unit": "dimensionless",
+      "status": "unknown",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "wall_adhesion_to_particle_weight": {
+      "value": null,
+      "standard_uncertainty": null,
+      "unit": "dimensionless",
+      "status": "unknown",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "inertial_number": {
+      "value": null,
+      "standard_uncertainty": null,
+      "unit": "dimensionless",
+      "status": "unknown",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "electrostatic_number": {
+      "value": null,
+      "standard_uncertainty": null,
+      "unit": "dimensionless",
+      "status": "unknown",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "vibration_gamma": {
+      "value": 0.8155,
+      "standard_uncertainty": 0.02,
+      "unit": "dimensionless",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "vibration_frequency_gravity_scale": {
+      "value": 0.0964,
+      "standard_uncertainty": 0.002,
+      "unit": "dimensionless",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "vibration_amplitude_to_particle_size": {
+      "value": 2.2222,
+      "standard_uncertainty": 0.1,
+      "unit": "dimensionless",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "particle_to_drum_ratio": {
+      "value": 0.0009,
+      "standard_uncertainty": 0.00005,
+      "unit": "dimensionless",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "wall_roughness_to_particle_ratio": {
+      "value": 0.04444,
+      "standard_uncertainty": 0.005,
+      "unit": "dimensionless",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "derived_from_artifact_ids": [
+      "psd-fixture",
+      "apparatus-geometry-fixture",
+      "flow-trace-fixture"
+    ]
+  }
 }
