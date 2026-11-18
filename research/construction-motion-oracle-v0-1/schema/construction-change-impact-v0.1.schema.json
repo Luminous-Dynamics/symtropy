@@ -8,7 +8,8 @@
   "required": [
     "schema_version",
     "graph",
-    "change_set"
+    "change_set",
+    "dependency_contract_set"
   ],
   "properties": {
     "schema_version": {
@@ -19,6 +20,9 @@
     },
     "change_set": {
       "$ref": "#/$defs/change_set"
+    },
+    "dependency_contract_set": {
+      "$ref": "#/$defs/dependency_contract_set"
     }
   },
   "$defs": {
@@ -270,6 +274,47 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/artifact"
+          }
+        }
+      }
+    },
+    "dependency_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_kind",
+        "required_domains"
+      ],
+      "properties": {
+        "artifact_kind": {
+          "$ref": "#/$defs/artifact_kind"
+        },
+        "required_domains": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/dependency_domain"
+          }
+        }
+      }
+    },
+    "dependency_contract_set": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_sha256",
+        "contracts"
+      ],
+      "properties": {
+        "contract_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "contracts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/dependency_contract"
           }
         }
       }
