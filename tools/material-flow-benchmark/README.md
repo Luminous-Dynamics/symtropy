@@ -268,3 +268,26 @@ cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bi
 `mfb-validate-campaign` proves only that the ten episodes and expected terminal states form a consistent test plan. It does not execute faults. The separate `mfb-run-campaign` binary executes the ten typed fault events against a fresh instance of the Rust handoff state machine and verifies the expected terminal states and negative controls: pre-dispatch failures never dispatch, same-command replay is suppressed, duplicate physical release evidence enters reconciliation, and post-dispatch ambiguity blocks blind retry.
 
 This is **protocol-level event injection**, not physical fault injection: it does not cut power, partition a live network, corrupt a sensor, move a real package or operate an actuator. Its report is included in the CI evidence artifact.
+
+## Carrier–UAV co-availability screen (synthetic contract slice)
+
+The `mfb-evaluate-coavailability` binary screens one proposed delivery-UAV sortie against a declared carrier itinerary. It checks:
+- route-stop identity and carrier stop windows;
+- launch and recovery service windows with interval arithmetic;
+- payload, usable battery energy plus protected reserve, peak power and continuous power;
+- declared operating permission and freshness/domain status of aircraft and weather evidence;
+- launch/recovery pad reservations using half-open intervals.
+
+It returns `feasible`, `infeasible` or `indeterminate`. Unknown / stale / conflicted evidence and unknown / expired permission never become a pass. A known hard constraint violation is reported as infeasible. The output hard-codes `dispatch_authorized=false` and `physical_command_emitted=false`.
+
+Run the synthetic arithmetic fixture from the repository root:
+
+```bash
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-evaluate-coavailability -- \
+  tools/material-flow-benchmark/fixtures/synthetic-carrier-uav-coavailability.json
+```
+
+The fixture is synthetic and checks only declared envelopes and times. The v0.1 slice does **not** model aerodynamic performance, wind magnitude or gust effects, aircraft battery electrochemistry, route travel-time derivation, carrier traction energy, charger losses, site power, airspace truth, flight control, airworthiness, HIL or field performance. It is not dispatch authorization. Carrier arrival bounds, capability evidence, weather status and permission status are caller-supplied inputs and must be sourced/qualified by their owning systems before any operational use.
+
+The v0.1 evaluator is a feasibility/admission layer, not an optimizer. It does not select routes, move a drone or truck, create reservations, or claim savings. Broader integration and external benchmark comparison remain tracked by [MFB-DRONE-CARRIER-COOPT-001 #6083](https://github.com/Luminous-Dynamics/symtropy/issues/6083).
+
