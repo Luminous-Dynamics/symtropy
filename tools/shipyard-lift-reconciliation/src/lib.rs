@@ -2293,6 +2293,54 @@ mod tests {
     }
 
     #[test]
+    fn revoked_over_limit_sensor_event_is_not_promoted_to_deviation() {
+        let (binding, policy, coverage, mut events) = baseline();
+        events[0].calibration_or_source_evidence.state = EvidenceState::Revoked;
+        if let Observation::HookLoad { upper_mn } = &mut events[0].observation {
+            *upper_mn = binding.maximum_hook_load_mn + 1;
+        }
+        let report = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "EVIDENCE_REVOKED"));
+        assert!(!has_code(&report, "HOOK_LOAD_LIMIT_EXCEEDED"));
+        assert_eq!(report.maximum_hook_load_upper_mn, Some(410_000_000));
+    }
+
+    #[test]
+    fn expired_limit_evidence_does_not_produce_formal_limit_deviation() {
+        let (mut binding, policy, coverage, mut events) = baseline();
+        binding.hook_load_limit_evidence.valid_until_tick = binding.end_tick - 1;
+        if let Observation::HookLoad { upper_mn } = &mut events[0].observation {
+            *upper_mn = binding.maximum_hook_load_mn + 1;
+        }
+        let report = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "EVIDENCE_NOT_VALID_FOR_EXECUTION"));
+        assert!(!has_code(&report, "HOOK_LOAD_LIMIT_EXCEEDED"));
+        assert!(report
+            .unknown_intervals
+            .iter()
+            .any(|interval| interval.reason == "hook_load_limit_evidence_invalid"));
+    }
+
+    #[test]
+    fn later_evidence_id_conflict_retroactively_quarantines_prior_sensor_event() {
+        let (binding, policy, coverage, mut events) = baseline();
+        events[0].calibration_or_source_evidence.source_record_id = "shared-evidence-record".to_owned();
+        events[0].calibration_or_source_evidence.sha256 = "a".repeat(64);
+        events[1].clock_mapping_evidence.source_record_id = "shared-evidence-record".to_owned();
+        events[1].clock_mapping_evidence.sha256 = "b".repeat(64);
+        if let Observation::HookLoad { upper_mn } = &mut events[0].observation {
+            *upper_mn = binding.maximum_hook_load_mn + 1;
+        }
+        let report = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "EVIDENCE_ID_CONFLICT"));
+        assert!(!has_code(&report, "HOOK_LOAD_LIMIT_EXCEEDED"));
+        assert_eq!(report.maximum_hook_load_upper_mn, Some(410_000_000));
+    }
+
+    #[test]
     fn complete_bounded_session_is_conforming_to_declared_envelope() {
         let (binding, policy, coverage, events) = baseline();
         let report = reconcile(&binding, &policy, &coverage, &events);
