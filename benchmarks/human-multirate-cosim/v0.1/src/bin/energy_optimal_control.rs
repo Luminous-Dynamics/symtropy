@@ -187,14 +187,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
 
     println!(
-        "energy_control,finite_grid,best_profile_id,{},incremental_control_kl,{:.12e},energy,{:.12e},peak,{:.12e}",
+        "energy_control,finite_grid,best_profile_id,{},incremental_control_kl,{:.12e},energy,{:.12e},peak,{:.12e},total_controlled_kl,{:.12e}",
         discrete.0,
         discrete.1,
         discrete.2,
         discrete.3,
+        discrete.4,
     );
     println!(
-        "energy_control,continuous_energy_ball,disposition,{:?},basis_dimension,{},top_eigenvalue,{:.12e},incremental_upper_bound,{:.12e},achieved_incremental_kl,{:.12e},energy,{:.12e},peak,{:.12e},total_controlled_kl,{:.12e},energy,{:.12e},peak,{:.12e},replay_abs_error,{:.12e}",
+        "energy_control,continuous_energy_ball,disposition,{:?},basis_dimension,{},top_eigenvalue,{:.12e},incremental_upper_bound,{:.12e},achieved_incremental_kl,{:.12e},total_controlled_kl,{:.12e},energy,{:.12e},peak,{:.12e},replay_abs_error,{:.12e}",
         continuous.optimality_disposition,
         continuous.basis_dimension,
         continuous.top_generalized_eigenvalue,

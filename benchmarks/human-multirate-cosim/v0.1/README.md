@@ -380,7 +380,8 @@ eigenpair gives the exact global optimum over the energy ellipsoid.
 The module replays the resulting waveform through the existing spectral
 experiment evaluator, reports total controlled KL separately, and has a
 separate test-only dense KL calculation with a hand-inverted 2x2 covariance for
-both total and passive-baseline-subtracted incremental KL. If the unconstrained top-eigenvector waveform
+both total and passive-baseline-subtracted incremental KL. If the unconstrained
+top-eigenvector waveform
 exceeds the peak-amplitude limit, the returned waveform is scaled into the
 feasible set and marked `PeakConstraintActive`. Its achieved score is a
 feasible lower bound, while the unconstrained energy-ball score remains an
