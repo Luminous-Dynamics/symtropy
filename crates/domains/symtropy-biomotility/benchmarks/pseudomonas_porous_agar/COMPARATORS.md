@@ -39,9 +39,14 @@ Sönke Beier, Veronika Pfeifer, Agniva Datta, Robert Großmann and Carsten Beta,
 - DOI: https://doi.org/10.1016/j.bpj.2026.06.002
 - Full text: https://pmc.ncbi.nlm.nih.gov/articles/PMC13507469/
 - The study analyses wild-type P. putida trajectories in 0.25% and 0.3% agar.
+- Run orientations are derived from the displacement vector joining the first and last detected point of each run; do not substitute the instantaneous endpoint tangent.
+- The reported directional analysis uses up-gradient versus down-gradient run groups, not a 36-degree cone. Use a declared half-plane/projection convention and confirm the exact classifier in the supplementary analysis before claiming exact reproduction.
 - It separates short events (<= 1 second), interpreted as more likely motor-driven, from long events (> 1 second), interpreted as dominated by passive trapping.
 - Reported up-gradient orientation fractions after short events are 56.7% in 0.25% agar and 55.6% in 0.3% agar; after long events they are 44.9% and 46.8%.
 - The paper's agent-based simulations estimate that turn-angle-bias-only reaches about 72% of combined-strategy drift in agar, while run-time-bias-only reaches about 25%.
+- Run-time bias strengths are reported as S = 0.037 ± 0.004 at 0.25% agar and S = 0.022 ± 0.002 at 0.3% agar.
+- Mean run orientations are up-gradient for 53.3% of 68,431 runs at 0.25% agar and 51.9% of 73,531 runs at 0.3% agar.
+- The study's run-after-event counts are 38,376 after short events and 17,582 after long events at 0.25% agar; 36,351 and 25,613, respectively, at 0.3% agar.
 
 The 2026 agent-based simulation used 5,000 bacteria over 30,000 time steps (25 experimental minutes). Those proportions and drift ratios are source-reported reference targets, not output of this crate and not direct raw-data measurements. Preserve this distinction in all reports.
 
