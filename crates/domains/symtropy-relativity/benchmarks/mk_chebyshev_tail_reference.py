@@ -42,6 +42,20 @@ tail_q = sp.simplify(q * nu)
 assert sp.simplify(a0 + sp.Rational(17, 30) / sp.sqrt(2)) == 0
 assert sp.simplify(an_prefactor + sp.Rational(17, 15) / sp.sqrt(2)) == 0
 
+def bilateral_norm_head(n: int) -> sp.Expr:
+    """Exact finite symmetric-Laurent norm induced by the physical T_n series."""
+    a0 = sp.simplify(c_inverse / (d * sp.sqrt(kappa**2 - 1)))
+    one_sided = sp.Abs(a0)
+    bilateral = sp.Abs(a0)
+    for degree in range(1, n + 1):
+        a_n_magnitude = sp.simplify(tail_prefactor * q**degree)
+        one_sided += a_n_magnitude * nu**degree
+        c_positive = a_n_magnitude / 2
+        c_negative = a_n_magnitude / 2
+        bilateral += (c_positive + c_negative) * nu**degree
+    assert sp.simplify(one_sided - bilateral) == 0
+    return sp.simplify(bilateral)
+
 def tail_bound(n: int) -> sp.Expr:
     return sp.simplify(tail_prefactor * tail_q ** (n + 1) / (1 - tail_q))
 
@@ -95,6 +109,14 @@ fixture = {
     "lapse_at_3": str(B3),
     "lapse_at_6": str(B6),
     "tail_values": tail_values,
+    "upstream_bilateral_conversion": {
+        "coefficient_map": "c_0=a_0, c_n=c_-n=a_n/2 for n>=1",
+        "one_sided_weighted_norm_equals_bilateral_symmetric_norm": True,
+        "finite_head_norm_identity_checked_for_N": [4, 8, 12, 16, 24, 32],
+        "finite_head_bilateral_norms": {
+            str(n): str(bilateral_norm_head(n)) for n in (4, 8, 12, 16, 24, 32)
+        }
+    },
     "claim_ceiling": "Analytic inverse-radius Chebyshev tail only; not a full BVP residual enclosure."
 }
 print(json.dumps(fixture, indent=2, sort_keys=True))
