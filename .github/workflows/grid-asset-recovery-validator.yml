@@ -1,0 +1,66 @@
+name: Grid Asset Recovery Validator
+
+on:
+  pull_request:
+    paths:
+      - "docs/research/grid-asset-recovery/**"
+      - "tools/grid-asset-recovery-validator/**"
+      - ".github/workflows/grid-asset-recovery-validator.yml"
+  push:
+    paths:
+      - "docs/research/grid-asset-recovery/**"
+      - "tools/grid-asset-recovery-validator/**"
+      - ".github/workflows/grid-asset-recovery-validator.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  recovery-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Install pinned JSON Schema validator
+        run: python3 -m pip install 'jsonschema==4.26.0'
+
+      - name: Validate JSON Schema and fixture
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+
+          root = Path("docs/research/grid-asset-recovery/data")
+          schema = json.loads((root / "asset-recovery-v0.1.schema.json").read_text())
+          fixture = json.loads((root / "synthetic-asset-recovery-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(fixture),
+              key=lambda error: list(map(str, error.absolute_path)),
+          )
+          if errors:
+              for error in errors:
+                  location = ".".join(map(str, error.absolute_path)) or "$"
+                  print(f"{location}: {error.message}")
+              raise SystemExit(1)
+          print("JSON Schema PASS: synthetic recovery fixture conforms to Draft 2020-12 contract")
+          PY
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/grid-asset-recovery-validator/Cargo.toml -- --check
+
+      - name: Run adversarial semantic tests
+        run: cargo test --manifest-path tools/grid-asset-recovery-validator/Cargo.toml
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --manifest-path tools/grid-asset-recovery-validator/Cargo.toml --all-targets -- -D warnings
+
+      - name: Validate synthetic recovery case
+        run: cargo run --manifest-path tools/grid-asset-recovery-validator/Cargo.toml -- docs/research/grid-asset-recovery/data/synthetic-asset-recovery-v0.1.json
