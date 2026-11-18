@@ -103,14 +103,28 @@ theorem exact_tail_le_upper_expression (N : ℕ) :
     linarith [qNuExact_lt_one]
   have hright : 0 < 1 - qNuUpperReal := by
     linarith [qNuUpperReal_lt_one]
-  apply (div_le_div_iff₀ hleft hright).2
+  have hpref : 0 ≤ prefactorUpperReal := by
+    unfold prefactorUpperReal prefactorUpper
+    positivity
   have hpow : qNuExact ^ (N + 1) ≤ qNuUpperReal ^ (N + 1) := by
-    gcongr
+    exact pow_le_pow_left₀ qNuExact_positive.le qNuExact_le_upper _
+  have hden : 1 - qNuUpperReal ≤ 1 - qNuExact := by
+    exact sub_le_sub_left qNuExact_le_upper 1
+  apply (div_le_div_iff₀ hleft hright).2
   calc
     prefactorExact * qNuExact ^ (N + 1) * (1 - qNuUpperReal)
-        ≤ prefactorUpperReal * qNuUpperReal ^ (N + 1) * (1 - qNuExact) := by
-          gcongr
-    _ = prefactorUpperReal * qNuUpperReal ^ (N + 1) * (1 - qNuExact) := rfl
+        ≤ prefactorUpperReal * qNuExact ^ (N + 1) * (1 - qNuUpperReal) := by
+          exact mul_le_mul_of_nonneg_right
+            (mul_le_mul_of_nonneg_right prefactorExact_le_upper
+              (pow_nonneg qNuExact_positive.le _))
+            (le_of_lt hright)
+    _ ≤ prefactorUpperReal * qNuUpperReal ^ (N + 1) * (1 - qNuUpperReal) := by
+          exact mul_le_mul_of_nonneg_right
+            (mul_le_mul_of_nonneg_left hpow hpref)
+            (le_of_lt hright)
+    _ ≤ prefactorUpperReal * qNuUpperReal ^ (N + 1) * (1 - qNuExact) := by
+          exact mul_le_mul_of_nonneg_left hden
+            (mul_nonneg hpref (pow_nonneg qNuUpper_positive.le _))
 
 theorem qNuUpper_positive : 0 < qNuUpper := by
   norm_num [qNuUpper, qUpper, sqrt2Lower]
@@ -120,6 +134,16 @@ theorem qNuUpper_lt_one : qNuUpper < 1 := by
 
 def tailUpper (N : ℕ) : ℚ :=
   prefactorUpper * qNuUpper ^ (N + 1) / (1 - qNuUpper)
+
+theorem upper_expression_eq_rational (N : ℕ) :
+    prefactorUpperReal * qNuUpperReal ^ (N + 1) / (1 - qNuUpperReal)
+      = (tailUpper N : ℝ) := by
+  simp [prefactorUpperReal, qNuUpperReal, tailUpper]
+
+theorem exact_tail_le_rational_upper (N : ℕ) :
+    exactTail N ≤ (tailUpper N : ℝ) := by
+  rw [← upper_expression_eq_rational]
+  exact exact_tail_le_upper_expression N
 
 theorem tail_upper_N4 : tailUpper 4 = (8776059929017857401510759533258955045305705252032127293726154490587588229485961199686881216291651617933019118432979325228895600003401479702035463 / 1511933899958536386705007127192549060145416956952174887211464843750000000000000000000000000000000000000000000000000000000000000000000000000000000000 : ℚ) := by
   norm_num [tailUpper, prefactorUpper, qNuUpper, sqrt2Lower]
