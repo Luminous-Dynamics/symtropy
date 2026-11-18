@@ -10,6 +10,7 @@
 //! runner/oracle custody boundary described in the research protocol.
 
 use super::{JointKernel, Rational};
+use crate::model_catalogue::{PublicModelCatalogue, PublicProbability};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -52,6 +53,8 @@ pub struct PublicHypothesis {
     pub structural_family: String,
     /// Plain-language candidate mechanism description.
     pub description: String,
+    /// Public task prior over declared candidates, independent of the hidden generator draw.
+    pub prior_probability: PublicProbability,
 }
 
 /// Public meaning and cost of one intervention; no transition probabilities or hidden state.
@@ -92,6 +95,8 @@ pub struct PublicResearchProfile {
     pub actions: Vec<PublicActionDescription>,
     /// Public observation-channel/category meanings.
     pub observations: Vec<PublicObservationDescription>,
+    /// Exact predictive transition catalogue for every declared candidate model.
+    pub model_catalogue: PublicModelCatalogue,
 }
 
 /// Public, non-secret identities and semantics that bind one episode to its exact model inputs.
@@ -146,6 +151,27 @@ impl EpisodeManifest {
         {
             return Err(EpisodeError::InvalidManifest);
         }
+        let mut candidate_prior_mass = Rational::zero();
+        for hypothesis in &profile.candidate_hypotheses {
+            let prior = hypothesis
+                .prior_probability
+                .to_rational()
+                .map_err(EpisodeError::InvalidManifest)?;
+            if prior.is_zero() {
+                return Err(EpisodeError::InvalidManifest);
+            }
+            candidate_prior_mass = candidate_prior_mass
+                .checked_add(prior)
+                .map_err(EpisodeError::InvalidManifest)?;
+        }
+        if candidate_prior_mass != Rational::one() {
+            return Err(EpisodeError::InvalidManifest);
+        }
+        profile
+            .model_catalogue
+            .verify_sha256()
+            .map_err(EpisodeError::InvalidManifest)?;
+
         let mut hypothesis_ids = BTreeSet::new();
         for hypothesis in &profile.candidate_hypotheses {
             if hypothesis.hypothesis_id.trim().is_empty()
@@ -202,6 +228,14 @@ impl EpisodeManifest {
             .iter()
             .map(|item| item.observation_id.as_str())
             .collect();
+        let public_candidate_ids: Vec<String> = candidate_ids
+            .iter()
+            .map(|candidate| (*candidate).to_owned())
+            .collect();
+        profile
+            .model_catalogue
+            .validate_against_kernel(kernel, &public_candidate_ids)
+            .map_err(EpisodeError::InvalidManifest)?;
         if candidate_ids.is_empty()
             || !candidate_ids.is_subset(&owner_hypothesis_ids)
             || action_ids.len() != kernel.action_ids.len()
