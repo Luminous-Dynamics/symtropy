@@ -353,9 +353,8 @@ pub fn enumerate_single_node_pulses(
     let dimension = scenario.models[0].network.capacities.len();
     let mut ordered_nodes = nodes.to_vec();
     ordered_nodes.sort_unstable();
-    if ordered_nodes.iter().any(|node| *node >= dimension) {
-        let node = *ordered_nodes.iter().find(|node| **node >= dimension).unwrap();
-        return Err(ExcitationDesignError::UnknownPulseNode { node });
+    if let Some(node) = ordered_nodes.iter().find(|node| **node >= dimension) {
+        return Err(ExcitationDesignError::UnknownPulseNode { node: *node });
     }
     if ordered_nodes.windows(2).any(|pair| pair[0] == pair[1]) {
         return Err(ExcitationDesignError::InvalidPulseGrid);
@@ -390,8 +389,9 @@ pub fn enumerate_single_node_pulses(
         .checked_mul(ordered_amplitudes.len())
         .and_then(|count| count.checked_mul(ordered_durations.len()))
         .ok_or(ExcitationDesignError::PulseProfileIdOverflow)?;
-    if candidate_count > 0
-        && first_profile_id
+    if candidate_count == 0
+        || candidate_count - 1 > u32::MAX as usize
+        || first_profile_id
             .checked_add((candidate_count - 1) as u32)
             .is_none()
     {
@@ -807,6 +807,52 @@ mod tests {
                 },
             ],
         }
+    }
+
+    #[test]
+    fn single_node_pulse_catalogue_is_deterministic_and_retains_rejections() {
+        let problem = scenario();
+        let first = enumerate_single_node_pulses(
+            &problem,
+            &[2, 0],
+            &[-2.0, 1.0, -1.0],
+            &[1.0, 0.25, 0.5],
+            50,
+        )
+        .unwrap();
+        let second = enumerate_single_node_pulses(
+            &problem,
+            &[0, 2],
+            &[-1.0, -2.0, 1.0],
+            &[0.25, 0.5, 1.0],
+            50,
+        )
+        .unwrap();
+
+        assert_eq!(first, second);
+        assert_eq!(first.profiles.len(), 8);
+        assert_eq!(first.rejected.len(), 10);
+        assert_eq!(first.profiles[0].id, 53);
+        assert_eq!(first.profiles[0].segments[0].forcing, vec![-1.0, 0.0, 0.0]);
+        assert!(first.rejected.iter().any(|candidate| {
+            candidate.reason == PulseRejectionReason::MaximumAmplitudeExceeded
+        }));
+        assert!(first.rejected.iter().any(|candidate| {
+            candidate.reason == PulseRejectionReason::IntegratedSquaredInputExceeded
+        }));
+    }
+
+    #[test]
+    fn pulse_grid_rejects_duplicate_and_out_of_range_candidates() {
+        let problem = scenario();
+        assert_eq!(
+            enumerate_single_node_pulses(&problem, &[0, 0], &[1.0], &[0.5], 1),
+            Err(ExcitationDesignError::InvalidPulseGrid)
+        );
+        assert_eq!(
+            enumerate_single_node_pulses(&problem, &[3], &[1.0], &[0.5], 1),
+            Err(ExcitationDesignError::UnknownPulseNode { node: 3 })
+        );
     }
 
     #[test]
