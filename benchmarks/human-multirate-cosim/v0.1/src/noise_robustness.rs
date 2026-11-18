@@ -1199,6 +1199,7 @@ pub enum NoiseCalibrationError {
     NoHiddenOutOfFamilyTruths,
     ExcessiveSampleCount,
     DuplicateHiddenTruthId(u32),
+    HiddenTruthMatchesCandidate(u32),
     InvalidTargetCoverage,
     SeedsMustDiffer,
     IncompatibleHiddenTruth { evaluator_id: u32 },
@@ -1238,6 +1239,9 @@ impl fmt::Display for NoiseCalibrationError {
             }
             Self::DuplicateHiddenTruthId(id) => {
                 write!(f, "duplicate hidden truth evaluator ID {id}")
+            }
+            Self::HiddenTruthMatchesCandidate(id) => {
+                write!(f, "hidden evaluator truth {id} exactly matches a registered candidate model")
             }
             Self::InvalidTargetCoverage => write!(
                 f,
@@ -1378,6 +1382,16 @@ pub fn calibrate_model_family_adequacy_full_covariance(
     for hidden in hidden_out_of_family_truths {
         if !hidden_truth_ids.insert(hidden.evaluator_id) {
             return Err(NoiseCalibrationError::DuplicateHiddenTruthId(
+                hidden.evaluator_id,
+            ));
+        }
+        if scenario
+            .experiment
+            .models
+            .iter()
+            .any(|model| model.network == hidden.network)
+        {
+            return Err(NoiseCalibrationError::HiddenTruthMatchesCandidate(
                 hidden.evaluator_id,
             ));
         }
@@ -1830,6 +1844,28 @@ mod tests {
         assert_eq!(
             result,
             Err(NoiseCalibrationError::NoHiddenOutOfFamilyTruths)
+        );
+        let duplicate_truth = HiddenOutOfFamilyTruth {
+            evaluator_id: 901,
+            network: scenario.experiment.models[0].network.clone(),
+        };
+        let duplicate_result = calibrate_model_family_adequacy_full_covariance(
+            &scenario,
+            &profile,
+            &[1],
+            &covariance,
+            &[duplicate_truth],
+            NoiseCalibrationConfigV1 {
+                calibration_seed: 1,
+                validation_seed: 2,
+                evaluator_seed: 3,
+                replicates_per_model: 2,
+                target_in_family_coverage: 0.95,
+            },
+        );
+        assert_eq!(
+            duplicate_result,
+            Err(NoiseCalibrationError::HiddenTruthMatchesCandidate(901))
         );
     }
 
