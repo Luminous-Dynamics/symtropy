@@ -30,7 +30,7 @@ An APPLICABLE result is not a test pass, conformity finding, safety case, certif
 ## Frozen corpus
 
 - 6 standard profiles.
-- 29 synthetic applicability scenarios.
+- 30 synthetic applicability scenarios.
 - Separate 29-row expected-disposition file.
 - 19 Rust unit tests.
 - Expected disposition totals: 11 APPLICABLE, 8 NOT_APPLICABLE, 6 PROFILE_INCOMPLETE, 1 EVIDENCE_INCOMPLETE, 1 STALE_OR_SUPERSEDED and 2 UNSUPPORTED_CLAIM.
