@@ -30,7 +30,8 @@
         "model_profile_sha256",
         "world_recipe_sha256",
         "clock_profile_sha256",
-        "time_origin_sha256"
+        "time_origin_sha256",
+        "public_profile"
       ],
       "properties": {
         "contract_sha256": {
@@ -50,6 +51,9 @@
         },
         "time_origin_sha256": {
           "$ref": "#/$defs/digest"
+        },
+        "public_profile": {
+          "$ref": "#/$defs/publicProfile"
         }
       }
     },
@@ -58,7 +62,9 @@
       "additionalProperties": false,
       "required": [
         "action_id",
-        "cost_units"
+        "cost_units",
+        "description",
+        "target"
       ],
       "properties": {
         "action_id": {
@@ -68,6 +74,16 @@
         "cost_units": {
           "type": "integer",
           "minimum": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
         }
       }
     },
@@ -78,7 +94,9 @@
         "observation_id",
         "event_step",
         "acquisition_step",
-        "available_at_step"
+        "available_at_step",
+        "description",
+        "unit"
       ],
       "properties": {
         "observation_id": {
@@ -96,6 +114,16 @@
         "available_at_step": {
           "type": "integer",
           "minimum": 0
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
         }
       }
     },
@@ -249,7 +277,8 @@
       "additionalProperties": false,
       "required": [
         "disposition",
-        "rationale"
+        "rationale",
+        "compatible_hypothesis_ids"
       ],
       "properties": {
         "disposition": {
@@ -264,6 +293,15 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 4096
+        },
+        "compatible_hypothesis_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 96
+          }
         }
       }
     },
@@ -356,6 +394,125 @@
         },
         "terminal": {
           "type": "boolean"
+        }
+      }
+    },
+    "hypothesis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hypothesis_id",
+        "structural_family",
+        "description"
+      ],
+      "properties": {
+        "hypothesis_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 96
+        },
+        "structural_family": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      }
+    },
+    "actionDescription": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "description",
+        "target"
+      ],
+      "properties": {
+        "action_id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_.:-]{1,96}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "observationDescription": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_id",
+        "channel_id",
+        "description",
+        "unit"
+      ],
+      "properties": {
+        "observation_id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_.:-]{1,96}$"
+        },
+        "channel_id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_.:-]{1,96}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
+    "publicProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_description",
+        "candidate_hypotheses",
+        "actions",
+        "observations"
+      ],
+      "properties": {
+        "task_description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "candidate_hypotheses": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/hypothesis"
+          }
+        },
+        "actions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/actionDescription"
+          }
+        },
+        "observations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/observationDescription"
+          }
         }
       }
     }
