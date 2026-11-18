@@ -29,6 +29,7 @@ pub struct FleetServiceAvailabilityCase {
     pub common_cause_events: Vec<ServiceCommonCauseEvent>,
     pub launch_recovery_events: Vec<LaunchRecoveryEvent>,
     pub logistics_limits: ServiceLogisticsLimits,
+    pub reserve_state_power_w: ReserveStatePower,
     pub expected_oracle: serde_json::Value,
     #[serde(default)]
     pub source_evidence_refs: Vec<String>,
@@ -102,6 +103,21 @@ pub struct LaunchRecoveryEvent {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct ReserveStatePower {
+    pub ground_ready_power_w: f64,
+    pub airborne_holding_power_w: f64,
+    pub launching_power_w: f64,
+    pub repositioning_power_w: f64,
+    pub on_station_power_w: f64,
+    pub recovering_power_w: f64,
+    pub planned_maintenance_power_w: f64,
+    pub unscheduled_repair_power_w: f64,
+    pub grounded_weather_power_w: f64,
+    pub inactive_power_w: f64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ServiceLogisticsLimits {
     pub simultaneous_launch_capacity: usize,
     pub simultaneous_recovery_capacity: usize,
@@ -109,6 +125,9 @@ pub struct ServiceLogisticsLimits {
     pub ground_ready_spares: usize,
     pub launch_lead_time_h: f64,
     pub recovery_duration_h: f64,
+    pub airborne_holding_slots: usize,
+    pub simultaneous_reposition_capacity: usize,
+    pub reposition_duration_h: f64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -143,6 +162,7 @@ pub struct FleetServiceAvailabilityReport {
     pub capacity_adequacy_gain_percentage_points: f64,
     pub launch_operations: usize,
     pub recovery_operations: usize,
+    pub reposition_operations: usize,
     pub maintenance_overlap_violations: usize,
 }
 
@@ -266,6 +286,8 @@ pub fn validate_service_availability_case(
                 segment.state.as_str(),
                 "on_station"
                     | "ground_ready"
+                    | "airborne_holding"
+                    | "repositioning"
                     | "launching"
                     | "recovering"
                     | "planned_maintenance"
@@ -321,8 +343,21 @@ pub fn validate_service_availability_case(
     ) {
         return Err(ReliabilityError::new("unsupported maintenance rotation policy"));
     }
-    if case.fleet_policy.reserve_ready_state != "ground_ready" {
-        return Err(ReliabilityError::new("only ground_ready reserve state is supported"));
+    if !matches!(
+        case.fleet_policy.reserve_ready_state.as_str(),
+        "ground_ready" | "airborne_holding"
+    ) {
+        return Err(ReliabilityError::new("unsupported reserve ready state"));
+    }
+    let ready_capacity = if case.fleet_policy.reserve_ready_state == "ground_ready" {
+        case.logistics_limits.ground_ready_spares
+    } else {
+        case.logistics_limits.airborne_holding_slots
+    };
+    if case.fleet_policy.reserve_platform_ids.len() > ready_capacity {
+        return Err(ReliabilityError::new(
+            "declared reserve platforms exceed ready-state logistics capacity",
+        ));
     }
 
     let mut event_ids = HashSet::new();
@@ -365,6 +400,24 @@ pub fn validate_service_availability_case(
 
     validate_nonnegative_finite(case.logistics_limits.launch_lead_time_h, "launch_lead_time_h")?;
     validate_nonnegative_finite(case.logistics_limits.recovery_duration_h, "recovery_duration_h")?;
+    validate_nonnegative_finite(
+        case.logistics_limits.reposition_duration_h,
+        "reposition_duration_h",
+    )?;
+    for (label, value) in [
+        ("ground_ready_power_w", case.reserve_state_power_w.ground_ready_power_w),
+        ("airborne_holding_power_w", case.reserve_state_power_w.airborne_holding_power_w),
+        ("launching_power_w", case.reserve_state_power_w.launching_power_w),
+        ("repositioning_power_w", case.reserve_state_power_w.repositioning_power_w),
+        ("on_station_power_w", case.reserve_state_power_w.on_station_power_w),
+        ("recovering_power_w", case.reserve_state_power_w.recovering_power_w),
+        ("planned_maintenance_power_w", case.reserve_state_power_w.planned_maintenance_power_w),
+        ("unscheduled_repair_power_w", case.reserve_state_power_w.unscheduled_repair_power_w),
+        ("grounded_weather_power_w", case.reserve_state_power_w.grounded_weather_power_w),
+        ("inactive_power_w", case.reserve_state_power_w.inactive_power_w),
+    ] {
+        validate_nonnegative_finite(value, label)?;
+    }
     let mut operation_ids = HashSet::new();
     for operation in &case.launch_recovery_events {
         if operation.event_id.trim().is_empty() || !operation_ids.insert(operation.event_id.as_str()) {
@@ -380,9 +433,10 @@ pub fn validate_service_availability_case(
                 operation.event_id
             )));
         }
-        let (required_state, expected_duration, site_open) = match operation.operation.as_str() {
-            "launch" => ("launching", case.logistics_limits.launch_lead_time_h, true),
-            "recovery" => ("recovering", case.logistics_limits.recovery_duration_h, false),
+        let (required_state, expected_duration, site_check) = match operation.operation.as_str() {
+            "launch" => ("launching", case.logistics_limits.launch_lead_time_h, Some(true)),
+            "recovery" => ("recovering", case.logistics_limits.recovery_duration_h, Some(false)),
+            "reposition" => ("repositioning", case.logistics_limits.reposition_duration_h, None),
             _ => return Err(ReliabilityError::new(format!("unknown operation {}", operation.operation))),
         };
         if (operation.end_h - operation.start_h - expected_duration).abs() > TIME_TOLERANCE_H {
@@ -402,18 +456,20 @@ pub fn validate_service_availability_case(
                 operation.event_id
             )));
         }
-        for event in &case.common_cause_events {
-            let site_is_open = if site_open {
-                event.launch_site_open
-            } else {
-                event.recovery_site_open
-            };
-            let overlaps = operation.start_h < event.end_h && event.start_h < operation.end_h;
-            if overlaps && !site_is_open {
-                return Err(ReliabilityError::new(format!(
-                    "operation {} overlaps common-cause site closure",
-                    operation.event_id
-                )));
+        if let Some(launch_or_recovery) = site_check {
+            for event in &case.common_cause_events {
+                let site_is_open = if launch_or_recovery {
+                    event.launch_site_open
+                } else {
+                    event.recovery_site_open
+                };
+                let overlaps = operation.start_h < event.end_h && event.start_h < operation.end_h;
+                if overlaps && !site_is_open {
+                    return Err(ReliabilityError::new(format!(
+                        "operation {} overlaps common-cause site closure",
+                        operation.event_id
+                    )));
+                }
             }
         }
     }
@@ -471,6 +527,17 @@ pub fn validate_service_availability_case(
                 case.logistics_limits.simultaneous_recovery_capacity
             )));
         }
+        let reposition_count = case
+            .launch_recovery_events
+            .iter()
+            .filter(|event| event.operation == "reposition" && mid >= event.start_h && mid < event.end_h)
+            .count();
+        if reposition_count > case.logistics_limits.simultaneous_reposition_capacity {
+            return Err(ReliabilityError::new(format!(
+                "reposition concurrency {reposition_count} exceeds capacity {}",
+                case.logistics_limits.simultaneous_reposition_capacity
+            )));
+        }
     }
 
     if case.fleet_policy.reserve_platform_ids.len() > case.logistics_limits.ground_ready_spares {
@@ -502,6 +569,11 @@ pub fn evaluate_service_availability(
         .iter()
         .filter(|event| event.operation == "recovery")
         .count();
+    let reposition_operations = case
+        .launch_recovery_events
+        .iter()
+        .filter(|event| event.operation == "reposition")
+        .count();
     Ok(FleetServiceAvailabilityReport {
         case_id: case.case_id.clone(),
         evidence_class: case.evidence_class.clone(),
@@ -517,6 +589,7 @@ pub fn evaluate_service_availability(
         primary_only_baseline,
         launch_operations,
         recovery_operations,
+        reposition_operations,
         maintenance_overlap_violations: 0,
     })
 }
@@ -611,6 +684,35 @@ fn evaluate_platform_set(
         }
     }
     let window = case.evaluation_window_h;
+    let reserve_ids: HashSet<&str> = case
+        .fleet_policy
+        .reserve_platform_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let mut reserve_strategy_energy_wh = 0.0;
+    for platform in &case.platforms {
+        if reserve_ids.contains(platform.platform_id.as_str())
+            && platform_ids.contains(&platform.platform_id.as_str())
+        {
+            for segment in &platform.segments {
+                let power_w = match segment.state.as_str() {
+                    "ground_ready" => case.reserve_state_power_w.ground_ready_power_w,
+                    "airborne_holding" => case.reserve_state_power_w.airborne_holding_power_w,
+                    "launching" => case.reserve_state_power_w.launching_power_w,
+                    "repositioning" => case.reserve_state_power_w.repositioning_power_w,
+                    "on_station" => case.reserve_state_power_w.on_station_power_w,
+                    "recovering" => case.reserve_state_power_w.recovering_power_w,
+                    "planned_maintenance" => case.reserve_state_power_w.planned_maintenance_power_w,
+                    "unscheduled_repair" => case.reserve_state_power_w.unscheduled_repair_power_w,
+                    "grounded_weather" => case.reserve_state_power_w.grounded_weather_power_w,
+                    "inactive" => case.reserve_state_power_w.inactive_power_w,
+                    _ => return Err(ReliabilityError::new("unknown reserve state while charging energy")),
+                };
+                reserve_strategy_energy_wh += power_w * (segment.end_h - segment.start_h);
+            }
+        }
+    }
     Ok(ServiceAvailabilityResult {
         strict_service_available_h: strict_hours,
         strict_availability_fraction: strict_hours / window,
@@ -622,6 +724,7 @@ fn evaluate_platform_set(
             .iter()
             .map(|outage| outage.duration_h)
             .fold(0.0, f64::max),
+        reserve_strategy_energy_wh,
         outage_intervals: outages,
     })
 }
