@@ -1,0 +1,106 @@
+name: Shipyard lift execution reconciliation
+
+on:
+  push:
+    paths:
+      - "tools/shipyard-lift-reconciliation/**"
+      - "tools/shipyard-lift-envelope/**"
+      - ".github/workflows/shipyard-lift-reconciliation.yml"
+  pull_request:
+    paths:
+      - "tools/shipyard-lift-reconciliation/**"
+      - "tools/shipyard-lift-envelope/**"
+      - ".github/workflows/shipyard-lift-reconciliation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shipyard-lift-reconciliation-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact event revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/shipyard-lift-reconciliation/Cargo.toml -- --check
+
+      - name: Run locked/offline reconciliation and dependent preflight tests
+        run: |
+          cargo test --locked --offline --manifest-path tools/shipyard-lift-envelope/Cargo.toml
+          cargo test --locked --offline --manifest-path tools/shipyard-lift-reconciliation/Cargo.toml
+
+      - name: Compile all targets
+        run: cargo check --locked --offline --manifest-path tools/shipyard-lift-reconciliation/Cargo.toml --all-targets
+
+      - name: Lint all targets with warnings denied
+        run: cargo clippy --locked --offline --manifest-path tools/shipyard-lift-reconciliation/Cargo.toml --all-targets -- -D warnings
+
+      - name: Generate canonical synthetic policy, coverage and telemetry inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          out=/tmp/shipyard-lift-reconciliation
+          rm -rf "$out"
+          mkdir -p "$out"
+          cargo run --locked --offline --manifest-path tools/shipyard-lift-reconciliation/Cargo.toml --example synthetic_reconciliation -- --emit-inputs > "$out/inputs.jsonl"
+          test "$(wc -l < "$out/inputs.jsonl")" -eq 3
+          sed -n '1p' "$out/inputs.jsonl" > "$out/policy.json"
+          sed -n '2p' "$out/inputs.jsonl" > "$out/coverage-bundle.json"
+          sed -n '3p' "$out/inputs.jsonl" > "$out/event-ledger.json"
+          jq -e '.policy_id == "synthetic-reconciliation-policy-01" and .maximum_sample_gap_ticks == 60 and (.required_channels | length) == 7' "$out/policy.json"
+          jq -e 'length == 7 and ([.[].channel] | unique | length) == 7 and all(.[]; .complete == true)' "$out/coverage-bundle.json"
+          jq -e 'length == 12 and all(.[]; (.event_id | length) > 0 and (.source_id | length) > 0)' "$out/event-ledger.json"
+
+      - name: Reconcile against the exact canonical input digests
+        shell: bash
+        run: |
+          set -euo pipefail
+          out=/tmp/shipyard-lift-reconciliation
+          policy_sha=$(sha256sum "$out/policy.json" | cut -d ' ' -f 1)
+          coverage_sha=$(sha256sum "$out/coverage-bundle.json" | cut -d ' ' -f 1)
+          event_sha=$(sha256sum "$out/event-ledger.json" | cut -d ' ' -f 1)
+          RECONCILIATION_POLICY_SHA256="$policy_sha"           COVERAGE_BUNDLE_SHA256="$coverage_sha"           EVENT_LEDGER_SHA256="$event_sha"             cargo run --locked --offline --manifest-path tools/shipyard-lift-reconciliation/Cargo.toml --example synthetic_reconciliation > "$out/reconciliation-report.json"
+          jq -e --arg policy "$policy_sha" --arg coverage "$coverage_sha" --arg events "$event_sha" '
+            .contract_version == "shipyard-lift-reconciliation-v0.1"
+            and .disposition == "conforming_to_declared_envelope"
+            and .plan_input_sha256 == ("1" * 64)
+            and .preflight_report_sha256 == ("2" * 64)
+            and .policy_sha256 == $policy
+            and .coverage_bundle_sha256 == $coverage
+            and .event_ledger_sha256 == $events
+            and .matched_event_count == 12
+            and .maximum_hook_load_upper_mn == 410000000
+            and .maximum_wind_gust_upper_mm_per_s == 9000
+            and (.unknown_intervals | length) == 0
+            and (.diagnostics | length) == 0
+          ' "$out/reconciliation-report.json"
+          report_sha=$(sha256sum "$out/reconciliation-report.json" | cut -d ' ' -f 1)
+          printf '{"receipt_contract_version":"shipyard-lift-reconciliation-receipt-v0","policy_sha256":"%s","coverage_bundle_sha256":"%s","event_ledger_sha256":"%s","report_sha256":"%s"}\n'             "$policy_sha" "$coverage_sha" "$event_sha" "$report_sha" > "$out/reconciliation-receipt.json"
+          jq -e --arg policy "$policy_sha" --arg coverage "$coverage_sha" --arg events "$event_sha" --arg report "$report_sha" '
+            .receipt_contract_version == "shipyard-lift-reconciliation-receipt-v0"
+            and .policy_sha256 == $policy and .coverage_bundle_sha256 == $coverage
+            and .event_ledger_sha256 == $events and .report_sha256 == $report
+          ' "$out/reconciliation-receipt.json"
+
+      - name: Retain canonical reconciliation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shipyard-lift-reconciliation-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/shipyard-lift-reconciliation/**
+          if-no-files-found: ignore
+          retention-days: 14
