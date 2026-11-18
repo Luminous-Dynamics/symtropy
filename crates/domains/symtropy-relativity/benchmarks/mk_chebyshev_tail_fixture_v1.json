@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "mannheim_kazanas_chebyshev_inverse_radius_tail_fixture",
+  "status": "analytic_tail_formula_and_high_precision_reference_values_not_a_BVP_certificate",
+  "metric": "B(r)=c_inverse/r+c_constant+c_linear*r+c_quadratic*r^2",
+  "annulus": {
+    "r_a": "3",
+    "r_b": "6",
+    "map": "r=c+d*x",
+    "c": "9/2",
+    "d": "3/2",
+    "x_domain": [
+      "-1",
+      "1"
+    ]
+  },
+  "coefficients": {
+    "c_inverse": "-17/10",
+    "c_constant": "7/10",
+    "c_linear": "1/10",
+    "c_quadratic": "-1/100"
+  },
+  "lapse_endpoint_values": {
+    "B_at_3": "103/300",
+    "B_at_6": "197/300"
+  },
+  "chebyshev": {
+    "convention": "f(x)=a0+sum_{n>=1} a_n*T_n(x)",
+    "kappa": "3",
+    "sqrt_kappa_squared_minus_one": "2*sqrt(2)",
+    "q": "3-2*sqrt(2)",
+    "q_decimal": "0.1715728752538099023966225515806038428606562492461",
+    "reciprocal_radius": "1/r = 1/(d*sqrt(kappa^2-1)) * (1+2*sum_{n>=1}(-q)^n*T_n(x))",
+    "lapse_a0": "-17/(30*sqrt(2))",
+    "lapse_an_for_n_ge_1": "-17/(15*sqrt(2))*(-q)^n",
+    "non_inverse_radius_terms": "c0+c1*r+c2*r^2 are degree-two polynomials in x and generate no Chebyshev tail above degree two",
+    "weighted_l1_condition": "q*nu < 1",
+    "weighted_l1_nu": "2",
+    "q_times_nu": "6-4*sqrt(2)",
+    "tail_bound": "(17/(15*sqrt(2))) * (q*nu)^(N+1)/(1-q*nu)"
+  },
+  "tail_reference_values_mpmath_80_decimal_digits": [
+    {
+      "N": 4,
+      "tail_bound": "0.00580452619605826288508"
+    },
+    {
+      "N": 8,
+      "tail_bound": "0.0000804787598578375991674"
+    },
+    {
+      "N": 12,
+      "tail_bound": "0.00000111582419813244674483"
+    },
+    {
+      "N": 16,
+      "tail_bound": "0.0000000154707110713096374516"
+    },
+    {
+      "N": 24,
+      "tail_bound": "0.00000000000297398843464700407982"
+    },
+    {
+      "N": 32,
+      "tail_bound": "0.000000000000000571700109235212921766"
+    }
+  ],
+  "validation": {
+    "exact_symbolic_series_formula_derived": true,
+    "geometric_tail_formula_derived": true,
+    "decimal_values_high_precision_reference": true,
+    "sample_point_comparisons_are_not_used_as_the_tail_proof": true,
+    "upstream_bilateral_chebyshev_normalization_conversion_proved": false,
+    "lean_executed": false,
+    "black_hole_bvp_certificate": false
+  },
+  "claim_ceiling": "Analytic weighted coefficient tail bound for the 1/r term in one known MK metric on the compact annulus [3,6]. It is not a complete nonlinear residual bound or a radii-polynomial existence certificate."
+}
