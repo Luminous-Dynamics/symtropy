@@ -619,12 +619,8 @@ impl SiteStateLedger {
                 }
                 let package = self.current_package(package_sha256)?;
                 ensure_attempt_is_awaiting_measurement(package, entity_id, attempt_id)?;
-                let outcome = evaluate_referee_assessment(
-                    package,
-                    entity_id,
-                    robot_disposition,
-                    assessment,
-                )?;
+                let outcome =
+                    evaluate_referee_assessment(package, entity_id, robot_disposition, assessment)?;
                 let new_state = match outcome {
                     ScoredRefereeOutcome::Accepted(receipt) => SiteEntityState::Accepted {
                         attempt_id: attempt_id.clone(),
@@ -799,10 +795,7 @@ impl SiteStateLedger {
         );
     }
 
-    fn current_package(
-        &self,
-        package_sha256: &str,
-    ) -> Result<&PackageProjection, SiteLedgerError> {
+    fn current_package(&self, package_sha256: &str) -> Result<&PackageProjection, SiteLedgerError> {
         if self.active_package_sha256.as_deref() != Some(package_sha256) {
             return Err(SiteLedgerError::InactivePackage(package_sha256.to_owned()));
         }
@@ -810,7 +803,6 @@ impl SiteStateLedger {
             .get(package_sha256)
             .ok_or_else(|| SiteLedgerError::UnknownPackage(package_sha256.to_owned()))
     }
-
 }
 
 #[derive(Clone, Debug)]
@@ -960,9 +952,7 @@ fn validate_attempt_owner(
         ));
     }
     if attempt.robot_id != actor_id {
-        return Err(SiteLedgerError::AttemptActorMismatch(
-            attempt_id.to_owned(),
-        ));
+        return Err(SiteLedgerError::AttemptActorMismatch(attempt_id.to_owned()));
     }
     Ok(())
 }
@@ -973,11 +963,9 @@ fn ensure_attempt_is_in_progress(
     attempt_id: &str,
 ) -> Result<(), SiteLedgerError> {
     match package.entity_states.get(entity_id) {
-        Some(SiteEntityState::ExecutionInProgress { attempt_id: current })
-            if current == attempt_id =>
-        {
-            Ok(())
-        }
+        Some(SiteEntityState::ExecutionInProgress {
+            attempt_id: current,
+        }) if current == attempt_id => Ok(()),
         _ => Err(SiteLedgerError::AttemptContextMismatch(
             attempt_id.to_owned(),
         )),
@@ -1617,7 +1605,6 @@ mod tests {
         ));
     }
 
-
     #[test]
     fn previous_event_digest_mismatch_fails_closed_without_advancing_state() {
         let mut ledger = SiteStateLedger::new();
@@ -1694,7 +1681,6 @@ mod tests {
         assert_eq!(ledger.last_sequence(), 5);
         assert_eq!(ledger.accepted_count(&package_digest), Some(1));
     }
-
 
     #[test]
     fn referee_measurement_can_override_a_robot_not_printed_claim() {
@@ -1854,7 +1840,6 @@ mod tests {
         ));
     }
 
-
     #[test]
     fn interrupted_attempt_remains_unaccepted_until_referee_reconciliation() {
         let (mut ledger, package_digest, attempt_id) = setup_started_attempt();
@@ -1978,8 +1963,7 @@ mod tests {
         ));
         assert_eq!(held_ledger.last_sequence(), 5);
 
-        let (mut rejected_ledger, rejected_package, rejected_attempt) =
-            setup_started_attempt();
+        let (mut rejected_ledger, rejected_package, rejected_attempt) = setup_started_attempt();
         let robot = event(
             "event-robot",
             4,
@@ -2088,7 +2072,6 @@ mod tests {
         assert_eq!(ledger.accepted_count(&old_package), Some(0));
     }
 
-
     #[test]
     fn event_identity_index_remains_stable_after_long_append_history() {
         let mut ledger = SiteStateLedger::new();
@@ -2136,7 +2119,6 @@ mod tests {
         );
         assert_eq!(ledger.event_count(), 130);
     }
-
 
     #[test]
     fn event_history_replay_reconstructs_an_identical_projection() {
@@ -2202,7 +2184,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn malformed_ids_engine_build_cannot_be_published_to_the_site_ledger() {
         let mut ledger = SiteStateLedger::new();
@@ -2224,5 +2205,4 @@ mod tests {
         assert_eq!(ledger.last_sequence(), 0);
         assert_eq!(ledger.event_count(), 0);
     }
-
 }
