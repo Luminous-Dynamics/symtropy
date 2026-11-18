@@ -305,3 +305,44 @@ observation-process receipt now records `DENSE_SPD` or `AR1_KRONECKER` so
 performance and calibration claims bind to the actual covariance algorithm.
 No Rust performance result is claimed until exact-head execution and matched
 benchmarks complete.
+
+## Realized coverage under dependence and delayed feedback
+
+The `coverage_inference` module is a separate method lane from covariance
+scoring/calibration. It operates on an event-time-ordered sequence of binary
+forecast-coverage outcomes, retaining forecast ID, issue time/step, event
+time and outcome availability time/step.
+
+It reports three distinct summaries:
+- IID Wilson interval: an explicit independent-Bernoulli comparison, not the
+  default uncertainty statement for a dependent sequence;
+- Newey-West/Bartlett HAC long-run variance and asymptotic normal interval,
+  with caller-specified bandwidth;
+- non-circular moving-block bootstrap percentile interval, with explicit
+  block length, replicate count and seed.
+
+The HAC and block-bootstrap intervals are diagnostics under their stated
+asymptotic/resampling assumptions. They are not distribution-free
+finite-sample coverage guarantees. Block length/bandwidth sensitivity and
+regime-stratified performance must be reported.
+
+`DelayedAciSchedulerV1` is a bounded fixed-integer-delay recurrence reference.
+It records the alpha used at forecast issue, keeps the label pending until
+the exact due step, and then updates only the corresponding interleaved
+delay lane using alpha_next = clip(alpha + gamma * (target_alpha - miss)).
+It rejects premature, late, duplicate and out-of-order settlements; any
+overdue pending label blocks new issuance. This is not a general asynchronous
+feedback protocol or a claim of universal adaptive-conformal validity.
+
+Run the frozen reference with:
+
+    cargo run --manifest-path benchmarks/human-multirate-cosim/v0.1/Cargo.toml --release --bin coverage_inference
+
+The runner uses a deterministic 120-outcome block-pattern sequence, HAC
+bandwidth 8, 5,000 moving-block bootstrap replicates with seed 20261118,
+and a separate fixed-delay ACI sequence with delay three. Exact executable
+output is not claimed until the exact Rust branch head is run.
+
+See Symtropy issue #6052 for the preregistered acceptance tests, including
+AR(1), GARCH-like and Markov-switching future regimes, delay-to-memory
+sensitivity, missing/late labels and historical decision-cutoff controls.
