@@ -66,7 +66,15 @@ pub struct WeatherEnvelope {
     pub gust_upper_mm_per_s: u64,
     /// Source-declared maximum permitted gust for this exact operation.
     pub maximum_gust_mm_per_s: u64,
-    pub evidence: EvidenceRef,
+    /// Sensor/observation subject identity (station or metocean source).
+    pub observation_subject_id: String,
+    pub observation_subject_revision: String,
+    /// Exact source-owned limit profile identity.
+    pub limit_profile_id: String,
+    pub limit_profile_revision: String,
+    /// Observation provenance and operating-limit provenance are different claims.
+    pub observation_evidence: EvidenceRef,
+    pub operating_limit_evidence: EvidenceRef,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -103,7 +111,6 @@ pub struct LiftPlan {
     pub dynamic_factor_ppm: u64,
     pub dynamic_factor_profile_id: String,
     pub dynamic_factor_profile_revision: String,
-    pub weather_profile_revision: String,
     pub mass_evidence: EvidenceRef,
     pub centre_of_gravity_envelope_evidence: EvidenceRef,
     pub pick_point_and_load_share_evidence: EvidenceRef,
@@ -317,7 +324,10 @@ fn validate_context(plan: &LiftPlan, diagnostics: &mut Vec<Diagnostic>) {
         ("crane_working_quadrant_id", plan.crane_working_quadrant_id.as_str()),
         ("dynamic_factor_profile_id", plan.dynamic_factor_profile_id.as_str()),
         ("dynamic_factor_profile_revision", plan.dynamic_factor_profile_revision.as_str()),
-        ("weather_profile_revision", plan.weather_profile_revision.as_str()),
+        ("weather_observation_subject_id", plan.weather.observation_subject_id.as_str()),
+        ("weather_observation_subject_revision", plan.weather.observation_subject_revision.as_str()),
+        ("weather_limit_profile_id", plan.weather.limit_profile_id.as_str()),
+        ("weather_limit_profile_revision", plan.weather.limit_profile_revision.as_str()),
     ] {
         if !nonblank(value) {
             diagnostic(
@@ -571,7 +581,8 @@ pub fn evaluate(plan: &LiftPlan) -> PreflightReport {
         &plan.pick_point_and_load_share_evidence,
         &plan.dynamic_factor_evidence,
         &plan.crane_chart.evidence,
-        &plan.weather.evidence,
+        &plan.weather.observation_evidence,
+        &plan.weather.operating_limit_evidence,
         &plan.motion.motion_report_evidence,
         &plan.motion.occupancy_evidence,
     ] {
@@ -610,9 +621,15 @@ pub fn evaluate(plan: &LiftPlan) -> PreflightReport {
         &mut diagnostics,
     );
     validate_subject_binding(
-        &plan.weather.evidence,
-        &plan.site_epoch_id,
-        &plan.weather_profile_revision,
+        &plan.weather.observation_evidence,
+        &plan.weather.observation_subject_id,
+        &plan.weather.observation_subject_revision,
+        &mut diagnostics,
+    );
+    validate_subject_binding(
+        &plan.weather.operating_limit_evidence,
+        &plan.weather.limit_profile_id,
+        &plan.weather.limit_profile_revision,
         &mut diagnostics,
     );
     validate_subject_binding(
@@ -636,7 +653,7 @@ pub fn evaluate(plan: &LiftPlan) -> PreflightReport {
             &mut diagnostics,
             "WIND_GUST_LIMIT_EXCEEDED",
             DiagnosticSeverity::Rejected,
-            Some(&plan.weather.evidence.source_record_id),
+            Some(&plan.weather.observation_evidence.source_record_id),
             "conservative observed gust upper bound exceeds the declared operation limit",
         );
     }
@@ -912,7 +929,20 @@ mod tests {
             weather: WeatherEnvelope {
                 gust_upper_mm_per_s: 8_000,
                 maximum_gust_mm_per_s: 10_000,
-                evidence: evidence_for("weather-envelope-001", "yard-epoch-3", "r1"),
+                observation_subject_id: "weather-station-01".to_owned(),
+                observation_subject_revision: "station-config-r3".to_owned(),
+                limit_profile_id: "gantry-wind-profile-01".to_owned(),
+                limit_profile_revision: "r1".to_owned(),
+                observation_evidence: evidence_for(
+                    "wind-observation-001",
+                    "weather-station-01",
+                    "station-config-r3",
+                ),
+                operating_limit_evidence: evidence_for(
+                    "gantry-wind-limit-001",
+                    "gantry-wind-profile-01",
+                    "r1",
+                ),
             },
             motion: MotionOccupancyBinding {
                 motion_report_id: "motion-report-001".to_owned(),
@@ -1033,13 +1063,34 @@ mod tests {
         assert_eq!(rejected.disposition, Disposition::Rejected);
         assert!(has_code(&rejected, "WIND_GUST_LIMIT_EXCEEDED"));
 
-        plan.weather.evidence.valid_until_tick = 199;
+        plan.weather.observation_evidence.valid_until_tick = 199;
         let indeterminate = evaluate(&plan);
         assert_eq!(indeterminate.disposition, Disposition::Indeterminate);
         assert!(has_code(
             &indeterminate,
             "EVIDENCE_NOT_VALID_FOR_LIFT_INTERVAL"
         ));
+
+        let mut profile_stale = baseline();
+        profile_stale.weather.operating_limit_evidence.valid_until_tick = 199;
+        let profile_report = evaluate(&profile_stale);
+        assert_eq!(profile_report.disposition, Disposition::Indeterminate);
+        assert!(has_code(
+            &profile_report,
+            "EVIDENCE_NOT_VALID_FOR_LIFT_INTERVAL"
+        ));
+    }
+
+    #[test]
+    fn weather_observation_cannot_substitute_for_limit_profile() {
+        let mut plan = baseline();
+        plan.weather.operating_limit_evidence.subject_id =
+            "weather-station-01".to_owned();
+        plan.weather.operating_limit_evidence.subject_revision =
+            "station-config-r3".to_owned();
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "EVIDENCE_SUBJECT_MISMATCH"));
     }
 
     #[test]
