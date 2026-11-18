@@ -1,0 +1,211 @@
+name: Material Flow Benchmark contract
+
+on:
+  pull_request:
+    paths:
+      - "tools/material-flow-benchmark/**"
+      - "docs/research/home-logistics/MATERIAL_FLOW_BENCHMARK_V0_1.md"
+      - ".github/workflows/material-flow-benchmark.yml"
+  push:
+    branches:
+      - "research/material-flow-benchmark-v0-1"
+    paths:
+      - "tools/material-flow-benchmark/**"
+      - ".github/workflows/material-flow-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: material-flow-benchmark-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Formatting
+        run: cargo fmt --manifest-path tools/material-flow-benchmark/Cargo.toml -- --check
+      - name: Clippy
+        run: cargo clippy --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --all-targets -- -D warnings
+      - name: Tests
+        run: cargo test --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --all-targets
+      - name: Validate nominal scenario fixture
+        run: cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json
+      - name: Validate ten-fault campaign fixture
+        run: cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate-campaign -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json tools/material-flow-benchmark/fixtures/ten-fault-campaign.json
+      - name: Execute ten-fault protocol campaign and negative controls
+        run: |
+          mkdir -p mfb-l1-evidence
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-run-campaign -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json tools/material-flow-benchmark/fixtures/ten-fault-campaign.json > mfb-l1-evidence/protocol-fault-campaign.json
+          grep -q '"all_expected_outcomes_observed": true' mfb-l1-evidence/protocol-fault-campaign.json
+          grep -q '"pre_dispatch_faults_never_dispatched": true' mfb-l1-evidence/protocol-fault-campaign.json
+          grep -q '"post_dispatch_ambiguities_blocked_retry": true' mfb-l1-evidence/protocol-fault-campaign.json
+          grep -q '"no_episode_false_completed": true' mfb-l1-evidence/protocol-fault-campaign.json
+          cat mfb-l1-evidence/protocol-fault-campaign.json
+      - name: Validate evidence-typed procedure graph
+        run: |
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate-procedure -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json tools/material-flow-benchmark/fixtures/nominal-receiving-procedure.json > mfb-l1-evidence/procedure-readiness.json
+          grep -q '"structurally_valid_for_external_review": true' mfb-l1-evidence/procedure-readiness.json
+          grep -q '"motion_authority_granted": false' mfb-l1-evidence/procedure-readiness.json
+          grep -q '"physical_command_emitted": false' mfb-l1-evidence/procedure-readiness.json
+          grep -q '"task_success_attested": false' mfb-l1-evidence/procedure-readiness.json
+          cat mfb-l1-evidence/procedure-readiness.json
+      - name: Admit scoped procedure evidence receipts
+        run: |
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-admit-procedure-evidence -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json tools/material-flow-benchmark/fixtures/nominal-receiving-procedure.json tools/material-flow-benchmark/fixtures/nominal-receiving-evidence.json > mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"execution_branch": "normal_completion"' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"admitted_receipt_count": 13' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"evidence_envelopes_structurally_admitted": true' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"declared_freshness_policy_passed": true' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"content_digest_verified": false' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"cryptographic_authentication_verified": false' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"issuer_authorization_verified": false' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"trusted_time_verified": false' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"sensor_truth_established": false' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"motion_authority_granted": false' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"physical_command_emitted": false' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"task_success_attested": false' mfb-l1-evidence/procedure-evidence-admission.json
+          cat mfb-l1-evidence/procedure-evidence-admission.json
+      - name: Admit reconciliation-branch evidence receipts
+        run: |
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-admit-procedure-evidence -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json tools/material-flow-benchmark/fixtures/nominal-receiving-procedure.json tools/material-flow-benchmark/fixtures/reconciliation-receiving-evidence.json > mfb-l1-evidence/procedure-reconciliation-evidence-admission.json
+          grep -q '"execution_branch": "reconciliation"' mfb-l1-evidence/procedure-reconciliation-evidence-admission.json
+          grep -q '"admitted_receipt_count": 10' mfb-l1-evidence/procedure-reconciliation-evidence-admission.json
+          grep -q '"evidence_envelopes_structurally_admitted": true' mfb-l1-evidence/procedure-reconciliation-evidence-admission.json
+          grep -q '"motion_authority_granted": false' mfb-l1-evidence/procedure-reconciliation-evidence-admission.json
+          grep -q '"physical_command_emitted": false' mfb-l1-evidence/procedure-reconciliation-evidence-admission.json
+          grep -q '"task_success_attested": false' mfb-l1-evidence/procedure-reconciliation-evidence-admission.json
+          cat mfb-l1-evidence/procedure-reconciliation-evidence-admission.json
+      - name: Adjudicate false-positive receiver observation
+        run: |
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-adjudicate-presence -- tools/material-flow-benchmark/fixtures/false-positive-receiver-observation.json > mfb-l1-evidence/receiver-observation-adjudication.json
+          grep -q '"verdict": "contradictory"' mfb-l1-evidence/receiver-observation-adjudication.json
+          grep -q '"positive_presence_confirmed": false' mfb-l1-evidence/receiver-observation-adjudication.json
+          grep -q '"sensor_truth_established": false' mfb-l1-evidence/receiver-observation-adjudication.json
+          grep -q '"motion_authority_granted": false' mfb-l1-evidence/receiver-observation-adjudication.json
+          grep -q '"custody_completion_permitted": false' mfb-l1-evidence/receiver-observation-adjudication.json
+          cat mfb-l1-evidence/receiver-observation-adjudication.json
+      - name: Run analytical four-timestep free-fall convergence
+        run: |
+          mkdir -p mfb-l1-evidence
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate-convergence > mfb-l1-evidence/free-fall-convergence.json
+          grep -q '"position_error_monotonic": true' mfb-l1-evidence/free-fall-convergence.json
+          grep -q '"all_cases_numerically_healthy": true' mfb-l1-evidence/free-fall-convergence.json
+          cat mfb-l1-evidence/free-fall-convergence.json
+      - name: Run nominal L1 Symtropy physics episode and replay check
+        run: |
+          mkdir -p mfb-l1-evidence
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-simulate -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json > mfb-l1-evidence/result.json
+          grep -q '"accepted": true' mfb-l1-evidence/result.json
+          grep -q '"replay_bitwise_equal": true' mfb-l1-evidence/result.json
+          cat mfb-l1-evidence/result.json
+      - name: Run L1 closed-gate obstruction fault episode
+        run: |
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-simulate-gate-fault -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json > mfb-l1-evidence/gate-obstruction-fault.json
+          grep -q '"fault_oracle_passed": true' mfb-l1-evidence/gate-obstruction-fault.json
+          grep -q '"physical_fault_effect_observed": true' mfb-l1-evidence/gate-obstruction-fault.json
+          grep -Eq '"gate_contact_event_count": [1-9][0-9]*' mfb-l1-evidence/gate-obstruction-fault.json
+          grep -Eq '"gate_contact_max_impulse_ns": (0\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(\.[0-9]*)?)' mfb-l1-evidence/gate-obstruction-fault.json
+          grep -q '"reconciliation_required": true' mfb-l1-evidence/gate-obstruction-fault.json
+          grep -q '"blind_retry_blocked": true' mfb-l1-evidence/gate-obstruction-fault.json
+          grep -q '"false_completion_blocked": true' mfb-l1-evidence/gate-obstruction-fault.json
+          grep -q '"transaction_state": "reconciliation_required"' mfb-l1-evidence/gate-obstruction-fault.json
+          cat mfb-l1-evidence/gate-obstruction-fault.json
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-simulate-gate-fault-sweep -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json 30 > mfb-l1-evidence/gate-obstruction-fault-sweep.json
+          grep -q '"requested_run_count": 30' mfb-l1-evidence/gate-obstruction-fault-sweep.json
+          grep -q '"executed_run_count": 30' mfb-l1-evidence/gate-obstruction-fault-sweep.json
+          grep -q '"passed_run_count": 30' mfb-l1-evidence/gate-obstruction-fault-sweep.json
+          grep -q '"failed_run_count": 0' mfb-l1-evidence/gate-obstruction-fault-sweep.json
+          grep -q '"all_fault_oracles_passed": true' mfb-l1-evidence/gate-obstruction-fault-sweep.json
+          grep -q '"reconciliation_run_count": 30' mfb-l1-evidence/gate-obstruction-fault-sweep.json
+          grep -q '"blind_retry_blocked_run_count": 30' mfb-l1-evidence/gate-obstruction-fault-sweep.json
+          grep -q '"false_completion_blocked_run_count": 30' mfb-l1-evidence/gate-obstruction-fault-sweep.json
+          cat mfb-l1-evidence/gate-obstruction-fault-sweep.json
+      - name: Cross-check false-positive receiver signal against evaluator-only physical ground truth
+        run: |
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-cross-channel-gate-fault -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json > mfb-l1-evidence/cross-channel-false-positive.json
+          grep -q '"fault_oracle_passed": true' mfb-l1-evidence/cross-channel-false-positive.json
+          grep -q '"package_inside_tote": false' mfb-l1-evidence/cross-channel-false-positive.json
+          grep -q '"verdict": "contradictory"' mfb-l1-evidence/cross-channel-false-positive.json
+          grep -q '"physical_and_observation_disagreement_detected": true' mfb-l1-evidence/cross-channel-false-positive.json
+          grep -q '"reconciliation_required": true' mfb-l1-evidence/cross-channel-false-positive.json
+          grep -q '"blind_retry_blocked": true' mfb-l1-evidence/cross-channel-false-positive.json
+          grep -q '"custody_completion_blocked": true' mfb-l1-evidence/cross-channel-false-positive.json
+          grep -q '"false_completion_blocked": true' mfb-l1-evidence/cross-channel-false-positive.json
+          grep -q '"custody_completion_permitted": false' mfb-l1-evidence/cross-channel-false-positive.json
+          cat mfb-l1-evidence/cross-channel-false-positive.json
+          {
+            echo "source_sha=${GITHUB_SHA}"
+            echo "workflow_run_id=${GITHUB_RUN_ID}"
+            echo "workflow_attempt=${GITHUB_RUN_ATTEMPT}"
+            echo
+            echo "[rustc]"
+            rustc -Vv
+            echo
+            echo "[cargo]"
+            cargo -V
+            echo
+            echo "[host]"
+            uname -a
+            lscpu
+            echo
+            echo "[target]"
+            rustc -vV | grep '^host:'
+            echo
+            echo "[features]"
+            cargo tree --locked --manifest-path tools/material-flow-benchmark/Cargo.toml -e features
+            echo
+            echo "[scenario_digest]"
+            sha256sum tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json
+            echo
+            echo "[simulation_result_digest]"
+            sha256sum mfb-l1-evidence/result.json
+            echo
+            echo "[free_fall_convergence_digest]"
+            sha256sum mfb-l1-evidence/free-fall-convergence.json
+            echo
+            echo "[protocol_fault_campaign_digest]"
+            sha256sum mfb-l1-evidence/protocol-fault-campaign.json
+            echo
+            echo "[procedure_readiness_digest]"
+            sha256sum mfb-l1-evidence/procedure-readiness.json
+            echo
+            echo "[procedure_evidence_admission_digest]"
+            sha256sum mfb-l1-evidence/procedure-evidence-admission.json
+            echo
+            echo "[procedure_reconciliation_admission_digest]"
+            sha256sum mfb-l1-evidence/procedure-reconciliation-evidence-admission.json
+            echo
+            echo "[receiver_observation_adjudication_digest]"
+            sha256sum mfb-l1-evidence/receiver-observation-adjudication.json
+            echo
+            echo "[gate_obstruction_fault_digest]"
+            sha256sum mfb-l1-evidence/gate-obstruction-fault.json
+            echo
+            echo "[gate_obstruction_fault_sweep_digest]"
+            sha256sum mfb-l1-evidence/gate-obstruction-fault-sweep.json
+            echo
+            echo "[cross_channel_false_positive_digest]"
+            sha256sum mfb-l1-evidence/cross-channel-false-positive.json
+            echo
+            echo "[dependency_lock_digest]"
+            sha256sum tools/material-flow-benchmark/Cargo.lock
+          } > mfb-l1-evidence/environment.txt
+          cat mfb-l1-evidence/environment.txt
+          cat mfb-l1-evidence/result.json
+      - name: Upload reproducible MFB L1 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: mfb-l1-evidence-${{ github.sha }}
+          path: mfb-l1-evidence/
+          if-no-files-found: error
+          retention-days: 90

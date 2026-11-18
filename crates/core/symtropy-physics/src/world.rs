@@ -657,13 +657,34 @@ impl<const D: usize> PhysicsWorld<D> {
             }
         }
 
-        // 5c. After the solve, cache per-manifold total impulse for next frame's warm-start.
+        // 5c. After the solve, record one finalized event per resolved
+        // contact manifold and cache its accumulated impulse for warm-start.
+        // Recording here (rather than inside resolve_contact) avoids emitting
+        // one duplicate event for every velocity-solver iteration.
         for &ci in &active_contact_indices {
             if ci < self.contacts.len() {
-                let c = &self.contacts[ci];
-                let total_lambda: f64 = c.points.iter().map(|p| p.lambda).sum();
+                let (body_a, body_b, point, total_lambda, normal, depth) = {
+                    let contact = &self.contacts[ci];
+                    (
+                        contact.body_a,
+                        contact.body_b,
+                        contact.point(),
+                        contact.points.iter().map(|point| point.lambda).sum::<f64>(),
+                        contact.normal,
+                        contact.depth(),
+                    )
+                };
                 self.contact_cache
-                    .store(c.body_a, c.body_b, c.point(), total_lambda, 0.0);
+                    .store(body_a, body_b, point, total_lambda, 0.0);
+                if total_lambda > 1e-15 {
+                    self.collision_events.push(CollisionEvent {
+                        body_a,
+                        body_b,
+                        impulse: total_lambda,
+                        normal,
+                        depth,
+                    });
+                }
             }
         }
 
@@ -2559,5 +2580,54 @@ mod transformed_halfspace_tests {
             .rotation = Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2);
 
         assert!(world.static_tree_dirty);
+    }
+}
+
+#[cfg(test)]
+mod collision_event_capture_tests {
+    use super::*;
+
+    #[test]
+    fn step_records_one_finalized_event_for_resolved_contact() {
+        let mut world = PhysicsWorld::<3>::new(SVector::from([0.0, -9.81, 0.0]));
+        world.solver_iterations = 8;
+        let ground = world.add_body(RigidBody::static_body(
+            BodyHandle(0),
+            Point::new([0.0, -0.05, 0.0]),
+            Box::new(HyperBox::<3>::new([5.0, 0.05, 5.0])),
+        ));
+        let sphere = world.add_body(RigidBody::dynamic_sphere(
+            BodyHandle(0),
+            Point::new([0.0, 1.0, 0.0]),
+            0.2,
+            1.0,
+        ));
+
+        let mut observed = false;
+        for _ in 0..240 {
+            world.step(1.0 / 120.0);
+            let matching = world.collision_events.iter().filter(|event| {
+                (event.body_a == ground && event.body_b == sphere)
+                    || (event.body_a == sphere && event.body_b == ground)
+            });
+            let events = matching.collect::<Vec<_>>();
+            if !events.is_empty() {
+                assert_eq!(
+                    events.len(),
+                    1,
+                    "one event should be emitted per finalized contact manifold"
+                );
+                assert!(events[0].impulse > 0.0);
+                let snapshot = crate::replay::WorldSnapshot::capture(&world);
+                assert_eq!(snapshot.collision_events.len(), 1);
+                assert_eq!(snapshot.collision_events[0].body_a, events[0].body_a);
+                assert_eq!(snapshot.collision_events[0].body_b, events[0].body_b);
+                observed = true;
+            }
+        }
+        assert!(
+            observed,
+            "falling sphere should produce a recorded collision event"
+        );
     }
 }

@@ -1,0 +1,197 @@
+{
+  "schema_version": 1,
+  "procedure_id": "mfb.homeops.stationary_receiver.nominal.v1",
+  "procedure_version": 1,
+  "binding": {
+    "scenario_id": "mfb-homeops-stationary-carrier-nominal-v1",
+    "source_commit": "240914e56939eade580a2b4245c5cf5592ddd276",
+    "configuration_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "steps": [
+    {
+      "step_id": "validate-manifest",
+      "operation": "validate_manifest",
+      "depends_on": [],
+      "consumes": [
+        "manifest_snapshot"
+      ],
+      "produces": "manifest_validated"
+    },
+    {
+      "step_id": "verify-authorization",
+      "operation": "verify_authorization_receipt",
+      "depends_on": [
+        "validate-manifest"
+      ],
+      "consumes": [
+        "authorization_receipt"
+      ],
+      "produces": "authorization_validated"
+    },
+    {
+      "step_id": "verify-capability",
+      "operation": "verify_receiver_capability",
+      "depends_on": [
+        "validate-manifest"
+      ],
+      "consumes": [
+        "receiver_capability_receipt"
+      ],
+      "produces": "receiver_capability_validated"
+    },
+    {
+      "step_id": "verify-package-identity",
+      "operation": "verify_package_identity",
+      "depends_on": [
+        "validate-manifest"
+      ],
+      "consumes": [
+        "package_identity_observation"
+      ],
+      "produces": "package_identity_validated"
+    },
+    {
+      "step_id": "verify-container-fit",
+      "operation": "verify_container_fit",
+      "depends_on": [
+        "verify-package-identity"
+      ],
+      "consumes": [
+        "container_fit_observation"
+      ],
+      "produces": "container_fit_validated"
+    },
+    {
+      "step_id": "verify-payload-mass",
+      "operation": "verify_payload_mass",
+      "depends_on": [
+        "verify-package-identity",
+        "verify-container-fit"
+      ],
+      "consumes": [
+        "payload_mass_observation"
+      ],
+      "produces": "payload_mass_validated"
+    },
+    {
+      "step_id": "verify-seal",
+      "operation": "verify_seal_integrity",
+      "depends_on": [
+        "verify-package-identity"
+      ],
+      "consumes": [
+        "seal_observation"
+      ],
+      "produces": "seal_validated"
+    },
+    {
+      "step_id": "verify-temperature",
+      "operation": "verify_temperature_envelope",
+      "depends_on": [
+        "validate-manifest"
+      ],
+      "consumes": [
+        "temperature_observation"
+      ],
+      "produces": "temperature_validated"
+    },
+    {
+      "step_id": "verify-gate",
+      "operation": "verify_transfer_gate_interlock",
+      "depends_on": [
+        "verify-capability"
+      ],
+      "consumes": [
+        "transfer_gate_observation"
+      ],
+      "produces": "transfer_gate_interlock_validated"
+    },
+    {
+      "step_id": "prepare-release-intent",
+      "operation": "prepare_release_intent",
+      "depends_on": [
+        "validate-manifest",
+        "verify-authorization",
+        "verify-capability",
+        "verify-package-identity",
+        "verify-container-fit",
+        "verify-payload-mass",
+        "verify-seal",
+        "verify-temperature",
+        "verify-gate"
+      ],
+      "consumes": [
+        "manifest_validated",
+        "authorization_validated",
+        "receiver_capability_validated",
+        "package_identity_validated",
+        "container_fit_validated",
+        "payload_mass_validated",
+        "seal_validated",
+        "temperature_validated",
+        "transfer_gate_interlock_validated"
+      ],
+      "produces": "release_intent_ready"
+    },
+    {
+      "step_id": "observe-source-release",
+      "operation": "observe_source_release",
+      "depends_on": [
+        "prepare-release-intent"
+      ],
+      "consumes": [
+        "release_intent_ready",
+        "release_execution_receipt"
+      ],
+      "produces": "source_release_observed"
+    },
+    {
+      "step_id": "observe-receiver-arrival",
+      "operation": "observe_receiver_arrival",
+      "depends_on": [
+        "observe-source-release"
+      ],
+      "consumes": [
+        "source_release_observed",
+        "receiver_presence_observation"
+      ],
+      "produces": "receiver_arrival_observed"
+    },
+    {
+      "step_id": "verify-placement",
+      "operation": "verify_placement",
+      "depends_on": [
+        "observe-receiver-arrival"
+      ],
+      "consumes": [
+        "receiver_arrival_observed",
+        "placement_observation"
+      ],
+      "produces": "placement_verified"
+    },
+    {
+      "step_id": "collect-custody-ack",
+      "operation": "collect_custody_acknowledgement",
+      "depends_on": [
+        "verify-placement"
+      ],
+      "consumes": [
+        "placement_verified",
+        "counterparty_custody_receipt"
+      ],
+      "produces": "custody_evidence_complete"
+    },
+    {
+      "step_id": "reconcile-unknown",
+      "operation": "reconcile_unknown_outcome",
+      "depends_on": [
+        "prepare-release-intent"
+      ],
+      "consumes": [
+        "release_intent_ready",
+        "ambiguous_outcome_observation"
+      ],
+      "produces": "reconciliation_record"
+    }
+  ]
+}

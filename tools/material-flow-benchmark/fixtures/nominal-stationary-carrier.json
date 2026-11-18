@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "scenario_id": "mfb-homeops-stationary-carrier-nominal-v1",
+  "seed": 42017,
+  "evidence_level": "l1_simulation",
+  "started_at_unix_ms": 1800000000000,
+  "clock_uncertainty_ms": 25,
+  "digests": {
+    "source_commit": "240914e56939eade580a2b4245c5cf5592ddd276",
+    "code_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "model_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "configuration_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "site_profile_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "environment_profile_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+  },
+  "actors": [
+    {
+      "actor_id": "household-01",
+      "role": "household_member",
+      "identity_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "actor_id": "courier-01",
+      "role": "service_provider",
+      "identity_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    {
+      "actor_id": "nestport-device-01",
+      "role": "receiver_device",
+      "identity_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    {
+      "actor_id": "custodian-01",
+      "role": "custodian",
+      "identity_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
+  "assets": [
+    {
+      "asset_id": "carrier-01",
+      "kind": "road_carrier",
+      "capability_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "maximum_payload_mass_g": 25000,
+      "maximum_payload_dimensions_mm": {
+        "length_mm": 1000,
+        "width_mm": 700,
+        "height_mm": 600
+      },
+      "supported_modes": ["road"]
+    },
+    {
+      "asset_id": "transfer-gate-01",
+      "kind": "transfer_mechanism",
+      "capability_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "maximum_payload_mass_g": 10000,
+      "maximum_payload_dimensions_mm": {
+        "length_mm": 400,
+        "width_mm": 400,
+        "height_mm": 300
+      },
+      "supported_modes": ["fixed_transfer"]
+    }
+  ],
+  "locations": [
+    { "node_id": "carrier-bay-01", "kind": "carrier_bay" },
+    { "node_id": "nestport-01", "kind": "external_receiver" },
+    { "node_id": "ambient-storage-01", "kind": "ambient_storage" }
+  ],
+  "package": {
+    "package_id": "package-01",
+    "mass_g": 1200,
+    "dimensions_mm": {
+      "length_mm": 200,
+      "width_mm": 150,
+      "height_mm": 100
+    },
+    "handling_class": "ambient",
+    "seal_state": "intact",
+    "allowed_modes": ["road", "fixed_transfer"],
+    "required_temperature_millic": null
+  },
+  "container": {
+    "container_id": "tote-01",
+    "internal_dimensions_mm": {
+      "length_mm": 300,
+      "width_mm": 250,
+      "height_mm": 200
+    },
+    "external_dimensions_mm": {
+      "length_mm": 320,
+      "width_mm": 270,
+      "height_mm": 220
+    },
+    "tare_mass_g": 700,
+    "maximum_gross_mass_g": 5000,
+    "capability_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+    "supported_modes": ["road", "fixed_transfer"]
+  },
+  "authorization": {
+    "grant_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+    "household_scope_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+    "policy_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+    "principal_actor_id": "household-01",
+    "audience_actor_id": "courier-01",
+    "receiver_device_actor_id": "nestport-device-01",
+    "receiver_endpoint_node_id": "nestport-01",
+    "not_before_unix_ms": 1800000000000,
+    "expires_at_unix_ms": 1800003600000,
+    "actions": [
+      "receive_external_package",
+      "transfer_to_tote",
+      "put_away_ambient"
+    ],
+    "use_limit": "one_shot"
+  },
+  "flow": {
+    "source_node_id": "carrier-bay-01",
+    "destination_node_id": "ambient-storage-01",
+    "segments": [
+      {
+        "segment_id": "segment-carrier-to-receiver",
+        "from_node_id": "carrier-bay-01",
+        "to_node_id": "nestport-01",
+        "asset_id": "carrier-01",
+        "mode": "road"
+      },
+      {
+        "segment_id": "segment-receiver-to-storage",
+        "from_node_id": "nestport-01",
+        "to_node_id": "ambient-storage-01",
+        "asset_id": "transfer-gate-01",
+        "mode": "fixed_transfer"
+      }
+    ]
+  },
+  "required_events": [
+    "authorization_checked",
+    "package_released",
+    "package_received",
+    "transfer_verified",
+    "placement_verified",
+    "custody_acknowledged",
+    "safety_decision_recorded"
+  ],
+  "fault_injections": [],
+  "success_predicates": [
+    "package_identity_matches",
+    "authorized_destination",
+    "required_custody_complete",
+    "no_critical_safety_violation",
+    "no_unauthorized_physical_mutation",
+    "no_household_private_data_disclosure"
+  ]
+}
