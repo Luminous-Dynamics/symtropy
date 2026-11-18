@@ -17,6 +17,7 @@ pub mod noise_robustness;
 pub mod coverage_inference;
 pub mod energy_optimal_control;
 pub mod trust_region;
+pub mod total_kl_trust_region;
 pub mod sensor_design;
 
 /// Arbitrary two-compartment exchange system:
