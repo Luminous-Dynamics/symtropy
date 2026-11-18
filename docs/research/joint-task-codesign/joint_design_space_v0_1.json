@@ -1,0 +1,845 @@
+{
+  "schema": "luminous.synthetic_joint_design_space",
+  "version": "0.1.1",
+  "created_utc": "2026-11-18",
+  "status": "source_domain_transcription_and_doe_seed_not_optimizer",
+  "owner": "https://github.com/Luminous-Dynamics/symtropy/issues/6079",
+  "parent": "https://github.com/Luminous-Dynamics/symtropy/issues/6064",
+  "architecture_programme": "https://github.com/Luminous-Dynamics/symtropy/issues/6037",
+  "source_policy": [
+    "Source-reported ranges are not universal physical limits.",
+    "Null means unknown or not yet extracted; do not impute.",
+    "DOE probes are not jointly feasible candidate designs.",
+    "Design-stage predictions and as-built measurements are separate evidence classes.",
+    "Unsupported or out-of-domain inputs must fail closed."
+  ],
+  "sources": [
+    {
+      "id": "J1-HUANG-2026",
+      "title": "Task-Oriented Co-Design and Optimization of Geared Actuators for Robotic Applications",
+      "date": "2026-09-19",
+      "url": "https://arxiv.org/abs/2609.22795",
+      "use": "J1 motor/reducer design-space and vertical-guide jumping-leg task",
+      "extraction": "published design-variable domains transcribed; equations and all winding/tooth feasibility rules still require reconstruction"
+    },
+    {
+      "id": "J2-TSAI-2026",
+      "title": "A compact wrist mechanism with integrated compliant transmission for high-torque-density and variable-stiffness actuation",
+      "date": "2026-11",
+      "url": "https://doi.org/10.1016/j.mechmachtheory.2026.106577",
+      "use": "serial pitch-yaw wrist topology",
+      "extraction": "architecture and reported comparator data only; numeric optimization bounds not established"
+    },
+    {
+      "id": "J2-HU-2026",
+      "title": "Bioinspired wrist joint with variable stiffness using a parallel mechanism and origami coupling",
+      "date": "2026-10-15",
+      "url": "https://doi.org/10.1016/j.mechmachtheory.2026.106545",
+      "use": "parallel 3-PRS/SS origami and tendon-pneumatic wrist topology",
+      "extraction": "qualitative architecture comparator; numeric bounds not established"
+    },
+    {
+      "id": "J3-WORM-TENDON-2026",
+      "title": "Worm-inspired proprioceptive continuum robot with retractile motion and sensorized tendons",
+      "date": "2026-09",
+      "url": "https://doi.org/10.1016/j.mechatronics.2026.103524",
+      "use": "sensorized-tendon adjacent reference",
+      "extraction": "reported sensing and tracking figures; not a load-bearing joint design range"
+    }
+  ],
+  "task_profiles": {
+    "J1_JUMP_BENCH": {
+      "task_id": "J1-TWO-DOF-VERTICAL-GUIDE-JUMP",
+      "physical_bench": true,
+      "degrees_of_freedom": 2,
+      "bench_load_kg": 5.5,
+      "dc_bus_voltage_v": 48,
+      "whole_humanoid_validation": false,
+      "excluded_dynamics": [
+        "whole_body_balance",
+        "lateral_dynamics"
+      ],
+      "simulated_source_tasks": [
+        "fast_walking",
+        "jumping",
+        "stair_ascent"
+      ],
+      "task_trace_and_initial_condition_digest": null,
+      "freeze_required_before_comparison": true,
+      "task_model_contract": {
+        "q_definition": "q1 = absolute shank angle; q2 = included knee angle",
+        "equal_segment_case": "l_shank = l_thigh",
+        "vertical_guide_constraint": "x_h(q) = l_s*cos(q1) - l_t*cos(q1-q2) = 0",
+        "slider_height": "y_h(q) = l_s*sin(q1) - l_t*sin(q1-q2)",
+        "constrained_dynamics": "M(q) q_ddot + h(q,q_dot) + G(q) = B*tau + A(q)^T*lambda",
+        "generalized_torque_map": "B*tau = [-tau_hip, tau_hip + tau_knee]^T",
+        "torque_profile": "tau_j(s) = alpha_j(s) * tau_available_j; alpha_j is a fifth-order Bezier curve with six coefficients in [0,1] for each of hip and knee",
+        "contact_constraints": [
+          "normal_force >= 0",
+          "abs(tangential_force) <= friction_coefficient * normal_force"
+        ],
+        "predictive_braking": "d_stop = omega_positive*t_delay + J_effective*omega_positive^2/(2*braking_torque) + position_margin",
+        "exclusions": [
+          "whole_body_balance",
+          "lateral_dynamics"
+        ],
+        "source_status": "source_equations_transcribed_not_implemented"
+      }
+    },
+    "J2_WRIST": {
+      "task_id": "J2-PITCH-YAW-TRACKING-AND-INTERACTION",
+      "physical_bench_reference_required": true,
+      "load_pose_and_orientation": null,
+      "workspace_and_task_trajectory": null,
+      "task_boundary_status": "source_protocol_extraction_required"
+    },
+    "J3_GRIPPER": {
+      "task_id": "J3-TENDON-GRASP-SLIP-AND-RECOVERY",
+      "human_contact": false,
+      "object_set_and_loads": null,
+      "task_boundary_status": "baseline_and_fixture_repeatability_required"
+    },
+    "J1_G1_SIMULATED_REQUIREMENTS": {
+      "source_id": "J1-HUANG-2026",
+      "source_evidence": "simulated MuJoCo Unitree G1 profiles, not physical whole-robot tests",
+      "task_peak_torque_nm": {
+        "fast_walking": 103,
+        "jumping": 139,
+        "stair_ascent": 109
+      },
+      "task_peak_speed_rad_s": {
+        "fast_walking": 16.6,
+        "jumping": 20.1,
+        "stair_ascent": 14.3
+      },
+      "pooling": "bilateral hip-pitch and knee samples pooled by task; moving-window torque-speed envelopes",
+      "status": "simulated_source_task_requirements"
+    }
+  },
+  "topology_families": {
+    "J1": [
+      "geared_motor_planetary_reducer"
+    ],
+    "J2": [
+      "serial_pitch_yaw_compliant_transmission",
+      "parallel_3PRS_SS_origami_tendon_pneumatic"
+    ],
+    "J3": [
+      "tendon_coupled_finger_group",
+      "differential_tendon_gripper",
+      "remote_actuation_tendon_gripper"
+    ]
+  },
+  "design_variables": [
+    {
+      "id": "j1_slot_pole_family",
+      "family": "J1",
+      "name": "stator_slot_pole_family",
+      "unit": "categorical",
+      "kind": "enumerated",
+      "values": [
+        {
+          "slots": 18,
+          "poles": 16
+        },
+        {
+          "slots": 18,
+          "poles": 20
+        },
+        {
+          "slots": 18,
+          "poles": 22
+        },
+        {
+          "slots": 24,
+          "poles": 22
+        },
+        {
+          "slots": 24,
+          "poles": 26
+        },
+        {
+          "slots": 24,
+          "poles": 28
+        },
+        {
+          "slots": 27,
+          "poles": 30
+        }
+      ],
+      "role": "decision",
+      "source_id": "J1-HUANG-2026",
+      "source_location": "arXiv HTML Table I, source v1, lines 120-128",
+      "extraction_status": "transcribed_all_seven_families"
+    },
+    {
+      "id": "j1_outer_stator_diameter",
+      "family": "J1",
+      "name": "outer_stator_diameter",
+      "unit": "mm",
+      "kind": "continuous",
+      "minimum": 60,
+      "maximum": 96,
+      "minimum_inclusive": true,
+      "maximum_inclusive": true,
+      "role": "decision",
+      "source_id": "J1-HUANG-2026",
+      "source_location": "published design variable table",
+      "extraction_status": "transcribed"
+    },
+    {
+      "id": "j1_bore_diameter",
+      "family": "J1",
+      "name": "bore_diameter",
+      "unit": "mm",
+      "kind": "continuous",
+      "minimum": 36.1,
+      "maximum": 75,
+      "minimum_inclusive": true,
+      "maximum_inclusive": true,
+      "role": "decision",
+      "source_id": "J1-HUANG-2026",
+      "source_location": "published design variable table",
+      "extraction_status": "transcribed"
+    },
+    {
+      "id": "j1_tooth_width",
+      "family": "J1",
+      "name": "tooth_width",
+      "unit": "mm",
+      "kind": "continuous",
+      "minimum": 2,
+      "maximum": 5,
+      "minimum_inclusive": true,
+      "maximum_inclusive": true,
+      "role": "decision",
+      "source_id": "J1-HUANG-2026",
+      "source_location": "published design variable table",
+      "extraction_status": "transcribed"
+    },
+    {
+      "id": "j1_slot_height",
+      "family": "J1",
+      "name": "slot_height",
+      "unit": "mm",
+      "kind": "continuous",
+      "minimum": 1,
+      "maximum": 19.15,
+      "minimum_inclusive": true,
+      "maximum_inclusive": true,
+      "role": "decision",
+      "source_id": "J1-HUANG-2026",
+      "source_location": "published design variable table",
+      "extraction_status": "transcribed"
+    },
+    {
+      "id": "j1_tooth_tip_height",
+      "family": "J1",
+      "name": "tooth_tip_height",
+      "unit": "mm",
+      "kind": "continuous",
+      "minimum": 0.5,
+      "maximum": 2,
+      "minimum_inclusive": true,
+      "maximum_inclusive": true,
+      "role": "decision",
+      "source_id": "J1-HUANG-2026",
+      "source_location": "published design variable table",
+      "extraction_status": "transcribed"
+    },
+    {
+      "id": "j1_slot_opening",
+      "family": "J1",
+      "name": "slot_opening",
+      "unit": "mm",
+      "kind": "continuous",
+      "minimum": 0.5,
+      "maximum": 2,
+      "minimum_inclusive": true,
+      "maximum_inclusive": true,
+      "role": "decision",
+      "source_id": "J1-HUANG-2026",
+      "source_location": "published design variable table",
+      "extraction_status": "transcribed"
+    },
+    {
+      "id": "j1_magnet_thickness",
+      "family": "J1",
+      "name": "magnet_thickness",
+      "unit": "mm",
+      "kind": "continuous",
+      "minimum": 1,
+      "maximum": 3,
+      "minimum_inclusive": true,
+      "maximum_inclusive": true,
+      "role": "decision",
+      "source_id": "J1-HUANG-2026",
+      "source_location": "published design variable table",
+      "extraction_status": "transcribed"
+    },
+    {
+      "id": "j1_magnet_arc",
+      "family": "J1",
+      "name": "magnet_arc",
+      "unit": "electrical_degree",
+      "kind": "continuous",
+      "minimum": 120,
+      "maximum": 180,
+      "minimum_inclusive": true,
+      "maximum_inclusive": true,
+      "role": "decision",
+      "source_id": "J1-HUANG-2026",
+      "source_location": "published design variable table",
+      "extraction_status": "transcribed"
+    },
+    {
+      "id": "j1_motor_axial_length",
+      "family": "J1",
+      "name": "motor_axial_length",
+      "unit": "mm",
+      "kind": "continuous",
+      "minimum": 1,
+      "maximum": 30,
+      "minimum_inclusive": true,
+      "maximum_inclusive": true,
+      "role": "decision",
+      "source_id": "J1-HUANG-2026",
+      "source_location": "published design variable table",
+      "extraction_status": "transcribed"
+    },
+    {
+      "id": "j1_winding_wire_index",
+      "family": "J1",
+      "name": "winding_wire_standard_index",
+      "unit": "index",
+      "kind": "enumerated_source_required",
+      "values": null,
+      "role": "decision",
+      "source_id": "J1-HUANG-2026",
+      "source_location": "standard wire table and winding formulation",
+      "extraction_status": "exact_level_set_not_yet_reconstructed",
+      "unknown_reason": "Do not invent wire indices or gauge choices."
+    },
+    {
+      "id": "j1_winding_symmetry_divisor",
+      "family": "J1",
+      "name": "winding_symmetry_divisor",
+      "unit": "integer",
+      "kind": "enumerated_source_required",
+      "values": null,
+      "role": "decision",
+      "source_id": "J1-HUANG-2026",
+      "source_location": "winding symmetry constraints",
+      "extraction_status": "exact_level_set_not_yet_reconstructed",
+      "unknown_reason": "Admissible divisors depend on slot/pole family and winding constraints."
+    },
+    {
+      "id": "j1_reducer_topology",
+      "family": "J1",
+      "name": "planetary_reducer_topology",
+      "unit": "categorical",
+      "kind": "enumerated",
+      "values": [
+        "NGW",
+        "NW",
+        "3K"
+      ],
+      "role": "decision",
+      "source_id": "J1-HUANG-2026",
+      "source_location": "planetary reducer formulation",
+      "extraction_status": "transcribed"
+    },
+    {
+      "id": "j1_target_reduction_ratio",
+      "family": "J1",
+      "name": "target_reduction_ratio",
+      "unit": "ratio",
+      "kind": "enumerated_grid",
+      "minimum": 1,
+      "maximum": 50,
+      "step": 0.5,
+      "role": "decision",
+      "source_id": "J1-HUANG-2026",
+      "source_location": "planetary reducer formulation",
+      "extraction_status": "transcribed",
+      "derived_feasibility": "Exact tooth-count combinations must be enumerated; target ratio alone does not guarantee a realizable reducer."
+    },
+    {
+      "id": "j1_rated_current_density",
+      "family": "J1",
+      "name": "rated_current_density",
+      "unit": "A/mm^2",
+      "kind": "fixed_source_assumption",
+      "value": 6,
+      "role": "comparison_assumption",
+      "source_id": "J1-HUANG-2026",
+      "source_location": "rated output comparison assumption",
+      "extraction_status": "transcribed"
+    },
+    {
+      "id": "j1_package_diameter",
+      "family": "J1",
+      "name": "actuator_package_diameter",
+      "unit": "mm",
+      "kind": "hard_constraint",
+      "maximum": 98,
+      "maximum_inclusive": true,
+      "role": "constraint",
+      "source_id": "J1-HUANG-2026",
+      "source_location": "actuator package constraint",
+      "extraction_status": "transcribed"
+    },
+    {
+      "id": "j1_package_axial_length",
+      "family": "J1",
+      "name": "actuator_package_axial_length",
+      "unit": "mm",
+      "kind": "hard_constraint",
+      "maximum": 50,
+      "maximum_inclusive": true,
+      "role": "constraint",
+      "source_id": "J1-HUANG-2026",
+      "source_location": "arXiv HTML Table I, source v1, lines 185-195",
+      "extraction_status": "transcribed"
+    }
+  ],
+  "unresolved_variables": [
+    {
+      "id": "j1_winding_full_set",
+      "family": "J1",
+      "reason": "wire index and symmetry admissibility require exact table/equation reconstruction"
+    },
+    {
+      "id": "j1_reducer_tooth_sets",
+      "family": "J1",
+      "reason": "integer tooth-count feasibility and topology-specific equations must be reconstructed"
+    },
+    {
+      "id": "j1_coupled_geometry_constraints",
+      "family": "J1",
+      "reason": "motor geometry intersections, winding fill and coupled constraints not yet independently implemented"
+    },
+    {
+      "id": "j2_numeric_domain",
+      "family": "J2",
+      "reason": "extract full paper protocols and dimensioned drawings for both serial and parallel families"
+    },
+    {
+      "id": "j3_numeric_domain",
+      "family": "J3",
+      "reason": "establish article, routing, material, load and sensor bounds from source/fixture"
+    },
+    {
+      "id": "all_installed_mass_terms",
+      "family": "all",
+      "reason": "source-specific inclusion boundaries need itemized BOM/measurement"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "J1-PACKAGE-DIAMETER",
+      "family": "J1",
+      "field": "actuator_package_diameter",
+      "relation": "<=",
+      "value": 98,
+      "unit": "mm",
+      "source_id": "J1-HUANG-2026",
+      "status": "source_transcribed"
+    },
+    {
+      "id": "J1-MOTOR-GEOMETRY",
+      "family": "J1",
+      "relation": "source_geometry_and_nonintersection",
+      "status": "equation_reconstruction_required"
+    },
+    {
+      "id": "J1-WINDING-FEASIBILITY",
+      "family": "J1",
+      "relation": "admissible_slots_poles_wire_index_and_symmetry",
+      "status": "enumeration_reconstruction_required"
+    },
+    {
+      "id": "J1-REDUCER-TOOTH-FEASIBILITY",
+      "family": "J1",
+      "relation": "topology_specific_integer_tooth_and_ratio_equations",
+      "status": "enumeration_reconstruction_required"
+    },
+    {
+      "id": "J1-CURRENT-DENSITY",
+      "family": "J1",
+      "relation": "rated_current_density_fixed_comparison_assumption",
+      "value": 6,
+      "unit": "A/mm^2",
+      "status": "source_transcribed"
+    },
+    {
+      "id": "TASK-ENVELOPE",
+      "family": "all",
+      "relation": "task torque speed workspace and contact envelope",
+      "status": "must be frozen before comparison"
+    },
+    {
+      "id": "THERMAL-VALIDITY",
+      "family": "all",
+      "relation": "continuous duty and temperature envelope",
+      "status": "consume measured/qualified owner models"
+    },
+    {
+      "id": "MODEL-APPLICABILITY",
+      "family": "all",
+      "relation": "candidate lies inside qualified model domain",
+      "status": "fail_closed"
+    },
+    {
+      "id": "J1-PACKAGE-LENGTH",
+      "family": "J1",
+      "field": "actuator_package_axial_length",
+      "relation": "<=",
+      "value": 50,
+      "unit": "mm",
+      "source_id": "J1-HUANG-2026",
+      "status": "source_transcribed"
+    },
+    {
+      "id": "J1-WINDING-FACTOR",
+      "family": "J1",
+      "relation": "fundamental_winding_factor",
+      "field": "winding_factor_k_w1",
+      "relation_operator": ">",
+      "value": 0.9,
+      "unit": "dimensionless",
+      "source_id": "J1-HUANG-2026",
+      "status": "source_transcribed"
+    }
+  ],
+  "doe_seed": {
+    "status": "coverage_probes_only_not_feasibility_or_pareto_candidates",
+    "stable_case_ids": true,
+    "deterministic_order": true,
+    "categorical_coverage": [
+      {
+        "case_id": "J1-CAT-SLOTPOLE-01",
+        "variable_id": "j1_slot_pole_family",
+        "values": {
+          "slots": 18,
+          "poles": 16
+        }
+      },
+      {
+        "case_id": "J1-CAT-SLOTPOLE-02",
+        "variable_id": "j1_slot_pole_family",
+        "values": {
+          "slots": 18,
+          "poles": 20
+        }
+      },
+      {
+        "case_id": "J1-CAT-SLOTPOLE-03",
+        "variable_id": "j1_slot_pole_family",
+        "values": {
+          "slots": 18,
+          "poles": 22
+        }
+      },
+      {
+        "case_id": "J1-CAT-SLOTPOLE-04",
+        "variable_id": "j1_slot_pole_family",
+        "values": {
+          "slots": 24,
+          "poles": 22
+        }
+      },
+      {
+        "case_id": "J1-CAT-SLOTPOLE-05",
+        "variable_id": "j1_slot_pole_family",
+        "values": {
+          "slots": 24,
+          "poles": 26
+        }
+      },
+      {
+        "case_id": "J1-CAT-SLOTPOLE-06",
+        "variable_id": "j1_slot_pole_family",
+        "values": {
+          "slots": 24,
+          "poles": 28
+        }
+      },
+      {
+        "case_id": "J1-CAT-REDUCER-01",
+        "variable_id": "j1_reducer_topology",
+        "values": "NGW"
+      },
+      {
+        "case_id": "J1-CAT-REDUCER-02",
+        "variable_id": "j1_reducer_topology",
+        "values": "NW"
+      },
+      {
+        "case_id": "J1-CAT-REDUCER-03",
+        "variable_id": "j1_reducer_topology",
+        "values": "3K"
+      },
+      {
+        "case_id": "J1-CAT-SLOTPOLE-07",
+        "variable_id": "j1_slot_pole_family",
+        "values": {
+          "slots": 27,
+          "poles": 30
+        }
+      }
+    ],
+    "continuous_one_factor_probes": [
+      {
+        "variable_id": "j1_outer_stator_diameter",
+        "unit": "mm",
+        "low": 60,
+        "mid": 78,
+        "high": 96
+      },
+      {
+        "variable_id": "j1_bore_diameter",
+        "unit": "mm",
+        "low": 36.1,
+        "mid": 55.55,
+        "high": 75
+      },
+      {
+        "variable_id": "j1_tooth_width",
+        "unit": "mm",
+        "low": 2,
+        "mid": 3.5,
+        "high": 5
+      },
+      {
+        "variable_id": "j1_slot_height",
+        "unit": "mm",
+        "low": 1,
+        "mid": 10.075,
+        "high": 19.15
+      },
+      {
+        "variable_id": "j1_tooth_tip_height",
+        "unit": "mm",
+        "low": 0.5,
+        "mid": 1.25,
+        "high": 2
+      },
+      {
+        "variable_id": "j1_slot_opening",
+        "unit": "mm",
+        "low": 0.5,
+        "mid": 1.25,
+        "high": 2
+      },
+      {
+        "variable_id": "j1_magnet_thickness",
+        "unit": "mm",
+        "low": 1,
+        "mid": 2,
+        "high": 3
+      },
+      {
+        "variable_id": "j1_magnet_arc",
+        "unit": "electrical_degree",
+        "low": 120,
+        "mid": 150,
+        "high": 180
+      },
+      {
+        "variable_id": "j1_motor_axial_length",
+        "unit": "mm",
+        "low": 1,
+        "mid": 15.5,
+        "high": 30
+      },
+      {
+        "variable_id": "j1_target_reduction_ratio",
+        "unit": "ratio",
+        "low": 1,
+        "mid": 25.5,
+        "high": 50
+      }
+    ],
+    "negative_controls": [
+      {
+        "case_id": "J1-NEG-PACKAGE-01",
+        "field": "actuator_package_diameter",
+        "value": 98.01,
+        "unit": "mm",
+        "expected_status": "INFEASIBLE",
+        "reason": "exceeds 98 mm package constraint"
+      },
+      {
+        "case_id": "J1-NEG-TOOTHWIDTH-01",
+        "field": "tooth_width",
+        "value": 1.99,
+        "unit": "mm",
+        "expected_status": "OUT_OF_DOMAIN",
+        "reason": "below published 2 mm lower bound"
+      },
+      {
+        "case_id": "J1-NEG-RATIO-01",
+        "field": "target_reduction_ratio",
+        "value": 50.5,
+        "unit": "ratio",
+        "expected_status": "OUT_OF_DOMAIN",
+        "reason": "above published target ratio range"
+      },
+      {
+        "case_id": "J1-NEG-SLOTPOLE-01",
+        "field": "stator_slot_pole_family",
+        "value": {
+          "slots": 18,
+          "poles": 18
+        },
+        "expected_status": "OUT_OF_DOMAIN",
+        "reason": "not in the published slot/pole family list"
+      }
+    ],
+    "ratio_grid_definition": {
+      "minimum": 1,
+      "maximum": 50,
+      "step": 0.5,
+      "unit": "ratio",
+      "expected_point_count": 99,
+      "exact_feasible_tooth_enumeration_required": true
+    },
+    "unresolved_fields": [
+      "j1_winding_wire_index",
+      "j1_winding_symmetry_divisor",
+      "j1_topology_specific_reducer_tooth_counts",
+      "j2_all_numeric_design_bounds",
+      "j3_all_numeric_design_bounds"
+    ]
+  },
+  "objective_vector": [
+    "accepted_task_outcome",
+    "rated_output_torque_speed_envelope",
+    "transient_peak_envelope",
+    "complete_installed_mass_and_volume",
+    "source_energy_per_accepted_task",
+    "thermal_duty_and_derating",
+    "reflected_inertia_and_backdrive",
+    "friction_backlash_hysteresis",
+    "stiffness_range_and_modulation",
+    "sensor_observability_and_uncertainty",
+    "fatigue_creep_wear",
+    "repair_and_requalification_time",
+    "manufacturing_variance"
+  ],
+  "split_policy": {
+    "grouped_by": "design_family_and_topology",
+    "hold_out_at_least": [
+      "one_topology_family",
+      "one_task_condition"
+    ],
+    "near_duplicate_design_leakage": false,
+    "retain_failed_and_invalid_evaluations": true
+  },
+  "evidence_classes": [
+    "source_reported",
+    "design_stage_estimate",
+    "independent_model",
+    "measured_as_built",
+    "physical_task_result"
+  ],
+  "claim_ceiling": "This manifest and seed do not implement an optimizer, reproduce a paper design, establish physical feasibility, or authorize physical testing.",
+  "source_model_reconstruction": {
+    "source_id": "J1-HUANG-2026",
+    "source_version": "arXiv:2609.22795v1",
+    "published_method": {
+      "slot_pole_family_count": 7,
+      "slot_pole_families": [
+        {
+          "slots": 18,
+          "poles": 16
+        },
+        {
+          "slots": 18,
+          "poles": 20
+        },
+        {
+          "slots": 18,
+          "poles": 22
+        },
+        {
+          "slots": 24,
+          "poles": 22
+        },
+        {
+          "slots": 24,
+          "poles": 26
+        },
+        {
+          "slots": 24,
+          "poles": 28
+        },
+        {
+          "slots": 27,
+          "poles": 30
+        }
+      ],
+      "motor_surrogate": {
+        "models_per_slot_pole_family": 1,
+        "valid_latin_hypercube_designs_per_family": 1000,
+        "sampled_cross_sectional_geometry_dimensions": 8,
+        "standardization": true,
+        "regression": "quadratic ridge",
+        "motor_length_and_winding": "applied subsequently through analytical scaling",
+        "independent_validation_cases": 200,
+        "reported_r2_range_for_representative_18S20P_outputs": [
+          0.9681,
+          0.9993
+        ],
+        "reported_outputs": [
+          "torque_constant_Kt",
+          "back_emf_constant_Ke",
+          "torque",
+          "speed",
+          "efficiency",
+          "inductance",
+          "motor_mass",
+          "rotor_inertia"
+        ],
+        "generalization_limit": "The quoted R2 range is reported for the representative 18S/20P topology; do not transfer it to all seven families."
+      },
+      "optimizer": {
+        "outer": "constrained NSGA-II",
+        "population_per_enumerated_case": 48,
+        "generations": 30,
+        "evaluations_including_initialization": 1488,
+        "inner": "bounded L-BFGS-B",
+        "inner_control_variables": 12,
+        "control_parameterization": "two fifth-order Bezier torque profiles, six coefficients for hip and six for knee",
+        "objective_vector": [
+          "maximize_predicted_slider_rise",
+          "maximize_rated_output_torque_density"
+        ],
+        "feasibility_first": true
+      },
+      "gearbox": {
+        "topologies": [
+          "NGW",
+          "NW",
+          "3K"
+        ],
+        "target_ratio": {
+          "minimum": 1,
+          "maximum": 50,
+          "step": 0.5
+        },
+        "exact_feasible_tooth_combinations": true,
+        "selection": "retain highest-efficiency feasible candidate per topology/ratio after assembly, clearance, package and tooth-root-strength constraints"
+      }
+    },
+    "reproduction_status": "source_method_transcribed_not_reproduced"
+  },
+  "source_addendum": [
+    "Correction from direct arXiv:2609.22795v1 Table I: the source has seven slot-pole families, including 27S/30P; the initial six-family transcription omitted this row.",
+    "The source package envelope contains both D_act <= 98 mm and L_act <= 50 mm; the initial manifest omitted the axial-length package constraint.",
+    "The source imposes fundamental winding factor k_w,1 > 0.9; this is now an explicit hard constraint.",
+    "The source method uses seven slot-pole-specific motor surrogates, 1000 valid LHS designs over eight cross-sectional geometry dimensions per family, standardized quadratic ridge regression, and 200 independent validation cases. The reported R2 0.9681–0.9993 range is for representative 18S/20P outputs only.",
+    "The source outer NSGA-II uses population 48 and 30 generations (1488 evaluations per enumerated case), with an inner bounded L-BFGS-B over twelve fifth-order Bezier torque-profile coefficients."
+  ]
+}
