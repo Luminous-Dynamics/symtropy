@@ -544,6 +544,16 @@ pub struct BoulwareDeser5D {
     pub alpha: f64,
 }
 
+/// Independent static 5D curvature data for the Boulware-Deser control.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct BoulwareDeserCurvatureData5D {
+    pub lapse: f64,
+    pub lapse_prime: f64,
+    pub lapse_second: f64,
+    pub gauss_bonnet_scalar: f64,
+}
+
+
 impl BoulwareDeser5D {
     pub fn new(horizon_radius: f64, alpha: f64) -> Result<Self, ReferenceError> {
         if !horizon_radius.is_finite() {
@@ -586,6 +596,77 @@ impl BoulwareDeser5D {
         } else {
             Err(ReferenceError::NonFiniteResult("Boulware-Deser lapse"))
         }
+    }
+
+    /// Return the lapse, its first two radial derivatives, and the 5D
+    /// Gauss-Bonnet scalar for the static spherical Einstein branch.
+    ///
+    /// For ds^2=-F dt^2+dr^2/F+r^2 dOmega_3^2,
+    /// L_GB = 12/r^3 * ((F-1)*(r*F''+2*F') + r*(F')^2).
+    ///
+    /// Derivatives are evaluated in a cancellation-resistant form.
+    pub fn curvature_data(
+        self,
+        radius: f64,
+    ) -> Result<BoulwareDeserCurvatureData5D, ReferenceError> {
+        if !radius.is_finite() || radius <= 0.0 {
+            return Err(ReferenceError::InvalidRadius(radius));
+        }
+        if radius < self.horizon_radius {
+            return Err(ReferenceError::RadiusInsideHorizon {
+                radius,
+                horizon_radius: self.horizon_radius,
+            });
+        }
+        let r_h_sq = self.horizon_radius.powi(2);
+        let alpha = self.alpha;
+        let amplitude = alpha + 2.0 * r_h_sq;
+        let radical = (1.0 + alpha * amplitude / radius.powi(4)).sqrt();
+        let lapse = 1.0 - amplitude / (radius.powi(2) * (1.0 + radical));
+        let lapse_prime =
+            2.0 * amplitude / (radius.powi(3) * radical * (1.0 + radical));
+        let radical_prime =
+            -2.0 * alpha * amplitude / (radical * radius.powi(5));
+        let lapse_second = lapse_prime
+            * (-3.0 / radius
+                - radical_prime * (1.0 + 2.0 * radical)
+                    / (radical * (1.0 + radical)));
+        let gauss_bonnet_scalar = 12.0 / radius.powi(3)
+            * ((lapse - 1.0) * (radius * lapse_second + 2.0 * lapse_prime)
+                + radius * lapse_prime.powi(2));
+        let values = [lapse, lapse_prime, lapse_second, gauss_bonnet_scalar];
+        if values.iter().all(|value| value.is_finite()) {
+            Ok(BoulwareDeserCurvatureData5D {
+                lapse,
+                lapse_prime,
+                lapse_second,
+                gauss_bonnet_scalar,
+            })
+        } else {
+            Err(ReferenceError::NonFiniteResult("Boulware-Deser curvature data"))
+        }
+    }
+
+    /// Convert the static Boulware-Deser solution into the common 5D radial
+    /// sample used by the time-sector source-balance verifier.
+    pub fn radial_sample(
+        self,
+        radius: f64,
+    ) -> Result<RadialMetricSample5D, ReferenceError> {
+        let data = self.curvature_data(radius)?;
+        Ok(RadialMetricSample5D {
+            radius,
+            b: data.lapse,
+            f: data.lapse,
+            g: radius.powi(2),
+            h: radius.powi(2),
+            w: 0.0,
+            b_prime: data.lapse_prime,
+            f_prime: data.lapse_prime,
+            g_prime: 2.0 * radius,
+            h_prime: 2.0 * radius,
+            w_prime: 0.0,
+        })
     }
 
     pub fn schwarzschild_tangherlini_limit(self, radius: f64) -> Result<f64, ReferenceError> {
@@ -789,6 +870,52 @@ mod tests {
             Err(ReferenceError::ExtremalOrSuperextremal { .. })
         ));
         assert!(MyersPerry5D::new(1.0, -0.33).is_ok());
+    }
+
+    #[test]
+    fn b_d_curvature_scalar_has_the_schwarzschild_tangherlini_limit() {
+        let bd = BoulwareDeser5D::new(1.0, 0.0).unwrap();
+        for radius in [1.1, 1.5, 2.0, 3.0, 5.0] {
+            let data = bd.curvature_data(radius).unwrap();
+            close(
+                data.gauss_bonnet_scalar,
+                72.0 / radius.powi(8),
+                2e-12,
+            );
+        }
+    }
+
+    #[test]
+    fn corrected_time_sector_current_satisfies_b_d_source_balance() {
+        let alpha = 0.7;
+        let bd = BoulwareDeser5D::new(1.0, alpha).unwrap();
+        let step = 1e-5;
+        for radius in [1.1, 1.5, 2.0, 3.0] {
+            let sample = bd.radial_sample(radius).unwrap();
+            let current = time_sector_radial_flux(sample, alpha).unwrap();
+            let current_plus =
+                time_sector_radial_flux(bd.radial_sample(radius + step).unwrap(), alpha)
+                    .unwrap();
+            let current_minus =
+                time_sector_radial_flux(bd.radial_sample(radius - step).unwrap(), alpha)
+                    .unwrap();
+            let derivative = (current_plus - current_minus) / (2.0 * step);
+            let source = time_sector_current_source(
+                sample,
+                alpha,
+                bd.curvature_data(radius).unwrap().gauss_bonnet_scalar,
+            )
+            .unwrap();
+            close(derivative, source, 2e-8);
+        }
+
+        // The finite-alpha current is explicitly not constant. Its asymptotic
+        // value is 2U, with U=-(r_H^2+alpha/2) in this convention.
+        let near = time_sector_radial_flux(bd.radial_sample(1.5).unwrap(), alpha).unwrap();
+        let far = time_sector_radial_flux(bd.radial_sample(1000.0).unwrap(), alpha).unwrap();
+        let asymptotic = -2.0 * (bd.horizon_radius.powi(2) + alpha / 2.0);
+        assert!((near - far).abs() > 1e-3);
+        close(far, asymptotic, 2e-5);
     }
 
     #[test]
