@@ -12,6 +12,8 @@ const Z95: f64 = 1.959_963_984_540_054;
 const SPLITMIX_INCREMENT: u64 = 0x9E37_79B9_7F4A_7C15;
 const MAX_BOOTSTRAP_REPLICATES: usize = 100_000;
 const MAX_SEQUENCE_LENGTH: usize = 10_000_000;
+const MAX_HAC_WORK: usize = 100_000_000;
+const MAX_BOOTSTRAP_WORK: usize = 100_000_000;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CoverageOutcomeV1 {
@@ -135,7 +137,9 @@ pub enum CoverageInferenceError {
     NonMonotonicEventTime,
     InvalidTargetCoverage,
     BandwidthTooLarge,
+    ExcessiveHacWork,
     InvalidBlockLength,
+    ExcessiveBootstrapWork,
     InvalidBootstrapReplicateCount,
     NegativeLongRunVariance,
     InvalidAciConfig,
@@ -176,8 +180,14 @@ impl fmt::Display for CoverageInferenceError {
             Self::BandwidthTooLarge => {
                 write!(f, "HAC bandwidth must be smaller than the sequence length")
             }
+            Self::ExcessiveHacWork => {
+                write!(f, "HAC sequence length times bandwidth exceeds the work limit")
+            }
             Self::InvalidBlockLength => {
                 write!(f, "block length must be between one and the sequence length")
+            }
+            Self::ExcessiveBootstrapWork => {
+                write!(f, "bootstrap sequence length times replicates exceeds the work limit")
             }
             Self::InvalidBootstrapReplicateCount => {
                 write!(f, "bootstrap replicate count is outside the admitted range")
@@ -247,6 +257,9 @@ pub fn hac_coverage_report(
         return Err(CoverageInferenceError::BandwidthTooLarge);
     }
     let n = indicators.len();
+    if n.checked_mul(bandwidth + 1).unwrap_or(usize::MAX) > MAX_HAC_WORK {
+        return Err(CoverageInferenceError::ExcessiveHacWork);
+    }
     let covered_count = indicators.iter().filter(|covered| **covered).count();
     let mean = covered_count as f64 / n as f64;
     let centered: Vec<f64> = indicators
@@ -333,6 +346,11 @@ pub fn moving_block_bootstrap(
     }
     if replicates == 0 || replicates > MAX_BOOTSTRAP_REPLICATES {
         return Err(CoverageInferenceError::InvalidBootstrapReplicateCount);
+    }
+    if indicators.len().checked_mul(replicates).unwrap_or(usize::MAX)
+        > MAX_BOOTSTRAP_WORK
+    {
+        return Err(CoverageInferenceError::ExcessiveBootstrapWork);
     }
 
     let n = indicators.len();
@@ -707,6 +725,26 @@ mod tests {
         assert!(matches!(
             hac_coverage_report(&[true, false], 0.9, 2, "series".to_owned()),
             Err(CoverageInferenceError::BandwidthTooLarge)
+        ));
+    }
+
+    #[test]
+    fn hac_and_bootstrap_reject_excessive_work_before_allocating() {
+        let indicators = vec![true; 20_000];
+        assert!(matches!(
+            hac_coverage_report(&indicators, 0.9, 10_000, "series".to_owned()),
+            Err(CoverageInferenceError::ExcessiveHacWork)
+        ));
+        assert!(matches!(
+            moving_block_bootstrap(
+                &indicators,
+                0.9,
+                10,
+                10_000,
+                77,
+                "series".to_owned()
+            ),
+            Err(CoverageInferenceError::ExcessiveBootstrapWork)
         ));
     }
 
