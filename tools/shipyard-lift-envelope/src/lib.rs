@@ -1180,7 +1180,7 @@ mod tests {
     #[test]
     fn frozen_conformance_fixture_maps_all_vectors_to_rust_tests() {
         const FIXTURE: &str = include_str!("../fixtures/conformance-vectors-v0.1.json");
-        let test_functions: [fn(); 35] = [
+        let test_functions: [fn(); 37] = [
             bounded_valid_input_is_ready_for_human_review_only,
             exact_chart_cell_capacity_is_a_hard_gate,
             no_chart_interpolation_or_configuration_substitution_is_permitted,
@@ -1216,6 +1216,8 @@ mod tests {
             rigging_wll_one_millinewton_below_conservative_tension_is_rejected,
             duplicate_leg_id_permutations_preserve_canonical_input_and_result_bytes,
             end_to_end_load_and_leg_tension_match_independent_rational_oracle
+            load_share_and_sling_angle_require_exact_rigging_assembly_evidence,
+            lifting_point_must_be_identified_and_bound_to_block_revision
         ];
         let test_names = [
             stringify!(bounded_valid_input_is_ready_for_human_review_only),
@@ -1253,6 +1255,8 @@ mod tests {
             stringify!(rigging_wll_one_millinewton_below_conservative_tension_is_rejected),
             stringify!(duplicate_leg_id_permutations_preserve_canonical_input_and_result_bytes),
             stringify!(end_to_end_load_and_leg_tension_match_independent_rational_oracle)
+            stringify!(load_share_and_sling_angle_require_exact_rigging_assembly_evidence),
+            stringify!(lifting_point_must_be_identified_and_bound_to_block_revision)
         ];
         let vector_ids = [
             "LEV-BASE-001",
@@ -1290,11 +1294,13 @@ mod tests {
             "LEV-RIG-008",
             "LEV-META-005",
             "LEV-ORACLE-003"
+            "LEV-RIG-009",
+            "LEV-RIG-010"
         ];
 
-        assert_eq!(test_functions.len(), 35);
+        assert_eq!(test_functions.len(), 37);
         assert_eq!(test_names.len(), vector_ids.len());
-        assert_eq!(FIXTURE.matches(r#""id": "LEV-"#).count(), 35);
+        assert_eq!(FIXTURE.matches(r#""id": "LEV-"#).count(), 37);
         for (test_name, vector_id) in test_names.iter().zip(vector_ids.iter()) {
             assert!(
                 FIXTURE.contains(&format!(r#""id": "{vector_id}""#)),
