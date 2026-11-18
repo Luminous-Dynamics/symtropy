@@ -158,6 +158,8 @@ For selective requalification, use compile_change_impact_with_contract rather th
 
 The dependency contract is a coverage floor, not proof that all upstream dependencies were declared. Owners must version and review their contracts, and adapters must supply correct entity/floor/site scope IDs. The completeness of the upstream graph remains an independent assurance obligation.
 
+The graph snapshot also carries an authoritative current-dependency registry. Every artifact dependency must resolve to exactly one current value in that frozen registry. Every proposed change must name a registered key, and its previous_sha256 must exactly match the registry value before the change. The compiler then compares all artifact dependencies—not only those explicitly listed in the incoming change set—against their effective post-change values. This catches already-stale artifacts as well as artifacts made stale by the new event. Duplicate current keys, absent dependency versions, unknown change targets and mismatched previous versions fail closed. An unmatched change is now specifically a registered current dependency that has no artifact consumer in the declared graph, not an unknown or unversioned input.
+
 ### Benchmark
 
 The change-impact benchmark builds 3 artifacts per entity: motion envelope, space-time occupancy assessment and dispatch readiness. Each artifact must satisfy the owner-approved dependency-domain contract before the timed operation completes. The measurement includes graph validation, dependency-coverage audit and invalidation closure—not just the final breadth-first walk. It compares:
@@ -167,7 +169,7 @@ The change-impact benchmark builds 3 artifacts per entity: motion envelope, spac
 Run the separate harness with:
 \`cargo run --release --manifest-path research/construction-motion-oracle-v0-1/Cargo.toml --bin change-impact-bench\`
 
-The frozen synthetic size points are 1,000, 10,000 and 50,000 entities. The harness checks exact invalidation counts and unmatched-change absence before accepting timing samples, and reports p50/p95/p99. These are algorithmic software microbenchmarks, not production site throughput. A second host and held-out dependency topologies are needed before selecting a production invalidation index.
+The frozen synthetic size points are 1,000, 10,000 and 50,000 entities. The harness checks exact invalidation counts, dependency-contract coverage and unmatched-change absence before accepting timing samples, and reports p50/p95/p99. Each benchmark graph also contains an authoritative current-dependency registry, so the timed high-assurance path validates transition predecessors and detects pre-existing stale artifact inputs. These are algorithmic software microbenchmarks, not production site throughput. A second host and held-out dependency topologies are needed before selecting a production invalidation index.
 
 ### Proposed benchmark gates (targets, not achieved results)
 
