@@ -99,7 +99,6 @@ struct PreferenceProfile {
     /// Present only for explicitly named/shared consent. Anonymous profile IDs
     /// are removed when the decision snapshot crosses the aggregation boundary.
     stakeholder_id: Option<String>,
-    revision: u32,
     consent_scope: ConsentScope,
     consent_status: ConsentStatus,
     weights: [f64; CRITERION_COUNT],
@@ -108,12 +107,10 @@ struct PreferenceProfile {
 
 pub struct PreferenceSnapshot {
     pub decision_cutoff_micros: i64,
-    // The raw profile collection and all cohort counts stay inside this module.
+    // The raw profile collection and anonymous cohort count stay inside this module.
     // Consumers receive decision outputs, not the underlying preference table.
-    visible_event_count: usize,
     profiles: Vec<PreferenceProfile>,
     anonymous_profile_count: usize,
-    excluded_profile_count: usize,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -170,9 +167,6 @@ pub struct RejectedAlternative {
 
 pub struct GroupDecisionReport {
     pub decision_cutoff_micros: i64,
-    active_stakeholder_count: usize,
-    anonymous_stakeholder_count: usize,
-    excluded_profile_count: usize,
     pub assessments: Vec<AlternativeAssessment>,
     pub rejected_alternatives: Vec<RejectedAlternative>,
     /// Pareto frontier is computed over the original declared outcome vector,
@@ -417,8 +411,6 @@ impl PreferenceLedger {
         self.validate()?;
 
         let mut latest: BTreeMap<String, &PreferenceEvent> = BTreeMap::new();
-        let mut visible_event_count = 0;
-
         for event in self
             .events
             .iter()
@@ -427,7 +419,6 @@ impl PreferenceLedger {
                     && event.recorded_at_micros <= decision_cutoff_micros
             })
         {
-            visible_event_count += 1;
             let replace = latest
                 .get(&event.stakeholder_id)
                 .is_none_or(|previous| event.revision > previous.revision);
@@ -437,13 +428,11 @@ impl PreferenceLedger {
         }
 
         let mut profiles = Vec::new();
-        let mut excluded_profile_count = 0;
 
         for event in latest.values() {
             if event.consent_status != ConsentStatus::Granted
                 || event.consent_scope == ConsentScope::LocalOnly
             {
-                excluded_profile_count += 1;
                 continue;
             }
 
@@ -454,7 +443,6 @@ impl PreferenceLedger {
             };
             profiles.push(PreferenceProfile {
                 stakeholder_id,
-                revision: event.revision,
                 consent_scope: event.consent_scope,
                 consent_status: event.consent_status,
                 weights: event.weights,
@@ -469,10 +457,8 @@ impl PreferenceLedger {
 
         Ok(PreferenceSnapshot {
             decision_cutoff_micros,
-            visible_event_count,
             profiles,
             anonymous_profile_count,
-            excluded_profile_count,
         })
     }
 }
@@ -528,7 +514,6 @@ pub fn evaluate_group(
 
     let mut stakeholder_ids = BTreeSet::new();
     let mut active_profiles = Vec::new();
-    let excluded_profile_count = snapshot.excluded_profile_count;
     let mut observed_anonymous_count = 0_usize;
 
     for profile in &snapshot.profiles {
@@ -697,12 +682,9 @@ pub fn evaluate_group(
 
     Ok(GroupDecisionReport {
         decision_cutoff_micros: snapshot.decision_cutoff_micros,
-        active_stakeholder_count: active_profiles.len(),
-        excluded_profile_count,
         assessments,
         rejected_alternatives,
         pareto_frontier_ids,
-        anonymous_stakeholder_count: observed_anonymous_count,
     })
 }
 
@@ -904,7 +886,6 @@ mod tests {
             report.rank_by_leximin(),
             vec!["balanced".to_owned(), "majority-favoured".to_owned()]
         );
-        assert_eq!(report.anonymous_stakeholder_count, 5);
         assert!(
             report
                 .assessments
@@ -994,9 +975,6 @@ mod tests {
         let snapshot = PreferenceLedger { events }.snapshot_as_of(10).unwrap();
         let report = evaluate_group(&[alternative("a", 0.5, 0.5, 0.5)], &snapshot).unwrap();
 
-        assert_eq!(report.active_stakeholder_count, 5);
-        assert_eq!(report.anonymous_stakeholder_count, 5);
-        assert_eq!(report.excluded_profile_count, 2);
         assert_eq!(snapshot.profiles.len(), 5);
         assert!(snapshot
             .profiles
@@ -1259,18 +1237,15 @@ mod tests {
         let before_knowledge = ledger.snapshot_as_of(300).unwrap();
         let after_knowledge = ledger.snapshot_as_of(500).unwrap();
 
-        assert_eq!(before_knowledge.profiles[0].revision, 1);
         assert_eq!(before_knowledge.profiles[0].consent_status, ConsentStatus::Granted);
-        assert_eq!(before_knowledge.excluded_profile_count, 0);
         assert!(after_knowledge.profiles.is_empty());
-        assert_eq!(after_knowledge.excluded_profile_count, 1);
 
         let before = evaluate_group(
             &[alternative("a", 0.6, 0.6, 0.6)],
             &before_knowledge,
         )
         .unwrap();
-        assert_eq!(before.active_stakeholder_count, 1);
+        assert_eq!(before.assessments.len(), 1);
         assert!(matches!(
             evaluate_group(&[alternative("a", 0.6, 0.6, 0.6)], &after_knowledge),
             Err(PreferenceError::NoParticipatingStakeholders)
@@ -1298,7 +1273,6 @@ mod tests {
 
         assert_eq!(before_effective.profiles.len(), 0);
         assert_eq!(after_effective.profiles.len(), 1);
-        assert_eq!(after_effective.profiles[0].revision, 1);
     }
 
     #[test]
