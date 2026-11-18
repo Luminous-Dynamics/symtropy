@@ -65,8 +65,10 @@ jobs:
             grep -Fq "fn ${test_name}(" tools/shipyard-lift-reconciliation/src/lib.rs
           done < <(jq -r '.vectors[].test_name' "$vectors")
 
-      - name: Check formatting
-        run: cargo fmt --manifest-path tools/shipyard-lift-reconciliation/Cargo.toml -- --check
+      - name: Check formatting for the verifier and its preflight dependency
+        run: |
+          cargo fmt --manifest-path tools/shipyard-lift-envelope/Cargo.toml -- --check
+          cargo fmt --manifest-path tools/shipyard-lift-reconciliation/Cargo.toml -- --check
 
       - name: Run locked/offline reconciliation and dependent preflight tests
         run: |
