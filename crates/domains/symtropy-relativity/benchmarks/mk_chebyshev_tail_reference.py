@@ -11,6 +11,8 @@ Requires SymPy and mpmath. Run:
 
 from __future__ import annotations
 
+from fractions import Fraction
+from math import isqrt
 import json
 import sympy as sp
 import mpmath as mp
