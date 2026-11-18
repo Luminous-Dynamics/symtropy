@@ -1,0 +1,124 @@
+{
+  "schema_version": "construction-change-impact/0.1",
+  "graph": {
+    "graph_snapshot_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "artifacts": [
+      {
+        "artifact_id": "motion:A",
+        "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "kind": "motion_envelope",
+        "persistence": "recomputable",
+        "dependencies": [
+          {
+            "key": {
+              "domain": "entity_geometry",
+              "scope_id": "entity:ifc4x3:AAAAAAAAAAAAAAAAAAAAAA"
+            },
+            "observed_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "key": {
+              "domain": "coordinate_transform",
+              "scope_id": "floor:02"
+            },
+            "observed_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ],
+        "depends_on_artifact_ids": []
+      },
+      {
+        "artifact_id": "occupancy:A",
+        "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "kind": "space_time_occupancy_assessment",
+        "persistence": "recomputable",
+        "dependencies": [],
+        "depends_on_artifact_ids": [
+          "motion:A"
+        ]
+      },
+      {
+        "artifact_id": "readiness:A",
+        "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "kind": "dispatch_readiness",
+        "persistence": "recomputable",
+        "dependencies": [],
+        "depends_on_artifact_ids": [
+          "occupancy:A"
+        ]
+      },
+      {
+        "artifact_id": "accepted:A",
+        "artifact_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+        "kind": "accepted_construction_record",
+        "persistence": "historical_immutable",
+        "dependencies": [
+          {
+            "key": {
+              "domain": "entity_geometry",
+              "scope_id": "entity:ifc4x3:AAAAAAAAAAAAAAAAAAAAAA"
+            },
+            "observed_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "depends_on_artifact_ids": []
+      },
+      {
+        "artifact_id": "motion:B",
+        "artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "kind": "motion_envelope",
+        "persistence": "recomputable",
+        "dependencies": [
+          {
+            "key": {
+              "domain": "entity_geometry",
+              "scope_id": "entity:ifc4x3:BBBBBBBBBBBBBBBBBBBBBB"
+            },
+            "observed_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          {
+            "key": {
+              "domain": "coordinate_transform",
+              "scope_id": "floor:02"
+            },
+            "observed_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ],
+        "depends_on_artifact_ids": []
+      },
+      {
+        "artifact_id": "occupancy:B",
+        "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "kind": "space_time_occupancy_assessment",
+        "persistence": "recomputable",
+        "dependencies": [],
+        "depends_on_artifact_ids": [
+          "motion:B"
+        ]
+      },
+      {
+        "artifact_id": "readiness:B",
+        "artifact_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "kind": "dispatch_readiness",
+        "persistence": "recomputable",
+        "dependencies": [],
+        "depends_on_artifact_ids": [
+          "occupancy:B"
+        ]
+      }
+    ]
+  },
+  "change_set": {
+    "change_id": "change-entity-A-geometry-r2",
+    "source_event_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "changes": [
+      {
+        "key": {
+          "domain": "entity_geometry",
+          "scope_id": "entity:ifc4x3:AAAAAAAAAAAAAAAAAAAAAA"
+        },
+        "previous_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "current_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+      }
+    ]
+  }
+}
