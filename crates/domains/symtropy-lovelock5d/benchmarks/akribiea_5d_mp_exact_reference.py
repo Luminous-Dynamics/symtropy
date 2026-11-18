@@ -116,17 +116,29 @@ horizon_flux_squared = sp.factor(w1**2 * (r_h**2 / (1 - q))**2
                                    * r_h**4)
 zero("horizon flux square", horizon_flux_squared - 16 * W**2)
 
-# Brihaye et al. (2010), Eq. (2.14), gives a second radial first integral
-# on a full EGB solution:
-# P_t = sqrt(f*h/b)*r^2*(h*w*w' - b') = constant = 2*U.
-p_t = sp.factor(sp.sqrt(f * h / b) * r**2 * (h * w * wp - bp))
-p_t_squared = sp.factor((f * h / b) * r**4 * (h * w * wp - bp)**2)
-zero("MP time-sector flux square", p_t_squared - 4 * U**2)
+# Brihaye et al. (2010), Eq. (2.14), gives a source-balance identity.
+# The full radial current includes alpha-dependent terms; it is not constant
+# at finite alpha. At alpha=0 it reduces to the Einstein current 2*U.
+time_cb = f - 4 + h / r**2 + r * f * sp.diff(h, r) / h
+time_cw = 4 - 3 * h / r**2 - f
+p_t_full = sp.factor(
+    sp.sqrt(f * h / b) * (
+        r**2 * (h * w * wp - bp)
+        + alpha * (
+            time_cb * bp
+            + time_cw * h * w * wp
+            + r * f * h * wp**2
+        )
+    )
+)
+p_t_mp_alpha0 = sp.factor(p_t_full.subs(alpha, 0))
+p_t_mp_squared = sp.factor(p_t_mp_alpha0**2)
+zero("MP alpha-zero time-sector current square", p_t_mp_squared - 4 * U**2)
 horizon_p_t_squared = sp.factor(
     (r_h**2 * sp.sqrt(f1 * (r_h**2 / (1 - q)) / b1)
      * ((r_h**2 / (1 - q)) * omega * w1 - b1))**2
 )
-zero("horizon time-sector flux square", horizon_p_t_squared - 4 * U**2)
+zero("MP alpha-zero horizon time-sector current square", horizon_p_t_squared - 4 * U**2)
 
 # EGB bracket is kept symbolic. The quadrature w'=P_w/(h sqrt(fh/b) K)
 # is valid only after K is enclosed away from zero by an independent verifier.
@@ -136,10 +148,48 @@ p_w_gauge = sp.factor(
 )
 
 # Exact static Boulware-Deser Einstein branch, rationalized to avoid cancellation.
-bd_radical = sp.sqrt(1 + alpha * (alpha + 2 * r_h**2) / r**4)
-bd_lapse = 1 - (alpha + 2 * r_h**2) / (r**2 * (1 + bd_radical))
+bd_amplitude = alpha + 2 * r_h**2
+bd_radical = sp.sqrt(1 + alpha * bd_amplitude / r**4)
+bd_lapse = 1 - bd_amplitude / (r**2 * (1 + bd_radical))
 bd_original = 1 + r**2 / alpha * (1 - bd_radical)
 zero("Boulware-Deser rationalization", bd_lapse - bd_original)
+
+# Independent analytic derivatives and the static 5D Gauss-Bonnet scalar.
+bd_lapse_prime = 2 * bd_amplitude / (
+    r**3 * bd_radical * (1 + bd_radical)
+)
+bd_radical_prime = -2 * alpha * bd_amplitude / (bd_radical * r**5)
+bd_lapse_second = sp.factor(
+    bd_lapse_prime * (
+        -3 / r
+        - bd_radical_prime * (1 + 2 * bd_radical)
+        / (bd_radical * (1 + bd_radical))
+    )
+)
+bd_gauss_bonnet = sp.factor(
+    12 / r**3 * (
+        (bd_lapse - 1) * (r * bd_lapse_second + 2 * bd_lapse_prime)
+        + r * bd_lapse_prime**2
+    )
+)
+zero("Boulware-Deser first derivative", bd_lapse_prime - sp.diff(bd_lapse, r))
+zero("Boulware-Deser second derivative", bd_lapse_second - sp.diff(bd_lapse, r, 2))
+
+# Full Eq. (2.14) current on static BD: h=r^2, w=0, b=f=F.
+bd_time_current = sp.factor(
+    -r**3 * bd_lapse_prime
+    + 3 * alpha * r * (bd_lapse - 1) * bd_lapse_prime
+)
+zero(
+    "Boulware-Deser time-current source balance",
+    sp.diff(bd_time_current, r) - alpha * r**3 * bd_gauss_bonnet / 6
+)
+bd_U = -(r_h**2 + alpha / 2)
+zero(
+    "Boulware-Deser asymptotic time-current endpoint",
+    sp.limit(bd_time_current, r, sp.oo) - 2 * bd_U
+)
+assert sp.factor(sp.diff(bd_time_current, r).subs(alpha, 0)) == 0
 # At r=r_H the square root is the positive branch 1+alpha/r_H^2.
 # Prove the radicand identity and then substitute that positive root exactly.
 bd_horizon_radical_square = sp.factor(
@@ -263,13 +313,15 @@ fixture = {
         "alpha_zero_mp_flux": "-4*Omega_H*r_H^4/(1-q)",
         "quadrature_gate": "K(r)=r^2-alpha*(f-4+3*h/r^2) must be enclosed away from zero before division"
     },
-    "time_sector_first_integral": {
-        "source_equation": "R_t^t+alpha/4*(H_t^t+L_GB/2)=(1/(2*r^2))*sqrt(f/(b*h))*d/dr[ sqrt(f*h/b)*r^2*(h*w*w'-b') ]",
-        "constant": "P_t=sqrt(f*h/b)*r^2*(h*w*w'-b')",
-        "asymptotic_relation": "P_t=2*U",
-        "alpha_zero_mp_flux_square": "P_t^2=4*U^2",
-        "horizon_flux": "r_H^2*sqrt(f1*h_H/b1)*(h_H*Omega_H*w1-b1)",
-        "use": "independent field-equation-combination diagnostic and optional b' reconstruction"
+    "time_sector_radial_identity": {
+        "source_equation": "R_t^t+alpha/4*(H_t^t+L_GB/2)=(1/(2*r^2))*sqrt(f/(b*h))*d/dr[P_t(r)]",
+        "full_current": "sqrt(f*h/b)*(r^2*(h*w*w'-b')+alpha*((f-4+h/r^2+r*f*h'/h)*b'+(4-3*h/r^2-f)*h*w*w'+r*f*h*w'^2))",
+        "on_shell_source_balance": "dP_t/dr=(alpha/6)*r^2*sqrt(b*h/f)*L_GB",
+        "asymptotic_endpoint": "P_t(infinity)=2*U",
+        "alpha_zero_mp_limit": "P_t(r)=2*U; the source vanishes only at alpha=0",
+        "finite_alpha_status": "not conserved; varies with the Gauss-Bonnet source",
+        "boulware_deser_control": "P_t=-r^3*F'+3*alpha*r*(F-1)*F'; P_t'=alpha*r^3*L_GB/6",
+        "use": "source-balance residual and optional b' reconstruction with the complete alpha-dependent coefficient"
     },
     "boulware_deser_control": {
         "b_equals_f": "1+r^2/alpha*(1-sqrt(1+alpha*(alpha+2*r_H^2)/r^4))",
@@ -303,6 +355,8 @@ fixture = {
         "horizon_flux_magnitude": "passed",
         "alpha_zero_time_sector_flux_squared": "passed",
         "horizon_time_sector_flux_squared": "passed",
+        "boulware_deser_time_current_source_balance": "passed",
+        "boulware_deser_time_current_asymptotic_endpoint": "passed",
         "boulware_deser_rationalization": "passed",
         "boulware_deser_horizon_and_einstein_limit": "passed"
     },
