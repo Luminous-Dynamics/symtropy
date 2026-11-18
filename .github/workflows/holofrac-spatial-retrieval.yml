@@ -82,6 +82,9 @@ jobs:
           echo "consent-first pluralistic design decisions:"
           HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin pluralistic_decision_sweep > artifacts/pluralistic-decisions.csv
           cat artifacts/pluralistic-decisions.csv
+          echo "anonymous preference chosen-query attack:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin privacy_inference_sweep > artifacts/privacy-inference-attack.csv
+          cat artifacts/privacy-inference-attack.csv
           echo "decision-value and information-gain experiment selection:"
           HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin experiment_selection_sweep > artifacts/experiment-selection-voi.csv
           cat artifacts/experiment-selection-voi.csv
