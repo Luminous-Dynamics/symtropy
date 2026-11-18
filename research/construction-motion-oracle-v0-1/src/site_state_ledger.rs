@@ -2983,7 +2983,7 @@ mod tests {
         assert!(!released.is_active());
         assert_eq!(released.released_at_tick, Some(220));
 
-        let replay = SiteStateLedger::replay(ledger.event_history()).unwrap();
+        let replay = SiteStateLedger::replay(ledger.event_history(), ledger.actor_registry().clone()).unwrap();
         assert_eq!(replay, ledger);
         assert_eq!(replay.active_space_time_reservations().count(), 0);
 
