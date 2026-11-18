@@ -39,7 +39,7 @@ These are evidence of project-specific procurement practice, not proof of univer
 
 Pressure-test safety is an unsupported claim under every mapped test profile. The classifier never interprets the absence of an explicit exclusion as permission to infer safe pressurization.
 
-The classifier is also temporally scoped. Each standard profile binds `catalog_snapshot_date`; each scenario binds `assessment_as_of`. A mismatch returns EVIDENCE_INCOMPLETE, because a current public catalogue snapshot cannot prove historical standard status. Purchaser agreement, fitting agreement and product-standard presence flags must be paired with exact reference identifiers. This verifies declared binding consistency only; it does not authenticate the referenced contract or standard record.
+The classifier is also temporally scoped. Each standard profile binds `catalog_snapshot_date`; each scenario binds `assessment_as_of`. A mismatch returns EVIDENCE_INCOMPLETE, because a current public catalogue snapshot cannot prove historical standard status. Purchaser agreement, fitting agreement and product-standard presence flags must be paired with exact reference identifiers. This verifies declared binding consistency only; it does not authenticate the referenced contract or standard record. Direct Rust API inputs are also checked for valid date/reference formats and supported link/publication states, so callers cannot bypass the parser's basic structural guards.
 
 The classifier reports only:
 - `APPLICABLE`: declared metadata passes this finite scope profile;
