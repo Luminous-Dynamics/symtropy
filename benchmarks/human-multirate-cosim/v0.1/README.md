@@ -278,3 +278,30 @@ Changing the covariance, process family, sample schedule, ordered sensors,
 observation operator or availability cutoff requires a new calibration or an
 explicitly verified compatibility rule. Unknown and unsupported observation
 processes remain NOT_ASSESSED / ABSTAIN; they do not inherit an iid threshold.
+
+### Structured AR(1) × sensor covariance (matrix-free exact path)
+
+Alongside the dense correctness reference, `Ar1KroneckerCovariance` represents
+the separable covariance `K_AR1(rho) kron R_sensor` without materializing the
+full time-by-sensor matrix. It evaluates the exact Gaussian quadratic form
+through AR(1) innovations:
+
+    z_0 = e_0
+    z_t = (e_t - rho * e_(t-1)) / sqrt(1 - rho^2), t > 0
+    Q   = 0.5 * sum_t z_t^T R_sensor^-1 z_t
+
+The sensor blocks are whitened through the sensor covariance Cholesky factor.
+The same representation samples the exact joint Gaussian process through the
+AR(1) recurrence. For T observation times and m sensors, scoring is
+O(T*m^2) and storage is O(T*m + m^2); the dense reference requires an
+O((T*m)^3) factorization and O((T*m)^2) storage. The structured form is only
+admitted for its declared separable AR(1) model; non-separable covariance
+continues to use the dense correctness reference or a future explicit factor.
+
+The unit corpus compares structured Mahalanobis scores against a materialized
+dense Kronecker covariance on small fixtures, and includes a 10,000-component
+history that is intentionally too large for dense materialization. The
+observation-process receipt now records `DENSE_SPD` or `AR1_KRONECKER` so
+performance and calibration claims bind to the actual covariance algorithm.
+No Rust performance result is claimed until exact-head execution and matched
+benchmarks complete.
