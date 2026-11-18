@@ -59,6 +59,12 @@ The 12-hour outage occurs when all HAPS are weather-derated to 0.5 capacity each
 
 The percentages and capacities are illustrative test inputs. They are not Sceye, SoftBank, AALTO, UAVOS or Luminous operating data.
 
+## 4.1 Weather-diverse reserve negative control
+
+A second [weather-diverse reserve fixture](examples/synthetic_haps_fleet_weather_diverse_reserve_case_v1.json) uses four HAPS nodes, with a reserve platform launched over a 12-hour call-up window and placed in a declared different hazard domain. During the 12-hour shared weather event and shared ground/LEO outage, the original three platforms fall to 0.4 capacity each, while the reserve remains at 1.0. Total service capacity is 2.2, above the 2.0-unit threshold: 720/720 strict hours remain adequate, with 12 degraded-but-adequate hours.
+
+The paired Rust negative control adds the reserve to the same shared weather event. Its capacity also falls to 0.4, restoring a 12-hour service outage and a 4.8 capacity-unit-hour deficit. This demonstrates that *declared exposure diversity*, not just adding a fourth airframe, drives the result. The different hazard domain is a synthetic hypothesis and must be established using real altitude/trajectory/weather exposure and component qualification data before an independence claim.
+
 ## 5. Paradigm shift and research questions
 
 The product should be evaluated as a **service system with recoverable capacity**, not as a fleet of aircraft that happen to be airborne.
