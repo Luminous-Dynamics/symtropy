@@ -12,6 +12,8 @@ The design contract is:
 
 The downstream process must be named before the feed specification is evaluated. A mineral distribution suitable for a hot-press route may not be suitable for microwave sintering or selective laser melting. An anorthite-rich product is not automatically a universal ISRU feedstock.
 
+The acceptance profile can include numeric `property_constraints` with a minimum/maximum interval, unit, rationale and exact test-condition ID (temperature, atmosphere/pressure, measurement method or process-relevant state). The reactor-inlet sample must contain a matching `property_measurement`. A matching property name is not sufficient when the test condition differs. The interval must lie wholly inside the constraint; missing or incompatible conditions are unknown, and boundary overlap is indeterminate.
+
 ### 2026 source anchors (bounded claims)
 
 1. Coffman et al., *Ground and parabolic flight testing of a magnetic and electrostatic separation system for lunar regolith beneficiation*, Acta Astronautica (2026), DOI [10.1016/j.actaastro.2026.09.032](https://doi.org/10.1016/j.actaastro.2026.09.032). The paper reports a magnetic plus electrostatic-sieve sequence and four output fractions. For one tested L2W60-g814 mare simulant, the reported plagioclase content increased from 35.5 wt% to 70.6 wt% in the 20–200 μm recovered product. This is a source-specific material/apparatus result, not a general 70.6% separator guarantee, universal recovery rate, or downstream reactor qualification.
@@ -26,7 +28,7 @@ The downstream process must be named before the feed specification is evaluated.
 - **Acceptance profile:** named downstream process, boundary (reactor inlet, printer feed, sintering feed, etc.), phase-specific mass-fraction intervals, target particle-size range and required property artifacts.
 - **Stage events:** timestamped unit operations with explicit input/output stream IDs, equipment profile, settings artifact, energy, mass closure tolerance/residual/status.
 - **Material streams:** stream identity, parent streams, created-by event, measured mass and disposition (candidate product, reject, recycle, loss, storage or reactor feed).
-- **Quality samples:** the exact stream and sampling point, sampling window, assay method, phase fractions, size bins, target-size fraction, thermal/charge/shape artifacts and uncertainty budget.
+- **Quality samples:** the exact stream and sampling point, sampling window, assay method, phase fractions, size bins, target-size fraction, numeric process-property measurements, thermal/charge/shape evidence artifacts and uncertainty budget.
 - **Final acceptance:** the final stream and quality sample, evaluated specifications, required-measurement completeness, mass-closure completeness and a bounded decision.
 
 Artifacts are content-addressed with SHA-256. Measurement status distinguishes measured, published, estimated, synthetic and unknown. Missing is not zero.
@@ -93,6 +95,16 @@ Report independent metrics, not a weighted score that can hide trade-offs:
 - assay interval coverage, worst material-batch error and unknown/abstention rate.
 
 The competitive claim to pursue is not merely higher enrichment. It is **more process-qualified feedstock delivered at the actual downstream boundary per kWh and per mission-hour**, while preserving recovery, controlling losses and making uncertainty visible.
+
+### Process-specific property examples
+
+The framework intentionally stores property requirements with the process and measurement conditions:
+- Hot-press sintering can require thermal-conductivity measurements at the relevant temperature, pressure and porosity range.
+- Microwave sintering can require dielectric loss and permittivity at the relevant frequency and temperature.
+- Selective laser melting can require solar/laser-band absorptivity, emissivity, melt/thermal response and relevant particle-shape/PSD evidence.
+- Hydrogen reduction or electrolysis should define mineral-phase, liberation, volatile, particle-size and contaminant limits for the actual chosen chemistry and reactor; a generic mineral ranking does not supply those thresholds.
+
+These are examples of *which evidence dimensions may matter*, not numeric specifications. Actual acceptance bounds must come from the downstream process design and validated operating envelope. The current synthetic anorthite example has an empty property-constraint list and does not claim a hot-press, microwave, SLM or electrolysis feedstock qualification.
 
 ## Proposed research targets (not achieved)
 
