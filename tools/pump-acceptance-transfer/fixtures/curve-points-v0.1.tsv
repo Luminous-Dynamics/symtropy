@@ -92,3 +92,6 @@ invalid_npsha_interval	2	1500	18000	200
 invalid_required_head_interval	0	500	25000	100
 invalid_required_head_interval	1	1000	22000	150
 invalid_required_head_interval	2	1500	18000	200
+site_npsha_calibration_missing	0	500	25000	100
+site_npsha_calibration_missing	1	1000	22000	150
+site_npsha_calibration_missing	2	1500	18000	200
