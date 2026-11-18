@@ -59,7 +59,7 @@ L_E=S\left[
 b'g'
 +\frac{g}{2h}b'h'
 +\frac{b}{2g}(g')^2
-+\frac{b}{g}g'h'
++\frac{b}{h}g'h'
 +\frac12 gh(w')^2
 +\frac{2b}{f}\left(4-\frac hg\right)
 \right].
@@ -166,3 +166,24 @@ This gives us a tractable independent equation oracle for the next stage: derive
 ## 7. Claim ceiling
 
 This establishes a reproducible symbolic formulation of the 5D equal-spin EGB cohomogeneity-one radial action. It does not solve the nonzero-alpha rotating boundary-value problem, establish a rotating branch, give full-domain interval enclosures, or prove existence, uniqueness, stability or astrophysical viability.
+
+
+## 8. Exact-solution regression catches the action transcription
+
+The first draft of the independent transcription used (b,g'h'/g) for the fourth Einstein–Hilbert term. That version preserved the (w)-canonical momentum but failed the finite-alpha Boulware–Deser equations and the alpha-zero flat/Schwarzschild–Tangherlini angular equations. This is an important example of why checking the Noether identity alone is not enough.
+
+The source's Eq. (2.11) has
+[
+oxed{rac{b}{h}g'h'}
+]
+for this term. With the denominator corrected to (h), exact symbolic substitution now gives
+[
+E_b=E_f=E_g=E_h=E_w=0
+]
+for both:
+1. the five-dimensional static Boulware–Deser Einstein branch at finite (alpha), with (b=f=F, g=h=r^2, w=0);
+2. the five-dimensional equal-spin Myers–Perry solution at (alpha=0), with all five radial functions in the (g=r^2) gauge.
+
+The corrected expression also preserves the exact identity (dL_{m eff}/dw'=P_w) and (E_w=-P_w'). The corrected equation digests and expression sizes are pinned in reduced_egb_action_fixture_v1.json.
+
+The symbolic equations were executed independently in the development session with SymPy 1.14.0. The committed script includes both exact-solution substitutions as hard assertions, but has not yet been replayed from a clean checkout.
