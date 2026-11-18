@@ -216,6 +216,11 @@ impl EpisodeManifest {
             .iter()
             .map(|item| item.hypothesis_id.as_str())
             .collect();
+        let public_candidate_ids: Vec<String> = profile
+            .candidate_hypotheses
+            .iter()
+            .map(|candidate| candidate.hypothesis_id.clone())
+            .collect();
         let owner_hypothesis_ids: BTreeSet<&str> =
             kernel.hypothesis_ids.iter().map(String::as_str).collect();
         let action_ids: Vec<&str> = profile
@@ -227,10 +232,6 @@ impl EpisodeManifest {
             .observations
             .iter()
             .map(|item| item.observation_id.as_str())
-            .collect();
-        let public_candidate_ids: Vec<String> = candidate_ids
-            .iter()
-            .map(|candidate| (*candidate).to_owned())
             .collect();
         profile
             .model_catalogue
@@ -1287,8 +1288,9 @@ mod tests {
     }
 
     fn test_manifest(kernel: &JointKernel) -> EpisodeManifest {
-        let candidate_hypotheses = kernel
-            .hypothesis_ids
+        let candidate_ids = kernel.hypothesis_ids.clone();
+        let candidate_prior = PublicProbability::new(1, candidate_ids.len() as u128).unwrap();
+        let candidate_hypotheses = candidate_ids
             .iter()
             .map(|id| PublicHypothesis {
                 hypothesis_id: id.clone(),
@@ -1296,8 +1298,11 @@ mod tests {
                 description: format!(
                     "Declared candidate mechanism {id}; latent physical and sensor states remain hidden."
                 ),
+                prior_probability: candidate_prior.clone(),
             })
             .collect();
+        let model_catalogue =
+            PublicModelCatalogue::from_kernel(kernel, &candidate_ids).unwrap();
         let actions = kernel
             .action_ids
             .iter()
@@ -1384,8 +1389,30 @@ mod tests {
                 candidate_hypotheses,
                 actions,
                 observations,
+                model_catalogue,
             },
         }
+    }
+
+    fn refresh_public_candidates(manifest: &mut EpisodeManifest, kernel: &JointKernel, ids: &[&str]) {
+        let prior = PublicProbability::new(1, ids.len() as u128).unwrap();
+        manifest.public_profile.candidate_hypotheses = ids
+            .iter()
+            .map(|id| {
+                let mut hypothesis = manifest
+                    .public_profile
+                    .candidate_hypotheses
+                    .iter()
+                    .find(|item| item.hypothesis_id == *id)
+                    .expect("candidate is present in owner manifest")
+                    .clone();
+                hypothesis.prior_probability = prior.clone();
+                hypothesis
+            })
+            .collect();
+        let owned_ids: Vec<String> = ids.iter().map(|id| (*id).to_owned()).collect();
+        manifest.public_profile.model_catalogue =
+            PublicModelCatalogue::from_kernel(kernel, &owned_ids).unwrap();
     }
 
     fn new_provider(kernel: JointKernel, seed: u64) -> EpisodeProvider {
@@ -1426,10 +1453,7 @@ mod tests {
     fn public_candidate_subset_hides_the_generating_out_of_catalogue_id() {
         let kernel = persistent_sensor_confounding_kernel();
         let mut manifest = test_manifest(&kernel);
-        manifest
-            .public_profile
-            .candidate_hypotheses
-            .retain(|candidate| candidate.hypothesis_id == "latent-mechanism-a");
+        refresh_public_candidates(&mut manifest, &kernel, &["latent-mechanism-a"]);
         let provider = EpisodeProvider::new(
             "hidden-outside-candidate-0001",
             manifest,
@@ -1634,10 +1658,7 @@ mod tests {
     fn out_of_catalogue_world_is_ambiguous_while_a_declared_candidate_still_fits() {
         let kernel = persistent_sensor_confounding_kernel();
         let mut manifest = test_manifest(&kernel);
-        manifest
-            .public_profile
-            .candidate_hypotheses
-            .retain(|candidate| candidate.hypothesis_id == "latent-mechanism-a");
+        refresh_public_candidates(&mut manifest, &kernel, &["latent-mechanism-a"]);
         let mut provider = EpisodeProvider::new(
             "ood-overlap-episode-0001",
             manifest,
@@ -1679,10 +1700,7 @@ mod tests {
     fn out_of_catalogue_world_becomes_no_compatible_model_after_discriminating_sequence() {
         let kernel = persistent_sensor_confounding_kernel();
         let mut manifest = test_manifest(&kernel);
-        manifest
-            .public_profile
-            .candidate_hypotheses
-            .retain(|candidate| candidate.hypothesis_id == "latent-mechanism-a");
+        refresh_public_candidates(&mut manifest, &kernel, &["latent-mechanism-a"]);
         let mut provider = EpisodeProvider::new(
             "ood-divergence-episode-0001",
             manifest,
@@ -1726,10 +1744,7 @@ mod tests {
     fn out_of_catalogue_claim_on_an_in_catalogue_world_is_a_false_positive() {
         let kernel = persistent_sensor_confounding_kernel();
         let mut manifest = test_manifest(&kernel);
-        manifest
-            .public_profile
-            .candidate_hypotheses
-            .retain(|candidate| candidate.hypothesis_id == "latent-mechanism-a");
+        refresh_public_candidates(&mut manifest, &kernel, &["latent-mechanism-a"]);
         let mut provider = EpisodeProvider::new(
             "false-ood-claim-episode-0001",
             manifest,
