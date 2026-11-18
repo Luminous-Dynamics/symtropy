@@ -97,7 +97,7 @@ Sources:
 
 ISO 12480-1:2024 defines a safe system of work involving task planning, crane/equipment selection, erection/dismantling, operation/maintenance and operator/slinger/signaller competence. Its published scope excludes cranes mounted on water-borne vessels, except land-based cranes temporarily affixed to vessels. This V0 is therefore limited to a declared land-based crane profile. Floating/shipboard crane use requires a separate applicability and engineering basis.
 
-ASME B30.5-2025 covers mobile and locomotive cranes, including crawler, locomotive and wheel-mounted crane families. It is not a universal standard for gantry, overhead, floating or shipboard cranes. The applicable standards matrix must be selected by crane type, jurisdiction, site and operation. No conformity claim is made by this prototype.
+ASME applicability must be selected by exact crane arrangement and jurisdiction. B30.2-2022 covers specified top-running bridge and trolley overhead/gantry arrangements; B30.17-2026 covers overhead/monorail systems with underhung trolley or bridge and includes gantry systems in its scope; B30.5-2025 is specific to mobile and locomotive crane families. The V0.1 contract does not yet encode the detailed trolley/bridge subtype needed to resolve the correct volume. A source-owned applicability profile and responsible review are required; no standards conformity is claimed.
 
 Sources:
 - https://www.iso.org/standard/83637.html
