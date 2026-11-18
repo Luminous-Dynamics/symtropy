@@ -31,6 +31,9 @@ pub mod capability_admission;
 /// Evidence-bounded compiler from accepted meal proposals to action and food-flow graphs.
 pub mod meal_compiler;
 
+/// Protocol-bound instrumental and blinded consumer food-quality evidence assessor.
+pub mod food_quality_assessment;
+
 pub const KITCHEN_PLAN_SCHEMA_VERSION: u32 = 1;
 pub const KITCHEN_SCHEDULE_SCHEMA_VERSION: u32 = 1;
 pub const GREEDY_SCHEDULER_ID: &str = "stable_topological_earliest_gap_v1";
