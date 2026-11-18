@@ -641,7 +641,7 @@
       "artifact_id": "stream-mass-fixture",
       "role": "mass_balance",
       "path": "synthetic-stream-masses.json",
-      "sha256": "7fefd62c054e4e2a6128331cd3d9c31db13674353922efdd910498ca5d38b70e"
+      "sha256": "7cd020f303e0de917fe27d5b81d8f6b0952b76a19ae16847f6886029a6a50087"
     }
   ],
   "final_acceptance": {
