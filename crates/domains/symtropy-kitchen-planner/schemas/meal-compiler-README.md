@@ -14,13 +14,14 @@ The graphs are linked by proposal identity/revision and explicit task/output IDs
 ## Evidence and admission semantics
 
 - A proposal SHA-256 is computed over `serde_json::to_vec` of the typed proposal in the pinned Rust contract. Acceptance must bind that digest and revision and have a prior, non-empty reviewer/acceptance reference.
+- Fact freshness is evaluated against an explicit `compiled_at_epoch_ms` **and** a required `as_of_time_evidence_ref`. The timestamp alone is not treated as a trusted clock; the reference must identify the time source/clock-quality evidence supplied by the calling runtime.
 - Source-rights resolution is a supplied reviewed declaration. The compiler checks binding and local-processing scope; it does not independently authenticate the review record.
 - Each task has explicit action, duration-method, schedule/dependency, and planning-resource resolution references. Scheduling resources are not appliance module IDs.
 - Action ontology bindings must be mapped and their provenance reference must equal the explicit action-resolution reference. Natural-language descriptions are never action commands.
 - All quantities use positive integer coefficients, explicit dimensions/units and decimal scale. No density conversion, stock inference, or zero-filling is performed.
 - Each explicitly quantified ingredient must be fully allocated across task inputs and/or explicit planned loss outputs. Under-allocation is indeterminate; over-allocation or contradictory bindings are conflicted.
 - Every task output has explicit ingredient-origin lineage and exactly one outgoing edge. V1 intentionally does not infer splitting; splitting requires explicitly declared child materials in a future schema.
-- Price and availability facts require market and validity bounds. Allergen declarations require a known ingredient reference and product-SKU or supplier-lot scope. This does not establish allergen safety.
+- Price and availability facts require exact product-SKU or supplier-lot scope, a market reference and an explicit validity end. Generic ingredient pricing is not promoted to SKU/lot pricing. Allergen declarations require a known ingredient reference and product-SKU or supplier-lot scope. This does not establish allergen safety.
 - Every output quantity is a *planned* value. It is not measured yield, residue, evaporation, accepted edible mass or sensory acceptance.
 
 ## System boundary
