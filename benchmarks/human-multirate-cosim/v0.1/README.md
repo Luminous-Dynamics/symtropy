@@ -144,3 +144,14 @@ The tournament maximizes the minimum pairwise separation across candidate model 
 This is a deterministic known-covariance, fixed-candidate-parameter reference. It does not yet solve a continuous optimal-control problem, profile nuisance parameters, infer model probabilities, account for temporal noise correlation or claim that the candidate set contains the true system. It is not a physiological model. Work is tracked in [HUMAN-NESTED-EXCITATION-DESIGN-001 / #5982](https://github.com/Luminous-Dynamics/symtropy/issues/5982).
 
 The score is the equal-covariance Gaussian KL divergence for fixed candidate parameters and observation covariance, summed over independent observation-time blocks. It is not the general nuisance-parameter-profiled T-optimal design objective. The next qualification layer must profile candidate-specific nuisance parameters, account for model discrepancy and compare against a Pontryagin/optimal-control reference before making a broader optimal-design claim.
+
+### Finite pulse-catalogue search
+
+The active-input runner now enumerates a deterministic finite grid over:
+- injection node: 0, 1, 2;
+- pulse amplitude: -1.0, -0.5, +0.5, +1.0;
+- pulse duration: 0.25, 0.5, 1.0.
+
+Every candidate gets a stable profile ID. Feasible profiles are scored; over-amplitude and over-energy candidates are retained as explicit rejection rows. On this frozen fixture, the finite grid contains 30 feasible profiles and 6 rejected profiles. The best worst-case pairwise Gaussian KL score is approximately 0.334498 for a unit-amplitude, 0.5-duration pulse at node 0 or node 2.
+
+This is exact enumeration of a small, preregistered pulse family. It is not the continuous-control optimum and does not imply that the best discrete candidate is globally optimal. A future comparison should use the low-dimensional Pontryagin/optimal-control formulation from the cited model-discrimination literature and report the continuous-vs-grid optimality gap.
