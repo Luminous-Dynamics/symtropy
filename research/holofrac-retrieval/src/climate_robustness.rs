@@ -865,7 +865,7 @@ mod tests {
                 },
             ],
         };
-        let candidate = ClimateCandidate {
+        let failing_candidate = ClimateCandidate {
             candidate_id: "fails_zero_weight_scenario".to_owned(),
             scenario_outcomes: vec![
                 ClimateScenarioOutcome {
@@ -880,12 +880,38 @@ mod tests {
                 },
             ],
         };
+        let safe_candidate = ClimateCandidate {
+            candidate_id: "safe_in_both_scenarios".to_owned(),
+            scenario_outcomes: vec![
+                ClimateScenarioOutcome {
+                    scenario_id: "weighted".to_owned(),
+                    outcomes: [0.5, 0.5, 0.5],
+                    feasible: true,
+                },
+                ClimateScenarioOutcome {
+                    scenario_id: "zero_weight_hard_scenario".to_owned(),
+                    outcomes: [0.5, 0.5, 0.5],
+                    feasible: true,
+                },
+            ],
+        };
 
-        let report = evaluate_climate_robustness(&scenarios, &[candidate]).unwrap();
-        let row = &report.candidate_reports[0];
+        let report =
+            evaluate_climate_robustness(&scenarios, &[failing_candidate, safe_candidate]).unwrap();
+        let row = report
+            .candidate_reports
+            .iter()
+            .find(|candidate| candidate.candidate_id == "fails_zero_weight_scenario")
+            .unwrap();
         assert_eq!(row.weighted_feasibility_coverage, 1.0);
         assert!(!row.guaranteed_feasible);
-        assert!(report.robust_frontier_candidate_ids.is_empty());
+        assert!(!report
+            .robust_frontier_candidate_ids
+            .contains(&"fails_zero_weight_scenario".to_owned()));
+        assert_eq!(
+            report.robust_frontier_candidate_ids,
+            vec!["safe_in_both_scenarios".to_owned()]
+        );
     }
 
     #[test]
