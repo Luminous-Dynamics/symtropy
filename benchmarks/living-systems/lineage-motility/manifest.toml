@@ -19,12 +19,12 @@ unknown_and_unresolved_are_valid_outcomes = true
 article_license_does_not_imply_dataset_license = true
 source_version_and_file_sha256_required_before_admission = true
 
-[benchmarks.archaea_halobacterium]
+[benchmarks.archaea_haloarchaea_environmental_isolates]
 taxon_display_name = "Haloferax sp. Boulby Mine; Haloarcula sp. Great Salt Lake"
 taxon_provider = "Catalogue of Life or NCBI Taxonomy"
 taxon_concept_id = "NOT_RESOLVED_PER_ISOLATE"
 lineage = "ARCHAEA_HALOPHILES"
-movement_mechanism = ["ARCHAELLUM_ROTARY_SWIMMING", "CHEMOTAXIS", "PHOTOTAXIS"]
+movement_mechanism = ["ARCHAELLUM_ROTARY_SWIMMING", "CHEMOTAXIS"]
 primary_reference_doi = "10.1038/s41467-020-18253-7"
 motility_reference_doi = "10.1038/nmicrobiol.2016.148"
 motility_reference_taxon = "Halobacterium salinarum"
