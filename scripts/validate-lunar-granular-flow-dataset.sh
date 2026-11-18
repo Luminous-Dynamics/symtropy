@@ -142,6 +142,7 @@ for run_path in "${run_paths[@]}"; do
         $r.material.particle_size_distribution_artifact_id,
         $r.apparatus.geometry_artifact_id,
         $r.observations.raw_observation_artifact_id,
+        $r.observations.flow_regime_observation_artifact_id,
         $r.observations.size_fraction_profile_artifact_id,
         $r.observations.composition_profile_artifact_id,
         $r.model.configuration_artifact_id,
@@ -197,6 +198,7 @@ for run_path in "${run_paths[@]}"; do
     and ($r.group_keys.wall_surface_id == $r.apparatus.wall_surface_id)
     and ($r.group_keys.apparatus_geometry_id == $r.apparatus.geometry_id)
     and ($r.group_keys.environment_profile_id == $r.environment.pressure_profile_id)
+    and ($r.observations.flow_regime_classification != "unknown")
     and ($r.group_keys.feeder_geometry_id == $r.apparatus.feeder_geometry_id)
     and ($r.group_keys.vibration_profile_id == $r.operation.vibration_profile_id)
   ' "$run_path" >/dev/null || fail "run group keys do not match material, wall, apparatus or environment partition: $run_path"
