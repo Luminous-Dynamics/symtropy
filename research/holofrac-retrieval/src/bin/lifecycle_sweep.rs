@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("# target_arch={}", env::consts::ARCH);
     println!("# target_os={}", env::consts::OS);
     println!(
-        "seed,cutoff_years,revision,state,condition,use_class,component_mass_kg,recycled_mass_kg,disposed_mass_kg,loss_mass_kg,mass_residual_kg,visible_events,manifest_digest"
+        "cutoff_years,revision,state,condition,use_class,component_mass_kg,recycled_mass_kg,disposed_mass_kg,loss_mass_kg,mass_residual_kg,visible_events,manifest_digest"
     );
 
     let fixture = LifecycleFixture::generate(LifecycleFixtureConfig::default())?;
@@ -23,8 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let accounting = fixture.ledger.accounting_as_of(cutoff_micros)?;
 
         println!(
-            "{},{:.1},{},{},{},{},{:.6},{:.6},{:.6},{:.6},{:.12},{},{:016x}",
-            fixture.manifest.config.seed,
+            "{:.1},{},{},{},{},{:.6},{:.6},{:.6},{:.6},{:.12},{},{:016x}",
             cutoff_years,
             snapshot.revision,
             snapshot.state.as_str(),
