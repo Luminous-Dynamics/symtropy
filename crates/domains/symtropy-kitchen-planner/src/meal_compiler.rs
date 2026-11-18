@@ -10,7 +10,9 @@
 //! edible acceptance. The result is not a safety certificate or actuation permit.
 
 use crate::KitchenTaskV1;
-use crate::action_ontology::{ActionMappingMethodV1, ActionOntologyBindingV1};
+use crate::action_ontology::{
+    ActionMappingMethodV1, ActionOntologyBindingV1, validate_action_ontology_binding,
+};
 use crate::recipe_graph::{
     ExactRecipeQuantityV1, RECIPE_GRAPH_CLAIM_CEILING, RECIPE_TASK_GRAPH_SCHEMA_VERSION,
     RecipeActionKindV1, RecipeEvidenceClassV1, RecipeGraphValidationReportV1,
@@ -406,6 +408,9 @@ pub enum MealCompilationIssueCodeV1 {
     UnknownTaskBinding,
     TaskIdMismatch,
     DependencyBindingMismatch,
+    ScheduleLagInvalid,
+    ScheduleWindowMismatch,
+    DuplicatePlanningResource,
     DurationOutsideProposalWindow,
     ProposalAcceptanceMismatch,
     ProposalAcceptanceMissing,
@@ -511,10 +516,15 @@ fn disposition(issues: &[MealCompilationIssueV1]) -> MealCompilationDispositionV
             MealCompilationIssueCodeV1::DuplicateIngredientId
                 | MealCompilationIssueCodeV1::DuplicateTaskId
                 | MealCompilationIssueCodeV1::DuplicateFactId
+                | MealCompilationIssueCodeV1::DuplicateUncertainty
+                | MealCompilationIssueCodeV1::DuplicatePlanningResource
                 | MealCompilationIssueCodeV1::DuplicateTaskBinding
                 | MealCompilationIssueCodeV1::UnknownTaskBinding
                 | MealCompilationIssueCodeV1::TaskIdMismatch
                 | MealCompilationIssueCodeV1::DependencyBindingMismatch
+                | MealCompilationIssueCodeV1::ScheduleLagInvalid
+                | MealCompilationIssueCodeV1::ScheduleWindowMismatch
+                | MealCompilationIssueCodeV1::DuplicatePlanningResource
                 | MealCompilationIssueCodeV1::DurationOutsideProposalWindow
                 | MealCompilationIssueCodeV1::DuplicateTaskOutput
                 | MealCompilationIssueCodeV1::DuplicateTaskIngredientFlow
@@ -547,6 +557,7 @@ fn disposition(issues: &[MealCompilationIssueV1]) -> MealCompilationDispositionV
                 | MealCompilationIssueCodeV1::InvalidAllergenFactScope
                 | MealCompilationIssueCodeV1::FactIngredientMismatch
                 | MealCompilationIssueCodeV1::UnknownFactIngredient
+                | MealCompilationIssueCodeV1::ProposalNotAccepted
                 | MealCompilationIssueCodeV1::TaskOutputLineageIncomplete
                 | MealCompilationIssueCodeV1::DependencyCycle
                 | MealCompilationIssueCodeV1::ProposalRejected
@@ -1156,6 +1167,29 @@ fn validate_task_bindings(
                 "scheduler dependency IDs must exactly match the proposal dependency set",
             );
         }
+        if binding.schedule.dependencies.iter().any(|dependency| {
+            dependency.max_lag_ms.is_some_and(|maximum| maximum < dependency.min_lag_ms)
+        }) {
+            add_issue(
+                issues,
+                MealCompilationIssueCodeV1::ScheduleLagInvalid,
+                Some(&binding.task_id),
+                "dependency maximum lag cannot be less than its minimum lag",
+            );
+        }
+        if binding.schedule.earliest_start_ms
+            .zip(binding.schedule.latest_finish_ms)
+            .is_some_and(|(earliest, latest)| {
+                binding.schedule.duration_ms > latest.saturating_sub(earliest)
+            })
+        {
+            add_issue(
+                issues,
+                MealCompilationIssueCodeV1::ScheduleWindowMismatch,
+                Some(&binding.task_id),
+                "task duration cannot fit between its explicit earliest start and latest finish",
+            );
+        }
         if binding.schedule.duration_ms == 0
             || task
                 .estimated_duration_min_ms
@@ -1213,8 +1247,19 @@ fn validate_task_bindings(
                 "at least one explicit planning resource ID is required",
             );
         }
+        let mut resource_ids = BTreeSet::new();
+        if binding.schedule.resource_ids.iter().any(|id| !resource_ids.insert(id.as_str())) {
+            add_issue(
+                issues,
+                MealCompilationIssueCodeV1::DuplicatePlanningResource,
+                Some(&binding.task_id),
+                "planning resource IDs must be unique within one task binding",
+            );
+        }
         if let Some(ontology) = &binding.ontology_binding {
-            if ontology.mapping.method == ActionMappingMethodV1::Unmapped
+            let ontology_report = validate_action_ontology_binding(binding.action_kind, ontology);
+            if !ontology_report.is_valid()
+                || ontology.mapping.method == ActionMappingMethodV1::Unmapped
                 || ontology.mapping.core.is_none()
                 || ontology.mapping.group.is_none()
                 || ontology
@@ -1229,7 +1274,7 @@ fn validate_task_bindings(
                     issues,
                     MealCompilationIssueCodeV1::MissingActionOntology,
                     Some(&binding.task_id),
-                    "action mapping must be mapped, versioned and bound to its exact provenance reference",
+                    "action mapping must pass ontology validation and bind to its exact reviewed resolution reference",
                 );
             }
         } else {
@@ -2074,18 +2119,7 @@ pub fn compile_meal(request: &MealCompilationRequestV1) -> MealCompilationReport
         }
     }
 
-    issues.sort_by(|left, right| {
-        (
-            left.code,
-            left.reference.as_deref().unwrap_or(""),
-            left.detail.as_str(),
-        )
-            .cmp(&(
-                right.code,
-                right.reference.as_deref().unwrap_or(""),
-                right.detail.as_str(),
-            ))
-    });
+    sort_issues(&mut issues);
     let final_disposition = disposition(&issues);
     if final_disposition != MealCompilationDispositionV1::Compiled {
         recipe_graph = None;
