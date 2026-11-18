@@ -9,6 +9,7 @@ cd "$root"
 schema="tools/lunar-granular-flow-benchmark/granular-flow-run.schema.json"
 manifest_schema="tools/lunar-granular-flow-benchmark/dataset-manifest.schema.json"
 doe="tools/lunar-granular-flow-benchmark/design-of-experiments.json"
+formula_registry="tools/lunar-granular-flow-benchmark/dimensionless-coordinate-formulas.json"
 advanced_doe="tools/lunar-granular-flow-benchmark/advanced-doe-v0.json"
 examples="tools/lunar-granular-flow-benchmark/examples"
 manifest="$examples/synthetic-dataset-manifest.json"
@@ -29,6 +30,27 @@ jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema"
 jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema"
   and .title == "Lunar Granular Flow Dataset Manifest"' "$manifest_schema" >/dev/null \
   || fail "manifest schema JSON or title invalid"
+
+jq -e '
+  .formula_set_id == "lunar-granular-dimensionless-groups-v1"
+  and .evidence_class == "dimensionless_definition_registry"
+  and ([.coordinates[].id] | sort) == [
+    "electrostatic_number",
+    "granular_bond_number",
+    "inertial_number",
+    "particle_to_drum_ratio",
+    "vibration_amplitude_to_particle_size",
+    "vibration_frequency_gravity_scale",
+    "vibration_gamma",
+    "wall_adhesion_to_particle_weight",
+    "wall_roughness_to_particle_ratio"
+  ]
+  and (.coordinates | length) == 9
+  and ([.coordinates[] | select(.id == "electrostatic_number").domain][0]) == "signed"
+  and ([.coordinates[] | select(.id == "electrostatic_number").sign_semantics][0]
+       | contains("preserve sign"))
+  and all(.coordinates[]; (.inputs | length) >= 2 and .missing_rule != null)
+' "$formula_registry" >/dev/null || fail "dimensionless formula registry identity or coverage invalid"
 
 jq -e '
   .evidence_class == "design_of_experiments_only"
