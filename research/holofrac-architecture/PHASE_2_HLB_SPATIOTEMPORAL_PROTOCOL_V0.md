@@ -564,6 +564,11 @@ The first executable finite-scenario slice is now on the HoloFrac implementation
 - research/holofrac-retrieval/src/bin/climate_robustness_sweep.rs
 - research/holofrac-architecture/CLIMATE_ROBUSTNESS_PROTOCOL_V0.md
 
+The first climate experiment-selection adapter is a separate follow-on slice:
+- research/holofrac-retrieval/src/climate_experiment_selection.rs
+- research/holofrac-retrieval/src/bin/climate_experiment_selection_sweep.rs
+- research/holofrac-architecture/CLIMATE_EXPERIMENT_SELECTION_PROTOCOL_V0.md
+
 It computes scenario-specific Pareto frontiers, their union and intersection, mean pairwise Jaccard persistence, worst-case objective vectors, weighted feasibility coverage, per-criterion weighted regret, maximum regret and a robust Pareto frontier restricted to candidates feasible in every declared scenario.
 
 The first synthetic scenarios are present-TMY, future-hot and compound heat/grid stress. They use explicitly declared **analytical decision weights**, not probabilities. The fixture deliberately includes a present-day specialist that is infeasible under later scenarios; it must not be called guaranteed-feasible or appear on the robust frontier. It also tests a valid no-robust-candidate outcome: every scenario has at least one feasible candidate, but no candidate passes all scenarios, so the robust frontier is empty and HLB/Symtropy must not relax constraints to force a winner.
@@ -575,6 +580,7 @@ The first synthetic scenarios are present-TMY, future-hot and compound heat/grid
 - T14.3 — Regret: a balanced cross-scenario design can reduce maximum regret relative to a present-day-only specialist under a matched solver budget.
 - T14.4 — Uncertainty-directed sampling: Symthaea proposes the next climate/occupancy/compound stress experiment by expected decision value; Symtropy validates and executes it under a budget and exact solver receipt.
 - T14.5 — Out-of-domain honesty: scenario coverage, surrogate error and missing future conditions are explicit unknowns, not extrapolated certainty.
+- T14.6 — Decision-value sampling: select the next climate/occupancy stress experiment by expected improvement in an explicitly authorized decision, not entropy alone; probability-based EVSI must reject analytical priority weights and bind a probability-basis ID, decision-objective ID and decision-authority ID.
 
 ### T14 baselines and metrics
 
@@ -584,6 +590,6 @@ Report scenario-specific feasible frontiers, union/intersection, pairwise Jaccar
 
 The finite fixture targets 100% independent-oracle agreement for scenario/robust frontiers and regret, and zero candidates labelled guaranteed-feasible if any scenario fails a hard constraint. Real climate studies require source-versioned future weather, local microclimate, occupancy, tariff/grid/water assumptions, calibrated first-principles simulation and held-out scenarios.
 
-SSP narratives are not probability distributions by default. The initial analytical decision weights are decision priorities only; do not describe weighted outcomes or feasibility coverage as expected values or probabilities.
+SSP narratives are not probability distributions by default. The initial analytical decision weights are decision priorities only; do not describe weighted outcomes or feasibility coverage as expected values or probabilities. The climate VOI adapter refuses to consume AnalyticalDecisionWeights as a prior. It requires a ScenarioWeightSemantics::ProbabilityWeights value with a non-empty provenance/basis ID, plus explicit objective and authority IDs. A basis ID is traceability metadata, not proof that the probability distribution is calibrated. The current four-state equal-prior demonstration is synthetic only. It contrasts exact humidity information (1 bit, no decision change) with a lower-information heat-exposure measurement that changes the preferred intervention and reduces regret; this is a policy counterexample, not a climate likelihood model.
 
 The initial synthetic fixture does not prove climate resilience, future-climate likelihood, energy savings, comfort, net-zero status, safety, code compliance or adaptation certification.
