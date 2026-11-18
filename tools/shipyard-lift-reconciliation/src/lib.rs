@@ -213,6 +213,24 @@ pub struct ReconciliationReport {
     pub event_ledger_sha256: String,
     pub coverage_bundle_sha256: String,
     pub authorisation_id: String,
+    pub authorisation_revision: String,
+    pub preflight_disposition: PreflightDisposition,
+    pub block_id: String,
+    pub block_revision: String,
+    pub crane_id: String,
+    pub crane_configuration_revision: String,
+    pub site_epoch_id: String,
+    pub frame_id: String,
+    pub clock_domain_id: String,
+    pub start_tick: u64,
+    pub end_tick: u64,
+    pub maximum_hook_load_mn: u64,
+    pub maximum_gust_mm_per_s: u64,
+    pub motion_report_id: String,
+    pub motion_report_sha256: String,
+    pub occupancy_projection_id: String,
+    pub occupancy_projection_sha256: String,
+    pub execution_outcome: ExecutionOutcome,
     pub policy_id: String,
     pub policy_revision: String,
     pub policy_sha256: String,
@@ -431,6 +449,22 @@ fn disposition_name(disposition: Disposition) -> &'static str {
     }
 }
 
+fn preflight_disposition_name(value: PreflightDisposition) -> &'static str {
+    match value {
+        PreflightDisposition::ReadyForHumanReview => "ready_for_human_review",
+        PreflightDisposition::Rejected => "rejected",
+        PreflightDisposition::Indeterminate => "indeterminate",
+    }
+}
+
+fn execution_outcome_name(value: ExecutionOutcome) -> &'static str {
+    match value {
+        ExecutionOutcome::Completed => "completed",
+        ExecutionOutcome::Aborted => "aborted",
+        ExecutionOutcome::Unknown => "unknown",
+    }
+}
+
 fn severity_name(severity: DiagnosticSeverity) -> &'static str {
     match severity {
         DiagnosticSeverity::Indeterminate => "indeterminate",
@@ -478,7 +512,7 @@ impl ReconciliationReport {
             .collect::<Vec<_>>()
             .join(",");
         format!(
-            "{{\"contract_version\":{},\"disposition\":{},\"session_id\":{},\"plan_id\":{},\"plan_revision\":{},\"plan_input_sha256\":{},\"preflight_report_sha256\":{},\"event_ledger_sha256\":{},\"coverage_bundle_sha256\":{},\"authorisation_id\":{},\"policy_id\":{},\"policy_revision\":{},\"policy_sha256\":{},\"matched_event_count\":{},\"exact_retransmission_count\":{},\"maximum_hook_load_upper_mn\":{},\"maximum_wind_gust_upper_mm_per_s\":{},\"maximum_ingest_lateness_ticks\":{},\"unknown_intervals\":[{}],\"diagnostics\":[{}]}}",
+            "{{\"contract_version\":{},\"disposition\":{},\"session_id\":{},\"plan_id\":{},\"plan_revision\":{},\"plan_input_sha256\":{},\"preflight_report_sha256\":{},\"event_ledger_sha256\":{},\"coverage_bundle_sha256\":{},\"authorisation_id\":{},\"authorisation_revision\":{},\"preflight_disposition\":{},\"block_id\":{},\"block_revision\":{},\"crane_id\":{},\"crane_configuration_revision\":{},\"site_epoch_id\":{},\"frame_id\":{},\"clock_domain_id\":{},\"start_tick\":{},\"end_tick\":{},\"maximum_hook_load_mn\":{},\"maximum_gust_mm_per_s\":{},\"motion_report_id\":{},\"motion_report_sha256\":{},\"occupancy_projection_id\":{},\"occupancy_projection_sha256\":{},\"execution_outcome\":{},\"policy_id\":{},\"policy_revision\":{},\"policy_sha256\":{},\"matched_event_count\":{},\"exact_retransmission_count\":{},\"maximum_hook_load_upper_mn\":{},\"maximum_wind_gust_upper_mm_per_s\":{},\"maximum_ingest_lateness_ticks\":{},\"unknown_intervals\":[{}],\"diagnostics\":[{}]}}",
             json_quote(self.contract_version),
             json_quote(disposition_name(self.disposition)),
             json_quote(&self.session_id),
@@ -489,6 +523,24 @@ impl ReconciliationReport {
             json_quote(&self.event_ledger_sha256.to_ascii_lowercase()),
             json_quote(&self.coverage_bundle_sha256.to_ascii_lowercase()),
             json_quote(&self.authorisation_id),
+            json_quote(&self.authorisation_revision),
+            json_quote(preflight_disposition_name(self.preflight_disposition)),
+            json_quote(&self.block_id),
+            json_quote(&self.block_revision),
+            json_quote(&self.crane_id),
+            json_quote(&self.crane_configuration_revision),
+            json_quote(&self.site_epoch_id),
+            json_quote(&self.frame_id),
+            json_quote(&self.clock_domain_id),
+            self.start_tick,
+            self.end_tick,
+            self.maximum_hook_load_mn,
+            self.maximum_gust_mm_per_s,
+            json_quote(&self.motion_report_id),
+            json_quote(&self.motion_report_sha256.to_ascii_lowercase()),
+            json_quote(&self.occupancy_projection_id),
+            json_quote(&self.occupancy_projection_sha256.to_ascii_lowercase()),
+            json_quote(execution_outcome_name(self.execution_outcome)),
             json_quote(&self.policy_id),
             json_quote(&self.policy_revision),
             json_quote(&self.policy_sha256.to_ascii_lowercase()),
@@ -1391,6 +1443,24 @@ pub fn reconcile(
         event_ledger_sha256: binding.event_ledger_sha256.clone(),
         coverage_bundle_sha256: binding.coverage_bundle_sha256.clone(),
         authorisation_id: binding.authorisation_id.clone(),
+        authorisation_revision: binding.authorisation_revision.clone(),
+        preflight_disposition: binding.preflight_disposition,
+        block_id: binding.block_id.clone(),
+        block_revision: binding.block_revision.clone(),
+        crane_id: binding.crane_id.clone(),
+        crane_configuration_revision: binding.crane_configuration_revision.clone(),
+        site_epoch_id: binding.site_epoch_id.clone(),
+        frame_id: binding.frame_id.clone(),
+        clock_domain_id: binding.clock_domain_id.clone(),
+        start_tick: binding.start_tick,
+        end_tick: binding.end_tick,
+        maximum_hook_load_mn: binding.maximum_hook_load_mn,
+        maximum_gust_mm_per_s: binding.maximum_gust_mm_per_s,
+        motion_report_id: binding.motion_report_id.clone(),
+        motion_report_sha256: binding.motion_report_sha256.clone(),
+        occupancy_projection_id: binding.occupancy_projection_id.clone(),
+        occupancy_projection_sha256: binding.occupancy_projection_sha256.clone(),
+        execution_outcome: binding.outcome,
         policy_id: policy.policy_id.clone(),
         policy_revision: policy.policy_revision.clone(),
         policy_sha256: policy.policy_sha256.clone(),
