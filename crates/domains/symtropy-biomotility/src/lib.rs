@@ -495,6 +495,207 @@ pub struct BehaviorSummary {
     pub projected_drift_um_s: Option<f64>,
 }
 
+/// Circular statistics for realized run-displacement orientations relative
+/// to the chemoattractant gradient axis.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct OrientationSummary {
+    pub run_count: usize,
+    pub up_gradient_count: usize,
+    pub down_gradient_count: usize,
+    pub cross_gradient_count: usize,
+    pub up_gradient_fraction: f64,
+    /// Real and imaginary components of the first circular Fourier moment.
+    pub first_harmonic_real: f64,
+    pub first_harmonic_imag: f64,
+    pub first_harmonic_magnitude: f64,
+    /// Undefined when the first harmonic magnitude is numerically zero.
+    pub first_harmonic_phase_rad: Option<f64>,
+}
+
+/// Percentile confidence interval for a clustered bootstrap statistic.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct BootstrapInterval {
+    pub estimate: f64,
+    pub lower: f64,
+    pub upper: f64,
+}
+
+/// Cluster-level bootstrap over independent biological recording units.
+///
+/// Each inner vector contains realized run-displacement headings in radians,
+/// already expressed relative to the gradient axis, for one independent
+/// recording/plate/day cluster. Clusters are sampled with replacement; all
+/// runs from a selected cluster remain together.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ClusteredOrientationBootstrap {
+    pub up_gradient_fraction: BootstrapInterval,
+    pub first_harmonic_magnitude: BootstrapInterval,
+    pub independent_cluster_count: usize,
+    pub resample_count: usize,
+}
+
+/// Errors returned by the clustered orientation bootstrap.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BootstrapError {
+    NoClusters,
+    EmptyCluster,
+    NonFiniteAngle,
+    InvalidConfidenceLevel,
+    ZeroResamples,
+}
+
+impl fmt::Display for BootstrapError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::NoClusters => write!(formatter, "bootstrap requires at least one independent cluster"),
+            Self::EmptyCluster => write!(formatter, "each bootstrap cluster must contain at least one run"),
+            Self::NonFiniteAngle => write!(formatter, "orientation angles must be finite"),
+            Self::InvalidConfidenceLevel => write!(formatter, "confidence level must be strictly between zero and one"),
+            Self::ZeroResamples => write!(formatter, "bootstrap resample count must be positive"),
+        }
+    }
+}
+
+impl Error for BootstrapError {}
+
+/// Summarize net run-displacement headings relative to the gradient.
+///
+/// This matches the first-harmonic representation used in the porous-agar
+/// chemotaxis study: p(phi) is approximated by a constant plus its first
+/// circular Fourier mode. Run orientation is the first-to-last displacement
+/// vector, not the instantaneous endpoint tangent.
+pub fn summarize_orientations(result: &SimulationResult) -> Option<OrientationSummary> {
+    let relative_headings: Vec<f64> = result
+        .events
+        .iter()
+        .filter_map(|event| {
+            event
+                .run_displacement_heading_rad
+                .map(|heading| wrap_angle(heading - result.gradient_heading_rad))
+        })
+        .collect();
+    summarize_relative_headings(&relative_headings)
+}
+
+fn summarize_relative_headings(headings: &[f64]) -> Option<OrientationSummary> {
+    if headings.is_empty() || headings.iter().any(|heading| !heading.is_finite()) {
+        return None;
+    }
+
+    let mut up_gradient_count = 0;
+    let mut down_gradient_count = 0;
+    let mut cross_gradient_count = 0;
+    let mut cosine_sum = 0.0;
+    let mut sine_sum = 0.0;
+
+    for &heading in headings {
+        match classify_direction(heading, 0.0)? {
+            DirectionClass::UpGradient => up_gradient_count += 1,
+            DirectionClass::DownGradient => down_gradient_count += 1,
+            DirectionClass::CrossGradient => cross_gradient_count += 1,
+        }
+        cosine_sum += heading.cos();
+        sine_sum += heading.sin();
+    }
+
+    let run_count = headings.len();
+    let first_harmonic_real = cosine_sum / run_count as f64;
+    let first_harmonic_imag = sine_sum / run_count as f64;
+    let first_harmonic_magnitude =
+        first_harmonic_real.hypot(first_harmonic_imag);
+
+    Some(OrientationSummary {
+        run_count,
+        up_gradient_count,
+        down_gradient_count,
+        cross_gradient_count,
+        up_gradient_fraction: up_gradient_count as f64 / run_count as f64,
+        first_harmonic_real,
+        first_harmonic_imag,
+        first_harmonic_magnitude,
+        first_harmonic_phase_rad: (first_harmonic_magnitude > 1.0e-14)
+            .then_some(first_harmonic_imag.atan2(first_harmonic_real)),
+    })
+}
+
+/// Estimate confidence intervals for up-gradient fraction and first Fourier
+/// harmonic magnitude by resampling independent recording clusters.
+///
+/// The point estimate pools all run observations. Each bootstrap draw samples
+/// the same number of clusters with replacement and includes all runs from
+/// each selected cluster. This preserves within-recording dependence.
+pub fn cluster_bootstrap_orientations(
+    clusters: &[Vec<f64>],
+    resample_count: usize,
+    confidence_level: f64,
+    seed: u64,
+) -> Result<ClusteredOrientationBootstrap, BootstrapError> {
+    if clusters.is_empty() {
+        return Err(BootstrapError::NoClusters);
+    }
+    if resample_count == 0 {
+        return Err(BootstrapError::ZeroResamples);
+    }
+    if !confidence_level.is_finite() || !(0.0..1.0).contains(&confidence_level) {
+        return Err(BootstrapError::InvalidConfidenceLevel);
+    }
+    if clusters.iter().any(Vec::is_empty) {
+        return Err(BootstrapError::EmptyCluster);
+    }
+    if clusters.iter().flatten().any(|angle| !angle.is_finite()) {
+        return Err(BootstrapError::NonFiniteAngle);
+    }
+
+    let pooled: Vec<f64> = clusters.iter().flatten().copied().collect();
+    let point = summarize_relative_headings(&pooled)
+        .expect("validated non-empty finite orientation clusters");
+
+    let mut rng = SeededRng::new(seed);
+    let mut up_fraction_samples = Vec::with_capacity(resample_count);
+    let mut first_harmonic_samples = Vec::with_capacity(resample_count);
+
+    for _ in 0..resample_count {
+        let mut resampled = Vec::with_capacity(pooled.len());
+        for _ in 0..clusters.len() {
+            let cluster_index = rng.index(clusters.len());
+            resampled.extend_from_slice(&clusters[cluster_index]);
+        }
+        let summary = summarize_relative_headings(&resampled)
+            .expect("resampled clusters are non-empty and finite");
+        up_fraction_samples.push(summary.up_gradient_fraction);
+        first_harmonic_samples.push(summary.first_harmonic_magnitude);
+    }
+
+    let alpha = 1.0 - confidence_level;
+    Ok(ClusteredOrientationBootstrap {
+        up_gradient_fraction: BootstrapInterval {
+            estimate: point.up_gradient_fraction,
+            lower: percentile(&mut up_fraction_samples, alpha / 2.0),
+            upper: percentile(&mut up_fraction_samples, 1.0 - alpha / 2.0),
+        },
+        first_harmonic_magnitude: BootstrapInterval {
+            estimate: point.first_harmonic_magnitude,
+            lower: percentile(&mut first_harmonic_samples, alpha / 2.0),
+            upper: percentile(&mut first_harmonic_samples, 1.0 - alpha / 2.0),
+        },
+        independent_cluster_count: clusters.len(),
+        resample_count,
+    })
+}
+
+fn percentile(samples: &mut [f64], quantile: f64) -> f64 {
+    samples.sort_by(f64::total_cmp);
+    let position = quantile * (samples.len() - 1) as f64;
+    let lower_index = position.floor() as usize;
+    let upper_index = position.ceil() as usize;
+    if lower_index == upper_index {
+        samples[lower_index]
+    } else {
+        let fraction = position - lower_index as f64;
+        samples[lower_index] + fraction * (samples[upper_index] - samples[lower_index])
+    }
+}
+
 /// Per-lag, time-origin-averaged ensemble MSD estimate.
 ///
 /// Each trajectory contributes one time-origin average, so frames and time
