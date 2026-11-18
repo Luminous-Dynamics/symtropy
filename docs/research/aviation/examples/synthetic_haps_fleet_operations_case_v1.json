@@ -13,19 +13,22 @@
       "node_id": "haps-a",
       "platform_class": "solar_fixed_wing_haps",
       "service_region_ref": "region-disaster-north",
-      "base_capacity_units": 1
+      "base_capacity_units": 1,
+      "hazard_domain": "stratospheric-domain-north-01"
     },
     {
       "node_id": "haps-b",
       "platform_class": "buoyant_airship",
       "service_region_ref": "region-disaster-north",
-      "base_capacity_units": 1
+      "base_capacity_units": 1,
+      "hazard_domain": "stratospheric-domain-north-01"
     },
     {
       "node_id": "haps-c",
       "platform_class": "solar_fixed_wing_haps",
       "service_region_ref": "region-disaster-north",
-      "base_capacity_units": 1
+      "base_capacity_units": 1,
+      "hazard_domain": "stratospheric-domain-north-01"
     }
   ],
   "fallback_sources": [
