@@ -11,8 +11,7 @@ use crate::experiment_design::{
     evaluate_input_profile, ExperimentDesignScenario, ExcitationDesignError, ForcingSegment,
     InputProfile,
 };
-use crate::network::NetworkError;
-use crate::sensor_design::{invert_spd, SensorDesignError};
+use crate::sensor_design::invert_spd;
 use crate::trust_region::{
     maximize_psd_quadratic_on_ball, TrustRegionDisposition, TrustRegionError,
 };
