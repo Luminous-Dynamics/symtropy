@@ -13,8 +13,9 @@
     "independence_contract": {
       "haps_platforms_independent_conditioned_on_no_common_mode": true,
       "terrestrial_independent_of_haps_weather": true,
-      "leo_independent_of_haps_weather_and_terrestrial": true,
-      "availability_includes_planned_maintenance": true
+      "availability_includes_planned_maintenance": true,
+      "external_common_mode_independent_of_haps_weather": true,
+      "terrestrial_and_leo_independent_conditioned_on_no_external_common_mode": true
     },
     "shared_external_common_mode_outage_probability": 0
   },
@@ -526,6 +527,7 @@
     "The model treats a service zone as covered when at least one relevant provider is available; it does not model geographic overlap, radio capacity, latency, traffic load, group handover or partial service.",
     "Availability is an analytic probability over a one-year equivalent horizon, not a single simulated year or empirical confidence interval.",
     "A 99.99% target is a research objective only; it is not attributed to any operator and requires an SLA-defined service boundary and measured outage denominator.",
-    "The five-year Sceye/SoftBank fleet agreement indicates movement toward fleet manufacture/launch/operations but does not itself disclose an achieved national availability SLA."
+    "The five-year Sceye/SoftBank fleet agreement indicates movement toward fleet manufacture/launch/operations but does not itself disclose an achieved national availability SLA.",
+    "Within each scenario the external common-mode outage event is independent of the HAPS-only common weather event; conditional on no external common-mode event, terrestrial and LEO availability are independent."
   ]
 }
