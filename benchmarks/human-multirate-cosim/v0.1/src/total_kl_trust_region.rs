@@ -763,6 +763,39 @@ mod tests {
     }
 
     #[test]
+    fn total_kl_design_dominates_incremental_design_on_total_kl() {
+        let fixture = scenario(2.0);
+        let incremental = crate::energy_optimal_control::optimize_pairwise_energy_ball_control(
+            &fixture,
+            1,
+            2,
+            &[10, 11],
+            &[0, 1, 2],
+            &[0.0, 0.5, 1.0, 2.0],
+        )
+        .unwrap();
+        let total = optimize_pairwise_total_kl_trust_region(
+            &fixture,
+            1,
+            2,
+            &[10, 11],
+            &[0, 1, 2],
+            &[0.0, 0.5, 1.0, 2.0],
+        )
+        .unwrap();
+        assert!(
+            total.achieved_total_gaussian_kl + 1.0e-8
+                >= incremental.achieved_total_gaussian_kl
+        );
+        assert!(
+            total.unconstrained_total_gaussian_kl_upper_bound + 1.0e-8
+                >= total.achieved_total_gaussian_kl
+        );
+        assert!(!total.peak_constraint_active);
+        assert!(total.replay_total_kl_abs_error < 1.0e-8);
+    }
+
+    #[test]
     fn passive_identical_models_produce_no_control_effect_and_zero_waveform() {
         let mut fixture = scenario(2.0);
         fixture.models[1].network = fixture.models[0].network.clone();

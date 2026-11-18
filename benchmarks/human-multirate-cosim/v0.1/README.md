@@ -426,3 +426,49 @@ incremental objective against the same passive baseline before comparing
 with the continuous solution. Optimizing the total objective with a nonzero
 passive offset requires a trust-region quadratic solver (or an optimal-control
 reference) and is a separate work package.
+
+## Total-KL trust-region experiment design
+
+The `trust_region` module globally maximizes a positive-semidefinite quadratic
+plus a linear term over a Euclidean ball. It uses the spectral secular
+equation for the regular case and explicitly handles the trust-region hard
+case when the linear term is orthogonal to the top eigenspace. The report
+includes the multiplier, stationarity residual, radius residual and a
+deterministic top-eigenspace completion.
+
+The `total_kl_trust_region` module applies this solver to the actual total
+controlled Gaussian KL. With passive output difference `d0`, control response
+matrix `G`, and independent-time precision `P`, the objective is
+
+    J_total(u) = 0.5 * (d0 + G u)^T P (d0 + G u)
+
+Under the integrated-energy ellipsoid, this becomes a PSD quadratic plus a
+linear cross term after energy whitening. Unlike the incremental objective
+in `energy_optimal_control`, the passive baseline and cross term are part of
+the objective. The report keeps passive KL, incremental control-induced KL,
+total controlled KL and the energy-ball upper bound separate.
+
+If the trust-region optimum violates the peak-amplitude cap, the returned
+scaled profile is only a feasible lower-bound candidate. The uncapped energy
+ball value remains an upper bound; no global peak-constrained optimum is
+claimed. The v0.1 objective assumes independent observation-time noise blocks
+and does not yet consume the full space-time covariance interface from #6035.
+
+Run the matched total-objective comparison with:
+
+    cargo run --manifest-path benchmarks/human-multirate-cosim/v0.1/Cargo.toml --release --bin total_kl_trust_region
+
+The runner compares the finite pulse grid, incremental-eigenvector design
+and total-KL trust-region design under the same chain-vs-bypass fixture,
+sensor pair, covariance, sample times and integrated-energy budget. It reports
+the passive baseline, both controlled KL quantities, the total-KL upper
+bound, trust-region multiplier and KKT/replay residuals.
+
+The trust-region solver is an exact finite-basis mathematical reference;
+it is not arbitrary-waveform Pontryagin control, nuisance-profiled T-optimal
+design, or a scalable nonlinear optimal-control solver. The direct literature
+comparison includes Liu, Maini and Baker (2026), who formulate model
+discrimination using Pontryagin's Maximum Principle, and Pagnier et al.
+(2026), who demonstrate closed-loop optimal-control discrimination in an
+electrophysiology setting. These methods are comparators, not claims that
+this small quadratic reference is novel or superior.
