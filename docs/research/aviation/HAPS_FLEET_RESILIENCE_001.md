@@ -141,6 +141,30 @@ The reserve improves strict availability by 8.33 percentage points and capacity 
 
 The exact schedule tests are authored in Rust and include the no-spare comparison, weather-outage persistence and fail-closed invalid-schedule controls. They have not been executed in this authoring environment; no Cargo, rustfmt, Clippy or CI pass is claimed here. No field availability estimate follows from this fixture.
 
+### 7.2 Ground-ready spare versus airborne holding reserve
+
+A HAPS Alliance operations-at-scale concept describes aircraft remaining airborne between missions, moving to designated holding regions ("airborne parking lots"), and following regional or super-regional loops that can exploit prevailing winds. This is an industry operations concept, not evidence that a particular operator maintains a validated airborne spare pool. [HAPS Alliance, Operations at Scale](https://hapsalliance.org/wp-content/uploads/formidable/12/HAPS_Operations_At_Scale_White_Paper_2022-1.pdf).
+
+This creates a reserve-topology decision:
+- **Ground-ready spare:** lower standby energy and easier maintenance access, but requires launch/recovery infrastructure, weather windows and launch lead time.
+- **Airborne holding reserve:** can reduce time-to-station and avoid a new launch for each handover, but burns energy while waiting, is exposed to the same weather regimes, accumulates flight hours and may be harder to inspect/repair.
+- **Regional airborne rotation:** can move reserve capacity between service zones and exploit winds, but requires route/airspace, demand, weather, reserve and handover coordination.
+
+The launch/recovery phase is itself a safety-relevant phase. JARUS CS-HAPS Subpart H includes requirements for launch/recovery systems, launch/recovery safety areas, continuation energy/controllability and load limits. This benchmark does not qualify any launch/recovery procedure. [JARUS CS-HAPS Rev. 1.0, §2710](https://jarus-rpas.org/wp-content/uploads/2024/07/CS-HAPS-Rev.-1.0.pdf).
+
+A second synthetic case [synthetic_haps_fleet_30day_airborne_reserve_availability_v1.json](examples/synthetic_haps_fleet_30day_airborne_reserve_availability_v1.json) now holds the same 3-primary / 1-reserve service contract, primary maintenance/repair windows, common weather event, 720-hour window and service demand constant, but changes HAPS-D from ground-ready to airborne holding with a 2-hour reposition assumption.
+
+| Reserve strategy | Strict availability | Capacity adequacy | Reserve energy (synthetic) | Longest outage |
+|---|---:|---:|---:|---:|
+| Ground-ready spare | 95.00% | 98.44% | 141.84 kWh | 24 h |
+| Airborne holding reserve | 96.67% | 99.00% | 366.00 kWh | 24 h |
+
+Under these deliberately synthetic power assumptions, airborne holding adds 1.67 percentage points of strict availability and 0.56 points of capacity adequacy, while reserve-strategy energy rises by 224.16 kWh (about 2.58× the ground-ready reserve). The airborne reserve eliminates the synthetic 12-hour launch-lead gap during an unplanned fault; it does **not** eliminate the shared 24-hour weather outage, because the weather event still derates the three service-region aircraft to 2.1 of the required 3 capacity units.
+
+The reserve-energy ledger includes only the reserve platform's declared state power rates (ground-ready, airborne holding, launch, reposition, on-station and recovery). It excludes the primary fleet's energy and any unrepresented payload, avionics, thermal, communications or battery-degradation loads. These rates are synthetic assumptions, not a measured HAPS power profile. A real comparison must use platform-specific mission-energy and maintenance owners and matched service regions/weather.
+
+The event-schedule evaluator reports reserve energy separately from primary-fleet energy, and now supports `ground_ready`, `airborne_holding` and `repositioning` states. The new fixture adds six reposition events and checks reserve holding-slot capacity. This remains deterministic event replay, not an empirical reliability estimate or Semi-Markov model.
+
 The general fleet reliability tool has a dedicated path-scoped workflow for rustfmt, Clippy and fixture replay. Exact-head CI status is tracked separately; no Rust test or physical reliability pass is inferred from structural inspection alone.
 
 ## 8. Ownership
