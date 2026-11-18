@@ -598,14 +598,6 @@ pub fn decide_sequential_stop(
         config.maximum_campaign_residual,
     )?;
     let used: HashSet<u32> = history.iter().map(|entry| entry.action_id).collect();
-    let remaining_action_ids: Vec<u32> = actions
-        .iter()
-        .filter(|action| {
-            !used.contains(&action.action_id)
-                && total_cost + action.cost <= config.maximum_total_cost + TOLERANCE
-        })
-        .map(|action| action.action_id)
-        .collect();
     let total_cost: f64 = history
         .iter()
         .map(|observation| {
@@ -618,6 +610,14 @@ pub fn decide_sequential_stop(
         .collect::<Result<Vec<_>, _>>()?
         .iter()
         .sum();
+    let remaining_action_ids: Vec<u32> = actions
+        .iter()
+        .filter(|action| {
+            !used.contains(&action.action_id)
+                && total_cost + action.cost <= config.maximum_total_cost + TOLERANCE
+        })
+        .map(|action| action.action_id)
+        .collect();
     if history.len() > config.maximum_experiments {
         return Err(SequentialEvidenceError::InvalidObservationShape);
     }
