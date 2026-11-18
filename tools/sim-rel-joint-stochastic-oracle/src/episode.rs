@@ -11,7 +11,7 @@
 
 use super::{JointKernel, Rational};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// Hard cap on one in-memory episode's retained action-attempt records.
 pub const MAX_ATTEMPT_RECEIPTS: usize = 65_536;
@@ -101,6 +101,13 @@ pub struct PublicResearchProfile {
     pub observations: Vec<PublicObservationDescription>,
 }
 
+/// Public, non-secret identities and semantics that bind one episode to its exact model inputs.
+///
+/// All digests are lowercase SHA-256 hex strings supplied by the trusted runner.
+/// These values may be shown to the research policy; per-episode seeds and hidden
+/// initial-state realizations must not be included here.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct EpisodeManifest {
     /// Digest of the public episode contract and admissible action/observation surface.
     pub contract_sha256: String,
