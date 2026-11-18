@@ -2319,14 +2319,27 @@ mod tests {
     #[test]
     fn same_event_id_with_conflicting_payload_is_indeterminate() {
         let (binding, policy, coverage, mut events) = baseline();
-        let mut conflicting = events[0].clone();
+        let mut conflicting = events[1].clone();
         if let Observation::HookLoad { upper_mn } = &mut conflicting.observation {
-            *upper_mn += 1;
+            *upper_mn += 80_000_000;
         }
-        events.push(conflicting);
-        let report = reconcile(&binding, &policy, &coverage, &events);
-        assert_eq!(report.disposition, Disposition::Indeterminate);
-        assert!(has_code(&report, "EVENT_ID_CONFLICT"));
+        events.push(conflicting.clone());
+        let forward = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(forward.disposition, Disposition::Indeterminate);
+        assert!(has_code(&forward, "EVENT_ID_CONFLICT"));
+        assert_eq!(forward.maximum_hook_load_upper_mn, Some(405_000_000));
+
+        events.reverse();
+        let reverse = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(forward, reverse);
+        assert_eq!(
+            canonical_event_ledger_json(&events),
+            canonical_event_ledger_json(&{
+                let mut original_order = events.clone();
+                original_order.reverse();
+                original_order
+            })
+        );
     }
 
     #[test]
@@ -2438,9 +2451,17 @@ mod tests {
         let (binding, policy, coverage, mut events) = baseline();
         let mut duplicate = events[0].clone();
         duplicate.event_id = "different-event-id".to_owned();
+        if let Observation::HookLoad { upper_mn } = &mut duplicate.observation {
+            *upper_mn = 490_000_000;
+        }
         events.push(duplicate);
-        let report = reconcile(&binding, &policy, &coverage, &events);
-        assert_eq!(report.disposition, Disposition::Indeterminate);
-        assert!(has_code(&report, "EVENT_SEQUENCE_CONFLICT"));
+        let forward = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(forward.disposition, Disposition::Indeterminate);
+        assert!(has_code(&forward, "EVENT_SEQUENCE_CONFLICT"));
+
+        events.reverse();
+        let reverse = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(forward, reverse);
+        assert_eq!(forward.maximum_hook_load_upper_mn, Some(410_000_000));
     }
 }
