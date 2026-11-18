@@ -460,6 +460,28 @@ pub struct SimulationResult {
 
 /// Summary measures calculated from a simulated trajectory.
 #[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MechanismDurationContingency {
+    pub active_motor_short: usize,
+    pub active_motor_long: usize,
+    pub active_motor_exact_boundary_excluded: usize,
+    pub passive_trap_short: usize,
+    pub passive_trap_long: usize,
+    pub passive_trap_exact_boundary_excluded: usize,
+    pub unresolved_short: usize,
+    pub unresolved_long: usize,
+    pub unresolved_exact_boundary_excluded: usize,
+}
+
+/// Counts mechanisms and duration bins on independent axes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EventEvidenceCounts {
+    pub directly_observed: usize,
+    pub algorithm_inferred: usize,
+    pub model_latent: usize,
+    pub unresolved: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct BehaviorSummary {
     pub event_count: usize,
     /// Event counts by observed duration bin (not physical cause).
@@ -470,6 +492,10 @@ pub struct BehaviorSummary {
     pub active_motor_event_count: usize,
     pub passive_trap_event_count: usize,
     pub unresolved_mechanism_event_count: usize,
+    /// Full mechanism × duration cross-tabulation.
+    pub mechanism_duration_contingency: MechanismDurationContingency,
+    /// Provenance/evidence-status marginal counts.
+    pub evidence_status_counts: EventEvidenceCounts,
     /// Number of completed runs with a resolved net displacement direction.
     pub resolved_run_direction_count: usize,
     pub up_gradient_run_count: usize,
@@ -538,6 +564,7 @@ pub struct ClusteredOrientationBootstrap {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BootstrapError {
     NoClusters,
+    InsufficientIndependentClusters,
     EmptyCluster,
     NonFiniteAngle,
     InvalidConfidenceLevel,
@@ -547,7 +574,12 @@ pub enum BootstrapError {
 impl fmt::Display for BootstrapError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::NoClusters => write!(formatter, "bootstrap requires at least one independent cluster"),
+            Self::NoClusters => {
+                write!(formatter, "bootstrap requires at least one independent cluster")
+            }
+            Self::InsufficientIndependentClusters => {
+                write!(formatter, "cluster bootstrap requires at least two independent clusters")
+            }
             Self::EmptyCluster => write!(formatter, "each bootstrap cluster must contain at least one run"),
             Self::NonFiniteAngle => write!(formatter, "orientation angles must be finite"),
             Self::InvalidConfidenceLevel => write!(formatter, "confidence level must be strictly between zero and one"),
@@ -632,6 +664,9 @@ pub fn cluster_bootstrap_orientations(
 ) -> Result<ClusteredOrientationBootstrap, BootstrapError> {
     if clusters.is_empty() {
         return Err(BootstrapError::NoClusters);
+    }
+    if clusters.len() < 2 {
+        return Err(BootstrapError::InsufficientIndependentClusters);
     }
     if resample_count == 0 {
         return Err(BootstrapError::ZeroResamples);
@@ -1069,6 +1104,73 @@ pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
         - active_motor_event_count
         - passive_trap_event_count;
 
+    let mut mechanism_duration_contingency = MechanismDurationContingency {
+        active_motor_short: 0,
+        active_motor_long: 0,
+        active_motor_exact_boundary_excluded: 0,
+        passive_trap_short: 0,
+        passive_trap_long: 0,
+        passive_trap_exact_boundary_excluded: 0,
+        unresolved_short: 0,
+        unresolved_long: 0,
+        unresolved_exact_boundary_excluded: 0,
+    };
+    let mut evidence_status_counts = EventEvidenceCounts {
+        directly_observed: 0,
+        algorithm_inferred: 0,
+        model_latent: 0,
+        unresolved: 0,
+    };
+
+    for event in &result.events {
+        let cell = match (event.mechanism, event.duration_bin) {
+            (EventMechanism::ActiveMotorEvent, EventDurationBin::Short) => {
+                &mut mechanism_duration_contingency.active_motor_short
+            }
+            (EventMechanism::ActiveMotorEvent, EventDurationBin::Long) => {
+                &mut mechanism_duration_contingency.active_motor_long
+            }
+            (
+                EventMechanism::ActiveMotorEvent,
+                EventDurationBin::ExactBoundaryExcluded,
+            ) => &mut mechanism_duration_contingency
+                .active_motor_exact_boundary_excluded,
+            (EventMechanism::PassiveMechanicalTrap, EventDurationBin::Short) => {
+                &mut mechanism_duration_contingency.passive_trap_short
+            }
+            (EventMechanism::PassiveMechanicalTrap, EventDurationBin::Long) => {
+                &mut mechanism_duration_contingency.passive_trap_long
+            }
+            (
+                EventMechanism::PassiveMechanicalTrap,
+                EventDurationBin::ExactBoundaryExcluded,
+            ) => &mut mechanism_duration_contingency
+                .passive_trap_exact_boundary_excluded,
+            (EventMechanism::Unresolved, EventDurationBin::Short) => {
+                &mut mechanism_duration_contingency.unresolved_short
+            }
+            (EventMechanism::Unresolved, EventDurationBin::Long) => {
+                &mut mechanism_duration_contingency.unresolved_long
+            }
+            (EventMechanism::Unresolved, EventDurationBin::ExactBoundaryExcluded) => {
+                &mut mechanism_duration_contingency
+                    .unresolved_exact_boundary_excluded
+            }
+        };
+        *cell += 1;
+
+        match event.evidence_status {
+            EventEvidenceStatus::DirectlyObserved => {
+                evidence_status_counts.directly_observed += 1
+            }
+            EventEvidenceStatus::AlgorithmInferred => {
+                evidence_status_counts.algorithm_inferred += 1
+            }
+            EventEvidenceStatus::ModelLatent => evidence_status_counts.model_latent += 1,
+            EventEvidenceStatus::Unresolved => evidence_status_counts.unresolved += 1,
+        }
+    }
+
     let resolved_run_directions: Vec<_> = result
         .events
         .iter()
@@ -1101,6 +1203,9 @@ pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
     for pair in result.events.windows(2) {
         let previous_event = pair[0];
         let following_run = pair[1];
+        if following_run.run_displacement_heading_rad.is_none() {
+            continue;
+        }
         let is_up_gradient =
             following_run.completed_run_direction == DirectionClass::UpGradient;
 
@@ -1162,6 +1267,8 @@ pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
         active_motor_event_count,
         passive_trap_event_count,
         unresolved_mechanism_event_count,
+        mechanism_duration_contingency,
+        evidence_status_counts,
         resolved_run_direction_count,
         up_gradient_run_count,
         up_gradient_run_fraction: (resolved_run_direction_count > 0)
@@ -1202,8 +1309,9 @@ pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
                     / unresolved_mechanism_followed_run_count as f64,
             ),
         mean_run_duration_s: (!result.events.is_empty())
-            .then_some(total_run_duration / result.events.len() as f64),
-        projected_drift_um_s: (elapsed > 0.0).then_some(projected_displacement / elapsed),
+            .then(|| total_run_duration / result.events.len() as f64),
+        projected_drift_um_s: (elapsed > 0.0)
+            .then(|| projected_displacement / elapsed),
     }
 }
 
@@ -1924,19 +2032,23 @@ mod tests {
             Err(BootstrapError::NoClusters)
         );
         assert_eq!(
-            cluster_bootstrap_orientations(&[vec![]], 100, 0.95, 1),
+            cluster_bootstrap_orientations(&[vec![0.0]], 100, 0.95, 1),
+            Err(BootstrapError::InsufficientIndependentClusters)
+        );
+        assert_eq!(
+            cluster_bootstrap_orientations(&[vec![], vec![0.0]], 100, 0.95, 1),
             Err(BootstrapError::EmptyCluster)
         );
         assert_eq!(
-            cluster_bootstrap_orientations(&[vec![f64::NAN]], 100, 0.95, 1),
+            cluster_bootstrap_orientations(&[vec![f64::NAN], vec![0.0]], 100, 0.95, 1),
             Err(BootstrapError::NonFiniteAngle)
         );
         assert_eq!(
-            cluster_bootstrap_orientations(&[vec![0.0]], 0, 0.95, 1),
+            cluster_bootstrap_orientations(&[vec![0.0], vec![0.0]], 0, 0.95, 1),
             Err(BootstrapError::ZeroResamples)
         );
         assert_eq!(
-            cluster_bootstrap_orientations(&[vec![0.0]], 100, 1.0, 1),
+            cluster_bootstrap_orientations(&[vec![0.0], vec![0.0]], 100, 1.0, 1),
             Err(BootstrapError::InvalidConfidenceLevel)
         );
     }
