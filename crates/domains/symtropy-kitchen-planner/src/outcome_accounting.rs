@@ -665,7 +665,7 @@ fn observe_water(
                     *claimable = false;
                 }
                 match water_nanolitres(*quantity) {
-                    Ok(value) => match checked_json_safe_sum(*total, value) {
+                    Ok(value) => match checked_json_safe_sum(total, value) {
                         Some(sum) => total = sum,
                         None => {
                             add_issue(
@@ -775,7 +775,7 @@ fn observe_electricity(
                     *claimable = false;
                 }
                 match energy_microwatt_hours(*quantity) {
-                    Ok(value) => match checked_json_safe_sum(*total, value) {
+                    Ok(value) => match checked_json_safe_sum(total, value) {
                         Some(sum) => total = sum,
                         None => {
                             add_issue(
@@ -1398,12 +1398,12 @@ mod tests {
                 .any(|value| value == "water:Preparation")
         );
 
-        let mut request = request();
-        request.water_terms[0].observation = KitchenFlowObservationV1::NotApplicable {
+        let mut invalid_request = request();
+        invalid_request.water_terms[0].observation = KitchenFlowObservationV1::NotApplicable {
             justification: " ".to_owned(),
         };
         assert_eq!(
-            evaluate_kitchen_outcome_accounting(&request).disposition,
+            evaluate_kitchen_outcome_accounting(&invalid_request).disposition,
             KitchenOutcomeDispositionV1::Blocked
         );
     }
@@ -1460,10 +1460,10 @@ mod tests {
             KitchenOutcomeDispositionV1::Blocked
         );
 
-        let mut request = request();
-        request.water_terms.push(request.water_terms[0].clone());
+        let mut repeated_stage_request = request();
+        repeated_stage_request.water_terms.push(repeated_stage_request.water_terms[0].clone());
         assert_eq!(
-            evaluate_kitchen_outcome_accounting(&request).disposition,
+            evaluate_kitchen_outcome_accounting(&repeated_stage_request).disposition,
             KitchenOutcomeDispositionV1::Blocked
         );
     }
