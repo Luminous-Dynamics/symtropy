@@ -100,6 +100,15 @@ impl WaitingTimeLaw {
                 {
                     return Err(WaitingTimeLawError::InvalidPowerLawBounds);
                 }
+                let normalizer =
+                    piecewise_normalizer(*alpha, *beta, *min_s, *crossover_s);
+                let tail_scale = crossover_s.powf(beta - alpha);
+                if !normalizer.is_finite()
+                    || normalizer <= 0.0
+                    || !tail_scale.is_finite()
+                {
+                    return Err(WaitingTimeLawError::InvalidPowerLawBounds);
+                }
             }
         }
         Ok(())
@@ -175,7 +184,7 @@ impl WaitingTimeLaw {
                 if t_s <= 0.0 {
                     Some(0.0)
                 } else {
-                    Some(1.0 - (-t_s / mean_s).exp())
+                    Some(-(-t_s / mean_s).exp_m1())
                 }
             }
             Self::DoubleExponential {
@@ -186,9 +195,11 @@ impl WaitingTimeLaw {
                 if t_s <= 0.0 {
                     return Some(0.0);
                 }
-                let survival = fast_weight * (-t_s / fast_mean_s).exp()
-                    + (1.0 - fast_weight) * (-t_s / slow_mean_s).exp();
-                Some((1.0 - survival).clamp(0.0, 1.0))
+                let fast_cdf = -(-t_s / fast_mean_s).exp_m1();
+                let slow_cdf = -(-t_s / slow_mean_s).exp_m1();
+                Some((fast_weight * fast_cdf
+                    + (1.0 - fast_weight) * slow_cdf)
+                    .clamp(0.0, 1.0))
             }
             Self::PiecewisePowerLaw {
                 alpha,
@@ -217,13 +228,34 @@ impl WaitingTimeLaw {
 
     /// Survival function S(t) = P(T > t).
     pub fn survival(&self, t_s: f64) -> Option<f64> {
-        if !t_s.is_finite() {
+        if !t_s.is_finite() || self.validate().is_err() {
             return None;
         }
         if t_s < 0.0 {
             return Some(1.0);
         }
-        self.cdf(t_s).map(|cdf| (1.0 - cdf).clamp(0.0, 1.0))
+        match self {
+            Self::Empirical(samples) => {
+                let remaining = samples
+                    .values()
+                    .iter()
+                    .filter(|sample| **sample > t_s)
+                    .count();
+                Some(remaining as f64 / samples.len() as f64)
+            }
+            Self::Exponential { mean_s } => Some((-t_s / mean_s).exp()),
+            Self::DoubleExponential {
+                fast_weight,
+                fast_mean_s,
+                slow_mean_s,
+            } => Some(
+                fast_weight * (-t_s / fast_mean_s).exp()
+                    + (1.0 - fast_weight) * (-t_s / slow_mean_s).exp(),
+            ),
+            Self::PiecewisePowerLaw { .. } => {
+                self.cdf(t_s).map(|cdf| (1.0 - cdf).clamp(0.0, 1.0))
+            }
+        }
     }
 
     /// Analytic mean duration when finite and defined.
@@ -231,7 +263,8 @@ impl WaitingTimeLaw {
         self.validate().ok()?;
         match self {
             Self::Empirical(samples) if !samples.is_empty() => {
-                Some(samples.values().iter().sum::<f64>() / samples.len() as f64)
+                let mean = samples.values().iter().sum::<f64>() / samples.len() as f64;
+                mean.is_finite().then_some(mean)
             }
             Self::Empirical(_) => None,
             Self::Exponential { mean_s } => Some(*mean_s),
@@ -469,7 +502,8 @@ pub fn kaplan_meier(
                 (risk_before_time - events_at_time) as f64 / risk_before_time as f64;
             if risk_before_time > events_at_time {
                 greenwood_sum += events_at_time as f64
-                    / (risk_before_time * (risk_before_time - events_at_time)) as f64;
+                    / (risk_before_time as f64
+                        * (risk_before_time - events_at_time) as f64);
             }
         }
 
