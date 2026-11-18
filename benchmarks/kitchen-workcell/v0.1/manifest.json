@@ -2649,10 +2649,12 @@
     {
       "hypothesis_id": "H-MEAL-INTENT-FIDELITY-98",
       "metric_id": "meal_intent_fidelity_rate",
-      "target_value": 0.98,
-      "comparator": "matched household meal/task baseline with original user constraints frozen",
+      "target": "At least 0.98 on the preregistered independent adjudication set; all non-negotiable hard constraints must separately have zero unapproved violations.",
       "status": "unverified_hypothesis",
-      "rationale": "A meal system should preserve user intent, not merely satisfy its own task graph or simulator predicates."
+      "stop_conditions": [
+        "Any unapproved non-negotiable constraint violation is a hard failure and cannot be offset by the mean intent-fidelity rate.",
+        "Any evidence gap that prevents adjudication remains indeterminate and is not scored as satisfied."
+      ]
     }
   ],
   "instruments": [
