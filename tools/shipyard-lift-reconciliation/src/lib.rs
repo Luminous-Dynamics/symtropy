@@ -1499,6 +1499,113 @@ mod tests {
     }
 
     #[test]
+    fn preflight_rejection_cannot_be_upgraded_by_clean_telemetry() {
+        let (mut binding, policy, coverage, events) = baseline();
+        binding.preflight_disposition = PreflightDisposition::Rejected;
+        let report = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "PREFLIGHT_NOT_REVIEWABLE"));
+    }
+
+    #[test]
+    fn expired_authorisation_evidence_is_indeterminate() {
+        let (mut binding, policy, coverage, events) = baseline();
+        binding.authorisation_evidence.valid_until_tick = 199;
+        let report = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "EVIDENCE_NOT_VALID_FOR_EXECUTION"));
+    }
+
+    #[test]
+    fn authorisation_evidence_for_another_plan_cannot_be_reused() {
+        let (mut binding, policy, coverage, events) = baseline();
+        binding.authorisation_evidence.subject_id = "another-plan".to_owned();
+        let report = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "EVIDENCE_SUBJECT_MISMATCH"));
+    }
+
+    #[test]
+    fn revoked_sensor_calibration_is_indeterminate() {
+        let (binding, policy, coverage, mut events) = baseline();
+        events[0].calibration_or_source_evidence.state = EvidenceState::Revoked;
+        let report = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "EVIDENCE_REVOKED"));
+    }
+
+    #[test]
+    fn exactly_maximum_sample_gap_is_accepted() {
+        let (binding, mut policy, coverage, mut events) = baseline();
+        policy.maximum_sample_gap_ticks = 40;
+        for event in &mut events {
+            if event.observation.channel() == Channel::HookLoad
+                || event.observation.channel() == Channel::WindGust
+            {
+                event.received_tick = event.event_tick;
+            }
+        }
+        let report = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(report.disposition, Disposition::ConformingToDeclaredEnvelope);
+    }
+
+    #[test]
+    fn event_time_regression_within_sequence_is_indeterminate() {
+        let (binding, policy, coverage, mut events) = baseline();
+        let event = events
+            .iter_mut()
+            .find(|item| item.observation.channel() == Channel::HookLoad && item.sequence == 2)
+            .unwrap();
+        event.event_tick = 120;
+        event.received_tick = 122;
+        let report = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "SOURCE_EVENT_TIME_REGRESSION"));
+    }
+
+    #[test]
+    fn event_outside_execution_interval_is_indeterminate() {
+        let (binding, policy, coverage, mut events) = baseline();
+        events[0].event_tick = binding.end_tick;
+        events[0].received_tick = binding.end_tick + 1;
+        let report = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "EVENT_OUTSIDE_EXECUTION_INTERVAL"));
+    }
+
+    #[test]
+    fn duplicate_coverage_statement_is_indeterminate() {
+        let (binding, policy, mut coverage, events) = baseline();
+        let duplicate = coverage
+            .iter()
+            .find(|item| item.channel == Channel::HookLoad)
+            .unwrap()
+            .clone();
+        coverage.push(duplicate);
+        let report = reconcile(&binding, &policy, &coverage, &events);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "COVERAGE_CHANNEL_DUPLICATE"));
+    }
+
+    #[test]
+    fn canonical_report_json_is_invariant_to_transport_order() {
+        let (binding, policy, coverage, events) = baseline();
+        let first = reconcile(&binding, &policy, &coverage, &events).canonical_json();
+        let mut reversed_events = events.clone();
+        reversed_events.reverse();
+        let reversed = reconcile(&binding, &policy, &coverage, &reversed_events).canonical_json();
+        assert_eq!(first, reversed);
+    }
+
+    #[test]
+    fn canonical_report_json_escapes_untrusted_diagnostic_text() {
+        let (mut binding, policy, coverage, events) = baseline();
+        binding.session_id = "session\ninvalid".to_owned();
+        let report = reconcile(&binding, &policy, &coverage, &events);
+        assert!(report.canonical_json().contains("\\n"));
+    }
+
+    #[test]
     fn complete_bounded_session_is_conforming_to_declared_envelope() {
         let (binding, policy, coverage, events) = baseline();
         let report = reconcile(&binding, &policy, &coverage, &events);
