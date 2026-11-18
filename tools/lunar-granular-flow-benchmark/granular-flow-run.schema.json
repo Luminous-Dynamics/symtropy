@@ -92,6 +92,9 @@
         "string",
         "null"
       ]
+    },
+    "derived_coordinates": {
+      "$ref": "#/$defs/derivedCoordinates"
     }
   },
   "$defs": {
@@ -633,6 +636,12 @@
             "string",
             "null"
           ]
+        },
+        "shear_rate_s_minus_1": {
+          "$ref": "#/$defs/measurement"
+        },
+        "normal_confining_stress_pa": {
+          "$ref": "#/$defs/measurement"
         }
       }
     },
@@ -982,6 +991,60 @@
         },
         "sha256": {
           "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "derivedCoordinates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "granular_bond_number",
+        "wall_adhesion_to_particle_weight",
+        "inertial_number",
+        "electrostatic_number",
+        "vibration_gamma",
+        "vibration_frequency_gravity_scale",
+        "vibration_amplitude_to_particle_size",
+        "particle_to_drum_ratio",
+        "wall_roughness_to_particle_ratio",
+        "derived_from_artifact_ids"
+      ],
+      "properties": {
+        "granular_bond_number": {
+          "$ref": "#/$defs/measurement"
+        },
+        "wall_adhesion_to_particle_weight": {
+          "$ref": "#/$defs/measurement"
+        },
+        "inertial_number": {
+          "$ref": "#/$defs/measurement"
+        },
+        "electrostatic_number": {
+          "$ref": "#/$defs/measurement"
+        },
+        "vibration_gamma": {
+          "$ref": "#/$defs/measurement"
+        },
+        "vibration_frequency_gravity_scale": {
+          "$ref": "#/$defs/measurement"
+        },
+        "vibration_amplitude_to_particle_size": {
+          "$ref": "#/$defs/measurement"
+        },
+        "particle_to_drum_ratio": {
+          "$ref": "#/$defs/measurement"
+        },
+        "wall_roughness_to_particle_ratio": {
+          "$ref": "#/$defs/measurement"
+        },
+        "derived_from_artifact_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     }
