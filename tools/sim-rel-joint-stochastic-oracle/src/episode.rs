@@ -1452,6 +1452,26 @@ mod tests {
     }
 
     #[test]
+    fn public_profile_prior_change_requires_a_new_manifest_digest() {
+        let kernel = persistent_sensor_confounding_kernel();
+        let mut manifest = test_manifest(&kernel);
+        manifest.public_profile.candidate_hypotheses[0].prior_probability =
+            PublicProbability::new(3, 4).unwrap();
+        manifest.public_profile.candidate_hypotheses[1].prior_probability =
+            PublicProbability::new(1, 4).unwrap();
+        assert!(matches!(
+            EpisodeProvider::new(
+                "profile-prior-tamper-0001",
+                manifest,
+                kernel,
+                EpisodeConfig::default(),
+                3,
+            ),
+            Err(EpisodeError::InvalidManifest)
+        ));
+    }
+
+    #[test]
     fn public_candidate_catalogue_may_be_a_subset_but_not_unknown_ids() {
         let kernel = persistent_sensor_confounding_kernel();
         let mut manifest = test_manifest(&kernel);
