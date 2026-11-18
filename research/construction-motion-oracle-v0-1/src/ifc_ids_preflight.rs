@@ -1421,4 +1421,43 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn malformed_or_unresolved_geometry_receipts_block_preflight() {
+        let mut malformed_build = valid_input();
+        malformed_build.entities[0].geometry_preflight.validator_build_sha256 =
+            "not-a-digest".into();
+        assert!(
+            preflight_ifc_ids_work_package(malformed_build)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::InvalidGeometryValidatorBuildDigest {
+                    global_id: global_id('0'),
+                })
+        );
+
+        let mut unresolved_placements = valid_input();
+        unresolved_placements.entities[0].geometry_preflight.placements_resolved = false;
+        assert!(
+            preflight_ifc_ids_work_package(unresolved_placements)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::GeometryPlacementUnresolved {
+                    global_id: global_id('0'),
+                })
+        );
+
+        let mut unresolved_geometry = valid_input();
+        unresolved_geometry.entities[0].geometry_preflight.geometry_valid = false;
+        unresolved_geometry.entities[0]
+            .geometry_preflight
+            .unresolved_geometry_issue_count = 1;
+        let errors = preflight_ifc_ids_work_package(unresolved_geometry).unwrap_err();
+        assert!(errors.contains(&IfcIdsPreflightError::GeometryValidationFailed {
+            global_id: global_id('0'),
+        }));
+        assert!(errors.contains(&IfcIdsPreflightError::UnresolvedGeometryIssues {
+            global_id: global_id('0'),
+            count: 1,
+        }));
+    }
+
 }
