@@ -568,6 +568,7 @@ fn build_cumulative_capacity_benchmark_scenario(claim_count: u64) -> CumulativeC
     let resources: Vec<CapacityResourceDefinition> = (0..10_u64)
         .map(|index| CapacityResourceDefinition {
             resource_id: format!("capacity-resource-{index:02}"),
+            capacity_owner_id: format!("owner:capacity-resource-{index:02}"),
             definition_sha256: benchmark_digest(3_000 + index),
             capacity_units: 8,
             unit_label: "load-units".into(),
@@ -621,6 +622,7 @@ fn build_robust_capacity_benchmark_scenario(
                 resource_id: definition.resource_id.clone(),
                 resource_definition_sha256: definition.definition_sha256.clone(),
                 site_snapshot_sha256: base.site_snapshot_sha256.clone(),
+                site_clock_domain_id: base.site_clock_domain_id.clone(),
                 capacity_owner_id: format!("owner:{}", definition.resource_id),
                 evidence_receipt_sha256: benchmark_digest(receipt_base),
                 start_tick: 1_000,
