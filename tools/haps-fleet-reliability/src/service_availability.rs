@@ -354,6 +354,31 @@ pub fn validate_service_availability_case(
     } else {
         case.logistics_limits.airborne_holding_slots
     };
+    let expected_activation_lead = if case.fleet_policy.reserve_ready_state == "ground_ready" {
+        case.logistics_limits.launch_lead_time_h
+    } else {
+        case.logistics_limits.reposition_duration_h
+    };
+    if (case.fleet_policy.reserve_activation_lead_time_h - expected_activation_lead).abs()
+        > TIME_TOLERANCE_H
+    {
+        return Err(ReliabilityError::new(
+            "reserve activation lead time does not match the declared ready-state operation",
+        ));
+    }
+    for id in &case.fleet_policy.reserve_platform_ids {
+        let platform = platform_by_id
+            .get(id.as_str())
+            .expect("reserve platform references were validated above");
+        if !platform.segments.iter().any(|segment| {
+            segment.state == case.fleet_policy.reserve_ready_state
+        }) {
+            return Err(ReliabilityError::new(format!(
+                "reserve platform {id} has no {} state segment",
+                case.fleet_policy.reserve_ready_state
+            )));
+        }
+    }
     if case.fleet_policy.reserve_platform_ids.len() > ready_capacity {
         return Err(ReliabilityError::new(
             "declared reserve platforms exceed ready-state logistics capacity",
@@ -778,6 +803,9 @@ mod tests {
     const CASE: &str = include_str!(
         "../../../docs/research/aviation/examples/synthetic_haps_fleet_30day_availability_v1.json"
     );
+    const AIRBORNE_CASE: &str = include_str!(
+        "../../../docs/research/aviation/examples/synthetic_haps_fleet_30day_airborne_reserve_availability_v1.json"
+    );
 
     fn parse() -> FleetServiceAvailabilityCase {
         parse_service_availability_case_json(CASE.as_bytes()).expect("synthetic fleet case is valid")
@@ -803,6 +831,39 @@ mod tests {
         close(report.strict_availability_gain_percentage_points, 8.333333333333329);
         close(report.capacity_adequacy_gain_percentage_points, 2.77777777777778);
         assert_eq!(report.maintenance_overlap_violations, 0);
+        assert_eq!(report.reposition_operations, 0);
+        close(report.spare_rotation.reserve_strategy_energy_wh, 141_840.0);
+    }
+
+    #[test]
+    fn airborne_holding_reserve_improves_service_but_consumes_more_energy() {
+        let ground = evaluate_service_availability(&parse()).unwrap();
+        let airborne_case =
+            parse_service_availability_case_json(AIRBORNE_CASE.as_bytes()).unwrap();
+        let airborne = evaluate_service_availability(&airborne_case).unwrap();
+        close(airborne.spare_rotation.strict_availability_fraction, 696.0 / 720.0);
+        close(airborne.spare_rotation.capacity_adequacy_fraction, 0.99);
+        close(airborne.spare_rotation.strict_outage_h, 24.0);
+        close(airborne.spare_rotation.reserve_strategy_energy_wh, 366_000.0);
+        assert_eq!(airborne.launch_operations, 0);
+        assert_eq!(airborne.recovery_operations, 0);
+        assert_eq!(airborne.reposition_operations, 6);
+        assert!(
+            airborne.spare_rotation.strict_availability_fraction
+                > ground.spare_rotation.strict_availability_fraction
+        );
+        assert!(
+            airborne.spare_rotation.reserve_strategy_energy_wh
+                > ground.spare_rotation.reserve_strategy_energy_wh
+        );
+    }
+
+    #[test]
+    fn parser_rejects_airborne_reserve_without_holding_slot() {
+        let mut case =
+            parse_service_availability_case_json(AIRBORNE_CASE.as_bytes()).unwrap();
+        case.logistics_limits.airborne_holding_slots = 0;
+        assert!(validate_service_availability_case(&case).is_err());
     }
 
     #[test]
