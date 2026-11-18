@@ -856,6 +856,26 @@ mod tests {
                     balanced_weights(2),
                     [None; CRITERION_COUNT],
                 ),
+                granted_event(
+                    "participant-d",
+                    4,
+                    1,
+                    None,
+                    10,
+                    ConsentScope::AnonymousAggregate,
+                    balanced_weights(3),
+                    [None; CRITERION_COUNT],
+                ),
+                granted_event(
+                    "participant-e",
+                    5,
+                    1,
+                    None,
+                    10,
+                    ConsentScope::AnonymousAggregate,
+                    balanced_weights(4),
+                    [None; CRITERION_COUNT],
+                ),
             ],
         };
         let snapshot = ledger.snapshot_as_of(10).unwrap();
@@ -880,7 +900,7 @@ mod tests {
             report.rank_by_leximin(),
             vec!["balanced".to_owned(), "majority-favoured".to_owned()]
         );
-        assert_eq!(report.anonymous_stakeholder_count, 3);
+        assert_eq!(report.anonymous_stakeholder_count, 5);
         assert!(
             report
                 .assessments
@@ -933,6 +953,26 @@ mod tests {
                 balanced_weights(3),
                 [None; CRITERION_COUNT],
             ),
+            granted_event(
+                "anonymous-person-d",
+                6,
+                1,
+                None,
+                10,
+                ConsentScope::AnonymousAggregate,
+                balanced_weights(4),
+                [None; CRITERION_COUNT],
+            ),
+            granted_event(
+                "anonymous-person-e",
+                7,
+                1,
+                None,
+                10,
+                ConsentScope::AnonymousAggregate,
+                balanced_weights(5),
+                [None; CRITERION_COUNT],
+            ),
         ];
         events.push(PreferenceEvent {
             event_id: 3,
@@ -950,10 +990,10 @@ mod tests {
         let snapshot = PreferenceLedger { events }.snapshot_as_of(10).unwrap();
         let report = evaluate_group(&[alternative("a", 0.5, 0.5, 0.5)], &snapshot).unwrap();
 
-        assert_eq!(report.active_stakeholder_count, 3);
-        assert_eq!(report.anonymous_stakeholder_count, 3);
+        assert_eq!(report.active_stakeholder_count, 5);
+        assert_eq!(report.anonymous_stakeholder_count, 5);
         assert_eq!(report.excluded_profile_count, 2);
-        assert_eq!(snapshot.profiles.len(), 3);
+        assert_eq!(snapshot.profiles.len(), 5);
         assert!(snapshot
             .profiles
             .iter()
@@ -1055,6 +1095,26 @@ mod tests {
                     balanced_weights(2),
                     [None; CRITERION_COUNT],
                 ),
+                granted_event(
+                    "anonymous-d",
+                    4,
+                    1,
+                    None,
+                    10,
+                    ConsentScope::AnonymousAggregate,
+                    balanced_weights(3),
+                    [None; CRITERION_COUNT],
+                ),
+                granted_event(
+                    "anonymous-e",
+                    5,
+                    1,
+                    None,
+                    10,
+                    ConsentScope::AnonymousAggregate,
+                    balanced_weights(4),
+                    [None; CRITERION_COUNT],
+                ),
             ],
         }
         .snapshot_as_of(10)
@@ -1106,6 +1166,26 @@ mod tests {
                     10,
                     ConsentScope::AnonymousAggregate,
                     balanced_weights(2),
+                    [None; CRITERION_COUNT],
+                ),
+                granted_event(
+                    "anonymous-d",
+                    4,
+                    1,
+                    None,
+                    10,
+                    ConsentScope::AnonymousAggregate,
+                    balanced_weights(3),
+                    [None; CRITERION_COUNT],
+                ),
+                granted_event(
+                    "anonymous-e",
+                    5,
+                    1,
+                    None,
+                    10,
+                    ConsentScope::AnonymousAggregate,
+                    balanced_weights(4),
                     [None; CRITERION_COUNT],
                 ),
             ],
