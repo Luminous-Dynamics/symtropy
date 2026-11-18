@@ -193,6 +193,7 @@ The current synthetic case enumerates 36 assignments for three tasks across HAPS
 | H10 | Lift-class comparison | Fixed-wing versus buoyant free balloon versus propelled airship; payload, solar area, wind field, altitude control and launch/recovery | Which lift class delivers the same coverage service with the lowest robust system burden? |
 | H11 | Demand-aware network orchestration | Cell demand surge, finite beams, traffic forecast uncertainty, positioning/maneuver energy, backhaul and node loss | Does joint demand/beam/position/fleet scheduling increase useful service per total system Wh without service or safety regressions? |
 | H12 | Edge-compute placement and co-scheduling | Application deadlines, p95/p99 tails, platform/ground/drone/space placement, compute power/heat, backhaul outage and platform reserve | Where should each workload execute to meet its deadline with the lowest robust total-system energy and thermal burden? |
+| H13 | Fleet common-cause and repair availability | k-out-of-n redundancy, correlated weather grounding, shared gateway/launch/maintenance dependencies, repair duration, spare/recovery logistics, handover | Does the fleet meet its service availability under independent and correlated node/dependency failures? |
 
 Preserve weather autocorrelation, synoptic regime, altitude correlations and geography. Do not shuffle hourly irradiance and wind independently. Hold out entire weather campaigns, seasons or locations. Monte Carlo seeds are not independent weather campaigns. Wind-layer control must also be evaluated against strong passive-drift, fixed-altitude, rule-based/greedy, A*, SOO/receding-horizon and RL baselines with the same forecast data, horizon, actuation limits and compute budget. Forecast error alone is insufficient: report achieved footprint time, p95 target distance, request/coverage outage, altitude transitions and associated actuator/propulsion Wh. Hold out full seasons, geographies and years; report the energy/coverage regret caused by forecast error.
 
@@ -241,6 +242,7 @@ The service profile references a separate [HAPS wind-navigation case schema](sch
 | Q6 — controlled flight campaign | Separately approved test plan, instrumentation, safety, recovery and authority | Flight-test result for exact configuration/envelope |
 | Q7 — service campaign | Observed operation, maintenance, downtime, handovers and delivered service | Service-availability result for observed period |
 | Q8 — jurisdictional operation authority | Applicable aircraft/airspace, operator, spectrum, payload/service, traffic-management, security and contingency permissions for the exact jurisdiction and configuration | Only the specifically authorized scope may be claimed; a spectrum allocation or technical demonstration alone is insufficient |
+| Q9 — fleet service reliability | Independent node failure, shared common-cause events, required gateway/backhaul dependencies, repair/maintenance distributions, spares and handover receipts | Availability applies only to the declared service region/window/failure model; independence-only estimates do not support a common-cause resilience claim |
 
 Evidence does not automatically promote between gates. Keep NOT_COVERED, OUT_OF_DOMAIN, INDETERMINATE, FAILED and NOT_RUN distinct. HAPS authorisation is a function-of-operation question, not only a spectrum question: aircraft/airspace category, operator, service, payload, jurisdiction, security and contingency provisions all require applicable authority review. A 2026 international-law study proposes a functional authorisation framework and distinguishes public-interest and commercial pathways; it is research analysis, not a binding authorisation or legal opinion. No flight or service permission is inferred by this benchmark.
 
@@ -258,7 +260,7 @@ Report a vector. Preserve raw measurements, distributions, uncertainty and missi
 
 **Installed-system/aerostructural:** mass of PV, battery, transfer equipment, shielding and cooling; wing loading, drag, stiffness/deformation, aeroelastic margin, control/trim effects, inspection burden and payload lost to the export package.
 
-**Network/fleet:** service-hours, coverage continuity, payload throughput, node/fleet availability over 30/90/365-day windows, maintenance, weather-grounding, spares, handover gap, request-service fraction and p50/p95/p99 delay.
+**Network/fleet:** service-hours, coverage continuity, payload throughput, node/fleet availability over 30/90/365-day windows, maintenance, weather-grounding, spares, handover gap, request-service fraction and p50/p95/p99 delay. For fleet reliability, report single-node vs k-out-of-n availability, common-cause event probabilities and affected-node sets, shared-dependency outages, service retained after one/two node failures, p50/p95/p99 repair and relaunch time, weather correlation by region/altitude, and the optimism gap between independent-only and common-cause-aware estimates.
 
 **Evidence quality:** out-of-domain and NOT_COVERED rates, prediction-interval coverage/width, false-feasible rate, hard-constraint violations, independent sites/seasons/weather campaigns, source rights, calibration and reproducibility.
 
@@ -283,6 +285,9 @@ Design/decision baselines:
 6. Bayesian/multi-fidelity optimization with calibrated surrogate uncertainty.
 7. Robust-feasibility/minimax-regret selection when probability assumptions are unavailable.
 8. Symthaea decision-aware analysis/fidelity selection.
+9. Repairable k-out-of-n / semi-Markov HAPS availability with explicit non-exponential repair and service states.
+10. Common-cause-aware availability model with weather grounding and shared gateway/site dependencies.
+11. Discrete-event fleet maintenance/launch/recovery/handover simulation using measured or source-qualified repair distributions.
 
 Edge workload-placement baselines (see #5989):
 9. Fixed all-HAPS, all-drone, gateway and cloud placement.
@@ -327,6 +332,12 @@ These are goals, not certification criteria or performance guarantees.
 - At fixed service coverage, p95 distance-to-footprint and availability, target at least 10% lower total station-keeping energy (including altitude-control/ballast/gas/propulsion actuator energy as appropriate) than the best matched non-adaptive controller. Alternatively, at equal total energy target at least 5 percentage points better coverage-time. Either target must be independently held out and must not trade away reserve or thermal margin.
 - Compare passive drift, fixed altitude, rule-based/greedy, A*, SOO/receding-horizon and RL/MPC with identical wind inputs, action limits, forecast horizon, compute budget and failure accounting. Report energy/coverage regret under forecast perturbations; forecast RMSE alone cannot qualify a station-keeping controller.
 
+**Fleet common-cause and repairability goals**
+- Reproduce the published repairable k-out-of-n / semi-Markov HAPS reliability baselines where model parameters are available. These methods are established prior work; the Luminous differentiation target is explicit service-level common-cause weather, shared gateway, launch/recovery, maintenance and handover coupling.
+- The initial [fleet reliability case schema](schemas/haps_fleet_reliability_case_v1.schema.json) and [synthetic common-cause oracle](examples/synthetic_haps_fleet_common_cause_reliability_v1.json) enumerate 32 scenarios: a three-node k=2 fleet with 0.92 independent node availability, a 6% shared weather-grounding event and a 97% shared gateway dependency.
+- That synthetic case yields 83.89% service availability for a single-node baseline, 89.52% for the common-cause-aware k=2 fleet and 95.24% for the naïve independent-only k=2 estimate. The independence-only result overstates the common-cause-aware fleet result by 5.71 percentage points. This is a deliberately simplified static Bernoulli example, not a 30-day observed SLA or operational forecast.
+- Do not claim 99.9% service availability unless the exact region, service definition, weather correlation, failure model, repair distributions, maintenance logistics, shared dependencies, confidence bounds and independent campaign data support it.
+
 **Persistence milestones**
 - Seven consecutive measured days with independent energy/reserve accounting before a 30-day campaign.
 - Thirty measured days before planning a 90-day campaign.
@@ -358,6 +369,7 @@ Reject or mark INDETERMINATE when the energy ledger fails to close; a sequence b
 - Symtropy #3885 / #4286: aircraft/energy co-design and replenishment.
 - Symtropy #3458 / #3448 / #4080 / #4115 / #4157: optical physics, empirical WPT boundaries, session lifecycle, observability and ground-air scheduling.
 - Mycelix #3638: component, configuration, inspection and maintenance provenance.
+- [Symtropy #5996](https://github.com/Luminous-Dynamics/symtropy/issues/5996): fleet-level k-out-of-n reliability, common-cause weather/gateway events and repair/maintenance service availability; the first exact oracle is explicitly static Bernoulli, not semi-Markov.
 - [Symtropy #5989](https://github.com/Luminous-Dynamics/symtropy/issues/5989): HAPS workload placement and latency/energy/thermal co-scheduling; it composes this service contract and the existing mission electro-thermal and battery owners.
 
 This document defines benchmark contracts only. It must not create duplicate discipline solvers or self-authorize engineering results.
