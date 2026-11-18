@@ -34,15 +34,21 @@ def qUpper : ℚ := 3 - 2 * sqrt2Lower
 def qNuUpper : ℚ := 2 * qUpper
 def prefactorUpper : ℚ := 17 / (15 * sqrt2Lower)
 
-def qNuExact : ℝ := 6 - 4 * Real.sqrt 2
+def qExact : ℝ := 3 - 2 * Real.sqrt 2
+
+def qNuExact : ℝ := 2 * qExact
+
+theorem qExact_positive : 0 < qExact := by
+  unfold qExact
+  nlinarith [Real.sqrt_two_lt_three_halves]
 
 theorem qNuExact_lt_qNuUpper :
     qNuExact < (qNuUpper : ℝ) := by
-  unfold qNuExact qNuUpper qUpper
+  unfold qNuExact qExact qNuUpper qUpper
   nlinarith [sqrt2_lower_lt_real_sqrt_two]
 
 theorem qNuExact_positive : 0 < qNuExact := by
-  unfold qNuExact
+  unfold qNuExact qExact
   nlinarith [Real.sqrt_two_lt_three_halves]
 
 theorem qNuExact_lt_one : qNuExact < 1 := by
@@ -82,6 +88,35 @@ theorem exact_tail_hasSum (N : ℕ) :
 theorem exact_tail_tsum (N : ℕ) :
     (∑' k : ℕ, prefactorExact * qNuExact ^ (N + 1 + k)) = exactTail N :=
   (exact_tail_hasSum N).tsum_eq
+
+/-- Positive-mode physical Chebyshev coefficient of the inverse-radius term. -/
+def mkChebyshevCoeff (n : ℕ) : ℝ :=
+  -prefactorExact * (-qExact) ^ n
+
+/-- After weighting by nu=2, the absolute physical Chebyshev coefficient is
+exactly a geometric term with ratio q*nu. -/
+theorem weighted_mk_coefficient_abs (n : ℕ) :
+    |mkChebyshevCoeff n| * (2 : ℝ) ^ n =
+      prefactorExact * qNuExact ^ n := by
+  rw [mkChebyshevCoeff, abs_mul, abs_neg,
+    abs_of_pos prefactorExact_positive, abs_pow, abs_neg,
+    abs_of_pos qExact_positive]
+  calc
+    prefactorExact * qExact ^ n * 2 ^ n =
+        prefactorExact * (2 ^ n * qExact ^ n) := by ring
+    _ = prefactorExact * (2 * qExact) ^ n := by rw [← mul_pow]
+    _ = prefactorExact * qNuExact ^ n := by rfl
+
+/-- The exact weighted one-sided Chebyshev coefficient tail after degree N
+has the geometric sum exactTail N. -/
+theorem physical_mk_coefficient_tail_hasSum (N : ℕ) :
+    HasSum
+      (fun k : ℕ =>
+        |mkChebyshevCoeff (N + 1 + k)| * (2 : ℝ) ^ (N + 1 + k))
+      (exactTail N) := by
+  apply (exact_tail_hasSum N).congr
+  intro k
+  rw [weighted_mk_coefficient_abs]
 
 theorem qNuExact_le_upper : qNuExact ≤ qNuUpperReal :=
   qNuExact_lt_qNuUpper.le
@@ -190,6 +225,8 @@ theorem exact_tail_le_upper_N32 : exactTail 32 ≤ (tailUpper 32 : ℝ) :=
 #print axioms prefactorExact_lt_upper
 #print axioms exact_tail_hasSum
 #print axioms exact_tail_tsum
+#print axioms weighted_mk_coefficient_abs
+#print axioms physical_mk_coefficient_tail_hasSum
 #print axioms exact_tail_le_upper_expression
 #print axioms exact_tail_le_rational_upper
 #print axioms exact_tail_le_upper_N4
