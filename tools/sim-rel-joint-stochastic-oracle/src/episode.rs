@@ -1391,7 +1391,7 @@ mod tests {
                 }
             })
             .collect();
-        EpisodeManifest {
+        let mut manifest = EpisodeManifest {
             contract_sha256: "a".repeat(64),
             world_model_sha256: "b".repeat(64),
             model_profile_sha256: "c".repeat(64),
@@ -1405,7 +1405,9 @@ mod tests {
                 observations,
                 model_catalogue,
             },
-        }
+        };
+        manifest.model_profile_sha256 = manifest.public_profile.sha256().unwrap();
+        manifest
     }
 
     fn refresh_public_candidates(manifest: &mut EpisodeManifest, kernel: &JointKernel, ids: &[&str]) {
@@ -1427,6 +1429,7 @@ mod tests {
         let owned_ids: Vec<String> = ids.iter().map(|id| (*id).to_owned()).collect();
         manifest.public_profile.model_catalogue =
             PublicModelCatalogue::from_kernel(kernel, &owned_ids).unwrap();
+        manifest.model_profile_sha256 = manifest.public_profile.sha256().unwrap();
     }
 
     fn new_provider(kernel: JointKernel, seed: u64) -> EpisodeProvider {
