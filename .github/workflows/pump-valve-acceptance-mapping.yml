@@ -37,7 +37,7 @@ jobs:
         run: |
           mkdir -p stage0-evidence
           cargo run --locked --manifest-path tools/pump-valve-acceptance-mapping/Cargo.toml -- --report > stage0-evidence/report.tsv
-          test "$(wc -l < stage0-evidence/report.tsv)" -eq 30
+          test "$(wc -l < stage0-evidence/report.tsv)" -eq 32
           {
             echo "workflow_run_id=${GITHUB_RUN_ID}"
             echo "workflow_attempt=${GITHUB_RUN_ATTEMPT}"
