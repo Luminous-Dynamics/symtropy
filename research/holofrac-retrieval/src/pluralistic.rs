@@ -107,8 +107,11 @@ pub struct PreferenceProfile {
 pub struct PreferenceSnapshot {
     pub decision_cutoff_micros: i64,
     pub visible_event_count: usize,
-    /// Latest known profile per participant, sorted by stable stakeholder ID.
+    /// Profiles authorized for group aggregation, sorted by stable stakeholder ID.
+    /// Local-only, not-granted and withdrawn raw profiles are never exposed here.
     pub profiles: Vec<PreferenceProfile>,
+    /// Count of latest profiles excluded by consent scope or status, without identity.
+    pub excluded_profile_count: usize,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -408,22 +411,32 @@ impl PreferenceLedger {
             }
         }
 
-        let profiles = latest
-            .values()
-            .map(|event| PreferenceProfile {
+        let mut profiles = Vec::new();
+        let mut excluded_profile_count = 0;
+
+        for event in latest.values() {
+            if event.consent_status != ConsentStatus::Granted
+                || event.consent_scope == ConsentScope::LocalOnly
+            {
+                excluded_profile_count += 1;
+                continue;
+            }
+
+            profiles.push(PreferenceProfile {
                 stakeholder_id: event.stakeholder_id.clone(),
                 revision: event.revision,
                 consent_scope: event.consent_scope,
                 consent_status: event.consent_status,
                 weights: event.weights,
                 veto_thresholds: event.veto_thresholds,
-            })
-            .collect();
+            });
+        }
 
         Ok(PreferenceSnapshot {
             decision_cutoff_micros,
             visible_event_count,
             profiles,
+            excluded_profile_count,
         })
     }
 }
@@ -479,7 +492,7 @@ pub fn evaluate_group(
 
     let mut stakeholder_ids = BTreeSet::new();
     let mut active_profiles = Vec::new();
-    let mut excluded_profile_count = 0;
+    let mut excluded_profile_count = snapshot.excluded_profile_count;
 
     for profile in &snapshot.profiles {
         if profile.stakeholder_id.trim().is_empty() {
@@ -852,6 +865,14 @@ mod tests {
 
         assert_eq!(report.active_stakeholder_count, 1);
         assert_eq!(report.excluded_profile_count, 2);
+        assert_eq!(snapshot.profiles.len(), 1);
+        assert!(
+            snapshot
+                .profiles
+                .iter()
+                .all(|profile| profile.stakeholder_id != "local-person"
+                    && profile.stakeholder_id != "withdrawn-person")
+        );
         assert_eq!(
             report.assessments[0].per_stakeholder_satisfaction[0].stakeholder_id,
             None
@@ -891,8 +912,9 @@ mod tests {
 
         assert_eq!(before_knowledge.profiles[0].revision, 1);
         assert_eq!(before_knowledge.profiles[0].consent_status, ConsentStatus::Granted);
-        assert_eq!(after_knowledge.profiles[0].revision, 2);
-        assert_eq!(after_knowledge.profiles[0].consent_status, ConsentStatus::Withdrawn);
+        assert_eq!(before_knowledge.excluded_profile_count, 0);
+        assert!(after_knowledge.profiles.is_empty());
+        assert_eq!(after_knowledge.excluded_profile_count, 1);
 
         let before = evaluate_group(
             &[alternative("a", 0.6, 0.6, 0.6)],
