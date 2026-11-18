@@ -15,13 +15,15 @@ Provide the JSON path as the first argument or pipe JSON to stdin.
 
 ## Coordinates compared
 
-- Froude: Fr = ω²R/g.
-- Cohesion-to-particle-weight: Cw = F_cohesive/(m_particle g).
+- Rotational Froude: Fr = ω²R/g.
+- Cohesion-to-particle-weight (granular Bond): Bo_m = F_adh/(m_particle g).
 - Wall-adhesion-to-particle-weight: Aw = F_wall_adhesion/(m_particle g).
+- Inertial number: I = γdot d / sqrt(P/ρ).
+- Signed electrostatic number: El = qE/(m_particle g); polarity is compared as well as magnitude because its direction can drive species apart or together.
 - Particle-to-drum size: d50/R.
 - Wall-roughness-to-particle size: Ra/d50.
-- Fill fraction.
-- Gravity and chamber pressure.
+- Fill fraction, gravity and chamber pressure.
+- Vibration acceleration ratio Γ, dimensionless frequency f sqrt(d50/g), and peak displacement/d50.
 - Exact-match categorical boundaries: atmosphere, wall material, wall grounding and flow regime.
 
 The Cw and Aw ratios are proposed operational similarity coordinates. Their numerator definitions, particle representative mass, contact sampling and uncertainty must be recorded by the experimenter; the evaluator does not infer them from angle of repose.
