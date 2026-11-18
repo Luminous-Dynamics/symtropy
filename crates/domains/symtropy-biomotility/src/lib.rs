@@ -1852,6 +1852,96 @@ mod tests {
     }
 
     #[test]
+    fn first_fourier_harmonic_matches_analytic_orientation_fixtures() {
+        let aligned = summarize_relative_headings(&[0.0, 0.0, 0.0])
+            .expect("non-empty orientations");
+        assert_eq!(aligned.up_gradient_fraction, 1.0);
+        assert!((aligned.first_harmonic_magnitude - 1.0).abs() < 1.0e-12);
+        assert_eq!(aligned.first_harmonic_phase_rad, Some(0.0));
+
+        let balanced = summarize_relative_headings(&[
+            0.0,
+            PI / 2.0,
+            PI,
+            -PI / 2.0,
+        ])
+        .expect("balanced orientation set");
+        assert_eq!(balanced.up_gradient_fraction, 0.25);
+        assert!((balanced.first_harmonic_magnitude) < 1.0e-12);
+        assert_eq!(balanced.first_harmonic_phase_rad, None);
+    }
+
+    #[test]
+    fn first_fourier_harmonic_is_rotation_invariant_in_magnitude() {
+        let original = summarize_relative_headings(&[0.1, 0.2, 0.4, -0.2])
+            .expect("original angles");
+        let rotation = 1.13;
+        let rotated_angles: Vec<_> = [0.1, 0.2, 0.4, -0.2]
+            .into_iter()
+            .map(|angle| wrap_angle(angle + rotation))
+            .collect();
+        let rotated = summarize_relative_headings(&rotated_angles)
+            .expect("rotated angles");
+
+        assert!(
+            (original.first_harmonic_magnitude - rotated.first_harmonic_magnitude).abs()
+                < 1.0e-12
+        );
+        let phase_difference = wrap_angle(
+            rotated.first_harmonic_phase_rad.expect("non-zero harmonic")
+                - original.first_harmonic_phase_rad.expect("non-zero harmonic"),
+        );
+        assert!((phase_difference - rotation).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn cluster_bootstrap_is_deterministic_and_resamples_independent_units() {
+        let clusters = vec![
+            vec![0.0, 0.05, 0.1],
+            vec![0.0, 0.2],
+            vec![PI, PI - 0.1],
+            vec![0.1, 0.15, 0.2, 0.25],
+        ];
+        let first = cluster_bootstrap_orientations(&clusters, 500, 0.95, 42)
+            .expect("valid cluster bootstrap");
+        let replay = cluster_bootstrap_orientations(&clusters, 500, 0.95, 42)
+            .expect("deterministic replay");
+
+        assert_eq!(first, replay);
+        assert_eq!(first.independent_cluster_count, 4);
+        assert_eq!(first.resample_count, 500);
+        assert!(first.up_gradient_fraction.lower <= first.up_gradient_fraction.upper);
+        assert!(
+            first.first_harmonic_magnitude.lower
+                <= first.first_harmonic_magnitude.upper
+        );
+    }
+
+    #[test]
+    fn cluster_bootstrap_rejects_invalid_cluster_structure() {
+        assert_eq!(
+            cluster_bootstrap_orientations(&[], 100, 0.95, 1),
+            Err(BootstrapError::NoClusters)
+        );
+        assert_eq!(
+            cluster_bootstrap_orientations(&[vec![]], 100, 0.95, 1),
+            Err(BootstrapError::EmptyCluster)
+        );
+        assert_eq!(
+            cluster_bootstrap_orientations(&[vec![f64::NAN]], 100, 0.95, 1),
+            Err(BootstrapError::NonFiniteAngle)
+        );
+        assert_eq!(
+            cluster_bootstrap_orientations(&[vec![0.0]], 0, 0.95, 1),
+            Err(BootstrapError::ZeroResamples)
+        );
+        assert_eq!(
+            cluster_bootstrap_orientations(&[vec![0.0]], 100, 1.0, 1),
+            Err(BootstrapError::InvalidConfidenceLevel)
+        );
+    }
+
+    #[test]
     fn no_event_summary_is_explicitly_undefined_not_zero() {
         let result = simulate(
             &steering_profile(),
