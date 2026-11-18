@@ -518,7 +518,12 @@ fn summarize_sensory(
                 "complete-block assignment must contain each declared sample exactly once",
             );
         }
-        if assignment.randomization_protocol_ref != protocol.sensory.randomization_protocol_ref.as_deref().unwrap_or("")
+        if assignment.randomization_protocol_ref
+            != protocol
+                .sensory
+                .randomization_protocol_ref
+                .as_deref()
+                .unwrap_or("")
         {
             add_issue(
                 issues,
@@ -573,7 +578,9 @@ fn summarize_sensory(
                 "response fields, run binding, presentation order or scale value are invalid",
             );
         }
-        let assignment = assignments_by_ref.get(&response.presentation_assignment_ref).copied();
+        let assignment = assignments_by_ref
+            .get(&response.presentation_assignment_ref)
+            .copied();
         if let Some(assignment) = assignment {
             if assignment.respondent_token_ref != response.respondent_token_ref
                 || assignment
@@ -661,7 +668,8 @@ fn summarize_sensory(
             .map(|response| response.presentation_order)
             .collect();
         observed_orders.sort_unstable();
-        let expected_orders: Vec<u32> = (1..=u32::try_from(protocol.sample_refs.len()).unwrap_or(u32::MAX)).collect();
+        let expected_orders: Vec<u32> =
+            (1..=u32::try_from(protocol.sample_refs.len()).unwrap_or(u32::MAX)).collect();
         if observed_orders != expected_orders {
             add_issue(
                 issues,
@@ -1194,7 +1202,11 @@ mod tests {
                     run_ref: "run:rice-comparison-01".to_owned(),
                     sample_ref: sample_ref.clone(),
                     respondent_token_ref: format!("token:{index}"),
-                    response_value: if sample_ref == "sample:workcell" { 7 } else { 6 },
+                    response_value: if sample_ref == "sample:workcell" {
+                        7
+                    } else {
+                        6
+                    },
                     presentation_order: u32::try_from(order + 1).unwrap(),
                     presentation_assignment_ref: assignment.assignment_ref.clone(),
                     consent_receipt_ref: format!("consent:session:{index}"),
@@ -1339,7 +1351,12 @@ mod tests {
     #[test]
     fn complete_blinded_study_binds_each_response_to_a_randomized_assignment() {
         let report = assess_food_quality(&valid_request());
-        assert_eq!(report.disposition, QualityDispositionV1::Complete, "{:?}", report.issues);
+        assert_eq!(
+            report.disposition,
+            QualityDispositionV1::Complete,
+            "{:?}",
+            report.issues
+        );
         assert_eq!(report.randomization_assignment_sha256.len(), 3);
     }
 
@@ -1352,30 +1369,42 @@ mod tests {
         });
         let report = assess_food_quality(&request);
         assert_eq!(report.disposition, QualityDispositionV1::Indeterminate);
-        assert!(report.issues.iter().any(|entry| {
-            entry.code == QualityIssueCodeV1::IncompletePresentationBlock
-        }));
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|entry| { entry.code == QualityIssueCodeV1::IncompletePresentationBlock })
+        );
     }
 
     #[test]
     fn response_order_must_match_the_assigned_sample_sequence() {
         let mut request = valid_request();
-        let response = request.consumer_responses.iter_mut().find(|response| {
-            response.respondent_token_ref == "token:0"
-                && response.sample_ref == "sample:workcell"
-        }).unwrap();
+        let response = request
+            .consumer_responses
+            .iter_mut()
+            .find(|response| {
+                response.respondent_token_ref == "token:0"
+                    && response.sample_ref == "sample:workcell"
+            })
+            .unwrap();
         response.presentation_order = 1;
         let report = assess_food_quality(&request);
         assert_eq!(report.disposition, QualityDispositionV1::Conflicted);
-        assert!(report.issues.iter().any(|entry| {
-            entry.code == QualityIssueCodeV1::PresentationAssignmentMismatch
-        }));
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|entry| { entry.code == QualityIssueCodeV1::PresentationAssignmentMismatch })
+        );
     }
 
     #[test]
     fn presentation_assignment_digest_binds_exact_order() {
         let mut request = valid_request();
-        request.presentation_assignments[0].ordered_sample_refs.swap(0, 1);
+        request.presentation_assignments[0]
+            .ordered_sample_refs
+            .swap(0, 1);
         let report = assess_food_quality(&request);
         assert_eq!(report.disposition, QualityDispositionV1::Conflicted);
         assert!(report.issues.iter().any(|entry| {
@@ -1386,12 +1415,17 @@ mod tests {
     #[test]
     fn duplicate_participant_assignment_is_conflicted() {
         let mut request = valid_request();
-        request.presentation_assignments.push(request.presentation_assignments[0].clone());
+        request
+            .presentation_assignments
+            .push(request.presentation_assignments[0].clone());
         let report = assess_food_quality(&request);
         assert_eq!(report.disposition, QualityDispositionV1::Conflicted);
-        assert!(report.issues.iter().any(|entry| {
-            entry.code == QualityIssueCodeV1::DuplicatePresentationAssignment
-        }));
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|entry| { entry.code == QualityIssueCodeV1::DuplicatePresentationAssignment })
+        );
     }
 
     #[test]
@@ -1403,9 +1437,12 @@ mod tests {
             presentation_assignment_digest(&request.presentation_assignments[0]).unwrap();
         let report = assess_food_quality(&request);
         assert_eq!(report.disposition, QualityDispositionV1::Conflicted);
-        assert!(report.issues.iter().any(|entry| {
-            entry.code == QualityIssueCodeV1::PresentationAssignmentMismatch
-        }));
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|entry| { entry.code == QualityIssueCodeV1::PresentationAssignmentMismatch })
+        );
     }
 
     #[test]
