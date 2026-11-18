@@ -958,6 +958,78 @@ mod tests {
     }
 
     #[test]
+    fn exact_joint_optimizer_policy_replays_through_episode_adapter_for_both_hidden_states() {
+        let kernel = persistent_sensor_confounding_kernel();
+        let optimized = crate::optimize_joint_kernel(
+            &kernel,
+            &crate::SolverConfig {
+                horizon: 2,
+                ..crate::SolverConfig::default()
+            },
+        )
+        .expect("valid finite joint model");
+        let selected = optimized
+            .minimum_cost_under(Rational::zero(), Rational::zero(), Rational::zero())
+            .expect("valid risk budgets")
+            .expect("two-step policy exists")
+            .clone();
+
+        let first_action = match &selected.plan {
+            crate::PolicyPlan::Action { action, .. } => *action,
+            _ => panic!("oracle should select a first experiment"),
+        };
+        assert_eq!(kernel.action_ids[first_action], "calibrate-sensor");
+
+        for (seed, expected_final_observation) in [(3_u64, "zero"), (0_u64, "one")] {
+            let mut provider = EpisodeProvider::new(
+                format!("oracle-replay-{seed:08}"),
+                test_manifest(),
+                kernel.clone(),
+                EpisodeConfig {
+                    max_attempts: 2,
+                    max_cost_units: 2,
+                    max_world_steps: 2,
+                },
+                seed,
+            )
+            .expect("valid episode");
+
+            let (first_action, first_branches) = match &selected.plan {
+                crate::PolicyPlan::Action { action, branches } => (*action, branches),
+                _ => panic!("oracle should select a first experiment"),
+            };
+            let first_receipt = provider
+                .submit_action(&kernel.action_ids[first_action])
+                .expect("first oracle action executes");
+            let first_observation = match first_receipt.disposition {
+                AttemptDisposition::Applied { observation_id } => observation_id,
+                other => panic!("expected safe calibration, got {other:?}"),
+            };
+            let first_branch = first_branches
+                .iter()
+                .find(|branch| kernel.observation_ids[branch.observation] == first_observation)
+                .expect("policy contains continuation for the returned public observation");
+
+            let (second_action, _) = match first_branch.plan.as_ref() {
+                crate::PolicyPlan::Action { action, branches } => (*action, branches),
+                other => panic!("expected discriminating measurement after calibration, got {other:?}"),
+            };
+            assert_eq!(kernel.action_ids[second_action], "measure-combined-signal");
+            let second_receipt = provider
+                .submit_action(&kernel.action_ids[second_action])
+                .expect("second oracle action executes");
+            assert_eq!(
+                second_receipt.disposition,
+                AttemptDisposition::Applied {
+                    observation_id: expected_final_observation.to_owned()
+                }
+            );
+            assert_eq!(provider.view().accepted_attempts, 2);
+            assert_eq!(provider.view().spent_cost_units, 2);
+        }
+    }
+
+    #[test]
     fn same_seed_and_same_action_trace_produce_same_observation_trace() {
         let kernel_a = stochastic_kernel();
         let kernel_b = stochastic_kernel();
