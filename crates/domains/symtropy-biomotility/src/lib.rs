@@ -759,24 +759,35 @@ pub fn simulate_with_bias_mode(
         };
         let incoming_heading_rad = state.heading_rad;
 
-        let (event_class, event_duration, turn_angle) =
-            if rng.next_unit_f64() < profile.short_event_probability {
+        // Mechanism is sampled independently of event duration. Duration
+        // bins are an observational analysis view, never a causal label.
+        let mechanism = profile.mechanism_probabilities.sample(&mut rng);
+        let (event_duration, turn_angle) = match mechanism {
+            EventMechanism::ActiveMotorEvent => {
+                let angle = if bias_mode.uses_turn_angle_bias() {
+                    profile
+                        .active_motor_turn_angle_rad
+                        .sample(completed_run_direction, &mut rng)
+                } else {
+                    profile
+                        .active_motor_turn_angle_unconditional_rad
+                        .sample(&mut rng)
+                };
                 (
-                    EventClass::ShortReorientation,
-                    profile.short_event_duration_s.sample(&mut rng),
-                    if bias_mode.uses_turn_angle_bias() {
-                        profile.short_turn_angle_rad.sample(completed_run_direction, &mut rng)
-                    } else {
-                        profile.short_turn_angle_unconditional_rad.sample(&mut rng)
-                    },
+                    profile.active_motor_event_duration_s.sample(&mut rng),
+                    angle,
                 )
-            } else {
-                (
-                    EventClass::LongMechanicalTrap,
-                    profile.long_trap_duration_s.sample(&mut rng),
-                    profile.long_trap_turn_angle_rad.sample(&mut rng),
-                )
-            };
+            }
+            EventMechanism::PassiveMechanicalTrap => (
+                profile.passive_trap_event_duration_s.sample(&mut rng),
+                profile.passive_trap_turn_angle_rad.sample(&mut rng),
+            ),
+            EventMechanism::Unresolved => (
+                profile.unresolved_event_duration_s.sample(&mut rng),
+                profile.unresolved_turn_angle_rad.sample(&mut rng),
+            ),
+        };
+        let duration_bin = profile.duration_bin(event_duration)?;
 
         // The event turn is applied relative to the preceding run's net
         // displacement heading. If no net displacement was resolvable, retain
@@ -809,7 +820,9 @@ pub fn simulate_with_bias_mode(
             run_displacement_um,
             incoming_heading_rad,
             run_duration_s: run_duration,
-            event_class,
+            mechanism,
+            evidence_status: EventEvidenceStatus::ModelLatent,
+            duration_bin,
             event_duration_s: event_duration,
             turn_angle_rad: turn_angle,
             heading_after_event_rad: state.heading_rad,
