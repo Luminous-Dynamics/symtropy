@@ -228,7 +228,9 @@ for run_path in "${run_paths[@]}"; do
        then close_squared(
          $d.inertial_number;
          ((($r.operation.shear_rate_s_minus_1.value
-            * ($r.material.d50_um.value / 1000000)) ^ 2)
+            * ($r.material.d50_um.value / 1000000))
+           * ($r.operation.shear_rate_s_minus_1.value
+              * ($r.material.d50_um.value / 1000000)))
           / ($r.operation.normal_confining_stress_pa.value
              / $r.material.bulk_density_kg_m3.value))
        )
@@ -256,7 +258,8 @@ for run_path in "${run_paths[@]}"; do
            and known($r.environment.gravity_m_s2)
        then close_squared(
          $d.vibration_frequency_gravity_scale;
-         (($r.operation.vibration_frequency_hz.value ^ 2)
+         (($r.operation.vibration_frequency_hz.value
+           * $r.operation.vibration_frequency_hz.value)
           * ($r.material.d50_um.value / 1000000)
           / $r.environment.gravity_m_s2.value)
        )
