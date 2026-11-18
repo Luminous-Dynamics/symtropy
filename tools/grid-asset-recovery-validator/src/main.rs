@@ -1,7 +1,7 @@
 mod scheduler;
 
-use scheduler::{TaskSpec, schedule};
-use serde::Deserialize;
+use scheduler::{ScheduledTask, TaskSpec, schedule};
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
@@ -524,15 +524,108 @@ fn validate(case: &Case) -> Vec<String> {
     errors
 }
 
-fn run(input: &str) -> Result<(), Vec<String>> {
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct EventScheduleReport {
+    event_id: String,
+    completion_hour: f64,
+    restoration_hours: f64,
+    claimed_restoration_hours: f64,
+    firm_capacity_lost_mw: f64,
+    alternative_firm_capacity_mw: f64,
+    net_firm_shortfall_mw: f64,
+    calculated_unserved_energy_mwh: f64,
+    declared_unserved_energy_mwh: f64,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ScheduleReport {
+    case_id: String,
+    case_maturity: String,
+    scheduler: String,
+    optimality_status: String,
+    events: Vec<EventScheduleReport>,
+    scheduled_tasks: Vec<ScheduledTask>,
+}
+
+fn schedule_for_case(case: &Case) -> Result<Vec<ScheduledTask>, Vec<String>> {
+    let capacities: BTreeMap<String, u32> = case
+        .resources
+        .iter()
+        .map(|resource| (resource.resource_id.clone(), resource.available_units))
+        .collect();
+    let tasks: Vec<TaskSpec> = case
+        .events
+        .iter()
+        .flat_map(|event| {
+            event.selected_plan.tasks.iter().map(move |task| TaskSpec {
+                event_id: event.event_id.clone(),
+                task_id: task.task_id.clone(),
+                depends_on: task.depends_on.clone(),
+                release_hour: event.start_hour,
+                duration_hours: task.duration_hours,
+                resource_id: task.resource_id.clone(),
+                resource_units: task.resource_units.unwrap_or(0),
+            })
+        })
+        .collect();
+    schedule(&tasks, &capacities)
+}
+
+fn build_report(case: &Case, mut scheduled_tasks: Vec<ScheduledTask>) -> ScheduleReport {
+    scheduled_tasks.sort_by(|left, right| {
+        left.start_hour
+            .total_cmp(&right.start_hour)
+            .then_with(|| left.event_id.cmp(&right.event_id))
+            .then_with(|| left.task_id.cmp(&right.task_id))
+    });
+    let events = case
+        .events
+        .iter()
+        .map(|event| {
+            let completion_hour = scheduled_tasks
+                .iter()
+                .filter(|task| task.event_id == event.event_id)
+                .map(|task| task.end_hour)
+                .fold(event.start_hour, f64::max);
+            let restoration_hours = completion_hour - event.start_hour;
+            let net_firm_shortfall_mw = (event.firm_capacity_lost_mw
+                - event.selected_plan.alternative_firm_capacity_mw)
+                .max(0.0);
+            EventScheduleReport {
+                event_id: event.event_id.clone(),
+                completion_hour,
+                restoration_hours,
+                claimed_restoration_hours: event.selected_plan.claimed_restoration_hours,
+                firm_capacity_lost_mw: event.firm_capacity_lost_mw,
+                alternative_firm_capacity_mw: event.selected_plan.alternative_firm_capacity_mw,
+                net_firm_shortfall_mw,
+                calculated_unserved_energy_mwh: net_firm_shortfall_mw * restoration_hours,
+                declared_unserved_energy_mwh: event.selected_plan.expected_unserved_energy_mwh,
+            }
+        })
+        .collect();
+    ScheduleReport {
+        case_id: case.case_id.clone(),
+        case_maturity: case.case_maturity.clone(),
+        scheduler: "earliest_feasible_start_list_v0.1".to_string(),
+        optimality_status: "heuristic_not_proven_optimal".to_string(),
+        events,
+        scheduled_tasks,
+    }
+}
+
+fn run(input: &str) -> Result<(Case, Vec<ScheduledTask>), Vec<String>> {
     let case: Case =
         serde_json::from_str(input).map_err(|error| vec![format!("JSON decode error: {error}")])?;
     let errors = validate(&case);
-    if errors.is_empty() {
-        Ok(())
-    } else {
-        Err(errors)
+    if !errors.is_empty() {
+        return Err(errors);
     }
+    let scheduled = schedule_for_case(&case)?;
+    Ok((case, scheduled))
 }
 
 fn main() {
@@ -545,7 +638,13 @@ fn main() {
         process::exit(2);
     });
     match run(&input) {
-        Ok(()) => println!("PASS: grid asset recovery case is semantically coherent"),
+        Ok((case, scheduled)) => {
+            let report = build_report(&case, scheduled);
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&report).expect("schedule report serializes")
+            );
+        }
         Err(errors) => {
             for error in errors {
                 eprintln!("FAIL: {error}");
