@@ -267,9 +267,9 @@ mod tests {
     #[test]
     fn underallocated_ingredient_requires_explicit_residual_or_loss_path() {
         let mut request = valid_request();
-        request.food_flow_edges.retain(|edge| edge.edge_id != "edge:raw-onion-trim-loss");
-        // The 10 g trim output is still present, but all explicit 250 g raw onion
-        // must be assigned to a task input or explicit planned loss.
+        request.food_flow_edges.retain(|edge| edge.edge_id != "edge:raw-onion-to-chop");
+        // The task has no raw input after this removal; the compiler must not
+        // infer stock consumption from an output or a planned-yield estimate.
         let report = meal_compiler::compile_meal(&request);
         assert_eq!(report.disposition, MealCompilationDispositionV1::Indeterminate);
         assert!(report.issues.iter().any(|issue| {
