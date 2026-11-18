@@ -80,6 +80,24 @@ def exact_reciprocal(x: mp.mpf) -> mp.mpf:
     r = mp.mpf("4.5") + mp.mpf("1.5") * x
     return mp.mpf("-1.7") / r
 
+# Convert sqrt(2) into an exact rational enclosure using integer arithmetic.
+# If m=floor(sqrt(2)*S), then m^2 < 2*S^2 < (m+1)^2.
+scale = 10**30
+sqrt2_floor = isqrt(2 * scale * scale)
+sqrt2_lower = Fraction(sqrt2_floor, scale)
+assert sqrt2_floor**2 < 2 * scale**2 < (sqrt2_floor + 1)**2
+
+# q=3-2sqrt(2) and 17/(15sqrt(2)) are bounded above by exact rationals.
+q_upper = Fraction(3, 1) - 2 * sqrt2_lower
+q_nu_upper = 2 * q_upper
+prefactor_upper = Fraction(17, 15) / sqrt2_lower
+assert Fraction(0, 1) < q_nu_upper < Fraction(1, 1)
+
+def rational_tail_upper(n: int) -> Fraction:
+    # x^(n+1)/(1-x) is increasing on (0,1), so these rational
+    # upper bounds enclose the exact geometric tail.
+    return prefactor_upper * q_nu_upper ** (n + 1) / (1 - q_nu_upper)
+
 tail_values = {}
 for n in (4, 8, 12, 16, 24, 32):
     exact = tail_bound(n)
@@ -109,6 +127,23 @@ fixture = {
     "lapse_at_3": str(B3),
     "lapse_at_6": str(B6),
     "tail_values": tail_values,
+    "exact_rational_enclosure": {
+        "scale": str(scale),
+        "sqrt2_lower": str(sqrt2_lower),
+        "sqrt2_upper": str(Fraction(sqrt2_floor + 1, scale)),
+        "integer_square_witness": {
+            "lower": str(sqrt2_floor**2),
+            "middle": str(2 * scale**2),
+            "upper": str((sqrt2_floor + 1)**2)
+        },
+        "q_upper": str(q_upper),
+        "q_times_nu_upper": str(q_nu_upper),
+        "prefactor_upper": str(prefactor_upper),
+        "tail_upper_by_degree": {
+            str(n): str(rational_tail_upper(n)) for n in (4, 8, 12, 16, 24, 32)
+        },
+        "rational_bounds_enclose_mpmath_reference": True
+    },
     "upstream_bilateral_conversion": {
         "coefficient_map": "c_0=a_0, c_n=c_-n=a_n/2 for n>=1",
         "one_sided_weighted_norm_equals_bilateral_symmetric_norm": True,
