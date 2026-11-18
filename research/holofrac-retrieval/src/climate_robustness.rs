@@ -820,27 +820,38 @@ mod tests {
                     }
                 }
 
-                for index in 0..CLIMATE_CRITERION_COUNT {
-                    expected_mean[index] +=
-                        scenario.decision_weight * own.outcomes[index];
-                    expected_worst[index] = expected_worst[index].min(own.outcomes[index]);
-                    let regret = (ideal[index] - own.outcomes[index]).max(0.0);
-                    expected_regret[index] += scenario.decision_weight * regret;
+                for (mean, outcome) in expected_mean.iter_mut().zip(own.outcomes.iter()) {
+                    *mean += scenario.decision_weight * *outcome;
+                }
+                for (worst, outcome) in expected_worst.iter_mut().zip(own.outcomes.iter()) {
+                    *worst = (*worst).min(*outcome);
+                }
+                for ((weighted_regret_value, ideal_value), outcome) in expected_regret
+                    .iter_mut()
+                    .zip(ideal.iter())
+                    .zip(own.outcomes.iter())
+                {
+                    let regret = (*ideal_value - *outcome).max(0.0);
+                    *weighted_regret_value += scenario.decision_weight * regret;
                     expected_maximum_regret = expected_maximum_regret.max(regret);
                 }
             }
 
-            for index in 0..CLIMATE_CRITERION_COUNT {
-                assert!(
-                    (actual.weighted_mean_outcomes[index] - expected_mean[index]).abs() < 1.0e-12
-                );
-                assert!(
-                    (actual.worst_case_outcomes[index] - expected_worst[index]).abs() < 1.0e-12
-                );
-                assert!(
-                    (actual.weighted_regret_by_criterion[index] - expected_regret[index]).abs()
-                        < 1.0e-12
-                );
+            for ((actual_mean, expected_mean), (actual_worst, expected_worst)) in actual
+                .weighted_mean_outcomes
+                .iter()
+                .zip(expected_mean.iter())
+                .zip(actual.worst_case_outcomes.iter().zip(expected_worst.iter()))
+            {
+                assert!((*actual_mean - *expected_mean).abs() < 1.0e-12);
+                assert!((*actual_worst - *expected_worst).abs() < 1.0e-12);
+            }
+            for (actual_regret, expected_regret) in actual
+                .weighted_regret_by_criterion
+                .iter()
+                .zip(expected_regret.iter())
+            {
+                assert!((*actual_regret - *expected_regret).abs() < 1.0e-12);
             }
             assert!(
                 (actual.weighted_feasibility_coverage - expected_coverage).abs() < 1.0e-12
