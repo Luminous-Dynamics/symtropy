@@ -1967,6 +1967,142 @@ mod tests {
         assert!(has_code(&report, "EVIDENCE_SUBJECT_MISMATCH"));
     }
 
+    fn synthetic_receipt(plan: &LiftPlan) -> PreflightReceipt {
+        let report = evaluate(plan);
+        PreflightReceipt::from_evaluation(
+            plan,
+            &report,
+            &"c".repeat(64),
+            &"d".repeat(64),
+            "synthetic-evaluator-rev-01",
+            plan.start_tick - 10,
+        )
+        .expect("synthetic receipt inputs are internally consistent")
+    }
+
+    #[test]
+    fn preflight_receipt_reuses_only_exact_input_digest_inside_operation_window() {
+        let plan = baseline();
+        let receipt = synthetic_receipt(&plan);
+        assert!(receipt.is_current_for(&"c".repeat(64), plan.start_tick));
+        assert!(receipt.is_current_for(&"C".repeat(64), plan.start_tick));
+        assert!(!receipt.is_current_for(&"e".repeat(64), plan.start_tick));
+        assert!(!receipt.is_current_for(&"c".repeat(64), receipt.issued_at_tick - 1));
+        assert!(!receipt.is_current_for(&"c".repeat(64), receipt.valid_until_tick));
+    }
+
+    #[test]
+    fn referenced_evidence_change_invalidates_receipt_but_unrelated_change_does_not() {
+        let plan = baseline();
+        let receipt = synthetic_receipt(&plan);
+        let revoked = InvalidationEvent::EvidenceStateChanged {
+            source_record_id: "mass-record-001".to_owned(),
+            new_state: EvidenceState::Revoked,
+        };
+        assert_eq!(
+            receipt.invalidation_for(&revoked).map(|item| item.reason),
+            Some(InvalidationReason::EvidenceStateChanged)
+        );
+
+        let unrelated = InvalidationEvent::EvidenceStateChanged {
+            source_record_id: "unrelated-record".to_owned(),
+            new_state: EvidenceState::Revoked,
+        };
+        assert_eq!(receipt.invalidation_for(&unrelated), None);
+
+        let replaced = InvalidationEvent::EvidenceDigestChanged {
+            source_record_id: "gantry-chart-cell-001".to_owned(),
+            new_sha256: "b".repeat(64),
+        };
+        assert_eq!(
+            receipt.invalidation_for(&replaced).map(|item| item.reason),
+            Some(InvalidationReason::EvidenceDigestChanged)
+        );
+    }
+
+    #[test]
+    fn configuration_revision_and_operating_clock_changes_invalidate_receipt() {
+        let plan = baseline();
+        let receipt = synthetic_receipt(&plan);
+        let crane = InvalidationEvent::SubjectRevisionChanged {
+            kind: SubjectKind::CraneConfiguration,
+            subject_id: "gantry-01".to_owned(),
+            new_revision: "gantry-config-r5".to_owned(),
+        };
+        assert_eq!(
+            receipt.invalidation_for(&crane).map(|item| item.reason),
+            Some(InvalidationReason::SubjectRevisionChanged)
+        );
+
+        let assembly = InvalidationEvent::SubjectRevisionChanged {
+            kind: SubjectKind::RiggingAssembly,
+            subject_id: "rigging-assembly-01".to_owned(),
+            new_revision: "assembly-r4".to_owned(),
+        };
+        assert_eq!(
+            receipt.invalidation_for(&assembly).map(|item| item.reason),
+            Some(InvalidationReason::SubjectRevisionChanged)
+        );
+
+        let time = InvalidationEvent::OperatingWindowChanged {
+            new_start_tick: 110,
+            new_end_tick: 210,
+        };
+        assert_eq!(
+            receipt.invalidation_for(&time).map(|item| item.reason),
+            Some(InvalidationReason::OperatingWindowChanged)
+        );
+
+        let clock = InvalidationEvent::ClockDomainChanged {
+            new_clock_domain_id: "yard-monotonic-ms-v2".to_owned(),
+        };
+        assert_eq!(
+            receipt.invalidation_for(&clock).map(|item| item.reason),
+            Some(InvalidationReason::ClockDomainChanged)
+        );
+    }
+
+    #[test]
+    fn receipt_constructor_rejects_invalid_hashes_and_mismatched_report() {
+        let plan = baseline();
+        let report = evaluate(&plan);
+        assert_eq!(
+            PreflightReceipt::from_evaluation(
+                &plan,
+                &report,
+                "bad",
+                &"d".repeat(64),
+                "evaluator",
+                50
+            ),
+            Err(ReceiptError::InputDigestInvalid)
+        );
+        let mut different_report = report.clone();
+        different_report.design_load_upper_mn = Some(1);
+        assert_eq!(
+            PreflightReceipt::from_evaluation(
+                &plan,
+                &different_report,
+                &"c".repeat(64),
+                &"d".repeat(64),
+                "evaluator",
+                50
+            ),
+            Err(ReceiptError::EvaluatedReportDoesNotMatchPlan)
+        );
+    }
+
+    #[test]
+    fn receipt_canonical_json_contains_sorted_evidence_and_subject_dependencies() {
+        let plan = baseline();
+        let receipt = synthetic_receipt(&plan);
+        let json = receipt.canonical_json();
+        assert!(json.starts_with("{\\"receipt_contract_version\\":\\"shipyard-lift-preflight-receipt-v0\\""));
+        assert!(json.contains("\\"evidence_dependencies\\":["));
+        assert!(json.contains("\\"subject_dependencies\\":["));
+        assert!(json.contains("\\"kind\\":\\"crane_configuration\\""));
+    }
+
     #[test]
     fn malformed_digest_cannot_support_human_review() {
         let mut plan = baseline();
