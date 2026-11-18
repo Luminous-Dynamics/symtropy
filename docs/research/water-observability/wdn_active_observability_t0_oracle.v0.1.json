@@ -211,7 +211,8 @@
           "post_max_clique_size": null,
           "worst_case_reduction": null,
           "estimated_duration_seconds": 300,
-          "ambiguity_sets_after": []
+          "ambiguity_sets_after": [],
+          "indistinguishability_edges_after": []
         }
       ],
       "decision_status": "abstain_no_feasible_probe",
@@ -273,7 +274,8 @@
           "post_max_clique_size": null,
           "worst_case_reduction": null,
           "estimated_duration_seconds": 300,
-          "ambiguity_sets_after": []
+          "ambiguity_sets_after": [],
+          "indistinguishability_edges_after": []
         }
       ],
       "decision_status": "abstain_no_feasible_probe",
@@ -335,7 +337,8 @@
           "post_max_clique_size": null,
           "worst_case_reduction": null,
           "estimated_duration_seconds": 300,
-          "ambiguity_sets_after": []
+          "ambiguity_sets_after": [],
+          "indistinguishability_edges_after": []
         }
       ],
       "decision_status": "abstain_no_feasible_probe",
@@ -397,7 +400,8 @@
           "post_max_clique_size": null,
           "worst_case_reduction": null,
           "estimated_duration_seconds": 300,
-          "ambiguity_sets_after": []
+          "ambiguity_sets_after": [],
+          "indistinguishability_edges_after": []
         }
       ],
       "decision_status": "abstain_no_feasible_probe",
@@ -460,7 +464,8 @@
           "post_max_clique_size": null,
           "worst_case_reduction": null,
           "estimated_duration_seconds": 300,
-          "ambiguity_sets_after": []
+          "ambiguity_sets_after": [],
+          "indistinguishability_edges_after": []
         }
       ],
       "decision_status": "abstain_no_feasible_probe",
@@ -523,7 +528,8 @@
           "post_max_clique_size": null,
           "worst_case_reduction": null,
           "estimated_duration_seconds": 300,
-          "ambiguity_sets_after": []
+          "ambiguity_sets_after": [],
+          "indistinguishability_edges_after": []
         }
       ],
       "decision_status": "abstain_no_feasible_probe",
@@ -972,7 +978,8 @@
           "post_max_clique_size": null,
           "worst_case_reduction": null,
           "estimated_duration_seconds": 300,
-          "ambiguity_sets_after": []
+          "ambiguity_sets_after": [],
+          "indistinguishability_edges_after": []
         }
       ],
       "decision_status": "abstain_no_feasible_probe",
@@ -1034,7 +1041,8 @@
           "post_max_clique_size": null,
           "worst_case_reduction": null,
           "estimated_duration_seconds": 300,
-          "ambiguity_sets_after": []
+          "ambiguity_sets_after": [],
+          "indistinguishability_edges_after": []
         },
         {
           "sequence": [
@@ -1047,7 +1055,8 @@
           "post_max_clique_size": null,
           "worst_case_reduction": null,
           "estimated_duration_seconds": 300,
-          "ambiguity_sets_after": []
+          "ambiguity_sets_after": [],
+          "indistinguishability_edges_after": []
         }
       ],
       "decision_status": "abstain_no_feasible_probe",
