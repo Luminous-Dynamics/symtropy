@@ -220,8 +220,12 @@ principal submatrix; missing values are never replaced with zero.
 
 The full-covariance adequacy evaluator scores the same candidate-visible trace
 against every registered finite-grid model variant using the supplied dense
-space-time covariance. The original independent-time implementation remains
-the explicit iid baseline.
+space-time covariance. Its versioned covariance and trace envelopes must agree
+on caller-supplied covariance/process/sampling/operator/availability-cutoff IDs,
+ordered sensor IDs and exact sample times. These identifiers are compared but
+are not authenticated by this module; an upstream evidence layer must verify
+their manifests and event receipts. The original independent-time implementation
+remains the explicit iid baseline.
 
 Run the independent AR(1) negative-control lane with:
 
