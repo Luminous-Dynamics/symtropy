@@ -99,7 +99,7 @@ jobs:
           .overall_status == "comparisons_available"
           and ([.phase_fraction_changes[]
                 | select(.phase_id == "plagioclase")
-                | .mass_fraction_change.status][0] == "resolved_increase")
+                | .mass_fraction_change.status][0] == "indeterminate_interval_overlap")
           and .target_size_mass_fraction_change.status == "indeterminate_interval_overlap"
           and .size_bin_changes.status == "matched_bin_partitions"
         ' /tmp/lunar-feedstock-drift.json >/dev/null
