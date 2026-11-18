@@ -31,13 +31,11 @@ impl CommissioningEnvelope {
             return Err("commissioning profile ID and revision are required".to_owned());
         }
 
-        for (value, name) in [
-            (self.gamma_min, "gamma_min"),
-            (self.gamma_max, "gamma_max"),
-        ] {
-            if !value.is_finite() || value <= 0.0 {
-                return Err(format!("{name} must be finite and positive"));
-            }
+        if !self.gamma_min.is_finite() || self.gamma_min < 0.0 {
+            return Err("gamma_min must be finite and non-negative".to_owned());
+        }
+        if !self.gamma_max.is_finite() || self.gamma_max <= 0.0 {
+            return Err("gamma_max must be finite and positive".to_owned());
         }
         if self.gamma_min > self.gamma_max {
             return Err("gamma_min must not exceed gamma_max".to_owned());
