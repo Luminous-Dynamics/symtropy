@@ -313,7 +313,7 @@ fn weighted_cg(
     bay: &CargoBayEnvelope,
     placed: &[PlacedPackage],
     total_mass_g: u64,
-) -> Result<[i64; 3], String> {
+) -> Result<([i64; 3], [i128; 3], i128), String> {
     // Doubled coordinates preserve half-millimetre package centres while
     // signed arithmetic permits the vehicle tare CG below the cargo floor.
     let mut weighted = [0_i128; 3];
