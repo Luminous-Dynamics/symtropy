@@ -15,7 +15,9 @@ use nalgebra::SVector;
 use serde::Serialize;
 use symtropy_math::{Point, Sphere};
 use symtropy_physics::body::{BodyHandle, RigidBody};
-use symtropy_physics::replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
+use symtropy_physics::replay::{
+    ApplyCommandError, ReplayTape, WorldCommand, WorldSnapshot, apply_commands,
+};
 use symtropy_physics::PhysicsWorld;
 
 const DT: f64 = 1.0 / 240.0;
@@ -39,17 +41,27 @@ struct ProbeSpec {
 }
 
 impl ProbeSpec {
-    fn validate(self) {
-        assert!(
-            self.surface_friction.is_finite()
-                && (0.0..=1.0).contains(&self.surface_friction),
-            "surface friction must be finite and in [0, 1]"
-        );
-        assert!(
-            self.tangential_impulse.is_finite() && self.tangential_impulse >= 0.0,
-            "tangential impulse must be finite and non-negative"
-        );
+    fn validate(self) -> Result<(), ProbeExecutionError> {
+        if !self.surface_friction.is_finite()
+            || !(0.0..=1.0).contains(&self.surface_friction)
+        {
+            return Err(ProbeExecutionError::InvalidSurfaceFriction);
+        }
+        if !self.tangential_impulse.is_finite() || self.tangential_impulse < 0.0 {
+            return Err(ProbeExecutionError::InvalidTangentialImpulse);
+        }
+        Ok(())
     }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum ProbeExecutionError {
+    InvalidSurfaceFriction,
+    InvalidTangentialImpulse,
+    MissingFloor(BodyHandle),
+    MissingBall(BodyHandle),
+    Command(ApplyCommandError),
+    MissingFinalBall(BodyHandle),
 }
 
 /// Simulation-relative observation returned by the contact-probe execution.
@@ -428,7 +440,9 @@ fn audit_expected_branches(
     }
 }
 
-fn build_world(surface_friction: f64) -> (PhysicsWorld<3>, BodyHandle) {
+fn build_world(
+    surface_friction: f64,
+) -> Result<(PhysicsWorld<3>, BodyHandle), ProbeExecutionError> {
     let mut world = PhysicsWorld::<3>::new(SVector::from([0.0, GRAVITY_Y, 0.0]));
     world.solver_iterations = 8;
     world.sleep_threshold = 0.0;
@@ -442,23 +456,25 @@ fn build_world(surface_friction: f64) -> (PhysicsWorld<3>, BodyHandle) {
         Box::new(Sphere::<3>::new(Point::origin(), FLOOR_RADIUS)),
     );
     let floor_handle = world.add_body(floor);
-    world.body_mut(floor_handle).expect("floor inserted").friction =
-        surface_friction * surface_friction;
+    let Some(floor_body) = world.body_mut(floor_handle) else {
+        return Err(ProbeExecutionError::MissingFloor(floor_handle));
+    };
+    floor_body.friction = surface_friction * surface_friction;
 
     let ball = world.add_sphere(
         Point::new([0.0, BALL_RADIUS, 0.0]),
         BALL_RADIUS,
         BALL_MASS,
     );
-    {
-        let body = world.body_mut(ball).expect("ball inserted");
-        body.friction = 1.0;
-        body.restitution = 0.0;
-        body.linear_damping = 0.0;
-        body.angular_damping = 0.0;
-    }
+    let Some(body) = world.body_mut(ball) else {
+        return Err(ProbeExecutionError::MissingBall(ball));
+    };
+    body.friction = 1.0;
+    body.restitution = 0.0;
+    body.linear_damping = 0.0;
+    body.angular_damping = 0.0;
 
-    (world, ball)
+    Ok((world, ball))
 }
 
 fn build_tape(body: BodyHandle, tangential_impulse: f64) -> ReplayTape<3> {
@@ -480,9 +496,9 @@ fn build_tape(body: BodyHandle, tangential_impulse: f64) -> ReplayTape<3> {
 fn execute_probe_with_record(
     branch_id: &str,
     spec: ProbeSpec,
-) -> (Vec<WorldSnapshot<3>>, ProbeOutcome, ProbeResultRecordV1) {
-    spec.validate();
-    let (mut world, ball) = build_world(spec.surface_friction);
+) -> Result<(Vec<WorldSnapshot<3>>, ProbeOutcome, ProbeResultRecordV1), ProbeExecutionError> {
+    spec.validate()?;
+    let (mut world, ball) = build_world(spec.surface_friction)?;
     let tape = build_tape(ball, spec.tangential_impulse);
     let manifest = ProbeManifestV1::from_spec(spec);
     let scenario_fingerprint = manifest.fingerprint();
@@ -491,13 +507,16 @@ fn execute_probe_with_record(
     let mut snapshots = Vec::with_capacity(tape.frames.len());
     let mut collision_event_count = 0usize;
     for frame in &tape.frames {
-        apply_commands(&mut world, &frame.commands).expect("probe body exists");
+        apply_commands(&mut world, &frame.commands)
+            .map_err(ProbeExecutionError::Command)?;
         world.step(frame.dt);
         collision_event_count += world.collision_events.len();
         snapshots.push(WorldSnapshot::capture(&world));
     }
 
-    let body = world.body(ball).expect("ball remains in world");
+    let body = world
+        .body(ball)
+        .ok_or(ProbeExecutionError::MissingFinalBall(ball))?;
     let position = body.position();
     let outcome = ProbeOutcome {
         terminal_x: position[0],
@@ -520,11 +539,13 @@ fn execute_probe_with_record(
         record_fingerprint: 0,
     };
     record.record_fingerprint = record_fingerprint(&record);
-    (snapshots, outcome, record)
+    Ok((snapshots, outcome, record))
 }
 
 fn execute_probe(spec: ProbeSpec) -> (Vec<WorldSnapshot<3>>, ProbeOutcome) {
-    let (snapshots, outcome, _) = execute_probe_with_record("unlabelled-fixture-run", spec);
+    let (snapshots, outcome, _) =
+        execute_probe_with_record("unlabelled-fixture-run", spec)
+            .expect("test fixture probe should execute");
     (snapshots, outcome)
 }
 
@@ -589,13 +610,36 @@ fn tangential_probe_magnitude_changes_the_executed_observation() {
 }
 
 #[test]
+fn invalid_probe_spec_returns_typed_error_without_panicking() {
+    let invalid_friction = ProbeSpec {
+        surface_friction: f64::NAN,
+        tangential_impulse: 1.0,
+    };
+    assert!(matches!(
+        execute_probe_with_record("invalid-friction", invalid_friction),
+        Err(ProbeExecutionError::InvalidSurfaceFriction)
+    ));
+
+    let invalid_impulse = ProbeSpec {
+        surface_friction: 0.5,
+        tangential_impulse: f64::INFINITY,
+    };
+    assert!(matches!(
+        execute_probe_with_record("invalid-impulse", invalid_impulse),
+        Err(ProbeExecutionError::InvalidTangentialImpulse)
+    ));
+}
+
+#[test]
 fn contact_probe_emits_versioned_identity_bound_result_records() {
     let spec = ProbeSpec {
         surface_friction: 0.45,
         tangential_impulse: 3.0,
     };
-    let (trace_a, outcome_a, receipt_a) = execute_probe_with_record("replay-a", spec);
-    let (trace_b, outcome_b, receipt_b) = execute_probe_with_record("replay-a", spec);
+    let (trace_a, outcome_a, receipt_a) =
+        execute_probe_with_record("replay-a", spec).unwrap();
+    let (trace_b, outcome_b, receipt_b) =
+        execute_probe_with_record("replay-a", spec).unwrap();
 
     assert_eq!(receipt_a.schema_version, 1);
     assert_eq!(receipt_a.completed_steps, STEPS);
@@ -665,7 +709,7 @@ fn factorial_contact_probe_covers_both_materials_and_both_interventions() {
     let mut outcomes = Vec::new();
     let mut records = Vec::new();
     for (branch_id, spec) in conditions {
-        let (_, outcome, record) = execute_probe_with_record(branch_id, spec);
+        let (_, outcome, record) = execute_probe_with_record(branch_id, spec).unwrap();
         assert_eq!(record.disposition, ProbeDispositionV1::Completed);
         outcomes.push(outcome);
         records.push(record);
