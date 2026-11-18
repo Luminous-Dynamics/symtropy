@@ -128,3 +128,29 @@ Symtropy records the stream ledger, assays, events, energy, uncertainty and repl
 ## Claim ceiling
 
 This branch adds a schema, semantic validator and synthetic process-chain fixture. No magnetic/electrostatic separation, XRD, PSD, thermal property assay, physical transfer or reactor-inlet campaign was run. No process-specific feedstock has been physically qualified.
+
+## Paired quality-drift analysis
+
+The Rust crate in this directory compares assay samples across process stages:
+
+```sh
+cargo fmt --manifest-path tools/lunar-feedstock-contract/Cargo.toml -- --check
+cargo test --locked --manifest-path tools/lunar-feedstock-contract/Cargo.toml
+cargo clippy --locked --manifest-path tools/lunar-feedstock-contract/Cargo.toml --all-targets -- -D warnings
+cargo run --locked --manifest-path tools/lunar-feedstock-contract/Cargo.toml -- \
+  tools/lunar-feedstock-contract/examples/synthetic-process-chain-run.json \
+  Q-SEP-001 Q-REACTOR-001
+```
+
+For each mineral phase it reports:
+
+[
+\Delta x = x_{to}-x_{from},\qquad
+u_{\Delta x}=\sqrt{u_{to}^{2}+u_{from}^{2}}
+]
+
+A change is labelled resolved increase/decrease only when the one-standard-uncertainty interval excludes zero. Otherwise it is indeterminate. Unknown measurements remain unknown. This is a descriptive paired-assay comparison, not a causal test that transfer or segregation caused the change.
+
+PSD bins are compared only when the source and destination assays use matching bin edges. Different partitions return `incompatible_bin_partitions`; the program does not interpolate or pretend that unmatched bins are equivalent. The report separately compares the process target-size fraction and preserves each bin's own interval.
+
+Linux CI runs formatting, unit tests, Clippy and the synthetic separator-to-reactor example. The expected synthetic result resolves the illustrative plagioclase increase while leaving the unchanged target-size fraction indeterminate because its difference interval overlaps zero. This is only a regression fixture, not a physical process finding.
