@@ -3026,12 +3026,15 @@ mod tests {
                 90,
                 450,
             );
-            let result = commit_reservation_event(
-                &mut ledger,
-                reservation,
+            let result = ledger.apply(event(
                 &format!("generated-event-{index:03}"),
-                char::from_digit((index % 15 + 1) as u32, 16).unwrap(),
-            );
+                ledger.last_sequence() + 1,
+                ledger.last_event_sha256().map(str::to_owned),
+                &format!("{:064x}", index + 100),
+                "dispatch-coordinator",
+                SiteActorRole::DispatchCoordinator,
+                SiteEventPayload::SpaceTimeReservationCommitted { reservation },
+            ));
             assert_eq!(
                 matches!(result, Err(SiteLedgerError::SpaceTimeReservationConflict { .. })),
                 expected_conflict,
