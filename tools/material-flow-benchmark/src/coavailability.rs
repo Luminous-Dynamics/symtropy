@@ -63,6 +63,8 @@ pub struct CarrierStop {
 #[serde(deny_unknown_fields)]
 pub struct CarrierEnvelope {
     pub carrier_id: String,
+    pub route_timing_evidence: EvidenceStatus,
+    pub site_resource_evidence: EvidenceStatus,
     pub route_stops: Vec<CarrierStop>,
 }
 
@@ -108,6 +110,7 @@ pub struct SortieProposal {
 #[serde(deny_unknown_fields)]
 pub struct OperatingDomainEnvelope {
     pub permission: AirspaceStatus,
+    pub permission_evidence: EvidenceStatus,
     pub weather_evidence: EvidenceStatus,
 }
 
@@ -277,6 +280,20 @@ fn structural_errors(input: &CoAvailabilityInput) -> Vec<String> {
     errors
 }
 
+fn record_evidence_status(
+    status: EvidenceStatus,
+    label: &str,
+    findings: &mut Vec<String>,
+    indeterminate: &mut bool,
+) {
+    if status != EvidenceStatus::FreshInDomain {
+        *indeterminate = true;
+        findings.push(format!(
+            "INDETERMINATE: {label} evidence is {status:?}"
+        ));
+    }
+}
+
 fn find_stop(input: &CoAvailabilityInput, stop_id: &str) -> Option<StopWindow> {
     input.carrier.route_stops.iter().enumerate().find_map(|(index, stop)| {
         (stop.stop_id == stop_id).then_some(StopWindow {
@@ -367,20 +384,36 @@ pub fn evaluate_coavailability(
             findings.push("INDETERMINATE: current operating permission is not established".into());
         }
     }
-    match aircraft.capability_evidence {
-        EvidenceStatus::FreshInDomain => {}
-        status => {
-            indeterminate = true;
-            findings.push(format!("INDETERMINATE: aircraft capability evidence is {status:?}"));
-        }
-    }
-    match input.operating_domain.weather_evidence {
-        EvidenceStatus::FreshInDomain => {}
-        status => {
-            indeterminate = true;
-            findings.push(format!("INDETERMINATE: weather evidence is {status:?}"));
-        }
-    }
+    record_evidence_status(
+        input.carrier.route_timing_evidence,
+        "carrier route timing",
+        &mut findings,
+        &mut indeterminate,
+    );
+    record_evidence_status(
+        input.carrier.site_resource_evidence,
+        "carrier site / pad resource",
+        &mut findings,
+        &mut indeterminate,
+    );
+    record_evidence_status(
+        aircraft.capability_evidence,
+        "aircraft capability",
+        &mut findings,
+        &mut indeterminate,
+    );
+    record_evidence_status(
+        input.operating_domain.permission_evidence,
+        "operating permission",
+        &mut findings,
+        &mut indeterminate,
+    );
+    record_evidence_status(
+        input.operating_domain.weather_evidence,
+        "weather",
+        &mut findings,
+        &mut indeterminate,
+    );
 
     let launch_stop = find_stop(input, &sortie.launch_stop_id);
     let recovery_stop = find_stop(input, &sortie.recovery_stop_id);
@@ -586,6 +619,8 @@ mod tests {
             scenario_id: "synthetic-carrier-uav-v1".into(),
             carrier: CarrierEnvelope {
                 carrier_id: "carrier-01".into(),
+                route_timing_evidence: EvidenceStatus::FreshInDomain,
+                site_resource_evidence: EvidenceStatus::FreshInDomain,
                 route_stops: vec![
                     CarrierStop {
                         stop_id: "stop-01".into(),
@@ -636,6 +671,7 @@ mod tests {
             },
             operating_domain: OperatingDomainEnvelope {
                 permission: AirspaceStatus::Approved,
+                permission_evidence: EvidenceStatus::FreshInDomain,
                 weather_evidence: EvidenceStatus::FreshInDomain,
             },
             existing_reservations: vec![],
@@ -676,6 +712,30 @@ mod tests {
         let report = evaluate_coavailability(&test).expect("valid structure");
         assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
         assert!(report.findings.iter().any(|finding| finding.contains("peak power")));
+    }
+
+    #[test]
+    fn stale_carrier_route_timing_is_indeterminate() {
+        let mut test = input();
+        test.carrier.route_timing_evidence = EvidenceStatus::Stale;
+        let report = evaluate_coavailability(&test).expect("valid input");
+        assert_eq!(report.verdict, FeasibilityVerdict::Indeterminate);
+    }
+
+    #[test]
+    fn stale_site_resource_evidence_is_indeterminate() {
+        let mut test = input();
+        test.carrier.site_resource_evidence = EvidenceStatus::Stale;
+        let report = evaluate_coavailability(&test).expect("valid input");
+        assert_eq!(report.verdict, FeasibilityVerdict::Indeterminate);
+    }
+
+    #[test]
+    fn approved_but_stale_permission_evidence_is_indeterminate() {
+        let mut test = input();
+        test.operating_domain.permission_evidence = EvidenceStatus::Stale;
+        let report = evaluate_coavailability(&test).expect("valid input");
+        assert_eq!(report.verdict, FeasibilityVerdict::Indeterminate);
     }
 
     #[test]
