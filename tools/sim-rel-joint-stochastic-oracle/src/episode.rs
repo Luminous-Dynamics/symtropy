@@ -858,6 +858,11 @@ impl EpisodeProvider {
         &mut self,
         action_id: &str,
     ) -> Result<EpisodeAttempt, EpisodeError> {
+        // A submitted finish is a hard protocol boundary. Do not append
+        // post-submission requests to the terminal evidence trace.
+        if self.finish.is_some() {
+            return Err(EpisodeError::EpisodeAlreadyTerminal);
+        }
         if self.attempts.len() >= MAX_ATTEMPT_RECEIPTS {
             self.dropped_attempts = self.dropped_attempts.saturating_add(1);
             self.trace_complete = false;
@@ -1514,6 +1519,27 @@ mod tests {
         assert!(!unnecessary.safe_abstention);
         assert!(unnecessary.unnecessary_abstention);
         assert!(!unnecessary.disposition_correct);
+    }
+
+    #[test]
+    fn post_finish_probe_is_rejected_without_mutating_the_evidence_trace() {
+        let mut provider = new_provider(persistent_sensor_confounding_kernel(), 3);
+        provider
+            .finish_episode(EpisodeFinish {
+                disposition: EpisodeFinishDisposition::Ambiguous,
+                compatible_hypothesis_ids: vec![
+                    "latent-mechanism-a".to_owned(),
+                    "latent-mechanism-b".to_owned(),
+                ],
+                rationale: "The current evidence remains ambiguous.".to_owned(),
+            })
+            .expect("finish episode");
+        let before = provider.view();
+        assert_eq!(
+            provider.submit_action("calibrate-sensor"),
+            Err(EpisodeError::EpisodeAlreadyTerminal)
+        );
+        assert_eq!(provider.view(), before);
     }
 
     #[test]
