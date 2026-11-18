@@ -1218,6 +1218,48 @@ mod tests {
     }
 
     #[test]
+    fn unique_adequate_candidate_can_commit_only_after_posterior_threshold() {
+        let fixture = scenario();
+        let actions = vec![action(&fixture, 1, 0, 1.0)];
+        let history = vec![ActionObservationV1 {
+            action_id: 1,
+            sensor_ids: vec![10, 11],
+            times: fixture.observation_times.clone(),
+            values: actions[0].model_means[0].observations.clone(),
+        }];
+        let mut strict = config();
+        strict.maximum_campaign_residual = 1.0e-12;
+        let report = decide_sequential_stop(
+            &fixture,
+            &actions,
+            &prior(),
+            &history,
+            strict,
+        )
+        .unwrap();
+        assert_eq!(
+            report.adequacy,
+            ModelSetAdequacyV1::UniqueModel {
+                family_id: 100,
+                model_id: 1,
+            }
+        );
+        assert!(matches!(
+            report.decision,
+            SequentialDecisionV1::CommitModel {
+                model_id: 1,
+                family_id: 100,
+                posterior_probability,
+            } if posterior_probability >= strict.posterior_commit_threshold
+        ));
+        assert_eq!(report.observed_action_bindings.len(), 1);
+        assert_eq!(
+            report.observed_action_bindings[0].covariance_kind,
+            "AR1_KRONECKER"
+        );
+    }
+
+    #[test]
     fn out_of_model_set_never_commits_a_candidate() {
         let scenario = scenario();
         let actions = vec![action(&scenario, 1, 0, 1.0), action(&scenario, 2, 2, -1.0)];
