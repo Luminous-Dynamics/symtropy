@@ -27,6 +27,8 @@ pub enum SiteActorRole {
     Robot,
     Referee,
     SiteQualityAuthority,
+    SiteResourceAuthority,
+    DispatchCoordinator,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -67,10 +69,84 @@ pub struct SiteWorkPackage {
     pub acceptance_profile: FieldAcceptanceProfile,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SiteResourceDefinition {
+    pub resource_id: String,
+    /// Digest of the site owner's canonical resource definition.
+    pub definition_sha256: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ExclusiveResourceClaim {
+    pub resource_id: String,
+    pub definition_sha256: String,
+    pub start_tick: u64,
+    pub end_tick: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SpaceTimeReservation {
+    pub reservation_id: String,
+    pub resource_catalog_sha256: String,
+    pub resource_claim_manifest_sha256: String,
+    pub claims: Vec<ExclusiveResourceClaim>,
+    pub package_sha256: String,
+    pub design_revision_sha256: String,
+    pub entity_id: String,
+    pub robot_id: String,
+    pub envelope_sha256: String,
+    pub readiness_receipt_sha256: String,
+    pub occupancy_assessment_receipt_sha256: String,
+    pub occupancy_engine_build_sha256: String,
+    pub clearance_policy_sha256: String,
+    pub site_snapshot_sha256: String,
+    pub site_ledger_sequence: u64,
+    pub site_ledger_event_sha256: String,
+    pub site_clock_domain_id: String,
+    pub checked_at_tick: u64,
+    pub valid_until_tick: u64,
+    pub committed_at_tick: u64,
+    pub start_tick: u64,
+    pub end_tick: u64,
+    /// Lease expiry prevents stale token use; it never releases the physical
+    /// resource automatically. Explicit referee release is required.
+    pub lease_valid_until_tick: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SpaceTimeReservationRecord {
+    pub reservation: SpaceTimeReservation,
+    pub committed_event_id: String,
+    pub committed_sequence: u64,
+    pub released_event_id: Option<String>,
+    pub released_at_tick: Option<u64>,
+    pub release_receipt_sha256: Option<String>,
+}
+
+impl SpaceTimeReservationRecord {
+    pub fn is_active(&self) -> bool {
+        self.released_event_id.is_none()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum SiteEventPayload {
     WorkPackagePublished {
         package: SiteWorkPackage,
+    },
+    ResourceCatalogPublished {
+        catalog_sha256: String,
+        resources: Vec<SiteResourceDefinition>,
+    },
+    SpaceTimeReservationCommitted {
+        reservation: SpaceTimeReservation,
+    },
+    SpaceTimeReservationReleased {
+        reservation_id: String,
+        site_clock_domain_id: String,
+        cleared_at_tick: u64,
+        site_snapshot_sha256: String,
+        release_receipt_sha256: String,
     },
     StationQualified {
         package_sha256: String,
@@ -208,6 +284,21 @@ pub enum SiteLedgerError {
     InvalidReceiptDigest,
     InvalidWaiver(String),
     AcceptanceScorerRejectedMeasurement(String),
+    InvalidResourceCatalogDigest,
+    EmptyResourceCatalog,
+    EmptyResourceId,
+    DuplicateResourceId(String),
+    ResourceCatalogWouldOrphanReservation(String),
+    ResourceCatalogMismatch,
+    InvalidSpaceTimeReservation(String),
+    DuplicateSpaceTimeReservation(String),
+    UnknownSpaceTimeReservation(String),
+    SpaceTimeReservationAlreadyReleased(String),
+    SpaceTimeReservationConflict {
+        resource_id: String,
+        conflicting_reservation_id: String,
+    },
+    ReservationReleaseContextMismatch(String),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -250,6 +341,9 @@ pub struct SiteStateLedger {
     packages: BTreeMap<String, PackageProjection>,
     active_package_sha256: Option<String>,
     attempts: BTreeMap<String, ExecutionAttempt>,
+    resource_catalog_sha256: Option<String>,
+    resource_catalog: BTreeMap<String, String>,
+    space_time_reservations: BTreeMap<String, SpaceTimeReservationRecord>,
 }
 
 impl SiteStateLedger {
@@ -385,6 +479,31 @@ impl SiteStateLedger {
         )
     }
 
+    pub fn resource_catalog_sha256(&self) -> Option<&str> {
+        self.resource_catalog_sha256.as_deref()
+    }
+
+    pub fn resource_definition_sha256(&self, resource_id: &str) -> Option<&str> {
+        self.resource_catalog
+            .get(resource_id)
+            .map(String::as_str)
+    }
+
+    pub fn space_time_reservation(
+        &self,
+        reservation_id: &str,
+    ) -> Option<&SpaceTimeReservationRecord> {
+        self.space_time_reservations.get(reservation_id)
+    }
+
+    pub fn active_space_time_reservations(
+        &self,
+    ) -> impl Iterator<Item = &SpaceTimeReservationRecord> {
+        self.space_time_reservations
+            .values()
+            .filter(|record| record.is_active())
+    }
+
     pub fn event_history(&self) -> &[SiteEventEnvelope] {
         &self.events
     }
@@ -440,6 +559,130 @@ impl SiteStateLedger {
                         entity_states,
                         station_qualifications: BTreeMap::new(),
                     },
+                })
+            }
+            SiteEventPayload::ResourceCatalogPublished {
+                catalog_sha256,
+                resources,
+            } => {
+                require_role(event.actor_role, SiteActorRole::SiteResourceAuthority)?;
+                if !is_sha256(catalog_sha256) {
+                    return Err(SiteLedgerError::InvalidResourceCatalogDigest);
+                }
+                if resources.is_empty() {
+                    return Err(SiteLedgerError::EmptyResourceCatalog);
+                }
+                let mut definitions = BTreeMap::new();
+                for resource in resources {
+                    if resource.resource_id.trim().is_empty() {
+                        return Err(SiteLedgerError::EmptyResourceId);
+                    }
+                    if !is_sha256(&resource.definition_sha256) {
+                        return Err(SiteLedgerError::InvalidReceiptDigest);
+                    }
+                    if definitions
+                        .insert(resource.resource_id.as_str(), resource.definition_sha256.as_str())
+                        .is_some()
+                    {
+                        return Err(SiteLedgerError::DuplicateResourceId(
+                            resource.resource_id.clone(),
+                        ));
+                    }
+                }
+                for record in self.active_space_time_reservations() {
+                    for claim in &record.reservation.claims {
+                        if definitions.get(claim.resource_id.as_str())
+                            != Some(&claim.definition_sha256.as_str())
+                        {
+                            return Err(SiteLedgerError::ResourceCatalogWouldOrphanReservation(
+                                claim.resource_id.clone(),
+                            ));
+                        }
+                    }
+                }
+                Ok(PreparedSiteMutation::PublishResourceCatalog {
+                    catalog_sha256: catalog_sha256.clone(),
+                    definitions: resources
+                        .iter()
+                        .map(|resource| {
+                            (resource.resource_id.clone(), resource.definition_sha256.clone())
+                        })
+                        .collect(),
+                })
+            }
+            SiteEventPayload::SpaceTimeReservationCommitted { reservation } => {
+                require_role(event.actor_role, SiteActorRole::DispatchCoordinator)?;
+                validate_space_time_reservation(self, reservation)?;
+                if self
+                    .space_time_reservations
+                    .contains_key(&reservation.reservation_id)
+                {
+                    return Err(SiteLedgerError::DuplicateSpaceTimeReservation(
+                        reservation.reservation_id.clone(),
+                    ));
+                }
+                for existing in self.active_space_time_reservations() {
+                    for claim in &reservation.claims {
+                        for active_claim in &existing.reservation.claims {
+                            if claim.resource_id == active_claim.resource_id
+                                && intervals_overlap(
+                                    claim.start_tick,
+                                    claim.end_tick,
+                                    active_claim.start_tick,
+                                    active_claim.end_tick,
+                                )
+                            {
+                                return Err(SiteLedgerError::SpaceTimeReservationConflict {
+                                    resource_id: claim.resource_id.clone(),
+                                    conflicting_reservation_id: existing
+                                        .reservation
+                                        .reservation_id
+                                        .clone(),
+                                });
+                            }
+                        }
+                    }
+                }
+                Ok(PreparedSiteMutation::CommitSpaceTimeReservation {
+                    reservation: reservation.clone(),
+                    committed_event_id: event.event_id.clone(),
+                    committed_sequence: event.sequence,
+                })
+            }
+            SiteEventPayload::SpaceTimeReservationReleased {
+                reservation_id,
+                site_clock_domain_id,
+                cleared_at_tick,
+                site_snapshot_sha256,
+                release_receipt_sha256,
+            } => {
+                require_role(event.actor_role, SiteActorRole::Referee)?;
+                if !is_sha256(site_snapshot_sha256) || !is_sha256(release_receipt_sha256) {
+                    return Err(SiteLedgerError::InvalidReceiptDigest);
+                }
+                let record = self
+                    .space_time_reservations
+                    .get(reservation_id)
+                    .ok_or_else(|| {
+                        SiteLedgerError::UnknownSpaceTimeReservation(reservation_id.clone())
+                    })?;
+                if !record.is_active() {
+                    return Err(SiteLedgerError::SpaceTimeReservationAlreadyReleased(
+                        reservation_id.clone(),
+                    ));
+                }
+                if *site_clock_domain_id != record.reservation.site_clock_domain_id
+                    || *cleared_at_tick < record.reservation.committed_at_tick
+                {
+                    return Err(SiteLedgerError::ReservationReleaseContextMismatch(
+                        reservation_id.clone(),
+                    ));
+                }
+                Ok(PreparedSiteMutation::ReleaseSpaceTimeReservation {
+                    reservation_id: reservation_id.clone(),
+                    released_event_id: event.event_id.clone(),
+                    cleared_at_tick: *cleared_at_tick,
+                    release_receipt_sha256: release_receipt_sha256.clone(),
                 })
             }
             SiteEventPayload::StationQualified {
@@ -709,6 +952,44 @@ impl SiteStateLedger {
                 self.packages.insert(package_sha256.clone(), projection);
                 self.active_package_sha256 = Some(package_sha256);
             }
+            PreparedSiteMutation::PublishResourceCatalog {
+                catalog_sha256,
+                definitions,
+            } => {
+                self.resource_catalog_sha256 = Some(catalog_sha256);
+                self.resource_catalog = definitions;
+            }
+            PreparedSiteMutation::CommitSpaceTimeReservation {
+                reservation,
+                committed_event_id,
+                committed_sequence,
+            } => {
+                self.space_time_reservations.insert(
+                    reservation.reservation_id.clone(),
+                    SpaceTimeReservationRecord {
+                        reservation,
+                        committed_event_id,
+                        committed_sequence,
+                        released_event_id: None,
+                        released_at_tick: None,
+                        release_receipt_sha256: None,
+                    },
+                );
+            }
+            PreparedSiteMutation::ReleaseSpaceTimeReservation {
+                reservation_id,
+                released_event_id,
+                cleared_at_tick,
+                release_receipt_sha256,
+            } => {
+                let record = self
+                    .space_time_reservations
+                    .get_mut(&reservation_id)
+                    .expect("prepared reservation remains present");
+                record.released_event_id = Some(released_event_id);
+                record.released_at_tick = Some(cleared_at_tick);
+                record.release_receipt_sha256 = Some(release_receipt_sha256);
+            }
             PreparedSiteMutation::QualifyStation {
                 package_sha256,
                 qualification_event_id,
@@ -912,6 +1193,21 @@ fn evaluate_referee_assessment(
 
 #[derive(Clone, Debug)]
 enum PreparedSiteMutation {
+    PublishResourceCatalog {
+        catalog_sha256: String,
+        definitions: BTreeMap<String, String>,
+    },
+    CommitSpaceTimeReservation {
+        reservation: SpaceTimeReservation,
+        committed_event_id: String,
+        committed_sequence: u64,
+    },
+    ReleaseSpaceTimeReservation {
+        reservation_id: String,
+        released_event_id: String,
+        cleared_at_tick: u64,
+        release_receipt_sha256: String,
+    },
     PublishPackage {
         previous_package_sha256: Option<String>,
         package_sha256: String,
@@ -998,6 +1294,109 @@ fn ensure_attempt_is_awaiting_measurement(
             attempt_id.to_owned(),
         )),
     }
+}
+
+
+fn intervals_overlap(first_start: u64, first_end: u64, second_start: u64, second_end: u64) -> bool {
+    first_start < second_end && second_start < first_end
+}
+
+fn validate_space_time_reservation(
+    ledger: &SiteStateLedger,
+    reservation: &SpaceTimeReservation,
+) -> Result<(), SiteLedgerError> {
+    if [
+        reservation.resource_catalog_sha256.as_str(),
+        reservation.resource_claim_manifest_sha256.as_str(),
+        reservation.package_sha256.as_str(),
+        reservation.design_revision_sha256.as_str(),
+        reservation.envelope_sha256.as_str(),
+        reservation.readiness_receipt_sha256.as_str(),
+        reservation.occupancy_assessment_receipt_sha256.as_str(),
+        reservation.occupancy_engine_build_sha256.as_str(),
+        reservation.clearance_policy_sha256.as_str(),
+        reservation.site_snapshot_sha256.as_str(),
+        reservation.site_ledger_event_sha256.as_str(),
+    ]
+    .into_iter()
+    .any(|digest| !is_sha256(digest))
+    {
+        return Err(SiteLedgerError::InvalidSpaceTimeReservation(
+            reservation.reservation_id.clone(),
+        ));
+    }
+    if reservation.reservation_id.trim().is_empty()
+        || reservation.entity_id.trim().is_empty()
+        || reservation.robot_id.trim().is_empty()
+        || reservation.site_clock_domain_id.trim().is_empty()
+        || reservation.claims.is_empty()
+        || reservation.start_tick < reservation.committed_at_tick
+        || reservation.end_tick <= reservation.start_tick
+        || reservation.valid_until_tick <= reservation.checked_at_tick
+        || reservation.committed_at_tick < reservation.checked_at_tick
+        || reservation.committed_at_tick >= reservation.valid_until_tick
+        || reservation.start_tick >= reservation.valid_until_tick
+        || reservation.end_tick > reservation.valid_until_tick
+        || reservation.lease_valid_until_tick <= reservation.committed_at_tick
+        || reservation.lease_valid_until_tick > reservation.valid_until_tick
+    {
+        return Err(SiteLedgerError::InvalidSpaceTimeReservation(
+            reservation.reservation_id.clone(),
+        ));
+    }
+    if ledger.resource_catalog_sha256.as_deref()
+        != Some(reservation.resource_catalog_sha256.as_str())
+    {
+        return Err(SiteLedgerError::ResourceCatalogMismatch);
+    }
+    if reservation.site_ledger_sequence != ledger.last_sequence
+        || ledger.last_event_sha256.as_deref()
+            != Some(reservation.site_ledger_event_sha256.as_str())
+    {
+        return Err(SiteLedgerError::ReservationReleaseContextMismatch(
+            reservation.reservation_id.clone(),
+        ));
+    }
+    let package = ledger.current_package(&reservation.package_sha256)?;
+    if package.package.design_revision_sha256 != reservation.design_revision_sha256 {
+        return Err(SiteLedgerError::InactivePackage(
+            reservation.package_sha256.clone(),
+        ));
+    }
+    if !package.entity_states.contains_key(&reservation.entity_id) {
+        return Err(SiteLedgerError::UnknownDesignEntity(
+            reservation.entity_id.clone(),
+        ));
+    }
+    match package.entity_states.get(&reservation.entity_id) {
+        Some(SiteEntityState::NotAttempted | SiteEntityState::PhysicallyAbsent { .. }) => {}
+        _ => {
+            return Err(SiteLedgerError::EntityTransitionDenied(
+                reservation.entity_id.clone(),
+            ));
+        }
+    }
+
+    let mut resource_ids = BTreeSet::new();
+    for claim in &reservation.claims {
+        if claim.resource_id.trim().is_empty()
+            || !is_sha256(&claim.definition_sha256)
+            || claim.start_tick < reservation.start_tick
+            || claim.end_tick > reservation.end_tick
+            || claim.end_tick <= claim.start_tick
+            || !resource_ids.insert(claim.resource_id.as_str())
+        {
+            return Err(SiteLedgerError::InvalidSpaceTimeReservation(
+                reservation.reservation_id.clone(),
+            ));
+        }
+        if ledger.resource_catalog.get(&claim.resource_id)
+            != Some(&claim.definition_sha256)
+        {
+            return Err(SiteLedgerError::UnknownResourceCatalog);
+        }
+    }
+    Ok(())
 }
 
 fn validate_event_envelope(event: &SiteEventEnvelope) -> Result<(), SiteLedgerError> {
