@@ -95,8 +95,10 @@ fn parse_canonical_utc_seconds(value: &str) -> Option<i64> {
     let hour = value[11..13].parse::<i64>().ok()?;
     let minute = value[14..16].parse::<i64>().ok()?;
     let second = value[17..19].parse::<i64>().ok()?;
-    if !(1..=12).contains(&month) || !(0..=23).contains(&hour)
-        || !(0..=59).contains(&minute) || !(0..=59).contains(&second)
+    if !(1..=12).contains(&month)
+        || !(0..=23).contains(&hour)
+        || !(0..=59).contains(&minute)
+        || !(0..=59).contains(&second)
     {
         return None;
     }
@@ -564,8 +566,7 @@ fn eval_block(
         }
         service_ranges.push((pressure_min, pressure_max, flow_min, flow_max));
     }
-    let max_pressure_difference =
-        number(case, "max_service_pressure_difference_kpa", "case")?;
+    let max_pressure_difference = number(case, "max_service_pressure_difference_kpa", "case")?;
     let max_flow_difference = number(case, "max_service_flow_difference_lpm", "case")?;
     if max_pressure_difference < 0.0 || max_flow_difference < 0.0 {
         return Err("case: service matching tolerances must be non-negative".to_owned());
