@@ -108,7 +108,7 @@
         "reason":{"type":["string","null"]}
       },
       "allOf":[
-        {"if":{"properties":{"status":{"enum":["unknown","not_disclosed","not_applicable"]}},"required":["status"]},"then":{"properties":{"value":{"type":"null"},"reason":{"type":"string","minLength":1}}}},
+        {"if":{"properties":{"status":{"enum":["unknown","not_disclosed","not_applicable"]}},"required":["status"]},"then":{"required":["value","reason"],"properties":{"value":{"type":"null"},"reason":{"type":"string","minLength":1}}}},
         {"if":{"properties":{"status":{"enum":["reported","measured","derived"]}},"required":["status"]},"then":{"properties":{"value":{"type":"number"}}}}
       ]
     },
@@ -133,7 +133,7 @@
         "reason":{"type":["string","null"]}
       },
       "allOf":[
-        {"if":{"properties":{"value_status":{"enum":["unknown","not_disclosed","not_applicable"]}},"required":["value_status"]},"then":{"properties":{"value":{"type":"null"},"reason":{"type":"string","minLength":1}}}},
+        {"if":{"properties":{"value_status":{"enum":["unknown","not_disclosed","not_applicable"]}},"required":["value_status"]},"then":{"required":["value","reason"],"properties":{"value":{"type":"null"},"reason":{"type":"string","minLength":1}}}},
         {"if":{"properties":{"value_status":{"enum":["observed","derived"]}},"required":["value_status"]},"then":{"properties":{"value":{"not":{"type":"null"}}}}}
       ]
     },
