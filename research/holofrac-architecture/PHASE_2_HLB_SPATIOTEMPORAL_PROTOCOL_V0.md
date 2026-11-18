@@ -477,3 +477,37 @@ Map every HoloFrac claim to one of:
 All external comparisons must freeze versions, datasets/test cases, weather, occupancy, geometry, functional units, system boundaries, fidelity, resource budgets and seeds. Split by complete buildings/projects, climate zones, component families and temporal episodes. Publish per-case raw outputs, failed/infeasible/timeouts and toolchain/source manifests.
 
 Prospective targets in #6007 are research goals, not achieved results: zero false-current evidence and admitted hard-infeasible control actions; non-inferior comfort/fault safety plus at least 10% lower energy/cost on a predeclared BOPTEST case; at least 20% fewer high-fidelity evaluations than the strongest matched experiment-selection baseline at non-inferior Pareto quality; and 100% identity/mass/oracle correctness on finite lifecycle fixtures.
+
+
+## 16. Consent-first pluralistic decisions and occupant agency
+
+Symtropy issue #6011 adds a consent-first, multi-stakeholder decision benchmark:
+https://github.com/Luminous-Dynamics/symtropy/issues/6011
+
+Recent research suggests that occupant-centred digital twins and controls remain early-stage. A September 2026 systematic review of 40 studies found only 15% integrated real-time occupant feedback. A July 2026 review of 82 non-intrusive occupant-monitoring studies highlights privacy, implementation cost and scarce labelled data. A 3,504-office-worker survey in Spain and the Netherlands found automation preferences differ by service: HVAC automation was more accepted, while windows and personal devices were preferred to remain manual. A 120-participant shared-space digital-twin study reports value in visualizing preferences, including those of quieter participants. These studies motivate agency/consent benchmarks; they do not prove HoloFrac has solved group decision-making.
+
+The current executable synthetic slice is in src/pluralistic.rs with CLI src/bin/pluralistic_decision_sweep.rs on the HoloFrac implementation branch. It models explicit preference weights and hard vetoes, bitemporal preference/consent revision events, local-only / anonymous-aggregate / named-aggregate scopes, not-granted / granted / withdrawn status, and separate Pareto, mean, maximin and leximin comparisons. Anonymous profiles have no identity in shared output. Withdrawn or local-only profiles cannot affect future group aggregation. A late-recorded withdrawal does not rewrite earlier decision knowledge.
+
+### T12 hypotheses
+
+- T12.1 — Preference transparency: explicit participant-supplied preferences and outcome vectors let affected parties inspect which trade-offs each design makes.
+- T12.2 — Minority preservation: maximin/leximin, Pareto and explicit hard vetoes can expose losses hidden by mean-score optimization.
+- T12.3 — Consent correctness: only profiles with recorded consent and an authorized scope participate; non-response is not consent; recorded revocation excludes future group use.
+- T12.4 — Automation agency: participants can choose control mode per service (e.g., automatic HVAC vs manual windows/personal devices) and retain a reachable override.
+- T12.5 — Privacy minimization: anonymous aggregation can retain decision value without exposing identity in shared reports, while local-only profiles remain outside group aggregation.
+
+### T12 benchmark corpus and baselines
+
+Use 5–12 synthetic stakeholders per scenario and criteria covering thermal comfort, air quality, daylight, acoustics, accessibility, privacy, energy/cost, adaptability and maintenance. Compare Pareto filtering, explicit weighted-sum policies, maximin, leximin, Nash social welfare, voting/approval/quorum and human-authored choice. Report assumptions, sensitivity and failure cases for each; do not label a method universally fair.
+
+Required adversarial cases include a minority veto, conflicting vetoes, local-only participant, no consent, late-recorded withdrawal, stale preference revision, non-response, unequal participation, strategic report, accessibility floor, privacy floor, automation preference by service and connectivity loss.
+
+Targets on the finite synthetic corpus:
+- 100% independent Pareto oracle agreement;
+- zero hard-infeasible or veto-violating alternatives admitted;
+- zero use of withdrawn or out-of-scope profiles after the revocation is recorded;
+- zero identities in anonymous output;
+- 100% historical snapshot agreement at frozen knowledge cutoffs;
+- per-stakeholder outcomes and unmet preferences always visible; group averages alone are insufficient.
+
+No camera, biometrics, psychological-state inference or demographic proxy should be a default input. Preference data is supplied explicitly, revocable and limited to the participant-authorized scope. Real deployments require informed consent, data minimization, accessible participation, appropriate ethics review and human control.
