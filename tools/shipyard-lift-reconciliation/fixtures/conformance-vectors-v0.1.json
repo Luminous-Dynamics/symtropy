@@ -1,0 +1,457 @@
+{
+  "contract_version": "shipyard-lift-reconciliation-v0.1",
+  "vector_set_id": "SHIPYARD-LIFT-RECONCILIATION-CONFORMANCE-V0.1",
+  "status": "FROZEN_SYNTHETIC_TEST_CONTRACT_NOT_PHYSICAL_QUALIFICATION",
+  "description": "Frozen synthetic mappings from deterministic Rust tests to expected reconciliation dispositions, diagnostic codes and canonicalization invariants.",
+  "claim_ceiling": "No vector is a real crane operating record, physical safety outcome, legal authorisation, regulatory conformity or permission to continue/stop a lift.",
+  "vectors": [
+    {
+      "id": "REC-SOURCE-001",
+      "mode": "evaluation",
+      "test_name": "mismatched_source_cannot_satisfy_attested_sequence_coverage",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVENT_SOURCE_MISMATCH",
+        "EVENT_SEQUENCE_GAP"
+      ],
+      "assertion": "Wrong sensor source/revision cannot satisfy the expected source's sequence coverage.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-EVIDENCE-001",
+      "mode": "evaluation",
+      "test_name": "conflicting_source_evidence_record_identity_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_ID_CONFLICT"
+      ],
+      "assertion": "One evidence ID with conflicting metadata is indeterminate.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-CHANNEL-001",
+      "mode": "evaluation",
+      "test_name": "missing_required_motion_event_is_indeterminate_even_with_complete_empty_stream",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "REQUIRED_CHANNEL_HAS_NO_EVENTS"
+      ],
+      "assertion": "Required motion channel needs an event even where empty source coverage is marked complete.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-OCC-001",
+      "mode": "evaluation",
+      "test_name": "occupancy_conflict_is_a_deviation",
+      "expected_disposition": "deviation_observed",
+      "required_diagnostic_codes": [
+        "OCCUPANCY_DEVIATION"
+      ],
+      "assertion": "Independent occupancy projection conflict is a reported deviation.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-UNKNOWN-001",
+      "mode": "evaluation",
+      "test_name": "exact_limit_equality_is_conforming_but_unknown_interval_is_not_hidden",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "COVERAGE_INCOMPLETE"
+      ],
+      "assertion": "Exact load equality is not an exceedance, but unrelated incomplete weather coverage keeps the session indeterminate.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-CLOCK-001",
+      "mode": "evaluation",
+      "test_name": "clock_mapping_for_wrong_source_or_target_domain_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "CLOCK_MAPPING_DOMAIN_MISMATCH"
+      ],
+      "assertion": "Clock mapping must bind the exact source and execution clock domains.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-CLOCK-002",
+      "mode": "evaluation",
+      "test_name": "uncertainty_interval_must_not_extend_beyond_receipt_time",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVENT_TIME_MAPPING_EXCEEDS_RECEIPT"
+      ],
+      "assertion": "Mapped event-time uncertainty cannot extend beyond the event's receipt time.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-CLOCK-003",
+      "mode": "evaluation",
+      "test_name": "conservative_time_uncertainty_expands_the_sample_gap",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "SAMPLE_GAP_EXCEEDED"
+      ],
+      "assertion": "Worst-case mapped event time bounds, not point timestamps, determine maximum sample gaps.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-CLOCK-004",
+      "mode": "evaluation",
+      "test_name": "coverage_in_a_different_clock_domain_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "COVERAGE_CLOCK_DOMAIN_MISMATCH"
+      ],
+      "assertion": "Coverage intervals must use the exact execution clock domain.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-CLOCK-005",
+      "mode": "evaluation",
+      "test_name": "mapping_evidence_for_another_mapping_revision_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_SUBJECT_MISMATCH"
+      ],
+      "assertion": "Clock-mapping evidence for a different mapping revision cannot be reused.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-PREFLIGHT-001",
+      "mode": "evaluation",
+      "test_name": "preflight_rejection_cannot_be_upgraded_by_clean_telemetry",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "PREFLIGHT_NOT_REVIEWABLE"
+      ],
+      "assertion": "Clean telemetry cannot upgrade a rejected preflight.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-AUTH-001",
+      "mode": "evaluation",
+      "test_name": "expired_authorisation_evidence_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_NOT_VALID_FOR_EXECUTION"
+      ],
+      "assertion": "Authorisation evidence must cover the full execution interval.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-AUTH-002",
+      "mode": "evaluation",
+      "test_name": "authorisation_evidence_for_another_plan_cannot_be_reused",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_SUBJECT_MISMATCH"
+      ],
+      "assertion": "Authorisation evidence is bound to the exact plan ID/revision.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-CAL-001",
+      "mode": "evaluation",
+      "test_name": "revoked_sensor_calibration_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_REVOKED"
+      ],
+      "assertion": "Revoked sensor calibration cannot support an event.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-GAP-001",
+      "mode": "evaluation",
+      "test_name": "exactly_maximum_sample_gap_is_accepted",
+      "expected_disposition": "conforming_to_declared_envelope",
+      "required_diagnostic_codes": [],
+      "assertion": "A continuous-sensor sample gap exactly equal to the policy maximum is accepted.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-CLOCK-006",
+      "mode": "evaluation",
+      "test_name": "event_time_regression_within_sequence_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "SOURCE_EVENT_TIME_ORDER_UNCERTAIN"
+      ],
+      "assertion": "Sequence ordering and mapped time intervals cannot contradict each other.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-TIME-001",
+      "mode": "evaluation",
+      "test_name": "event_outside_execution_interval_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVENT_TIME_INTERVAL_OUTSIDE_EXECUTION"
+      ],
+      "assertion": "Mapped event-time uncertainty must fit inside the half-open session interval.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-COVERAGE-001",
+      "mode": "evaluation",
+      "test_name": "duplicate_coverage_statement_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "COVERAGE_CHANNEL_DUPLICATE"
+      ],
+      "assertion": "V0.1 requires exactly one coverage statement per declared channel.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-META-001",
+      "mode": "metamorphic",
+      "test_name": "canonical_report_json_is_invariant_to_transport_order",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Canonical report bytes are stable under permitted transport reordering.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-SERIAL-001",
+      "mode": "serialization",
+      "test_name": "canonical_report_json_escapes_untrusted_diagnostic_text",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Untrusted diagnostic text is escaped in canonical report JSON.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-META-002",
+      "mode": "metamorphic",
+      "test_name": "canonical_event_and_coverage_bundles_ignore_transport_order",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Canonical event and coverage bundles are stable under permutation; invalid duplicate policy inputs remain represented.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-DIGEST-001",
+      "mode": "evaluation",
+      "test_name": "malformed_raw_evidence_bundle_digest_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "PLAN_OR_REPORT_DIGEST_INVALID"
+      ],
+      "assertion": "Malformed caller-supplied event-ledger digest is indeterminate.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-BASE-001",
+      "mode": "evaluation",
+      "test_name": "complete_bounded_session_is_conforming_to_declared_envelope",
+      "expected_disposition": "conforming_to_declared_envelope",
+      "required_diagnostic_codes": [],
+      "assertion": "Complete synthetic session is conforming only to its declared envelope.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-LIMIT-001",
+      "mode": "evaluation",
+      "test_name": "load_one_unit_above_limit_is_a_deviation",
+      "expected_disposition": "deviation_observed",
+      "required_diagnostic_codes": [
+        "HOOK_LOAD_LIMIT_EXCEEDED"
+      ],
+      "assertion": "One mN above the hook-load upper limit is a deviation.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-LIMIT-002",
+      "mode": "evaluation",
+      "test_name": "gust_one_unit_above_limit_is_a_deviation",
+      "expected_disposition": "deviation_observed",
+      "required_diagnostic_codes": [
+        "WIND_GUST_LIMIT_EXCEEDED"
+      ],
+      "assertion": "One mm/s above the gust limit is a deviation.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-LIMIT-003",
+      "mode": "evaluation",
+      "test_name": "exact_limit_equality_is_not_an_exceedance",
+      "expected_disposition": "conforming_to_declared_envelope",
+      "required_diagnostic_codes": [],
+      "assertion": "Exact equality at both supplied operational limits is not an exceedance.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-COVERAGE-002",
+      "mode": "evaluation",
+      "test_name": "missing_stream_coverage_is_indeterminate_not_conforming",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "COVERAGE_ATTESTATION_MISSING"
+      ],
+      "assertion": "Missing channel coverage attestation makes the session indeterminate.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-COVERAGE-003",
+      "mode": "evaluation",
+      "test_name": "incomplete_stream_coverage_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "COVERAGE_INCOMPLETE"
+      ],
+      "assertion": "Source-declared incomplete coverage cannot support a conforming disposition.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-SEQUENCE-001",
+      "mode": "evaluation",
+      "test_name": "sequence_gap_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVENT_SEQUENCE_GAP"
+      ],
+      "assertion": "A missing source sequence within an attested contiguous range is indeterminate.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-RETRY-001",
+      "mode": "evaluation",
+      "test_name": "exact_event_retransmission_is_idempotently_deduplicated",
+      "expected_disposition": "conforming_to_declared_envelope",
+      "required_diagnostic_codes": [],
+      "assertion": "An exact retransmission is deduplicated and counted, not double-applied.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-EVENT-001",
+      "mode": "evaluation",
+      "test_name": "same_event_id_with_conflicting_payload_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVENT_ID_CONFLICT"
+      ],
+      "assertion": "Same event ID with conflicting payload cannot be silently deduplicated.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-CAL-002",
+      "mode": "evaluation",
+      "test_name": "sensor_calibration_for_wrong_source_revision_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_SUBJECT_MISMATCH"
+      ],
+      "assertion": "Calibration evidence must bind to the exact source revision.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-GAP-002",
+      "mode": "evaluation",
+      "test_name": "sample_gap_beyond_policy_creates_unknown_interval",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVENT_SEQUENCE_GAP",
+        "SAMPLE_GAP_EXCEEDED"
+      ],
+      "assertion": "Missing sample produces both sequence-gap and conservative time-gap unknown intervals.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-CONFIG-001",
+      "mode": "evaluation",
+      "test_name": "crane_configuration_change_is_a_deviation",
+      "expected_disposition": "deviation_observed",
+      "required_diagnostic_codes": [
+        "CRANE_CONFIGURATION_DEVIATION"
+      ],
+      "assertion": "Observed crane configuration differing from the bound plan is a deviation.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-MOTION-001",
+      "mode": "evaluation",
+      "test_name": "motion_excursion_is_a_deviation_even_without_controller_alarm",
+      "expected_disposition": "deviation_observed",
+      "required_diagnostic_codes": [
+        "MOTION_ENVELOPE_DEVIATION"
+      ],
+      "assertion": "Independent motion-envelope excursion is a deviation even without a controller alarm.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-ALARM-001",
+      "mode": "evaluation",
+      "test_name": "active_overload_alarm_is_a_deviation_even_when_load_sensor_is_below_limit",
+      "expected_disposition": "deviation_observed",
+      "required_diagnostic_codes": [
+        "OVERLOAD_ALARM_ACTIVE"
+      ],
+      "assertion": "An active overload alarm remains a deviation even when hook-load sample is below supplied limit.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-PREFLIGHT-002",
+      "mode": "evaluation",
+      "test_name": "preflight_must_be_bound_to_exact_plan_input_digest",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "PREFLIGHT_PLAN_BINDING_MISMATCH"
+      ],
+      "assertion": "Preflight result must bind to the exact canonical plan input digest.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-INGEST-001",
+      "mode": "evaluation",
+      "test_name": "missing_or_delayed_sensor_evidence_is_not_a_clean_execution",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVENT_INGESTION_TOO_LATE"
+      ],
+      "assertion": "Event ingestion latency beyond the frozen policy makes the session indeterminate.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-OUTCOME-001",
+      "mode": "evaluation",
+      "test_name": "completed_abort_unknown_distinctions_are_preserved_as_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EXECUTION_NOT_COMPLETED"
+      ],
+      "assertion": "Aborted and unknown sessions are not treated as clean completed executions.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-META-003",
+      "mode": "metamorphic",
+      "test_name": "permitted_transport_ordering_does_not_change_report",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Permitted transport reordering yields the same reconciled report.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-CLOCK-007",
+      "mode": "evaluation",
+      "test_name": "clock_domain_mismatch_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVENT_CLOCK_DOMAIN_MISMATCH"
+      ],
+      "assertion": "Unmapped or mismatched event clock domain is indeterminate.",
+      "synthetic_only": true
+    },
+    {
+      "id": "REC-SEQUENCE-002",
+      "mode": "evaluation",
+      "test_name": "duplicate_sequence_with_new_event_id_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVENT_SEQUENCE_CONFLICT"
+      ],
+      "assertion": "One source sequence number cannot identify two different event records.",
+      "synthetic_only": true
+    }
+  ]
+}
