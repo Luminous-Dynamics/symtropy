@@ -108,11 +108,38 @@ No public source cited here establishes an achieved commercial HAPS nationwide a
 
 ## 7. Executable fleet reliability evaluator
 
-The canonical executable owner is the existing standalone Rust tool at `tools/haps-fleet-reliability`. It uses exact enumeration of independent Bernoulli node states, explicit common-cause events and shared dependencies. It also calculates a deliberately naïve k-out-of-n comparator that ignores common-cause events, making the resilience overstatement visible. It rejects temporal/semi-Markov or maintenance-profile inputs rather than silently treating them as static probabilities.
+The canonical executable owner is the existing standalone Rust tool at `tools/haps-fleet-reliability`. It uses exact enumeration of independent Bernoulli node states, explicit common-cause events and shared dependencies. It also calculates a deliberately naïve k-out-of-n comparator that ignores common-cause events, making the resilience overstatement visible. It rejects temporal/semi-Markov or maintenance-profile inputs rather than silently treating them as static probabilities. This static probability mode remains the correct baseline for mean/steady-state independence and common-cause sensitivity; it is not a time-scheduled service replay.
 
 A new heterogeneous cross-layer fixture, [synthetic_haps_fleet_cross_layer_common_mode_reliability_v1.json](examples/synthetic_haps_fleet_cross_layer_common_mode_reliability_v1.json), models three HAPS, a terrestrial gateway and LEO backhaul. A shared stratospheric-weather event grounds all three HAPS; a separate common external event disables the terrestrial and LEO fallback together. The exact enumerator evaluates 128 states and reports 99.9698437% service availability against the illustrative 99.99% target. The naïve independent-provider comparator reports 99.99999996%, overstating service availability by approximately 0.03016 percentage points. This is the failure mode the explicit dependency model is meant to expose.
 
 The eight earlier reliability tests now include a ninth exact cross-layer test. The closed-form [fleet availability matrix](examples/synthetic_haps_fleet_availability_case_v1.json) remains as an independent 45-row analytic sensitivity oracle; it is not a second Rust implementation. Both models are synthetic. The current exact enumerator is still static: it does not simulate outage duration, weather episode persistence, repair, maintenance scheduling or group handover.
+
+### 7.1 Deterministic event-schedule service replay — first operational increment
+
+The same Rust crate now also exposes a separate deterministic schedule evaluator; this does not change or weaken the static Bernoulli method. New artifacts:
+
+- [haps_fleet_service_availability_v1.schema.json](schemas/haps_fleet_service_availability_v1.schema.json)
+- [synthetic_haps_fleet_30day_availability_v1.json](examples/synthetic_haps_fleet_30day_availability_v1.json)
+- `tools/haps-fleet-reliability/src/service_availability.rs`
+- `tools/haps-fleet-reliability/src/bin/service-replay.rs`
+
+The fixture is a synthetic 720-hour campaign with three required service-capacity units, three primary platforms and one ground-ready reserve. It includes two staggered 24-hour maintenance windows, one 24-hour unscheduled repair, explicit 12-hour reserve launch lead, three reserve launch/recovery cycles, one maintenance bay, and a 24-hour weather common-cause event that derates all airborne platform capacity to 0.7 and closes launch/recovery sites.
+
+The evaluator partitions time at every platform-state and common-cause event boundary, integrates strict availability and capacity adequacy separately, reports contiguous outages, and rejects gaps/overlaps in platform timelines, maintenance-bay overcommitment, launch/recovery concurrency violations, or operations during declared site closure. It remains deterministic and schedule-driven; it does not yet sample stochastic failure/repair distributions or claim Semi-Markov behavior.
+
+**Independent synthetic oracle replay:**
+
+| Measure | 3 primary / no spare | 3 primary + 1 reserve rotation |
+|---|---:|---:|
+| Strict service availability | 86.67% | 95.00% |
+| Capacity adequacy | 95.67% | 98.44% |
+| Strict outage hours / 720 h | 96 h | 36 h |
+| Longest contiguous outage | 24 h | 24 h |
+| Unserved service-equivalent hours | 31.2 h | 11.2 h |
+
+The reserve improves strict availability by 8.33 percentage points and capacity adequacy by 2.78 percentage points under these synthetic assumptions. It covers both planned maintenance windows. It does not eliminate common-cause weather: the full fleet still loses strict service from hour 600 to 624 because effective capacity falls to 2.1 of the required 3 units. The unplanned platform repair creates a 12-hour gap while the reserve is in its launch lead phase (hours 360–372).
+
+The exact schedule tests are authored in Rust and include the no-spare comparison, weather-outage persistence and fail-closed invalid-schedule controls. They have not been executed in this authoring environment; no Cargo, rustfmt, Clippy or CI pass is claimed here. No field availability estimate follows from this fixture.
 
 The general fleet reliability tool has a dedicated path-scoped workflow for rustfmt, Clippy and fixture replay. Exact-head CI status is tracked separately; no Rust test or physical reliability pass is inferred from structural inspection alone.
 
