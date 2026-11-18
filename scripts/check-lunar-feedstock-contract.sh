@@ -31,6 +31,8 @@ jq -e '
 ' "$schema_path" >/dev/null || fail "feedstock schema identity invalid"
 
 [[ -f "$run_path" && ! -L "$run_path" ]] || fail "run fixture missing or symlinked"
+run_path="$(realpath -e -- "$run_path")" || fail "cannot resolve run fixture path"
+case "$run_path" in "$root"/*) ;; *) fail "run fixture resolves outside the repository" ;; esac
 
 jq -e '
   .schema_version == "0.1.0"
@@ -344,7 +346,7 @@ make_negative() {
   negative_path="$(mktemp "${run_path}.negative.XXXXXX")"
   tmp_files+=("$negative_path")
   jq "$jq_filter" "$run_path" > "$negative_path"
-  if "$0" --validate "$negative_path"; then
+  if bash "$0" --validate "$negative_path"; then
     fail "negative control accepted: $name"
   fi
 }
