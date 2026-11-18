@@ -12,6 +12,7 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 pub mod baseline;
+pub mod model_catalogue;
 pub mod episode;
 pub mod policy;
 
