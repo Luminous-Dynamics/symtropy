@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/scientific-world-episodes/v0.1/wire/episode-response-v0.schema.json",
+  "title": "Symtropy Joint World Episode Response v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_version",
+    "command"
+  ],
+  "properties": {
+    "protocol_version": {
+      "const": "symtropy-joint-world-episode-v0"
+    },
+    "command": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "command",
+            "payload"
+          ],
+          "properties": {
+            "command": {
+              "const": "probe"
+            },
+            "payload": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action_id"
+              ],
+              "properties": {
+                "action_id": {
+                  "type": "string",
+                  "pattern": "^[a-zA-Z0-9_.:-]{1,96}$"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "command",
+            "payload"
+          ],
+          "properties": {
+            "command": {
+              "const": "finish"
+            },
+            "payload": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "finish"
+              ],
+              "properties": {
+                "finish": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "disposition",
+                    "rationale"
+                  ],
+                  "properties": {
+                    "disposition": {
+                      "enum": [
+                        "identified",
+                        "ambiguous",
+                        "no_compatible_model",
+                        "abstain"
+                      ]
+                    },
+                    "rationale": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
