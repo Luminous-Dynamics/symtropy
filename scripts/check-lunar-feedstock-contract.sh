@@ -137,16 +137,24 @@ jq -e '
              | ([$sample.size_bins[].mass_fraction.standard_uncertainty] | add) as $size_uncertainty
              | (($size_sum - 1) | abs) <= $size_uncertainty)
         and (.target_size_mass_fraction.status != "unknown")
-        and (([$sample.size_bins[]
-               | select(.d_min_um.value >= $r.acceptance_profile.target_size_min_um.value
-                        and .d_max_um.value <= $r.acceptance_profile.target_size_max_um.value)
-               | .mass_fraction.value] | add // 0) as $derived_target_fraction
-             | (($derived_target_fraction - $sample.target_size_mass_fraction.value) | abs)
-               <= (0.0001 + $sample.target_size_mass_fraction.standard_uncertainty
-                   + ([$sample.size_bins[]
-                       | select(.d_min_um.value >= $r.acceptance_profile.target_size_min_um.value
-                                and .d_max_um.value <= $r.acceptance_profile.target_size_max_um.value)
-                       | .mass_fraction.standard_uncertainty] | add // 0)))
+        and (if any($sample.size_bins[];
+                    .d_min_um.value < $r.acceptance_profile.target_size_max_um.value
+                    and .d_max_um.value > $r.acceptance_profile.target_size_min_um.value
+                    and (.d_min_um.value < $r.acceptance_profile.target_size_min_um.value
+                         or .d_max_um.value > $r.acceptance_profile.target_size_max_um.value))
+                 then true
+                 else
+                   ([$sample.size_bins[]
+                     | select(.d_min_um.value >= $r.acceptance_profile.target_size_min_um.value
+                              and .d_max_um.value <= $r.acceptance_profile.target_size_max_um.value)
+                     | .mass_fraction.value] | add // 0) as $derived_target_fraction
+                   | (($derived_target_fraction - $sample.target_size_mass_fraction.value) | abs)
+                     <= (0.0001 + $sample.target_size_mass_fraction.standard_uncertainty
+                         + ([$sample.size_bins[]
+                             | select(.d_min_um.value >= $r.acceptance_profile.target_size_min_um.value
+                                      and .d_max_um.value <= $r.acceptance_profile.target_size_max_um.value)
+                             | .mass_fraction.standard_uncertainty] | add // 0))
+                 end)
     )
 ' "$run_path" >/dev/null || fail "quality sample identity, assay evidence or distribution fields invalid"
 
@@ -287,6 +295,11 @@ jq -e '
           end
       ] + [
         if ($sample.target_size_mass_fraction.status == "unknown") then "unknown"
+        elif any($sample.size_bins[];
+          .d_min_um.value < $profile.target_size_max_um.value
+          and .d_max_um.value > $profile.target_size_min_um.value
+          and (.d_min_um.value < $profile.target_size_min_um.value
+               or .d_max_um.value > $profile.target_size_max_um.value)) then "indeterminate"
         else
           ($sample.target_size_mass_fraction.value - $sample.target_size_mass_fraction.standard_uncertainty) as $lower
           | ($sample.target_size_mass_fraction.value + $sample.target_size_mass_fraction.standard_uncertainty) as $upper
@@ -379,6 +392,12 @@ make_negative "output stream claims a parent not present in its creating operati
 
 make_negative "required thermal property is absent but final result remains in-spec" '
   .acceptance_profile.required_properties = ["thermal_properties"]
+'
+
+make_negative "size bin straddles the process target-size boundary but claims in-spec" '
+  (.quality_samples[] | select(.sample_id == "Q-REACTOR-001")
+   | .size_bins[] | select(.d_min_um.value == 3)
+   | .d_min_um.value) = 15
 '
 
 printf 'lunar feedstock contract: PASS (synthetic chain only; no physical process qualification)\n'
