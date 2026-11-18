@@ -129,8 +129,9 @@ struct ProbeManifestV1 {
     impulse_tick: usize,
 }
 
-// Evaluator-private manifest: includes hidden world parameters. It is not a
-// learner-visible request and must not be returned before prediction sealing.
+// Evaluator-private manifest: includes hidden world parameters. It must never
+// be sent to the learner; a later public receipt may expose only an authorized
+// observation and opaque manifest/trace references.
 impl ProbeManifestV1 {
     fn from_request_and_scenario(
         request: ProbeRequestV1,
