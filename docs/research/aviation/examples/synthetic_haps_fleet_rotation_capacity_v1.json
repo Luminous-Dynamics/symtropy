@@ -1,0 +1,189 @@
+{
+  "schema_version": "haps-fleet-rotation-capacity/v1",
+  "case_id": "synthetic.haps.fleet.rotation-capacity.turnaround-sensitivity.001",
+  "revision": 1,
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_rotation_capacity_lower_bound",
+  "required_service_units": 3,
+  "scenarios": [
+    {
+      "scenario_id": "service-30d-turnaround-14d",
+      "scenario_label": "30 service-active days; two-week sequential turnaround",
+      "service_active_days": 30,
+      "turnaround_components_days": {
+        "recovery_and_decommission_days": 1,
+        "transport_to_depot_days": 1,
+        "inspection_and_disassembly_days": 5,
+        "repair_and_refurbishment_days": 2,
+        "replenishment_days": 1,
+        "launch_preparation_days": 1,
+        "transit_to_service_area_days": 3
+      },
+      "expected_oracle": {
+        "total_turnaround_days": 14,
+        "cycle_days": 44,
+        "service_duty_fraction": 0.6818181818181818,
+        "minimum_total_platforms_lower_bound": 5,
+        "minimum_reserve_platforms_lower_bound": 2,
+        "aggregate_active_service_capacity_units": 3.4090909090909087,
+        "surplus_active_capacity_units": 0.4090909090909087
+      }
+    },
+    {
+      "scenario_id": "service-30d-turnaround-30d",
+      "scenario_label": "30 service-active days; one-month sequential turnaround",
+      "service_active_days": 30,
+      "turnaround_components_days": {
+        "recovery_and_decommission_days": 1,
+        "transport_to_depot_days": 2,
+        "inspection_and_disassembly_days": 10,
+        "repair_and_refurbishment_days": 8,
+        "replenishment_days": 2,
+        "launch_preparation_days": 2,
+        "transit_to_service_area_days": 5
+      },
+      "expected_oracle": {
+        "total_turnaround_days": 30,
+        "cycle_days": 60,
+        "service_duty_fraction": 0.5,
+        "minimum_total_platforms_lower_bound": 6,
+        "minimum_reserve_platforms_lower_bound": 3,
+        "aggregate_active_service_capacity_units": 3,
+        "surplus_active_capacity_units": 0
+      }
+    },
+    {
+      "scenario_id": "service-30d-turnaround-60d",
+      "scenario_label": "30 service-active days; two-month sequential turnaround",
+      "service_active_days": 30,
+      "turnaround_components_days": {
+        "recovery_and_decommission_days": 1,
+        "transport_to_depot_days": 3,
+        "inspection_and_disassembly_days": 15,
+        "repair_and_refurbishment_days": 28,
+        "replenishment_days": 4,
+        "launch_preparation_days": 3,
+        "transit_to_service_area_days": 6
+      },
+      "expected_oracle": {
+        "total_turnaround_days": 60,
+        "cycle_days": 90,
+        "service_duty_fraction": 0.3333333333333333,
+        "minimum_total_platforms_lower_bound": 9,
+        "minimum_reserve_platforms_lower_bound": 6,
+        "aggregate_active_service_capacity_units": 3,
+        "surplus_active_capacity_units": 0
+      }
+    },
+    {
+      "scenario_id": "service-30d-turnaround-90d",
+      "scenario_label": "30 service-active days; three-month sequential turnaround",
+      "service_active_days": 30,
+      "turnaround_components_days": {
+        "recovery_and_decommission_days": 1,
+        "transport_to_depot_days": 4,
+        "inspection_and_disassembly_days": 20,
+        "repair_and_refurbishment_days": 45,
+        "replenishment_days": 7,
+        "launch_preparation_days": 5,
+        "transit_to_service_area_days": 8
+      },
+      "expected_oracle": {
+        "total_turnaround_days": 90,
+        "cycle_days": 120,
+        "service_duty_fraction": 0.25,
+        "minimum_total_platforms_lower_bound": 12,
+        "minimum_reserve_platforms_lower_bound": 9,
+        "aggregate_active_service_capacity_units": 3,
+        "surplus_active_capacity_units": 0
+      }
+    },
+    {
+      "scenario_id": "service-30d-turnaround-180d",
+      "scenario_label": "30 service-active days; six-month sequential turnaround",
+      "service_active_days": 30,
+      "turnaround_components_days": {
+        "recovery_and_decommission_days": 2,
+        "transport_to_depot_days": 6,
+        "inspection_and_disassembly_days": 35,
+        "repair_and_refurbishment_days": 100,
+        "replenishment_days": 14,
+        "launch_preparation_days": 8,
+        "transit_to_service_area_days": 15
+      },
+      "expected_oracle": {
+        "total_turnaround_days": 180,
+        "cycle_days": 210,
+        "service_duty_fraction": 0.14285714285714285,
+        "minimum_total_platforms_lower_bound": 21,
+        "minimum_reserve_platforms_lower_bound": 18,
+        "aggregate_active_service_capacity_units": 3,
+        "surplus_active_capacity_units": 0
+      }
+    },
+    {
+      "scenario_id": "service-180d-turnaround-14d",
+      "scenario_label": "Six-month service-active target; two-week sequential turnaround",
+      "service_active_days": 180,
+      "turnaround_components_days": {
+        "recovery_and_decommission_days": 1,
+        "transport_to_depot_days": 1,
+        "inspection_and_disassembly_days": 5,
+        "repair_and_refurbishment_days": 2,
+        "replenishment_days": 1,
+        "launch_preparation_days": 1,
+        "transit_to_service_area_days": 3
+      },
+      "expected_oracle": {
+        "total_turnaround_days": 14,
+        "cycle_days": 194,
+        "service_duty_fraction": 0.9278350515463918,
+        "minimum_total_platforms_lower_bound": 4,
+        "minimum_reserve_platforms_lower_bound": 1,
+        "aggregate_active_service_capacity_units": 3.711340206185567,
+        "surplus_active_capacity_units": 0.7113402061855671
+      }
+    },
+    {
+      "scenario_id": "service-180d-turnaround-90d",
+      "scenario_label": "Six-month service-active target; three-month sequential turnaround",
+      "service_active_days": 180,
+      "turnaround_components_days": {
+        "recovery_and_decommission_days": 1,
+        "transport_to_depot_days": 4,
+        "inspection_and_disassembly_days": 20,
+        "repair_and_refurbishment_days": 45,
+        "replenishment_days": 7,
+        "launch_preparation_days": 5,
+        "transit_to_service_area_days": 8
+      },
+      "expected_oracle": {
+        "total_turnaround_days": 90,
+        "cycle_days": 270,
+        "service_duty_fraction": 0.6666666666666666,
+        "minimum_total_platforms_lower_bound": 5,
+        "minimum_reserve_platforms_lower_bound": 2,
+        "aggregate_active_service_capacity_units": 3.333333333333333,
+        "surplus_active_capacity_units": 0.33333333333333304
+      }
+    }
+  ],
+  "source_evidence_refs": [
+    "https://www.payloadspace.com/exclusive-sceye-signs-five-year-deal-to-fly-haps-fleet-for-softbank/",
+    "https://sceye.com/press-releases/sceye-completes-record-us-japan-stratospheric-flight/",
+    "https://sceye.com/press-releases/sceye-softbank-sign-agreement-for-fleet-of-stratospheric-platforms/"
+  ],
+  "assumptions": [
+    "All turnaround phase durations and 30-day / 180-day service-active intervals are synthetic what-if inputs, not measured Sceye or other operator maintenance data.",
+    "The Sceye ST1 30-day result is a US-Japan round-trip mission including transit and about a week of operations over Japan; it is not treated as a measured 30-day on-station interval.",
+    "Payload reported Sceye's then-current recovered-platform teardown/testing/reuse turnaround as measured in months, with an ambition to reduce it to weeks; no exact turnaround-day value was reported. The 14/30/60/90/180-day values are sensitivity scenarios only.",
+    "The six-month service-active interval is a stretch scenario based on a reported platform endurance ambition, not demonstrated endurance.",
+    "Turnaround components are assumed to be sequential and non-overlapping: recovery/decommission, transport, inspection/disassembly, repair/refurbishment, replenishment, launch preparation and transit to service area.",
+    "All aircraft are identical, each supplies one unit of service capacity while on station, and service demand is three units continuously.",
+    "All aircraft rotations are assumed to be perfectly phase-staggered and fully schedulable, with unlimited launch/recovery capacity, maintenance bays, ground support and spares.",
+    "The lower-bound formula is ceil(required_service_units / service_duty_fraction), where service_duty_fraction = service_active_days / (service_active_days + turnaround_days).",
+    "This formula is an aggregate long-run capacity lower bound only; it does not prove zero outage, an exact schedule, weather resilience, failure tolerance, launch-window feasibility, repair distributions or fleet availability SLA.",
+    "No common-cause weather, independent failure, spares failure, correlated component lot, gateway/backhaul, spectrum, cyber or maintenance-resource queueing is modelled.",
+    "The scenario results are not an apples-to-apples fleet count for current commercial HAPS operators."
+  ]
+}
