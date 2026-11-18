@@ -265,6 +265,123 @@ mod tests {
     }
 
     #[test]
+    fn identical_compilation_inputs_produce_identical_reports() {
+        let request = valid_request();
+        let first = meal_compiler::compile_meal(&request);
+        let second = meal_compiler::compile_meal(&request);
+        assert_eq!(first, second);
+        assert_eq!(
+            serde_json::to_vec(&first).unwrap(),
+            serde_json::to_vec(&second).unwrap()
+        );
+    }
+
+    #[test]
+    fn stale_price_fact_is_not_treated_as_current() {
+        let mut request = valid_request();
+        request.proposal.ingredients[0].fact_refs.push("price:onion".to_owned());
+        request.proposal.facts.push(CulinaryFactV1 {
+            fact_id: "price:onion".to_owned(),
+            ingredient_id: Some("onion".to_owned()),
+            kind: CulinaryFactKindV1::Price,
+            scope: FactScopeV1::ProductSku,
+            value: serde_json::json!({"minor_units": 250}),
+            unit: Some("ZAR/kg".to_owned()),
+            basis: Some("retail-pack-normalized".to_owned()),
+            source_ref: "source:retailer".to_owned(),
+            source_record_id: "record:price-onion".to_owned(),
+            source_version: "revision:4".to_owned(),
+            evidence_class: ProposalEvidenceClassV1::Published,
+            observed_at_epoch_ms: 1_749_000_000_000,
+            valid_until_epoch_ms: Some(1_749_999_999_999),
+            market_ref: Some("market:johannesburg".to_owned()),
+            license_ref: None,
+        });
+        request.proposal_sha256 = digest(&request.proposal);
+        request.acceptance.proposal_sha256 = request.proposal_sha256.clone();
+        let report = meal_compiler::compile_meal(&request);
+        assert_eq!(report.disposition, MealCompilationDispositionV1::Indeterminate);
+        assert!(report.issues.iter().any(|issue| issue.code == MealCompilationIssueCodeV1::StaleFact));
+    }
+
+    #[test]
+    fn generic_ingredient_allergen_fact_cannot_become_product_assurance() {
+        let mut request = valid_request();
+        request.proposal.ingredients[0].fact_refs.push("allergen:onion".to_owned());
+        request.proposal.facts.push(CulinaryFactV1 {
+            fact_id: "allergen:onion".to_owned(),
+            ingredient_id: Some("onion".to_owned()),
+            kind: CulinaryFactKindV1::AllergenDeclaration,
+            scope: FactScopeV1::GenericIngredient,
+            value: serde_json::json!({"declared_allergens": []}),
+            unit: None,
+            basis: None,
+            source_ref: "source:generic-catalogue".to_owned(),
+            source_record_id: "record:generic-onion".to_owned(),
+            source_version: "revision:1".to_owned(),
+            evidence_class: ProposalEvidenceClassV1::Published,
+            observed_at_epoch_ms: 1_749_000_000_000,
+            valid_until_epoch_ms: None,
+            market_ref: None,
+            license_ref: None,
+        });
+        request.proposal_sha256 = digest(&request.proposal);
+        request.acceptance.proposal_sha256 = request.proposal_sha256.clone();
+        let report = meal_compiler::compile_meal(&request);
+        assert_eq!(report.disposition, MealCompilationDispositionV1::Blocked);
+        assert!(report.issues.iter().any(|issue| {
+            issue.code == MealCompilationIssueCodeV1::InvalidAllergenFactScope
+        }));
+    }
+
+    #[test]
+    fn food_flow_never_converts_volume_to_mass_without_a_conversion_basis() {
+        let mut request = valid_request();
+        request.food_flow_edges[0].quantity = qty(250, QuantityUnitV1::Millilitre);
+        let report = meal_compiler::compile_meal(&request);
+        assert_eq!(report.disposition, MealCompilationDispositionV1::Conflicted);
+        assert!(report.issues.iter().any(|issue| {
+            issue.code == MealCompilationIssueCodeV1::FlowQuantityMismatch
+        }));
+    }
+
+    #[test]
+    fn action_mapping_provenance_must_match_the_explicit_resolution() {
+        let mut request = valid_request();
+        request.task_bindings[0]
+            .ontology_binding
+            .as_mut()
+            .unwrap()
+            .mapping
+            .provenance_ref = Some("unrelated:ruleset".to_owned());
+        let report = meal_compiler::compile_meal(&request);
+        assert_eq!(report.disposition, MealCompilationDispositionV1::Indeterminate);
+        assert!(report.issues.iter().any(|issue| {
+            issue.code == MealCompilationIssueCodeV1::MissingActionOntology
+        }));
+    }
+
+    #[test]
+    fn benchmark_manifest_is_versioned_and_has_unique_scenarios() {
+        let manifest: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../crates/domains/symtropy-kitchen-planner/schemas/fixtures/meal-compilation-v1.json"
+        ))
+        .unwrap();
+        assert_eq!(manifest["status"], "synthetic_only_unexecuted");
+        let scenarios = manifest["scenarios"].as_array().unwrap();
+        assert!(scenarios.len() >= 16);
+        let mut ids = std::collections::BTreeSet::new();
+        for scenario in scenarios {
+            let id = scenario["id"].as_str().unwrap();
+            assert!(ids.insert(id), "duplicate scenario ID: {id}");
+            assert!(scenario["expected"].as_str().is_some());
+            assert!(scenario["assert"].as_str().is_some());
+        }
+        assert_eq!(manifest["score_policy"]["false_compiled"], "hard_failure");
+        assert_eq!(manifest["target_hypotheses"]["false_compiled_adversarial_10000"], 0);
+    }
+
+    #[test]
     fn underallocated_ingredient_requires_explicit_residual_or_loss_path() {
         let mut request = valid_request();
         request.food_flow_edges.retain(|edge| edge.edge_id != "edge:raw-onion-to-chop");
