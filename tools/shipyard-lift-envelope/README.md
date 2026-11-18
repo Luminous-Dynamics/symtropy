@@ -46,6 +46,18 @@ The supplied axial WLL is for the exact rigging component/configuration. The sli
 
 The example unit case uses 40,000 kg, a 1.10 dynamic factor, two legs with 0.5 maximum vertical share each, and a lower sine bound of 0.707107. It yields a conservative total design-load bound of 431,508,000 mN and a per-leg tension bound of 305,122,139 mN. These are synthetic arithmetic fixtures, not a real rigging design or crane recommendation.
 
+## Industry and standards boundary
+
+Commercial lift-planning software already covers substantial portions of the operational workflow. For example, A1A/3D Lift Plan describes crane selection and load-chart search, 3D lift simulation with capacity monitoring, outrigger/ground-bearing calculations, and predefined/custom rigging configurations with sling-angle and tension calculations:
+- https://www.3dliftplan.com/info/Features.aspx
+- https://www.3dliftplan.com/Info/Apps.aspx
+
+This project does not claim to replace these tools or outperform their rigging calculations. The differentiator being tested is a vendor-neutral **evidence-binding and independent-preflight layer** that composes exact block revisions, source-owned mass/CG/pick-point evidence, crane-chart cells, rigging-component revisions, weather limits, and the existing space-time motion/occupancy records. The source owner and responsible engineer remain authoritative.
+
+[ISO 12480-1:2024](https://www.iso.org/standard/83637.html) defines practices for a safe crane system of work, including task planning, crane/equipment selection, erection/dismantling, operation/maintenance, and operator/slinger/signaller competence. Its published scope excludes cranes mounted on water-borne vessels (except land-based cranes temporarily affixed to vessels). This V0 is therefore limited to a declared land-based crane profile. Floating-crane operations, shipboard cranes, and wave-coupled lifting remain unsupported.
+
+[ASME B30.5-2025](https://www.asme.org/codes-standards/find-codes-standards/mobile-and-locomotive-cranes) is specific to mobile and locomotive crane types; it is not a universal standard for all gantry, overhead, floating or vessel-mounted cranes. The applicable standard set must be selected by crane type, jurisdiction, site and operation. No standard conformance is claimed here.
+
 ## Evidence and authority boundaries
 
 An `EvidenceRef` binds a record ID, owner ID, document revision, exact subject ID/revision, digest and validity interval. Reusing a source record is allowed only when the complete reference metadata is identical; the same record ID with conflicting metadata is indeterminate.
