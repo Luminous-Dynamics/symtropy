@@ -201,6 +201,14 @@ fn structural_errors(input: &CoAvailabilityInput) -> Vec<String> {
             ));
         }
     }
+    for (index, pair) in input.carrier.route_stops.windows(2).enumerate() {
+        if pair[0].departure_latest_ms > pair[1].arrival_earliest_ms {
+            errors.push(format!(
+                "carrier.route_stops[{index}..{}]: route stop time envelopes overlap or reverse",
+                index + 1
+            ));
+        }
+    }
     let sortie = &input.sortie;
     if sortie.launch_window_open_ms >= sortie.launch_window_close_ms {
         errors.push("sortie.launch_window: must be a non-empty half-open interval".into());
@@ -230,6 +238,9 @@ fn structural_errors(input: &CoAvailabilityInput) -> Vec<String> {
         || input.aircraft.maximum_continuous_power_w == 0
     {
         errors.push("aircraft capability limits must be non-zero".into());
+    }
+    if input.aircraft.reserve_energy_wh == 0 {
+        errors.push("aircraft.reserve_energy_wh: an explicit non-zero protected reserve is required".into());
     }
     if input.aircraft.maximum_continuous_power_w > input.aircraft.maximum_peak_power_w {
         errors.push("aircraft continuous power limit cannot exceed peak power limit".into());
@@ -391,18 +402,23 @@ pub fn evaluate_coavailability(
                 let recovery_latest_from_stop = recovery
                     .departure_earliest_ms
                     .checked_sub(sortie.recovery_service_ms);
+                // Recovery follows the launch service interval and then the flight.
+                let launch_to_recovery_offset =
+                    sortie.launch_service_ms.checked_add(sortie.flight_duration_ms);
 
                 match (
                     launch_latest_from_window,
                     launch_latest_from_stop,
                     recovery_latest_from_window,
                     recovery_latest_from_stop,
+                    launch_to_recovery_offset,
                 ) {
                     (
                         Some(launch_window_hi),
                         Some(launch_stop_hi),
                         Some(recovery_window_hi),
                         Some(recovery_stop_hi),
+                        Some(launch_to_recovery_offset),
                     ) => {
                         let launch_lo = sortie.launch_window_open_ms.max(launch.arrival_latest_ms);
                         let launch_hi = launch_window_hi.min(launch_stop_hi);
@@ -412,8 +428,9 @@ pub fn evaluate_coavailability(
                         let recovery_hi = recovery_window_hi.min(recovery_stop_hi);
 
                         let recovery_launch_lo =
-                            recovery_lo.saturating_sub(sortie.flight_duration_ms);
-                        let recovery_launch_hi = recovery_hi.checked_sub(sortie.flight_duration_ms);
+                            recovery_lo.saturating_sub(launch_to_recovery_offset);
+                        let recovery_launch_hi =
+                            recovery_hi.checked_sub(launch_to_recovery_offset);
 
                         if let Some(recovery_launch_hi) = recovery_launch_hi {
                             let feasible_launch_lo = launch_lo.max(recovery_launch_lo);
@@ -421,27 +438,28 @@ pub fn evaluate_coavailability(
                             if feasible_launch_lo <= feasible_launch_hi {
                                 let launch_time = feasible_launch_lo;
                                 let recovery_time =
-                                    launch_time.checked_add(sortie.flight_duration_ms);
+                                    launch_time.checked_add(launch_to_recovery_offset);
                                 if let Some(recovery_time) = recovery_time {
                                     selected_launch = Some(launch_time);
                                     selected_recovery = Some(recovery_time);
                                 } else {
                                     known_infeasible = true;
                                     findings.push(
-                                        "INFEASIBLE: launch plus flight duration overflows".into(),
+                                        "INFEASIBLE: launch, service and flight time overflow"
+                                            .into(),
                                     );
                                 }
                             } else {
                                 known_infeasible = true;
                                 findings.push(
-                                    "INFEASIBLE: no launch time fits carrier and sortie windows".into(),
+                                    "INFEASIBLE: no launch time fits carrier and sortie windows"
+                                        .into(),
                                 );
                             }
                         } else {
                             known_infeasible = true;
                             findings.push(
-                                "INFEASIBLE: recovery window closes before flight recovery"
-                                    .into(),
+                                "INFEASIBLE: recovery window closes before flight recovery".into(),
                             );
                         }
                     }
