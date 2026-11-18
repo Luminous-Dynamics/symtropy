@@ -182,22 +182,58 @@ fn evaluator_sample(
 struct Counts {
     correct_model_commits: usize,
     wrong_model_commits: usize,
-    parameter_not_identified_commits: usize,
-    abstentions: usize,
+    correct_family_commits_parameter_unresolved: usize,
+    wrong_family_commits_parameter_unresolved: usize,
+    out_of_model_set_abstentions: usize,
+    other_abstentions: usize,
+    brier_sum: f64,
+    log_loss_sum: f64,
+    total_cost: f64,
+    experiments_used: usize,
 }
 
-fn record_decision(counts: &mut Counts, decision: &SequentialDecisionV1, truth: u32) {
-    match decision {
-        SequentialDecisionV1::CommitModel { model_id, .. } if *model_id == truth => {
+fn record_report(
+    counts: &mut Counts,
+    report: &human_multirate_cosim::sequential_evidence::SequentialPolicyReportV1,
+    truth_model_id: u32,
+) {
+    let mut brier = 0.0;
+    let mut truth_probability = 1.0e-15;
+    for weight in &report.posterior.weights {
+        let target = if weight.model_id == truth_model_id {
+            truth_probability = weight.probability.max(1.0e-15);
+            1.0
+        } else {
+            0.0
+        };
+        brier += (weight.probability - target).powi(2);
+    }
+    counts.brier_sum += brier;
+    counts.log_loss_sum += -truth_probability.ln();
+    counts.total_cost += report.total_cost;
+    counts.experiments_used += report.experiments_used;
+
+    match &report.decision {
+        SequentialDecisionV1::CommitModel { model_id, .. }
+            if *model_id == truth_model_id =>
+        {
             counts.correct_model_commits += 1;
         }
         SequentialDecisionV1::CommitModel { .. } => {
             counts.wrong_model_commits += 1;
         }
-        SequentialDecisionV1::CommitFamilyParameterNotIdentified { .. } => {
-            counts.parameter_not_identified_commits += 1;
+        SequentialDecisionV1::CommitFamilyParameterNotIdentified { family_id, .. } => {
+            let true_family_id = if truth_model_id == 1 { 100 } else { 200 };
+            if *family_id == true_family_id {
+                counts.correct_family_commits_parameter_unresolved += 1;
+            } else {
+                counts.wrong_family_commits_parameter_unresolved += 1;
+            }
         }
-        _ => counts.abstentions += 1,
+        SequentialDecisionV1::AbstainOutOfModelSet => {
+            counts.out_of_model_set_abstentions += 1;
+        }
+        _ => counts.other_abstentions += 1,
     }
 }
 
@@ -288,63 +324,87 @@ fn main() -> Result<(), Box<dyn Error>> {
         )?;
 
         let mut open_history = vec![first_observation.clone()];
-        let fixed_second = open_loop_sequence[1];
-        let second_open = actions
-            .iter()
-            .find(|action| action.action_id == fixed_second)
-            .ok_or_else(|| std::io::Error::other("fixed second action disappeared"))?;
-        open_history.push(evaluator_sample(
-            second_open,
-            truth,
-            &scenario,
-            trial_seed ^ u64::from(second_open.action_id),
-        )?);
-        let open_report =
+        let mut open_report =
             decide_sequential_stop(&scenario, &actions, &prior, &open_history, config)?;
-        record_decision(&mut open_loop, &open_report.decision, truth);
+        if matches!(
+            open_report.decision,
+            SequentialDecisionV1::Continue { .. }
+        ) {
+            let fixed_second = open_loop_sequence[1];
+            let second_open = actions
+                .iter()
+                .find(|action| action.action_id == fixed_second)
+                .ok_or_else(|| std::io::Error::other("fixed second action disappeared"))?;
+            open_history.push(evaluator_sample(
+                second_open,
+                truth,
+                &scenario,
+                trial_seed ^ u64::from(second_open.action_id),
+            )?);
+            open_report =
+                decide_sequential_stop(&scenario, &actions, &prior, &open_history, config)?;
+        }
+        record_report(&mut open_loop, &open_report, truth);
 
         let mut adaptive_history = vec![first_observation];
-        let selected_second = choose_greedy_information_action(
-            &scenario,
-            &actions,
-            &prior,
-            &adaptive_history,
-            config.eig_replicates_per_model,
-            trial_seed ^ config.eig_seed,
-        )?
-        .action_id;
-        let second_adaptive = actions
-            .iter()
-            .find(|action| action.action_id == selected_second)
-            .ok_or_else(|| std::io::Error::other("adaptive second action disappeared"))?;
-        adaptive_history.push(evaluator_sample(
-            second_adaptive,
-            truth,
-            &scenario,
-            trial_seed ^ u64::from(second_adaptive.action_id),
-        )?);
-        let adaptive_report =
+        let mut adaptive_report =
             decide_sequential_stop(&scenario, &actions, &prior, &adaptive_history, config)?;
-        record_decision(&mut adaptive_greedy, &adaptive_report.decision, truth);
+        if matches!(
+            adaptive_report.decision,
+            SequentialDecisionV1::Continue { .. }
+        ) {
+            let selected_second = choose_greedy_information_action(
+                &scenario,
+                &actions,
+                &prior,
+                &adaptive_history,
+                config.eig_replicates_per_model,
+                trial_seed ^ config.eig_seed,
+            )?
+            .action_id;
+            let second_adaptive = actions
+                .iter()
+                .find(|action| action.action_id == selected_second)
+                .ok_or_else(|| std::io::Error::other("adaptive second action disappeared"))?;
+            adaptive_history.push(evaluator_sample(
+                second_adaptive,
+                truth,
+                &scenario,
+                trial_seed ^ u64::from(second_adaptive.action_id),
+            )?);
+            adaptive_report =
+                decide_sequential_stop(&scenario, &actions, &prior, &adaptive_history, config)?;
+        }
+        record_report(&mut adaptive_greedy, &adaptive_report, truth);
     }
 
     let rate = |count: usize| count as f64 / trials as f64;
-    println!("sequential,policy,open_loop,first_action,{},second_action,{}", open_loop_sequence[0], open_loop_sequence[1]);
-    println!("sequential,policy,adaptive_greedy,first_action,{},second_action,conditional", first_action);
+    let print_counts = |name: &str, counts: &Counts| {
+        println!(
+            "sequential,{name},correct_model_commit_rate,{:.6},wrong_model_commit_rate,{:.6},correct_family_parameter_unresolved_rate,{:.6},wrong_family_parameter_unresolved_rate,{:.6},ood_abstention_rate,{:.6},other_abstention_rate,{:.6},brier_score,{:.6},log_loss,{:.6},mean_experiments,{:.6},mean_cost,{:.6}",
+            rate(counts.correct_model_commits),
+            rate(counts.wrong_model_commits),
+            rate(counts.correct_family_commits_parameter_unresolved),
+            rate(counts.wrong_family_commits_parameter_unresolved),
+            rate(counts.out_of_model_set_abstentions),
+            rate(counts.other_abstentions),
+            counts.brier_sum / trials as f64,
+            counts.log_loss_sum / trials as f64,
+            counts.experiments_used as f64 / trials as f64,
+            counts.total_cost / trials as f64,
+        );
+    };
     println!(
-        "sequential,open_loop,correct_model_commit_rate,{:.6},wrong_model_commit_rate,{:.6},family_param_not_identified_rate,{:.6},abstention_rate,{:.6}",
-        rate(open_loop.correct_model_commits),
-        rate(open_loop.wrong_model_commits),
-        rate(open_loop.parameter_not_identified_commits),
-        rate(open_loop.abstentions),
+        "sequential,open_loop,first_action,{},second_action,{}",
+        open_loop_sequence[0],
+        open_loop_sequence[1],
     );
     println!(
-        "sequential,adaptive_greedy,correct_model_commit_rate,{:.6},wrong_model_commit_rate,{:.6},family_param_not_identified_rate,{:.6},abstention_rate,{:.6}",
-        rate(adaptive_greedy.correct_model_commits),
-        rate(adaptive_greedy.wrong_model_commits),
-        rate(adaptive_greedy.parameter_not_identified_commits),
-        rate(adaptive_greedy.abstentions),
+        "sequential,adaptive_greedy,first_action,{},second_action,conditional",
+        first_action,
     );
+    print_counts("open_loop", &open_loop);
+    print_counts("adaptive_greedy", &adaptive_greedy);
     println!(
         "sequential,evaluator,trials,{},truth_balance,50/50,commit_threshold,{:.4},campaign_residual_threshold,{:.4},eig_replicates_per_model,{}",
         trials,
@@ -352,6 +412,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         config.maximum_campaign_residual,
         config.eig_replicates_per_model,
     );
-    println!("sequential,claim_ceiling,Monte_Carlo_greedy_reference,no_sequential_error_guarantee");
+    println!(
+        "sequential,claim_ceiling,seeded_Monte_Carlo_greedy_reference,no_sequential_error_guarantee"
+    );
     Ok(())
 }
