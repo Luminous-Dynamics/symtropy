@@ -88,7 +88,10 @@ for run_path in "${run_paths[@]}"; do
     and (.partition == "calibration" or .partition == "validation" or .partition == "blind_test")
     and (.group_keys | type == "object")
     and (.artifacts | type == "array" and length > 0)
-    and (.model.predictions | type == "object")
+    and (.model.predictions | type == "object"
+         and has("peak_force_N")
+         and has("mean_force_N")
+         and has("displaced_volume_m3"))
   ' "$run_path" >/dev/null || fail "run record has invalid required fields: $run_path"
 
   run_id="$(jq -r '.run_id' "$run_path")"
@@ -183,8 +186,15 @@ for run_path in "${run_paths[@]}"; do
       continue
     fi
     [[ "$artifact_path" != /* && "$artifact_path" != *".."* ]] || fail "artifact path must be relative and may not traverse parents: $artifact_path"
-    artifact_file="$(dirname "$run_path")/$artifact_path"
-    [[ -f "$artifact_file" && ! -L "$artifact_file" ]] || fail "artifact bytes are missing or symlinked: $artifact_file"
+    run_dir="$(cd -- "$(dirname "$run_path")" && pwd -P)"
+    artifact_candidate="$run_dir/$artifact_path"
+    [[ ! -L "$artifact_candidate" ]] || fail "artifact path is a symlink: $artifact_candidate"
+    artifact_file="$(realpath -e -- "$artifact_candidate")" || fail "artifact bytes are missing: $artifact_candidate"
+    case "$artifact_file" in
+      "$run_dir"/*) ;;
+      *) fail "artifact resolves outside the run directory: $artifact_path" ;;
+    esac
+    [[ -f "$artifact_file" ]] || fail "artifact is not a regular file: $artifact_file"
     actual_sha="$(sha256sum "$artifact_file" | awk '{print $1}')"
     [[ "$actual_sha" == "$artifact_sha" ]] || fail "artifact digest mismatch: $artifact_id"
   done < <(jq -r '.artifacts[] | [.artifact_id,.path,.sha256] | @tsv' "$run_path")
