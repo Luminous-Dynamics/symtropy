@@ -292,7 +292,8 @@
     "maintenance_bays": 1,
     "ground_ready_spares": 1,
     "launch_lead_time_h": 12,
-    "recovery_duration_h": 12
+    "recovery_duration_h": 12,
+    "reposition_duration_h": 2
   },
   "expected_oracle": {
     "oracle_status": "independently_calculated",
@@ -317,7 +318,8 @@
           "duration_h": 24,
           "minimum_effective_capacity_units": 2.1
         }
-      ]
+      ],
+      "reserve_strategy_energy_wh": 141840
     },
     "three_platform_no_spare_baseline": {
       "strict_service_available_h": 624,
@@ -352,7 +354,8 @@
           "duration_h": 24,
           "minimum_effective_capacity_units": 2.1
         }
-      ]
+      ],
+      "reserve_strategy_energy_wh": 0
     },
     "comparison": {
       "strict_availability_gain_percentage_points": 8.333333333333329,
@@ -360,7 +363,8 @@
       "spare_activation_events": 3,
       "launch_operations": 3,
       "recovery_operations": 3,
-      "maintenance_overlap_violations": 0
+      "maintenance_overlap_violations": 0,
+      "reserve_strategy_energy_wh": 141840
     }
   },
   "source_evidence_refs": [
@@ -383,5 +387,17 @@
     "The exact oracle partitions the 720-hour window at every platform-state and common-cause event boundary and integrates effective service capacity; no stochastic or Monte Carlo estimates are used.",
     "This fixture does not model launch vehicle operations, weather forecasting, specific airworthiness procedures, human staffing levels, component supply chain, battery ageing, thermal coupling, radio capacity or legal permission.",
     "Aerial platform endurance, fleet availability, service capacity adequacy and common-cause resilience are distinct metrics and must not be interchanged."
-  ]
+  ],
+  "reserve_state_power_w": {
+    "ground_ready_power_w": 15,
+    "airborne_holding_power_w": 500,
+    "launching_power_w": 1500,
+    "repositioning_power_w": 1000,
+    "on_station_power_w": 500,
+    "recovering_power_w": 1200,
+    "planned_maintenance_power_w": 200,
+    "unscheduled_repair_power_w": 200,
+    "grounded_weather_power_w": 0,
+    "inactive_power_w": 0
+  }
 }
