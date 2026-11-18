@@ -62,7 +62,9 @@
           "items": {
             "enum": [
               "laboratory_id",
-              "campaign_id"
+              "campaign_id",
+              "feeder_geometry_id",
+              "vibration_profile_id"
             ]
           }
         },
@@ -142,6 +144,12 @@
           "$ref": "#/$defs/partitionMap"
         },
         "campaign_id": {
+          "$ref": "#/$defs/partitionMap"
+        },
+        "feeder_geometry_id": {
+          "$ref": "#/$defs/partitionMap"
+        },
+        "vibration_profile_id": {
           "$ref": "#/$defs/partitionMap"
         }
       }
@@ -241,6 +249,18 @@
           ]
         },
         "campaign_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "feeder_geometry_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vibration_profile_id": {
           "type": [
             "string",
             "null"
