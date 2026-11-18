@@ -238,9 +238,7 @@
         "ids_applicability_receipt_sha256",
         "applicable_ids_requirement_ids",
         "ids_requirement_evaluations",
-        "in_work_scope",
-        "applicable_ids_requirement_ids",
-        "ids_requirement_evaluations"
+        "in_work_scope"
       ],
       "properties": {
         "global_id": {
