@@ -186,7 +186,7 @@ where
 
     for (candidate_id, candidate_outcomes) in &candidates {
         let dominated = candidates.iter().any(|(other_id, other_outcomes)| {
-            candidate_id != other_id && dominates(other_outcomes, candidate_outcomes)
+            candidate_id != other_id && dominates(*other_outcomes, *candidate_outcomes)
         });
         if !dominated {
             frontier.push((*candidate_id).to_owned());
@@ -275,10 +275,10 @@ pub fn evaluate_climate_robustness(
         return Err(ClimateRobustnessError::EmptyCandidateSet);
     }
 
-    let scenario_ids: std::collections::BTreeSet<_> = scenario_set
+    let scenario_ids: std::collections::BTreeSet<String> = scenario_set
         .scenarios
         .iter()
-        .map(|scenario| scenario.scenario_id.as_str())
+        .map(|scenario| scenario.scenario_id.clone())
         .collect();
 
     let mut candidate_ids = std::collections::BTreeSet::new();
@@ -306,7 +306,7 @@ pub fn evaluate_climate_robustness(
 
         let mut scenario_map = std::collections::BTreeMap::new();
         for result in &candidate.scenario_outcomes {
-            if !scenario_ids.contains(result.scenario_id.as_str()) {
+            if !scenario_ids.contains(&result.scenario_id) {
                 return Err(ClimateRobustnessError::ScenarioCoverageMismatch(
                     candidate.candidate_id.clone(),
                 ));
