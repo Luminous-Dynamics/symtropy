@@ -355,6 +355,42 @@ for run_path in "${run_paths[@]}"; do
              * $r.observations.size_contrast_delta_s.value))
        )
        else $d.breakage_segregation_timescale_ratio.status == "unknown" end)
+    and (
+      if ($r.material.adhesion_characterization_status == "unknown") then
+        ($d.adhesion_bond_by_size_class | length == 0)
+      else
+        ([ $d.adhesion_bond_by_size_class[].size_bin_id ] | length == (unique | length))
+        and all($d.adhesion_bond_by_size_class[];
+          . as $derived
+          | ($r.material.adhesion_by_size_class
+             | map(select(.size_bin_id == $derived.size_bin_id)) | .[0]) as $bin
+          | ($bin != null)
+          and close(
+            $derived.bo_p05;
+            ($bin.adhesion_force_p05_n.value
+             / ($bin.representative_particle_mass_kg.value * $r.environment.gravity_m_s2.value))
+          )
+          and close(
+            $derived.bo_p50;
+            ($bin.adhesion_force_p50_n.value
+             / ($bin.representative_particle_mass_kg.value * $r.environment.gravity_m_s2.value))
+          )
+          and close(
+            $derived.bo_p95;
+            ($bin.adhesion_force_p95_n.value
+             / ($bin.representative_particle_mass_kg.value * $r.environment.gravity_m_s2.value))
+          )
+          and close(
+            $derived.bo_p99;
+            ($bin.adhesion_force_p99_n.value
+             / ($bin.representative_particle_mass_kg.value * $r.environment.gravity_m_s2.value))
+          )
+          and ($derived.bo_p05.value <= $derived.bo_p50.value)
+          and ($derived.bo_p50.value <= $derived.bo_p95.value)
+          and ($derived.bo_p95.value <= $derived.bo_p99.value)
+        )
+      end
+    )
   ' "$run_path" >/dev/null || fail "derived-coordinate values do not match the formula set: $run_path"
 
   jq -e '
@@ -378,7 +414,7 @@ for run_path in "${run_paths[@]}"; do
         $r.observations.composition_profile_artifact_id,
         $r.model.configuration_artifact_id,
         $r.model.parameters_artifact_id
-      ] as $refs
+      ] | map(select(. != null)) as $refs
     | all($refs[]; . as $id | any($r.artifacts[]; .artifact_id == $id))
     and ($r.observations.video_segmentation_artifact_id == null
          or any($r.artifacts[]; .artifact_id == $r.observations.video_segmentation_artifact_id))
