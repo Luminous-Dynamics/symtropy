@@ -49,7 +49,7 @@ All arms must share initial configurations, cell dimensions, surface coverage, c
 
 ## Acceptance fixtures
 
-1. At contact angle pi/2 and duration tau_CR, the declared exponential-hazard interpolation returns p=0.5 exactly.
+1. At contact angle pi/2 and duration tau_CR, the declared exponential duration response returns p=0.5 exactly; at any fixed positive duration, probability scales linearly with the angular gate from pi/6 to pi/2.
 2. At or below pi/6, the response probability is zero.
 3. Probability increases monotonically with contact duration.
 4. A fixed per-contact response law and higher contact incidence increase the population reversal rate without changing the per-contact probability.
