@@ -30,6 +30,7 @@
       "additionalProperties": false,
       "required": [
         "resource_id",
+        "capacity_owner_id",
         "definition_sha256",
         "capacity_units",
         "unit_label"
@@ -47,6 +48,10 @@
           "minimum": 1
         },
         "unit_label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capacity_owner_id": {
           "type": "string",
           "minLength": 1
         }
@@ -162,6 +167,7 @@
         "resource_id",
         "resource_definition_sha256",
         "site_snapshot_sha256",
+        "site_clock_domain_id",
         "capacity_owner_id",
         "evidence_receipt_sha256",
         "start_tick",
@@ -207,6 +213,10 @@
         "upper_capacity_units": {
           "type": "integer",
           "minimum": 0
+        },
+        "site_clock_domain_id": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }
