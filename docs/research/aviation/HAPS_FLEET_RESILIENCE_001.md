@@ -204,6 +204,22 @@ The next qualification increment should replace this scalar lower bound with a c
 
 The current Rust module enforces the sequential turnaround components and checks fixture oracle values; its tests are authored but must not be described as executed until exact-head CI completes. It remains an analytical duty-cycle lower bound, not a semi-Markov or operational fleet model.
 
+### 7.4 From fleet-size lower bound to an exact staggered schedule
+
+The next fixture tests whether a lower-bound fleet can be *scheduled* under a small set of explicit operations constraints, rather than relying on the duty-cycle average alone.
+
+[synthetic_haps_fleet_220day_cyclic_rotation_v1.json](examples/synthetic_haps_fleet_220day_cyclic_rotation_v1.json) defines five identical platforms, 30 days on station and a 14-day sequential turnaround, with start phases 0, 8.8, 17.6, 26.4 and 35.2 days. Across 220 days (five complete 44-day cycles), the deterministic event-schedule evaluator reports:
+- 100% strict service availability for three required service units;
+- 100% capacity adequacy and zero outage hours;
+- 25 launch, 25 recovery and 25 reposition events;
+- one maintenance bay, one launch slot, one recovery slot and one reposition slot, with no concurrency violation.
+
+The schedule decomposes the 14-day turnaround into 1 day recovery, 1 day depot transfer, 5 days planned maintenance/refurbishment, 2 days ground-ready replenishment/preparation, 1 day launch and 4 days repositioning. Because the maintenance window is 5 days and platform cycle starts are 8.8 days apart, the single maintenance bay is sufficient in this idealized schedule.
+
+**Comparator boundary:** the evaluator also reports the A/B/C primary subset under the same five-platform phase assignment. That subset is not an independently optimized three-platform rotation, so its strict-availability result must not be presented as the best possible no-spare baseline. The exact schedule demonstrates that the five-aircraft lower bound can be realized under this constructed periodic schedule and stated capacities; it does not prove that real launch windows, maintenance data, weather or repairs will permit it.
+
+A negative-control Rust test sets one reserve-assigned platform's service capacity to zero and requires the full schedule to lose strict availability. The cyclic schedule fixture and both tests are included in the HAPS Fleet Reliability workflow path filters.
+
 ## 8. Ownership
 
 - Parent HAPS network/persistence: [#5885](https://github.com/Luminous-Dynamics/symtropy/issues/5885).
