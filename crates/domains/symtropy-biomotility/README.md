@@ -20,7 +20,7 @@ The versioned `ThresholdBoundaryPolicy` determines only the duration bin. It doe
 
 The cited papers use different descriptions at exactly 1.0 s: the 2026 figure captions use <=1 s for short, while other prose uses <1 s; the 2025 paper describes a strict short/long split. Therefore the equality convention is a source-pinned analysis choice, with inclusive, long-inclusive and exact-boundary-excluded sensitivity cases. Never interpret that threshold as a biological boundary.
 
-The code is an **event-based reference kernel**, not a validated flagellar motor model, hydrodynamic solver, pore-resolved simulator, growth model or biological prediction system. It includes seeded rotational diffusion during runs (Euler–Maruyama-style heading increments), sampled event durations/angles, and a trajectory-level time-origin-averaged MSD evaluator. It does not yet resolve agar pore geometry, cell-body hydrodynamics, flagellar motor states, nutrient diffusion or population growth.
+The code is an **event-based reference kernel**, not a validated flagellar motor model, hydrodynamic solver, pore-resolved simulator, growth model or biological prediction system. It includes seeded rotational diffusion during runs, explicit renewal waiting-time laws, censor-aware survival estimates, and time-origin/age-dependent MSD evaluation. It does not yet resolve agar pore geometry, cell-body hydrodynamics, discrete flagellar motor state transitions, nutrient diffusion or population growth.
 
 ## Research anchor
 
@@ -103,11 +103,27 @@ Up/down direction classes use the sign of the displacement/heading projection on
 
 Rotational diffusion acts during runs and is controlled by a declared coefficient and integration step. The integration loop fails closed if a step cannot advance simulated time or exceeds the per-run step budget.
 
+## Renewal waiting-time laws and censoring
+
+`WaitingTimeLaw` supports four explicit families:
+- `Empirical`: non-parametric resampling of observed positive durations;
+- `Exponential`: one time scale;
+- `DoubleExponential`: mixture survival (S_R(t)=w e^{-t/\\tau_f}+(1-w)e^{-t/\\tau_s}), allowing heterogeneous run-time scales;
+- `PiecewisePowerLaw`: a normalized continuous density with (psi_T(t)\\propto t^{-\\alpha}) from a positive lower bound to a crossover, and a steeper (t^{-\\beta}) tail thereafter.
+
+The piecewise law requires (0<\\alpha<1), (\\beta>2), and (0<t_{min}<t_c); it exposes density, CDF, survival, finite mean and deterministic inverse-CDF sampling. The `DirectionalWaitingTimes` container lets run-time laws differ by run-start direction, while active/passive/unresolved event mechanisms each have their own waiting-time law.
+
+The 2025 porous-gel study reports exponentially distributed run times and an immobile-event dwell-time density with intermediate exponent (\\alpha=0.79) and long-time exponent (\\beta=2.63). Its model fits the run-time survival with a double exponential to represent multiple timescales. These are **literature-reported reference values**, not fitted parameters in this crate. The lower support, crossover, mixture weight and component means remain to be estimated from rights-admitted source data; they are never inferred from headline means. <Link url="https://pmc.ncbi.nlm.nih.gov/articles/PMC12205082/" title="Datta et al. (2025) full text"/> <Cite refs={["turn393346view1","turn227740view0"]}/>
+
+`kaplan_meier` estimates a product-limit survival curve from completed and right-censored durations. Each step reports the risk set, observed events, censors and Greenwood standard error where defined. At tied times, observed events are applied before censor removals. The estimator deliberately leaves independent recording/plate/day cluster identities outside the row-level function so uncertainty can be bootstrapped at the correct experimental unit.
+
+This is right-censoring support, not interval-censoring or left-truncation support. An incomplete run or immobile event at the end of a video/track is not converted into a completed sample. The normalized schema retains censor reason, observation window, waiting-time state and process age. Parametric fitting must use censor-aware likelihoods or an explicitly documented source-specific estimator.
+
 ## Mean-squared displacement (MSD)
 
-Every simulation retains time-stamped positions during run integration and at stationary-event endpoints. `mean_squared_displacement` interpolates the trace at requested lag/origin times, computes a time-origin average for each trajectory, and then computes the mean and sample standard deviation across trajectories. Each trajectory contributes one track-level estimate; frames and overlapping time origins are not treated as independent biological replicates.
+Every simulation retains time-stamped positions during run integration and at stationary-event endpoints. `mean_squared_displacement` interpolates the trace at requested lag/origin times, computes a time-origin average for each trajectory, and then computes the mean and sample standard deviation across trajectories. `mean_squared_displacement_with_age` additionally starts eligible time origins at (t_a) after the first trace point, preserving the ageing-time dimension used by the 2025 intermittent active-particle model.
 
-This is an evaluator for the generated model traces, not a reproduction of the 2025 published MSD. It currently reports between-trajectory SD, not a biological-replicate bootstrap confidence interval. The observation interval, integration step and interpolation error must be matched/quantified before source comparison.
+Each trajectory contributes one track-level estimate; frames and overlapping time origins are not treated as independent biological replicates. The current summary reports between-trajectory SD, not a biological-replicate bootstrap confidence interval. The observation interval, integration step, interpolation error and (t_a) must be matched before source comparison. The long-time normal-diffusion regime predicted by the 2025 model is outside the finite observed microscopy window and must be labelled as extrapolation, not measured truth. <Cite refs={["turn393346view1","turn393346view5"]}/>
 
 ## Interpretation of conditional orientation metrics
 
@@ -115,13 +131,12 @@ The summary attaches an event in record i to the run in record i+1. The final ev
 
 ## Next qualification gates
 
-1. Verify dataset rights, exact version, file listing, checksums, schemas and experimental-unit metadata.
-2. Map source event data into a documented, versioned normalized record format.
-3. Reproduce the reported conditional statistics with replicate-aware uncertainty, keeping plate/day/track grouping intact.
-4. Compare the trajectory-level MSD evaluator against analytic straight-run fixtures and then reproduce Datta et al.'s 2025 MSD with source-admitted waiting-time distributions.
-5. Add renewal-process dwell-time distributions (piecewise power-law with finite-size cutoff) and matched event-model alternatives; do not assume exponential or fixed event durations.
-6. Compare no-bias, run-time-only, turn-angle-only and combined models under identical seeds and parameter/data budgets.
-7. Add geometry-resolved pore obstruction and passive trapping as an independent physical process.
-8. Generalize only after held-out validation across media conditions and other organisms.
+1. Verify dataset rights, exact Zenodo version, file listing, checksums, schemas and experimental-unit metadata.
+2. Map source event and censored-duration records into a versioned normalized format.
+3. Estimate run/event survival curves with right-censoring and recording-cluster uncertainty; fit parameters only on admitted data.
+4. Compare empirical, exponential, double-exponential and piecewise-power-law laws on identical splits, then reproduce the 2025 MSD over the observed time window and declared ageing times.
+5. Compare no-bias, run-time-only, turn-angle-only and combined models under identical seeds and parameter/data budgets.
+6. Add geometry-resolved pore obstruction and passive trapping as an independent physical process.
+7. Generalize only after held-out validation across media conditions and other organisms.
 
 No wet-lab work, bacterial culture, ecological release, or physical intervention is authorized by this software.

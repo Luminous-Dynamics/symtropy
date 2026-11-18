@@ -110,6 +110,29 @@ The 2026 study reports 10 one-minute recordings from different plates over two d
 
 Retain day -> plate -> recording -> trajectory -> run/event ancestry. All events from a trajectory must remain in one split. Prefer held-out biological replicate/plate/day splits. Cluster bootstrap must resample independent recording/plate/day clusters; do not resample frames or individual events as though independent.
 
+## Renewal-process duration and censoring records
+
+Retain a separate waiting-time observation for every run and every immobile/event episode. A terminal episode truncated by the end of the recording is right-censored; it is not an observed completed duration.
+
+| Field | Units / values | Notes |
+|---|---|---|
+| waiting_time_observation_id | stable ID | Unique run/event sojourn observation |
+| waiting_time_state | RUN, ACTIVE_MOTOR_EVENT, PASSIVE_MECHANICAL_TRAP, UNRESOLVED_EVENT | Physical state if supported; otherwise unresolved |
+| waiting_time_duration_s | seconds | Observed elapsed time up to event or censoring |
+| waiting_time_outcome | EVENT_OBSERVED, RIGHT_CENSORED | Whether the state transition was observed before recording ended |
+| censor_reason | FIELD_OF_VIEW_EXIT, RECORDING_END, TRACK_LOSS, SEGMENTATION_FAILURE, OTHER, NONE | Preserve the source-specific reason; do not equate all censoring causes |
+| observation_start_time_s | seconds | Time this episode begins relative to recording origin |
+| observation_end_time_s | seconds | Event/censor time relative to recording origin |
+| observation_window_start_s | seconds | Recording observation-window start |
+| observation_window_end_s | seconds | Recording observation-window end |
+| time_since_recording_start_s | seconds | Age of the renewal process at the start of the episode, if known |
+| ageing_time_at_msd_origin_s | seconds | Declared (t_a) for MSD evaluation; not interchangeable with event duration |
+| source_event_boundary | boolean | Whether the episode touches a field/time boundary |
+
+Apply censor status independently to run sojourns and immobile-state sojourns. A video ending during a run gives a censored RUN duration; a video ending during an immobile episode gives a censored event duration. The model must not impute either as a completed observation.
+
+The current Kaplan–Meier estimator supports right-censoring only. Left-truncated/left-entry observations and interval-censored events must remain flagged as unsupported until the estimator is extended; do not force them into right-censored rows. Preserve recording/plate/day cluster ancestry for the later cluster bootstrap.
+
 ## Missingness and exclusions
 
 Represent missing, censored, truncated, low-confidence, filtered and invalid values explicitly; never replace them with zero. Each exclusion must include a stable locator, exact filter predicate/version, reason and affected count, and whether exclusion occurred in source analysis or our adapter.
@@ -123,8 +146,11 @@ Every ingestion run must emit:
 - parser and event-detection revision;
 - source-to-normalized column mapping;
 - row/event counts before and after each filter;
-- missing/invalid/censored counts;
+- missing/invalid/censored counts by RUN and event-state type;
+- event-observed versus right-censored counts and censor reasons;
+- counts of left-truncated and interval-censored observations excluded as unsupported;
 - units and coordinate-frame declarations;
+- renewal-process age and MSD ageing-time (t_a) where available;
 - event-mechanism assignment method and evidence status;
 - threshold policy and direction-classifier revision;
 - replicate/recording/trajectory counts by condition;
