@@ -434,7 +434,7 @@ mod tests {
         };
         let candidate_ids = kernel.hypothesis_ids.clone();
         let model_catalogue = PublicModelCatalogue::from_kernel(&kernel, &candidate_ids).unwrap();
-        let manifest = EpisodeManifest {
+        let mut manifest = EpisodeManifest {
             contract_sha256: "a".repeat(64),
             world_model_sha256: "b".repeat(64),
             model_profile_sha256: "c".repeat(64),
@@ -486,6 +486,7 @@ mod tests {
                 model_catalogue,
             },
         };
+        manifest.model_profile_sha256 = manifest.public_profile.sha256().unwrap();
         let provider = EpisodeProvider::new(
             "baseline-policy-fixture-0001",
             manifest,
