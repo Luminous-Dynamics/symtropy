@@ -298,7 +298,18 @@ pub struct BehaviorSummary {
     pub event_count: usize,
     pub short_event_count: usize,
     pub long_trap_count: usize,
-    pub up_gradient_run_fraction: Option<f64>,
+    /// Number of short events with an observed following run.
+    pub short_event_followed_run_count: usize,
+    /// Number of those following runs initially oriented up-gradient.
+    pub short_event_followed_up_gradient_count: usize,
+    /// Conditional fraction among observed runs following short events.
+    pub short_event_followed_up_gradient_fraction: Option<f64>,
+    /// Number of long traps with an observed following run.
+    pub long_trap_followed_run_count: usize,
+    /// Number of those following runs initially oriented up-gradient.
+    pub long_trap_followed_up_gradient_count: usize,
+    /// Conditional fraction among observed runs following long traps.
+    pub long_trap_followed_up_gradient_fraction: Option<f64>,
     pub mean_run_duration_s: Option<f64>,
     pub projected_drift_um_s: Option<f64>,
 }
@@ -463,7 +474,12 @@ pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
             event_count: 0,
             short_event_count: 0,
             long_trap_count: 0,
-            up_gradient_run_fraction: None,
+            short_event_followed_run_count: 0,
+            short_event_followed_up_gradient_count: 0,
+            short_event_followed_up_gradient_fraction: None,
+            long_trap_followed_run_count: 0,
+            long_trap_followed_up_gradient_count: 0,
+            long_trap_followed_up_gradient_fraction: None,
             mean_run_duration_s: None,
             projected_drift_um_s: None,
         };
@@ -475,11 +491,37 @@ pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
         .filter(|event| event.event_class == EventClass::ShortReorientation)
         .count();
     let long_trap_count = result.events.len() - short_event_count;
-    let up_gradient_count = result
-        .events
-        .iter()
-        .filter(|event| event.direction_before_run == DirectionClass::UpGradient)
-        .count();
+    // An event in record i precedes the run in record i+1. The final event
+    // has no observed following run and is deliberately excluded from these
+    // conditional fractions. This aligns the denominator with "runs after
+    // short/long events" rather than classifying the run before the event.
+    let mut short_event_followed_run_count = 0;
+    let mut short_event_followed_up_gradient_count = 0;
+    let mut long_trap_followed_run_count = 0;
+    let mut long_trap_followed_up_gradient_count = 0;
+
+    for pair in result.events.windows(2) {
+        let event = pair[0];
+        let following_run = pair[1];
+        let is_up_gradient =
+            following_run.direction_before_run == DirectionClass::UpGradient;
+
+        match event.event_class {
+            EventClass::ShortReorientation => {
+                short_event_followed_run_count += 1;
+                if is_up_gradient {
+                    short_event_followed_up_gradient_count += 1;
+                }
+            }
+            EventClass::LongMechanicalTrap => {
+                long_trap_followed_run_count += 1;
+                if is_up_gradient {
+                    long_trap_followed_up_gradient_count += 1;
+                }
+            }
+        }
+    }
+
     let total_run_duration: f64 = result
         .events
         .iter()
@@ -496,7 +538,20 @@ pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
         event_count: result.events.len(),
         short_event_count,
         long_trap_count,
-        up_gradient_run_fraction: Some(up_gradient_count as f64 / result.events.len() as f64),
+        short_event_followed_run_count,
+        short_event_followed_up_gradient_count,
+        short_event_followed_up_gradient_fraction: (short_event_followed_run_count > 0)
+            .then_some(
+                short_event_followed_up_gradient_count as f64
+                    / short_event_followed_run_count as f64,
+            ),
+        long_trap_followed_run_count,
+        long_trap_followed_up_gradient_count,
+        long_trap_followed_up_gradient_fraction: (long_trap_followed_run_count > 0)
+            .then_some(
+                long_trap_followed_up_gradient_count as f64
+                    / long_trap_followed_run_count as f64,
+            ),
         mean_run_duration_s: Some(total_run_duration / result.events.len() as f64),
         projected_drift_um_s: (elapsed > 0.0).then_some(projected_displacement / elapsed),
     }
@@ -642,7 +697,13 @@ mod tests {
         let summary = summarize(&result);
         assert_eq!(summary.short_event_count, 8);
         assert_eq!(summary.long_trap_count, 0);
-        assert!(summary.up_gradient_run_fraction.unwrap() >= 7.0 / 8.0);
+        assert_eq!(summary.short_event_followed_run_count, 7);
+        assert_eq!(summary.short_event_followed_up_gradient_count, 7);
+        assert_eq!(
+            summary.short_event_followed_up_gradient_fraction,
+            Some(1.0)
+        );
+        assert_eq!(summary.long_trap_followed_up_gradient_fraction, None);
     }
 
     #[test]
@@ -657,7 +718,13 @@ mod tests {
         let summary = summarize(&result);
         assert_eq!(summary.short_event_count, 0);
         assert_eq!(summary.long_trap_count, 12);
-        assert_eq!(summary.up_gradient_run_fraction, Some(0.0));
+        assert_eq!(summary.long_trap_followed_run_count, 11);
+        assert_eq!(summary.long_trap_followed_up_gradient_count, 0);
+        assert_eq!(
+            summary.long_trap_followed_up_gradient_fraction,
+            Some(0.0)
+        );
+        assert_eq!(summary.short_event_followed_up_gradient_fraction, None);
     }
 
     #[test]
@@ -723,6 +790,23 @@ mod tests {
         assert_eq!(summary.event_count, 0);
         assert_eq!(summary.mean_run_duration_s, None);
         assert_eq!(summary.projected_drift_um_s, None);
-        assert_eq!(summary.up_gradient_run_fraction, None);
+        assert_eq!(summary.short_event_followed_up_gradient_fraction, None);
+        assert_eq!(summary.long_trap_followed_up_gradient_fraction, None);
+
+        let one_event = simulate(
+            &steering_profile(),
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            1,
+            2,
+        )
+        .expect("one-event simulation is valid");
+        let one_event_summary = summarize(&one_event);
+        assert_eq!(one_event_summary.short_event_count, 1);
+        assert_eq!(one_event_summary.short_event_followed_run_count, 0);
+        assert_eq!(
+            one_event_summary.short_event_followed_up_gradient_fraction,
+            None
+        );
     }
 }
