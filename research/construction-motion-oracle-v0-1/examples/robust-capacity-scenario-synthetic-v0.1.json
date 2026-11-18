@@ -9,13 +9,15 @@
         "resource_id": "mobile-hoist",
         "definition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "capacity_units": 8,
-        "unit_label": "load-units"
+        "unit_label": "load-units",
+        "capacity_owner_id": "hoist-owner"
       },
       {
         "resource_id": "temporary-power-feed",
         "definition_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "capacity_units": 10,
-        "unit_label": "kW"
+        "unit_label": "kW",
+        "capacity_owner_id": "power-owner"
       }
     ],
     "reservations": [
@@ -60,7 +62,8 @@
       "end_tick": 210,
       "lower_capacity_units": 2,
       "nominal_capacity_units": 3,
-      "upper_capacity_units": 4
+      "upper_capacity_units": 4,
+      "site_clock_domain_id": "site-clock-synthetic-01"
     },
     {
       "resource_id": "temporary-power-feed",
@@ -72,7 +75,8 @@
       "end_tick": 190,
       "lower_capacity_units": 5,
       "nominal_capacity_units": 8,
-      "upper_capacity_units": 9
+      "upper_capacity_units": 9,
+      "site_clock_domain_id": "site-clock-synthetic-01"
     }
   ]
 }
