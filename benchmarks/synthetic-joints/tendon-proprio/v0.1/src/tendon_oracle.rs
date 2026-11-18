@@ -234,3 +234,43 @@ fn tendon_006_invalid_and_non_finite_inputs_fail_closed() {
     assert!(equivalent_temperature_length_drift_mm(4.0, 0.0004, 10.0, 0.0).is_none());
     assert!(inverse_length_standard_uncertainty_mm(4.0, -0.1, 0.2, 0.002).is_none());
 }
+
+
+fn illustrative_linear_tendon_force_n(
+    extension_mm: f64,
+    axial_stiffness_n_per_mm: f64,
+) -> Option<f64> {
+    if !extension_mm.is_finite()
+        || !axial_stiffness_n_per_mm.is_finite()
+        || extension_mm < 0.0
+        || axial_stiffness_n_per_mm <= 0.0
+    {
+        return None;
+    }
+    Some(extension_mm * axial_stiffness_n_per_mm)
+}
+
+#[test]
+fn tendon_007_same_length_signal_does_not_identify_force_without_stiffness() {
+    let sensor = calibration();
+    let measured_length_mm = 45.0;
+    let measured_resistance = sensor
+        .resistance_at_length(measured_length_mm)
+        .expect("45 mm is inside the sensor calibration interval");
+
+    let extension_mm = measured_length_mm - 40.0;
+    let candidate_force_a = illustrative_linear_tendon_force_n(extension_mm, 10.0)
+        .expect("positive synthetic stiffness must be admitted");
+    let candidate_force_b = illustrative_linear_tendon_force_n(extension_mm, 20.0)
+        .expect("positive synthetic stiffness must be admitted");
+
+    // The resistive sensor returns the same length observation for both
+    // candidate mechanical states. Without a separately identified axial
+    // stiffness (and a justified linear constitutive model), force is not
+    // identifiable from this channel alone.
+    assert_close(measured_resistance, 5.0, "shared length-sensor resistance [ohm]");
+    assert_close(candidate_force_a, 50.0, "candidate force A [N]");
+    assert_close(candidate_force_b, 100.0, "candidate force B [N]");
+    assert!(candidate_force_a != candidate_force_b);
+}
+
