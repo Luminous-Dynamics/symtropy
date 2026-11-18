@@ -391,7 +391,8 @@ pub fn canonical_event_ledger_json(events: &[TelemetryEvent]) -> String {
             .then_with(|| left.source_id.cmp(&right.source_id))
             .then_with(|| left.sequence.cmp(&right.sequence))
             .then_with(|| left.event_id.cmp(&right.event_id))
-            .then_with(|| left.event_tick.cmp(&right.event_tick))
+            .then_with(|| left.event_time_lower_tick.cmp(&right.event_time_lower_tick))
+            .then_with(|| left.event_time_upper_tick.cmp(&right.event_time_upper_tick))
             .then_with(|| left.received_tick.cmp(&right.received_tick))
     });
     format!(
@@ -1210,7 +1211,7 @@ pub fn reconcile(
                 maximum_lateness = Some(
                     maximum_lateness
                         .unwrap_or(0_u64)
-                        .max(event.received_tick.saturating_sub(event.event_tick)),
+                        .max(event.received_tick.saturating_sub(event.event_time_lower_tick)),
                 );
             }
         }
@@ -1940,7 +1941,7 @@ mod tests {
             if event.observation.channel() == Channel::HookLoad
                 || event.observation.channel() == Channel::WindGust
             {
-                event.received_tick = event.event_tick;
+                event.received_tick = event.event_time_lower_tick;
             }
         }
         let report = reconcile(&binding, &policy, &coverage, &events);
@@ -1959,7 +1960,7 @@ mod tests {
         event.received_tick = 122;
         let report = reconcile(&binding, &policy, &coverage, &events);
         assert_eq!(report.disposition, Disposition::Indeterminate);
-        assert!(has_code(&report, "SOURCE_EVENT_TIME_REGRESSION"));
+        assert!(has_code(&report, "SOURCE_EVENT_TIME_ORDER_UNCERTAIN"));
     }
 
     #[test]
@@ -1970,7 +1971,7 @@ mod tests {
         events[0].received_tick = binding.end_tick + 1;
         let report = reconcile(&binding, &policy, &coverage, &events);
         assert_eq!(report.disposition, Disposition::Indeterminate);
-        assert!(has_code(&report, "EVENT_OUTSIDE_EXECUTION_INTERVAL"));
+        assert!(has_code(&report, "EVENT_TIME_INTERVAL_OUTSIDE_EXECUTION"));
     }
 
     #[test]
