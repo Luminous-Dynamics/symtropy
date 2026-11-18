@@ -17,11 +17,11 @@ use symtropy_hdc_core::{
 pub mod field;
 pub mod fractal;
 pub mod impact;
+pub mod lifecycle;
 pub mod multichannel;
 pub mod partial;
-pub mod temporal;
 pub mod sensor_placement;
-pub mod lifecycle;
+pub mod temporal;
 
 pub const GRAPH_SCHEMA_VERSION: u32 = 1;
 pub const ENCODER_RECIPE: &str = "holofrac-directed-typed-triple-v2:subject+subject-scale+predicate+object+object-scale:majority-bundle";
