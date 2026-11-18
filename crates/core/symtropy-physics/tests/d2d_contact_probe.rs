@@ -193,6 +193,8 @@ struct ProbeBranchAuditV1 {
     expected_count: usize,
     reported_count: usize,
     completed_count: usize,
+    expected_branches: Vec<String>,
+    reported_branches: Vec<String>,
     missing: Vec<String>,
     duplicate: Vec<String>,
     unexpected: Vec<String>,
@@ -347,7 +349,11 @@ fn audit_expected_branches(
 ) -> ProbeBranchAuditV1 {
     use std::collections::{BTreeSet, HashMap};
 
-    let expected_set: BTreeSet<String> = expected.iter().map(|branch| (*branch).to_string()).collect();
+    let expected_branches: Vec<String> = expected
+        .iter()
+        .map(|branch| (*branch).to_string())
+        .collect();
+    let expected_set: BTreeSet<String> = expected_branches.iter().cloned().collect();
     let mut counts: HashMap<String, usize> = HashMap::new();
     let mut duplicate = BTreeSet::new();
     let mut unexpected = BTreeSet::new();
@@ -360,26 +366,37 @@ fn audit_expected_branches(
         if *count > 1 {
             duplicate.insert(record.branch_id.clone());
         }
-        if !expected_set.contains(&record.branch_id) {
+        let is_expected = expected_set.contains(&record.branch_id);
+        if !is_expected {
             unexpected.insert(record.branch_id.clone());
         }
         if record.disposition == ProbeDispositionV1::Completed {
-            completed_count += 1;
+            // Count only the first completion for an expected branch. Duplicate
+            // and unexpected reports remain visible but cannot inflate coverage.
+            if is_expected && *count == 1 {
+                completed_count += 1;
+            }
         } else {
             non_completed.insert(record.branch_id.clone());
         }
     }
 
-    let missing = expected_set
+    let missing: Vec<String> = expected_set
         .iter()
         .filter(|branch_id| !counts.contains_key(*branch_id))
         .cloned()
+        .collect();
+    let reported_branches = observed
+        .iter()
+        .map(|record| record.branch_id.clone())
         .collect();
 
     ProbeBranchAuditV1 {
         expected_count: expected.len(),
         reported_count: observed.len(),
         completed_count,
+        expected_branches,
+        reported_branches,
         missing,
         duplicate: duplicate.into_iter().collect(),
         unexpected: unexpected.into_iter().collect(),
@@ -683,7 +700,20 @@ fn branch_denominator_audit_preserves_missing_unsupported_and_unexpected_cases()
     let audit = audit_expected_branches(&expected, &observed);
     assert_eq!(audit.expected_count, 3);
     assert_eq!(audit.reported_count, 4);
-    assert_eq!(audit.completed_count, 2);
+    assert_eq!(audit.completed_count, 1, "duplicate completion must not inflate coverage");
+    assert_eq!(
+        audit.expected_branches,
+        vec!["branch-a".to_string(), "branch-b".to_string(), "branch-c".to_string()]
+    );
+    assert_eq!(
+        audit.reported_branches,
+        vec![
+            "branch-a".to_string(),
+            "branch-a".to_string(),
+            "branch-b".to_string(),
+            "unexpected".to_string()
+        ]
+    );
     assert_eq!(audit.missing, vec!["branch-c".to_string()]);
     assert_eq!(audit.duplicate, vec!["branch-a".to_string()]);
     assert_eq!(audit.unexpected, vec!["unexpected".to_string()]);
