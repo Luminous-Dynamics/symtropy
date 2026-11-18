@@ -34,7 +34,7 @@ ds^2=-b\,dt^2+\frac{dr^2}{f}
 +\frac g4(\sigma_1^2+\sigma_2^2)
 +\frac h4(\sigma_3+2w\,dt)^2.
 \]
-The exact one-form normalization and orientation must be mapped explicitly before exchanging coefficients. Do not identify the forms by name alone.
+Use the source conventions \(\sigma_1=\cos\psi\,d\bar\theta+\sin\psi\sin\bar\theta\,d\phi\), \(\sigma_2=-\sin\psi\,d\bar\theta+\cos\psi\sin\bar\theta\,d\phi\), \(\sigma_3=d\psi+\cos\bar\theta\,d\phi\), with \(\bar\theta=2\theta\), \(\phi=\phi_1-\phi_2\), and \(\psi=\phi_1+\phi_2\). The exact one-form normalization and orientation must be mapped explicitly before exchanging coefficients; do not identify the forms by name alone.
 
 The reduced radial action must be varied before imposing \(g=r^2\), following Brihaye et al. (2010), arXiv:1010.0860. The gauge-fixed flux expression below may only be applied after the variation and after the areal-base gauge is imposed.
 
