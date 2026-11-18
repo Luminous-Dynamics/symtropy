@@ -8,7 +8,8 @@ use human_multirate_cosim::noise_robustness::{
 };
 use human_multirate_cosim::sensor_design::SensorCandidate;
 use human_multirate_cosim::total_kl_trust_region::{
-    optimize_pairwise_total_kl_trust_region, TotalKlOptimalityDisposition,
+    optimize_pairwise_total_kl_trust_region, optimize_pairwise_total_kl_trust_region_with_covariance,
+    ObservationDesignIdentityV1, TotalKlOptimalityDisposition,
 };
 
 fn model(id: u32, label: &'static str, bypass: bool) -> ModelCandidate {
@@ -228,6 +229,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         correlated_scenario.observation_times.clone(),
         structured_ar1,
     )?;
+    let dense_identity = ObservationDesignIdentityV1 {
+        covariance_id: covariance_ids.0.to_owned(),
+        observation_process_id: common_process.to_owned(),
+        sampling_policy_id: common_sampling.to_owned(),
+        observation_operator_id: common_operator.to_owned(),
+        availability_cutoff_id: common_cutoff.to_owned(),
+    };
+    let structured_identity = ObservationDesignIdentityV1 {
+        covariance_id: covariance_ids.1.to_owned(),
+        observation_process_id: common_process.to_owned(),
+        sampling_policy_id: common_sampling.to_owned(),
+        observation_operator_id: common_operator.to_owned(),
+        availability_cutoff_id: common_cutoff.to_owned(),
+    };
+
     let iid_on_same_schedule = optimize_pairwise_total_kl_trust_region(
         &correlated_scenario,
         1,
@@ -244,6 +260,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &[0, 1, 2],
         &boundaries,
         &dense_binding,
+        &dense_identity,
     )?;
     let structured_report = optimize_pairwise_total_kl_trust_region_with_covariance(
         &correlated_scenario,
@@ -253,6 +270,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &[0, 1, 2],
         &boundaries,
         &structured_binding,
+        &structured_identity,
     )?;
     println!(
         "covariance,independent_time_assumption,total_kl,{:.12e},energy,{:.12e}",
