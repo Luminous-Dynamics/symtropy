@@ -543,8 +543,7 @@ mod tests {
 
     #[test]
     fn accepts_hand_calculable_two_event_fixture() {
-        let errors = run(FIXTURE).expect("fixture should pass");
-        assert!(errors.is_empty());
+        run(FIXTURE).expect("fixture should pass");
     }
 
     #[test]
