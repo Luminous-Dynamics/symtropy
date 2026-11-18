@@ -23,7 +23,10 @@ impl Point {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum GeometryError {
     TooFewVertices,
-    TooManyVertices { count: usize, max: usize },
+    TooManyVertices {
+        count: usize,
+        max: usize,
+    },
     ConsecutiveDuplicateVertex {
         index: usize,
     },
@@ -93,7 +96,12 @@ pub struct Rect {
 
 impl Rect {
     pub const fn new(min_x: i64, min_y: i64, max_x: i64, max_y: i64) -> Self {
-        Self { min_x, min_y, max_x, max_y }
+        Self {
+            min_x,
+            min_y,
+            max_x,
+            max_y,
+        }
     }
 
     pub const fn is_valid(self) -> bool {
@@ -299,31 +307,31 @@ impl Polygon {
         point_in_polygon(point, &self.vertices)
     }
 
-fn same_interior_side_on_shared_edge(
-    first_area: i128,
-    second_area: i128,
-    first_a: Point,
-    first_b: Point,
-    second_a: Point,
-    second_b: Point,
-) -> bool {
-    let first_dx = i128::from(first_b.x) - i128::from(first_a.x);
-    let first_dy = i128::from(first_b.y) - i128::from(first_a.y);
-    let second_dx = i128::from(second_b.x) - i128::from(second_a.x);
-    let second_dy = i128::from(second_b.y) - i128::from(second_a.y);
+    fn same_interior_side_on_shared_edge(
+        first_area: i128,
+        second_area: i128,
+        first_a: Point,
+        first_b: Point,
+        second_a: Point,
+        second_b: Point,
+    ) -> bool {
+        let first_dx = i128::from(first_b.x) - i128::from(first_a.x);
+        let first_dy = i128::from(first_b.y) - i128::from(first_a.y);
+        let second_dx = i128::from(second_b.x) - i128::from(second_a.x);
+        let second_dy = i128::from(second_b.y) - i128::from(second_a.y);
 
-    let same_direction = if first_dx != 0 {
-        (first_dx > 0) == (second_dx > 0)
-    } else {
-        (first_dy > 0) == (second_dy > 0)
-    };
-    let second_side_in_first_direction = if same_direction {
-        second_area.signum()
-    } else {
-        -second_area.signum()
-    };
-    first_area.signum() == second_side_in_first_direction
-}
+        let same_direction = if first_dx != 0 {
+            (first_dx > 0) == (second_dx > 0)
+        } else {
+            (first_dy > 0) == (second_dy > 0)
+        };
+        let second_side_in_first_direction = if same_direction {
+            second_area.signum()
+        } else {
+            -second_area.signum()
+        };
+        first_area.signum() == second_side_in_first_direction
+    }
 
     /// Classify footprint relationship. Boundary-only contact is distinct from
     /// positive-area overlap. Contact is still a conflict for conservative yard
@@ -699,15 +707,21 @@ mod tests {
     fn polygon_bounds_are_canonical_and_finite_yard_containment_is_inclusive() {
         let l_shape = polygon(&[(0, 0), (4, 0), (4, 1), (1, 1), (1, 4), (0, 4)]);
         assert_eq!(l_shape.bounds(), Rect::new(0, 0, 4, 4));
-        assert!(l_shape
-            .is_within_rect(Rect::new(0, 0, 4, 4))
-            .expect("valid yard bounds"));
-        assert!(l_shape
-            .is_within_rect(Rect::new(-1, -1, 5, 5))
-            .expect("valid larger yard bounds"));
-        assert!(!l_shape
-            .is_within_rect(Rect::new(0, 0, 3, 4))
-            .expect("valid but too narrow yard bounds"));
+        assert!(
+            l_shape
+                .is_within_rect(Rect::new(0, 0, 4, 4))
+                .expect("valid yard bounds")
+        );
+        assert!(
+            l_shape
+                .is_within_rect(Rect::new(-1, -1, 5, 5))
+                .expect("valid larger yard bounds")
+        );
+        assert!(
+            !l_shape
+                .is_within_rect(Rect::new(0, 0, 3, 4))
+                .expect("valid but too narrow yard bounds")
+        );
         assert_eq!(
             l_shape.is_within_rect(Rect::new(1, 1, 1, 4)),
             Err(GeometryError::InvalidBounds)
@@ -1016,10 +1030,8 @@ mod tests {
     // relation predicates. The corpus is small enough that direct pairwise
     // segment checks and rational edge-midpoint probes are inexpensive.
     fn reference_cross(a: (i64, i64), b: (i64, i64), c: (i64, i64)) -> i128 {
-        (i128::from(b.0) - i128::from(a.0))
-            * (i128::from(c.1) - i128::from(a.1))
-            - (i128::from(b.1) - i128::from(a.1))
-                * (i128::from(c.0) - i128::from(a.0))
+        (i128::from(b.0) - i128::from(a.0)) * (i128::from(c.1) - i128::from(a.1))
+            - (i128::from(b.1) - i128::from(a.1)) * (i128::from(c.0) - i128::from(a.0))
     }
 
     fn reference_on_segment(point: (i64, i64), a: (i64, i64), b: (i64, i64)) -> bool {
@@ -1053,11 +1065,7 @@ mod tests {
 
     // Classify a point represented with denominator two. This permits exact
     // edge-midpoint probes without floating-point division or epsilon policy.
-    fn reference_locate_doubled(
-        x2: i128,
-        y2: i128,
-        polygon: &[(i64, i64)],
-    ) -> PointLocation {
+    fn reference_locate_doubled(x2: i128, y2: i128, polygon: &[(i64, i64)]) -> PointLocation {
         let mut winding_number = 0_i32;
         for index in 0..polygon.len() {
             let a = polygon[index];
@@ -1139,17 +1147,13 @@ mod tests {
         reference_canonical_boundary(first) == reference_canonical_boundary(second)
     }
 
-    fn reference_same_side_shared_segment(
-        first: &[(i64, i64)],
-        second: &[(i64, i64)],
-    ) -> bool {
+    fn reference_same_side_shared_segment(first: &[(i64, i64)], second: &[(i64, i64)]) -> bool {
         let signed_area = |vertices: &[(i64, i64)]| -> i128 {
             (0..vertices.len())
                 .map(|index| {
                     let a = vertices[index];
                     let b = vertices[(index + 1) % vertices.len()];
-                    i128::from(a.0) * i128::from(b.1)
-                        - i128::from(b.0) * i128::from(a.1)
+                    i128::from(a.0) * i128::from(b.1) - i128::from(b.0) * i128::from(a.1)
                 })
                 .sum()
         };
@@ -1166,11 +1170,9 @@ mod tests {
                     continue;
                 }
                 let positive_length_overlap = if a.0 != b.0 {
-                    a.0.min(b.0).max(c.0.min(d.0))
-                        < a.0.max(b.0).min(c.0.max(d.0))
+                    a.0.min(b.0).max(c.0.min(d.0)) < a.0.max(b.0).min(c.0.max(d.0))
                 } else {
-                    a.1.min(b.1).max(c.1.min(d.1))
-                        < a.1.max(b.1).min(c.1.max(d.1))
+                    a.1.min(b.1).max(c.1.min(d.1)) < a.1.max(b.1).min(c.1.max(d.1))
                 };
                 if !positive_length_overlap {
                     continue;
@@ -1195,10 +1197,7 @@ mod tests {
         false
     }
 
-    fn exact_reference_relation(
-        first: &[(i64, i64)],
-        second: &[(i64, i64)],
-    ) -> PolygonRelation {
+    fn exact_reference_relation(first: &[(i64, i64)], second: &[(i64, i64)]) -> PolygonRelation {
         if reference_same_boundary(first, second)
             || reference_same_side_shared_segment(first, second)
         {
@@ -1224,21 +1223,15 @@ mod tests {
         }
 
         for point in first {
-            if reference_locate_doubled(
-                i128::from(point.0) * 2,
-                i128::from(point.1) * 2,
-                second,
-            ) == PointLocation::Inside
+            if reference_locate_doubled(i128::from(point.0) * 2, i128::from(point.1) * 2, second)
+                == PointLocation::Inside
             {
                 return PolygonRelation::PositiveAreaOverlap;
             }
         }
         for point in second {
-            if reference_locate_doubled(
-                i128::from(point.0) * 2,
-                i128::from(point.1) * 2,
-                first,
-            ) == PointLocation::Inside
+            if reference_locate_doubled(i128::from(point.0) * 2, i128::from(point.1) * 2, first)
+                == PointLocation::Inside
             {
                 return PolygonRelation::PositiveAreaOverlap;
             }
@@ -1278,11 +1271,16 @@ mod tests {
 
     #[test]
     fn same_side_collinear_boundary_overlap_is_positive_area_not_contact() {
-        let first = polygon(&[
-            (-1, -1), (3, -1), (3, 0), (0, 0), (0, 3), (-1, 3),
-        ]);
+        let first = polygon(&[(-1, -1), (3, -1), (3, 0), (0, 0), (0, 3), (-1, 3)]);
         let second = polygon(&[
-            (-1, -1), (3, -1), (3, 3), (2, 3), (2, 0), (0, 0), (0, 3), (-1, 3),
+            (-1, -1),
+            (3, -1),
+            (3, 3),
+            (2, 3),
+            (2, 0),
+            (0, 0),
+            (0, 3),
+            (-1, 3),
         ]);
         assert_eq!(
             first.relation(&second),
@@ -1301,7 +1299,16 @@ mod tests {
             &[(0, 0), (4, 0), (2, 4)],
             &[(0, 3), (4, 3), (2, -1)],
             &[(0, 0), (4, 0), (4, 1), (1, 1), (1, 4), (0, 4)],
-            &[(0, 0), (4, 0), (4, 4), (3, 4), (3, 1), (1, 1), (1, 4), (0, 4)],
+            &[
+                (0, 0),
+                (4, 0),
+                (4, 4),
+                (3, 4),
+                (3, 1),
+                (1, 1),
+                (1, 4),
+                (0, 4),
+            ],
             &[(0, 0), (4, 0), (4, 4), (0, 4)],
             &[(2, 0), (4, 2), (2, 4), (0, 2)],
             &[(0, 0), (4, 0), (0, 4)],
@@ -1319,9 +1326,8 @@ mod tests {
                         .expect("authored polygon should be valid");
                     corpus.push((vertices.clone(), polygon));
                     vertices.reverse();
-                    let reversed =
-                        Polygon::new(vertices.iter().map(|(x, y)| p(*x, *y)).collect())
-                            .expect("reversed polygon should be valid");
+                    let reversed = Polygon::new(vertices.iter().map(|(x, y)| p(*x, *y)).collect())
+                        .expect("reversed polygon should be valid");
                     corpus.push((vertices, reversed));
                 }
             }
@@ -1330,8 +1336,7 @@ mod tests {
         assert_eq!(corpus.len(), 144, "frozen oblique corpus changed");
 
         let square = [(0, 0), (4, 0), (4, 4), (0, 4)];
-        let same_square_with_redundant_vertex =
-            [(0, 0), (2, 0), (4, 0), (4, 4), (0, 4)];
+        let same_square_with_redundant_vertex = [(0, 0), (2, 0), (4, 0), (4, 4), (0, 4)];
         assert_eq!(
             exact_reference_relation(&square, &same_square_with_redundant_vertex),
             PolygonRelation::PositiveAreaOverlap
