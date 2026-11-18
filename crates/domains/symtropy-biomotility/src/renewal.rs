@@ -110,7 +110,7 @@ impl WaitingTimeLaw {
     /// Returns None for empirical laws, whose density is not defined by the
     /// discrete sample representation, and for non-finite query times.
     pub fn density(&self, t_s: f64) -> Option<f64> {
-        if !t_s.is_finite() {
+        if !t_s.is_finite() || self.validate().is_err() {
             return None;
         }
         match self {
@@ -156,7 +156,7 @@ impl WaitingTimeLaw {
 
     /// Cumulative distribution F(t) = P(T <= t).
     pub fn cdf(&self, t_s: f64) -> Option<f64> {
-        if !t_s.is_finite() {
+        if !t_s.is_finite() || self.validate().is_err() {
             return None;
         }
         match self {
@@ -228,6 +228,7 @@ impl WaitingTimeLaw {
 
     /// Analytic mean duration when finite and defined.
     pub fn mean_s(&self) -> Option<f64> {
+        self.validate().ok()?;
         match self {
             Self::Empirical(samples) if !samples.is_empty() => {
                 Some(samples.values().iter().sum::<f64>() / samples.len() as f64)
@@ -570,6 +571,16 @@ mod tests {
             min_s: 0.05,
             crossover_s: 2.0,
         }
+    }
+
+    #[test]
+    fn invalid_empirical_law_returns_unknown_for_analytic_statistics() {
+        let law = WaitingTimeLaw::empirical(Vec::new());
+        assert_eq!(law.validate(), Err(WaitingTimeLawError::EmptyEmpiricalSamples));
+        assert_eq!(law.cdf(1.0), None);
+        assert_eq!(law.survival(1.0), None);
+        assert_eq!(law.density(1.0), None);
+        assert_eq!(law.mean_s(), None);
     }
 
     #[test]
