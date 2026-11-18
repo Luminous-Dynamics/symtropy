@@ -275,6 +275,13 @@ pub fn validate_case(case: &HandoverCase) -> Result<(), HandoverError> {
         }
     }
 
+    let mut total_offered_ues = 0usize;
+    for cohort in &case.cohorts {
+        total_offered_ues = total_offered_ues
+            .checked_add(cohort.offered_user_count)
+            .ok_or_else(|| HandoverError::new("total offered UE count overflow"))?;
+    }
+
     let mut scenario_ids = HashSet::with_capacity(case.scenarios.len());
     for scenario in &case.scenarios {
         if scenario.scenario_id.trim().is_empty()
@@ -302,6 +309,12 @@ pub fn validate_case(case: &HandoverCase) -> Result<(), HandoverError> {
         if scenario.duplicate_completion_ack_delivery && scenario.failure_point != "none" {
             return Err(HandoverError::new(format!(
                 "scenario {} injects a duplicate acknowledgement without a completed handover",
+                scenario.scenario_id
+            )));
+        }
+        if !scenario.phase_durations_ms.total_ms().is_finite() {
+            return Err(HandoverError::new(format!(
+                "scenario {} total phase duration overflowed",
                 scenario.scenario_id
             )));
         }
@@ -645,16 +658,16 @@ mod tests {
     #[test]
     fn priority_rank_is_lower_is_higher_and_ties_use_cohort_id() {
         let mut case = fixture();
-        case.cohorts[1].priority_rank = 0;
-        case.cohorts[2].priority_rank = 0;
+        case.cohorts[1].priority_rank = 1;
+        case.cohorts[2].priority_rank = 1;
         case.cohorts[1].cohort_id = "z-emergency".to_owned();
         case.cohorts[2].cohort_id = "a-broadband".to_owned();
-        // The declared emergency cohort retains a higher rank only if its
-        // tie-break key sorts first; this mutation checks deterministic ordering.
-        let mut result = evaluate_scenario(&case, &case.scenarios[0]).unwrap();
+        let result = evaluate_scenario(&case, &case.scenarios[0]).unwrap();
         assert!(result.cohorts.iter().all(|row| row.authority_overlap_ues == 0));
         let broadband = result.cohorts.iter().find(|row| row.cohort_id == "a-broadband").unwrap();
-        assert_eq!(broadband.completed_ues, 19);
+        let emergency = result.cohorts.iter().find(|row| row.cohort_id == "z-emergency").unwrap();
+        assert_eq!(broadband.completed_ues, 27);
+        assert_eq!(emergency.completed_ues, 1);
     }
 
     #[test]
