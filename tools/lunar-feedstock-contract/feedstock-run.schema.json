@@ -736,7 +736,8 @@
             "charge_profile",
             "shape_profile",
             "uncertainty_budget",
-            "other"
+            "other",
+            "mineral_and_particle_size_assay"
           ]
         },
         "path": {
