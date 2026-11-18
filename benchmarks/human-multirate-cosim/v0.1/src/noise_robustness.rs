@@ -50,6 +50,7 @@ pub enum CovarianceError {
     InvalidSensorOrder,
     TraceSensorOrderMismatch,
     TraceTimeScheduleMismatch,
+    TraceCovarianceIdentityMismatch,
     TraceProcessIdentityMismatch,
     TraceSamplingPolicyMismatch,
     TraceOperatorMismatch,
@@ -110,6 +111,9 @@ impl fmt::Display for CovarianceError {
             }
             Self::TraceTimeScheduleMismatch => {
                 write!(f, "bound covariance time schedule does not match the observation trace")
+            }
+            Self::TraceCovarianceIdentityMismatch => {
+                write!(f, "bound covariance ID does not match the observation trace")
             }
             Self::TraceProcessIdentityMismatch => {
                 write!(
@@ -549,6 +553,9 @@ impl ObservationCovarianceV1 {
     }
 
     fn validate_trace(&self, trace: &ObservationProcessTraceV1) -> Result<(), CovarianceError> {
+        if self.covariance_id != trace.covariance_id {
+            return Err(CovarianceError::TraceCovarianceIdentityMismatch);
+        }
         if self.observation_process_id != trace.observation_process_id {
             return Err(CovarianceError::TraceProcessIdentityMismatch);
         }
@@ -577,6 +584,7 @@ impl ObservationCovarianceV1 {
 /// must verify the referenced manifests and event receipts.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ObservationProcessTraceV1 {
+    pub covariance_id: String,
     pub observation_process_id: String,
     pub sampling_policy_id: String,
     pub observation_operator_id: String,
@@ -586,13 +594,15 @@ pub struct ObservationProcessTraceV1 {
 
 impl ObservationProcessTraceV1 {
     pub fn new(
+        covariance_id: String,
         observation_process_id: String,
         sampling_policy_id: String,
         observation_operator_id: String,
         availability_cutoff_id: String,
         trace: ObservedSensorTrace,
     ) -> Result<Self, CovarianceError> {
-        if observation_process_id.trim().is_empty()
+        if covariance_id.trim().is_empty()
+            || observation_process_id.trim().is_empty()
             || sampling_policy_id.trim().is_empty()
             || observation_operator_id.trim().is_empty()
             || availability_cutoff_id.trim().is_empty()
@@ -600,6 +610,7 @@ impl ObservationProcessTraceV1 {
             return Err(CovarianceError::InvalidObservationIdentity);
         }
         Ok(Self {
+            covariance_id,
             observation_process_id,
             sampling_policy_id,
             observation_operator_id,
@@ -1389,7 +1400,7 @@ pub fn calibrate_model_family_adequacy_full_covariance(
             .experiment
             .models
             .iter()
-            .any(|model| model.network == hidden.network)
+            .any(|model| same_network_dynamics(&model.network, &hidden.network))
         {
             return Err(NoiseCalibrationError::HiddenTruthMatchesCandidate(
                 hidden.evaluator_id,
@@ -1639,6 +1650,7 @@ fn sample_bound_observation_trace(
         }
     }
     ObservationProcessTraceV1::new(
+        covariance.covariance_id.clone(),
         covariance.observation_process_id.clone(),
         covariance.sampling_policy_id.clone(),
         covariance.observation_operator_id.clone(),
@@ -1650,6 +1662,16 @@ fn sample_bound_observation_trace(
         },
     )
     .map_err(NoiseCalibrationError::Covariance)
+}
+
+fn same_network_dynamics(
+    left: &crate::network::NetworkScenario,
+    right: &crate::network::NetworkScenario,
+) -> bool {
+    left.capacities == right.capacities
+        && left.initial == right.initial
+        && left.edges == right.edges
+        && left.horizon == right.horizon
 }
 
 fn predict_hidden_network(
@@ -2181,6 +2203,7 @@ mod tests {
         )
         .unwrap();
         let matching = ObservationProcessTraceV1::new(
+            "covariance-sha256:fixture".to_owned(),
             "noise-process:ar1-rho-0.8".to_owned(),
             "sampling-policy:two-evenly-spaced-times".to_owned(),
             "operator:scalar-node-sensor".to_owned(),
@@ -2216,6 +2239,15 @@ mod tests {
         assert_eq!(
             binding.validate_trace(&shifted),
             Err(CovarianceError::TraceTimeScheduleMismatch)
+        );
+
+        let changed_covariance = ObservationProcessTraceV1 {
+            covariance_id: "other-covariance".to_owned(),
+            ..matching.clone()
+        };
+        assert_eq!(
+            binding.validate_trace(&changed_covariance),
+            Err(CovarianceError::TraceCovarianceIdentityMismatch)
         );
 
         let changed_process = ObservationProcessTraceV1 {
@@ -2354,6 +2386,7 @@ mod tests {
         values[0][0] += 1.0;
         values[1][0] -= 0.2;
         let trace = ObservationProcessTraceV1::new(
+            "covariance:ar1-fixture".to_owned(),
             "process:gaussian-ar1-rho-0.8".to_owned(),
             "sampling:two-times".to_owned(),
             "operator:node-0-sensor".to_owned(),
