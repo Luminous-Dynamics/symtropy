@@ -2642,4 +2642,297 @@ mod tests {
         assert_eq!(ledger.event_count(), 0);
     }
 
+
+    fn publish_exclusive_resource_catalog(ledger: &mut SiteStateLedger) {
+        let catalog = event(
+            "event-resource-catalog",
+            ledger.last_sequence() + 1,
+            ledger.last_event_sha256().map(str::to_owned),
+            '2',
+            "resource-authority",
+            SiteActorRole::SiteResourceAuthority,
+            SiteEventPayload::ResourceCatalogPublished {
+                catalog_sha256: digest('b'),
+                resources: vec![SiteResourceDefinition {
+                    resource_id: "crane-zone-1".into(),
+                    definition_sha256: digest('c'),
+                }],
+            },
+        );
+        ledger.apply(catalog).unwrap();
+    }
+
+    fn reservation_for(
+        ledger: &SiteStateLedger,
+        reservation_id: &str,
+        start_tick: u64,
+        end_tick: u64,
+        committed_at_tick: u64,
+        checked_at_tick: u64,
+        lease_valid_until_tick: u64,
+    ) -> SpaceTimeReservation {
+        SpaceTimeReservation {
+            reservation_id: reservation_id.into(),
+            resource_catalog_sha256: digest('b'),
+            resource_claim_manifest_sha256: digest('d'),
+            claims: vec![ExclusiveResourceClaim {
+                resource_id: "crane-zone-1".into(),
+                definition_sha256: digest('c'),
+                start_tick,
+                end_tick,
+            }],
+            package_sha256: digest('a'),
+            design_revision_sha256: digest('b'),
+            entity_id: "point-1".into(),
+            robot_id: "robot-01".into(),
+            envelope_sha256: digest('e'),
+            readiness_receipt_sha256: digest('f'),
+            occupancy_assessment_receipt_sha256: digest('8'),
+            occupancy_engine_build_sha256: digest('9'),
+            clearance_policy_sha256: digest('7'),
+            site_snapshot_sha256: digest('6'),
+            site_ledger_sequence: ledger.last_sequence(),
+            site_ledger_event_sha256: ledger.last_event_sha256().unwrap().to_owned(),
+            site_clock_domain_id: "site-clock-1".into(),
+            checked_at_tick,
+            valid_until_tick: 500,
+            committed_at_tick,
+            start_tick,
+            end_tick,
+            lease_valid_until_tick,
+        }
+    }
+
+    fn commit_reservation_event(
+        ledger: &mut SiteStateLedger,
+        reservation: SpaceTimeReservation,
+        event_id: &str,
+        event_digest: char,
+    ) -> Result<SiteApplyOutcome, SiteLedgerError> {
+        ledger.apply(event(
+            event_id,
+            ledger.last_sequence() + 1,
+            ledger.last_event_sha256().map(str::to_owned),
+            event_digest,
+            "dispatch-coordinator",
+            SiteActorRole::DispatchCoordinator,
+            SiteEventPayload::SpaceTimeReservationCommitted { reservation },
+        ))
+    }
+
+    #[test]
+    fn overlapping_exclusive_resource_claims_are_rejected_atomically() {
+        let mut ledger = SiteStateLedger::new();
+        publish_package(&mut ledger, package('a', &["point-1"]));
+        publish_exclusive_resource_catalog(&mut ledger);
+        let first = reservation_for(&ledger, "reservation-1", 130, 300, 120, 100, 450);
+        commit_reservation_event(&mut ledger, first, "event-reservation-1", '3').unwrap();
+        let before_sequence = ledger.last_sequence();
+        let before_event_count = ledger.event_count();
+
+        let overlapping =
+            reservation_for(&ledger, "reservation-2", 250, 350, 200, 160, 450);
+        assert_eq!(
+            commit_reservation_event(
+                &mut ledger,
+                overlapping,
+                "event-reservation-2",
+                '4'
+            ),
+            Err(SiteLedgerError::SpaceTimeReservationConflict {
+                resource_id: "crane-zone-1".into(),
+                conflicting_reservation_id: "reservation-1".into(),
+            })
+        );
+        assert_eq!(ledger.last_sequence(), before_sequence);
+        assert_eq!(ledger.event_count(), before_event_count);
+        assert!(ledger
+            .space_time_reservation("reservation-1")
+            .unwrap()
+            .is_active());
+        assert!(ledger.space_time_reservation("reservation-2").is_none());
+    }
+
+    #[test]
+    fn adjacent_half_open_resource_claims_do_not_conflict() {
+        let mut ledger = SiteStateLedger::new();
+        publish_package(&mut ledger, package('a', &["point-1"]));
+        publish_exclusive_resource_catalog(&mut ledger);
+        commit_reservation_event(
+            &mut ledger,
+            reservation_for(&ledger, "reservation-1", 130, 300, 120, 100, 450),
+            "event-reservation-1",
+            '3',
+        )
+        .unwrap();
+        commit_reservation_event(
+            &mut ledger,
+            reservation_for(&ledger, "reservation-2", 300, 400, 200, 160, 450),
+            "event-reservation-2",
+            '4',
+        )
+        .unwrap();
+        assert_eq!(ledger.active_space_time_reservations().count(), 2);
+    }
+
+    #[test]
+    fn lease_expiry_does_not_automatically_release_physical_resource() {
+        let mut ledger = SiteStateLedger::new();
+        publish_package(&mut ledger, package('a', &["point-1"]));
+        publish_exclusive_resource_catalog(&mut ledger);
+        commit_reservation_event(
+            &mut ledger,
+            reservation_for(&ledger, "reservation-1", 130, 300, 120, 100, 150),
+            "event-reservation-1",
+            '3',
+        )
+        .unwrap();
+        // The lease has elapsed by tick 200, but no independent clearance
+        // event exists. The reservation remains active and continues to block.
+        assert_eq!(
+            ledger
+                .space_time_reservation("reservation-1")
+                .unwrap()
+                .reservation
+                .lease_valid_until_tick,
+            150
+        );
+        assert_eq!(ledger.active_space_time_reservations().count(), 1);
+        assert!(matches!(
+            commit_reservation_event(
+                &mut ledger,
+                reservation_for(&ledger, "reservation-2", 200, 250, 200, 160, 450),
+                "event-reservation-2",
+                '4'
+            ),
+            Err(SiteLedgerError::SpaceTimeReservationConflict { .. })
+        ));
+    }
+
+    #[test]
+    fn referee_clearance_releases_a_reservation_and_replay_preserves_projection() {
+        let mut ledger = SiteStateLedger::new();
+        publish_package(&mut ledger, package('a', &["point-1"]));
+        publish_exclusive_resource_catalog(&mut ledger);
+        commit_reservation_event(
+            &mut ledger,
+            reservation_for(&ledger, "reservation-1", 130, 300, 120, 100, 450),
+            "event-reservation-1",
+            '3',
+        )
+        .unwrap();
+        let release = event(
+            "event-reservation-release",
+            ledger.last_sequence() + 1,
+            ledger.last_event_sha256().map(str::to_owned),
+            '4',
+            "referee-01",
+            SiteActorRole::Referee,
+            SiteEventPayload::SpaceTimeReservationReleased {
+                reservation_id: "reservation-1".into(),
+                site_clock_domain_id: "site-clock-1".into(),
+                cleared_at_tick: 220,
+                site_snapshot_sha256: digest('5'),
+                site_ledger_sequence: ledger.last_sequence(),
+                site_ledger_event_sha256: ledger.last_event_sha256().unwrap().to_owned(),
+                release_receipt_sha256: digest('6'),
+            },
+        );
+        ledger.apply(release).unwrap();
+        let released = ledger.space_time_reservation("reservation-1").unwrap();
+        assert!(!released.is_active());
+        assert_eq!(released.released_at_tick, Some(220));
+
+        let replay = SiteStateLedger::replay(ledger.event_history()).unwrap();
+        assert_eq!(replay, ledger);
+        assert_eq!(replay.active_space_time_reservations().count(), 0);
+
+        // A fresh reservation can use the cleared resource.
+        commit_reservation_event(
+            &mut ledger,
+            reservation_for(&ledger, "reservation-2", 240, 300, 230, 225, 450),
+            "event-reservation-2",
+            '7',
+        )
+        .unwrap();
+        assert_eq!(ledger.active_space_time_reservations().count(), 1);
+    }
+
+    #[test]
+    fn resource_catalog_cannot_remove_a_resource_held_by_an_active_reservation() {
+        let mut ledger = SiteStateLedger::new();
+        publish_package(&mut ledger, package('a', &["point-1"]));
+        publish_exclusive_resource_catalog(&mut ledger);
+        commit_reservation_event(
+            &mut ledger,
+            reservation_for(&ledger, "reservation-1", 130, 300, 120, 100, 450),
+            "event-reservation-1",
+            '3',
+        )
+        .unwrap();
+        let before_sequence = ledger.last_sequence();
+        let changed_catalog = event(
+            "event-resource-catalog-v2",
+            ledger.last_sequence() + 1,
+            ledger.last_event_sha256().map(str::to_owned),
+            '4',
+            "resource-authority",
+            SiteActorRole::SiteResourceAuthority,
+            SiteEventPayload::ResourceCatalogPublished {
+                catalog_sha256: digest('5'),
+                resources: vec![SiteResourceDefinition {
+                    resource_id: "different-zone".into(),
+                    definition_sha256: digest('6'),
+                }],
+            },
+        );
+        assert_eq!(
+            ledger.apply(changed_catalog),
+            Err(SiteLedgerError::ResourceCatalogWouldOrphanReservation(
+                "crane-zone-1".into()
+            ))
+        );
+        assert_eq!(ledger.last_sequence(), before_sequence);
+        assert_eq!(ledger.resource_definition_sha256("crane-zone-1"), Some(digest('c').as_str()));
+    }
+
+    #[test]
+    fn stale_release_snapshot_and_wrong_release_role_fail_closed() {
+        let mut ledger = SiteStateLedger::new();
+        publish_package(&mut ledger, package('a', &["point-1"]));
+        publish_exclusive_resource_catalog(&mut ledger);
+        commit_reservation_event(
+            &mut ledger,
+            reservation_for(&ledger, "reservation-1", 130, 300, 120, 100, 450),
+            "event-reservation-1",
+            '3',
+        )
+        .unwrap();
+        let stale = event(
+            "event-release-stale",
+            ledger.last_sequence() + 1,
+            ledger.last_event_sha256().map(str::to_owned),
+            '4',
+            "referee-01",
+            SiteActorRole::Referee,
+            SiteEventPayload::SpaceTimeReservationReleased {
+                reservation_id: "reservation-1".into(),
+                site_clock_domain_id: "site-clock-1".into(),
+                cleared_at_tick: 220,
+                site_snapshot_sha256: digest('5'),
+                site_ledger_sequence: 1,
+                site_ledger_event_sha256: digest('1'),
+                release_receipt_sha256: digest('6'),
+            },
+        );
+        assert_eq!(
+            ledger.apply(stale),
+            Err(SiteLedgerError::ReservationSnapshotMismatch)
+        );
+        assert!(ledger
+            .space_time_reservation("reservation-1")
+            .unwrap()
+            .is_active());
+    }
+
 }
