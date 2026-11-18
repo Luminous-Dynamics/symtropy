@@ -88,7 +88,14 @@ pub struct SimilarityReport {
     pub claim_ceiling: String,
 }
 
-fn require_positive(value: f64, name: &str) -> Result<(), String> {
+fn require_nonnegative(value: f64, name: &str) -> Result<(), String> {
+    if !value.is_finite() || value < 0.0 {
+        return Err(format!("{name} must be finite and non-negative"));
+    }
+    Ok(())
+}
+
+fn require_strictly_positive(value: f64, name: &str) -> Result<(), String> {
     if !value.is_finite() || value <= 0.0 {
         return Err(format!("{name} must be finite and strictly positive"));
     }
@@ -129,10 +136,38 @@ fn positive_ratio_result(
         });
     };
 
-    require_positive(target, &format!("target {coordinate}"))?;
-    require_positive(candidate, &format!("candidate {coordinate}"))?;
+    require_nonnegative(target, &format!("target {coordinate}"))?;
+    require_nonnegative(candidate, &format!("candidate {coordinate}"))?;
+
+    if target == 0.0 || candidate == 0.0 {
+        let both_zero = target == 0.0 && candidate == 0.0;
+        return Ok(CoordinateResult {
+            coordinate: coordinate.to_owned(),
+            target_value: Some(target),
+            candidate_value: Some(candidate),
+            deviation: if both_zero { Some(1.0) } else { None },
+            declared_tolerance: Some(factor_tolerance),
+            status: if both_zero {
+                CoordinateStatus::WithinTolerance
+            } else {
+                CoordinateStatus::OutsideTolerance
+            },
+            interpretation: if both_zero {
+                "both profiles report zero for this coordinate".to_owned()
+            } else {
+                "one profile reports zero while the other is non-zero".to_owned()
+            },
+        });
+    }
+
     let ratio = candidate / target;
+    if !ratio.is_finite() || ratio <= 0.0 {
+        return Err(format!("{coordinate} ratio is outside finite numeric range"));
+    }
     let symmetric_factor = ratio.max(1.0 / ratio);
+    if !symmetric_factor.is_finite() {
+        return Err(format!("{coordinate} symmetric ratio is outside finite numeric range"));
+    }
     let status = if symmetric_factor <= factor_tolerance {
         CoordinateStatus::WithinTolerance
     } else {
@@ -145,7 +180,7 @@ fn positive_ratio_result(
         candidate_value: Some(candidate),
         deviation: Some(symmetric_factor),
         declared_tolerance: Some(factor_tolerance),
-        interpretation: match status {
+        interpretation: match &status {
             CoordinateStatus::WithinTolerance => {
                 "symmetric multiplicative deviation is within the declared factor".to_owned()
             }
@@ -413,6 +448,25 @@ mod tests {
     }
 
     #[test]
+    fn zero_cohesion_matches_only_zero_cohesion() {
+        let mut value = input();
+        value.target.numeric.cohesion_to_particle_weight = Some(0.0);
+        value.candidate.numeric.cohesion_to_particle_weight = Some(0.0);
+        let same = compare(&value).expect("zero is a valid measured limit");
+        assert_eq!(
+            same.coordinates[1].status,
+            CoordinateStatus::WithinTolerance
+        );
+
+        value.candidate.numeric.cohesion_to_particle_weight = Some(0.01);
+        let mismatch = compare(&value).expect("zero/non-zero mismatch is classifiable");
+        assert_eq!(
+            mismatch.coordinates[1].status,
+            CoordinateStatus::OutsideTolerance
+        );
+    }
+
+    #[test]
     fn unknown_cohesion_returns_indeterminate_not_a_pass() {
         let mut value = input();
         value.candidate.numeric.cohesion_to_particle_weight = None;
@@ -450,7 +504,14 @@ mod tests {
 
         let mut value = input();
         value.candidate.numeric.chamber_pressure_pa = Some(0.0);
-        assert!(compare(&value).is_err());
+        // Zero is finite and non-negative, but a chamber pressure ratio
+        // against a positive reference is deliberately treated as outside
+        // rather than divided by zero.
+        let report = compare(&value).expect("zero/non-zero pressure is classifiable");
+        assert_eq!(
+            report.coordinates[7].status,
+            CoordinateStatus::OutsideTolerance
+        );
     }
 
     #[test]
