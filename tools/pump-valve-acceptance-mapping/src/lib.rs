@@ -11,8 +11,8 @@ pub const PROFILES: &str = include_str!("../fixtures/profiles-v0.1.tsv");
 pub const SCENARIOS: &str = include_str!("../fixtures/scenarios-v0.1.tsv");
 pub const EXPECTED: &str = include_str!("../fixtures/expected-v0.1.tsv");
 
-const PROFILE_HEADER: &str = "profile_id\tstandard_id\tedition\tpublication_state\tproduct_families\ttest_families\tseat_families\tfluid_scope\tfacility_scope\trequires_product_standard\tallow_other_family_by_agreement\trequires_agreement_for_fittings\trequires_acceptance_grade\texcludes_pressure_test_safety\tsource_ref";
-const SCENARIO_HEADER: &str = "scenario_id\tprofile_id\tproduct_family\ttest_family\tseat_family\tfluid_profile\tfacility_profile\tincludes_fittings\tfitting_agreement\tproduct_standard_link\tpurchaser_agreement\tacceptance_grade\tevidence_status\tclaim_kind";
+const PROFILE_HEADER: &str = "profile_id\tstandard_id\tedition\tpublication_state\tproduct_families\ttest_families\tseat_families\tfluid_scope\tfacility_scope\trequires_product_standard\tallow_other_family_by_agreement\trequires_agreement_for_fittings\trequires_acceptance_grade\texcludes_pressure_test_safety\tsource_ref\tcatalog_snapshot_date";
+const SCENARIO_HEADER: &str = "scenario_id\tprofile_id\tproduct_family\ttest_family\tseat_family\tfluid_profile\tfacility_profile\tincludes_fittings\tfitting_agreement\tproduct_standard_link\tpurchaser_agreement\tacceptance_grade\tevidence_status\tclaim_kind\tfitting_agreement_ref\tproduct_standard_ref\tpurchaser_agreement_ref\tassessment_as_of";
 const EXPECTED_HEADER: &str = "scenario_id\texpected_disposition";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -32,6 +32,7 @@ pub struct StandardProfile {
     pub requires_acceptance_grade: bool,
     pub excludes_pressure_test_safety: bool,
     pub source_ref: String,
+    pub catalog_snapshot_date: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -50,6 +51,10 @@ pub struct Scenario {
     pub acceptance_grade: String,
     pub evidence_status: String,
     pub claim_kind: String,
+    pub fitting_agreement_ref: String,
+    pub product_standard_ref: String,
+    pub purchaser_agreement_ref: String,
+    pub assessment_as_of: String,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -109,6 +114,44 @@ fn valid_ref(value: &str) -> bool {
         })
 }
 
+
+fn valid_date(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    if bytes.len() != 10
+        || bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || !bytes
+            .iter()
+            .enumerate()
+            .all(|(index, byte)| index == 4 || index == 7 || byte.is_ascii_digit())
+    {
+        return false;
+    }
+
+    let Ok(year) = value[0..4].parse::<u32>() else {
+        return false;
+    };
+    let Ok(month) = value[5..7].parse::<u32>() else {
+        return false;
+    };
+    let Ok(day) = value[8..10].parse::<u32>() else {
+        return false;
+    };
+    if year == 0 || !(1..=12).contains(&month) {
+        return false;
+    }
+
+    let leap_year = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let days_in_month = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap_year => 29,
+        2 => 28,
+        _ => return false,
+    };
+    (1..=days_in_month).contains(&day)
+}
+
 fn parse_bool(value: &str, source: &str, line_no: usize) -> Result<bool, String> {
     match value {
         "YES" => Ok(true),
@@ -160,7 +203,7 @@ pub fn parse_profiles(input: &str) -> Result<Vec<StandardProfile>, String> {
         if line.is_empty() {
             continue;
         }
-        let row = split_row(line, 15, "profiles", index + 2)?;
+        let row = split_row(line, 16, "profiles", index + 2)?;
         for (label, value) in [
             ("profile_id", row[0]),
             ("standard_id", row[1]),
@@ -174,7 +217,7 @@ pub fn parse_profiles(input: &str) -> Result<Vec<StandardProfile>, String> {
                 return Err(format!("profiles:{}: invalid {label}", index + 2));
             }
         }
-        if row[1].trim().is_empty() || !row[14].starts_with("https://") {
+        if row[1].trim().is_empty() || !row[14].starts_with("https://") || !valid_date(row[15]) {
             return Err(format!("profiles:{}: invalid standard/source reference", index + 2));
         }
         if !matches!(
@@ -215,6 +258,7 @@ pub fn parse_profiles(input: &str) -> Result<Vec<StandardProfile>, String> {
             requires_acceptance_grade: parse_bool(row[12], "profiles", index + 2)?,
             excludes_pressure_test_safety: parse_bool(row[13], "profiles", index + 2)?,
             source_ref: row[14].to_owned(),
+            catalog_snapshot_date: row[15].to_owned(),
         });
     }
     if profiles.is_empty() {
@@ -237,7 +281,7 @@ pub fn parse_scenarios(input: &str) -> Result<Vec<Scenario>, String> {
         if line.is_empty() {
             continue;
         }
-        let row = split_row(line, 14, "scenarios", index + 2)?;
+        let row = split_row(line, 18, "scenarios", index + 2)?;
         for (label, value) in [
             ("scenario_id", row[0]),
             ("profile_id", row[1]),
@@ -250,6 +294,9 @@ pub fn parse_scenarios(input: &str) -> Result<Vec<Scenario>, String> {
             ("acceptance_grade", row[11]),
             ("evidence_status", row[12]),
             ("claim_kind", row[13]),
+            ("fitting_agreement_ref", row[14]),
+            ("product_standard_ref", row[15]),
+            ("purchaser_agreement_ref", row[16]),
         ] {
             if !valid_ref(value) && value != "-" {
                 return Err(format!("scenarios:{}: invalid {label}", index + 2));
@@ -261,6 +308,9 @@ pub fn parse_scenarios(input: &str) -> Result<Vec<Scenario>, String> {
                 index + 2,
                 row[0]
             ));
+        }
+        if !valid_date(row[17]) {
+            return Err(format!("scenarios:{}: invalid assessment_as_of date", index + 2));
         }
         if !matches!(row[8], "YES" | "NO" | "NA") {
             return Err(format!(
@@ -305,6 +355,10 @@ pub fn parse_scenarios(input: &str) -> Result<Vec<Scenario>, String> {
             acceptance_grade: row[11].to_owned(),
             evidence_status: row[12].to_owned(),
             claim_kind: row[13].to_owned(),
+            fitting_agreement_ref: row[14].to_owned(),
+            product_standard_ref: row[15].to_owned(),
+            purchaser_agreement_ref: row[16].to_owned(),
+            assessment_as_of: row[17].to_owned(),
         });
     }
     if scenarios.is_empty() {
@@ -408,6 +462,34 @@ fn evaluate_one(profile: &StandardProfile, scenario: &Scenario) -> (Disposition,
             "required evidence is missing or stale",
         );
     }
+    if scenario.assessment_as_of != profile.catalog_snapshot_date {
+        return (
+            Disposition::EvidenceIncomplete,
+            "current catalogue snapshot does not support the requested historical assessment date",
+        );
+    }
+    if scenario.purchaser_agreement != valid_ref(&scenario.purchaser_agreement_ref) {
+        return (
+            Disposition::ProfileIncomplete,
+            "purchaser agreement declaration is not bound to an exact agreement reference",
+        );
+    }
+    if (scenario.fitting_agreement == "YES")
+        != valid_ref(&scenario.fitting_agreement_ref)
+    {
+        return (
+            Disposition::ProfileIncomplete,
+            "fitting agreement declaration is not bound to an exact agreement reference",
+        );
+    }
+    if (scenario.product_standard_link == "REFERENCED")
+        != valid_ref(&scenario.product_standard_ref)
+    {
+        return (
+            Disposition::ProfileIncomplete,
+            "product-standard reference flag is not bound to an exact standard reference",
+        );
+    }
 
     let family_is_listed = profile
         .product_families
@@ -503,7 +585,8 @@ fn evaluate_one(profile: &StandardProfile, scenario: &Scenario) -> (Disposition,
     }
 
     if profile.requires_product_standard
-        && scenario.product_standard_link != "REFERENCED"
+        && (scenario.product_standard_link != "REFERENCED"
+            || !valid_ref(&scenario.product_standard_ref))
     {
         return (
             Disposition::ProfileIncomplete,
