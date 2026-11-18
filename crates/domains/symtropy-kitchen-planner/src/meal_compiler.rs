@@ -386,7 +386,10 @@ pub enum MealCompilationIssueCodeV1 {
     UnknownQuantity,
     InvalidFactTimeWindow,
     StaleFact,
+    FactIngredientMismatch,
     InvalidAllergenFactScope,
+    DuplicateUncertainty,
+    PlanningBlockerUnresolved,
     DependencyCycle,
     ProposalNotAccepted,
     ProposalRejected,
@@ -532,6 +535,7 @@ fn disposition(issues: &[MealCompilationIssueV1]) -> MealCompilationDispositionV
                 | MealCompilationIssueCodeV1::QuantityStateMismatch
                 | MealCompilationIssueCodeV1::InvalidFactTimeWindow
                 | MealCompilationIssueCodeV1::InvalidAllergenFactScope
+                | MealCompilationIssueCodeV1::FactIngredientMismatch
                 | MealCompilationIssueCodeV1::UnknownFactIngredient
                 | MealCompilationIssueCodeV1::TaskOutputLineageIncomplete
                 | MealCompilationIssueCodeV1::DependencyCycle
@@ -824,6 +828,28 @@ fn validate_proposal(
         }
     }
 
+    let mut uncertainty_fields = BTreeSet::new();
+    for uncertainty in &proposal.uncertainties {
+        if !nonempty(&uncertainty.field_path) || !nonempty(&uncertainty.reason)
+            || !uncertainty_fields.insert(uncertainty.field_path.as_str())
+        {
+            add_issue(
+                issues,
+                MealCompilationIssueCodeV1::DuplicateUncertainty,
+                Some(&uncertainty.field_path),
+                "uncertainty field paths and reasons must be non-empty and each field path may appear once",
+            );
+        }
+        if uncertainty.impact == UncertaintyImpactV1::PlanningBlocker {
+            add_issue(
+                issues,
+                MealCompilationIssueCodeV1::PlanningBlockerUnresolved,
+                Some(&uncertainty.field_path),
+                "an explicitly declared planning-blocking uncertainty must be resolved before compilation",
+            );
+        }
+    }
+
     let mut fact_ids = BTreeSet::new();
     let mut facts = BTreeMap::new();
     for fact in &proposal.facts {
@@ -929,7 +955,16 @@ fn validate_proposal(
 
     for ingredient in &proposal.ingredients {
         for fact_ref in &ingredient.fact_refs {
-            if !facts.contains_key(fact_ref.as_str()) {
+            if let Some(fact) = facts.get(fact_ref.as_str()) {
+                if fact.ingredient_id.as_deref().is_some_and(|id| id != ingredient.ingredient_id) {
+                    add_issue(
+                        issues,
+                        MealCompilationIssueCodeV1::FactIngredientMismatch,
+                        Some(fact_ref),
+                        "an ingredient cannot consume a product/lot fact bound to a different ingredient",
+                    );
+                }
+            } else {
                 add_issue(
                     issues,
                     MealCompilationIssueCodeV1::UnknownFactReference,
@@ -941,7 +976,18 @@ fn validate_proposal(
     }
     for task in &proposal.tasks {
         for fact_ref in &task.fact_refs {
-            if !facts.contains_key(fact_ref.as_str()) {
+            if let Some(fact) = facts.get(fact_ref.as_str()) {
+                if fact.ingredient_id.as_deref().is_some_and(|id| {
+                    !task.ingredient_refs.iter().any(|ingredient_ref| ingredient_ref == id)
+                }) {
+                    add_issue(
+                        issues,
+                        MealCompilationIssueCodeV1::FactIngredientMismatch,
+                        Some(fact_ref),
+                        "task evidence may reference only facts attached to one of its declared ingredients",
+                    );
+                }
+            } else {
                 add_issue(
                     issues,
                     MealCompilationIssueCodeV1::UnknownFactReference,
