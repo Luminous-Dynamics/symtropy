@@ -91,7 +91,9 @@
           "time_window_start_utc",
           "time_window_end_utc",
           "raw_record_digest",
-          "validity"
+          "validity",
+          "calibration_valid_from_utc",
+          "calibration_valid_until_utc"
         ],
         "properties": {
           "channel_id": {
@@ -147,6 +149,14 @@
               "out_of_range",
               "unobservable"
             ]
+          },
+          "calibration_valid_from_utc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "calibration_valid_until_utc": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }

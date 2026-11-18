@@ -80,6 +80,17 @@ jobs:
             docs/research/jw-water-intake-t1/watersearch_suburb_history_response.schema.v0.1.json \
             docs/research/jw-water-intake-t1/capture_manifest.schema.v0.1.json \
             artifacts/water-service-t0/jw-water-intake-t1-receipt.json
+      - name: Evaluate paired WaterLoop matched-service T1 contract
+        id: evaluate_matched_service_t1
+        env:
+          WATERLOOP_MATCHED_SERVICE_T1_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin waterloop-matched-service-t1 -- \
+            research/water-service-engineering/waterloop-matched-service-t1-input.v0.1.json \
+            research/water-service-engineering/waterloop-matched-service-t1-input.schema.v0.1.json \
+            research/water-service-engineering/waterloop-matched-service-t1-oracle.v0.1.json \
+            artifacts/water-service-t0/waterloop-matched-service-t1-receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -109,6 +120,12 @@ jobs:
             research/water-service-engineering/waterloop-matched-service-plan.v0.1.json
             research/water-service-engineering/waterloop-matched-service-plan.schema.v0.1.json
             research/water-service-engineering/waterloop-matched-service-run.schema.v0.1.json
+            research/water-service-engineering/WATERLOOP_MATCHED_SERVICE_T1_EVALUATOR_PROTOCOL_V0_1.md
+            research/water-service-engineering/waterloop-matched-service-t1-input.v0.1.json
+            research/water-service-engineering/waterloop-matched-service-t1-input.schema.v0.1.json
+            research/water-service-engineering/waterloop-matched-service-t1-oracle.v0.1.json
+            research/water-service-engineering/waterloop-matched-service-t1-oracle.schema.v0.1.json
+            artifacts/water-service-t0/waterloop-matched-service-t1-receipt.json
           if-no-files-found: warn
       - name: Set up Python for matched-service protocol validation
         uses: actions/setup-python@v5
@@ -122,7 +139,8 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          from jsonschema import Draft202012Validator
+          from datetime import datetime
+          from jsonschema import Draft202012Validator, FormatChecker
 
           root = Path("research/water-service-engineering")
           plan_schema = json.loads((root / "waterloop-matched-service-plan.schema.v0.1.json").read_text())
@@ -131,7 +149,7 @@ jobs:
           for name, schema in [("plan", plan_schema), ("run", run_schema)]:
               Draft202012Validator.check_schema(schema)
           errors = sorted(
-              Draft202012Validator(plan_schema).iter_errors(plan),
+              Draft202012Validator(plan_schema, format_checker=FormatChecker()).iter_errors(plan),
               key=lambda error: (list(map(str, error.absolute_path)), error.message),
           )
           if errors:
@@ -156,6 +174,111 @@ jobs:
           if len(plan["arms"]) != 2 or {arm["role"] for arm in plan["arms"]} != {"control", "treatment"}:
               raise SystemExit("WATERLOOP_MATCHED_SERVICE_CONTROL_TREATMENT_ARMS_INCOMPLETE")
           print("WATERLOOP_MATCHED_SERVICE_SCHEMA_PASS: design-only; 12 channels; no physical or savings claims")
+
+          t1_input_schema = json.loads((root / "waterloop-matched-service-t1-input.schema.v0.1.json").read_text())
+          t1_input = json.loads((root / "waterloop-matched-service-t1-input.v0.1.json").read_text())
+          t1_oracle_schema = json.loads((root / "waterloop-matched-service-t1-oracle.schema.v0.1.json").read_text())
+          t1_oracle = json.loads((root / "waterloop-matched-service-t1-oracle.v0.1.json").read_text())
+          for name, schema in [("t1_input", t1_input_schema), ("t1_oracle", t1_oracle_schema)]:
+              Draft202012Validator.check_schema(schema)
+          for name, schema, document in [
+              ("t1_input", t1_input_schema, t1_input),
+              ("t1_oracle", t1_oracle_schema, t1_oracle),
+          ]:
+              errors = sorted(
+                  Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(document),
+                  key=lambda error: (list(map(str, error.absolute_path)), error.message),
+              )
+              if errors:
+                  for error in errors:
+                      pointer = "/" + "/".join(map(str, error.absolute_path))
+                      print(f"WATERLOOP_MATCHED_SERVICE_T1_{name.upper()}_SCHEMA_FAIL: {pointer}: {error.message}")
+                  raise SystemExit(1)
+          if t1_input["evidence_class"] != "synthetic_only" or t1_input["minimum_paired_blocks"] != 6:
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_CLAIM_CEILING_FAIL")
+          if t1_input["frozen_plan_blob_sha"] != "3b64690fa02ac47b3bc430a22b1392c65583bba7":
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_PLAN_IDENTITY_FAIL")
+          if len(t1_input["cases"]) != 19 or len(t1_oracle["cases"]) != 19:
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_CASE_COUNT_FAIL")
+          if {x["case_id"] for x in t1_input["cases"]} != {x["case_id"] for x in t1_oracle["cases"]}:
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_ORACLE_CASE_SET_FAIL")
+          if any(len(case["blocks"]) < 6 for case in t1_input["cases"]):
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_PAIRED_BLOCK_FLOOR_FAIL")
+          if any(case["physical_qualification_status"] != "NotRun" or case["statistical_inference_status"] != "NotRun" or case["claim_eligibility"] != "NotEligible" for case in t1_oracle["cases"]):
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_CLAIM_GUARD_BREACH")
+          if any(case["energy_observed_block_count"] > case["paired_block_count"] for case in t1_oracle["cases"]):
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_ENERGY_COVERAGE_BREACH")
+          if any(case["control_energy_observed_block_count"] > case["paired_block_count"] or case["net_energy_observed_block_count"] > case["paired_block_count"] for case in t1_oracle["cases"]):
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_CONTROL_ENERGY_COVERAGE_BREACH")
+          def instant(value):
+              return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+          expired_calibration_records = []
+          pressure_mismatch_blocks = []
+          flow_mismatch_blocks = []
+          duration_mismatch_blocks = []
+          for case in t1_input["cases"]:
+              if case["max_service_pressure_difference_kpa"] < 0 or case["max_service_flow_difference_lpm"] < 0:
+                  raise SystemExit(f"WATERLOOP_MATCHED_SERVICE_T1_NEGATIVE_TOLERANCE: {case['case_id']}")
+              for block in case["blocks"]:
+                  runs = {}
+                  for arm_name in ["control", "treatment"]:
+                      run = block[arm_name]
+                      if run is None:
+                          continue
+                      runs[arm_name] = run
+                      run_start, run_end = instant(run["start_utc"]), instant(run["end_utc"])
+                      if run_start >= run_end:
+                          raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_INVALID_RUN_WINDOW")
+                      for key, value in run.items():
+                          if isinstance(value, dict) and "raw_record_digest" in value:
+                              if value.get("time_window_start_utc") != run["start_utc"] or value.get("time_window_end_utc") != run["end_utc"]:
+                                  raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_MEASUREMENT_WINDOW_BINDING_FAIL")
+                              cal_start = value.get("calibration_valid_from_utc")
+                              cal_end = value.get("calibration_valid_until_utc")
+                              if not cal_start or not cal_end:
+                                  raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_CALIBRATION_WINDOW_MISSING")
+                              if instant(cal_start) > run_start or instant(cal_end) < run_end:
+                                  expired_calibration_records.append((case["case_id"], block["block_id"], arm_name, key))
+                      if not isinstance(run.get("energy"), dict):
+                          raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_ENERGY_RECORD_MISSING")
+                  control = runs.get("control")
+                  treatment = runs.get("treatment")
+                  if control is not None and treatment is not None:
+                      c_duration = instant(control["end_utc"]) - instant(control["start_utc"])
+                      t_duration = instant(treatment["end_utc"]) - instant(treatment["start_utc"])
+                      if c_duration != t_duration:
+                          duration_mismatch_blocks.append((case["case_id"], block["block_id"]))
+                      pressure_diff = max(
+                          abs(control["service_pressure_min_kpa"] - treatment["service_pressure_min_kpa"]),
+                          abs(control["service_pressure_max_kpa"] - treatment["service_pressure_max_kpa"]),
+                      )
+                      flow_diff = max(
+                          abs(control["service_flow_min_lpm"] - treatment["service_flow_min_lpm"]),
+                          abs(control["service_flow_max_lpm"] - treatment["service_flow_max_lpm"]),
+                      )
+                      if pressure_diff > case["max_service_pressure_difference_kpa"]:
+                          pressure_mismatch_blocks.append((case["case_id"], block["block_id"]))
+                      if flow_diff > case["max_service_flow_difference_lpm"]:
+                          flow_mismatch_blocks.append((case["case_id"], block["block_id"]))
+                  quality = block["treatment"]["quality_release"]
+                  if quality is not None:
+                      for key in ["sample_set_digest", "independent_reviewer_ref", "method_revision_ref", "valid_from_utc", "valid_until_utc"]:
+                          if not quality.get(key):
+                              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_QUALITY_RELEASE_SCOPE_FAIL")
+                      if instant(quality["valid_from_utc"]) > instant(block["treatment"]["start_utc"]) or instant(quality["valid_until_utc"]) < instant(block["treatment"]["end_utc"]):
+                          if case["case_id"] != "MS-T1-015-expired-quality-release":
+                              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_UNDECLARED_EXPIRED_QUALITY_RELEASE")
+
+          if len(expired_calibration_records) != 1 or expired_calibration_records[0][0] != "MS-T1-016-expired-instrument-calibration":
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_CALIBRATION_NEGATIVE_CONTROL_SET_FAIL")
+          if len(pressure_mismatch_blocks) != 1 or pressure_mismatch_blocks[0][0] != "MS-T1-017-pressure-envelope-not-matched":
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_PRESSURE_MATCH_NEGATIVE_CONTROL_SET_FAIL")
+          if len(flow_mismatch_blocks) != 1 or flow_mismatch_blocks[0][0] != "MS-T1-018-flow-envelope-not-matched":
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_FLOW_MATCH_NEGATIVE_CONTROL_SET_FAIL")
+          if len(duration_mismatch_blocks) != 1 or duration_mismatch_blocks[0][0] != "MS-T1-019-run-duration-mismatch":
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_DURATION_NEGATIVE_CONTROL_SET_FAIL")
+          print("WATERLOOP_MATCHED_SERVICE_T1_SCHEMA_PASS: 19 cases; calibration validity; paired pressure/flow/duration; six blocks; synthetic-only")
           PY
       - name: Require an exact successful evaluator receipt
         if: always()
@@ -164,8 +287,10 @@ jobs:
           CASCADE_OUTCOME: ${{ steps.evaluate_cascade.outcome }}
           INTAKE_OUTCOME: ${{ steps.verify_intake_t1.outcome }}
           MATCHED_SERVICE_PLAN_OUTCOME: ${{ steps.validate_matched_service.outcome }}
+          MATCHED_SERVICE_T1_OUTCOME: ${{ steps.evaluate_matched_service_t1.outcome }}
         run: |
           test "$EVALUATE_OUTCOME" = "success"
           test "$CASCADE_OUTCOME" = "success"
           test "$INTAKE_OUTCOME" = "success"
           test "$MATCHED_SERVICE_PLAN_OUTCOME" = "success"
+          test "$MATCHED_SERVICE_T1_OUTCOME" = "success"

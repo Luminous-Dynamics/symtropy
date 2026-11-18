@@ -1,0 +1,532 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/waterloop-matched-service-t1-input.schema.v0.1.json",
+  "title": "WaterLoop matched-service T1 input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "frozen_plan_blob_sha",
+    "minimum_paired_blocks",
+    "cases"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "waterloop-matched-service-t1-input-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WATERLOOP-MATCHED-SERVICE-T1-EXECUTOR-001"
+    },
+    "evidence_class": {
+      "const": "synthetic_only"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "minimum_paired_blocks": {
+      "const": 6
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 19,
+      "maxItems": 19,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "use_profile_id",
+          "source_profile_id",
+          "max_demand_relative_difference_percent",
+          "service_envelope",
+          "uncertainty_expansion_factor",
+          "blocks",
+          "max_service_pressure_difference_kpa",
+          "max_service_flow_difference_lpm"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^MS-T1-[0-9]{3}-"
+          },
+          "use_profile_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_profile_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "max_demand_relative_difference_percent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10
+          },
+          "uncertainty_expansion_factor": {
+            "const": 2
+          },
+          "service_envelope": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "min_pressure_kpa",
+              "max_pressure_kpa",
+              "min_flow_lpm",
+              "max_flow_lpm"
+            ],
+            "properties": {
+              "min_pressure_kpa": {
+                "type": "number",
+                "minimum": 0
+              },
+              "max_pressure_kpa": {
+                "type": "number",
+                "minimum": 0
+              },
+              "min_flow_lpm": {
+                "type": "number",
+                "minimum": 0
+              },
+              "max_flow_lpm": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          },
+          "blocks": {
+            "type": "array",
+            "minItems": 6,
+            "maxItems": 12,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "block_id",
+                "recovered_allocation_id",
+                "demand_trace_digest",
+                "control",
+                "treatment"
+              ],
+              "properties": {
+                "block_id": {
+                  "type": "string"
+                },
+                "recovered_allocation_id": {
+                  "type": "string"
+                },
+                "demand_trace_digest": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "control": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "additionalProperties": false,
+                  "required": [
+                    "run_id",
+                    "arm_id",
+                    "use_profile_id",
+                    "source_profile_id",
+                    "demand_trace_digest",
+                    "measured_demand_l",
+                    "start_utc",
+                    "end_utc",
+                    "service_pressure_min_kpa",
+                    "service_pressure_max_kpa",
+                    "service_flow_min_lpm",
+                    "service_flow_max_lpm",
+                    "mains_fixture",
+                    "energy"
+                  ],
+                  "properties": {
+                    "run_id": {
+                      "type": "string"
+                    },
+                    "arm_id": {
+                      "const": "CONTROL-MAINS"
+                    },
+                    "use_profile_id": {
+                      "type": "string"
+                    },
+                    "source_profile_id": {
+                      "type": "string"
+                    },
+                    "demand_trace_digest": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "measured_demand_l": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "start_utc": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "end_utc": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "service_pressure_min_kpa": {
+                      "type": "number"
+                    },
+                    "service_pressure_max_kpa": {
+                      "type": "number"
+                    },
+                    "service_flow_min_lpm": {
+                      "type": "number"
+                    },
+                    "service_flow_max_lpm": {
+                      "type": "number"
+                    },
+                    "mains_fixture": {
+                      "$ref": "#/$defs/measurement"
+                    },
+                    "energy": {
+                      "$ref": "#/$defs/energy"
+                    }
+                  }
+                },
+                "treatment": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "run_id",
+                    "arm_id",
+                    "use_profile_id",
+                    "source_profile_id",
+                    "demand_trace_digest",
+                    "measured_demand_l",
+                    "start_utc",
+                    "end_utc",
+                    "service_pressure_min_kpa",
+                    "service_pressure_max_kpa",
+                    "service_flow_min_lpm",
+                    "service_flow_max_lpm",
+                    "quality_release",
+                    "quality_qualified_delivery",
+                    "recovered_fixture_use",
+                    "mains_fallback",
+                    "gross_product",
+                    "reject",
+                    "purge",
+                    "overflow",
+                    "energy"
+                  ],
+                  "properties": {
+                    "run_id": {
+                      "type": "string"
+                    },
+                    "arm_id": {
+                      "const": "TREATMENT-RECOVERED"
+                    },
+                    "use_profile_id": {
+                      "type": "string"
+                    },
+                    "source_profile_id": {
+                      "type": "string"
+                    },
+                    "demand_trace_digest": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "measured_demand_l": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "start_utc": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "end_utc": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "service_pressure_min_kpa": {
+                      "type": "number"
+                    },
+                    "service_pressure_max_kpa": {
+                      "type": "number"
+                    },
+                    "service_flow_min_lpm": {
+                      "type": "number"
+                    },
+                    "service_flow_max_lpm": {
+                      "type": "number"
+                    },
+                    "quality_release": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "status",
+                        "profile_id",
+                        "source_profile_id",
+                        "independent_review",
+                        "release_ref",
+                        "valid_from_utc",
+                        "valid_until_utc",
+                        "sample_set_digest",
+                        "method_revision_ref",
+                        "independent_reviewer_ref"
+                      ],
+                      "properties": {
+                        "status": {
+                          "enum": [
+                            "current",
+                            "stale",
+                            "missing",
+                            "contradictory"
+                          ]
+                        },
+                        "profile_id": {
+                          "type": "string"
+                        },
+                        "source_profile_id": {
+                          "type": "string"
+                        },
+                        "independent_review": {
+                          "type": "boolean"
+                        },
+                        "release_ref": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "valid_from_utc": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "valid_until_utc": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "sample_set_digest": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        },
+                        "method_revision_ref": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "independent_reviewer_ref": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    },
+                    "quality_qualified_delivery": {
+                      "$ref": "#/$defs/measurement"
+                    },
+                    "recovered_fixture_use": {
+                      "$ref": "#/$defs/measurement"
+                    },
+                    "mains_fallback": {
+                      "$ref": "#/$defs/measurement"
+                    },
+                    "gross_product": {
+                      "$ref": "#/$defs/measurement"
+                    },
+                    "reject": {
+                      "$ref": "#/$defs/measurement"
+                    },
+                    "purge": {
+                      "$ref": "#/$defs/measurement"
+                    },
+                    "overflow": {
+                      "$ref": "#/$defs/measurement"
+                    },
+                    "energy": {
+                      "$ref": "#/$defs/energy"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "max_service_pressure_difference_kpa": {
+            "type": "number",
+            "minimum": 0
+          },
+          "max_service_flow_difference_lpm": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "frozen_plan_blob_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    }
+  },
+  "$defs": {
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_id",
+        "instrument_id",
+        "unit",
+        "boundary",
+        "value",
+        "standard_uncertainty",
+        "calibration_ref",
+        "method_ref",
+        "raw_record_digest",
+        "validity",
+        "time_window_start_utc",
+        "time_window_end_utc",
+        "calibration_valid_from_utc",
+        "calibration_valid_until_utc"
+      ],
+      "properties": {
+        "channel_id": {
+          "type": "string"
+        },
+        "instrument_id": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number",
+          "minimum": 0
+        },
+        "standard_uncertainty": {
+          "type": "number",
+          "minimum": 0
+        },
+        "calibration_ref": {
+          "type": "string"
+        },
+        "method_ref": {
+          "type": "string"
+        },
+        "raw_record_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "validity": {
+          "enum": [
+            "valid",
+            "stale",
+            "missing",
+            "contradictory",
+            "out_of_range"
+          ]
+        },
+        "time_window_start_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "time_window_end_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "calibration_valid_from_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "calibration_valid_until_utc": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "energy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_id",
+        "instrument_id",
+        "unit",
+        "boundary",
+        "value",
+        "standard_uncertainty",
+        "calibration_ref",
+        "method_ref",
+        "raw_record_digest",
+        "validity",
+        "time_window_start_utc",
+        "time_window_end_utc",
+        "calibration_valid_from_utc",
+        "calibration_valid_until_utc"
+      ],
+      "properties": {
+        "channel_id": {
+          "type": "string"
+        },
+        "instrument_id": {
+          "type": "string"
+        },
+        "unit": {
+          "const": "kWh"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number",
+          "minimum": 0
+        },
+        "standard_uncertainty": {
+          "type": "number",
+          "minimum": 0
+        },
+        "calibration_ref": {
+          "type": "string"
+        },
+        "method_ref": {
+          "type": "string"
+        },
+        "raw_record_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "validity": {
+          "enum": [
+            "valid",
+            "stale",
+            "missing",
+            "contradictory",
+            "out_of_range"
+          ]
+        },
+        "time_window_start_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "time_window_end_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "calibration_valid_from_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "calibration_valid_until_utc": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}
