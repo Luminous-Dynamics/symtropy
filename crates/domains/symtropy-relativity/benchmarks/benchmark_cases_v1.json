@@ -194,7 +194,43 @@
         "horizon_radius": "1 (paper normalization)",
         "horizon_angular_velocity": "0.33 (paper normalization)",
         "gauss_bonnet_coupling_range": "alpha in [0,3] (paper convention; exact action normalization must be copied from paper before comparison)",
-        "branch_data": "full article and supplementary tables must be extracted before numerical reproduction"
+        "branch_data": "full article and supplementary tables must be extracted before numerical reproduction",
+        "action_normalization": {
+          "alpha1": "(16*pi*G)^-1",
+          "alpha": "4*alpha2/alpha1",
+          "alpha_dimensions": "length^2 in D=5",
+          "cosmological_constant": "alpha0=0",
+          "source_paper_equation": "Lovelock action Eq. (1), alpha_1=(16*pi*G)^-1"
+        },
+        "metric_ansatz": {
+          "metric": "ds2=-b(r)dt2+dr2/f(r)+g(r)*(xiI^2+xitildeI^2)+h(r)*(zeta-w(r)dt)^2",
+          "radial_gauge": "g(r)=r^2",
+          "unknown_functions": [
+            "b(r)",
+            "f(r)",
+            "h(r)",
+            "w(r)"
+          ],
+          "horizon_conditions": [
+            "f(r_H)=0",
+            "b(r_H)=0",
+            "w(r_H)=Omega_H",
+            "h(r_H)=Theta_H"
+          ],
+          "compact_coordinate": "r-r_H=tan(x)",
+          "asymptotic_conditions": "asymptotically flat; extract exact series coefficients and normalization from Supplemental Material"
+        },
+        "branch_points": {
+          "r_H": "1",
+          "Omega_H": "0.33",
+          "alpha_range": [
+            "0",
+            "3"
+          ],
+          "alpha_step": "0.01",
+          "alpha_zero_limit": "exact Myers-Perry",
+          "alpha_three_endpoint": "matches existing 5D EGB numerical solution"
+        }
       },
       "published_discovery_pipeline": {
         "neural_field": "physics-informed continuous field trained over the coupling parameter",
@@ -204,7 +240,23 @@
         "reported_pre_refinement_equation_residual_order": "approximately 1e-3",
         "refinement": "Chebyshev pseudo-spectral Gauss-Newton with extended precision",
         "refinement_precision_digits": 300,
-        "reported_gr_limit_relative_L2_error": "approximately 1e-160 for the Myers-Perry limit"
+        "reported_gr_limit_relative_L2_error": "approximately 1e-160 for the Myers-Perry limit",
+        "network_activation": "Swish hidden layers",
+        "boundary_enforcement": "strong radial boundary condition by output reparameterization: Nhat=F(x0)+(1-exp(-(x-x0)))*N",
+        "optimization_schedule": {
+          "global_steps": "10^4-10^5",
+          "adam_warmup_learning_rate": "1e-6 to 1e-3",
+          "stable_adam_learning_rate": "1e-3",
+          "stages": [
+            "Adam warm-up",
+            "stable Adam exploration",
+            "validation-loss learning-rate decay",
+            "L-BFGS"
+          ]
+        },
+        "pre_refinement_loss": "approximately 1e-5",
+        "refinement_residual": "far below machine double precision (paper qualitative statement; exact per-case residual must be extracted from supplemental data)",
+        "gr_limit_relative_l2_error": "approximately 1e-160 for the Myers-Perry limit at 300-digit extended precision"
       },
       "matching_requirements": [
         "same 5D EGB action and coupling normalization",
@@ -224,7 +276,8 @@
       ],
       "qualification_extension": "Symtropy should additionally report independently enclosed full-domain residual/tail bounds and, only if operator bounds are proved, a radii-polynomial existence/uniqueness result. Do not assume the source paper's 'certified' continuous neural-field terminology means an interval/radii-polynomial theorem.",
       "data_status": "reported methodology and setup pinned; exact coefficient arrays and supplementary numerical values must be extracted before a matched run",
-      "purpose": "first fair discovery/refinement comparison to Akribeia on a same-dimension, same-action 5D EGB branch"
+      "purpose": "first fair discovery/refinement comparison to Akribeia on a same-dimension, same-action 5D EGB branch",
+      "metric_ansatz_scope": "cohomogeneity-one ODE system in 5D with equal angular momenta; not a full 2D orbit-space PDE"
     },
     {
       "case_id": "AKRIBEIA-7D-CUBIC-EQUAL-SPIN-001",
@@ -238,7 +291,46 @@
       "reference_setup": {
         "quadratic_coupling": "alpha=0.5 (paper convention)",
         "cubic_coupling_range": "beta in [0,0.5] (paper convention)",
-        "branch_data": "full article and supplementary tables must be extracted before numerical reproduction"
+        "branch_data": "full article and supplementary tables must be extracted before numerical reproduction",
+        "action_normalization": {
+          "alpha1": "(16*pi*G)^-1",
+          "alpha": "4*alpha2/alpha1",
+          "beta": "16*alpha3/alpha1",
+          "alpha_dimensions": "length^2 in D=7",
+          "beta_dimensions": "length^4 in D=7",
+          "cosmological_constant": "alpha0=0",
+          "source_paper_equation": "Lovelock action Eq. (1), alpha_1=(16*pi*G)^-1"
+        },
+        "metric_ansatz": {
+          "metric": "ds2=-b(r)dt2+dr2/f(r)+g(r)*(xiI^2+xitildeI^2)+h(r)*(zeta-w(r)dt)^2",
+          "radial_gauge": "g(r)=r^2",
+          "unknown_functions": [
+            "b(r)",
+            "f(r)",
+            "h(r)",
+            "w(r)"
+          ],
+          "horizon_conditions": [
+            "f(r_H)=0",
+            "b(r_H)=0",
+            "w(r_H)=Omega_H",
+            "h(r_H)=Theta_H"
+          ],
+          "compact_coordinate": "r-r_H=tan(x)",
+          "asymptotic_conditions": "asymptotically flat; exact coefficients and normalization must be extracted from Supplemental Material"
+        },
+        "branch_points": {
+          "r_H": "1",
+          "Omega_H": "0.33",
+          "alpha": "0.5",
+          "beta_range": [
+            "0",
+            "0.5"
+          ],
+          "beta_step": "0.01",
+          "beta_zero_limit": "quadratic EGB at alpha=0.5, not the general-relativistic Myers-Perry limit",
+          "general_relativity_limit": "requires alpha=0 and beta=0; not the fixed-alpha=0.5 curve"
+        }
       },
       "published_discovery_pipeline": {
         "neural_field": "physics-informed continuous field trained over the coupling parameter",
@@ -247,7 +339,9 @@
         "reported_training_steps": "10^4 to 10^5",
         "reported_pre_refinement_equation_residual_order": "approximately 1e-3",
         "refinement": "Chebyshev pseudo-spectral Gauss-Newton with extended precision",
-        "refinement_precision_digits": 300
+        "refinement_precision_digits": 300,
+        "network_activation": "Swish hidden layers",
+        "refinement_residual": "far below machine double precision (paper qualitative statement; exact per-case residual must be extracted from supplemental data)"
       },
       "matching_requirements": [
         "same 7D cubic Lovelock action and coupling normalization",
@@ -258,7 +352,8 @@
         "same parameter points and branch identity"
       ],
       "data_status": "reported methodology and coupling range pinned; exact source branch values must be extracted before a matched run",
-      "purpose": "second-stage scaling comparison after the 5D EGB control"
+      "purpose": "second-stage scaling comparison after the 5D EGB control",
+      "metric_ansatz_scope": "cohomogeneity-one ODE system in 7D with equal angular momenta; not a full 2D orbit-space PDE"
     }
   ],
   "fairness_rules": [
