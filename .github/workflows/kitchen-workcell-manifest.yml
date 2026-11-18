@@ -1,0 +1,45 @@
+name: Kitchen Workcell Benchmark Manifest
+
+on:
+  pull_request:
+    paths:
+      - "benchmarks/kitchen-workcell/v0.1/**"
+      - "tools/validate_kitchen_workcell_manifest.py"
+      - "tools/requirements-kitchen-benchmark.txt"
+      - ".github/workflows/kitchen-workcell-manifest.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kitchen-workcell-manifest-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exact-head-manifest:
+    name: Validate benchmark schema and draft invariants
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      QUALIFIED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+
+      - name: Assert exact checkout
+        run: test "$(git rev-parse HEAD)" = "${QUALIFIED_SHA}"
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned schema validator
+        run: python -m pip install --disable-pip-version-check --no-input -r tools/requirements-kitchen-benchmark.txt
+
+      - name: Validate schema, references, preregistration and evidence boundaries
+        run: python tools/validate_kitchen_workcell_manifest.py
