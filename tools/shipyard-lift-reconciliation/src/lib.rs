@@ -81,12 +81,18 @@ pub struct TelemetryEvent {
     pub source_revision: String,
     /// Monotonic sequence number within this channel/source stream.
     pub sequence: u64,
-    /// Source event time in the declared lift-plan clock domain.
-    pub event_tick: u64,
-    /// Ingestion/receipt time in the same declared clock domain.
+    pub source_clock_domain_id: String,
+    pub clock_mapping_id: String,
+    pub clock_mapping_revision: String,
+    /// Closed uncertainty interval for event time after source-to-yard mapping.
+    pub event_time_lower_tick: u64,
+    pub event_time_upper_tick: u64,
+    /// Ingestion/receipt time in the target execution clock domain.
     pub received_tick: u64,
     pub clock_domain_id: String,
     pub calibration_or_source_evidence: EvidenceRef,
+    /// Evidence for the source-clock to execution-clock mapping used above.
+    pub clock_mapping_evidence: EvidenceRef,
     pub observation: Observation,
 }
 
@@ -99,6 +105,7 @@ pub struct StreamCoverage {
     pub first_sequence: u64,
     /// Exclusive end of the contiguous sequence interval.
     pub next_sequence_exclusive: u64,
+    pub clock_domain_id: String,
     pub covered_start_tick: u64,
     /// Exclusive end of coverage. Must reach or exceed the lift end.
     pub covered_end_tick: u64,
@@ -332,15 +339,20 @@ fn observation_json(observation: &Observation) -> String {
 impl TelemetryEvent {
     pub fn canonical_json(&self) -> String {
         format!(
-            "{{\"event_id\":{},\"source_id\":{},\"source_revision\":{},\"sequence\":{},\"event_tick\":{},\"received_tick\":{},\"clock_domain_id\":{},\"calibration_or_source_evidence\":{},\"observation\":{}}}",
+            "{{\"event_id\":{},\"source_id\":{},\"source_revision\":{},\"sequence\":{},\"source_clock_domain_id\":{},\"clock_mapping_id\":{},\"clock_mapping_revision\":{},\"event_time_lower_tick\":{},\"event_time_upper_tick\":{},\"received_tick\":{},\"clock_domain_id\":{},\"calibration_or_source_evidence\":{},\"clock_mapping_evidence\":{},\"observation\":{}}}",
             json_quote(&self.event_id),
             json_quote(&self.source_id),
             json_quote(&self.source_revision),
             self.sequence,
-            self.event_tick,
+            json_quote(&self.source_clock_domain_id),
+            json_quote(&self.clock_mapping_id),
+            json_quote(&self.clock_mapping_revision),
+            self.event_time_lower_tick,
+            self.event_time_upper_tick,
             self.received_tick,
             json_quote(&self.clock_domain_id),
             evidence_json(&self.calibration_or_source_evidence),
+            evidence_json(&self.clock_mapping_evidence),
             observation_json(&self.observation),
         )
     }
@@ -349,12 +361,13 @@ impl TelemetryEvent {
 impl StreamCoverage {
     pub fn canonical_json(&self) -> String {
         format!(
-            "{{\"channel\":{},\"source_id\":{},\"source_revision\":{},\"first_sequence\":{},\"next_sequence_exclusive\":{},\"covered_start_tick\":{},\"covered_end_tick\":{},\"complete\":{},\"evidence\":{}}}",
+            "{{\"channel\":{},\"source_id\":{},\"source_revision\":{},\"first_sequence\":{},\"next_sequence_exclusive\":{},\"clock_domain_id\":{},\"covered_start_tick\":{},\"covered_end_tick\":{},\"complete\":{},\"evidence\":{}}}",
             json_quote(channel_name(self.channel)),
             json_quote(&self.source_id),
             json_quote(&self.source_revision),
             self.first_sequence,
             self.next_sequence_exclusive,
+            json_quote(&self.clock_domain_id),
             self.covered_start_tick,
             self.covered_end_tick,
             self.complete,
@@ -945,7 +958,7 @@ pub fn reconcile(
                 DiagnosticSeverity::Indeterminate,
                 Some(event.observation.channel()),
                 Some(&event.event_id),
-                "event time and receipt time must use the execution clock domain",
+                "mapped event time and receipt time must use the execution clock domain",
             );
             add_unknown(
                 &mut unknown_intervals,
@@ -956,28 +969,51 @@ pub fn reconcile(
             );
             continue;
         }
-        if event.event_tick < binding.start_tick || event.event_tick >= binding.end_tick {
+        if event.event_time_lower_tick > event.event_time_upper_tick
+            || event.event_time_lower_tick < binding.start_tick
+            || event.event_time_upper_tick >= binding.end_tick
+        {
             add_diagnostic(
                 &mut diagnostics,
-                "EVENT_OUTSIDE_EXECUTION_INTERVAL",
+                "EVENT_TIME_INTERVAL_OUTSIDE_EXECUTION",
                 DiagnosticSeverity::Indeterminate,
                 Some(event.observation.channel()),
                 Some(&event.event_id),
-                "source event time is outside the half-open execution interval",
+                "the complete mapped event-time uncertainty interval must fit inside the half-open execution interval",
+            );
+            add_unknown(
+                &mut unknown_intervals,
+                event.observation.channel(),
+                binding.start_tick,
+                binding.end_tick,
+                "event_time_interval_outside_execution",
             );
             continue;
         }
-        if event.received_tick < event.event_tick {
+        if !nonblank(&event.source_clock_domain_id)
+            || !nonblank(&event.clock_mapping_id)
+            || !nonblank(&event.clock_mapping_revision)
+        {
             add_diagnostic(
                 &mut diagnostics,
-                "EVENT_RECEIPT_PRECEDES_EVENT",
+                "CLOCK_MAPPING_IDENTITY_INCOMPLETE",
                 DiagnosticSeverity::Indeterminate,
                 Some(event.observation.channel()),
                 Some(&event.event_id),
-                "receipt time precedes source event time in the declared monotonic clock",
+                "source clock and clock-mapping identities/revisions must be explicit",
+            );
+        }
+        if event.received_tick < event.event_time_lower_tick {
+            add_diagnostic(
+                &mut diagnostics,
+                "EVENT_RECEIPT_PRECEDES_POSSIBLE_EVENT",
+                DiagnosticSeverity::Indeterminate,
+                Some(event.observation.channel()),
+                Some(&event.event_id),
+                "receipt time precedes the earliest possible mapped event time",
             );
         } else {
-            let lateness = event.received_tick - event.event_tick;
+            let lateness = event.received_tick - event.event_time_lower_tick;
             if lateness > policy.maximum_ingest_lateness_ticks {
                 add_diagnostic(
                     &mut diagnostics,
@@ -985,7 +1021,7 @@ pub fn reconcile(
                     DiagnosticSeverity::Indeterminate,
                     Some(event.observation.channel()),
                     Some(&event.event_id),
-                    "event ingestion delay exceeds the frozen lateness policy",
+                    "conservative event-time to ingestion-time delay exceeds the frozen lateness policy",
                 );
             }
         }
@@ -995,8 +1031,18 @@ pub fn reconcile(
             &event.source_id,
             &event.source_revision,
             &binding.clock_domain_id,
-            event.event_tick,
-            event.event_tick.saturating_add(1),
+            event.event_time_lower_tick,
+            event.event_time_upper_tick.saturating_add(1),
+            &mut seen_evidence,
+            &mut diagnostics,
+        );
+        validate_evidence(
+            &event.clock_mapping_evidence,
+            &event.clock_mapping_id,
+            &event.clock_mapping_revision,
+            &binding.clock_domain_id,
+            event.event_time_lower_tick,
+            event.event_time_upper_tick.saturating_add(1),
             &mut seen_evidence,
             &mut diagnostics,
         );
@@ -1192,23 +1238,34 @@ pub fn reconcile(
         }
 
         for pair in channel_events.windows(2) {
-            if pair[1].event_tick < pair[0].event_tick {
+            if pair[1].event_time_lower_tick < pair[0].event_time_upper_tick {
                 add_diagnostic(
                     &mut diagnostics,
-                    "SOURCE_EVENT_TIME_REGRESSION",
+                    "SOURCE_EVENT_TIME_ORDER_UNCERTAIN",
                     DiagnosticSeverity::Indeterminate,
                     Some(*channel),
                     Some(&stream.source_id),
-                    "source event time regresses as sequence number increases",
+                    "mapped event-time uncertainty intervals do not establish sequence order",
+                );
+                add_unknown(
+                    &mut unknown_intervals,
+                    *channel,
+                    pair[0].event_time_lower_tick,
+                    pair[1].event_time_upper_tick,
+                    "source_event_time_order_uncertain",
                 );
             }
         }
 
         if matches!(channel, Channel::HookLoad | Channel::WindGust) {
-            let mut ticks: Vec<u64> = channel_events.iter().map(|e| e.event_tick).collect();
-            ticks.sort_unstable();
-            if let Some(first) = ticks.first().copied() {
-                if first.saturating_sub(binding.start_tick) > policy.maximum_sample_gap_ticks {
+            let mut ordered_intervals: Vec<(u64, u64)> = channel_events
+                .iter()
+                .map(|e| (e.event_time_lower_tick, e.event_time_upper_tick))
+                .collect();
+            ordered_intervals.sort_unstable();
+            if let Some((first_lower, first_upper)) = ordered_intervals.first().copied() {
+                let leading_gap = first_upper.saturating_sub(binding.start_tick);
+                if leading_gap > policy.maximum_sample_gap_ticks {
                     add_unknown(
                         &mut unknown_intervals,
                         *channel,
@@ -1222,16 +1279,19 @@ pub fn reconcile(
                         DiagnosticSeverity::Indeterminate,
                         Some(*channel),
                         Some(&stream.source_id),
-                        "leading sample gap exceeds the frozen policy",
+                        "conservative leading sample gap exceeds the frozen policy",
                     );
                 }
-                for pair in ticks.windows(2) {
-                    if pair[1].saturating_sub(pair[0]) > policy.maximum_sample_gap_ticks {
+                for pair in ordered_intervals.windows(2) {
+                    // Worst possible gap: the next sample occurs at its latest
+                    // mapped time and the previous sample at its earliest.
+                    let maximum_gap = pair[1].1.saturating_sub(pair[0].0);
+                    if maximum_gap > policy.maximum_sample_gap_ticks {
                         add_unknown(
                             &mut unknown_intervals,
                             *channel,
-                            pair[0],
-                            pair[1],
+                            pair[0].0,
+                            pair[1].1,
                             "inter_sample_gap_exceeds_policy",
                         );
                         add_diagnostic(
@@ -1240,16 +1300,17 @@ pub fn reconcile(
                             DiagnosticSeverity::Indeterminate,
                             Some(*channel),
                             Some(&stream.source_id),
-                            "inter-sample gap exceeds the frozen policy",
+                            "conservative inter-sample gap exceeds the frozen policy",
                         );
                     }
                 }
-                let trailing = binding.end_tick.saturating_sub(*ticks.last().unwrap_or(&first));
+                let last_lower = ordered_intervals.last().map(|item| item.0).unwrap_or(first_lower);
+                let trailing = binding.end_tick.saturating_sub(last_lower);
                 if trailing > policy.maximum_sample_gap_ticks {
                     add_unknown(
                         &mut unknown_intervals,
                         *channel,
-                        *ticks.last().unwrap_or(&first),
+                        last_lower,
                         binding.end_tick,
                         "trailing_sample_gap_exceeds_policy",
                     );
@@ -1569,6 +1630,7 @@ mod tests {
             source_revision: source_revision.to_owned(),
             first_sequence: 0,
             next_sequence_exclusive: 1,
+            clock_domain_id: "yard-clock".to_owned(),
             covered_start_tick: 100,
             covered_end_tick: 200,
             complete: true,
@@ -1594,11 +1656,22 @@ mod tests {
             sequence,
             event_tick: tick,
             received_tick: tick + 2,
+            source_clock_domain_id: format!("source-clock::{source_id}"),
+            clock_mapping_id: format!("clock-map::{source_id}"),
+            clock_mapping_revision: "map-r1".to_owned(),
+            event_time_lower_tick: tick,
+            event_time_upper_tick: tick,
+            received_tick: tick + 2,
             clock_domain_id: "yard-clock".to_owned(),
             calibration_or_source_evidence: evidence(
                 &format!("calibration::{source_id}"),
                 source_id,
                 source_revision,
+            ),
+            clock_mapping_evidence: evidence(
+                &format!("clock-map-evidence::{source_id}"),
+                &format!("clock-map::{source_id}"),
+                "map-r1",
             ),
             observation,
         }
@@ -1802,7 +1875,8 @@ mod tests {
             .iter_mut()
             .find(|item| item.observation.channel() == Channel::HookLoad && item.sequence == 2)
             .unwrap();
-        event.event_tick = 120;
+        event.event_time_lower_tick = 120;
+        event.event_time_upper_tick = 120;
         event.received_tick = 122;
         let report = reconcile(&binding, &policy, &coverage, &events);
         assert_eq!(report.disposition, Disposition::Indeterminate);
@@ -1812,7 +1886,8 @@ mod tests {
     #[test]
     fn event_outside_execution_interval_is_indeterminate() {
         let (binding, policy, coverage, mut events) = baseline();
-        events[0].event_tick = binding.end_tick;
+        events[0].event_time_lower_tick = binding.end_tick;
+        events[0].event_time_upper_tick = binding.end_tick;
         events[0].received_tick = binding.end_tick + 1;
         let report = reconcile(&binding, &policy, &coverage, &events);
         assert_eq!(report.disposition, Disposition::Indeterminate);
@@ -2045,7 +2120,8 @@ mod tests {
     #[test]
     fn missing_or_delayed_sensor_evidence_is_not_a_clean_execution() {
         let (binding, policy, coverage, mut events) = baseline();
-        events[0].received_tick = events[0].event_tick + policy.maximum_ingest_lateness_ticks + 1;
+        events[0].received_tick =
+            events[0].event_time_lower_tick + policy.maximum_ingest_lateness_ticks + 1;
         let report = reconcile(&binding, &policy, &coverage, &events);
         assert_eq!(report.disposition, Disposition::Indeterminate);
         assert!(has_code(&report, "EVENT_INGESTION_TOO_LATE"));
