@@ -196,6 +196,8 @@ pub fn validate_case(case: &FleetReliabilityCase) -> Result<(), ReliabilityError
             "solar_fixed_wing_haps"
                 | "buoyant_free_balloon"
                 | "buoyant_airship"
+                | "terrestrial_gateway"
+                | "leo_satellite_backhaul"
                 | "unknown"
         ) {
             return Err(ReliabilityError::new(format!(
@@ -230,6 +232,7 @@ pub fn validate_case(case: &FleetReliabilityCase) -> Result<(), ReliabilityError
                 | "shared_launch_site_loss"
                 | "common_configuration_defect"
                 | "shared_maintenance_supply_failure"
+                | "shared_external_common_mode"
                 | "other"
         ) {
             return Err(ReliabilityError::new(format!(
