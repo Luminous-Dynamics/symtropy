@@ -137,6 +137,19 @@ jq -e '
              | ([$sample.size_bins[].mass_fraction.standard_uncertainty] | add) as $size_uncertainty
              | (($size_sum - 1) | abs) <= $size_uncertainty)
         and (.target_size_mass_fraction.status != "unknown")
+        and ([ $sample.property_measurements[].property_id ]
+             | length == (unique | length))
+        and all($sample.property_measurements[];
+          (.property_id | type == "string" and length > 0)
+          and (.test_condition_id | type == "string" and length > 0)
+          and (.measurement.unit | type == "string" and length > 0)
+          and (.measurement.status | . == "measured" or . == "published" or . == "estimated" or . == "synthetic" or . == "unknown")
+          and (if .measurement.status == "unknown"
+               then .measurement.value == null and .measurement.standard_uncertainty == null
+               else ((.measurement.value | type) == "number")
+                    and ((.measurement.standard_uncertainty | type) == "number")
+                    and (.measurement.standard_uncertainty >= 0) end)
+        )
         and (if any($sample.size_bins[];
                     .d_min_um.value < $r.acceptance_profile.target_size_max_um.value
                     and .d_max_um.value > $r.acceptance_profile.target_size_min_um.value
@@ -322,6 +335,26 @@ jq -e '
         if (($profile.required_properties | index("uncertainty_budget")) != null) then
           if $sample.uncertainty_budget_artifact_id != null then "pass" else "unknown" end
         else "pass" end
+      ] + [
+        $profile.property_constraints[] as $constraint
+        | ($sample.property_measurements
+           | map(select(.property_id == $constraint.property_id)) | .[0]) as $property
+        | if ($property == null)
+             or ($property.measurement.status == "unknown") then "unknown"
+          elif ($property.test_condition_id != $constraint.test_condition_id)
+               or ($property.measurement.unit != $constraint.unit) then "unknown"
+          elif ($constraint.minimum_value == null and $constraint.maximum_value == null) then "unknown"
+          else
+            ($property.measurement.value - $property.measurement.standard_uncertainty) as $lower
+            | ($property.measurement.value + $property.measurement.standard_uncertainty) as $upper
+            | if ($constraint.minimum_value != null and $lower < $constraint.minimum_value)
+                 and ($upper >= $constraint.minimum_value) then "indeterminate"
+              elif ($constraint.minimum_value != null and $upper < $constraint.minimum_value) then "out"
+              elif ($constraint.maximum_value != null and $upper > $constraint.maximum_value)
+                   and ($lower <= $constraint.maximum_value) then "indeterminate"
+              elif ($constraint.maximum_value != null and $lower > $constraint.maximum_value) then "out"
+              else "pass" end
+          end
       ]) as $statuses
   | ($r.stage_events | map(select((.input_stream_ids | length) > 0) | .mass_closure_status)
      | all(. == "within_declared_tolerance")) as $mass_closed
