@@ -18,6 +18,7 @@ pub mod field;
 pub mod fractal;
 pub mod impact;
 pub mod lifecycle;
+pub mod lifecycle_impact;
 pub mod multichannel;
 pub mod partial;
 pub mod sensor_placement;
