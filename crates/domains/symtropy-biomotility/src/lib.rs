@@ -20,7 +20,9 @@ use std::error::Error;
 use std::f64::consts::{PI, TAU};
 use std::fmt;
 
+mod geometry;
 mod renewal;
+pub use geometry::{FreePathLaw, FreePathLawError};
 pub use renewal::{
     DirectionalWaitingTimes, SurvivalCurve, SurvivalError, SurvivalObservation,
     SurvivalOutcome, SurvivalPoint, WaitingTimeCandidate, WaitingTimeCandidateScore,
@@ -72,6 +74,16 @@ pub enum EventEvidenceStatus {
     /// Mechanism is a known latent variable in a controlled simulation.
     ModelLatent,
     /// Evidence does not support assigning a mechanism.
+    Unresolved,
+}
+
+/// Why a self-propelled run ended. This is independent of the event
+/// mechanism that governs the subsequent stationary/reorientation phase.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RunTerminationCause {
+    IntrinsicMotorSwitch,
+    GeometryLimitedFreePath,
+    /// Evidence does not support assigning either termination cause.
     Unresolved,
 }
 
@@ -251,6 +263,9 @@ pub struct PorousMotilityProfile {
     pub integration_step_s: f64,
     pub run_duration_s: DirectionalWaitingTimes,
     pub run_duration_unconditional_s: WaitingTimeLaw,
+    /// Optional matrix-controlled effective free-path length distribution.
+    /// When present, actual run time is min(motor persistence, free path / speed).
+    pub geometry_free_path_um: Option<FreePathLaw>,
     pub mechanism_probabilities: MechanismProbabilities,
     pub threshold_boundary_policy: ThresholdBoundaryPolicy,
     /// Duration samples conditioned on an active motor event.
@@ -286,6 +301,9 @@ impl PorousMotilityProfile {
         self.mechanism_probabilities.validate()?;
         self.run_duration_s.validate()?;
         self.run_duration_unconditional_s.validate()?;
+        if let Some(free_path_law) = &self.geometry_free_path_um {
+            free_path_law.validate()?;
+        }
         self.active_motor_event_duration_s.validate()?;
         self.passive_trap_event_duration_s.validate()?;
         self.unresolved_event_duration_s.validate()?;
@@ -343,6 +361,7 @@ pub enum ProfileError {
     InvalidIntegrationStep,
     InvalidMechanismProbabilities,
     InvalidWaitingTimeLaw(WaitingTimeLawError),
+    InvalidFreePathLaw(FreePathLawError),
     InvalidEventDuration,
     InvalidEventThreshold,
 }
@@ -377,6 +396,9 @@ impl fmt::Display for ProfileError {
             Self::InvalidWaitingTimeLaw(error) => {
                 write!(formatter, "invalid waiting-time law: {error}")
             }
+            Self::InvalidFreePathLaw(error) => {
+                write!(formatter, "invalid free-path law: {error}")
+            }
             Self::InvalidEventDuration => {
                 write!(formatter, "event duration must be finite and positive")
             }
@@ -392,6 +414,12 @@ impl Error for ProfileError {}
 impl From<WaitingTimeLawError> for ProfileError {
     fn from(value: WaitingTimeLawError) -> Self {
         Self::InvalidWaitingTimeLaw(value)
+    }
+}
+
+impl From<FreePathLawError> for ProfileError {
+    fn from(value: FreePathLawError) -> Self {
+        Self::InvalidFreePathLaw(value)
     }
 }
 
@@ -443,6 +471,17 @@ pub struct EventRecord {
     pub run_displacement_um: f64,
     /// Instantaneous tangent at the end of the run, before the interruption.
     pub incoming_heading_rad: f64,
+    /// Motor-selected persistence time before any geometric truncation.
+    pub intrinsic_motor_persistence_time_s: f64,
+    /// Sampled effective free-path budget; None when geometry is disabled.
+    pub geometry_free_path_um: Option<f64>,
+    /// Cause that ended the run, separate from the subsequent event mechanism.
+    pub run_termination_cause: RunTerminationCause,
+    /// Evidence status for the run-termination cause.
+    pub run_termination_evidence_status: EventEvidenceStatus,
+    /// Arc length traversed during the run (speed × realized run duration).
+    pub run_arc_length_um: f64,
+    /// Realized duration after applying the motor and optional geometry limits.
     pub run_duration_s: f64,
     /// Physical mechanism selected by the model; never inferred from duration.
     pub mechanism: EventMechanism,
@@ -535,6 +574,10 @@ pub struct BehaviorSummary {
     pub unresolved_mechanism_followed_run_count: usize,
     pub unresolved_mechanism_followed_up_gradient_count: usize,
     pub unresolved_mechanism_followed_up_gradient_fraction: Option<f64>,
+    /// Run-termination counts, independent of subsequent event mechanism.
+    pub intrinsic_motor_terminated_run_count: usize,
+    pub geometry_limited_run_count: usize,
+    pub unresolved_run_termination_count: usize,
     pub mean_run_duration_s: Option<f64>,
     pub projected_drift_um_s: Option<f64>,
 }
@@ -1059,11 +1102,48 @@ pub fn simulate_with_bias_mode(
         let run_start_x_um = state.x_um;
         let run_start_y_um = state.y_um;
 
-        let run_duration = if bias_mode.uses_run_time_bias() {
+        let intrinsic_motor_persistence_time_s = if bias_mode.uses_run_time_bias() {
             profile.run_duration_s.sample_with_rng(direction, &mut rng)
         } else {
             profile.run_duration_unconditional_s.sample_with_rng(&mut rng)
         };
+        let geometry_free_path_um = profile
+            .geometry_free_path_um
+            .as_ref()
+            .map(|law| law.sample_with_rng(&mut rng));
+        if geometry_free_path_um
+            .is_some_and(|length_um| !length_um.is_finite() || length_um <= 0.0)
+        {
+            return Err(SimulationError::NonFiniteTrajectory);
+        }
+
+        // Geometry and motor persistence are independent constraints. Exact
+        // ties are attributed to the intrinsic motor switch; only a strictly
+        // earlier free-path limit is recorded as geometry-limited.
+        let geometry_limited_duration_s =
+            geometry_free_path_um.map(|length_um| length_um / profile.swimming_speed_um_s);
+        if geometry_limited_duration_s
+            .is_some_and(|duration_s| !duration_s.is_finite() || duration_s <= 0.0)
+        {
+            return Err(SimulationError::NonFiniteTrajectory);
+        }
+        let geometry_limited = geometry_limited_duration_s
+            .is_some_and(|duration_s| duration_s < intrinsic_motor_persistence_time_s);
+        let run_termination_cause = if geometry_limited {
+            RunTerminationCause::GeometryLimitedFreePath
+        } else {
+            RunTerminationCause::IntrinsicMotorSwitch
+        };
+        let run_duration = if geometry_limited {
+            geometry_limited_duration_s.expect("geometry-limited run has a path duration")
+        } else {
+            intrinsic_motor_persistence_time_s
+        };
+        let run_arc_length_um = profile.swimming_speed_um_s * run_duration;
+        if !run_arc_length_um.is_finite() || run_arc_length_um <= 0.0 {
+            return Err(SimulationError::NonFiniteTrajectory);
+        }
+
         let run_end_time_s = state.elapsed_s + run_duration;
         if !run_end_time_s.is_finite() {
             return Err(SimulationError::NonFiniteTrajectory);
@@ -1183,6 +1263,11 @@ pub fn simulate_with_bias_mode(
             run_displacement_heading_rad,
             run_displacement_um,
             incoming_heading_rad,
+            intrinsic_motor_persistence_time_s,
+            geometry_free_path_um,
+            run_termination_cause,
+            run_termination_evidence_status: EventEvidenceStatus::ModelLatent,
+            run_arc_length_um,
             run_duration_s: run_duration,
             mechanism,
             evidence_status: EventEvidenceStatus::ModelLatent,
@@ -1204,6 +1289,17 @@ pub fn simulate_with_bias_mode(
 
 /// Compute dimensionally explicit summary measures for a simulated result.
 pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
+    let intrinsic_motor_terminated_run_count = result
+        .events
+        .iter()
+        .filter(|event| event.run_termination_cause == RunTerminationCause::IntrinsicMotorSwitch)
+        .count();
+    let geometry_limited_run_count = result
+        .events
+        .iter()
+        .filter(|event| event.run_termination_cause == RunTerminationCause::GeometryLimitedFreePath)
+        .count();
+
     let short_duration_event_count = result
         .events
         .iter()
@@ -1436,6 +1532,13 @@ pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
                 unresolved_mechanism_followed_up_gradient_count as f64
                     / unresolved_mechanism_followed_run_count as f64
             }),
+        intrinsic_motor_terminated_run_count,
+        geometry_limited_run_count,
+        unresolved_run_termination_count: result
+            .events
+            .iter()
+            .filter(|event| event.run_termination_cause == RunTerminationCause::Unresolved)
+            .count(),
         mean_run_duration_s: (!result.events.is_empty())
             .then(|| total_run_duration / result.events.len() as f64),
         projected_drift_um_s: (elapsed > 0.0)
@@ -1703,6 +1806,11 @@ mod tests {
             run_displacement_heading_rad: Some(0.0),
             run_displacement_um: 1.0,
             incoming_heading_rad: 0.0,
+            intrinsic_motor_persistence_time_s: 0.25,
+            geometry_free_path_um: None,
+            run_termination_cause: RunTerminationCause::IntrinsicMotorSwitch,
+            run_termination_evidence_status: EventEvidenceStatus::ModelLatent,
+            run_arc_length_um: 0.25,
             run_duration_s: 0.25,
             mechanism,
             evidence_status,
@@ -1736,6 +1844,7 @@ mod tests {
             integration_step_s: 0.05,
             run_duration_s: directional_times(vec![0.25], vec![0.25], vec![0.25]),
             run_duration_unconditional_s: empirical_time(vec![0.25]),
+            geometry_free_path_um: None,
             mechanism_probabilities: MechanismProbabilities {
                 active_motor: 1.0,
                 passive_trap: 0.0,
@@ -1940,6 +2049,175 @@ mod tests {
         let first = simulate(&profile, initial, 0.0, 100, 7).expect("valid simulation");
         let second = simulate(&profile, initial, 0.0, 100, 7).expect("valid simulation");
         assert_eq!(first, second);
+    }
+
+    #[test]
+    fn geometry_free_path_truncates_a_long_motor_run() {
+        let mut profile = steering_profile();
+        profile.run_duration_s = directional_times(vec![10.0], vec![10.0], vec![10.0]);
+        profile.run_duration_unconditional_s = empirical_time(vec![10.0]);
+        profile.geometry_free_path_um = Some(FreePathLaw::empirical(vec![2.0]));
+
+        let result = simulate(
+            &profile,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            1,
+            9,
+        )
+        .expect("geometry-limited run");
+
+        let event = result.events[0];
+        assert_eq!(event.intrinsic_motor_persistence_time_s, 10.0);
+        assert_eq!(event.geometry_free_path_um, Some(2.0));
+        assert_eq!(
+            event.run_termination_cause,
+            RunTerminationCause::GeometryLimitedFreePath
+        );
+        assert!((event.run_duration_s - 0.1).abs() < 1.0e-12);
+        assert!((event.run_arc_length_um - 2.0).abs() < 1.0e-12);
+        assert!((event.run_displacement_um - 2.0).abs() < 1.0e-10);
+
+        assert_eq!(event.mechanism, EventMechanism::ActiveMotorEvent);
+        assert_eq!(event.run_termination_evidence_status, EventEvidenceStatus::ModelLatent);
+        let summary = summarize(&result);
+        assert_eq!(summary.geometry_limited_run_count, 1);
+        assert_eq!(summary.intrinsic_motor_terminated_run_count, 0);
+        assert_eq!(summary.unresolved_run_termination_count, 0);
+    }
+
+    #[test]
+    fn exact_geometry_motor_tie_uses_intrinsic_motor_switch_convention() {
+        let mut profile = steering_profile();
+        profile.geometry_free_path_um = Some(FreePathLaw::empirical(vec![5.0]));
+
+        let result = simulate(
+            &profile,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            1,
+            73,
+        )
+        .expect("tie-case simulation");
+        let event = result.events[0];
+
+        assert_eq!(
+            event.run_termination_cause,
+            RunTerminationCause::IntrinsicMotorSwitch
+        );
+        assert_eq!(event.run_duration_s, event.intrinsic_motor_persistence_time_s);
+    }
+
+    #[test]
+    fn unresolved_run_termination_cause_is_preserved_in_summary() {
+        let mut result = simulate(
+            &steering_profile(),
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            1,
+            74,
+        )
+        .expect("valid run");
+        result.events[0].run_termination_cause = RunTerminationCause::Unresolved;
+        result.events[0].run_termination_evidence_status = EventEvidenceStatus::Unresolved;
+
+        let summary = summarize(&result);
+        assert_eq!(summary.unresolved_run_termination_count, 1);
+        assert_eq!(summary.intrinsic_motor_terminated_run_count, 0);
+        assert_eq!(summary.geometry_limited_run_count, 0);
+    }
+
+    #[test]
+    fn motor_switch_wins_when_free_path_is_longer_than_intrinsic_persistence() {
+        let mut profile = steering_profile();
+        profile.geometry_free_path_um = Some(FreePathLaw::empirical(vec![100.0]));
+
+        let result = simulate(
+            &profile,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            1,
+            11,
+        )
+        .expect("motor-limited run");
+        let event = result.events[0];
+
+        assert_eq!(event.intrinsic_motor_persistence_time_s, 0.25);
+        assert_eq!(event.geometry_free_path_um, Some(100.0));
+        assert_eq!(
+            event.run_termination_cause,
+            RunTerminationCause::IntrinsicMotorSwitch
+        );
+        assert_eq!(event.run_duration_s, 0.25);
+        assert_eq!(event.run_arc_length_um, 5.0);
+
+        let summary = summarize(&result);
+        assert_eq!(summary.intrinsic_motor_terminated_run_count, 1);
+        assert_eq!(summary.geometry_limited_run_count, 0);
+    }
+
+    #[test]
+    fn fixed_free_path_preserves_run_length_when_motor_speed_changes() {
+        let mut slower = steering_profile();
+        slower.swimming_speed_um_s = 10.0;
+        slower.run_duration_s = directional_times(vec![100.0], vec![100.0], vec![100.0]);
+        slower.run_duration_unconditional_s = empirical_time(vec![100.0]);
+        slower.geometry_free_path_um = Some(FreePathLaw::empirical(vec![5.0]));
+
+        let mut faster = slower.clone();
+        faster.swimming_speed_um_s = 20.0;
+
+        let slow_result = simulate(
+            &slower,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            1,
+            123,
+        )
+        .expect("slower geometry-limited run");
+        let fast_result = simulate(
+            &faster,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            1,
+            123,
+        )
+        .expect("faster geometry-limited run");
+
+        let slow = slow_result.events[0];
+        let fast = fast_result.events[0];
+        assert!((slow.run_arc_length_um - 5.0).abs() < 1.0e-12);
+        assert!((fast.run_arc_length_um - 5.0).abs() < 1.0e-12);
+        assert!((slow.run_duration_s - 0.5).abs() < 1.0e-12);
+        assert!((fast.run_duration_s - 0.25).abs() < 1.0e-12);
+        assert_eq!(
+            slow.run_termination_cause,
+            RunTerminationCause::GeometryLimitedFreePath
+        );
+        assert_eq!(
+            fast.run_termination_cause,
+            RunTerminationCause::GeometryLimitedFreePath
+        );
+    }
+
+    #[test]
+    fn geometry_disabled_retains_intrinsic_run_time_and_no_free_path_claim() {
+        let profile = steering_profile();
+        assert_eq!(profile.geometry_free_path_um, None);
+
+        let result = simulate(
+            &profile,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            2,
+            19,
+        )
+        .expect("unconfined reference run");
+        assert!(result.events.iter().all(|event| {
+            event.geometry_free_path_um.is_none()
+                && event.run_termination_cause == RunTerminationCause::IntrinsicMotorSwitch
+                && event.run_duration_s == event.intrinsic_motor_persistence_time_s
+        }));
     }
 
     #[test]

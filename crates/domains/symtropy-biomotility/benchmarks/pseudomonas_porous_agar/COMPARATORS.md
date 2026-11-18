@@ -103,36 +103,41 @@ The first integration may use only source-reported summaries as literature targe
 
 ## Matched benchmark arms
 
-| Arm | Physical mechanism | Duration treatment | Purpose |
-|---|---|---|---|
-| A | Two-state intermittent active particle + rotational diffusion | Empirical waiting-time distributions | Reproduce the 2025 baseline |
-| B | Active/passive/unresolved event model, no chemotactic bias | Duration bins derived after mechanism sampling | Negative control |
-| C | Active motor + passive trap, run-time bias only | Independent duration distributions | Isolate temporal/run-duration contribution |
-| D | Active motor turn-angle bias only; passive/unresolved events pooled | Short/long bins are observational strata only | Isolate active directional reorientation |
-| E | Combined run-time + active motor turn-angle bias | Mechanism and duration remain orthogonal | Test combined model |
-| F | Combined model + pore-resolved passive trapping | Overlap allowed across duration bins | Test geometry dependence |
-| G | Mechanism labels unresolved; use duration only for published subgroup comparison | Sensitivity across all threshold policies | Negative control for causal overinterpretation |
+| Arm | Run termination | Event mechanism | Duration treatment | Purpose |
+|---|---|---|---|---|
+| A | Intrinsic motor time only | Existing two-state active-particle event process | Empirical waiting-time distributions | Reproduce the 2025 minimal baseline |
+| B | Intrinsic motor time only | Active/passive/unresolved event model, no chemotactic bias | Duration bins derived after mechanism sampling | Event-semantics negative control |
+| C | Intrinsic motor time only + run-time bias | Active/passive/unresolved | Independent duration distributions | Isolate temporal/run-time contribution |
+| D | Intrinsic motor time only | Active motor turn-angle bias; passive/unresolved pooled | Short/long bins are observational strata only | Isolate active directional reorientation |
+| E | Intrinsic motor time only | Combined run-time + active motor turn-angle bias | Mechanism and duration remain orthogonal | Test combined chemotaxis |
+| F | Effective free-path limit only (motor persistence deliberately long) | Event mechanism remains independently sampled | Duration bin derived after realized run | Isolate geometric truncation |
+| G | Minimum of intrinsic motor time and effective free path / speed | Event mechanism remains independently sampled | Duration bin derived after realized run | Test coupled motor–matrix limits |
+| H | Same effective free-path law at multiple motor speeds | Event mechanism held matched | Duration changes inversely with speed where geometry dominates | Test run-length invariance and speed scaling |
+| I | Intrinsic motor time only | Mechanism unresolved | Duration-only subgroup comparison | Negative control for causal overinterpretation |
 
-All arms must use the same source split, empirical event distribution where applicable, swimming-speed inputs, gradient, ageing-time (t_a), observation horizon, initial conditions, observation cadence, censoring treatment, seeds and compute budget.
+All arms must use the same source split, empirical event distribution where applicable, swimming-speed inputs, free-path law where applicable, gradient, ageing-time (t_a), observation horizon, initial conditions, observation cadence, censoring treatment, seeds and compute budget. V0.1 uses an effective-free-path distribution only; it is not a pore-resolved geometry solver.
 
 ## Primary outcomes
 
-1. Run-time survival/distribution conditioned on run-start direction.
-2. Event-duration survival/density, stratified by independently assigned mechanism where evidence supports it.
-3. Right-censor-aware Kaplan–Meier survival curves with risk sets, event counts, censor counts and Greenwood standard errors.
-4. Matched empirical, exponential, double-exponential and piecewise-power-law waiting-time models using identical source splits and censoring assumptions.
-5. Finite-window integrated squared survival error against the shared KM step curve and censor-aware log likelihood (observed event -> log density; right censor -> log survival).
-6. AIC/BIC only when an explicit independent likelihood sample size is defensible; otherwise omit them rather than using track/frame counts as independent n.
-7. Age-dependent MSD (M(\\Delta;t_a)) across the observed recording window, with long-time normal-diffusion predictions reported separately as model extrapolations.
-8. Turn-angle distributions conditioned on preceding run-displacement direction and active-motor evidence class.
-9. Up-gradient run fraction after short versus long duration bins, independently of mechanism.
-10. Mechanism-by-duration overlap matrix, only where mechanism evidence is independently available.
-11. Duration-as-mechanism diagnostic (sensitivity, specificity, PPV, NPV, balanced accuracy), evaluated only on DIRECTLY_OBSERVED or MODEL_LATENT ground-truth events; algorithm-inferred/unresolved/exact-boundary cases remain excluded.
-12. First circular Fourier harmonic magnitude and phase of realized run-displacement orientations.
-13. Mean-squared displacement as a function of lag time and renewal-process ageing time (t_a).
-14. Chemotactic drift velocity and projected displacement.
-15. Sensitivity to agar fraction, pore-size/free-path distribution and mutant condition.
-16. Predictive calibration and uncertainty on held-out biological recording/plate/day units.
+1. Intrinsic motor-persistence survival conditioned on run-start direction.
+2. Realized run-duration survival after motor/geometry competition.
+3. Effective free-path and realized run-length distributions by matrix condition and strain.
+4. Fraction of runs terminated by the intrinsic motor process versus the geometric free-path limit.
+5. Conditional relationship among swimming speed, intrinsic persistence time, realized run duration and traversed arc length.
+6. Right-censor-aware Kaplan–Meier survival curves with risk sets, event counts, censor counts and Greenwood standard errors.
+7. Matched empirical, exponential, double-exponential and piecewise-power-law waiting-time models using identical source splits and censoring assumptions.
+8. Finite-window integrated squared survival error against the shared KM step curve and censor-aware log likelihood (observed event -> log density; right censor -> log survival).
+9. AIC/BIC only when an explicit independent likelihood sample size is defensible; otherwise omit them rather than using track/frame counts as independent n.
+10. Age-dependent MSD (M(\\Delta;t_a)) across the observed recording window, with long-time normal-diffusion predictions reported separately as model extrapolations.
+11. Turn-angle distributions conditioned on preceding run-displacement direction and active-motor evidence class.
+12. Up-gradient run fraction after short versus long duration bins, independently of mechanism.
+13. Mechanism-by-duration overlap matrix, only where mechanism evidence is independently available.
+14. Duration-as-mechanism diagnostic (sensitivity, specificity, PPV, NPV, balanced accuracy), evaluated only on DIRECTLY_OBSERVED or MODEL_LATENT ground-truth events; algorithm-inferred/unresolved/exact-boundary cases remain excluded.
+15. First circular Fourier harmonic magnitude and phase of realized run-displacement orientations.
+16. Mean-squared displacement as a function of lag time and renewal-process ageing time (t_a).
+17. Chemotactic drift velocity and projected displacement.
+18. Sensitivity to agar fraction, pore-size/free-path distribution and mutant condition.
+19. Predictive calibration and uncertainty on held-out biological recording/plate/day units.
 
 The observed microscopy window and model-only long-time extrapolation must be reported separately.
 

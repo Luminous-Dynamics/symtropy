@@ -1,8 +1,15 @@
 schema_version = "biomotility-benchmark-manifest-v0.1"
 benchmark_id = "PSEUDOMONAS-POROUS-AGAR-001"
 status = "REFERENCE_TARGETS_ONLY_DATA_RIGHTS_PENDING"
-model_scope = "event-based run-time and turn-angle bias with separate long-trap events"
-benchmark_arms = ["NONE", "RUN_TIME_ONLY", "TURN_ANGLE_ONLY", "COMBINED"]
+model_scope = "motor and geometry limited run termination; separate event mechanism, duration and evidence"
+benchmark_arms = ["NONE", "RUN_TIME_ONLY", "TURN_ANGLE_ONLY", "COMBINED", "GEOMETRY_LIMITED_ONLY", "MOTOR_PLUS_GEOMETRY"]
+run_termination_causes = ["INTRINSIC_MOTOR_SWITCH", "GEOMETRY_LIMITED_FREE_PATH"]
+geometry_free_path_law_families = ["EMPIRICAL", "EXPONENTIAL"]
+geometry_run_duration_rule = "MIN_INTRINSIC_MOTOR_PERSISTENCE_OR_FREE_PATH_LENGTH_DIVIDED_BY_SWIMMING_SPEED"
+geometry_free_path_units = "MICROMETRES"
+geometry_model_scope = "EFFECTIVE_FREE_PATH_COARSE_GRAINED_NOT_PORE_RESOLVED"
+geometry_free_path_fit_status = "NOT_FIT_PENDING_GEOMETRY_AND_TRAJECTORY_DATA"
+geometry_free_path_distribution_calibration = "NOT_ADMITTED_PENDING_SOURCE_DATA"
 directional_observations = ["RUN_START_HEADING", "RUN_DISPLACEMENT_HEADING", "INCOMING_END_TANGENT", "FOLLOWING_RUN_DISPLACEMENT"]
 direction_partition = "SIGN_OF_GRADIENT_PROJECTION"
 direction_alignment_epsilon = 1.0e-12
@@ -64,6 +71,8 @@ original_analysis_code_access = "AUTHOR_REQUEST_REQUIRED"
 agar_percent = 0.25
 reported_trajectory_count = 17703
 reported_mean_run_duration_seconds = 0.299
+reported_mean_run_length_um = 8.0
+reported_mean_run_length_evidence = "SOURCE_REPORTED_EXPERIMENTAL_TARGET_NOT_REPRODUCED"
 reported_up_gradient_run_fraction = 0.533
 reported_up_gradient_after_short_event_fraction = 0.567
 reported_up_gradient_after_short_event_count = 38376
@@ -78,6 +87,8 @@ reported_first_fourier_mode_magnitude = 0.054
 agar_percent = 0.30
 reported_trajectory_count = 18714
 reported_mean_run_duration_seconds = 0.232
+reported_mean_run_length_um = 5.0
+reported_mean_run_length_evidence = "SOURCE_REPORTED_EXPERIMENTAL_TARGET_NOT_REPRODUCED"
 reported_up_gradient_run_fraction = 0.519
 reported_up_gradient_after_short_event_fraction = 0.556
 reported_up_gradient_after_short_event_count = 36351
@@ -95,6 +106,16 @@ duration_minutes = 25
 turn_angle_only_fraction_of_combined_drift = 0.72
 run_time_only_fraction_of_combined_drift = 0.25
 evidence_class = "SOURCE_REPORTED_AGENT_BASED_SIMULATION_NOT_REPRODUCED_HERE"
+
+[geometry_reference_2025]
+study_doi = "10.1103/PhysRevLett.134.188303"
+claim = "UNIVERSAL_DISPERSAL_RELATION_LINKED_TO_GEOMETRIC_MEAN_FREE_PATH"
+evidence_class = "PUBLISHED_NUMERICAL_AND_THEORETICAL_REFERENCE_NOT_REPRODUCED"
+
+[geometry_reference_2023]
+study_doi = "10.1038/s42005-023-01136-w"
+claim = "EFFECTIVE_MEAN_FREE_PATH_FROM_GEOMETRY_PREDICTS_TRANSPORT_ACROSS_POROUS_MEDIA"
+evidence_class = "PUBLISHED_COMPARATIVE_MODEL_AND_EXPERIMENT_REFERENCE_NOT_REPRODUCED"
 
 [secondary_comparator_datta_2025]
 study_doi = "10.1038/s41598-025-02741-1"
