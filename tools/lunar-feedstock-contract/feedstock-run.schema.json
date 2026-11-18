@@ -751,7 +751,9 @@
             "shape_profile",
             "uncertainty_budget",
             "other",
-            "mineral_and_particle_size_assay"
+            "mineral_and_particle_size_assay",
+            "calibration_record",
+            "property_measurement"
           ]
         },
         "path": {
