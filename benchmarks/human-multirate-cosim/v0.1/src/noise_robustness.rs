@@ -1053,9 +1053,9 @@ impl std::error::Error for NoiseCalibrationError {}
 /// Calibrate and validate residual thresholds under one explicitly bound
 /// full space-time Gaussian covariance.
 ///
-/// Candidate models are sampled on an independent calibration stream and an
-/// independent validation stream. Hidden out-of-family model identities and
-/// evaluator-only truth are never returned in the report. The caller-supplied
+/// Candidate models use independent calibration and validation streams;
+/// hidden out-of-family truths use a third evaluator-only stream. Hidden model
+/// identities and truth are never returned in the report. The caller-supplied
 /// covariance/process/sampling/operator/availability IDs are preserved, but
 /// this function does not authenticate the external manifests behind them.
 pub fn calibrate_model_family_adequacy_full_covariance(
@@ -1295,8 +1295,7 @@ pub fn calibrate_model_family_adequacy_full_covariance(
         .iter()
         .filter(|residual| **residual <= threshold)
         .count();
-    let validation_in_family_coverage =
-        rate(validation_in_family_accepts, validation_samples);
+    let validation_in_family_coverage = rate(validation_in_family_accepts, validation_samples);
     Ok(NoiseAdequacyCalibrationReportV1 {
         covariance_id: covariance.covariance_id.clone(),
         observation_process_id: covariance.observation_process_id.clone(),
