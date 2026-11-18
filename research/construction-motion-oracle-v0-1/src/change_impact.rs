@@ -120,7 +120,6 @@ pub struct ConstructionArtifactGraph {
     pub artifacts: Vec<ConstructionArtifact>,
 }
 
-
 /// Owner-approved minimum dependency domains for one artifact class.
 /// The contract is a coverage floor; artifact-specific scope identities and
 /// all additional dependencies remain explicit on each artifact.
@@ -136,7 +135,6 @@ pub struct DependencyContractSet {
     pub contracts: Vec<ArtifactDependencyContract>,
 }
 
-
 /// Built-in minimum dependency domains for every supported construction
 /// artifact class. Project/site contracts may add stricter domains, but must
 /// include every domain returned here. Hash the canonical returned contract
@@ -150,52 +148,109 @@ fn minimum_required_domains(
     match artifact_kind {
         IfcIdsPreflight => &[SourceModel, IfcSchema, IdsSpecification, IdsEngineBuild],
         DesignWorkPackage => &[
-            SourceModel, IfcSchema, IdsSpecification, DesignRevision,
-            CoordinateFrame, CoordinateTransform, AcceptanceProfile,
+            SourceModel,
+            IfcSchema,
+            IdsSpecification,
+            DesignRevision,
+            CoordinateFrame,
+            CoordinateTransform,
+            AcceptanceProfile,
         ],
         StationQualification => &[
-            CoordinateFrame, CoordinateTransform, SurveyControl,
-            StationCalibration, SiteClockMap,
+            CoordinateFrame,
+            CoordinateTransform,
+            SurveyControl,
+            StationCalibration,
+            SiteClockMap,
         ],
-        MaterialReadiness => &[MaterialLot, DesignRevision, WorkPackageSchedule, AuthorityPolicy],
+        MaterialReadiness => &[
+            MaterialLot,
+            DesignRevision,
+            WorkPackageSchedule,
+            AuthorityPolicy,
+        ],
         ProductionTask => &[
-            DesignRevision, CoordinateFrame, CoordinateTransform,
-            WorkPackageSchedule, MaterialLot, AuthorityPolicy,
+            DesignRevision,
+            CoordinateFrame,
+            CoordinateTransform,
+            WorkPackageSchedule,
+            MaterialLot,
+            AuthorityPolicy,
         ],
         RobotTrajectory | MotionEnvelope => &[
-            DesignRevision, EntityGeometry, CoordinateFrame, CoordinateTransform,
-            RobotConfiguration, ToolConfiguration, PayloadConfiguration,
-            TrajectoryConfiguration, SiteClockMap,
+            DesignRevision,
+            EntityGeometry,
+            CoordinateFrame,
+            CoordinateTransform,
+            RobotConfiguration,
+            ToolConfiguration,
+            PayloadConfiguration,
+            TrajectoryConfiguration,
+            SiteClockMap,
         ],
         SpaceTimeOccupancyAssessment => &[
-            CoordinateFrame, CoordinateTransform, ObstacleMap,
-            DynamicActorManifest, SiteClockMap, OccupancyEngineBuild,
+            CoordinateFrame,
+            CoordinateTransform,
+            ObstacleMap,
+            DynamicActorManifest,
+            SiteClockMap,
+            OccupancyEngineBuild,
             ClearancePolicy,
         ],
         DispatchReadiness => &[
-            DesignRevision, CoordinateFrame, CoordinateTransform,
-            RobotConfiguration, ToolConfiguration, PayloadConfiguration,
-            TrajectoryConfiguration, ObstacleMap, DynamicActorManifest,
-            SiteClockMap, OccupancyEngineBuild, ClearancePolicy,
-            SiteLedgerState, WorkPackageSchedule, AuthorityPolicy,
+            DesignRevision,
+            CoordinateFrame,
+            CoordinateTransform,
+            RobotConfiguration,
+            ToolConfiguration,
+            PayloadConfiguration,
+            TrajectoryConfiguration,
+            ObstacleMap,
+            DynamicActorManifest,
+            SiteClockMap,
+            OccupancyEngineBuild,
+            ClearancePolicy,
+            SiteLedgerState,
+            WorkPackageSchedule,
+            AuthorityPolicy,
         ],
         InspectionPlan => &[
-            DesignRevision, EntityGeometry, CoordinateFrame, CoordinateTransform,
-            AcceptanceProfile, InspectionSpecification, AuthorityPolicy,
+            DesignRevision,
+            EntityGeometry,
+            CoordinateFrame,
+            CoordinateTransform,
+            AcceptanceProfile,
+            InspectionSpecification,
+            AuthorityPolicy,
             WorkPackageSchedule,
         ],
         AsBuiltMeasurement => &[
-            DesignRevision, EntityGeometry, CoordinateFrame, CoordinateTransform,
-            SurveyControl, StationCalibration, MetrologyReference,
+            DesignRevision,
+            EntityGeometry,
+            CoordinateFrame,
+            CoordinateTransform,
+            SurveyControl,
+            StationCalibration,
+            MetrologyReference,
         ],
         AcceptedConstructionRecord => &[
-            DesignRevision, EntityGeometry, CoordinateFrame, CoordinateTransform,
-            AcceptanceProfile, MetrologyReference, MaterialLot,
-            AuthorityPolicy, SiteLedgerState,
+            DesignRevision,
+            EntityGeometry,
+            CoordinateFrame,
+            CoordinateTransform,
+            AcceptanceProfile,
+            MetrologyReference,
+            MaterialLot,
+            AuthorityPolicy,
+            SiteLedgerState,
         ],
         HandoverRecord => &[
-            SourceModel, DesignRevision, AcceptanceProfile,
-            InspectionSpecification, MetrologyReference, AuthorityPolicy,
+            SourceModel,
+            DesignRevision,
+            AcceptanceProfile,
+            InspectionSpecification,
+            MetrologyReference,
+            AuthorityPolicy,
             SiteLedgerState,
         ],
     }
@@ -213,92 +268,153 @@ pub fn minimum_construction_dependency_contracts() -> Vec<ArtifactDependencyCont
         ArtifactDependencyContract {
             artifact_kind: DesignWorkPackage,
             required_domains: vec![
-                SourceModel, IfcSchema, IdsSpecification, DesignRevision,
-                CoordinateFrame, CoordinateTransform, AcceptanceProfile,
+                SourceModel,
+                IfcSchema,
+                IdsSpecification,
+                DesignRevision,
+                CoordinateFrame,
+                CoordinateTransform,
+                AcceptanceProfile,
             ],
         },
         ArtifactDependencyContract {
             artifact_kind: StationQualification,
             required_domains: vec![
-                CoordinateFrame, CoordinateTransform, SurveyControl,
-                StationCalibration, SiteClockMap,
+                CoordinateFrame,
+                CoordinateTransform,
+                SurveyControl,
+                StationCalibration,
+                SiteClockMap,
             ],
         },
         ArtifactDependencyContract {
             artifact_kind: MaterialReadiness,
             required_domains: vec![
-                MaterialLot, DesignRevision, WorkPackageSchedule, AuthorityPolicy,
+                MaterialLot,
+                DesignRevision,
+                WorkPackageSchedule,
+                AuthorityPolicy,
             ],
         },
         ArtifactDependencyContract {
             artifact_kind: ProductionTask,
             required_domains: vec![
-                DesignRevision, CoordinateFrame, CoordinateTransform,
-                WorkPackageSchedule, MaterialLot, AuthorityPolicy,
+                DesignRevision,
+                CoordinateFrame,
+                CoordinateTransform,
+                WorkPackageSchedule,
+                MaterialLot,
+                AuthorityPolicy,
             ],
         },
         ArtifactDependencyContract {
             artifact_kind: RobotTrajectory,
             required_domains: vec![
-                DesignRevision, EntityGeometry, CoordinateFrame, CoordinateTransform,
-                RobotConfiguration, ToolConfiguration, PayloadConfiguration,
-                TrajectoryConfiguration, SiteClockMap,
+                DesignRevision,
+                EntityGeometry,
+                CoordinateFrame,
+                CoordinateTransform,
+                RobotConfiguration,
+                ToolConfiguration,
+                PayloadConfiguration,
+                TrajectoryConfiguration,
+                SiteClockMap,
             ],
         },
         ArtifactDependencyContract {
             artifact_kind: MotionEnvelope,
             required_domains: vec![
-                DesignRevision, EntityGeometry, CoordinateFrame, CoordinateTransform,
-                RobotConfiguration, ToolConfiguration, PayloadConfiguration,
-                TrajectoryConfiguration, SiteClockMap,
+                DesignRevision,
+                EntityGeometry,
+                CoordinateFrame,
+                CoordinateTransform,
+                RobotConfiguration,
+                ToolConfiguration,
+                PayloadConfiguration,
+                TrajectoryConfiguration,
+                SiteClockMap,
             ],
         },
         ArtifactDependencyContract {
             artifact_kind: SpaceTimeOccupancyAssessment,
             required_domains: vec![
-                CoordinateFrame, CoordinateTransform, ObstacleMap,
-                DynamicActorManifest, SiteClockMap, OccupancyEngineBuild,
+                CoordinateFrame,
+                CoordinateTransform,
+                ObstacleMap,
+                DynamicActorManifest,
+                SiteClockMap,
+                OccupancyEngineBuild,
                 ClearancePolicy,
             ],
         },
         ArtifactDependencyContract {
             artifact_kind: DispatchReadiness,
             required_domains: vec![
-                DesignRevision, CoordinateFrame, CoordinateTransform,
-                RobotConfiguration, ToolConfiguration, PayloadConfiguration,
-                TrajectoryConfiguration, ObstacleMap, DynamicActorManifest,
-                SiteClockMap, OccupancyEngineBuild, ClearancePolicy,
-                SiteLedgerState, WorkPackageSchedule, AuthorityPolicy,
+                DesignRevision,
+                CoordinateFrame,
+                CoordinateTransform,
+                RobotConfiguration,
+                ToolConfiguration,
+                PayloadConfiguration,
+                TrajectoryConfiguration,
+                ObstacleMap,
+                DynamicActorManifest,
+                SiteClockMap,
+                OccupancyEngineBuild,
+                ClearancePolicy,
+                SiteLedgerState,
+                WorkPackageSchedule,
+                AuthorityPolicy,
             ],
         },
         ArtifactDependencyContract {
             artifact_kind: InspectionPlan,
             required_domains: vec![
-                DesignRevision, EntityGeometry, CoordinateFrame, CoordinateTransform,
-                AcceptanceProfile, InspectionSpecification, AuthorityPolicy,
+                DesignRevision,
+                EntityGeometry,
+                CoordinateFrame,
+                CoordinateTransform,
+                AcceptanceProfile,
+                InspectionSpecification,
+                AuthorityPolicy,
                 WorkPackageSchedule,
             ],
         },
         ArtifactDependencyContract {
             artifact_kind: AsBuiltMeasurement,
             required_domains: vec![
-                DesignRevision, EntityGeometry, CoordinateFrame, CoordinateTransform,
-                SurveyControl, StationCalibration, MetrologyReference,
+                DesignRevision,
+                EntityGeometry,
+                CoordinateFrame,
+                CoordinateTransform,
+                SurveyControl,
+                StationCalibration,
+                MetrologyReference,
             ],
         },
         ArtifactDependencyContract {
             artifact_kind: AcceptedConstructionRecord,
             required_domains: vec![
-                DesignRevision, EntityGeometry, CoordinateFrame, CoordinateTransform,
-                AcceptanceProfile, MetrologyReference, MaterialLot,
-                AuthorityPolicy, SiteLedgerState,
+                DesignRevision,
+                EntityGeometry,
+                CoordinateFrame,
+                CoordinateTransform,
+                AcceptanceProfile,
+                MetrologyReference,
+                MaterialLot,
+                AuthorityPolicy,
+                SiteLedgerState,
             ],
         },
         ArtifactDependencyContract {
             artifact_kind: HandoverRecord,
             required_domains: vec![
-                SourceModel, DesignRevision, AcceptanceProfile,
-                InspectionSpecification, MetrologyReference, AuthorityPolicy,
+                SourceModel,
+                DesignRevision,
+                AcceptanceProfile,
+                InspectionSpecification,
+                MetrologyReference,
+                AuthorityPolicy,
                 SiteLedgerState,
             ],
         },
@@ -453,12 +569,7 @@ pub fn compile_change_impact(
     let current_by_key: BTreeMap<DependencyKey, &str> = graph
         .current_dependencies
         .iter()
-        .map(|dependency| {
-            (
-                dependency.key.clone(),
-                dependency.observed_sha256.as_str(),
-            )
-        })
+        .map(|dependency| (dependency.key.clone(), dependency.observed_sha256.as_str()))
         .collect();
     let transition_by_key: BTreeMap<DependencyKey, &DependencyTransition> = changes
         .changes
@@ -482,20 +593,15 @@ pub fn compile_change_impact(
         }
     }
 
-    let mut direct_dependencies_by_artifact =
-        BTreeMap::<&str, Vec<DependencyKey>>::new();
+    let mut direct_dependencies_by_artifact = BTreeMap::<&str, Vec<DependencyKey>>::new();
     let mut declared_change_keys = BTreeSet::new();
 
     for artifact in &graph.artifacts {
         let mut stale_dependencies = Vec::new();
         for dependency in &artifact.dependencies {
-            let snapshot_version = current_by_key
-                .get(&dependency.key)
-                .ok_or_else(|| {
-                    ChangeImpactError::MissingCurrentDependencyVersion(
-                        dependency.key.clone(),
-                    )
-                })?;
+            let snapshot_version = current_by_key.get(&dependency.key).ok_or_else(|| {
+                ChangeImpactError::MissingCurrentDependencyVersion(dependency.key.clone())
+            })?;
             let effective_version = transition_by_key
                 .get(&dependency.key)
                 .map_or(*snapshot_version, |transition| {
@@ -513,10 +619,8 @@ pub fn compile_change_impact(
         }
         if !stale_dependencies.is_empty() {
             stale_dependencies.sort();
-            direct_dependencies_by_artifact.insert(
-                artifact.artifact_id.as_str(),
-                stale_dependencies,
-            );
+            direct_dependencies_by_artifact
+                .insert(artifact.artifact_id.as_str(), stale_dependencies);
         }
     }
 
@@ -689,11 +793,9 @@ pub fn audit_dependency_coverage(
     let mut gaps = Vec::new();
     let mut complete_artifacts = 0_u64;
     for artifact in &graph.artifacts {
-        let required_domains = contract_by_kind
-            .get(&artifact.kind)
-            .ok_or(ChangeImpactError::MissingArtifactKindContract(
-                artifact.kind,
-            ))?;
+        let required_domains = contract_by_kind.get(&artifact.kind).ok_or(
+            ChangeImpactError::MissingArtifactKindContract(artifact.kind),
+        )?;
         let observed_domains: BTreeSet<DependencyDomain> = artifact
             .dependencies
             .iter()
@@ -785,10 +887,14 @@ fn validate_change_set(changes: &ConstructionChangeSet) -> Result<(), ChangeImpa
             ));
         }
         if !is_sha256(&transition.previous_sha256) {
-            return Err(ChangeImpactError::InvalidDigest("previous dependency version"));
+            return Err(ChangeImpactError::InvalidDigest(
+                "previous dependency version",
+            ));
         }
         if !is_sha256(&transition.current_sha256) {
-            return Err(ChangeImpactError::InvalidDigest("current dependency version"));
+            return Err(ChangeImpactError::InvalidDigest(
+                "current dependency version",
+            ));
         }
         if transition.previous_sha256 == transition.current_sha256 {
             return Err(ChangeImpactError::NoOpDependencyTransition(
@@ -907,7 +1013,10 @@ fn validate_and_topologically_sort(
     let mut indegree = BTreeMap::<&str, usize>::new();
     let mut dependents = BTreeMap::<&str, Vec<&str>>::new();
     for artifact in &graph.artifacts {
-        indegree.insert(artifact.artifact_id.as_str(), artifact.depends_on_artifact_ids.len());
+        indegree.insert(
+            artifact.artifact_id.as_str(),
+            artifact.depends_on_artifact_ids.len(),
+        );
         for parent_id in &artifact.depends_on_artifact_ids {
             if !artifact_by_id.contains_key(parent_id.as_str()) {
                 return Err(ChangeImpactError::UnknownArtifactParent {
@@ -1023,7 +1132,12 @@ mod tests {
         }
     }
 
-    fn change(domain: DependencyDomain, scope: &str, previous: char, current: char) -> DependencyTransition {
+    fn change(
+        domain: DependencyDomain,
+        scope: &str,
+        previous: char,
+        current: char,
+    ) -> DependencyTransition {
         DependencyTransition {
             key: key(domain, scope),
             previous_sha256: digest(previous),
@@ -1046,7 +1160,11 @@ mod tests {
                 "motion:A",
                 ConstructionArtifactKind::MotionEnvelope,
                 ArtifactPersistence::Recomputable,
-                vec![dependency(DependencyDomain::EntityGeometry, "entity:A", '1')],
+                vec![dependency(
+                    DependencyDomain::EntityGeometry,
+                    "entity:A",
+                    '1',
+                )],
                 &[],
                 'a',
             ),
@@ -1054,7 +1172,11 @@ mod tests {
                 "motion:B",
                 ConstructionArtifactKind::MotionEnvelope,
                 ArtifactPersistence::Recomputable,
-                vec![dependency(DependencyDomain::EntityGeometry, "entity:B", '2')],
+                vec![dependency(
+                    DependencyDomain::EntityGeometry,
+                    "entity:B",
+                    '2',
+                )],
                 &[],
                 'b',
             ),
@@ -1078,7 +1200,11 @@ mod tests {
                 "accepted:A",
                 ConstructionArtifactKind::AcceptedConstructionRecord,
                 ArtifactPersistence::HistoricalImmutable,
-                vec![dependency(DependencyDomain::EntityGeometry, "entity:A", '1')],
+                vec![dependency(
+                    DependencyDomain::EntityGeometry,
+                    "entity:A",
+                    '1',
+                )],
                 &[],
                 '9',
             ),
@@ -1130,7 +1256,11 @@ mod tests {
                 "transform-qualification",
                 ConstructionArtifactKind::StationQualification,
                 ArtifactPersistence::Recomputable,
-                vec![dependency(DependencyDomain::CoordinateTransform, "floor:02", '1')],
+                vec![dependency(
+                    DependencyDomain::CoordinateTransform,
+                    "floor:02",
+                    '1',
+                )],
                 &[],
                 'a',
             ),
@@ -1190,7 +1320,11 @@ mod tests {
                 "accepted-floor-02",
                 ConstructionArtifactKind::AcceptedConstructionRecord,
                 ArtifactPersistence::HistoricalImmutable,
-                vec![dependency(DependencyDomain::DesignRevision, "floor:02", '1')],
+                vec![dependency(
+                    DependencyDomain::DesignRevision,
+                    "floor:02",
+                    '1',
+                )],
                 &[],
                 'a',
             ),
@@ -1232,7 +1366,11 @@ mod tests {
             "old-trajectory",
             ConstructionArtifactKind::RobotTrajectory,
             ArtifactPersistence::Recomputable,
-            vec![dependency(DependencyDomain::DesignRevision, "floor:02", '0')],
+            vec![dependency(
+                DependencyDomain::DesignRevision,
+                "floor:02",
+                '0',
+            )],
             &[],
             'a',
         )]);
@@ -1258,7 +1396,11 @@ mod tests {
             "motion:A",
             ConstructionArtifactKind::MotionEnvelope,
             ArtifactPersistence::Recomputable,
-            vec![dependency(DependencyDomain::EntityGeometry, "entity:A", '1')],
+            vec![dependency(
+                DependencyDomain::EntityGeometry,
+                "entity:A",
+                '1',
+            )],
             &[],
             'a',
         )]);
@@ -1431,7 +1573,8 @@ mod tests {
             '1',
             '2',
         )]);
-        let first = compile_change_impact(&graph(vec![a.clone(), b.clone(), c.clone()]), &change).unwrap();
+        let first =
+            compile_change_impact(&graph(vec![a.clone(), b.clone(), c.clone()]), &change).unwrap();
         let second = compile_change_impact(&graph(vec![c, a, b]), &change).unwrap();
         assert_eq!(first.requalification_order, second.requalification_order);
         assert_eq!(first.requalification_order, vec!["a", "b", "c"]);
@@ -1440,7 +1583,10 @@ mod tests {
     #[test]
     fn accepted_output_and_as_built_measurements_cannot_be_marked_recomputable() {
         for (id, kind) in [
-            ("accepted", ConstructionArtifactKind::AcceptedConstructionRecord),
+            (
+                "accepted",
+                ConstructionArtifactKind::AcceptedConstructionRecord,
+            ),
             ("as-built", ConstructionArtifactKind::AsBuiltMeasurement),
             ("handover", ConstructionArtifactKind::HandoverRecord),
         ] {
@@ -1495,16 +1641,14 @@ mod tests {
         );
     }
 
-
     #[test]
     fn dependency_contract_blocks_motion_envelopes_missing_required_tool_bindings() {
-        let motion_dependencies: Vec<VersionedDependency> = minimum_required_domains(
-            ConstructionArtifactKind::MotionEnvelope,
-        )
-        .iter()
-        .filter(|domain| **domain != DependencyDomain::ToolConfiguration)
-        .map(|domain| dependency(*domain, &format!("motion:A:{domain:?}"), '1'))
-        .collect();
+        let motion_dependencies: Vec<VersionedDependency> =
+            minimum_required_domains(ConstructionArtifactKind::MotionEnvelope)
+                .iter()
+                .filter(|domain| **domain != DependencyDomain::ToolConfiguration)
+                .map(|domain| dependency(*domain, &format!("motion:A:{domain:?}"), '1'))
+                .collect();
         let graph = graph(vec![artifact(
             "motion:A",
             ConstructionArtifactKind::MotionEnvelope,
@@ -1616,7 +1760,11 @@ mod tests {
             "motion:A",
             ConstructionArtifactKind::MotionEnvelope,
             ArtifactPersistence::Recomputable,
-            vec![dependency(DependencyDomain::EntityGeometry, "entity:A", '1')],
+            vec![dependency(
+                DependencyDomain::EntityGeometry,
+                "entity:A",
+                '1',
+            )],
             &[],
             'a',
         )]);
@@ -1638,14 +1786,17 @@ mod tests {
         );
     }
 
-
     #[test]
     fn change_previous_version_must_match_authoritative_graph_snapshot() {
         let graph = graph(vec![artifact(
             "motion:A",
             ConstructionArtifactKind::MotionEnvelope,
             ArtifactPersistence::Recomputable,
-            vec![dependency(DependencyDomain::EntityGeometry, "entity:A", '1')],
+            vec![dependency(
+                DependencyDomain::EntityGeometry,
+                "entity:A",
+                '1',
+            )],
             &[],
             'a',
         )]);
@@ -1671,7 +1822,11 @@ mod tests {
                 "motion:A",
                 ConstructionArtifactKind::MotionEnvelope,
                 ArtifactPersistence::Recomputable,
-                vec![dependency(DependencyDomain::EntityGeometry, "entity:A", '0')],
+                vec![dependency(
+                    DependencyDomain::EntityGeometry,
+                    "entity:A",
+                    '0',
+                )],
                 &[],
                 'a',
             ),
@@ -1679,7 +1834,11 @@ mod tests {
                 "motion:B",
                 ConstructionArtifactKind::MotionEnvelope,
                 ArtifactPersistence::Recomputable,
-                vec![dependency(DependencyDomain::EntityGeometry, "entity:B", '1')],
+                vec![dependency(
+                    DependencyDomain::EntityGeometry,
+                    "entity:B",
+                    '1',
+                )],
                 &[],
                 'b',
             ),
@@ -1713,7 +1872,11 @@ mod tests {
             "motion:A",
             ConstructionArtifactKind::MotionEnvelope,
             ArtifactPersistence::Recomputable,
-            vec![dependency(DependencyDomain::EntityGeometry, "entity:A", '1')],
+            vec![dependency(
+                DependencyDomain::EntityGeometry,
+                "entity:A",
+                '1',
+            )],
             &[],
             'a',
         )]);
@@ -1741,7 +1904,11 @@ mod tests {
             "motion:A",
             ConstructionArtifactKind::MotionEnvelope,
             ArtifactPersistence::Recomputable,
-            vec![dependency(DependencyDomain::EntityGeometry, "entity:A", '1')],
+            vec![dependency(
+                DependencyDomain::EntityGeometry,
+                "entity:A",
+                '1',
+            )],
             &[],
             'a',
         )]);
@@ -1760,18 +1927,23 @@ mod tests {
         );
     }
 
-
     #[test]
     fn duplicate_authoritative_current_dependency_keys_fail_closed() {
         let mut graph = graph(vec![artifact(
             "motion:A",
             ConstructionArtifactKind::MotionEnvelope,
             ArtifactPersistence::Recomputable,
-            vec![dependency(DependencyDomain::EntityGeometry, "entity:A", '1')],
+            vec![dependency(
+                DependencyDomain::EntityGeometry,
+                "entity:A",
+                '1',
+            )],
             &[],
             'a',
         )]);
-        graph.current_dependencies.push(graph.current_dependencies[0].clone());
+        graph
+            .current_dependencies
+            .push(graph.current_dependencies[0].clone());
         assert_eq!(
             compile_change_impact(
                 &graph,
@@ -1788,7 +1960,6 @@ mod tests {
             )))
         );
     }
-
 
     #[test]
     fn generated_dependency_dags_match_independent_invalidation_closure_oracle() {
@@ -1835,8 +2006,7 @@ mod tests {
                 }];
 
                 if index % 4 == 0 {
-                    let transform_key =
-                        key(DependencyDomain::CoordinateTransform, "floor:02");
+                    let transform_key = key(DependencyDomain::CoordinateTransform, "floor:02");
                     current_by_key
                         .entry(transform_key.clone())
                         .or_insert_with(|| digest('2'));
@@ -1911,17 +2081,14 @@ mod tests {
             // post-change snapshot, then walk graph edges to form the closure.
             let mut effective_versions = current_by_key.clone();
             for transition in &change_set.changes {
-                effective_versions.insert(
-                    transition.key.clone(),
-                    transition.current_sha256.clone(),
-                );
+                effective_versions
+                    .insert(transition.key.clone(), transition.current_sha256.clone());
             }
             let direct: BTreeSet<String> = artifacts
                 .iter()
                 .filter(|artifact| {
                     artifact.dependencies.iter().any(|dependency| {
-                        effective_versions.get(&dependency.key)
-                            != Some(&dependency.observed_sha256)
+                        effective_versions.get(&dependency.key) != Some(&dependency.observed_sha256)
                     })
                 })
                 .map(|artifact| artifact.artifact_id.clone())
@@ -2030,7 +2197,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn owner_contract_cannot_remove_a_builtin_minimum_dependency_domain() {
         let graph = graph(vec![artifact(
@@ -2041,8 +2207,16 @@ mod tests {
                 dependency(DependencyDomain::EntityGeometry, "entity:A", '1'),
                 dependency(DependencyDomain::CoordinateTransform, "floor:02", '2'),
                 dependency(DependencyDomain::RobotConfiguration, "robot:A", '3'),
-                dependency(DependencyDomain::PayloadConfiguration, "robot:A:payload", '4'),
-                dependency(DependencyDomain::TrajectoryConfiguration, "robot:A:trajectory", '5'),
+                dependency(
+                    DependencyDomain::PayloadConfiguration,
+                    "robot:A:payload",
+                    '4',
+                ),
+                dependency(
+                    DependencyDomain::TrajectoryConfiguration,
+                    "robot:A:trajectory",
+                    '5',
+                ),
                 dependency(DependencyDomain::SiteClockMap, "site", '6'),
             ],
             &[],
@@ -2070,5 +2244,4 @@ mod tests {
             })
         );
     }
-
 }
