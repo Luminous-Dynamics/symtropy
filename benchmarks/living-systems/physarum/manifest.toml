@@ -1,0 +1,104 @@
+schema_version = "living-systems-lineage-benchmark-v0.1"
+benchmark_id = "BIO-PHYSARUM-TRAVELING-NETWORK-001"
+status = "SOURCE_ANCHORED_DATA_ADMISSION_PENDING"
+created_utc_date = "2026-11-18"
+parent_issue = "https://github.com/Luminous-Dynamics/symtropy/issues/5981"
+issue = "https://github.com/Luminous-Dynamics/symtropy/issues/6093"
+organism = "Physarum polycephalum"
+lineage = "EUKARYOTA_AMOEBOZOA_MYXOGASTRIA"
+system_organization = "SINGLE_PLASMODIAL_CELL_WITH_DISTRIBUTED_TUBULAR_TRANSPORT_NETWORK"
+movement_mechanisms = ["PLASMODIAL_MIGRATION", "NETWORK_GROWTH_AND_RETRACTION", "CONTRACTILE_WAVE_DRIVEN_CYTOPLASMIC_TRANSPORT"]
+universal_shortest_path_algorithm_claim = false
+topology_is_direct_evidence_of_flux = false
+
+[primary_dataset_2026]
+doi = "10.5281/zenodo.22868368"
+title = "Physarum polycephalum time-lapse imaging: 24 dish series from four six-dish experiments (OME-Zarr)"
+authors = ["Kyle Harrington", "Iris Harrington"]
+publisher = "Zenodo"
+dataset_version = "2026-09-21"
+license = "CC-BY-4.0"
+recorded_total_size_gb = 132.93
+dish_series_count = 24
+experiment_count = 4
+dishes_per_experiment = 6
+frame_count_total = 51036
+scan_count_total = 8506
+sampling_intervals_minutes = [2, 5]
+experiment_duration_days_min = 2.5
+experiment_duration_days_max = 6.0
+format = "OME-NGFF-0.5_ZARR_V3_ZIP64"
+array_dtype = "UINT8"
+array_axes = ["t", "c", "y", "x"]
+channels = 3
+timestamps = "EXACT_PER_FRAME_UTC_NANOSECONDS"
+calibration_pixel_pitch_mm = 0.08467
+orientation = "MIRRORED_BOTTOM_VIEW_OF_DISH"
+registration = "FRAMES_NOT_REGISTERED_PER_FRAME_DISH_CIRCLE_FITS_PROVIDED"
+checksums = "PER_FRAME_MANIFEST_AND_SHA256SUMS_PROVIDED"
+qc_notes = true
+segmentation_masks_in_primary_release = false
+admission_status = "NOT_INGESTED_PENDING_EXACT_ZENODO_VERSION_FILE_MANIFEST_SHA256_AND_METADATA_CROSSWALK"
+claim_limit = "RAW_SCANNED_PIXELS_ONLY_NO_SEGMENTATIONS_OR_DERIVED_MEASUREMENTS"
+
+[primary_dataset_2026.truncation]
+experiment_002 = "RELEASE_ENDS_BEFORE_TWO_BLOWN_OUT_FRAMES"
+experiment_009 = "RELEASE_ENDS_BEFORE_SUSPECTED_CONTAMINATION_INTERVAL"
+full_recordings_public = false
+must_preserve_public_truncation = true
+
+[ring_contractility_dataset_2026]
+part_1_doi = "10.5061/dryad.2z34tmq08"
+part_2_doi = "10.5061/dryad.v15dv4291"
+related_preprint_doi = "10.48550/arXiv.2501.02651"
+part_2_recorded_size_gb = 665.80
+ring_experiments = 47
+specimens = 16
+typical_interval_seconds = 46
+recording_duration_hours_max = 412
+ring_perimeter_cm_min = 6.0
+ring_perimeter_cm_max = 13.5
+segmentation_masks_available = true
+sector_time_series_available = true
+phase_amplitude_drift_decomposition_available = true
+scripts_available = true
+license_status = "NOT_VERIFIED_IN_RETRIEVED_RECORD"
+admission_status = "NOT_ADMITTED_PENDING_EXACT_LICENSE_FILE_MANIFEST_AND_CHECKSUM_REVIEW"
+
+[comparators.tero_adaptive_conductivity]
+doi = "10.1016/j.jtbi.2006.07.015"
+year = 2007
+model_family = "FLUX_REINFORCED_TUBE_CONDUCTANCE"
+limitation = "ORIGINAL_SOURCE_NOTED_EMPIRICAL_EVIDENCE_FOR_THICKENING_WAS_QUALITATIVE"
+
+[comparators.tero_network_design]
+doi = "10.1126/science.1177894"
+year = 2010
+metrics = ["COST", "TRANSPORT_EFFICIENCY", "FAULT_TOLERANCE"]
+claim_limit = "NETWORK_SIMILARITY_IS_NOT_ALGORITHM_EQUIVALENCE"
+
+[comparators.bottom_up_foraging]
+doi = "10.1098/rsif.2024.0701"
+year = 2025
+model_family = "HIERARCHICAL_MULTI_AGENT_FORAGING_AND_NETWORK_FORMATION"
+status = "PUBLISHED_COMPARATOR_NOT_REPRODUCED"
+
+[comparators.traveling_network_2026]
+preprint_date = "2026-08-16"
+data_doi = "10.5281/zenodo.21908143"
+code_url = "https://github.com/CiraLab/AvoidantTravelingNetworks"
+status = "DIRECT_SOTA_COMPARATOR_NOT_INDEPENDENTLY_REPRODUCED"
+claim_limit = "PREPRINT_NOT_GROUND_TRUTH"
+
+[benchmark_tracks]
+track_a = ["FRONT_MIGRATION", "BRANCHING_RETRACTION", "RELOCATION_AND_SEARCH"]
+track_b = ["NETWORK_TOPOLOGY", "TUBE_WIDTH_PROXY", "TRANSPORT_ONLY_WHERE_DIRECTLY_OBSERVED"]
+track_c = ["CONTRACTILE_WAVES", "PHASE_COHERENCE", "TEMPORAL_COARSE_GRAINING"]
+
+[benchmark_policy]
+split_unit = "COMPLETE_EXPERIMENT_AND_DISH_WITHIN_EXPERIMENT_GROUPING_PRESERVED"
+no_adjacent_frame_train_test_leakage = true
+topology_not_flux = true
+synthetic_edge_failure_results_labelled = "SIMULATED_NOT_BIOLOGICAL"
+biological_and_synthetic_data_separated = true
+source_rights_required_before_ingestion = true
