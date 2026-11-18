@@ -89,9 +89,10 @@ pub struct SortieProposal {
     pub recovery_stop_id: String,
     pub launch_pad_resource_id: String,
     pub recovery_pad_resource_id: String,
-    /// Half-open service windows; service must finish no later than close.
+    /// Half-open launch-service start window; launch service must finish by close.
     pub launch_window_open_ms: u64,
     pub launch_window_close_ms: u64,
+    /// Half-open recovery-service start window; recovery service must finish by close.
     pub recovery_window_open_ms: u64,
     pub recovery_window_close_ms: u64,
     pub launch_service_ms: u64,
@@ -138,7 +139,9 @@ pub struct CoAvailabilityReport {
     pub scenario_id: String,
     pub sortie_id: String,
     pub verdict: FeasibilityVerdict,
+    /// Start of the carrier-side launch service interval.
     pub selected_launch_time_ms: Option<u64>,
+    /// Start of the carrier-side recovery service interval after launch service + flight.
     pub selected_recovery_time_ms: Option<u64>,
     pub payload_margin_g: Option<u64>,
     pub energy_margin_wh: Option<u64>,
@@ -817,6 +820,15 @@ mod tests {
         test.aircraft.reserve_energy_wh = 0;
         let errors = evaluate_coavailability(&test).expect_err("reserve must be explicit");
         assert!(errors.iter().any(|error| error.contains("non-zero protected reserve")));
+    }
+
+    #[test]
+    fn rejects_rendezvous_that_ignores_launch_service_duration() {
+        let mut test = input();
+        test.sortie.recovery_window_close_ms = 1_350_000;
+        test.sortie.recovery_service_ms = 20_000;
+        let report = evaluate_coavailability(&test).expect("valid structure");
+        assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
     }
 
     #[test]
