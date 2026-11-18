@@ -123,6 +123,8 @@ pub enum ChangeImpactError {
     EmptyArtifactId,
     DuplicateArtifactId(String),
     InvalidArtifactDigest(String),
+    HistoricalArtifactMustBeImmutable(String),
+    DerivedArtifactMustBeRecomputable(String),
     DuplicateArtifactDependency {
         artifact_id: String,
         key: DependencyKey,
@@ -420,6 +422,25 @@ fn validate_and_topologically_sort(
             return Err(ChangeImpactError::InvalidArtifactDigest(
                 artifact.artifact_id.clone(),
             ));
+        }
+        let requires_historical_persistence = matches!(
+            artifact.kind,
+            ConstructionArtifactKind::AsBuiltMeasurement
+                | ConstructionArtifactKind::AcceptedConstructionRecord
+                | ConstructionArtifactKind::HandoverRecord
+        );
+        match (requires_historical_persistence, artifact.persistence) {
+            (true, ArtifactPersistence::Recomputable) => {
+                return Err(ChangeImpactError::HistoricalArtifactMustBeImmutable(
+                    artifact.artifact_id.clone(),
+                ));
+            }
+            (false, ArtifactPersistence::HistoricalImmutable) => {
+                return Err(ChangeImpactError::DerivedArtifactMustBeRecomputable(
+                    artifact.artifact_id.clone(),
+                ));
+            }
+            _ => {}
         }
         if artifact_by_id
             .insert(artifact.artifact_id.as_str(), artifact)
@@ -977,4 +998,63 @@ mod tests {
         assert_eq!(first.requalification_order, second.requalification_order);
         assert_eq!(first.requalification_order, vec!["a", "b", "c"]);
     }
+
+    #[test]
+    fn accepted_output_and_as_built_measurements_cannot_be_marked_recomputable() {
+        for (id, kind) in [
+            ("accepted", ConstructionArtifactKind::AcceptedConstructionRecord),
+            ("as-built", ConstructionArtifactKind::AsBuiltMeasurement),
+            ("handover", ConstructionArtifactKind::HandoverRecord),
+        ] {
+            let graph = graph(vec![artifact(
+                id,
+                kind,
+                ArtifactPersistence::Recomputable,
+                vec![],
+                &[],
+                'a',
+            )]);
+            assert_eq!(
+                compile_change_impact(
+                    &graph,
+                    &change_set(vec![change(
+                        DependencyDomain::DesignRevision,
+                        "floor:02",
+                        '1',
+                        '2'
+                    )])
+                ),
+                Err(ChangeImpactError::HistoricalArtifactMustBeImmutable(
+                    id.into()
+                ))
+            );
+        }
+    }
+
+    #[test]
+    fn derived_artifacts_cannot_be_misclassified_as_immutable_history() {
+        let graph = graph(vec![artifact(
+            "dispatch",
+            ConstructionArtifactKind::DispatchReadiness,
+            ArtifactPersistence::HistoricalImmutable,
+            vec![],
+            &[],
+            'a',
+        )]);
+        assert_eq!(
+            compile_change_impact(
+                &graph,
+                &change_set(vec![change(
+                    DependencyDomain::DesignRevision,
+                    "floor:02",
+                    '1',
+                    '2'
+                )])
+            ),
+            Err(ChangeImpactError::DerivedArtifactMustBeRecomputable(
+                "dispatch".into()
+            ))
+        );
+    }
+
 }
