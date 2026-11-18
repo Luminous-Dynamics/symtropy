@@ -709,6 +709,33 @@
       ],
       "safety_boundary": "Human-factors assessment does not change appliance-local safety authority. No test may bypass blade, lid, pressure, thermal or electrical protections; participants may withdraw or request assistance at any time.",
       "control_condition": "Compare existing specialist appliance workflows, integrated-appliance workflow and modular-workcell workflow under matched task/ingredient conditions; randomize/counterbalance task order and preserve user-requested assistance."
+    },
+    {
+      "task_id": "meal-affordability-and-substitution",
+      "domain": "workflow",
+      "operation": "compile and evaluate household-budget-constrained meals using exact product/pack prices, household receipt facts, utility cost scope and user-approved substitutions",
+      "input_manifest_required": [
+        "household budget and currency",
+        "declared cost boundary",
+        "exact product/SKU/package and price observations",
+        "price source/region/time/validity",
+        "verified household receipts where consented",
+        "required ingredient quantities and food-flow outputs",
+        "measured/allocated energy and water and declared tariff scope",
+        "hard exclusions and user preferences",
+        "explicit substitution decisions",
+        "accepted serving count and quality evidence"
+      ],
+      "primary_metrics": [
+        "meal_budget_false_within_budget_rate",
+        "meal_actual_cost_per_accepted_serving",
+        "meal_price_evidence_freshness_rate",
+        "meal_predicted_actual_cost_error_fraction",
+        "meal_user_substitution_acceptance_rate",
+        "meal_pack_surplus_cost_fraction"
+      ],
+      "safety_boundary": "Price and substitution evaluation is advisory. Do not purchase, update pantry inventory, make payments or change a plan without user approval. Hard allergen/exclusion constraints and safety prerequisites cannot be compensated by lower cost.",
+      "control_condition": "Compare static published-listing estimates, deterministic receipt-based costing and Symtropy cost evaluation on identical frozen recipes, pack sizes, market/time/currency scopes and accepted-serving outcomes; include stale, missing and adversarial prices."
     }
   ],
   "metrics": [
@@ -1527,6 +1554,54 @@
       "method": "Count tasks voluntarily abandoned before task success; classify reason using participant choice without requiring personal or diagnostic disclosure.",
       "evidence_class": "assayed",
       "notes": "Preserve voluntary withdrawal without treating it as a negative personal outcome."
+    },
+    {
+      "metric_id": "meal_budget_false_within_budget_rate",
+      "unit": "fraction",
+      "denominator": "all adversarial price/cost cases where actual declared cost exceeds, or cannot be proved to be below, the household budget",
+      "method": "Count cases incorrectly classified within budget when any required price, pack-size, utility tariff, tax/delivery component or accepted-serving denominator is missing, stale, mismatched or makes the known cost exceed budget.",
+      "evidence_class": "simulated",
+      "notes": "Hard false-positive metric; target zero on the frozen adversarial suite."
+    },
+    {
+      "metric_id": "meal_actual_cost_per_accepted_serving",
+      "unit": "currency/serving",
+      "denominator": "accepted edible servings under the frozen meal outcome and cost boundary",
+      "method": "Sum all in-scope evidenced costs, including required pack purchase surplus and declared utility cost components, then divide by accepted servings; report components, currency, scope and uncertainty separately.",
+      "evidence_class": "measured",
+      "notes": "A physical result requires actual receipt/price and outcome evidence. Currency and accounting boundary must be explicit."
+    },
+    {
+      "metric_id": "meal_price_evidence_freshness_rate",
+      "unit": "fraction",
+      "denominator": "all price observations used to claim current budget feasibility",
+      "method": "Count price facts whose exact product/pack/market/currency scope is valid at the frozen proposal/decision time and within its declared validity window.",
+      "evidence_class": "simulated",
+      "notes": "A merchant listing is not a household receipt; source classes remain separate."
+    },
+    {
+      "metric_id": "meal_predicted_actual_cost_error_fraction",
+      "unit": "fraction",
+      "denominator": "all matched proposals with complete proposal-time price facts and subsequent verified receipts",
+      "method": "Compute absolute predicted-versus-receipt total cost difference divided by actual receipt cost under the same declared accounting boundary; report signed error and component-level causes.",
+      "evidence_class": "measured",
+      "notes": "Matched household receipt evidence requires consent and local privacy protection."
+    },
+    {
+      "metric_id": "meal_user_substitution_acceptance_rate",
+      "unit": "fraction",
+      "denominator": "all substitution proposals explicitly presented to a consenting household user",
+      "method": "Count substitutions accepted by the user; separately report decline, no-response, preference conflict and replan burden. Never assume acceptance from model ranking.",
+      "evidence_class": "assayed",
+      "notes": "User choice remains authoritative; a declined substitute cannot be treated as a successful plan."
+    },
+    {
+      "metric_id": "meal_pack_surplus_cost_fraction",
+      "unit": "fraction",
+      "denominator": "total in-scope acquired food cost for the declared meal",
+      "method": "Calculate cost of acquired edible/packaged quantity not used by the meal, distinguishing usable household remainder from unavoidable unusable surplus and unknown remainder.",
+      "evidence_class": "measured",
+      "notes": "Do not label usable remainder as waste; inventory stays local and is not silently decremented."
     }
   ],
   "target_hypotheses": [
@@ -2104,6 +2179,39 @@
         "participant or task exclusions are added after results",
         "requested assistance or withdrawal is suppressed",
         "any safety prerequisite is weakened to improve completion"
+      ]
+    },
+    {
+      "hypothesis_id": "H-BUDGET-FALSE-POSITIVE-ZERO",
+      "metric_id": "meal_budget_false_within_budget_rate",
+      "target": "0 false-within-budget classifications on the frozen adversarial price/cost conformance suite.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any missing/stale/mismatched required price is treated as current",
+        "pack surplus or in-scope utility cost is omitted",
+        "zero or unknown accepted servings produce a numeric within-budget claim"
+      ]
+    },
+    {
+      "hypothesis_id": "H-PRICE-FRESHNESS-100",
+      "metric_id": "meal_price_evidence_freshness_rate",
+      "target": "1.000 of price observations used for a current budget-feasibility claim have exact product/pack/market/currency scope and a valid observation window.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "generic ingredient prices become product-specific facts",
+        "expired discounts or prices are used",
+        "currency conversion lacks a scoped rate source and timestamp"
+      ]
+    },
+    {
+      "hypothesis_id": "H-SUBSTITUTION-EXPLICIT-100",
+      "metric_id": "meal_user_substitution_acceptance_rate",
+      "target": "1.000 of substitutions applied to a compiled plan have an explicit user-approved decision receipt.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "model ranking is treated as approval",
+        "declined/no-response substitutions are silently applied",
+        "a hard exclusion or allergen constraint is weakened"
       ]
     }
   ],
