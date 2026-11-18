@@ -62,6 +62,17 @@ Every run must identify material batch, PSD, preparation/compaction history, mor
 5. **Make uncertainty and abstention first-class.** A model should identify an unseen batch, wall treatment, pressure or flow regime as out-of-envelope and abstain instead of confidently extrapolating.
 6. **Use active experiment selection.** Symthaea can choose the next most informative wall/pressure/Fr/fill/batch experiment; the choice is preregistered and cannot be scored as its own independent validation.
 
+## Industry and current capability comparison
+
+The right comparison is by **mission boundary and accepted output**, not by raw rpm, kilograms excavated, or a single angle-of-repose number.
+
+- **NASA IPEx:** NASA's current Lunar Surface Technology page says IPEx is designed to deliver 10 metric tonnes over 100 m and 11 days in its quick facts, while its detailed project description says "on the order of 20 metric tons" over a single mission. Preserve these distinct descriptions and their boundary/status; neither is a measured lunar operating record. The same NASA page describes surface excavation/site preparation, logistics and processing capabilities, not a flight-qualified subsurface tunnel-boring system.
+- **ESA MoLES3:** the 2026 LUNA analogue uses a 2.5-hour field window, 60-kg system mass limit and 300-Wh target. It provides an integrated transfer/beneficiation comparator and decomposes transfer and separation efficiencies, but remains an Earth-gravity analogue with its own challenge constraints.
+- **Terrestrial TBM:** USACE EM 1110-2-2901 reports a historical project database average utilization of 38% (range 5–69%) and average advance of 375 m/month (range 5–2,084) for its cited tunnel-project population. This is an old rock-tunnelling dataset, not a lunar regolith-flow target. Its enduring lesson is that penetration while cutting, utilization, calendar advance, mucking and support are different metrics; compare the complete time boundary and downtime taxonomy.
+- **Granular-flow SOTA:** the Wylęgała–Uhl wall/vacuum study and Bao et al. CE60100 study are physical references for specific simulant / returned-sample regimes. They do not qualify full-scale hopper discharge or long-duration mining. The benchmark should aim to reproduce those source conditions, then generalize across batches, wall interfaces, environments and transfer geometries.
+
+The competitive claim we should pursue is an independently replayable, provenance-preserving **accepted-feedstock service**: accepted target-size kg delivered per mission-hour and per kWh, with mass closure, uncertainty, jam/recovery, wear and contamination visible. We should not claim that this already exceeds NASA, ESA or terrestrial industry.
+
 ## Benchmark protocol
 
 ### Track A — reproduce the published wall/vacuum experiment
