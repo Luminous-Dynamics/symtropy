@@ -91,7 +91,16 @@ theorem tail_upper_N32 : tailUpper 32 = (119955819688865697165409293550622202914
 
 #print axioms sqrt2_lower_square
 #print axioms sqrt2_upper_square
+#print axioms sqrt2_lower_lt_real_sqrt_two
+#print axioms real_sqrt_two_lt_sqrt2_upper
+#print axioms qNuExact_lt_qNuUpper
+#print axioms qNuExact_lt_one
+#print axioms prefactorExact_lt_upper
 #print axioms tail_upper_N4
+#print axioms tail_upper_N8
+#print axioms tail_upper_N12
+#print axioms tail_upper_N16
+#print axioms tail_upper_N24
 #print axioms tail_upper_N32
 
 end SymtropyMKChebyshevTail
