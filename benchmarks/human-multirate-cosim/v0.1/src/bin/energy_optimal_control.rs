@@ -2,7 +2,7 @@ use human_multirate_cosim::energy_optimal_control::{
     optimize_pairwise_energy_ball_control, EnergyBallOptimalityDisposition,
 };
 use human_multirate_cosim::experiment_design::{
-    evaluate_input_tournament, ExperimentDesignScenario, ForcingSegment, InputProfile,
+    evaluate_input_profile, ExperimentDesignScenario, ForcingSegment, InputProfile,
     ModelCandidate,
 };
 use human_multirate_cosim::network::{Edge, NetworkScenario};
@@ -108,13 +108,75 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    let finite_grid = evaluate_input_tournament(&scenario, &profiles, &[10, 11])?;
-    let discrete = finite_grid
-        .best_worst_case
-        .as_ref()
-        .ok_or_else(|| {
-            std::io::Error::other("finite-grid tournament returned no feasible profile")
-        })?;
+    let passive_score = evaluate_input_profile(&scenario, &profiles[0], &[10, 11])?;
+    let mut best_grid: Option<(u32, f64, f64, f64, f64)> = None;
+    for profile in &profiles {
+        let score = evaluate_input_profile(&scenario, profile, &[10, 11])?;
+        let controlled_left = score
+            .model_observation_means
+            .iter()
+            .find(|item| item.model_id == 1)
+            .ok_or_else(|| std::io::Error::other("missing model 1 prediction"))?;
+        let controlled_right = score
+            .model_observation_means
+            .iter()
+            .find(|item| item.model_id == 2)
+            .ok_or_else(|| std::io::Error::other("missing model 2 prediction"))?;
+        let passive_left = passive_score
+            .model_observation_means
+            .iter()
+            .find(|item| item.model_id == 1)
+            .ok_or_else(|| std::io::Error::other("missing passive model 1 prediction"))?;
+        let passive_right = passive_score
+            .model_observation_means
+            .iter()
+            .find(|item| item.model_id == 2)
+            .ok_or_else(|| std::io::Error::other("missing passive model 2 prediction"))?;
+        let determinant = 0.02_f64 * 0.03_f64 - 0.005_f64 * 0.005_f64;
+        let inverse = [
+            [0.03 / determinant, -0.005 / determinant],
+            [-0.005 / determinant, 0.02 / determinant],
+        ];
+        let mut incremental = 0.0;
+        for time_index in 0..scenario.observation_times.len() {
+            let d0 = (controlled_left.observations[time_index][0]
+                - controlled_right.observations[time_index][0])
+                - (passive_left.observations[time_index][0]
+                    - passive_right.observations[time_index][0]);
+            let d1 = (controlled_left.observations[time_index][1]
+                - controlled_right.observations[time_index][1])
+                - (passive_left.observations[time_index][1]
+                    - passive_right.observations[time_index][1]);
+            incremental += 0.5
+                * (d0 * (inverse[0][0] * d0 + inverse[0][1] * d1)
+                    + d1 * (inverse[1][0] * d0 + inverse[1][1] * d1));
+        }
+        let total_kl = score
+            .pairwise_separations
+            .iter()
+            .find(|pair| pair.left_model_id == 1 && pair.right_model_id == 2)
+            .map(|pair| pair.gaussian_kl_separation)
+            .ok_or_else(|| std::io::Error::other("missing pairwise Gaussian KL"))?;
+        let candidate = (
+            profile.id,
+            incremental.max(0.0),
+            score.integrated_squared_input,
+            score.maximum_abs_forcing,
+            total_kl,
+        );
+        let replace = best_grid.is_none_or(|current| {
+            candidate.1 > current.1 + 1.0e-12
+                || ((candidate.1 - current.1).abs() <= 1.0e-12
+                    && (candidate.2 < current.2 - 1.0e-12
+                        || ((candidate.2 - current.2).abs() <= 1.0e-12
+                            && candidate.0 < current.0)))
+        });
+        if replace {
+            best_grid = Some(candidate);
+        }
+    }
+    let discrete = best_grid
+        .ok_or_else(|| std::io::Error::other("finite-grid search returned no profile"))?;
     let continuous = optimize_pairwise_energy_ball_control(
         &scenario,
         1,
@@ -125,19 +187,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
 
     println!(
-        "energy_control,finite_grid,best_profile_id,{},minimum_pairwise_kl,{:.12e},energy,{:.12e},peak,{:.12e}",
-        discrete.profile_id,
-        discrete.minimum_pairwise_gaussian_kl,
-        discrete.integrated_squared_input,
-        discrete.maximum_abs_forcing,
+        "energy_control,finite_grid,best_profile_id,{},incremental_control_kl,{:.12e},energy,{:.12e},peak,{:.12e}",
+        discrete.0,
+        discrete.1,
+        discrete.2,
+        discrete.3,
     );
     println!(
-        "energy_control,continuous_energy_ball,disposition,{:?},basis_dimension,{},top_eigenvalue,{:.12e},unconstrained_upper_bound,{:.12e},achieved_kl,{:.12e},energy,{:.12e},peak,{:.12e},replay_abs_error,{:.12e}",
+        "energy_control,continuous_energy_ball,disposition,{:?},basis_dimension,{},top_eigenvalue,{:.12e},incremental_upper_bound,{:.12e},achieved_incremental_kl,{:.12e},energy,{:.12e},peak,{:.12e},total_controlled_kl,{:.12e},energy,{:.12e},peak,{:.12e},replay_abs_error,{:.12e}",
         continuous.optimality_disposition,
         continuous.basis_dimension,
         continuous.top_generalized_eigenvalue,
         continuous.unconstrained_energy_ball_upper_bound,
-        continuous.achieved_gaussian_kl,
+        continuous.achieved_control_induced_gaussian_kl,
+        continuous.achieved_total_gaussian_kl,
         continuous.achieved_integrated_squared_input,
         continuous.achieved_peak_amplitude,
         continuous.replay_objective_abs_error,
@@ -146,9 +209,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         == EnergyBallOptimalityDisposition::ExactEnergyBallOptimum
     {
         println!(
-            "energy_control,comparison,continuous_over_grid,{:.12e}",
-            continuous.achieved_gaussian_kl
-                / discrete.minimum_pairwise_gaussian_kl.max(1.0e-300),
+            "energy_control,comparison,continuous_over_grid_incremental,{:.12e}",
+            continuous.achieved_control_induced_gaussian_kl
+                / discrete.1.max(1.0e-300),
         );
     }
     for coefficient in &continuous.coefficients {

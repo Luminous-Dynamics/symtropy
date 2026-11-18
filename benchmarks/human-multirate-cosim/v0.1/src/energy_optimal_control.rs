@@ -61,10 +61,13 @@ pub struct EnergyOptimalControlReportV1 {
     pub optimality_disposition: EnergyBallOptimalityDisposition,
     pub basis_dimension: usize,
     pub top_generalized_eigenvalue: f64,
-    /// Maximum objective over the energy ball before applying the peak cap.
+    /// Maximum incremental control-induced separation before applying the peak cap.
     pub unconstrained_energy_ball_upper_bound: f64,
-    /// Objective attained by the returned, replayed profile.
-    pub achieved_gaussian_kl: f64,
+    /// Incremental Gaussian KL induced by the control relative to the passive response.
+    pub achieved_control_induced_gaussian_kl: f64,
+    /// Total Gaussian KL under control, including the passive model difference.
+    /// Reported separately; this is not the optimized objective.
+    pub achieved_total_gaussian_kl: f64,
     pub energy_budget: f64,
     pub achieved_integrated_squared_input: f64,
     pub peak_amplitude_limit: f64,
@@ -409,7 +412,12 @@ pub fn optimize_pairwise_energy_ball_control(
             basis_dimension,
             top_generalized_eigenvalue: top_eigenvalue,
             unconstrained_energy_ball_upper_bound: 0.0,
-            achieved_gaussian_kl: 0.0,
+            achieved_control_induced_gaussian_kl: 0.0,
+            achieved_total_gaussian_kl: pairwise_gaussian_kl(
+                &passive_score,
+                left_model_id,
+                right_model_id,
+            )?,
             energy_budget: scenario.input_energy_budget,
             achieved_integrated_squared_input: 0.0,
             peak_amplitude_limit: scenario.max_abs_forcing,
@@ -472,21 +480,44 @@ pub fn optimize_pairwise_energy_ball_control(
     };
     let replay = evaluate_input_profile(scenario, &profile, selected_sensor_ids)
         .map_err(EnergyOptimalControlError::Experiment)?;
-    let achieved_gaussian_kl = replay
-        .pairwise_separations
-        .iter()
-        .find(|pair| {
-            (pair.left_model_id == left_model_id && pair.right_model_id == right_model_id)
-                || (pair.left_model_id == right_model_id
-                    && pair.right_model_id == left_model_id)
-        })
-        .map(|pair| pair.gaussian_kl_separation)
-        .ok_or(EnergyOptimalControlError::InvalidReplayObjective)?;
-    if !achieved_gaussian_kl.is_finite() {
+    let achieved_total_gaussian_kl =
+        pairwise_gaussian_kl(&replay, left_model_id, right_model_id)?;
+    let replay_left = prediction_vector(
+        &replay,
+        left_model_id,
+        scenario.observation_times.len(),
+        selected_sensor_ids.len(),
+    )?;
+    let replay_right = prediction_vector(
+        &replay,
+        right_model_id,
+        scenario.observation_times.len(),
+        selected_sensor_ids.len(),
+    )?;
+    let sensor_count = selected_sensor_ids.len();
+    let mut achieved_control_induced_gaussian_kl = 0.0;
+    for time_index in 0..scenario.observation_times.len() {
+        let offset = time_index * sensor_count;
+        let control_delta: Vec<f64> = (0..sensor_count)
+            .map(|sensor_index| {
+                (replay_left[offset + sensor_index] - replay_right[offset + sensor_index])
+                    - (passive_left[offset + sensor_index] - passive_right[offset + sensor_index])
+            })
+            .collect();
+        let weighted = matrix_vector_product(&covariance_inverse, &control_delta);
+        achieved_control_induced_gaussian_kl += 0.5
+            * control_delta
+                .iter()
+                .zip(weighted.iter())
+                .map(|(left, right)| left * right)
+                .sum::<f64>();
+    }
+    if !achieved_control_induced_gaussian_kl.is_finite() {
         return Err(EnergyOptimalControlError::InvalidReplayObjective);
     }
+    achieved_control_induced_gaussian_kl = achieved_control_induced_gaussian_kl.max(0.0);
     let predicted_objective = quadratic_objective(&gram, &amplitudes);
-    let replay_objective_abs_error = (predicted_objective - achieved_gaussian_kl).abs();
+    let replay_objective_abs_error = (predicted_objective - achieved_control_induced_gaussian_kl).abs();
     let (achieved_integrated_squared_input, achieved_peak_amplitude) =
         profile_cost(&profile);
     let optimality_disposition = if peak_constraint_active {
@@ -507,7 +538,8 @@ pub fn optimize_pairwise_energy_ball_control(
         basis_dimension,
         top_generalized_eigenvalue: top_eigenvalue,
         unconstrained_energy_ball_upper_bound: unconstrained_upper_bound,
-        achieved_gaussian_kl,
+        achieved_control_induced_gaussian_kl,
+        achieved_total_gaussian_kl,
         energy_budget: scenario.input_energy_budget,
         achieved_integrated_squared_input,
         peak_amplitude_limit: scenario.max_abs_forcing,
@@ -518,6 +550,27 @@ pub fn optimize_pairwise_energy_ball_control(
     })
 }
 
+fn pairwise_gaussian_kl(
+    score: &crate::experiment_design::ExperimentDesignScore,
+    left_model_id: u32,
+    right_model_id: u32,
+) -> Result<f64, EnergyOptimalControlError> {
+    let value = score
+        .pairwise_separations
+        .iter()
+        .find(|pair| {
+            (pair.left_model_id == left_model_id && pair.right_model_id == right_model_id)
+                || (pair.left_model_id == right_model_id
+                    && pair.right_model_id == left_model_id)
+        })
+        .map(|pair| pair.gaussian_kl_separation)
+        .ok_or(EnergyOptimalControlError::InvalidReplayObjective)?;
+    if !value.is_finite() {
+        return Err(EnergyOptimalControlError::InvalidReplayObjective);
+    }
+    Ok(value.max(0.0))
+}
+
 fn assumptions() -> Vec<&'static str> {
     vec![
         "one fixed pair of linear graph models",
@@ -525,6 +578,8 @@ fn assumptions() -> Vec<&'static str> {
         "piecewise-constant control over the declared temporal partition",
         "continuous-valued amplitudes optimized over an integrated-energy ellipsoid",
         "fixed selected sensors and common sensor covariance",
+        "optimized criterion is incremental control-induced Gaussian KL relative to the passive zero-input response",
+        "total controlled Gaussian KL is reported separately but is not the optimized objective",
         "independent observation-noise blocks across observation times",
         "peak amplitude is checked after the energy-ball optimum; active peak constraints are not globally optimized",
         "fixed model parameters; no nuisance-parameter profiling",
@@ -725,7 +780,7 @@ mod tests {
         assert!((report.achieved_integrated_squared_input - 0.5).abs() < 1.0e-9);
         assert!(report.achieved_peak_amplitude <= report.peak_amplitude_limit);
         assert!(report.unconstrained_energy_ball_upper_bound > 0.0);
-        assert!((report.achieved_gaussian_kl
+        assert!((report.achieved_control_induced_gaussian_kl
             - report.unconstrained_energy_ball_upper_bound)
             .abs()
             < 1.0e-8);
@@ -745,16 +800,28 @@ mod tests {
         )
         .unwrap();
         let replay = evaluate_input_profile(&fixture, &report.profile, &[10, 11]).unwrap();
-        let left = replay
-            .model_observation_means
-            .iter()
-            .find(|prediction| prediction.model_id == 1)
-            .unwrap();
-        let right = replay
-            .model_observation_means
-            .iter()
-            .find(|prediction| prediction.model_id == 2)
-            .unwrap();
+        let passive_profile = InputProfile {
+            id: 0,
+            label: "independent-test-passive-baseline",
+            segments: vec![ForcingSegment {
+                start_time: 0.0,
+                end_time: 2.0,
+                forcing: vec![0.0, 0.0, 0.0],
+            }],
+        };
+        let passive =
+            evaluate_input_profile(&fixture, &passive_profile, &[10, 11]).unwrap();
+        let prediction = |score: &crate::experiment_design::ExperimentDesignScore, id| {
+            score
+                .model_observation_means
+                .iter()
+                .find(|item| item.model_id == id)
+                .unwrap()
+        };
+        let left = prediction(&replay, 1);
+        let right = prediction(&replay, 2);
+        let passive_left = prediction(&passive, 1);
+        let passive_right = prediction(&passive, 2);
 
         // Independent closed-form inverse for R = [[0.02, 0.005], [0.005, 0.03]].
         let a = 0.02_f64;
@@ -765,23 +832,43 @@ mod tests {
             [c / determinant, -b / determinant],
             [-b / determinant, a / determinant],
         ];
-        let mut dense_reference = 0.0;
+        let mut incremental_reference = 0.0;
+        let mut total_reference = 0.0;
         for time_index in 0..fixture.observation_times.len() {
-            let d0 = left.observations[time_index][0]
-                - right.observations[time_index][0];
-            let d1 = left.observations[time_index][1]
-                - right.observations[time_index][1];
-            dense_reference += 0.5
-                * (d0 * (inverse[0][0] * d0 + inverse[0][1] * d1)
-                    + d1 * (inverse[1][0] * d0 + inverse[1][1] * d1));
+            let total = [
+                left.observations[time_index][0] - right.observations[time_index][0],
+                left.observations[time_index][1] - right.observations[time_index][1],
+            ];
+            let passive_delta = [
+                passive_left.observations[time_index][0]
+                    - passive_right.observations[time_index][0],
+                passive_left.observations[time_index][1]
+                    - passive_right.observations[time_index][1],
+            ];
+            let incremental = [
+                total[0] - passive_delta[0],
+                total[1] - passive_delta[1],
+            ];
+            total_reference += 0.5
+                * (total[0] * (inverse[0][0] * total[0] + inverse[0][1] * total[1])
+                    + total[1] * (inverse[1][0] * total[0] + inverse[1][1] * total[1]));
+            incremental_reference += 0.5
+                * (incremental[0]
+                    * (inverse[0][0] * incremental[0] + inverse[0][1] * incremental[1])
+                    + incremental[1]
+                        * (inverse[1][0] * incremental[0] + inverse[1][1] * incremental[1]));
         }
-        assert!((dense_reference - report.achieved_gaussian_kl).abs() < 1.0e-8);
         assert!(
-            (dense_reference - report.unconstrained_energy_ball_upper_bound).abs()
+            (incremental_reference - report.achieved_control_induced_gaussian_kl).abs()
                 < 1.0e-8
         );
+        assert!((total_reference - report.achieved_total_gaussian_kl).abs() < 1.0e-8);
+        assert!(
+            (incremental_reference - report.unconstrained_energy_ball_upper_bound).abs()
+                < 1.0e-8
+        );
+        assert!(report.replay_objective_abs_error < 1.0e-9);
     }
-
     #[test]
     fn active_peak_constraint_returns_feasible_lower_bound_not_an_optimality_claim() {
         let report = optimize_pairwise_energy_ball_control(
@@ -801,7 +888,7 @@ mod tests {
         assert!(report.achieved_peak_amplitude <= 0.1 + CONTROL_TOLERANCE);
         assert!(report.achieved_integrated_squared_input <= report.energy_budget);
         assert!(
-            report.achieved_gaussian_kl
+            report.achieved_control_induced_gaussian_kl
                 < report.unconstrained_energy_ball_upper_bound
         );
         assert!(report.replay_objective_abs_error < 1.0e-9);
@@ -824,7 +911,8 @@ mod tests {
             report.optimality_disposition,
             EnergyBallOptimalityDisposition::NoDiscriminatingControl
         );
-        assert_eq!(report.achieved_gaussian_kl, 0.0);
+        assert_eq!(report.achieved_control_induced_gaussian_kl, 0.0);
+        assert_eq!(report.achieved_total_gaussian_kl, 0.0);
         assert_eq!(profile_cost(&report.profile).0, 0.0);
     }
 

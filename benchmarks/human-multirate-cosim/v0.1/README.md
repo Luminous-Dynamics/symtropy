@@ -371,13 +371,16 @@ conductances. This avoids reporting a meaningless OOD rejection rate.
 The `energy_optimal_control` module lifts experiment design above finite pulse
 enumeration by optimizing real-valued forcing amplitudes in a declared
 piecewise-constant temporal/actuator basis. For one fixed candidate-model pair,
-the response difference is linear in the basis coefficients. Its covariance-
+the response difference after subtracting the passive zero-input response is
+linear in the basis coefficients. The optimized objective is the **incremental
+control-induced Gaussian KL**, not the total controlled KL. Its covariance-
 weighted Gram matrix is whitened by the integrated-energy metric; the top
 eigenpair gives the exact global optimum over the energy ellipsoid.
 
 The module replays the resulting waveform through the existing spectral
-experiment evaluator and has a separate test-only dense KL calculation with
-a hand-inverted 2x2 covariance. If the unconstrained top-eigenvector waveform
+experiment evaluator, reports total controlled KL separately, and has a
+separate test-only dense KL calculation with a hand-inverted 2x2 covariance for
+both total and passive-baseline-subtracted incremental KL. If the unconstrained top-eigenvector waveform
 exceeds the peak-amplitude limit, the returned waveform is scaled into the
 feasible set and marked `PeakConstraintActive`. Its achieved score is a
 feasible lower bound, while the unconstrained energy-ball score remains an
@@ -398,7 +401,27 @@ Run the continuous-vs-grid comparison with:
 The runner compares an exact spectral energy-ball optimum over a 9-dimensional
 basis (three actuators × three time segments) against a finite pulse grid under
 the same chain-vs-bypass plant, sensors, covariance, horizon and energy budget.
-The output reports exactness disposition, upper bound, replayed score, energy,
-peak and per-segment coefficients. This is a benchmark comparison, not a
+The output compares finite-grid and continuous choices using the same
+passive-baseline-subtracted incremental objective, and separately reports total
+controlled KL, exactness disposition, upper bound, energy, peak and per-segment
+coefficients. This is a benchmark comparison, not a
 published SOTA result; the exact Rust output must be captured from a qualified
 exact-head run.
+
+### Objective semantics: incremental versus total discrimination
+
+The exact spectral eigen-solution optimizes the **incremental control-induced
+Gaussian KL relative to the passive zero-input response**:
+
+    d_control(u) = (mu_left(u) - mu_right(u))
+                    - (mu_left(0) - mu_right(0))
+    J_incremental(u) = 0.5 * sum_t d_control(t)^T R^-1 d_control(t)
+
+This is intentionally distinct from total controlled KL, which includes the
+passive model-response difference. The report returns both quantities; the
+energy-ball upper bound and optimality disposition apply only to the
+incremental objective. The finite pulse-grid runner recomputes the same
+incremental objective against the same passive baseline before comparing
+with the continuous solution. Optimizing the total objective with a nonzero
+passive offset requires a trust-region quadratic solver (or an optimal-control
+reference) and is a separate work package.
