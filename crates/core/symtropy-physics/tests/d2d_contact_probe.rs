@@ -745,7 +745,7 @@ fn failed_evaluator_attempt_returns_visible_failure_disposition_not_dropped_erro
         "expected-branch-invalid-world",
         request,
         EvaluatorScenarioV1 {
-            surface_friction: f64::NAN,
+            surface_friction: 1.5,
         },
     );
     let response = channels.learner_response;
@@ -767,7 +767,7 @@ fn failed_evaluator_attempt_returns_visible_failure_disposition_not_dropped_erro
 #[test]
 fn invalid_learner_request_is_rejected_before_evaluator_dispatch() {
     let invalid_request = ProbeRequestV1 {
-        tangential_impulse: f64::INFINITY,
+        tangential_impulse: -1.0,
     };
     let channels = dispatch_probe_request(
         "invalid-learner-request",
@@ -871,7 +871,7 @@ fn invalid_probe_spec_returns_typed_error_without_panicking() {
         tangential_impulse: 1.0,
     };
     let invalid_scenario = EvaluatorScenarioV1 {
-        surface_friction: f64::NAN,
+        surface_friction: 1.5,
     };
     assert!(matches!(
         execute_probe_with_record("invalid-scenario", valid_request, invalid_scenario),
@@ -879,7 +879,7 @@ fn invalid_probe_spec_returns_typed_error_without_panicking() {
     ));
 
     let invalid_request = ProbeRequestV1 {
-        tangential_impulse: f64::INFINITY,
+        tangential_impulse: -1.0,
     };
     let valid_scenario = EvaluatorScenarioV1 {
         surface_friction: 0.5,
