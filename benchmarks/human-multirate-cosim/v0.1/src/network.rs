@@ -402,7 +402,10 @@ impl fmt::Display for NetworkError {
             }
             Self::NonFiniteForcing => write!(f, "forcing vector must contain only finite values"),
             Self::InvalidReferenceState => {
-                write!(f, "reference initial state must match the network dimension and be finite")
+                write!(
+                    f,
+                    "reference initial state must match the network dimension and be finite"
+                )
             }
             Self::InvalidTopologyEventTime => {
                 write!(
@@ -482,12 +485,7 @@ pub fn simulate_network(
     method: NetworkMethod,
     communication_step: f64,
 ) -> Result<NetworkScore, NetworkError> {
-    simulate_network_against_reference(
-        scenario,
-        method,
-        communication_step,
-        &scenario.initial,
-    )
+    simulate_network_against_reference(scenario, method, communication_step, &scenario.initial)
 }
 
 fn simulate_network_against_reference(
@@ -498,7 +496,9 @@ fn simulate_network_against_reference(
 ) -> Result<NetworkScore, NetworkError> {
     scenario.validate()?;
     if reference_initial_state.len() != scenario.capacities.len()
-        || reference_initial_state.iter().any(|value| !value.is_finite())
+        || reference_initial_state
+            .iter()
+            .any(|value| !value.is_finite())
     {
         return Err(NetworkError::InvalidReferenceState);
     }
@@ -770,8 +770,8 @@ pub fn simulate_network_topology_events(
         error_samples += score.steps * scenario.capacities.len();
         // Bound global drift by the accumulated segment-start offset plus the
         // maximum within-segment drift measured by the fixed-topology runner.
-        max_abs_total_residual = max_abs_total_residual
-            .max(accumulated_total_offset + score.max_abs_total_residual);
+        max_abs_total_residual =
+            max_abs_total_residual.max(accumulated_total_offset + score.max_abs_total_residual);
         max_quadratic_energy_increase =
             max_quadratic_energy_increase.max(score.max_quadratic_energy_increase);
         min_state = min_state.min(score.min_state);
@@ -1525,5 +1525,4 @@ mod tests {
         );
         assert_eq!(result, Err(NetworkError::InvalidAdaptiveConfig));
     }
-
 }
