@@ -1810,29 +1810,28 @@ fn validate_food_flows(
     }
 
     for (ingredient_id, ingredient) in &ingredients {
-        if ingredient.quantity_state == IngredientQuantityStateV1::Explicit {
-            if let Some(declared) = ingredient.quantity {
-                if let Ok((dimension, declared_base)) = quantity_to_base(&declared) {
-                    let allocated = ingredient_totals
-                        .get(*ingredient_id)
-                        .copied()
-                        .unwrap_or((dimension, 0));
-                    if allocated.0 != dimension {
-                        add_issue(
-                            issues,
-                            MealCompilationIssueCodeV1::FlowQuantityMismatch,
-                            Some(ingredient_id),
-                            "ingredient allocation dimension differs from its declared dimension",
-                        );
-                    } else if allocated.1 < declared_base {
-                        add_issue(
-                            issues,
-                            MealCompilationIssueCodeV1::IngredientAllocationIncomplete,
-                            Some(ingredient_id),
-                            "the complete explicit ingredient quantity must be allocated to task inputs and/or explicit planned losses",
-                        );
-                    }
-                }
+        if ingredient.quantity_state == IngredientQuantityStateV1::Explicit
+            && let Some(declared) = ingredient.quantity
+            && let Ok((dimension, declared_base)) = quantity_to_base(&declared)
+        {
+            let allocated = ingredient_totals
+                .get(*ingredient_id)
+                .copied()
+                .unwrap_or((dimension, 0));
+            if allocated.0 != dimension {
+                add_issue(
+                    issues,
+                    MealCompilationIssueCodeV1::FlowQuantityMismatch,
+                    Some(ingredient_id),
+                    "ingredient allocation dimension differs from its declared dimension",
+                );
+            } else if allocated.1 < declared_base {
+                add_issue(
+                    issues,
+                    MealCompilationIssueCodeV1::IngredientAllocationIncomplete,
+                    Some(ingredient_id),
+                    "the complete explicit ingredient quantity must be allocated to task inputs and/or explicit planned losses",
+                );
             }
         }
     }
@@ -1927,10 +1926,10 @@ fn compilation_resolution_refs(request: &MealCompilationRequestV1) -> Vec<String
         }
     }
     for ingredient in &request.proposal.ingredients {
-        if let Some(lot_ref) = ingredient.product_lot_ref.as_ref() {
-            if nonempty(lot_ref) {
-                refs.insert(lot_ref.clone());
-            }
+        if let Some(lot_ref) = ingredient.product_lot_ref.as_ref()
+            && nonempty(lot_ref)
+        {
+            refs.insert(lot_ref.clone());
         }
     }
     if nonempty(&request.source_resolution.reviewed_resolution_ref) {
