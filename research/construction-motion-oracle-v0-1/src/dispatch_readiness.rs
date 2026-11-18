@@ -82,6 +82,8 @@ pub struct DispatchReadinessReceipt {
     pub envelope_sha256: String,
     pub site_snapshot_sha256: String,
     pub occupancy_assessment_receipt_sha256: String,
+    pub occupancy_engine_build_sha256: String,
+    pub clearance_policy_sha256: String,
     pub site_ledger_sequence: u64,
     pub site_ledger_event_sha256: String,
     pub site_clock_domain_id: String,
@@ -271,7 +273,9 @@ pub fn check_dispatch_readiness(
         return Err(DispatchReadinessFailure::OccupancyNotClear {
             conflicts: occupancy.conflict_count,
             unresolved_pairs: occupancy.unresolved_pair_count,
-            invalid_bounds: occupancy.invalid_bound_count + occupancy.unqualified_bound_count,
+            invalid_bounds: occupancy
+                .invalid_bound_count
+                .saturating_add(occupancy.unqualified_bound_count),
             stale_actors: occupancy.stale_actor_count,
             unmodelled_occupants: occupancy.unmodelled_occupant_count,
         });
@@ -286,6 +290,8 @@ pub fn check_dispatch_readiness(
         envelope_sha256: envelope.envelope_sha256.clone(),
         site_snapshot_sha256: occupancy.site_snapshot_sha256.clone(),
         occupancy_assessment_receipt_sha256: occupancy.assessment_receipt_sha256.clone(),
+        occupancy_engine_build_sha256: occupancy.occupancy_engine_build_sha256.clone(),
+        clearance_policy_sha256: occupancy.clearance_policy_sha256.clone(),
         site_ledger_sequence: ledger.last_sequence(),
         site_ledger_event_sha256: ledger
             .last_event_sha256()
