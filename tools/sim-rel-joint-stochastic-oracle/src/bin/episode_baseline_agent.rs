@@ -64,7 +64,7 @@ fn parse_strategy() -> Result<BaselineStrategy, Box<dyn Error>> {
             }
             "--help" | "-h" => {
                 println!(
-                    "Usage: episode_baseline_agent [--strategy no_intervention|fixed_order|seeded_random|metadata_only] [--seed N]"
+                    "Usage: episode_baseline_agent [--strategy no_intervention|fixed_order|seeded_random|one_step_eig|metadata_only] [--seed N]"
                 );
                 std::process::exit(0);
             }
@@ -76,6 +76,7 @@ fn parse_strategy() -> Result<BaselineStrategy, Box<dyn Error>> {
         "no_intervention" => Ok(BaselineStrategy::NoIntervention),
         "fixed_order" => Ok(BaselineStrategy::FixedActionOrder),
         "seeded_random" => Ok(BaselineStrategy::SeededRandom { seed }),
+        "one_step_eig" => Ok(BaselineStrategy::OneStepJointEig),
         "metadata_only" => Ok(BaselineStrategy::MetadataOnlyFirstCandidate),
         other => Err(format!("unknown strategy: {other}").into()),
     }
