@@ -524,6 +524,106 @@ pub struct BehaviorSummary {
     pub projected_drift_um_s: Option<f64>,
 }
 
+/// Diagnostic for treating SHORT as an active-motor proxy and LONG as
+/// a passive-trap proxy.
+///
+/// Only DIRECTLY_OBSERVED and MODEL_LATENT events with known active/passive
+/// mechanisms contribute to the confusion matrix. Algorithm-inferred,
+/// unresolved, and exact-boundary-excluded events are reported as excluded.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DurationMechanismDiagnostic {
+    pub true_positive_active_short: usize,
+    pub false_positive_passive_short: usize,
+    pub true_negative_passive_long: usize,
+    pub false_negative_active_long: usize,
+    pub excluded_algorithm_inferred: usize,
+    pub excluded_unresolved: usize,
+    pub excluded_exact_boundary: usize,
+    pub known_event_count: usize,
+    pub sensitivity: Option<f64>,
+    pub specificity: Option<f64>,
+    pub positive_predictive_value: Option<f64>,
+    pub negative_predictive_value: Option<f64>,
+    pub balanced_accuracy: Option<f64>,
+}
+
+/// Evaluate the one-second duration bin as a descriptive proxy for mechanism.
+///
+/// This is a diagnostic, never a mechanism-assignment rule. Events with
+/// ALGORITHM_INFERRED or UNRESOLVED evidence are not treated as ground truth.
+pub fn duration_mechanism_diagnostic(
+    events: &[EventRecord],
+) -> DurationMechanismDiagnostic {
+    let mut diagnostic = DurationMechanismDiagnostic {
+        true_positive_active_short: 0,
+        false_positive_passive_short: 0,
+        true_negative_passive_long: 0,
+        false_negative_active_long: 0,
+        excluded_algorithm_inferred: 0,
+        excluded_unresolved: 0,
+        excluded_exact_boundary: 0,
+        known_event_count: 0,
+        sensitivity: None,
+        specificity: None,
+        positive_predictive_value: None,
+        negative_predictive_value: None,
+        balanced_accuracy: None,
+    };
+
+    for event in events {
+        if event.duration_bin == EventDurationBin::ExactBoundaryExcluded {
+            diagnostic.excluded_exact_boundary += 1;
+            continue;
+        }
+
+        if event.mechanism == EventMechanism::Unresolved
+            || event.evidence_status == EventEvidenceStatus::Unresolved
+        {
+            diagnostic.excluded_unresolved += 1;
+            continue;
+        }
+
+        if event.evidence_status == EventEvidenceStatus::AlgorithmInferred {
+            diagnostic.excluded_algorithm_inferred += 1;
+            continue;
+        }
+
+        diagnostic.known_event_count += 1;
+        match (event.mechanism, event.duration_bin) {
+            (EventMechanism::ActiveMotorEvent, EventDurationBin::Short) => {
+                diagnostic.true_positive_active_short += 1
+            }
+            (EventMechanism::PassiveMechanicalTrap, EventDurationBin::Short) => {
+                diagnostic.false_positive_passive_short += 1
+            }
+            (EventMechanism::PassiveMechanicalTrap, EventDurationBin::Long) => {
+                diagnostic.true_negative_passive_long += 1
+            }
+            (EventMechanism::ActiveMotorEvent, EventDurationBin::Long) => {
+                diagnostic.false_negative_active_long += 1
+            }
+            (_, EventDurationBin::ExactBoundaryExcluded) => {}
+            (EventMechanism::Unresolved, _) => {}
+        }
+    }
+
+    let tp = diagnostic.true_positive_active_short as f64;
+    let fp = diagnostic.false_positive_passive_short as f64;
+    let tn = diagnostic.true_negative_passive_long as f64;
+    let fn_ = diagnostic.false_negative_active_long as f64;
+
+    diagnostic.sensitivity = (tp + fn_ > 0.0).then(|| tp / (tp + fn_));
+    diagnostic.specificity = (tn + fp > 0.0).then(|| tn / (tn + fp));
+    diagnostic.positive_predictive_value = (tp + fp > 0.0).then(|| tp / (tp + fp));
+    diagnostic.negative_predictive_value = (tn + fn_ > 0.0).then(|| tn / (tn + fn_));
+    diagnostic.balanced_accuracy = match (diagnostic.sensitivity, diagnostic.specificity) {
+        (Some(sensitivity), Some(specificity)) => Some((sensitivity + specificity) / 2.0),
+        _ => None,
+    };
+
+    diagnostic
+}
+
 /// Circular statistics for realized run-displacement orientations relative
 /// to the chemoattractant gradient axis.
 #[derive(Debug, Clone, Copy, PartialEq)]
