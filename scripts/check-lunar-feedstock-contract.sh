@@ -103,7 +103,9 @@ jq -e '
           | ($r.stage_events | map(.event_id) | index($parent_event))
              < ($r.stage_events | map(.event_id) | index($stream.created_by_event_id)))
         and all([$stream.composition_artifact_id,$stream.psd_artifact_id][];
-          . == null or any($r.artifacts[]; .artifact_id == .))
+          . as $artifact_id
+          | $artifact_id == null
+            or any($r.artifacts[]; .artifact_id == $artifact_id))
     )
 ' "$run_path" >/dev/null || fail "stage/stream lineage or event references invalid"
 
