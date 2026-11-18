@@ -15,12 +15,20 @@
           {
             "hypothesis_id": "latent-mechanism-a",
             "structural_family": "finite-test-family",
-            "description": "Candidate mechanism A; the latent physical and sensor states remain hidden."
+            "description": "Candidate mechanism A; the latent physical and sensor states remain hidden.",
+            "prior_probability": {
+              "numerator": "1",
+              "denominator": "2"
+            }
           },
           {
             "hypothesis_id": "latent-mechanism-b",
             "structural_family": "finite-test-family",
-            "description": "Candidate mechanism B; the latent physical and sensor states remain hidden."
+            "description": "Candidate mechanism B; the latent physical and sensor states remain hidden.",
+            "prior_probability": {
+              "numerator": "1",
+              "denominator": "2"
+            }
           }
         ],
         "actions": [
@@ -48,7 +56,117 @@
             "description": "The instrument returned the one category.",
             "unit": "categorical"
           }
-        ]
+        ],
+        "model_catalogue": {
+          "version": "sim-rel-public-model-catalogue-v0",
+          "physical_state_count": 1,
+          "sensor_state_count": 1,
+          "action_ids": [
+            "measure-a",
+            "measure-b"
+          ],
+          "observation_ids": [
+            "zero",
+            "one"
+          ],
+          "candidate_models": [
+            {
+              "hypothesis_id": "latent-mechanism-a",
+              "initial_state_belief": [
+                {
+                  "physical_state": 0,
+                  "sensor_state": 0,
+                  "conditional_mass": {
+                    "numerator": "1",
+                    "denominator": "1"
+                  }
+                }
+              ],
+              "transition_rows": [
+                {
+                  "physical_state": 0,
+                  "sensor_state": 0,
+                  "action_id": "measure-a",
+                  "outcomes": [
+                    {
+                      "probability": {
+                        "numerator": "1",
+                        "denominator": "1"
+                      },
+                      "next_physical_state": 0,
+                      "next_sensor_state": 0,
+                      "observation_id": "zero"
+                    }
+                  ]
+                },
+                {
+                  "physical_state": 0,
+                  "sensor_state": 0,
+                  "action_id": "measure-b",
+                  "outcomes": [
+                    {
+                      "probability": {
+                        "numerator": "1",
+                        "denominator": "1"
+                      },
+                      "next_physical_state": 0,
+                      "next_sensor_state": 0,
+                      "observation_id": "zero"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "latent-mechanism-b",
+              "initial_state_belief": [
+                {
+                  "physical_state": 0,
+                  "sensor_state": 0,
+                  "conditional_mass": {
+                    "numerator": "1",
+                    "denominator": "1"
+                  }
+                }
+              ],
+              "transition_rows": [
+                {
+                  "physical_state": 0,
+                  "sensor_state": 0,
+                  "action_id": "measure-a",
+                  "outcomes": [
+                    {
+                      "probability": {
+                        "numerator": "1",
+                        "denominator": "1"
+                      },
+                      "next_physical_state": 0,
+                      "next_sensor_state": 0,
+                      "observation_id": "one"
+                    }
+                  ]
+                },
+                {
+                  "physical_state": 0,
+                  "sensor_state": 0,
+                  "action_id": "measure-b",
+                  "outcomes": [
+                    {
+                      "probability": {
+                        "numerator": "1",
+                        "denominator": "1"
+                      },
+                      "next_physical_state": 0,
+                      "next_sensor_state": 0,
+                      "observation_id": "one"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "catalogue_sha256": "sha256:ba3fdf34845368c4a064ae8a4f100fd6cd2bc895bf50861a383fbe106ae879ce"
+        }
       }
     },
     "current_step": 0,
