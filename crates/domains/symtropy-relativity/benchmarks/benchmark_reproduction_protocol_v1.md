@@ -172,3 +172,10 @@ Do not set universal 1e-12 or 1e-15 targets before a matched baseline and condit
 ## 9. Claim ceiling
 
 Current files provide exact analytic controls, rational tail enclosures and theorem-arithmetic plumbing. They do not yet provide a compiled Rust test pass, a Lean build, a full-domain Bach interval enclosure, a radii-polynomial BVP proof, a rotating solution or a physical EFT-validity result.
+
+
+## 10. Analytic static-vacuum classification
+
+The static spherical Bach vacuum family has an independent symbolic reduction in `static_bach_vacuum_classification_v1.md`. On a connected interval with r>0 and B(r)>0, the first reduced projection integrates to the four-term Mannheim–Kazanas form, and the second projection imposes Q=c0²−3c1c_-1−1=0. This exact family is a known-answer control, not the first substantive numerical discovery target.
+
+Issue #6048 owns the Lean formal classification. The radii-polynomial path in #6019 is now reserved for genuinely non-integrable sourced/modified-action/rotating BVPs after their equation and constraints have been frozen.
