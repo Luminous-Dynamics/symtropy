@@ -278,7 +278,8 @@ The `mfb-evaluate-coavailability` binary screens one proposed delivery-UAV sorti
 - launch and recovery service windows with interval arithmetic (launch service time is added before flight duration);
 - payload, usable battery energy plus protected reserve, peak power and continuous power;
 - declared operating permission and freshness/domain status of carrier route timing, pad/site resources, aircraft capability, permission and weather evidence;
-- launch/recovery pad reservations using half-open intervals.
+- launch/recovery pad reservations using half-open intervals;
+- exclusive aircraft occupancy from launch-service start through recovery-service completion, preventing one airframe from being double-booked while flying or turning around.
 
 It returns `feasible`, `infeasible` or `indeterminate`, plus a canonical SHA-256 input digest. Pad-resource and reservation ordering is normalized for hashing, while carrier route-stop order is preserved as semantic. This digest binds the report to serialized input content but does not authenticate issuers or prove the truth of source evidence. Unknown / stale / conflicted evidence and unknown / expired permission never become a pass. A known hard constraint violation is reported as infeasible. The output hard-codes `dispatch_authorized=false` and `physical_command_emitted=false`.
 
