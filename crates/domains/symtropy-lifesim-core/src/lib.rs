@@ -10,6 +10,13 @@ use arrow_array::{Float32Array, UInt32Array};
 use std::fmt;
 use std::ops::Range;
 
+mod identity;
+pub use identity::{
+    LifeStageConceptRef, LivingSystemEdge, LivingSystemGraph, LivingSystemIdentityError,
+    LivingSystemLevel, LivingSystemMember, LivingSystemNode, LivingSystemRelation,
+    RelationshipConceptRef, TaxonConceptKey, TaxonConceptRef,
+};
+
 #[cfg(feature = "wgpu")]
 pub mod wgpu_backend;
 
