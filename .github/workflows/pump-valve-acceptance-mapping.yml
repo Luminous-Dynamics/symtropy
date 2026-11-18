@@ -37,7 +37,7 @@ jobs:
         run: |
           mkdir -p stage0-evidence
           cargo run --locked --manifest-path tools/pump-valve-acceptance-mapping/Cargo.toml -- --report > stage0-evidence/report.tsv
-          test "$(wc -l < stage0-evidence/report.tsv)" -eq 32
+          test "$(wc -l < stage0-evidence/report.tsv)" -eq 36
           {
             echo "workflow_run_id=${GITHUB_RUN_ID}"
             echo "workflow_attempt=${GITHUB_RUN_ATTEMPT}"
@@ -47,6 +47,7 @@ jobs:
             echo "cargo=$(cargo --version)"
             echo "profile_count=$(($(wc -l < tools/pump-valve-acceptance-mapping/fixtures/profiles-v0.1.tsv) - 1))"
             echo "scenario_count=$(($(wc -l < tools/pump-valve-acceptance-mapping/fixtures/scenarios-v0.1.tsv) - 1))"
+            echo "catalog_snapshot_date=2026-11-18"
             echo "report_line_count=$(wc -l < stage0-evidence/report.tsv)"
           } > stage0-evidence/manifest.txt
           sha256sum \
