@@ -40,6 +40,17 @@ cargo run --manifest-path tools/lunar-regolith-feeder-supervisor/Cargo.toml -- e
 
 The CLI accepts a JSON path or stdin and emits a recommended decision. The example is synthetic only.
 
+## State and acknowledgement boundary
+
+The CLI is a single-step recommender. A real integration must:
+- persist the supervisor state between calls;
+- execute a recommendation only through a separately authorized actuator adapter;
+- update the supervisor's stored command setpoints only after receiving a positive actuator acknowledgement;
+- feed back measured accelerometer/encoder values, not requested values;
+- treat command timeouts or ambiguous acknowledgements as unknown and stop new material withdrawal pending reconciliation.
+
+The crate does not perform actuator I/O or implement a safety-rated state machine. Its last acknowledged setpoint is an input contract for the integrating system, not proof that a physical actuator moved. An Off or Stop recommendation during a quality/sensor hold should remain latched until an operator or higher-level authorized controller explicitly clears and reinitializes the state after inspection.
+
 ## Claim ceiling
 
 This is a supervisory reference implementation and regression-test target. No hardware-in-loop test, actuator integration, closed-loop physical test, vibration safety qualification or lunar qualification is claimed.
