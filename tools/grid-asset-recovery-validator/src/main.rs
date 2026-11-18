@@ -542,7 +542,7 @@ mod tests {
     }
 
     #[test]
-    fn accepts_hand_calculable_two_event_fixture() {
+    fn accepts_hand_calculable_three_event_fixture() {
         run(FIXTURE).expect("fixture should pass");
     }
 
