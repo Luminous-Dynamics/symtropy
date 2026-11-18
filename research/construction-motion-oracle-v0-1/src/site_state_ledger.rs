@@ -2966,7 +2966,11 @@ mod tests {
             ))
         );
         assert_eq!(ledger.last_sequence(), before_sequence);
-        assert_eq!(ledger.resource_definition_sha256("crane-zone-1"), Some(digest('c').as_str()));
+        let expected_definition = digest('c');
+        assert_eq!(
+            ledger.resource_definition_sha256("crane-zone-1"),
+            Some(expected_definition.as_str())
+        );
     }
 
     #[test]
@@ -3176,9 +3180,10 @@ mod tests {
             Err(SiteLedgerError::ResourceCatalogDigestContentMismatch)
         );
         assert_eq!(ledger.last_sequence(), before_sequence);
+        let expected_definition = digest('c');
         assert_eq!(
             ledger.resource_definition_sha256("crane-zone-1"),
-            Some(digest('c').as_str())
+            Some(expected_definition.as_str())
         );
     }
 
