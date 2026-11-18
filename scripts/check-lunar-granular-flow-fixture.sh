@@ -39,6 +39,12 @@ jq -e '
   and (.extension_screen.cells | length) == 90
   and ([.extension_screen.cells[].test_id] | length == (unique | length))
   and all(.extension_screen.cells[]; .execution_status == "planned_not_run")
+  and .batch_transfer_screen.unique_cells == 36
+  and (.batch_transfer_screen.cells | length) == 36
+  and ([.batch_transfer_screen.cells[].test_id] | length == (unique | length))
+  and all(.batch_transfer_screen.cells[]; .execution_status == "planned_not_run")
+  and ([.batch_transfer_screen.cells[].batch_role] | unique | sort)
+      == ["blind_test_batch", "calibration_batch", "validation_batch"]
 ' "$doe" >/dev/null || fail "DOE cell counts, unique IDs or planned-only claim ceiling invalid"
 
 jq -e '
