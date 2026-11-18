@@ -51,6 +51,8 @@ The CLI emits a JSON report containing the source trace identity, policy, select
 
 ## Evidence boundary
 
+The canonical 30-day traffic trace is supplied by the current-main HAPS qualification base branch (PR #5885); this executor PR intentionally targets that branch until it is merged to `main`.
+
 The checked-in 30-day trace and all current allocation fixtures are synthetic. The 15-day dynamic-vs-static comparison is an arithmetic micro-benchmark, not an operator-traffic result, radio simulation, HAPS performance claim or state-of-the-art result. Reproduce the published Mbarek et al. 2026 comparison on an appropriately licensed, independent operator trace before making any such claim.
 
 The parser checks that reanalysis is not presented as a live decision-time forecast. The allocator's input is offered and terrestrial-available Mbps per declared cell; physical radio feasibility and end-to-end service quality belong to their respective domain owners.
