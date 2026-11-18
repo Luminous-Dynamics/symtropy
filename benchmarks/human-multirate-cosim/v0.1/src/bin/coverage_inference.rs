@@ -64,8 +64,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut scheduler = DelayedAciSchedulerV1::new(config)?;
     for step in 0_u64..30 {
         if step >= config.delay_steps {
-            let forecast_id = step - config.delay_steps;
-            let covered = indicators[forecast_id as usize];
+            let forecast_index = step - config.delay_steps;
+            let forecast_id = 10_000 + forecast_index;
+            let covered = indicators[forecast_index as usize];
             let receipt = scheduler.resolve(forecast_id, step, covered)?;
             println!(
                 "aci,update,forecast_id,{},issue_step,{},available_step,{},lane,{},covered,{},alpha_at_issue,{:.6},alpha_after,{:.6},clipped,{}",
