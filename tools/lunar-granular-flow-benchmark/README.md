@@ -228,3 +228,19 @@ That is tracked separately in [#6070](https://github.com/Luminous-Dynamics/symtr
 - scripts/check-lunar-granular-flow-fixture.sh: synthetic fixture tests, DOE count checks and partition/digest negative controls.
 
 The Linux CI explicitly formats, tests, Clippy-checks and executes both standalone Rust tools. These crates are not implicitly compiled by the root workspace.
+
+## Additional published 1-g flow-regime comparator: LHS-1
+
+Lappa, Watson & Bonnieu, *Vibrationally aided flow of lunar regolith simulants in a hopper-based conveying device*, Journal of Rheology 70, 557–579 (21 April 2026), DOI [10.1122/8.0001055](https://doi.org/10.1122/8.0001055), provides a complementary terrestrial-gravity comparator using LHS-1:
+
+- Identifies four spatial flow configurations: **funnel, mass, asymmetric, and ratholing**.
+- Reports vibration made flow more regular and spatially uniform and reduced arching, but average mass rate remained below purely gravitational flow in the tested configurations.
+- Low frequencies promoted arching; at higher frequency, clogging could re-emerge at thresholds, particularly with low acceleration amplitude.
+- Increasing vibration amplitude generally mitigated blockage, but its effectiveness weakened as sample mass increased.
+- The paper identifies the four regimes using the spatial/temporal flow pattern, not simply average mass rate.
+
+This is a 1-g LHS-1 hopper benchmark, distinct from the 0.16-g ICN-LHT-1 hopper-to-rotary-pocket-feeder parabolic-flight study. It should be used as a separate source-reproduction and cross-material comparison, not pooled into the parabolic-flight success ratio. Exact source factor values and test geometry must be extracted from the full experimental tables before calling a replication matched.
+
+The new 63-cell LHS-1 extension in advanced-doe-v0.json is analyst-selected: seven Gamma values × three apparatus-commissioned frequency bands × three hopper charge-mass fractions. It explicitly holds frequency and acceleration as independent controls and includes spatial-flow regime classification, stagnant-zone/rathole area, asymmetry, jam probability, and mass-rate variability. All cells are planned only.
+
+**Why this matters:** a mass-flow average can conceal ratholing or a large stagnant region. Regime classification, occupancy/velocity fields and outlet-rate time series must accompany throughput, energy and composition measurements. The run schema now includes charge mass and hopper geometry fields, an observed regime classification and confidence, and an artifact reference to the spatial flow-regime evidence.
