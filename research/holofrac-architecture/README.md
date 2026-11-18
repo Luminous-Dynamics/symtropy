@@ -184,6 +184,7 @@ The current executable research slices are intentionally separated:
 - [Component lifecycle protocol](LIFECYCLE_FIXTURE_PROTOCOL_V0.md)
 - [Lifecycle evidence-impact protocol](LIFECYCLE_EVIDENCE_IMPACT_PROTOCOL_V0.md)
 - [Pluralistic decision protocol](PLURALISTIC_DECISION_PROTOCOL_V0.md)
+- [Anonymous preference privacy red-team issue #6034](https://github.com/Luminous-Dynamics/symtropy/issues/6034)
 - [Experiment-selection and value-of-information protocol](EXPERIMENT_SELECTION_VOI_PROTOCOL_V0.md)
 
 The graph benchmark measures exact relations and partial-context candidates; the continuous-field tracks measure positional encoding, multi-channel binding, bundling, unbinding, cleanup and held-out reconstruction against classical storage/interpolation. The geometry track tests a declared scale estimator against known-dimension controls. The dependency track computes exact evidence invalidation. The temporal fixture separates evaluator-only truth from observations and models late delivery/corrections with decision-time snapshots. The sensor-placement fixture compares regular-grid, seeded-random and greedy-maximin layouts using a deliberately simple nearest-sensor virtual-sensing baseline. The temporal, placement, component-lifecycle, lifecycle evidence-impact and pluralistic decision fixtures are synthetic and do not represent measured buildings, actual material passports, real solver qualification or real occupant preferences. None substitutes for physical simulation or engineering authority.
