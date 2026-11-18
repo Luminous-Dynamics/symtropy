@@ -114,7 +114,31 @@
       "status": "synthetic",
       "source_artifact_id": null,
       "calibration_record_id": null
-    }
+    },
+    "bulk_tensile_strength_pa": {
+      "value": null,
+      "standard_uncertainty": null,
+      "unit": "Pa",
+      "status": "unknown",
+      "source_artifact_id": null,
+      "calibration_record_id": null,
+      "derivation_method_id": null,
+      "calculation_version": null
+    },
+    "agglutinate_fraction_initial": {
+      "value": null,
+      "standard_uncertainty": null,
+      "unit": "fraction",
+      "status": "unknown",
+      "source_artifact_id": null,
+      "calibration_record_id": null,
+      "derivation_method_id": null,
+      "calculation_version": null
+    },
+    "adhesion_characterization_status": "unknown",
+    "adhesion_characterization_method_id": null,
+    "adhesion_distribution_artifact_id": null,
+    "adhesion_by_size_class": []
   },
   "environment": {
     "gravity_m_s2": {
@@ -421,6 +445,16 @@
       "status": "unknown",
       "source_artifact_id": null,
       "calibration_record_id": null
+    },
+    "flow_depth_m": {
+      "value": null,
+      "standard_uncertainty": null,
+      "unit": "m",
+      "status": "unknown",
+      "source_artifact_id": null,
+      "calibration_record_id": null,
+      "derivation_method_id": null,
+      "calculation_version": null
     }
   },
   "observations": {
@@ -644,7 +678,37 @@
       "source_artifact_id": null,
       "calibration_record_id": null
     },
-    "flow_regime_observation_artifact_id": "video-summary-fixture"
+    "flow_regime_observation_artifact_id": "video-summary-fixture",
+    "mean_agglutinate_breakage_rate_s_minus_1": {
+      "value": null,
+      "standard_uncertainty": null,
+      "unit": "1/s",
+      "status": "unknown",
+      "source_artifact_id": null,
+      "calibration_record_id": null,
+      "derivation_method_id": null,
+      "calculation_version": null
+    },
+    "reference_segregation_velocity_m_s": {
+      "value": null,
+      "standard_uncertainty": null,
+      "unit": "m/s",
+      "status": "unknown",
+      "source_artifact_id": null,
+      "calibration_record_id": null,
+      "derivation_method_id": null,
+      "calculation_version": null
+    },
+    "size_contrast_delta_s": {
+      "value": null,
+      "standard_uncertainty": null,
+      "unit": "dimensionless",
+      "status": "unknown",
+      "source_artifact_id": null,
+      "calibration_record_id": null,
+      "derivation_method_id": null,
+      "calculation_version": null
+    }
   },
   "model": {
     "solver_family": "force_balance",
@@ -805,6 +869,67 @@
       "flow-trace-fixture"
     ],
     "formula_set_id": "lunar-granular-dimensionless-groups-v1",
-    "uncertainty_propagation_method": "not_applicable_synthetic"
+    "uncertainty_propagation_method": "not_applicable_synthetic",
+    "granular_bond_number_p05": {
+      "value": null,
+      "standard_uncertainty": null,
+      "unit": "dimensionless",
+      "status": "unknown",
+      "source_artifact_id": null,
+      "calibration_record_id": null,
+      "derivation_method_id": null,
+      "calculation_version": null
+    },
+    "granular_bond_number_p50": {
+      "value": null,
+      "standard_uncertainty": null,
+      "unit": "dimensionless",
+      "status": "unknown",
+      "source_artifact_id": null,
+      "calibration_record_id": null,
+      "derivation_method_id": null,
+      "calculation_version": null
+    },
+    "granular_bond_number_p95": {
+      "value": null,
+      "standard_uncertainty": null,
+      "unit": "dimensionless",
+      "status": "unknown",
+      "source_artifact_id": null,
+      "calibration_record_id": null,
+      "derivation_method_id": null,
+      "calculation_version": null
+    },
+    "granular_bond_number_p99": {
+      "value": null,
+      "standard_uncertainty": null,
+      "unit": "dimensionless",
+      "status": "unknown",
+      "source_artifact_id": null,
+      "calibration_record_id": null,
+      "derivation_method_id": null,
+      "calculation_version": null
+    },
+    "adhesion_bond_by_size_class": [],
+    "confinement_to_tensile_strength_ratio": {
+      "value": null,
+      "standard_uncertainty": null,
+      "unit": "dimensionless",
+      "status": "unknown",
+      "source_artifact_id": null,
+      "calibration_record_id": null,
+      "derivation_method_id": null,
+      "calculation_version": null
+    },
+    "breakage_segregation_timescale_ratio": {
+      "value": null,
+      "standard_uncertainty": null,
+      "unit": "dimensionless",
+      "status": "unknown",
+      "source_artifact_id": null,
+      "calibration_record_id": null,
+      "derivation_method_id": null,
+      "calculation_version": null
+    }
   }
 }
