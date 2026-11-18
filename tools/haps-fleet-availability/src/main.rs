@@ -11,9 +11,9 @@ fn main() {
 }
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let path = env::args().nth(1).ok_or(
-        "usage: haps-fleet-availability <fleet-case.json>",
-    )?;
+    let path = env::args()
+        .nth(1)
+        .ok_or("usage: haps-fleet-availability <fleet-case.json>")?;
     if env::args().nth(2).is_some() {
         return Err("only one input path is accepted".into());
     }
