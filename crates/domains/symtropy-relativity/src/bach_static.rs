@@ -246,7 +246,7 @@ mod tests {
         result
     }
 
-    fn mannheim_kazanas_jet(
+    fn mk_metric_jet(
         radius: f64,
         c_inverse: f64,
         c_constant: f64,
