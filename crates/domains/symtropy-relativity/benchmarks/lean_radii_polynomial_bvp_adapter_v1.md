@@ -198,6 +198,20 @@ The conversion and norm equality are an elementary coefficient calculation. They
 
 This analytic tail is only one input to a complete BVP proof. It does not by itself bound the nonlinear field residual, the boundary data, the inverse defect, or the spectral error after applying fourth derivatives.
 
+### Exact one-sided to bilateral norm conversion
+
+The pinned upstream source files were inspected:
+- `Analysis/SequenceSpace/Chebyshev/Scalar.lean` fixes the bilateral weight `nu^|k|`;
+- `Chebyshev/Symmetrize.lean` copies each nonnegative mode to both signs;
+- `Chebyshev/OneSided.lean` relates the nonnegative restriction to the one-sided weighted norm.
+
+For the Laurent identity (T_n(x)=(z^n+z^{-n})/2), a physical one-sided coefficient (a_n) is stored as (c_n=c_{-n}=a_n/2) for n>0 and c0=a0. Hence
+[
+|c_0|+\sum_{n\ge1}(|c_n|+|c_{-n}|)\nu^n
+=|a_0|+\sum_{n\ge1}|a_n|\nu^n.
+]
+The tail conversion factor is exactly one. The Lean fixture records the rational coefficient-norm algebra, but a dedicated upstream Lean lemma is still required before this is part of a theorem proof.
+
 ## 5. Radii-polynomial arithmetic plumbing fixture
 
 The separate rational fixture uses
@@ -223,6 +237,8 @@ Z_0+Z_1+Z_2r_0=\frac{21}{1000}<1.
 \]
 
 This is deliberately labelled theorem-arithmetic only. These rational values are not derived from a black-hole candidate, a verified inverse, a field residual, or an actual BVP operator. They test that the certificate schema and the Lean inequality adapter preserve exact rational arithmetic; they do not certify a physical or mathematical black-hole solution.
+
+The pinned upstream source contains exactly the required adapter theorem in `RadiiPolynomial/Certification/RadiiPolynomialQ.lean` (source blob `db0f05f265c267cb566dca59347c4158afe73239`): `generalRadiiPolynomial_neg_of_Q_const`. The PR branch now includes `benchmarks/lean/radii_polynomial_arithmetic_fixture_v1.lean`, which instantiates that theorem with the synthetic values and retains `#print axioms` commands. The source has not been compiled with the pinned Lean toolchain yet.
 
 ## 6. Implementation sequence
 
