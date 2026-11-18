@@ -673,6 +673,17 @@ pub fn compare_waiting_time_models(
             .iter()
             .map(|point| point.time_s),
     );
+    for candidate in candidates {
+        if let WaitingTimeLaw::Empirical(samples) = candidate.law {
+            effective_time_grid_s.extend(
+                samples
+                    .values()
+                    .iter()
+                    .copied()
+                    .filter(|time_s| *time_s <= max_observed_time_s),
+            );
+        }
+    }
     effective_time_grid_s.push(max_observed_time_s);
     effective_time_grid_s.sort_by(f64::total_cmp);
     effective_time_grid_s.dedup_by(|left, right| *left == *right);
@@ -723,14 +734,23 @@ pub fn compare_waiting_time_models(
                     .zip(survival_probabilities.windows(2)),
             )
             .map(|(times, (reference, predicted))| {
-                let left_error = reference[0] - predicted[0];
-                // KM is constant on [t_i, t_{i+1}); use the left-limit
-                // step for both endpoints. The value at t_{i+1} has measure
-                // zero and belongs to the following interval.
-                let right_error = reference[0] - predicted[1];
-                0.5
-                    * (left_error * left_error + right_error * right_error)
-                    * (times[1] - times[0])
+                let interval_s = times[1] - times[0];
+                let reference_step = reference[0];
+                if matches!(candidate.law, WaitingTimeLaw::Empirical(_)) {
+                    // Both the KM reference and empirical candidate are
+                    // constant between their included jump times.
+                    let error = reference_step - predicted[0];
+                    error * error * interval_s
+                } else {
+                    // Parametric survival is continuous; integrate its
+                    // squared residual against the constant KM step by
+                    // trapezoid on this event-free interval.
+                    let left_error = reference_step - predicted[0];
+                    let right_error = reference_step - predicted[1];
+                    0.5
+                        * (left_error * left_error + right_error * right_error)
+                        * interval_s
+                }
             })
             .sum();
 
