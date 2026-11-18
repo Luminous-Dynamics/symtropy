@@ -3,6 +3,7 @@ use sim_rel_joint_stochastic_oracle::episode::{
     EpisodeProvider, EpisodeRequest, EpisodeResponse, PublicActionDescription, PublicHypothesis,
     PublicObservationDescription, PublicResearchProfile,
 };
+use sim_rel_joint_stochastic_oracle::model_catalogue::{PublicModelCatalogue, PublicProbability};
 use sim_rel_joint_stochastic_oracle::{JointKernel, JointMass, JointOutcome, KernelRow, Rational};
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Command, Stdio};
@@ -80,7 +81,9 @@ fn fixture_provider(seed: u64) -> EpisodeProvider {
             },
         ],
     };
-    let manifest = EpisodeManifest {
+    let candidate_ids = kernel.hypothesis_ids.clone();
+    let model_catalogue = PublicModelCatalogue::from_kernel(&kernel, &candidate_ids).unwrap();
+    let mut manifest = EpisodeManifest {
         contract_sha256: "a".repeat(64),
         world_model_sha256: "b".repeat(64),
         model_profile_sha256: "c".repeat(64),
@@ -96,11 +99,13 @@ fn fixture_provider(seed: u64) -> EpisodeProvider {
                     hypothesis_id: "candidate-a".to_owned(),
                     structural_family: "process-fixture".to_owned(),
                     description: "Candidate A yields zero for both measurements.".to_owned(),
+                    prior_probability: PublicProbability::new(1, 2).unwrap(),
                 },
                 PublicHypothesis {
                     hypothesis_id: "candidate-b".to_owned(),
                     structural_family: "process-fixture".to_owned(),
                     description: "Candidate B yields one for both measurements.".to_owned(),
+                    prior_probability: PublicProbability::new(1, 2).unwrap(),
                 },
             ],
             actions: vec![
@@ -108,11 +113,13 @@ fn fixture_provider(seed: u64) -> EpisodeProvider {
                     action_id: "measure-a".to_owned(),
                     description: "Measure the primary signal.".to_owned(),
                     target: "primary-signal".to_owned(),
+                    cost_units: 1,
                 },
                 PublicActionDescription {
                     action_id: "measure-b".to_owned(),
                     description: "Measure the replicate signal.".to_owned(),
                     target: "replicate-signal".to_owned(),
+                    cost_units: 1,
                 },
             ],
             observations: vec![
@@ -129,8 +136,10 @@ fn fixture_provider(seed: u64) -> EpisodeProvider {
                     unit: "categorical".to_owned(),
                 },
             ],
+            model_catalogue,
         },
     };
+    manifest.model_profile_sha256 = manifest.public_profile.sha256().unwrap();
     EpisodeProvider::new(
         format!("process-baseline-fixture-{seed:08}"),
         manifest,
@@ -202,10 +211,10 @@ fn fixed_order_baseline_runs_through_real_jsonl_child_and_exact_evaluator() {
     assert_eq!(evaluation.total_requests, 2);
     assert_eq!(
         evaluation.reported_disposition,
-        EpisodeFinishDisposition::Ambiguous
+        EpisodeFinishDisposition::Identified
     );
-    assert!(!evaluation.version_space_exact_match);
-    assert!(!evaluation.disposition_correct);
+    assert!(evaluation.version_space_exact_match);
+    assert!(evaluation.disposition_correct);
     assert_eq!(evaluation.correct_candidate_count, 1);
 }
 
@@ -221,4 +230,20 @@ fn no_intervention_baseline_uses_same_wire_and_evaluator_custody() {
     assert!(evaluation.safe_abstention);
     assert!(evaluation.version_space_exact_match);
     assert!(evaluation.disposition_correct);
+}
+
+
+#[test]
+fn one_step_joint_eig_child_uses_public_model_catalogue_and_exact_evaluator() {
+    let evaluation = run_child("one_step_eig", 3);
+    assert_eq!(evaluation.applied_interventions, 1);
+    assert_eq!(evaluation.total_requests, 1);
+    assert_eq!(
+        evaluation.reported_disposition,
+        EpisodeFinishDisposition::Identified
+    );
+    assert!(evaluation.version_space_exact_match);
+    assert!(evaluation.disposition_correct);
+    assert!(evaluation.evidence_identifies_unique_hypothesis);
+    assert!(!evaluation.false_unique_claim);
 }

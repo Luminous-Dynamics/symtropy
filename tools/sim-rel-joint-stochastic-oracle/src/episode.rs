@@ -10,6 +10,7 @@
 //! runner/oracle custody boundary described in the research protocol.
 
 use super::{JointKernel, Rational};
+use crate::model_catalogue::{PublicModelCatalogue, PublicProbability};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -52,6 +53,8 @@ pub struct PublicHypothesis {
     pub structural_family: String,
     /// Plain-language candidate mechanism description.
     pub description: String,
+    /// Public task prior over declared candidates, independent of the hidden generator draw.
+    pub prior_probability: PublicProbability,
 }
 
 /// Public meaning and cost of one intervention; no transition probabilities or hidden state.
@@ -64,6 +67,8 @@ pub struct PublicActionDescription {
     pub description: String,
     /// Declared target of the intervention, e.g. sensor, process, or observation.
     pub target: String,
+    /// Public cost used by policies and included in the canonical profile digest.
+    pub cost_units: u64,
 }
 
 /// Public meaning of one categorical observation returned by the model.
@@ -92,6 +97,19 @@ pub struct PublicResearchProfile {
     pub actions: Vec<PublicActionDescription>,
     /// Public observation-channel/category meanings.
     pub observations: Vec<PublicObservationDescription>,
+    /// Exact predictive transition catalogue for every declared candidate model.
+    pub model_catalogue: PublicModelCatalogue,
+}
+
+impl PublicResearchProfile {
+    /// Canonical digest of task description, candidate priors/semantics,
+    /// action/observation catalogues, and the predictive model-catalogue digest.
+    pub fn sha256(&self) -> Result<String, String> {
+        crate::model_catalogue::canonical_sha256(self)?
+            .strip_prefix("sha256:")
+            .map(str::to_owned)
+            .ok_or_else(|| "canonical profile digest is missing its SHA-256 prefix".to_owned())
+    }
 }
 
 /// Public, non-secret identities and semantics that bind one episode to its exact model inputs.
@@ -137,6 +155,12 @@ impl EpisodeManifest {
             }
         }
         let profile = &self.public_profile;
+        let computed_profile_sha256 = profile
+            .sha256()
+            .map_err(EpisodeError::InvalidManifest)?;
+        if computed_profile_sha256 != self.model_profile_sha256 {
+            return Err(EpisodeError::InvalidManifest);
+        }
         if profile.task_description.trim().is_empty() || profile.task_description.len() > 4096 {
             return Err(EpisodeError::InvalidManifest);
         }
@@ -146,6 +170,27 @@ impl EpisodeManifest {
         {
             return Err(EpisodeError::InvalidManifest);
         }
+        let mut candidate_prior_mass = Rational::zero();
+        for hypothesis in &profile.candidate_hypotheses {
+            let prior = hypothesis
+                .prior_probability
+                .to_rational()
+                .map_err(EpisodeError::InvalidManifest)?;
+            if prior.is_zero() {
+                return Err(EpisodeError::InvalidManifest);
+            }
+            candidate_prior_mass = candidate_prior_mass
+                .checked_add(prior)
+                .map_err(EpisodeError::InvalidManifest)?;
+        }
+        if candidate_prior_mass != Rational::one() {
+            return Err(EpisodeError::InvalidManifest);
+        }
+        profile
+            .model_catalogue
+            .verify_sha256()
+            .map_err(EpisodeError::InvalidManifest)?;
+
         let mut hypothesis_ids = BTreeSet::new();
         for hypothesis in &profile.candidate_hypotheses {
             if hypothesis.hypothesis_id.trim().is_empty()
@@ -162,6 +207,7 @@ impl EpisodeManifest {
             if action.action_id.trim().is_empty()
                 || action.description.trim().is_empty()
                 || action.target.trim().is_empty()
+                || action.cost_units == 0
                 || action.description.len() > 2048
                 || !action_ids.insert(action.action_id.as_str())
             {
@@ -190,6 +236,11 @@ impl EpisodeManifest {
             .iter()
             .map(|item| item.hypothesis_id.as_str())
             .collect();
+        let public_candidate_ids: Vec<String> = profile
+            .candidate_hypotheses
+            .iter()
+            .map(|candidate| candidate.hypothesis_id.clone())
+            .collect();
         let owner_hypothesis_ids: BTreeSet<&str> =
             kernel.hypothesis_ids.iter().map(String::as_str).collect();
         let action_ids: Vec<&str> = profile
@@ -197,11 +248,20 @@ impl EpisodeManifest {
             .iter()
             .map(|item| item.action_id.as_str())
             .collect();
+        let action_costs: Vec<u64> = profile
+            .actions
+            .iter()
+            .map(|item| item.cost_units)
+            .collect();
         let observation_ids: Vec<&str> = profile
             .observations
             .iter()
             .map(|item| item.observation_id.as_str())
             .collect();
+        profile
+            .model_catalogue
+            .validate_against_kernel(kernel, &public_candidate_ids)
+            .map_err(EpisodeError::InvalidManifest)?;
         if candidate_ids.is_empty()
             || !candidate_ids.is_subset(&owner_hypothesis_ids)
             || action_ids.len() != kernel.action_ids.len()
@@ -209,6 +269,7 @@ impl EpisodeManifest {
                 .iter()
                 .zip(&kernel.action_ids)
                 .any(|(public, owner)| *public != owner.as_str())
+            || action_costs != kernel.action_costs
             || observation_ids.len() != kernel.observation_ids.len()
             || observation_ids
                 .iter()
@@ -1253,8 +1314,9 @@ mod tests {
     }
 
     fn test_manifest(kernel: &JointKernel) -> EpisodeManifest {
-        let candidate_hypotheses = kernel
-            .hypothesis_ids
+        let candidate_ids = kernel.hypothesis_ids.clone();
+        let candidate_prior = PublicProbability::new(1, candidate_ids.len() as u128).unwrap();
+        let candidate_hypotheses = candidate_ids
             .iter()
             .map(|id| PublicHypothesis {
                 hypothesis_id: id.clone(),
@@ -1262,12 +1324,16 @@ mod tests {
                 description: format!(
                     "Declared candidate mechanism {id}; latent physical and sensor states remain hidden."
                 ),
+                prior_probability: candidate_prior.clone(),
             })
             .collect();
+        let model_catalogue =
+            PublicModelCatalogue::from_kernel(kernel, &candidate_ids).unwrap();
         let actions = kernel
             .action_ids
             .iter()
-            .map(|id| {
+            .zip(&kernel.action_costs)
+            .map(|(id, cost_units)| {
                 let (description, target) = match id.as_str() {
                     "measure-combined-signal" => (
                         "Measure the combined categorical signal through the current sensor state.",
@@ -1295,6 +1361,7 @@ mod tests {
                     action_id: id.clone(),
                     description: description.to_owned(),
                     target: target.to_owned(),
+                    cost_units: *cost_units,
                 }
             })
             .collect();
@@ -1338,7 +1405,7 @@ mod tests {
                 }
             })
             .collect();
-        EpisodeManifest {
+        let mut manifest = EpisodeManifest {
             contract_sha256: "a".repeat(64),
             world_model_sha256: "b".repeat(64),
             model_profile_sha256: "c".repeat(64),
@@ -1350,8 +1417,33 @@ mod tests {
                 candidate_hypotheses,
                 actions,
                 observations,
+                model_catalogue,
             },
-        }
+        };
+        manifest.model_profile_sha256 = manifest.public_profile.sha256().unwrap();
+        manifest
+    }
+
+    fn refresh_public_candidates(manifest: &mut EpisodeManifest, kernel: &JointKernel, ids: &[&str]) {
+        let prior = PublicProbability::new(1, ids.len() as u128).unwrap();
+        manifest.public_profile.candidate_hypotheses = ids
+            .iter()
+            .map(|id| {
+                let mut hypothesis = manifest
+                    .public_profile
+                    .candidate_hypotheses
+                    .iter()
+                    .find(|item| item.hypothesis_id == *id)
+                    .expect("candidate is present in owner manifest")
+                    .clone();
+                hypothesis.prior_probability = prior.clone();
+                hypothesis
+            })
+            .collect();
+        let owned_ids: Vec<String> = ids.iter().map(|id| (*id).to_owned()).collect();
+        manifest.public_profile.model_catalogue =
+            PublicModelCatalogue::from_kernel(kernel, &owned_ids).unwrap();
+        manifest.model_profile_sha256 = manifest.public_profile.sha256().unwrap();
     }
 
     fn new_provider(kernel: JointKernel, seed: u64) -> EpisodeProvider {
@@ -1368,6 +1460,26 @@ mod tests {
             seed,
         )
         .expect("valid episode")
+    }
+
+    #[test]
+    fn public_profile_prior_change_requires_a_new_manifest_digest() {
+        let kernel = persistent_sensor_confounding_kernel();
+        let mut manifest = test_manifest(&kernel);
+        manifest.public_profile.candidate_hypotheses[0].prior_probability =
+            PublicProbability::new(3, 4).unwrap();
+        manifest.public_profile.candidate_hypotheses[1].prior_probability =
+            PublicProbability::new(1, 4).unwrap();
+        assert!(matches!(
+            EpisodeProvider::new(
+                "profile-prior-tamper-0001",
+                manifest,
+                kernel,
+                EpisodeConfig::default(),
+                3,
+            ),
+            Err(EpisodeError::InvalidManifest)
+        ));
     }
 
     #[test]
@@ -1392,10 +1504,7 @@ mod tests {
     fn public_candidate_subset_hides_the_generating_out_of_catalogue_id() {
         let kernel = persistent_sensor_confounding_kernel();
         let mut manifest = test_manifest(&kernel);
-        manifest
-            .public_profile
-            .candidate_hypotheses
-            .retain(|candidate| candidate.hypothesis_id == "latent-mechanism-a");
+        refresh_public_candidates(&mut manifest, &kernel, &["latent-mechanism-a"]);
         let provider = EpisodeProvider::new(
             "hidden-outside-candidate-0001",
             manifest,
@@ -1600,10 +1709,7 @@ mod tests {
     fn out_of_catalogue_world_is_ambiguous_while_a_declared_candidate_still_fits() {
         let kernel = persistent_sensor_confounding_kernel();
         let mut manifest = test_manifest(&kernel);
-        manifest
-            .public_profile
-            .candidate_hypotheses
-            .retain(|candidate| candidate.hypothesis_id == "latent-mechanism-a");
+        refresh_public_candidates(&mut manifest, &kernel, &["latent-mechanism-a"]);
         let mut provider = EpisodeProvider::new(
             "ood-overlap-episode-0001",
             manifest,
@@ -1645,10 +1751,7 @@ mod tests {
     fn out_of_catalogue_world_becomes_no_compatible_model_after_discriminating_sequence() {
         let kernel = persistent_sensor_confounding_kernel();
         let mut manifest = test_manifest(&kernel);
-        manifest
-            .public_profile
-            .candidate_hypotheses
-            .retain(|candidate| candidate.hypothesis_id == "latent-mechanism-a");
+        refresh_public_candidates(&mut manifest, &kernel, &["latent-mechanism-a"]);
         let mut provider = EpisodeProvider::new(
             "ood-divergence-episode-0001",
             manifest,
@@ -1692,10 +1795,7 @@ mod tests {
     fn out_of_catalogue_claim_on_an_in_catalogue_world_is_a_false_positive() {
         let kernel = persistent_sensor_confounding_kernel();
         let mut manifest = test_manifest(&kernel);
-        manifest
-            .public_profile
-            .candidate_hypotheses
-            .retain(|candidate| candidate.hypothesis_id == "latent-mechanism-a");
+        refresh_public_candidates(&mut manifest, &kernel, &["latent-mechanism-a"]);
         let mut provider = EpisodeProvider::new(
             "false-ood-claim-episode-0001",
             manifest,

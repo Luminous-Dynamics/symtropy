@@ -3,10 +3,13 @@
 //! These are comparison arms, not learned agents. The seeded-random generator
 //! is reproducibility-only and is never suitable for protecting hidden seeds.
 
+use crate::baseline::rank_by_one_step_eig;
 use crate::episode::{
-    EPISODE_PROTOCOL_VERSION, EpisodeCommand, EpisodeFinish, EpisodeFinishDisposition,
-    EpisodeRequest, EpisodeResponse,
+    AttemptDisposition, EPISODE_PROTOCOL_VERSION, EpisodeCommand, EpisodeFinish,
+    EpisodeFinishDisposition, EpisodeRequest, EpisodeResponse,
 };
+use crate::{JointKernel, JointMass, Rational};
+use std::collections::BTreeMap;
 use std::fmt;
 
 /// Policy arms that operate only on the public episode request.
@@ -18,6 +21,9 @@ pub enum BaselineStrategy {
     FixedActionOrder,
     /// Select among unattempted affordable public actions with a reproducible seed.
     SeededRandom { seed: u64 },
+    /// Reconstruct the public candidate kernel, update its exact posterior, and
+    /// choose the highest one-step joint-state EIG-per-cost action.
+    OneStepJointEig,
     /// Negative control: identify the first public candidate from metadata alone.
     MetadataOnlyFirstCandidate,
 }
@@ -33,6 +39,8 @@ pub enum PolicyError {
     EmptyCandidateCatalogue,
     /// The metadata-only control requires a first candidate.
     MissingFirstCandidate,
+    /// The public candidate model catalogue, priors, or action trace is invalid.
+    InvalidPublicModel(String),
 }
 
 impl fmt::Display for PolicyError {
@@ -45,8 +53,9 @@ impl std::error::Error for PolicyError {}
 
 /// Return one typed policy response for the supplied public view.
 ///
-/// The policy sees no hidden generating mechanism, physical/sensor state,
-/// transition kernel, sampled world seed, or evaluator output.
+/// Model-based arms reconstruct their predictive kernel from the public
+/// catalogue; they never receive the episode's hidden owner generator,
+/// sampled physical/sensor state or evaluator result.
 pub fn next_response(
     request: &EpisodeRequest,
     strategy: BaselineStrategy,
@@ -55,17 +64,12 @@ pub fn next_response(
         return Err(PolicyError::UnsupportedProtocol);
     }
     let view = &request.view;
-    if view.terminal || view.finish.is_some() {
+    if view.terminal || view.finish.is_some() || !view.trace_complete {
         return Err(PolicyError::EpisodeClosed);
     }
+    validate_public_view(view)?;
 
-    let candidates: Vec<String> = view
-        .manifest
-        .public_profile
-        .candidate_hypotheses
-        .iter()
-        .map(|candidate| candidate.hypothesis_id.clone())
-        .collect();
+    let candidates = public_candidate_ids(view);
     if candidates.is_empty() {
         return Err(PolicyError::EmptyCandidateCatalogue);
     }
@@ -74,7 +78,7 @@ pub fn next_response(
         return Ok(finish_response(
             EpisodeFinishDisposition::Abstain,
             candidates,
-            "No-intervention baseline: preserve the declared candidate set and abstain without spending experiment budget.",
+            "No-intervention baseline: preserve the public prior support and abstain without spending experiment budget.",
         ));
     }
 
@@ -90,34 +94,76 @@ pub fn next_response(
         ));
     }
 
+    let (kernel, belief) = public_kernel_and_belief(view)?;
+    let compatible = compatible_candidate_ids(&kernel, &belief);
     let exhausted = view.accepted_attempts >= view.max_attempts
         || view.current_step >= view.max_world_steps
         || view.spent_cost_units >= view.max_cost_units;
-    let attempted: Vec<&str> = view
-        .attempts
-        .iter()
-        .map(|attempt| attempt.requested_action_id.as_str())
-        .collect();
-    let affordable_untried: Vec<&str> = view
+    let affordable: Vec<&str> = view
         .actions
         .iter()
         .filter(|action| {
-            !attempted.contains(&action.action_id.as_str())
-                && action.cost_units <= view.max_cost_units.saturating_sub(view.spent_cost_units)
+            action.cost_units <= view.max_cost_units.saturating_sub(view.spent_cost_units)
         })
         .map(|action| action.action_id.as_str())
         .collect();
 
-    if exhausted || affordable_untried.is_empty() {
-        let disposition = if candidates.len() > 1 {
-            EpisodeFinishDisposition::Ambiguous
-        } else {
-            EpisodeFinishDisposition::Abstain
-        };
+    if strategy == BaselineStrategy::OneStepJointEig {
+        if belief.is_empty() {
+            return Ok(finish_response(
+                EpisodeFinishDisposition::NoCompatibleModel,
+                Vec::new(),
+                "No declared candidate predictive model assigns positive likelihood to the observed evidence prefix.",
+            ));
+        }
+        if exhausted || affordable.is_empty() {
+            return Ok(finish_response(
+                status_for_candidate_set(&compatible),
+                compatible,
+                "One-step joint EIG policy stopped at the frozen attempt, cost, or step budget.",
+            ));
+        }
+        let ranked = rank_by_one_step_eig(&kernel, &belief)
+            .map_err(PolicyError::InvalidPublicModel)?;
+        let selected = ranked
+            .iter()
+            .find(|score| {
+                view.actions
+                    .iter()
+                    .any(|action| action.action_id == score.action_id && action.cost_units
+                        <= view.max_cost_units.saturating_sub(view.spent_cost_units))
+            });
+        if let Some(score) = selected {
+            if score.expected_information_gain_nats > 1e-12 {
+                return Ok(probe_response(&score.action_id));
+            }
+        }
         return Ok(finish_response(
-            disposition,
-            candidates,
-            "Budget/action-order baseline: stop when the available public action set or frozen budget is exhausted.",
+            status_for_candidate_set(&compatible),
+            compatible,
+            "One-step joint EIG per cost is zero for every affordable intervention; stop rather than spend budget without expected mechanism information.",
+        ));
+    }
+
+    let attempted: Vec<&str> = view
+        .attempts
+        .iter()
+        .filter(|attempt| !matches!(
+            &attempt.disposition,
+            AttemptDisposition::RejectedUnknownAction
+        ))
+        .map(|attempt| attempt.requested_action_id.as_str())
+        .collect();
+    let affordable_untried: Vec<&str> = affordable
+        .into_iter()
+        .filter(|action_id| !attempted.contains(action_id))
+        .collect();
+
+    if exhausted || affordable_untried.is_empty() {
+        return Ok(finish_response(
+            status_for_candidate_set(&compatible),
+            compatible,
+            "Non-model-based baseline stopped when its untried public action set or frozen budget was exhausted.",
         ));
     }
 
@@ -130,17 +176,360 @@ pub fn next_response(
             );
             affordable_untried[(draw as usize) % affordable_untried.len()]
         }
-        BaselineStrategy::NoIntervention | BaselineStrategy::MetadataOnlyFirstCandidate => {
+        BaselineStrategy::NoIntervention
+        | BaselineStrategy::MetadataOnlyFirstCandidate
+        | BaselineStrategy::OneStepJointEig => {
             unreachable!("early-returned baseline strategy")
         }
     };
 
-    Ok(EpisodeResponse {
+    Ok(probe_response(selected))
+}
+
+/// Validate public profile identity, model/action/observation agreement,
+/// chronological evidence availability, and attempt/cost denominator integrity.
+fn validate_public_view(view: &crate::episode::EpisodeView) -> Result<(), PolicyError> {
+    let profile = &view.manifest.public_profile;
+    let computed_profile_sha256 = profile
+        .sha256()
+        .map_err(PolicyError::InvalidPublicModel)?;
+    if computed_profile_sha256 != view.manifest.model_profile_sha256 {
+        return Err(PolicyError::InvalidPublicModel(
+            "public profile SHA-256 does not match the manifest".to_owned(),
+        ));
+    }
+    profile
+        .model_catalogue
+        .verify_sha256()
+        .map_err(PolicyError::InvalidPublicModel)?;
+
+    if profile.actions.len() != view.actions.len()
+        || profile
+            .actions
+            .iter()
+            .zip(&view.actions)
+            .any(|(declared, visible)| {
+                declared.action_id != visible.action_id
+                    || declared.description != visible.description
+                    || declared.target != visible.target
+                    || declared.cost_units != visible.cost_units
+                    || visible.cost_units == 0
+            })
+    {
+        return Err(PolicyError::InvalidPublicModel(
+            "public action semantics or costs do not match the policy action catalogue".to_owned(),
+        ));
+    }
+    let profile_observation_ids: Vec<&str> = profile
+        .observations
+        .iter()
+        .map(|observation| observation.observation_id.as_str())
+        .collect();
+    if profile_observation_ids
+        != profile
+            .model_catalogue
+            .observation_ids
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>()
+    {
+        return Err(PolicyError::InvalidPublicModel(
+            "public observation semantics do not match the predictive model catalogue".to_owned(),
+        ));
+    }
+
+    if view.dropped_attempts != 0
+        || view.attempts.len() > crate::episode::MAX_ATTEMPT_RECEIPTS
+        || view.accepted_attempts > view.max_attempts
+        || view.current_step > view.max_world_steps
+        || view.spent_cost_units > view.max_cost_units
+    {
+        return Err(PolicyError::InvalidPublicModel(
+            "public view is incomplete or exceeds its declared budgets".to_owned(),
+        ));
+    }
+
+    let mut accepted = 0_u64;
+    let mut total_cost = 0_u64;
+    let mut applied_observations = Vec::new();
+    for (ordinal, attempt) in view.attempts.iter().enumerate() {
+        if attempt.ordinal != ordinal as u64
+            || attempt.attempt_id != format!("attempt-{ordinal:08}")
+            || attempt.requested_at_step != accepted
+            || attempt.requested_at_step > view.current_step
+        {
+            return Err(PolicyError::InvalidPublicModel(
+                "attempt IDs, ordinals or request timestamps are inconsistent".to_owned(),
+            ));
+        }
+        match &attempt.disposition {
+            AttemptDisposition::Applied { observation_id } => {
+                let action = view
+                    .actions
+                    .iter()
+                    .find(|action| action.action_id == attempt.requested_action_id)
+                    .ok_or_else(|| PolicyError::InvalidPublicModel(
+                        "applied attempt references an undeclared action".to_owned(),
+                    ))?;
+                let expected_execution = attempt
+                    .requested_at_step
+                    .checked_add(1)
+                    .ok_or_else(|| PolicyError::InvalidPublicModel(
+                        "attempt execution step overflow".to_owned(),
+                    ))?;
+                if attempt.requested_cost_units != Some(action.cost_units)
+                    || attempt.charged_cost_units != action.cost_units
+                    || attempt.executed_at_step != Some(expected_execution)
+                {
+                    return Err(PolicyError::InvalidPublicModel(
+                        "applied attempt cost or execution timestamp is inconsistent".to_owned(),
+                    ));
+                }
+                accepted = accepted.checked_add(1).ok_or_else(|| {
+                    PolicyError::InvalidPublicModel("accepted attempt count overflow".to_owned())
+                })?;
+                total_cost = total_cost.checked_add(attempt.charged_cost_units).ok_or_else(|| {
+                    PolicyError::InvalidPublicModel("attempt cost total overflow".to_owned())
+                })?;
+                applied_observations.push((observation_id.as_str(), expected_execution));
+            }
+            AttemptDisposition::HazardTerminal => {
+                let action = view
+                    .actions
+                    .iter()
+                    .find(|action| action.action_id == attempt.requested_action_id)
+                    .ok_or_else(|| PolicyError::InvalidPublicModel(
+                        "hazard attempt references an undeclared action".to_owned(),
+                    ))?;
+                let expected_execution = attempt
+                    .requested_at_step
+                    .checked_add(1)
+                    .ok_or_else(|| PolicyError::InvalidPublicModel(
+                        "hazard execution step overflow".to_owned(),
+                    ))?;
+                if attempt.requested_cost_units != Some(action.cost_units)
+                    || attempt.charged_cost_units != action.cost_units
+                    || attempt.executed_at_step != Some(expected_execution)
+                {
+                    return Err(PolicyError::InvalidPublicModel(
+                        "hazard attempt cost or execution timestamp is inconsistent".to_owned(),
+                    ));
+                }
+                accepted = accepted.checked_add(1).ok_or_else(|| {
+                    PolicyError::InvalidPublicModel("accepted attempt count overflow".to_owned())
+                })?;
+                total_cost = total_cost.checked_add(attempt.charged_cost_units).ok_or_else(|| {
+                    PolicyError::InvalidPublicModel("attempt cost total overflow".to_owned())
+                })?;
+            }
+            AttemptDisposition::RejectedUnknownAction => {
+                if attempt.charged_cost_units != 0
+                    || attempt.executed_at_step.is_some()
+                    || attempt.requested_cost_units.is_some()
+                    || view.actions.iter().any(|action| {
+                        action.action_id == attempt.requested_action_id
+                    })
+                {
+                    return Err(PolicyError::InvalidPublicModel(
+                        "unknown-action rejection has a declared action, cost, or execution".to_owned(),
+                    ));
+                }
+            }
+            AttemptDisposition::RejectedTerminal
+            | AttemptDisposition::RejectedAttemptBudget
+            | AttemptDisposition::RejectedCostBudget
+            | AttemptDisposition::RejectedStepBudget => {
+                let action = view
+                    .actions
+                    .iter()
+                    .find(|action| action.action_id == attempt.requested_action_id)
+                    .ok_or_else(|| PolicyError::InvalidPublicModel(
+                        "known-action rejection references an undeclared action".to_owned(),
+                    ))?;
+                if attempt.charged_cost_units != 0
+                    || attempt.executed_at_step.is_some()
+                    || attempt.requested_cost_units != Some(action.cost_units)
+                {
+                    return Err(PolicyError::InvalidPublicModel(
+                        "rejected request has inconsistent cost or execution data".to_owned(),
+                    ));
+                }
+            }
+        }
+    }
+
+    if accepted != view.accepted_attempts
+        || accepted != view.current_step
+        || total_cost != view.spent_cost_units
+        || applied_observations.len() != view.observations.len()
+    {
+        return Err(PolicyError::InvalidPublicModel(
+            "accepted attempts, world steps, costs and observation counts do not reconcile".to_owned(),
+        ));
+    }
+
+    for ((expected_id, expected_step), observation) in
+        applied_observations.iter().zip(&view.observations)
+    {
+        if observation.observation_id != *expected_id
+            || observation.event_step != *expected_step
+            || observation.acquisition_step != *expected_step
+            || observation.available_at_step != *expected_step
+            || observation.available_at_step > view.current_step
+        {
+            return Err(PolicyError::InvalidPublicModel(
+                "observation identity or synchronous event/acquisition/availability time is inconsistent".to_owned(),
+            ));
+        }
+        let description = profile
+            .observations
+            .iter()
+            .find(|declared| declared.observation_id == observation.observation_id)
+            .ok_or_else(|| PolicyError::InvalidPublicModel(
+                "observation is absent from the public semantic catalogue".to_owned(),
+            ))?;
+        if description.description != observation.description || description.unit != observation.unit {
+            return Err(PolicyError::InvalidPublicModel(
+                "observation meaning/unit does not match the public semantic catalogue".to_owned(),
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// Reconstruct a candidate-only kernel and apply the public evidence prefix.
+pub fn public_kernel_and_belief(
+    view: &crate::episode::EpisodeView,
+) -> Result<(JointKernel, Vec<JointMass>), PolicyError> {
+    validate_public_view(view)?;
+    let kernel = view
+        .manifest
+        .public_profile
+        .model_catalogue
+        .to_joint_kernel(
+            &view.manifest.public_profile.candidate_hypotheses,
+            &view.actions,
+        )
+        .map_err(PolicyError::InvalidPublicModel)?;
+    let mut belief = kernel.initial_belief.clone();
+
+    for attempt in &view.attempts {
+        let (action_id, observation_id) = match &attempt.disposition {
+            AttemptDisposition::Applied { observation_id } => {
+                (attempt.requested_action_id.as_str(), observation_id.as_str())
+            }
+            AttemptDisposition::HazardTerminal => return Err(PolicyError::EpisodeClosed),
+            _ => continue,
+        };
+        let action = kernel
+            .action_ids
+            .iter()
+            .position(|candidate| candidate == action_id)
+            .ok_or_else(|| PolicyError::InvalidPublicModel(
+                "applied action is absent from the public model catalogue".to_owned(),
+            ))?;
+        let observation = kernel
+            .observation_ids
+            .iter()
+            .position(|candidate| candidate == observation_id)
+            .ok_or_else(|| PolicyError::InvalidPublicModel(
+                "emitted observation is absent from the public model catalogue".to_owned(),
+            ))?;
+
+        let mut next: BTreeMap<(usize, usize, usize), Rational> = BTreeMap::new();
+        for point in &belief {
+            let row = kernel
+                .transition_row(
+                    point.hypothesis,
+                    point.physical_state,
+                    point.sensor_state,
+                    action,
+                )
+                .ok_or_else(|| PolicyError::InvalidPublicModel(
+                    "public predictive model lacks an action-conditioned state row".to_owned(),
+                ))?;
+            for outcome in &row.outcomes {
+                if outcome.observation == Some(observation) {
+                    let key = (
+                        point.hypothesis,
+                        outcome.next_physical_state,
+                        outcome.next_sensor_state,
+                    );
+                    let weighted = point
+                        .mass
+                        .checked_mul(outcome.probability)
+                        .map_err(PolicyError::InvalidPublicModel)?;
+                    let current = next.get(&key).copied().unwrap_or(Rational::zero());
+                    next.insert(
+                        key,
+                        current
+                            .checked_add(weighted)
+                            .map_err(PolicyError::InvalidPublicModel)?,
+                    );
+                }
+            }
+        }
+        let total = next
+            .values()
+            .try_fold(Rational::zero(), |sum, mass| sum.checked_add(*mass))
+            .map_err(PolicyError::InvalidPublicModel)?;
+        if total.is_zero() {
+            belief.clear();
+            break;
+        }
+        let mut normalized = Vec::with_capacity(next.len());
+        for ((hypothesis, physical_state, sensor_state), mass) in next {
+            normalized.push(JointMass {
+                hypothesis,
+                physical_state,
+                sensor_state,
+                mass: mass
+                    .checked_div(total)
+                    .map_err(PolicyError::InvalidPublicModel)?,
+            });
+        }
+        belief = normalized;
+    }
+    Ok((kernel, belief))
+}
+
+fn public_candidate_ids(view: &crate::episode::EpisodeView) -> Vec<String> {
+    view.manifest
+        .public_profile
+        .candidate_hypotheses
+        .iter()
+        .map(|candidate| candidate.hypothesis_id.clone())
+        .collect()
+}
+
+fn compatible_candidate_ids(kernel: &JointKernel, belief: &[JointMass]) -> Vec<String> {
+    let mut present = vec![false; kernel.hypothesis_ids.len()];
+    for point in belief {
+        present[point.hypothesis] = true;
+    }
+    kernel
+        .hypothesis_ids
+        .iter()
+        .zip(present)
+        .filter_map(|(id, retained)| retained.then_some(id.clone()))
+        .collect()
+}
+
+fn status_for_candidate_set(candidates: &[String]) -> EpisodeFinishDisposition {
+    match candidates.len() {
+        0 => EpisodeFinishDisposition::NoCompatibleModel,
+        1 => EpisodeFinishDisposition::Identified,
+        _ => EpisodeFinishDisposition::Ambiguous,
+    }
+}
+
+fn probe_response(action_id: &str) -> EpisodeResponse {
+    EpisodeResponse {
         protocol_version: EPISODE_PROTOCOL_VERSION.to_owned(),
         command: EpisodeCommand::Probe {
-            action_id: selected.to_owned(),
+            action_id: action_id.to_owned(),
         },
-    })
+    }
 }
 
 fn finish_response(
@@ -180,6 +569,7 @@ mod tests {
         EpisodeConfig, EpisodeManifest, EpisodeProvider, PublicActionDescription,
         PublicHypothesis, PublicObservationDescription,
     };
+    use crate::model_catalogue::{PublicModelCatalogue, PublicProbability};
     use crate::JointKernel;
 
     fn request() -> EpisodeRequest {
@@ -255,7 +645,9 @@ mod tests {
                 },
             ],
         };
-        let manifest = EpisodeManifest {
+        let candidate_ids = kernel.hypothesis_ids.clone();
+        let model_catalogue = PublicModelCatalogue::from_kernel(&kernel, &candidate_ids).unwrap();
+        let mut manifest = EpisodeManifest {
             contract_sha256: "a".repeat(64),
             world_model_sha256: "b".repeat(64),
             model_profile_sha256: "c".repeat(64),
@@ -269,11 +661,13 @@ mod tests {
                         hypothesis_id: "candidate-a".to_owned(),
                         structural_family: "fixture".to_owned(),
                         description: "Candidate A produces the zero observation.".to_owned(),
+                        prior_probability: PublicProbability::new(1, 2).unwrap(),
                     },
                     PublicHypothesis {
                         hypothesis_id: "candidate-b".to_owned(),
                         structural_family: "fixture".to_owned(),
                         description: "Candidate B produces the one observation.".to_owned(),
+                        prior_probability: PublicProbability::new(1, 2).unwrap(),
                     },
                 ],
                 actions: vec![
@@ -281,11 +675,13 @@ mod tests {
                         action_id: "measure-a".to_owned(),
                         description: "Measure the declared signal.".to_owned(),
                         target: "signal".to_owned(),
+                        cost_units: 1,
                     },
                     PublicActionDescription {
                         action_id: "measure-b".to_owned(),
                         description: "Repeat the declared signal measurement.".to_owned(),
                         target: "signal".to_owned(),
+                        cost_units: 1,
                     },
                 ],
                 observations: vec![
@@ -302,8 +698,10 @@ mod tests {
                         unit: "categorical".to_owned(),
                     },
                 ],
+                model_catalogue,
             },
         };
+        manifest.model_profile_sha256 = manifest.public_profile.sha256().unwrap();
         let provider = EpisodeProvider::new(
             "baseline-policy-fixture-0001",
             manifest,
@@ -317,6 +715,55 @@ mod tests {
         )
         .unwrap();
         provider.request()
+    }
+
+    fn append_applied_attempt(
+        request: &mut EpisodeRequest,
+        action_id: &str,
+        observation_id: &str,
+    ) {
+        let action = request
+            .view
+            .actions
+            .iter()
+            .find(|action| action.action_id == action_id)
+            .unwrap()
+            .clone();
+        let description = request
+            .view
+            .manifest
+            .public_profile
+            .observations
+            .iter()
+            .find(|observation| observation.observation_id == observation_id)
+            .unwrap()
+            .clone();
+        let requested_at_step = request.view.current_step;
+        let executed_at_step = requested_at_step + 1;
+        let ordinal = request.view.attempts.len() as u64;
+        request.view.attempts.push(crate::episode::EpisodeAttempt {
+            attempt_id: format!("attempt-{ordinal:08}"),
+            ordinal,
+            requested_action_id: action_id.to_owned(),
+            requested_cost_units: Some(action.cost_units),
+            charged_cost_units: action.cost_units,
+            requested_at_step,
+            executed_at_step: Some(executed_at_step),
+            disposition: AttemptDisposition::Applied {
+                observation_id: observation_id.to_owned(),
+            },
+        });
+        request.view.current_step = executed_at_step;
+        request.view.accepted_attempts += 1;
+        request.view.spent_cost_units += action.cost_units;
+        request.view.observations.push(crate::episode::EpisodeObservation {
+            observation_id: observation_id.to_owned(),
+            description: description.description,
+            unit: description.unit,
+            event_step: executed_at_step,
+            acquisition_step: executed_at_step,
+            available_at_step: executed_at_step,
+        });
     }
 
     #[test]
@@ -352,7 +799,7 @@ mod tests {
             charged_cost_units: 0,
             requested_at_step: 0,
             executed_at_step: None,
-            disposition: crate::episode::AttemptDisposition::RejectedUnknownAction,
+            disposition: AttemptDisposition::RejectedCostBudget,
         });
         let response = next_response(&request, BaselineStrategy::FixedActionOrder).unwrap();
         assert_eq!(
@@ -371,6 +818,116 @@ mod tests {
             next_response(&request, strategy).unwrap(),
             next_response(&request, strategy).unwrap()
         );
+    }
+
+    #[test]
+    fn one_step_joint_eig_baseline_uses_the_public_catalogue_and_selects_information() {
+        let response = next_response(&request(), BaselineStrategy::OneStepJointEig).unwrap();
+        assert_eq!(
+            response.command,
+            EpisodeCommand::Probe {
+                action_id: "measure-a".to_owned()
+            }
+        );
+    }
+
+    #[test]
+    fn policy_rejects_action_cost_tampering_without_profile_digest_update() {
+        let mut request = request();
+        request.view.actions[0].cost_units = 99;
+        assert!(matches!(
+            next_response(&request, BaselineStrategy::OneStepJointEig),
+            Err(PolicyError::InvalidPublicModel(_))
+        ));
+    }
+
+    #[test]
+    fn public_posterior_updates_from_only_the_emitted_observation_prefix() {
+        let mut request = request();
+        append_applied_attempt(&mut request, "measure-a", "zero");
+        let (kernel, belief) = public_kernel_and_belief(&request.view).unwrap();
+        assert_eq!(belief.len(), 1);
+        assert_eq!(kernel.hypothesis_ids[belief[0].hypothesis], "candidate-a");
+        assert_eq!(belief[0].mass, Rational::one());
+        let response = next_response(&request, BaselineStrategy::OneStepJointEig).unwrap();
+        assert!(matches!(
+            response.command,
+            EpisodeCommand::Finish { ref finish }
+                if finish.disposition == EpisodeFinishDisposition::Identified
+                    && finish.compatible_hypothesis_ids == vec!["candidate-a".to_owned()]
+        ));
+    }
+
+    #[test]
+    fn unknown_observation_symbols_fail_closed_before_posterior_update() {
+        let mut request = request();
+        append_applied_attempt(&mut request, "measure-a", "one");
+        request.view.attempts[0].disposition = AttemptDisposition::Applied {
+            observation_id: "not-declared".to_owned(),
+        };
+        request.view.observations[0].observation_id = "not-declared".to_owned();
+        assert!(matches!(
+            public_kernel_and_belief(&request.view),
+            Err(PolicyError::InvalidPublicModel(_))
+        ));
+    }
+
+    #[test]
+    fn one_step_joint_eig_updates_to_the_candidate_supported_by_the_observation() {
+        let mut request = request();
+        append_applied_attempt(&mut request, "measure-a", "one");
+        let (kernel, belief) = public_kernel_and_belief(&request.view).unwrap();
+        assert_eq!(belief.len(), 1);
+        assert_eq!(kernel.hypothesis_ids[belief[0].hypothesis], "candidate-b");
+    }
+
+    #[test]
+    fn one_step_joint_eig_detects_empty_public_version_space_on_hidden_out_of_family_control() {
+        let mut request = request();
+        let full_kernel = request
+            .view
+            .manifest
+            .public_profile
+            .model_catalogue
+            .to_joint_kernel(
+                &request.view.manifest.public_profile.candidate_hypotheses,
+                &request.view.actions,
+            )
+            .unwrap();
+        let candidate_b = vec!["candidate-b".to_owned()];
+        let mut public_candidate = request
+            .view
+            .manifest
+            .public_profile
+            .candidate_hypotheses
+            .iter()
+            .find(|candidate| candidate.hypothesis_id == "candidate-b")
+            .unwrap()
+            .clone();
+        public_candidate.prior_probability = PublicProbability::new(1, 1).unwrap();
+        request
+            .view
+            .manifest
+            .public_profile
+            .candidate_hypotheses = vec![public_candidate];
+        request
+            .view
+            .manifest
+            .public_profile
+            .model_catalogue = PublicModelCatalogue::from_kernel(&full_kernel, &candidate_b).unwrap();
+        request.view.manifest.model_profile_sha256 =
+            request.view.manifest.public_profile.sha256().unwrap();
+        append_applied_attempt(&mut request, "measure-a", "zero");
+
+        let (_, belief) = public_kernel_and_belief(&request.view).unwrap();
+        assert!(belief.is_empty());
+        let response = next_response(&request, BaselineStrategy::OneStepJointEig).unwrap();
+        assert!(matches!(
+            response.command,
+            EpisodeCommand::Finish { ref finish }
+                if finish.disposition == EpisodeFinishDisposition::NoCompatibleModel
+                    && finish.compatible_hypothesis_ids.is_empty()
+        ));
     }
 
     #[test]
