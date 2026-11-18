@@ -1206,7 +1206,92 @@ mod tests {
         }
     }
 
-    fn test_manifest() -> EpisodeManifest {
+    fn test_manifest(kernel: &JointKernel) -> EpisodeManifest {
+        let candidate_hypotheses = kernel
+            .hypothesis_ids
+            .iter()
+            .map(|id| PublicHypothesis {
+                hypothesis_id: id.clone(),
+                structural_family: "finite-test-family".to_owned(),
+                description: format!(
+                    "Declared candidate mechanism {id}; latent physical and sensor states remain hidden."
+                ),
+            })
+            .collect();
+        let actions = kernel
+            .action_ids
+            .iter()
+            .map(|id| {
+                let (description, target) = match id.as_str() {
+                    "measure-combined-signal" => (
+                        "Measure the combined categorical signal through the current sensor state.",
+                        "observation_channel",
+                    ),
+                    "calibrate-sensor" => (
+                        "Calibrate the sensor channel. In this declared profile this changes sensor state, not the underlying process state.",
+                        "sensor",
+                    ),
+                    "measure" => (
+                        "Acquire one categorical measurement from the declared observation channel.",
+                        "observation_channel",
+                    ),
+                    "probe.input" => (
+                        "Apply the declared bounded input intervention and observe its categorical output.",
+                        "process",
+                    ),
+                    "dangerous-test" => (
+                        "Apply the declared hazardous test action; the evaluator owns its hazard outcome.",
+                        "process",
+                    ),
+                    _ => ("Apply the declared finite intervention.", "process"),
+                };
+                PublicActionDescription {
+                    action_id: id.clone(),
+                    description: description.to_owned(),
+                    target: target.to_owned(),
+                }
+            })
+            .collect();
+        let observations = kernel
+            .observation_ids
+            .iter()
+            .map(|id| {
+                let (description, channel_id, unit) = match id.as_str() {
+                    "zero" => (
+                        "The instrument returned the zero category.",
+                        "combined-signal",
+                        "categorical",
+                    ),
+                    "one" => (
+                        "The instrument returned the one category.",
+                        "combined-signal",
+                        "categorical",
+                    ),
+                    "signal" => (
+                        "The instrument returned its declared signal category.",
+                        "signal",
+                        "categorical",
+                    ),
+                    "signal-a" => (
+                        "The instrument returned category A.",
+                        "signal",
+                        "categorical",
+                    ),
+                    "signal-b" => (
+                        "The instrument returned category B.",
+                        "signal",
+                        "categorical",
+                    ),
+                    _ => ("The instrument returned a declared categorical observation.", "signal", "categorical"),
+                };
+                PublicObservationDescription {
+                    observation_id: id.clone(),
+                    channel_id: channel_id.to_owned(),
+                    description: description.to_owned(),
+                    unit: unit.to_owned(),
+                }
+            })
+            .collect();
         EpisodeManifest {
             contract_sha256: "a".repeat(64),
             world_model_sha256: "b".repeat(64),
@@ -1214,13 +1299,20 @@ mod tests {
             world_recipe_sha256: "d".repeat(64),
             clock_profile_sha256: "e".repeat(64),
             time_origin_sha256: "f".repeat(64),
+            public_profile: PublicResearchProfile {
+                task_description: "Identify which declared candidate mechanism is compatible with the intervention/observation history. Preserve multiple candidates when the available experiments do not identify a unique one.".to_owned(),
+                candidate_hypotheses,
+                actions,
+                observations,
+            },
         }
     }
 
     fn new_provider(kernel: JointKernel, seed: u64) -> EpisodeProvider {
+        let manifest = test_manifest(&kernel);
         EpisodeProvider::new(
             "opaque-episode-0001",
-            test_manifest(),
+            manifest,
             kernel,
             EpisodeConfig {
                 max_attempts: 4,
@@ -1410,13 +1502,14 @@ mod tests {
 
     #[test]
     fn malformed_manifest_is_rejected_before_episode_creation() {
-        let mut manifest = test_manifest();
+        let kernel = deterministic_kernel(false);
+        let mut manifest = test_manifest(&kernel);
         manifest.world_model_sha256 = "not-a-digest".to_owned();
         assert!(matches!(
             EpisodeProvider::new(
                 "opaque-episode-invalid-manifest",
                 manifest,
-                deterministic_kernel(false),
+                kernel,
                 EpisodeConfig::default(),
                 0,
             ),
@@ -1527,10 +1620,12 @@ mod tests {
 
     #[test]
     fn cost_budget_rejects_mutation_but_retains_request() {
+        let kernel = deterministic_kernel(false);
+        let manifest = test_manifest(&kernel);
         let mut provider = EpisodeProvider::new(
             "opaque-episode-0002",
-            test_manifest(),
-            deterministic_kernel(false),
+            manifest,
+            kernel,
             EpisodeConfig {
                 max_attempts: 4,
                 max_cost_units: 1,
@@ -1554,10 +1649,12 @@ mod tests {
 
     #[test]
     fn accepted_attempt_budget_rejects_additional_interventions_and_records_them() {
+        let kernel = deterministic_kernel(false);
+        let manifest = test_manifest(&kernel);
         let mut provider = EpisodeProvider::new(
             "opaque-episode-0003",
-            test_manifest(),
-            deterministic_kernel(false),
+            manifest,
+            kernel,
             EpisodeConfig {
                 max_attempts: 1,
                 max_cost_units: 10,
@@ -1588,17 +1685,19 @@ mod tests {
         // With this fixture and SplitMix64 mapping, seed 3 selects the first
         // initial tuple and seed 0 selects the second. The public histories
         // remain identical until the final post-calibration measurement.
+        let first_manifest = test_manifest(&kernel);
         let mut first = EpisodeProvider::new(
             "opaque-confound-a-0001",
-            test_manifest(),
+            first_manifest,
             kernel.clone(),
             config,
             3,
         )
         .expect("first episode");
+        let second_manifest = test_manifest(&kernel);
         let mut second = EpisodeProvider::new(
             "opaque-confound-b-0001",
-            test_manifest(),
+            second_manifest,
             kernel,
             config,
             0,
@@ -1667,9 +1766,10 @@ mod tests {
         assert_eq!(kernel.action_ids[first_action], "calibrate-sensor");
 
         for (seed, expected_final_observation) in [(3_u64, "zero"), (0_u64, "one")] {
+            let manifest = test_manifest(&kernel);
             let mut provider = EpisodeProvider::new(
                 format!("oracle-replay-{seed:08}"),
-                test_manifest(),
+                manifest,
                 kernel.clone(),
                 EpisodeConfig {
                     max_attempts: 2,
@@ -1767,10 +1867,12 @@ mod tests {
 
     #[test]
     fn configured_world_horizon_is_enforced_and_request_is_retained() {
+        let kernel = deterministic_kernel(false);
+        let manifest = test_manifest(&kernel);
         let mut provider = EpisodeProvider::new(
             "opaque-episode-0004",
-            test_manifest(),
-            deterministic_kernel(false),
+            manifest,
+            kernel,
             EpisodeConfig {
                 max_attempts: 4,
                 max_cost_units: 10,
@@ -1792,10 +1894,12 @@ mod tests {
 
     #[test]
     fn invalid_kernel_or_episode_id_is_rejected_before_episode_creation() {
+        let kernel = deterministic_kernel(false);
+        let manifest = test_manifest(&kernel);
         let invalid_id = EpisodeProvider::new(
             "short",
-            test_manifest(),
-            deterministic_kernel(false),
+            manifest,
+            kernel.clone(),
             EpisodeConfig::default(),
             0,
         );
@@ -1809,7 +1913,10 @@ mod tests {
         assert!(matches!(
             EpisodeProvider::new(
                 "opaque-episode-0005",
-                test_manifest(),
+                {
+                    let mut manifest = test_manifest(&invalid);
+                    manifest
+                },
                 invalid,
                 EpisodeConfig::default(),
                 0,
