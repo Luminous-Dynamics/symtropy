@@ -15,6 +15,8 @@ use serde::{Deserialize, Serialize};
 pub const MAX_ENUMERATION_BITS: usize = 20;
 const PROBABILITY_MASS_TOLERANCE: f64 = 1.0e-9;
 
+pub mod service_availability;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReliabilityError(String);
 
