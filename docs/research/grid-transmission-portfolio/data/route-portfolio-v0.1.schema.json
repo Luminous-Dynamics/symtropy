@@ -322,6 +322,7 @@
             "type": "object",
             "additionalProperties": false,
             "required": [
+              "source_boundary",
               "design_id",
               "role",
               "segment_choices",
@@ -471,6 +472,48 @@
                 "items": {
                   "type": "string",
                   "minLength": 1
+                }
+              },
+              "source_boundary": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "boundary_id",
+                  "carrier",
+                  "evidence_ids"
+                ],
+                "properties": {
+                  "boundary_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "carrier": {
+                    "enum": [
+                      "electricity_ac",
+                      "electricity_dc",
+                      "hydrogen",
+                      "ammonia",
+                      "methanol",
+                      "synthetic_methane",
+                      "liquid_fuel",
+                      "thermal",
+                      "mechanical",
+                      "rf",
+                      "optical",
+                      "other"
+                    ]
+                  },
+                  "evidence_ids": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "notes": {
+                    "type": "string"
+                  }
                 }
               }
             }
