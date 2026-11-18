@@ -37,6 +37,9 @@ pub enum DependencyDomain {
     MaterialLot,
     WorkPackageSchedule,
     AuthorityPolicy,
+    InspectionSpecification,
+    MetrologyReference,
+    SiteLedgerState,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -133,6 +136,175 @@ pub struct DependencyContractSet {
     pub contracts: Vec<ArtifactDependencyContract>,
 }
 
+
+/// Built-in minimum dependency domains for every supported construction
+/// artifact class. Project/site contracts may add stricter domains, but must
+/// include every domain returned here. Hash the canonical returned contract
+/// list in the owner system and bind that digest in DependencyContractSet.
+fn minimum_required_domains(
+    artifact_kind: ConstructionArtifactKind,
+) -> &'static [DependencyDomain] {
+    use ConstructionArtifactKind::*;
+    use DependencyDomain::*;
+
+    match artifact_kind {
+        IfcIdsPreflight => &[SourceModel, IfcSchema, IdsSpecification, IdsEngineBuild],
+        DesignWorkPackage => &[
+            SourceModel, IfcSchema, IdsSpecification, DesignRevision,
+            CoordinateFrame, CoordinateTransform, AcceptanceProfile,
+        ],
+        StationQualification => &[
+            CoordinateFrame, CoordinateTransform, SurveyControl,
+            StationCalibration, SiteClockMap,
+        ],
+        MaterialReadiness => &[MaterialLot, DesignRevision, WorkPackageSchedule, AuthorityPolicy],
+        ProductionTask => &[
+            DesignRevision, CoordinateFrame, CoordinateTransform,
+            WorkPackageSchedule, MaterialLot, AuthorityPolicy,
+        ],
+        RobotTrajectory | MotionEnvelope => &[
+            DesignRevision, EntityGeometry, CoordinateFrame, CoordinateTransform,
+            RobotConfiguration, ToolConfiguration, PayloadConfiguration,
+            TrajectoryConfiguration, SiteClockMap,
+        ],
+        SpaceTimeOccupancyAssessment => &[
+            CoordinateFrame, CoordinateTransform, ObstacleMap,
+            DynamicActorManifest, SiteClockMap, OccupancyEngineBuild,
+            ClearancePolicy,
+        ],
+        DispatchReadiness => &[
+            DesignRevision, CoordinateFrame, CoordinateTransform,
+            RobotConfiguration, ToolConfiguration, PayloadConfiguration,
+            TrajectoryConfiguration, ObstacleMap, DynamicActorManifest,
+            SiteClockMap, OccupancyEngineBuild, ClearancePolicy,
+            SiteLedgerState, WorkPackageSchedule, AuthorityPolicy,
+        ],
+        InspectionPlan => &[
+            DesignRevision, EntityGeometry, CoordinateFrame, CoordinateTransform,
+            AcceptanceProfile, InspectionSpecification, AuthorityPolicy,
+            WorkPackageSchedule,
+        ],
+        AsBuiltMeasurement => &[
+            DesignRevision, EntityGeometry, CoordinateFrame, CoordinateTransform,
+            SurveyControl, StationCalibration, MetrologyReference,
+        ],
+        AcceptedConstructionRecord => &[
+            DesignRevision, EntityGeometry, CoordinateFrame, CoordinateTransform,
+            AcceptanceProfile, MetrologyReference, MaterialLot,
+            AuthorityPolicy, SiteLedgerState,
+        ],
+        HandoverRecord => &[
+            SourceModel, DesignRevision, AcceptanceProfile,
+            InspectionSpecification, MetrologyReference, AuthorityPolicy,
+            SiteLedgerState,
+        ],
+    }
+}
+
+pub fn minimum_construction_dependency_contracts() -> Vec<ArtifactDependencyContract> {
+    use ConstructionArtifactKind::*;
+    use DependencyDomain::*;
+
+    vec![
+        ArtifactDependencyContract {
+            artifact_kind: IfcIdsPreflight,
+            required_domains: vec![SourceModel, IfcSchema, IdsSpecification, IdsEngineBuild],
+        },
+        ArtifactDependencyContract {
+            artifact_kind: DesignWorkPackage,
+            required_domains: vec![
+                SourceModel, IfcSchema, IdsSpecification, DesignRevision,
+                CoordinateFrame, CoordinateTransform, AcceptanceProfile,
+            ],
+        },
+        ArtifactDependencyContract {
+            artifact_kind: StationQualification,
+            required_domains: vec![
+                CoordinateFrame, CoordinateTransform, SurveyControl,
+                StationCalibration, SiteClockMap,
+            ],
+        },
+        ArtifactDependencyContract {
+            artifact_kind: MaterialReadiness,
+            required_domains: vec![
+                MaterialLot, DesignRevision, WorkPackageSchedule, AuthorityPolicy,
+            ],
+        },
+        ArtifactDependencyContract {
+            artifact_kind: ProductionTask,
+            required_domains: vec![
+                DesignRevision, CoordinateFrame, CoordinateTransform,
+                WorkPackageSchedule, MaterialLot, AuthorityPolicy,
+            ],
+        },
+        ArtifactDependencyContract {
+            artifact_kind: RobotTrajectory,
+            required_domains: vec![
+                DesignRevision, EntityGeometry, CoordinateFrame, CoordinateTransform,
+                RobotConfiguration, ToolConfiguration, PayloadConfiguration,
+                TrajectoryConfiguration, SiteClockMap,
+            ],
+        },
+        ArtifactDependencyContract {
+            artifact_kind: MotionEnvelope,
+            required_domains: vec![
+                DesignRevision, EntityGeometry, CoordinateFrame, CoordinateTransform,
+                RobotConfiguration, ToolConfiguration, PayloadConfiguration,
+                TrajectoryConfiguration, SiteClockMap,
+            ],
+        },
+        ArtifactDependencyContract {
+            artifact_kind: SpaceTimeOccupancyAssessment,
+            required_domains: vec![
+                CoordinateFrame, CoordinateTransform, ObstacleMap,
+                DynamicActorManifest, SiteClockMap, OccupancyEngineBuild,
+                ClearancePolicy,
+            ],
+        },
+        ArtifactDependencyContract {
+            artifact_kind: DispatchReadiness,
+            required_domains: vec![
+                DesignRevision, CoordinateFrame, CoordinateTransform,
+                RobotConfiguration, ToolConfiguration, PayloadConfiguration,
+                TrajectoryConfiguration, ObstacleMap, DynamicActorManifest,
+                SiteClockMap, OccupancyEngineBuild, ClearancePolicy,
+                SiteLedgerState, WorkPackageSchedule, AuthorityPolicy,
+            ],
+        },
+        ArtifactDependencyContract {
+            artifact_kind: InspectionPlan,
+            required_domains: vec![
+                DesignRevision, EntityGeometry, CoordinateFrame, CoordinateTransform,
+                AcceptanceProfile, InspectionSpecification, AuthorityPolicy,
+                WorkPackageSchedule,
+            ],
+        },
+        ArtifactDependencyContract {
+            artifact_kind: AsBuiltMeasurement,
+            required_domains: vec![
+                DesignRevision, EntityGeometry, CoordinateFrame, CoordinateTransform,
+                SurveyControl, StationCalibration, MetrologyReference,
+            ],
+        },
+        ArtifactDependencyContract {
+            artifact_kind: AcceptedConstructionRecord,
+            required_domains: vec![
+                DesignRevision, EntityGeometry, CoordinateFrame, CoordinateTransform,
+                AcceptanceProfile, MetrologyReference, MaterialLot,
+                AuthorityPolicy, SiteLedgerState,
+            ],
+        },
+        ArtifactDependencyContract {
+            artifact_kind: HandoverRecord,
+            required_domains: vec![
+                SourceModel, DesignRevision, AcceptanceProfile,
+                InspectionSpecification, MetrologyReference, AuthorityPolicy,
+                SiteLedgerState,
+            ],
+        },
+    ]
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DependencyCoverageGap {
     pub artifact_id: String,
@@ -189,6 +361,10 @@ pub enum ChangeImpactError {
     EmptyDependencyContractSet,
     DuplicateArtifactKindContract(ConstructionArtifactKind),
     EmptyRequiredDependencyDomains(ConstructionArtifactKind),
+    ContractOmitsMinimumDependencyDomain {
+        artifact_kind: ConstructionArtifactKind,
+        domain: DependencyDomain,
+    },
     DuplicateRequiredDependencyDomain {
         artifact_kind: ConstructionArtifactKind,
         domain: DependencyDomain,
@@ -497,6 +673,16 @@ pub fn audit_dependency_coverage(
             return Err(ChangeImpactError::DuplicateArtifactKindContract(
                 contract.artifact_kind,
             ));
+        }
+        let supplied_domains: BTreeSet<DependencyDomain> =
+            contract.required_domains.iter().copied().collect();
+        for minimum_domain in minimum_required_domains(contract.artifact_kind) {
+            if !supplied_domains.contains(minimum_domain) {
+                return Err(ChangeImpactError::ContractOmitsMinimumDependencyDomain {
+                    artifact_kind: contract.artifact_kind,
+                    domain: *minimum_domain,
+                });
+            }
         }
     }
 
