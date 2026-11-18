@@ -703,7 +703,7 @@ mod tests {
             EnvelopeStatus::OutsideDeclaredSimilarityEnvelope
         );
         assert_eq!(
-            report.coordinates[9].status,
+            report.coordinates[14].status,
             CoordinateStatus::Mismatch
         );
     }
