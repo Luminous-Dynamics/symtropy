@@ -2,9 +2,10 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use construction_motion_oracle::{
-    ArtifactPersistence, ConstructionArtifact, ConstructionArtifactGraph,
-    ConstructionArtifactKind, ConstructionChangeSet, DependencyDomain, DependencyKey,
-    DependencyTransition, VersionedDependency, compile_change_impact,
+    ArtifactDependencyContract, ArtifactPersistence, ConstructionArtifact,
+    ConstructionArtifactGraph, ConstructionArtifactKind, ConstructionChangeSet,
+    DependencyContractSet, DependencyDomain, DependencyKey, DependencyTransition,
+    VersionedDependency, compile_change_impact_with_contract,
 };
 
 const SAMPLES: usize = 25;
@@ -55,7 +56,28 @@ fn build_graph(entity_count: usize) -> ConstructionArtifactGraph {
             artifact_sha256: digest('b'),
             kind: ConstructionArtifactKind::SpaceTimeOccupancyAssessment,
             persistence: ArtifactPersistence::Recomputable,
-            dependencies: Vec::new(),
+            dependencies: vec![
+                VersionedDependency {
+                    key: key(DependencyDomain::ObstacleMap, format!("region:{index:08}")),
+                    observed_sha256: digest('3'),
+                },
+                VersionedDependency {
+                    key: key(DependencyDomain::DynamicActorManifest, format!("region:{index:08}")),
+                    observed_sha256: digest('4'),
+                },
+                VersionedDependency {
+                    key: key(DependencyDomain::SiteClockMap, "site".into()),
+                    observed_sha256: digest('5'),
+                },
+                VersionedDependency {
+                    key: key(DependencyDomain::OccupancyEngineBuild, "engine".into()),
+                    observed_sha256: digest('6'),
+                },
+                VersionedDependency {
+                    key: key(DependencyDomain::ClearancePolicy, "site".into()),
+                    observed_sha256: digest('7'),
+                },
+            ],
             depends_on_artifact_ids: vec![motion_id],
         });
         artifacts.push(ConstructionArtifact {
@@ -63,7 +85,16 @@ fn build_graph(entity_count: usize) -> ConstructionArtifactGraph {
             artifact_sha256: digest('c'),
             kind: ConstructionArtifactKind::DispatchReadiness,
             persistence: ArtifactPersistence::Recomputable,
-            dependencies: Vec::new(),
+            dependencies: vec![
+                VersionedDependency {
+                    key: key(DependencyDomain::WorkPackageSchedule, "work-package".into()),
+                    observed_sha256: digest('8'),
+                },
+                VersionedDependency {
+                    key: key(DependencyDomain::AuthorityPolicy, "site".into()),
+                    observed_sha256: digest('9'),
+                },
+            ],
             depends_on_artifact_ids: vec![occupancy_id],
         });
     }
@@ -71,6 +102,39 @@ fn build_graph(entity_count: usize) -> ConstructionArtifactGraph {
     ConstructionArtifactGraph {
         graph_snapshot_sha256: digest('f'),
         artifacts,
+    }
+}
+
+
+fn dependency_contracts() -> DependencyContractSet {
+    DependencyContractSet {
+        contract_sha256: digest('c'),
+        contracts: vec![
+            ArtifactDependencyContract {
+                artifact_kind: ConstructionArtifactKind::MotionEnvelope,
+                required_domains: vec![
+                    DependencyDomain::EntityGeometry,
+                    DependencyDomain::CoordinateTransform,
+                ],
+            },
+            ArtifactDependencyContract {
+                artifact_kind: ConstructionArtifactKind::SpaceTimeOccupancyAssessment,
+                required_domains: vec![
+                    DependencyDomain::ObstacleMap,
+                    DependencyDomain::DynamicActorManifest,
+                    DependencyDomain::SiteClockMap,
+                    DependencyDomain::OccupancyEngineBuild,
+                    DependencyDomain::ClearancePolicy,
+                ],
+            },
+            ArtifactDependencyContract {
+                artifact_kind: ConstructionArtifactKind::DispatchReadiness,
+                required_domains: vec![
+                    DependencyDomain::WorkPackageSchedule,
+                    DependencyDomain::AuthorityPolicy,
+                ],
+            },
+        ],
     }
 }
 
@@ -114,6 +178,7 @@ fn measure_case(
     entity_count: usize,
     case: &str,
     graph: &ConstructionArtifactGraph,
+    contracts: &DependencyContractSet,
     change_set: &ConstructionChangeSet,
 ) {
     let expected_direct = if case == "localized-entity" {
@@ -123,7 +188,7 @@ fn measure_case(
     };
     let expected_transitive = expected_direct * 2;
 
-    let check = compile_change_impact(black_box(graph), black_box(change_set))
+    let check = compile_change_impact_with_contract(black_box(graph), black_box(contracts), black_box(change_set))
         .expect("benchmark graph and change set must be valid");
     assert_eq!(check.direct_invalidations.len(), expected_direct);
     assert_eq!(check.transitive_invalidations.len(), expected_transitive);
@@ -168,16 +233,19 @@ fn main() {
     );
     for entity_count in [1_000_usize, 10_000, 50_000] {
         let graph = build_graph(entity_count);
+        let contracts = dependency_contracts();
         measure_case(
             entity_count,
             "localized-entity",
             &graph,
+            &contracts,
             &localized_change_set(entity_count),
         );
         measure_case(
             entity_count,
             "global-transform",
             &graph,
+            &contracts,
             &global_change_set(),
         );
     }
