@@ -61,9 +61,7 @@ fn read_bounded_line<R: BufRead>(
 ) -> io::Result<bool> {
     frame.clear();
     loop {
-        let mut consumed = 0_usize;
-        let mut terminated = false;
-        {
+        let (consumed, terminated) = {
             let available = reader.fill_buf()?;
             if available.is_empty() {
                 if frame.is_empty() {
@@ -85,9 +83,8 @@ fn read_bounded_line<R: BufRead>(
                 ));
             }
             frame.extend_from_slice(&available[..count]);
-            consumed = count;
-            terminated = available[count - 1] == b'\n';
-        }
+            (count, available[count - 1] == b'\n')
+        };
         reader.consume(consumed);
         if terminated {
             return Ok(true);
@@ -129,5 +126,38 @@ fn parse_strategy() -> Result<BaselineStrategy, Box<dyn Error>> {
         "one_step_eig" => Ok(BaselineStrategy::OneStepJointEig),
         "metadata_only" => Ok(BaselineStrategy::MetadataOnlyFirstCandidate),
         other => Err(format!("unknown strategy: {other}").into()),
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Cursor;
+
+    #[test]
+    fn bounded_jsonl_reader_accepts_one_complete_frame_and_then_eof() {
+        let mut reader = Cursor::new(b"{\"protocol_version\":\"v0\"}\n".to_vec());
+        let mut frame = Vec::new();
+        assert!(read_bounded_line(&mut reader, &mut frame, 128).unwrap());
+        assert_eq!(frame, b"{\"protocol_version\":\"v0\"}\n");
+        assert!(!read_bounded_line(&mut reader, &mut frame, 128).unwrap());
+    }
+
+    #[test]
+    fn bounded_jsonl_reader_rejects_oversized_frames_before_unbounded_buffering() {
+        let mut reader = Cursor::new(b"123456789\n".to_vec());
+        let mut frame = Vec::new();
+        let error = read_bounded_line(&mut reader, &mut frame, 8).unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert!(frame.len() <= 8);
+    }
+
+    #[test]
+    fn bounded_jsonl_reader_rejects_unterminated_partial_frame() {
+        let mut reader = Cursor::new(b"{\"partial\":true}".to_vec());
+        let mut frame = Vec::new();
+        let error = read_bounded_line(&mut reader, &mut frame, 128).unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::UnexpectedEof);
     }
 }
