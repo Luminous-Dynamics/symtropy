@@ -297,5 +297,90 @@
       ],
       "claim_ceiling": "Synthetic event-time and state-continuity software check only."
     }
+  },
+  "sensor_design_extension": {
+    "benchmark_id": "HUMAN-NESTED-SENSOR-CO-DESIGN-001",
+    "evidence_class": "synthetic_mathematical_software_only",
+    "no_human_subject_data": true,
+    "graph": "three_node_equal_chain_sensor_design",
+    "capacities": [
+      1,
+      1,
+      1
+    ],
+    "edges": [
+      [
+        0,
+        1,
+        1
+      ],
+      [
+        1,
+        2,
+        1
+      ]
+    ],
+    "candidates": [
+      {
+        "id": 10,
+        "node": 0,
+        "cost": 1,
+        "common_cause_group": 100
+      },
+      {
+        "id": 20,
+        "node": 1,
+        "cost": 1,
+        "common_cause_group": null
+      },
+      {
+        "id": 30,
+        "node": 2,
+        "cost": 1,
+        "common_cause_group": 100
+      }
+    ],
+    "noise_covariance": [
+      [
+        1,
+        0.4,
+        0.2
+      ],
+      [
+        0.4,
+        1,
+        0.4
+      ],
+      [
+        0.2,
+        0.4,
+        1
+      ]
+    ],
+    "observation_times": [
+      0,
+      0.2,
+      0.5,
+      1
+    ],
+    "sensor_budget": 2,
+    "methods": [
+      "exact_subset_e_optimal",
+      "exact_subset_d_optimal",
+      "exact_subset_a_optimal",
+      "single_common_cause_group_robust_e_optimal"
+    ],
+    "metrics": [
+      "observability_rank",
+      "information_eigenvalues",
+      "minimum_information_eigenvalue",
+      "maximum_information_eigenvalue",
+      "condition_number",
+      "log_determinant_full_rank_only",
+      "trace_inverse_full_rank_only",
+      "worst_case_common_cause_rank",
+      "worst_case_minimum_information_eigenvalue"
+    ],
+    "claim_ceiling": "Exact subset and observability mathematics for tiny synthetic graph cases only."
   }
 }
