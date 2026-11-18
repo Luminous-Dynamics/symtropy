@@ -499,9 +499,17 @@ impl TaylorJet4Order5 {
         let sin_x0 = x0.sin();
         let cos_x0 = x0.cos();
         let initial = if sine { sin_x0 } else { cos_x0 };
-        let mut result = Self::constant(initial)?.truncate(self.order)?;
+        let mut result = Self::new_with_point(
+            Self::constant(initial)?.coefficients,
+            self.order,
+            self.expansion_point,
+        )?;
         let h = self.subtract(Self::constant(x0)?)?;
-        let mut power = Self::constant(1.0)?.truncate(self.order)?;
+        let mut power = Self::new_with_point(
+            Self::constant(1.0)?.coefficients,
+            self.order,
+            self.expansion_point,
+        )?;
         let mut factorial_value = 1.0;
 
         for degree in 1..=self.order {
@@ -581,6 +589,23 @@ mod tests {
             close(inverse.coefficient([degree, 0, 0, 0]).unwrap(), expected, 1e-14);
         }
         close(inverse.derivative_at([5, 0, 0, 0]).unwrap(), -120.0 / 64.0, 1e-13);
+    }
+
+    #[test]
+    fn order_zero_trigonometric_composition_preserves_expansion_point() {
+        let point = [0.0, 2.0, 0.7, 0.0];
+        let theta = TaylorJet4Order5::variable_at(point, 2)
+            .unwrap()
+            .truncate(0)
+            .unwrap();
+        let sine = theta.sin().unwrap();
+        let cosine = theta.cos().unwrap();
+        assert_eq!(sine.order(), 0);
+        assert_eq!(cosine.order(), 0);
+        assert_eq!(sine.expansion_point(), Some(point));
+        assert_eq!(cosine.expansion_point(), Some(point));
+        close(sine.value(), 0.7_f64.sin(), 1e-14);
+        close(cosine.value(), 0.7_f64.cos(), 1e-14);
     }
 
     #[test]
