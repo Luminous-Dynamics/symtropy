@@ -174,7 +174,7 @@ pub struct PorousMotilityProfile {
     /// Calibrate this from admitted event observations; do not infer it from
     /// the published paper's headline values.
     pub short_event_probability: f64,
-    /// Duration samples for short events (all must be <= 1 second).
+    /// Duration samples for short events (all must be < 1 second).
     pub short_event_duration_s: SampleSet,
     /// Duration samples for long mechanical traps (all must be > 1 second).
     pub long_trap_duration_s: SampleSet,
@@ -225,9 +225,9 @@ impl PorousMotilityProfile {
             .short_event_duration_s
             .values()
             .iter()
-            .any(|duration| *duration > EVENT_CLASS_THRESHOLD_S)
+            .any(|duration| *duration >= EVENT_CLASS_THRESHOLD_S)
         {
-            return Err(ProfileError::ShortEventExceedsThreshold);
+            return Err(ProfileError::ShortEventAtOrAboveThreshold);
         }
         if self
             .long_trap_duration_s
@@ -235,7 +235,7 @@ impl PorousMotilityProfile {
             .iter()
             .any(|duration| *duration <= EVENT_CLASS_THRESHOLD_S)
         {
-            return Err(ProfileError::LongTrapDoesNotExceedThreshold);
+            return Err(ProfileError::LongTrapAtOrBelowThreshold);
         }
         Ok(())
     }
@@ -250,8 +250,8 @@ pub enum ProfileError {
     InvalidRotationalDiffusion,
     InvalidIntegrationStep,
     InvalidShortEventProbability,
-    ShortEventExceedsThreshold,
-    LongTrapDoesNotExceedThreshold,
+    ShortEventAtOrAboveThreshold,
+    LongTrapAtOrBelowThreshold,
 }
 
 impl fmt::Display for ProfileError {
@@ -278,11 +278,11 @@ impl fmt::Display for ProfileError {
             Self::InvalidShortEventProbability => {
                 write!(formatter, "short_event_probability must be in [0, 1]")
             }
-            Self::ShortEventExceedsThreshold => {
-                write!(formatter, "short-event duration exceeds the one-second class threshold")
+            Self::ShortEventAtOrAboveThreshold => {
+                write!(formatter, "short-event duration must be strictly below one second")
             }
-            Self::LongTrapDoesNotExceedThreshold => {
-                write!(formatter, "long-trap duration must exceed the one-second class threshold")
+            Self::LongTrapAtOrBelowThreshold => {
+                write!(formatter, "long-trap duration must be strictly above one second")
             }
         }
     }
@@ -788,14 +788,21 @@ mod tests {
         profile.short_event_duration_s = SampleSet::new(vec![0.4, 1.2]);
         assert_eq!(
             profile.validate(),
-            Err(ProfileError::ShortEventExceedsThreshold)
+            Err(ProfileError::ShortEventAtOrAboveThreshold)
         );
 
         let mut profile = steering_profile();
         profile.long_trap_duration_s = SampleSet::new(vec![0.8]);
         assert_eq!(
             profile.validate(),
-            Err(ProfileError::LongTrapDoesNotExceedThreshold)
+            Err(ProfileError::LongTrapAtOrBelowThreshold)
+        );
+
+        let mut profile = steering_profile();
+        profile.short_event_duration_s = SampleSet::new(vec![1.0]);
+        assert_eq!(
+            profile.validate(),
+            Err(ProfileError::ShortEventAtOrAboveThreshold)
         );
 
         let mut profile = steering_profile();
