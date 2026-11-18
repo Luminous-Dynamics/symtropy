@@ -42,6 +42,10 @@ pub enum CovarianceError {
     NonFiniteResidual { index: usize },
     NonFiniteResult,
     NoObservedValues,
+    InvalidObservationIdentity,
+    InvalidSensorOrder,
+    TraceSensorOrderMismatch,
+    TraceTimeScheduleMismatch,
 }
 
 impl fmt::Display for CovarianceError {
@@ -70,6 +74,10 @@ impl fmt::Display for CovarianceError {
             Self::NonFiniteResidual { index } => write!(f, "residual entry {index} must be finite"),
             Self::NonFiniteResult => write!(f, "covariance operation produced a non-finite result"),
             Self::NoObservedValues => write!(f, "at least one observed component is required"),
+            Self::InvalidObservationIdentity => write!(f, "covariance, process and sampling policy IDs must be non-empty"),
+            Self::InvalidSensorOrder => write!(f, "sensor IDs must be non-empty and unique"),
+            Self::TraceSensorOrderMismatch => write!(f, "bound covariance sensor order does not match the observation trace"),
+            Self::TraceTimeScheduleMismatch => write!(f, "bound covariance time schedule does not match the observation trace"),
         }
     }
 }
@@ -189,6 +197,97 @@ impl DenseSpdCovariance {
         }
         Ok(sample)
     }
+}
+
+/// Versioned binding between an admitted covariance matrix and the exact
+/// observation process, sensor ordering and sample schedule that give its
+/// dimensions meaning. IDs are caller-supplied registry/digest references;
+/// this type does not cryptographically verify them.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ObservationCovarianceV1 {
+    pub covariance_id: String,
+    pub observation_process_id: String,
+    pub sampling_policy_id: String,
+    pub sensor_ids: Vec<u32>,
+    pub times: Vec<f64>,
+    covariance: DenseSpdCovariance,
+}
+
+impl ObservationCovarianceV1 {
+    pub fn new(
+        covariance_id: String,
+        observation_process_id: String,
+        sampling_policy_id: String,
+        sensor_ids: Vec<u32>,
+        times: Vec<f64>,
+        covariance: DenseSpdCovariance,
+    ) -> Result<Self, CovarianceError> {
+        if covariance_id.trim().is_empty()
+            || observation_process_id.trim().is_empty()
+            || sampling_policy_id.trim().is_empty()
+        {
+            return Err(CovarianceError::InvalidObservationIdentity);
+        }
+        if sensor_ids.is_empty() {
+            return Err(CovarianceError::InvalidSensorOrder);
+        }
+        let mut seen = std::collections::HashSet::new();
+        if sensor_ids.iter().any(|sensor_id| !seen.insert(*sensor_id)) {
+            return Err(CovarianceError::InvalidSensorOrder);
+        }
+        if times.is_empty()
+            || times.iter().any(|time| !time.is_finite())
+            || times.windows(2).any(|pair| pair[1] <= pair[0])
+        {
+            return Err(CovarianceError::InvalidTimeSchedule);
+        }
+        let expected_dimension = times
+            .len()
+            .checked_mul(sensor_ids.len())
+            .ok_or(CovarianceError::DimensionTooLarge)?;
+        if covariance.dimension() != expected_dimension {
+            return Err(CovarianceError::DimensionMismatch {
+                expected: expected_dimension,
+                actual: covariance.dimension(),
+            });
+        }
+        Ok(Self {
+            covariance_id,
+            observation_process_id,
+            sampling_policy_id,
+            sensor_ids,
+            times,
+            covariance,
+        })
+    }
+
+    pub fn covariance(&self) -> &DenseSpdCovariance {
+        &self.covariance
+    }
+
+    fn validate_trace(&self, trace: &ObservedSensorTrace) -> Result<(), CovarianceError> {
+        if self.sensor_ids != trace.sensor_ids {
+            return Err(CovarianceError::TraceSensorOrderMismatch);
+        }
+        if self.times != trace.times {
+            return Err(CovarianceError::TraceTimeScheduleMismatch);
+        }
+        Ok(())
+    }
+}
+
+/// Result of a covariance-aware adequacy decision. The returned registry IDs,
+/// schedule and sensor order make the admitted observation assumptions explicit
+/// alongside the model-family disposition.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ObservationProcessAdequacyReportV1 {
+    pub covariance_id: String,
+    pub observation_process_id: String,
+    pub sampling_policy_id: String,
+    pub sensor_ids: Vec<u32>,
+    pub times: Vec<f64>,
+    pub covariance_dimension: usize,
+    pub adequacy: ModelFamilyAdequacyScore,
 }
 
 fn cholesky_lower(matrix: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, CovarianceError> {
@@ -357,9 +456,9 @@ pub fn evaluate_model_family_adequacy_full_covariance(
     profile: &InputProfile,
     selected_sensor_ids: &[u32],
     observations: &ObservedSensorTrace,
-    covariance: &DenseSpdCovariance,
+    covariance: &ObservationCovarianceV1,
     policy: ModelFamilyAdequacyPolicy,
-) -> Result<ModelFamilyAdequacyScore, NoiseRobustnessError> {
+) -> Result<ObservationProcessAdequacyReportV1, NoiseRobustnessError> {
     scenario
         .validate()
         .map_err(NoiseRobustnessError::Profiled)?;
@@ -414,16 +513,17 @@ pub fn evaluate_model_family_adequacy_full_covariance(
         ));
     }
 
+    covariance.validate_trace(observations)?;
     let expected_dimension = observations
         .times
         .len()
         .checked_mul(observations.sensor_ids.len())
         .ok_or(CovarianceError::DimensionTooLarge)?;
-    if covariance.dimension() != expected_dimension {
+    if covariance.covariance().dimension() != expected_dimension {
         return Err(NoiseRobustnessError::Covariance(
             CovarianceError::DimensionMismatch {
                 expected: expected_dimension,
-                actual: covariance.dimension(),
+                actual: covariance.covariance().dimension(),
             },
         ));
     }
@@ -460,7 +560,7 @@ pub fn evaluate_model_family_adequacy_full_covariance(
             .zip(predicted.iter())
             .map(|(observed_value, predicted_value)| observed_value - predicted_value)
             .collect();
-        let score = covariance.gaussian_quadratic_form_half(&residual)?;
+        let score = covariance.covariance().gaussian_quadratic_form_half(&residual)?;
         model_residuals.insert(prediction.model_id, score);
     }
 
@@ -536,11 +636,19 @@ pub fn evaluate_model_family_adequacy_full_covariance(
         },
     };
 
-    Ok(ModelFamilyAdequacyScore {
-        profile_id: base_score.profile_id,
-        maximum_gaussian_residual: policy.maximum_gaussian_residual,
-        family_fits,
-        disposition,
+    Ok(ObservationProcessAdequacyReportV1 {
+        covariance_id: covariance.covariance_id.clone(),
+        observation_process_id: covariance.observation_process_id.clone(),
+        sampling_policy_id: covariance.sampling_policy_id.clone(),
+        sensor_ids: covariance.sensor_ids.clone(),
+        times: covariance.times.clone(),
+        covariance_dimension: covariance.covariance().dimension(),
+        adequacy: ModelFamilyAdequacyScore {
+            profile_id: base_score.profile_id,
+            maximum_gaussian_residual: policy.maximum_gaussian_residual,
+            family_fits,
+            disposition,
+        },
     })
 }
 
