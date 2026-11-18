@@ -32,10 +32,10 @@ An APPLICABLE result is not a test pass, conformity finding, safety case, certif
 - 6 standard profiles.
 - 35 synthetic applicability scenarios.
 - Separate 35-row expected-disposition file.
-- 25 Rust unit tests.
+- 28 Rust unit tests.
 - Expected disposition totals: 11 APPLICABLE, 8 NOT_APPLICABLE, 10 PROFILE_INCOMPLETE, 2 EVIDENCE_INCOMPLETE, 1 STALE_OR_SUPERSEDED and 3 UNSUPPORTED_CLAIM.
 
-Every profile pins the date its catalogue state was checked. Each assessment's `assessment_as_of` must match that snapshot; a different date returns EVIDENCE_INCOMPLETE until a matching historical snapshot is supplied. Purchaser/fitting agreements and governing product standards have exact reference fields; their presence flags must match those references. The references are not authenticated by this classifier. The public metadata fields are linked in the profile fixture and research note. No copyrighted normative clauses, numerical test limits or acceptance tolerances are encoded.
+Every profile pins the date its catalogue state was checked. Each assessment's `assessment_as_of` must match that snapshot; a different date returns EVIDENCE_INCOMPLETE until a matching historical snapshot is supplied. Purchaser/fitting agreements and governing product standards have exact reference fields; their presence flags must match those references. The references are not authenticated by this classifier. The public Rust evaluator also re-validates direct-constructed inputs, so TSV parsing cannot be bypassed by callers of the library API. The public metadata fields are linked in the profile fixture and research note. No copyrighted normative clauses, numerical test limits or acceptance tolerances are encoded.
 
 ## Run
 
