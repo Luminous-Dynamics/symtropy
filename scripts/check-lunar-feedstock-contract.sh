@@ -5,7 +5,16 @@ set -euo pipefail
 
 root="$(git rev-parse --show-toplevel)"
 cd "$root"
-run_path="tools/lunar-feedstock-contract/examples/synthetic-process-chain-run.json"
+mode="full"
+default_run_path="tools/lunar-feedstock-contract/examples/synthetic-process-chain-run.json"
+if [[ "${1:-}" == "--validate" ]]; then
+  [[ "$#" -eq 2 ]] || { echo "Usage: $0 --validate RUN.json" >&2; exit 2; }
+  mode="validate"
+  run_path="$2"
+else
+  [[ "$#" -eq 0 ]] || { echo "Usage: $0" >&2; exit 2; }
+  run_path="$default_run_path"
+fi
 schema_path="tools/lunar-feedstock-contract/feedstock-run.schema.json"
 
 fail() {
@@ -98,11 +107,28 @@ jq -e '
           and ((.mass_fraction.standard_uncertainty | type) == "number")
           and (.mass_fraction.value >= 0 and .mass_fraction.value <= 1)
           and (.mass_fraction.standard_uncertainty >= 0))
+        and (([$sample.phase_fractions[].mass_fraction.value] | add) as $phase_sum
+             | ([$sample.phase_fractions[].mass_fraction.standard_uncertainty] | add) as $phase_uncertainty
+             | (($phase_sum - 1) | abs) <= $phase_uncertainty)
         and all($sample.size_bins[];
           (.d_min_um.value > 0)
           and (.d_max_um.value > .d_min_um.value)
-          and (.mass_fraction.value >= 0 and .mass_fraction.value <= 1))
+          and (.mass_fraction.value >= 0 and .mass_fraction.value <= 1)
+          and (.mass_fraction.status != "unknown"))
+        and (([$sample.size_bins[].mass_fraction.value] | add) as $size_sum
+             | ([$sample.size_bins[].mass_fraction.standard_uncertainty] | add) as $size_uncertainty
+             | (($size_sum - 1) | abs) <= $size_uncertainty)
         and (.target_size_mass_fraction.status != "unknown")
+        and (([$sample.size_bins[]
+               | select(.d_min_um.value >= $r.acceptance_profile.target_size_min_um.value
+                        and .d_max_um.value <= $r.acceptance_profile.target_size_max_um.value)
+               | .mass_fraction.value] | add // 0) as $derived_target_fraction
+             | (($derived_target_fraction - $sample.target_size_mass_fraction.value) | abs)
+               <= (0.0001 + $sample.target_size_mass_fraction.standard_uncertainty
+                   + ([$sample.size_bins[]
+                       | select(.d_min_um.value >= $r.acceptance_profile.target_size_min_um.value
+                                and .d_max_um.value <= $r.acceptance_profile.target_size_max_um.value)
+                       | .mass_fraction.standard_uncertainty] | add // 0)))
     )
 ' "$run_path" >/dev/null || fail "quality sample identity, assay evidence or distribution fields invalid"
 
@@ -126,7 +152,11 @@ jq -e '
           | ($input_mass - $output_mass) as $residual
           | sqrt(($input_uncertainty * $input_uncertainty) + ($output_uncertainty * $output_uncertainty)) as $residual_uncertainty
           | ($event.mass_closure_residual_kg.value - $residual | abs) <= ([1e-9, ($input_mass * 0.0001)] | max)
-            and ($event.mass_closure_residual_kg.standard_uncertainty + $residual_uncertainty
+            and ($event.mass_closure_tolerance_fraction >= 0
+                 and $event.mass_closure_tolerance_fraction <= 1)
+            and (($residual | abs)
+                 + $event.mass_closure_residual_kg.standard_uncertainty
+                 + $residual_uncertainty
                  <= ($event.mass_closure_tolerance_fraction * $input_mass))
             and ($event.mass_closure_status == "within_declared_tolerance")
         end)
@@ -174,10 +204,56 @@ jq -e '
     and ($sample != null)
     and ($sample.stream_id == $final_stream.stream_id)
     and ($sample.sample_point == "reactor_inlet")
+    and ($r.acceptance_profile.process_boundary == "reactor_inlet")
     and ($final_stream.disposition == "reactor_feed")
     and ($r.final_acceptance.decision == $expected_decision)
     and ($r.final_acceptance.mass_closure_complete == $mass_closed)
     and ($r.final_acceptance.required_dimensions_complete == (all($statuses[]; . != "unknown")))
 ' "$run_path" >/dev/null || fail "final acceptance is not supported by reactor-inlet assays, uncertainty intervals and mass closure"
+
+if [[ "$mode" == "validate" ]]; then
+  printf 'lunar feedstock validator: PASS (%s; semantic checks only)\n' "$run_path"
+  exit 0
+fi
+
+tmp_files=()
+cleanup() {
+  for file in "${tmp_files[@]}"; do rm -f -- "$file"; done
+}
+trap cleanup EXIT
+
+make_negative() {
+  local name="$1"
+  local jq_filter="$2"
+  local negative_path
+  negative_path="$(mktemp "${run_path}.negative.XXXXXX")"
+  tmp_files+=("$negative_path")
+  jq "$jq_filter" "$run_path" > "$negative_path"
+  if "$0" --validate "$negative_path"; then
+    fail "negative control accepted: $name"
+  fi
+}
+
+make_negative "separator-outlet assay reused for reactor-inlet acceptance" '
+  .final_acceptance.acceptance_sample_id = "Q-SEP-001"
+'
+
+make_negative "mass output tampering hidden behind stale closure residual" '
+  (.material_streams[] | select(.stream_id == "S5-REACTOR-INLET") | .measured_mass_kg.value) = 58
+'
+
+make_negative "uncertainty interval overlaps minimum phase specification but claims in-spec" '
+  (.quality_samples[] | select(.sample_id == "Q-REACTOR-001")
+   | .phase_fractions[] | select(.phase_id == "plagioclase") | .mass_fraction.value) = 0.705
+'
+
+make_negative "target-size fraction inconsistent with actual size-bin masses" '
+  (.quality_samples[] | select(.sample_id == "Q-REACTOR-001")
+   | .target_size_mass_fraction.value) = 0.80
+'
+
+make_negative "tampered expected artifact digest" '
+  .artifacts[0].sha256 = ("0" + .artifacts[0].sha256[1:])
+'
 
 printf 'lunar feedstock contract: PASS (synthetic chain only; no physical process qualification)\n'
