@@ -1,0 +1,703 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/lunar-process-aware-feedstock-run-v0.schema.json",
+  "title": "Lunar Process-Aware Feedstock Qualification Run",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "run_id",
+    "recorded_at",
+    "evidence_class",
+    "acceptance_profile",
+    "stage_events",
+    "material_streams",
+    "quality_samples",
+    "final_acceptance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "lunar-process-aware-feedstock-v0"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "evidence_class": {
+      "enum": [
+        "physical_analogue",
+        "published_reproduction",
+        "synthetic_fixture"
+      ]
+    },
+    "acceptance_profile": {
+      "$ref": "#/$defs/acceptanceProfile"
+    },
+    "stage_events": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/stageEvent"
+      }
+    },
+    "material_streams": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/materialStream"
+      }
+    },
+    "quality_samples": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/qualitySample"
+      }
+    },
+    "final_acceptance": {
+      "$ref": "#/$defs/finalAcceptance"
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "$defs": {
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "standard_uncertainty",
+        "unit",
+        "status",
+        "source_artifact_id",
+        "calibration_record_id"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "standard_uncertainty": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "measured",
+            "published",
+            "estimated",
+            "synthetic",
+            "unknown"
+          ]
+        },
+        "source_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "calibration_record_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "unknown"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "null"
+              },
+              "standard_uncertainty": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "measured"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "number"
+              },
+              "standard_uncertainty": {
+                "type": "number",
+                "minimum": 0
+              },
+              "source_artifact_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "calibration_record_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "published",
+                  "estimated"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "number"
+              },
+              "standard_uncertainty": {
+                "type": "number",
+                "minimum": 0
+              },
+              "source_artifact_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "synthetic"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "number"
+              },
+              "standard_uncertainty": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "phaseConstraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phase_id",
+        "minimum_mass_fraction",
+        "maximum_mass_fraction",
+        "rationale"
+      ],
+      "properties": {
+        "phase_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minimum_mass_fraction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "maximum_mass_fraction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_scope": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "acceptanceProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "version",
+        "downstream_process",
+        "process_boundary",
+        "phase_constraints",
+        "minimum_target_size_mass_fraction",
+        "target_size_min_um",
+        "target_size_max_um",
+        "required_properties",
+        "source_scope"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "downstream_process": {
+          "enum": [
+            "hydrogen_reduction",
+            "molten_oxide_electrolysis",
+            "molten_salt_electrolysis",
+            "hot_press_sintering",
+            "microwave_sintering",
+            "selective_laser_melting",
+            "polar_water_recovery",
+            "other"
+          ]
+        },
+        "process_boundary": {
+          "enum": [
+            "reactor_inlet",
+            "printer_feed",
+            "sintering_feed",
+            "other"
+          ]
+        },
+        "phase_constraints": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/phaseConstraint"
+          }
+        },
+        "minimum_target_size_mass_fraction": {
+          "$ref": "#/$defs/measurement"
+        },
+        "target_size_min_um": {
+          "$ref": "#/$defs/measurement"
+        },
+        "target_size_max_um": {
+          "$ref": "#/$defs/measurement"
+        },
+        "required_properties": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "source_scope": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "stageEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "stage_type",
+        "equipment_profile_id",
+        "started_at",
+        "completed_at",
+        "input_stream_ids",
+        "output_stream_ids",
+        "energy_j",
+        "mass_closure_tolerance_fraction",
+        "mass_closure_residual_kg",
+        "mass_closure_status",
+        "settings_artifact_id"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stage_type": {
+          "enum": [
+            "raw_characterization",
+            "feed_preparation",
+            "magnetic_separation",
+            "electrostatic_separation",
+            "screening",
+            "remixing",
+            "storage",
+            "transfer",
+            "metering",
+            "reactor_inlet_assay"
+          ]
+        },
+        "equipment_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "input_stream_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "output_stream_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "energy_j": {
+          "$ref": "#/$defs/measurement"
+        },
+        "mass_closure_tolerance_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "mass_closure_residual_kg": {
+          "$ref": "#/$defs/measurement"
+        },
+        "mass_closure_status": {
+          "enum": [
+            "within_declared_tolerance",
+            "outside_declared_tolerance",
+            "indeterminate_missing_stream",
+            "unknown"
+          ]
+        },
+        "settings_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "materialStream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stream_id",
+        "created_by_event_id",
+        "parent_stream_ids",
+        "measured_mass_kg",
+        "physical_state",
+        "disposition"
+      ],
+      "properties": {
+        "stream_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "created_by_event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_stream_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "measured_mass_kg": {
+          "$ref": "#/$defs/measurement"
+        },
+        "physical_state": {
+          "enum": [
+            "bulk_regolith",
+            "magnetic_fraction",
+            "electrostatic_fraction",
+            "sized_product",
+            "reject",
+            "dust_or_fines",
+            "stored_feedstock",
+            "metered_feedstock",
+            "other"
+          ]
+        },
+        "disposition": {
+          "enum": [
+            "candidate_product",
+            "reject",
+            "recycle",
+            "loss",
+            "storage",
+            "reactor_feed",
+            "unknown"
+          ]
+        },
+        "composition_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "psd_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "phaseFraction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phase_id",
+        "mass_fraction"
+      ],
+      "properties": {
+        "phase_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mass_fraction": {
+          "$ref": "#/$defs/measurement"
+        }
+      }
+    },
+    "sizeBin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "d_min_um",
+        "d_max_um",
+        "mass_fraction"
+      ],
+      "properties": {
+        "d_min_um": {
+          "$ref": "#/$defs/measurement"
+        },
+        "d_max_um": {
+          "$ref": "#/$defs/measurement"
+        },
+        "mass_fraction": {
+          "$ref": "#/$defs/measurement"
+        }
+      }
+    },
+    "qualitySample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_id",
+        "stream_id",
+        "sample_point",
+        "sampled_at",
+        "sampling_window_s",
+        "assay_method_id",
+        "phase_fractions",
+        "size_bins",
+        "target_size_mass_fraction",
+        "assay_artifact_ids"
+      ],
+      "properties": {
+        "sample_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stream_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sample_point": {
+          "enum": [
+            "raw_feed",
+            "separator_outlet",
+            "transfer_exit",
+            "storage_outlet",
+            "metering_discharge",
+            "reactor_inlet",
+            "other"
+          ]
+        },
+        "sampled_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "sampling_window_s": {
+          "$ref": "#/$defs/measurement"
+        },
+        "assay_method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "phase_fractions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/phaseFraction"
+          }
+        },
+        "size_bins": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/sizeBin"
+          }
+        },
+        "target_size_mass_fraction": {
+          "$ref": "#/$defs/measurement"
+        },
+        "assay_artifact_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "thermal_properties_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "charge_profile_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shape_profile_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "uncertainty_budget_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "finalAcceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "final_stream_id",
+        "acceptance_sample_id",
+        "decision",
+        "evaluated_specification_ids",
+        "required_dimensions_complete",
+        "mass_closure_complete",
+        "claim_ceiling"
+      ],
+      "properties": {
+        "final_stream_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acceptance_sample_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decision": {
+          "enum": [
+            "qualified_in_spec",
+            "qualified_out_of_spec",
+            "indeterminate_boundary_overlap",
+            "unknown_missing_required_measurement",
+            "unknown_mass_closure"
+          ]
+        },
+        "evaluated_specification_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required_dimensions_complete": {
+          "type": "boolean"
+        },
+        "mass_closure_complete": {
+          "type": "boolean"
+        },
+        "claim_ceiling": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
