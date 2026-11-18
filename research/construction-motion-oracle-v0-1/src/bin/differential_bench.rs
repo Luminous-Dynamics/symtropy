@@ -2,9 +2,11 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use construction_motion_oracle::{
-    AnalyticPath, DesignIntentEntity, FieldAcceptanceProfile, FieldLayoutEntityType,
-    SiteActorRole, SiteEventEnvelope, SiteEventPayload, SiteStateLedger, SiteWorkPackage, Vec3,
-    chord_collision, endpoints_only_collision,
+    AnalyticPath, DesignIntentEntity, DispatchEnvelopeBinding, DispatchReadinessRequest,
+    FieldAcceptanceProfile, FieldLayoutEntityType, OccupancyAssessmentReceipt, SiteActorRole,
+    SiteEventEnvelope, SiteEventPayload, SiteStateLedger, SiteWorkPackage, Vec3,
+    chord_collision, check_dispatch_readiness, endpoints_only_collision,
+    verify_dispatch_readiness_receipt_current,
 };
 
 const BATCH_SIZE: usize = 10_000;
@@ -121,6 +123,7 @@ fn main() {
         );
     });
     run_site_ledger_append_scaling_benchmarks();
+    run_site_dispatch_readiness_benchmarks();
 }
 
 
@@ -212,4 +215,119 @@ fn run_site_ledger_append_scaling_benchmarks() {
             p99.as_nanos() / u128::from(event_count),
         );
     }
+}
+
+
+fn run_site_dispatch_readiness_benchmarks() {
+    let package_sha256 = "a".repeat(64);
+    let mut ledger = SiteStateLedger::new();
+    let package = SiteWorkPackage {
+        package_sha256: package_sha256.clone(),
+        source_model_sha256: "b".repeat(64),
+        source_schema_release: "IFC4X3_ADD2".into(),
+        ids_spec_sha256: "c".repeat(64),
+        ids_version: "1.0".into(),
+        ids_engine_build_sha256: "5".repeat(64),
+        design_revision_sha256: "d".repeat(64),
+        frame_id: "benchmark-site-frame".into(),
+        frame_sha256: "e".repeat(64),
+        transform_sha256: "f".repeat(64),
+        entity_manifest_sha256: "1".repeat(64),
+        acceptance_profile_sha256: "2".repeat(64),
+        entities: vec![DesignIntentEntity {
+            design_entity_id: "ifc4x3:0000000000000000000001".into(),
+            entity_type: FieldLayoutEntityType::Point,
+        }],
+        acceptance_profile: FieldAcceptanceProfile {
+            max_abs_xy_residual_mm: 1.0,
+            max_reference_u95_xy_mm: 0.25,
+            max_abs_z_residual_mm: None,
+            max_reference_u95_z_mm: None,
+            max_abs_endpoint_residual_mm: None,
+        },
+    };
+    ledger
+        .apply(SiteEventEnvelope {
+            event_id: "package-publish".into(),
+            sequence: 1,
+            previous_event_sha256: None,
+            event_sha256: "3".repeat(64),
+            actor_id: "design-authority".into(),
+            actor_role: SiteActorRole::DesignAuthority,
+            payload: SiteEventPayload::WorkPackagePublished { package },
+        })
+        .expect("dispatch benchmark package must publish");
+
+    let request = DispatchReadinessRequest {
+        schema_version: "construction-dispatch-readiness-request/0.1".into(),
+        envelope: DispatchEnvelopeBinding {
+            package_sha256,
+            design_revision_sha256: "d".repeat(64),
+            entity_id: "ifc4x3:0000000000000000000001".into(),
+            frame_sha256: "e".repeat(64),
+            transform_sha256: "f".repeat(64),
+            robot_id: "robot-benchmark".into(),
+            robot_configuration_sha256: "4".repeat(64),
+            tool_configuration_sha256: "5".repeat(64),
+            payload_configuration_sha256: "6".repeat(64),
+            primitive_manifest_sha256: "7".repeat(64),
+            trajectory_sha256: "8".repeat(64),
+            envelope_sha256: "9".repeat(64),
+            site_clock_domain_id: "site-clock-benchmark".into(),
+            generated_at_tick: 10_000,
+            valid_until_tick: 20_000,
+        },
+        trusted_occupancy_engine_build_sha256: "a".repeat(64),
+        required_clearance_policy_sha256: "b".repeat(64),
+        occupancy: OccupancyAssessmentReceipt {
+            assessed_envelope_sha256: "9".repeat(64),
+            primitive_manifest_sha256: "7".repeat(64),
+            site_snapshot_sha256: "c".repeat(64),
+            site_ledger_sequence: ledger.last_sequence(),
+            site_ledger_event_sha256: ledger.last_event_sha256().unwrap().to_owned(),
+            dynamic_occupancy_manifest_sha256: "d".repeat(64),
+            actor_manifest_sha256: "e".repeat(64),
+            occupancy_engine_build_sha256: "a".repeat(64),
+            clearance_policy_sha256: "b".repeat(64),
+            site_clock_domain_id: "site-clock-benchmark".into(),
+            checked_at_tick: 10_100,
+            valid_until_tick: 19_000,
+            primitive_coverage_complete: true,
+            dynamic_actor_coverage_complete: true,
+            broadphase_pair_coverage_complete: true,
+            narrowphase_coverage_complete: true,
+            candidate_pair_count: 0,
+            narrowphase_evaluated_pair_count: 0,
+            conflict_count: 0,
+            unresolved_pair_count: 0,
+            invalid_bound_count: 0,
+            unqualified_bound_count: 0,
+            stale_actor_count: 0,
+            unmodelled_occupant_count: 0,
+            assessment_receipt_sha256: "f".repeat(64),
+        },
+        now_tick: 10_200,
+    };
+    let readiness = check_dispatch_readiness(&ledger, &request)
+        .expect("synthetic dispatch readiness benchmark must be valid");
+
+    measure("site-dispatch-readiness-check", || {
+        black_box(
+            check_dispatch_readiness(black_box(&ledger), black_box(&request))
+                .expect("readiness check remains valid"),
+        );
+    });
+
+    measure("site-dispatch-readiness-consume-revalidation", || {
+        black_box(
+            verify_dispatch_readiness_receipt_current(
+                black_box(&ledger),
+                black_box(&readiness),
+                black_box(&request.trusted_occupancy_engine_build_sha256),
+                black_box(&request.required_clearance_policy_sha256),
+                black_box(request.now_tick + 1),
+            )
+            .expect("consume-time revalidation remains valid"),
+        );
+    });
 }
