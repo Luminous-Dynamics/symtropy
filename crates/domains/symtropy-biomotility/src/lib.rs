@@ -2137,6 +2137,69 @@ mod tests {
     }
 
     #[test]
+    fn ageing_time_changes_the_msd_origin_window() {
+        let profile = steering_profile();
+        let trajectory = simulate(
+            &profile,
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            4,
+            5,
+        )
+        .expect("valid trajectory");
+
+        let zero_age =
+            mean_squared_displacement(&[trajectory.clone()], &[0.25], 0.25)
+                .expect("zero-age MSD");
+        let aged = mean_squared_displacement_with_age(
+            &[trajectory.clone()],
+            0.25,
+            &[0.25],
+            0.25,
+        )
+        .expect("aged MSD");
+
+        assert!((zero_age[0].mean_squared_displacement_um2 - 12.5).abs() < 1.0e-10);
+        assert!(
+            (aged[0].mean_squared_displacement_um2 - (75.0 / 7.0)).abs()
+                < 1.0e-10
+        );
+        assert_ne!(
+            zero_age[0].mean_squared_displacement_um2,
+            aged[0].mean_squared_displacement_um2
+        );
+    }
+
+    #[test]
+    fn msd_ageing_time_must_be_finite_and_non_negative() {
+        let trajectory = simulate(
+            &steering_profile(),
+            AgentState::new(0.0, 0.0, 0.0),
+            0.0,
+            2,
+            5,
+        )
+        .expect("valid trajectory");
+        assert_eq!(
+            mean_squared_displacement_with_age(&[trajectory.clone()], -0.1, &[0.1], 0.1),
+            Err(MsdError::InvalidAgeingTime)
+        );
+        assert_eq!(
+            mean_squared_displacement_with_age(
+                &[trajectory.clone()],
+                f64::INFINITY,
+                &[0.1],
+                0.1
+            ),
+            Err(MsdError::InvalidAgeingTime)
+        );
+        assert_eq!(
+            mean_squared_displacement_with_age(&[trajectory], 100.0, &[0.1], 0.1),
+            Err(MsdError::NoTrajectorySupportsLag(0.1))
+        );
+    }
+
+    #[test]
     fn msd_rejects_invalid_lags_and_empty_ensembles() {
         assert_eq!(
             mean_squared_displacement(&[], &[0.1], 0.1),
