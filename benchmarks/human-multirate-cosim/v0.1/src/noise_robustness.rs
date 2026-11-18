@@ -1780,6 +1780,55 @@ mod tests {
     }
 
     #[test]
+    fn structured_ar1_kronecker_score_matches_dense_joint_covariance() {
+        let sensor = DenseSpdCovariance::new(vec![
+            vec![1.0, 0.2],
+            vec![0.2, 1.5],
+        ])
+        .unwrap();
+        let structured = Ar1KroneckerCovariance::new(4, 0.65, sensor).unwrap();
+        let dense = structured.to_dense().unwrap();
+        let residual = [
+            0.2, -0.5, 1.0, 0.25, -0.4, 0.75, 0.6, -0.2,
+        ];
+        let dense_score = dense.gaussian_quadratic_form_half(&residual).unwrap();
+        let structured_score = structured
+            .gaussian_quadratic_form_half(&residual)
+            .unwrap();
+        assert!((dense_score - structured_score).abs() < 1.0e-11);
+    }
+
+    #[test]
+    fn structured_ar1_samples_are_reproducible_and_support_long_histories() {
+        let sensor = DenseSpdCovariance::new(vec![
+            vec![1.0, 0.1],
+            vec![0.1, 2.0],
+        ])
+        .unwrap();
+        let structured = Ar1KroneckerCovariance::new(5_000, 0.8, sensor).unwrap();
+        assert_eq!(structured.dimension(), 10_000);
+        assert!(matches!(
+            structured.to_dense(),
+            Err(CovarianceError::DimensionTooLarge)
+        ));
+        let zero_residual = vec![0.0; structured.dimension()];
+        assert_eq!(
+            structured
+                .gaussian_quadratic_form_half(&zero_residual)
+                .unwrap(),
+            0.0
+        );
+
+        let mut first_rng = SplitMix64::new(91);
+        let mut second_rng = SplitMix64::new(91);
+        let first = structured.sample_gaussian(&mut first_rng).unwrap();
+        let second = structured.sample_gaussian(&mut second_rng).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first.len(), structured.dimension());
+        assert!(first.iter().all(|value| value.is_finite()));
+    }
+
+    #[test]
     fn missing_observations_select_principal_submatrix_without_zero_filling() {
         let covariance = DenseSpdCovariance::new(vec![
             vec![1.0, 0.1, 0.2],
@@ -1912,10 +1961,11 @@ mod tests {
             "availability:cutoff-v1".to_owned(),
             vec![10],
             vec![0.25, 0.5],
-            DenseSpdCovariance::new(vec![
-                vec![1.0e-5, 8.0e-6],
-                vec![8.0e-6, 1.0e-5],
-            ])
+            Ar1KroneckerCovariance::new(
+                2,
+                0.8,
+                DenseSpdCovariance::new(vec![vec![1.0e-5]]).unwrap(),
+            )
             .unwrap(),
         )
         .unwrap();
@@ -1941,6 +1991,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(report.covariance_id, "covariance:calibration-fixture-v1");
+        assert_eq!(report.covariance_kind, "AR1_KRONECKER");
         assert_eq!(report.observation_process_id, "process:gaussian-ar1-rho-0.8");
         assert_eq!(report.observation_operator_id, "operator:node-0-sensor-v1");
         assert_eq!(report.availability_cutoff_id, "availability:cutoff-v1");
@@ -2168,7 +2219,12 @@ mod tests {
             "availability:fixture-cutoff".to_owned(),
             vec![10],
             vec![0.25, 0.5],
-            ar1_time_covariance(2, 0.8).unwrap(),
+            Ar1KroneckerCovariance::new(
+                2,
+                0.8,
+                DenseSpdCovariance::new(vec![vec![1.0]]).unwrap(),
+            )
+            .unwrap(),
         )
         .unwrap();
 
@@ -2192,6 +2248,7 @@ mod tests {
         let expected = 0.5 * (1.0 + 2.0 * 0.8 * 0.2 + 0.2_f64.powi(2)) / (1.0 - 0.8_f64.powi(2));
         assert!((family_one.minimum_gaussian_residual - expected).abs() < 1.0e-10);
         assert_eq!(report.covariance_id, "covariance:ar1-fixture");
+        assert_eq!(report.covariance_kind, "AR1_KRONECKER");
         assert_eq!(report.observation_process_id, "process:gaussian-ar1-rho-0.8");
         assert_eq!(report.sampling_policy_id, "sampling:two-times");
         assert_eq!(report.observation_operator_id, "operator:node-0-sensor");
