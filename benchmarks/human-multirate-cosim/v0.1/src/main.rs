@@ -9,6 +9,9 @@ use human_multirate_cosim::{
         ExperimentDesignScenario, ForcingSegment, InputProfile, ModelCandidate,
         enumerate_single_node_pulses, evaluate_input_tournament,
     },
+    robust_discrimination::{
+        ModelFamilyAssignment, ProfiledModelFamilyScenario, evaluate_profiled_tournament,
+    },
     sensor_design::{
         PlacementCriterion, SensorCandidate, SensorDesignScenario,
         enumerate_placements, enumerate_robust_placements,
@@ -428,6 +431,63 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             rejected.amplitude,
             rejected.duration,
             rejected.reason,
+        );
+    }
+
+    let mut profiled_experiment = excitation_scenario.clone();
+    profiled_experiment.models.push(ModelCandidate {
+        id: 3,
+        label: "bypass_zero_limit",
+        network: NetworkScenario {
+            name: "bypass_zero_limit",
+            capacities: vec![1.0, 1.0, 1.0],
+            initial: vec![0.0, 0.0, 0.0],
+            edges: vec![
+                Edge {
+                    left: 0,
+                    right: 1,
+                    conductance: 1.0,
+                },
+                Edge {
+                    left: 1,
+                    right: 2,
+                    conductance: 1.0,
+                },
+            ],
+            horizon: 2.0,
+        },
+    });
+    let profiled_scenario = ProfiledModelFamilyScenario {
+        experiment: profiled_experiment,
+        family_assignments: vec![
+            ModelFamilyAssignment {
+                model_id: 1,
+                family_id: 100,
+            },
+            ModelFamilyAssignment {
+                model_id: 2,
+                family_id: 200,
+            },
+            ModelFamilyAssignment {
+                model_id: 3,
+                family_id: 200,
+            },
+        ],
+    };
+    let profiled_tournament =
+        evaluate_profiled_tournament(&profiled_scenario, &input_profiles, &[30])?;
+    if let Some(best) = profiled_tournament.best_worst_case {
+        let nominal_pulse = excitation_tournament
+            .scores
+            .iter()
+            .find(|score| score.profile_id == 101)
+            .expect("pulse profile 101 must exist in the declared grid");
+        println!(
+            "profiled_discrimination,best_profile_id,{},worst_case_family_kl,{:.12e},nominal_fixed_pair_kl,{:.12e},family_overlap,{}",
+            best.base_score.profile_id,
+            best.minimum_profiled_family_separation,
+            nominal_pulse.minimum_pairwise_gaussian_kl,
+            best.worst_case_family_overlap,
         );
     }
 
