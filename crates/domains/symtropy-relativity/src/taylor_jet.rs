@@ -95,16 +95,22 @@ impl fmt::Display for TaylorJetError {
                 write!(f, "Taylor-jet order {order} exceeds maximum {MAX_ORDER}")
             }
             Self::CannotIncreaseOrder { current, requested } => {
-                write!(f, "cannot increase Taylor-jet order from {current} to {requested}")
+                write!(
+                    f,
+                    "cannot increase Taylor-jet order from {current} to {requested}"
+                )
             }
             Self::CoordinateIndexOutOfRange(index) => {
                 write!(f, "coordinate index {index} is outside [0, 3]")
             }
-            Self::DerivativeOrderExhausted => write!(f, "Taylor-jet derivative order is exhausted"),
-            Self::InvalidMultiIndex(alpha) => write!(f, "unsupported multi-index {alpha:?}"),
-            Self::ExpansionPointMismatch => {
-                write!(f, "Taylor jets expanded at different coordinate points cannot be combined")
+            Self::DerivativeOrderExhausted => {
+                write!(f, "Taylor-jet derivative order is exhausted")
             }
+            Self::InvalidMultiIndex(alpha) => write!(f, "unsupported multi-index {alpha:?}"),
+            Self::ExpansionPointMismatch => write!(
+                f,
+                "Taylor jets expanded at different coordinate points cannot be combined"
+            ),
             Self::MissingExpansionPoint => {
                 write!(f, "Taylor jet has no declared expansion point")
             }
@@ -389,7 +395,8 @@ impl TaylorJet4Order5 {
                 coefficients[index] = self.coefficients[index] * factor;
             }
         }
-        Self::new_with_point(coefficients, self.order, self.expansion_point)?.ensure_finite("scaling")
+        Self::new_with_point(coefficients, self.order, self.expansion_point)?
+            .ensure_finite("scaling")
     }
 
     /// Truncated product by normalized-coefficient convolution.
@@ -643,6 +650,22 @@ mod tests {
             lower.derivative_at([4, 0, 0, 0]),
             Err(TaylorJetError::InvalidMultiIndex([4, 0, 0, 0]))
         );
+    }
+
+    #[test]
+    fn expansion_point_is_preserved_through_jet_algebra() {
+        let point = [1.0, 2.0, 3.0, 4.0];
+        let x = TaylorJet4Order5::variable_at(point, 1).unwrap();
+        let x_squared = x.multiply(x).unwrap();
+        let derivative = x_squared.partial(1).unwrap();
+        let reciprocal = x.reciprocal().unwrap();
+        let truncated = x.truncate(3).unwrap();
+        assert_eq!(x_squared.expansion_point(), Some(point));
+        assert_eq!(derivative.expansion_point(), Some(point));
+        assert_eq!(reciprocal.expansion_point(), Some(point));
+        assert_eq!(truncated.expansion_point(), Some(point));
+        assert_eq!(x_squared.value(), 4.0);
+        assert_eq!(derivative.value(), 4.0);
     }
 
     #[test]
