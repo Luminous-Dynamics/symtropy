@@ -15,7 +15,7 @@ use std::collections::BTreeSet;
 pub const PUBLIC_MODEL_CATALOGUE_VERSION: &str = "sim-rel-public-model-catalogue-v0";
 
 /// Maximum canonical serialized catalogue size accepted by the process protocol.
-pub const MAX_PUBLIC_MODEL_CATALOGUE_BYTES: usize = 16 * 1_024 * 1_024;
+pub const MAX_PUBLIC_MODEL_CATALOGUE_BYTES: usize = 8 * 1_024 * 1_024;
 
 /// Exact rational represented as decimal strings to avoid JSON/JavaScript
 /// floating-point loss for u128 numerators and denominators.
