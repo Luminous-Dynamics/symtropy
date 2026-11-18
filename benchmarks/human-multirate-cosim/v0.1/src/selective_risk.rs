@@ -105,15 +105,29 @@ impl fmt::Display for SelectiveRiskError {
         match self {
             Self::Sequential(error) => write!(f, "selective risk evaluation rejected: {error}"),
             Self::UnknownAction(id) => write!(f, "risk evaluation references unknown action {id}"),
-            Self::ActionAlreadyObserved => write!(f, "risk action already occurs in campaign history"),
-            Self::InvalidReplicateCount => write!(f, "risk estimator requires at least one replicate"),
-            Self::ExcessiveReplicateCount => write!(f, "risk replicate count exceeds the bounded reference limit"),
+            Self::ActionAlreadyObserved => {
+                write!(f, "risk action already occurs in campaign history")
+            }
+            Self::InvalidReplicateCount => {
+                write!(f, "risk estimator requires at least one replicate")
+            }
+            Self::ExcessiveReplicateCount => {
+                write!(f, "risk replicate count exceeds the bounded reference limit")
+            }
             Self::InvalidPolicyThreshold => write!(f, "risk policy threshold is invalid"),
-            Self::InvalidEvaluatorScenario => write!(f, "evaluator scenario does not preserve the candidate experiment"),
-            Self::HeldOutModelIsRegistered(id) => write!(f, "held-out model {id} is already in the candidate set"),
+            Self::InvalidEvaluatorScenario => {
+                write!(f, "evaluator scenario does not preserve the candidate experiment")
+            }
+            Self::HeldOutModelIsRegistered(id) => {
+                write!(f, "held-out model {id} is already in the candidate set")
+            }
             Self::HeldOutModelMissing(id) => write!(f, "held-out evaluator model {id} is missing"),
-            Self::MissingPrediction(id) => write!(f, "evaluator prediction for model {id} is missing"),
-            Self::InvalidPredictionShape => write!(f, "evaluator prediction does not match the action output shape"),
+            Self::MissingPrediction(id) => {
+                write!(f, "evaluator prediction for model {id} is missing")
+            }
+            Self::InvalidPredictionShape => {
+                write!(f, "evaluator prediction does not match the action output shape")
+            }
             Self::NonFiniteSample => write!(f, "evaluator generated a non-finite observation"),
         }
     }
@@ -296,11 +310,11 @@ pub fn estimate_action_selective_risk_evaluator_only(
         wrong_family_commit_standard_error,
         per_model,
         assumptions: vec![
-            "Monte Carlo truths are stratified by registered model and combined using the supplied prior",
-            "observations use the action covariance and are conditionally independent of earlier action noises",
-            "decision thresholds are fixed during this one-step evaluator and are not sequentially calibrated",
+            "Monte Carlo truth is stratified by registered model and weighted by the prior",
+            "action observations are conditionally independent given the candidate model",
+            "policy thresholds are fixed inputs and are not sequentially calibrated",
             "Wilson intervals are fixed-sample per-model intervals",
-            "risk results are conditional on the declared candidate set and evaluator distribution",
+            "risk is conditional on the candidate set and evaluator distribution",
         ],
     })
 }
