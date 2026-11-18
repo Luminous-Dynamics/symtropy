@@ -260,11 +260,12 @@ registered candidate truths and held-out hidden out-of-family mathematical
 truths with a distinct validation stream.
 
 The report keeps true-family retention, false OUT_OF_MODEL_SET, wrong-family
-preference, ambiguous disposition and held-out out-of-family rejection
-separate. It also repeats the covariance/process/sampling/operator/availability
-identity, ordered sensor IDs and observation schedule used for calibration.
-The campaign is bounded to 100,000 total generated traces across calibration,
-validation and hidden-truth validation.
+preference, ambiguous disposition, held-out out-of-family rejection and false
+acceptance separate. It also repeats the covariance/process/sampling/operator/
+availability identity, ordered sensor IDs and observation schedule used for
+calibration. The campaign is bounded to 100,000 total generated traces across
+calibration, in-family validation and hidden-truth evaluation. These three
+lanes use pairwise-distinct deterministic PRNG seeds.
 
 This is an evaluator-side synthetic harness: it keeps hidden truth out of the
 adequacy scorer's input and output, but the calibration function itself runs
