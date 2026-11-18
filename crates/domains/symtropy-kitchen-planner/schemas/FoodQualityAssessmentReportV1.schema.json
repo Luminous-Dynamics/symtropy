@@ -6,30 +6,78 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema_version", "assessment_id", "run_ref", "protocol_id",
-    "protocol_revision", "protocol_sha256", "assessor_version_ref",
-    "disposition", "issues", "sensory_summaries", "instrumental_summaries",
-    "external_safety_gate", "raw_evidence_sha256", "claim_ceiling"
+    "schema_version",
+    "assessment_id",
+    "run_ref",
+    "protocol_id",
+    "protocol_revision",
+    "protocol_sha256",
+    "assessor_version_ref",
+    "disposition",
+    "issues",
+    "sensory_summaries",
+    "randomization_assignment_sha256",
+    "instrumental_summaries",
+    "external_safety_gate",
+    "raw_evidence_sha256",
+    "claim_ceiling"
   ],
   "properties": {
-    "schema_version": { "const": 1 },
-    "assessment_id": { "type": "string" },
-    "run_ref": { "type": "string" },
-    "protocol_id": { "type": "string" },
-    "protocol_revision": { "type": "integer", "minimum": 1 },
-    "protocol_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-    "assessor_version_ref": { "const": "symtropy-food-quality-assessor-v1" },
-    "disposition": { "enum": ["complete", "not_qualified", "indeterminate", "blocked", "conflicted"] },
+    "schema_version": {
+      "const": 1
+    },
+    "assessment_id": {
+      "type": "string"
+    },
+    "run_ref": {
+      "type": "string"
+    },
+    "protocol_id": {
+      "type": "string"
+    },
+    "protocol_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "protocol_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "assessor_version_ref": {
+      "const": "symtropy-food-quality-assessor-v1"
+    },
+    "disposition": {
+      "enum": [
+        "complete",
+        "not_qualified",
+        "indeterminate",
+        "blocked",
+        "conflicted"
+      ]
+    },
     "issues": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["code", "reference", "detail"],
+        "required": [
+          "code",
+          "reference",
+          "detail"
+        ],
         "properties": {
-          "code": { "type": "string" },
-          "reference": { "type": ["string", "null"] },
-          "detail": { "type": "string" }
+          "code": {
+            "type": "string"
+          },
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
         }
       }
     },
@@ -39,30 +87,83 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "sample_ref", "response_count", "mean_liking_milli", "median_liking_milli",
-          "minimum_response", "maximum_response", "response_histogram", "threshold_met"
+          "sample_ref",
+          "response_count",
+          "mean_liking_milli",
+          "median_liking_milli",
+          "minimum_response",
+          "maximum_response",
+          "response_histogram",
+          "threshold_met"
         ],
         "properties": {
-          "sample_ref": { "type": "string" },
-          "response_count": { "type": "integer", "minimum": 0 },
-          "mean_liking_milli": { "type": ["integer", "null"] },
-          "median_liking_milli": { "type": ["integer", "null"] },
-          "minimum_response": { "type": ["integer", "null"] },
-          "maximum_response": { "type": ["integer", "null"] },
-          "response_histogram": { "type": "array" },
-          "threshold_met": { "type": ["boolean", "null"] }
+          "sample_ref": {
+            "type": "string"
+          },
+          "response_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "mean_liking_milli": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "median_liking_milli": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "minimum_response": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "maximum_response": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "response_histogram": {
+            "type": "array"
+          },
+          "threshold_met": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
         }
       }
     },
-    "instrumental_summaries": { "type": "array" },
-    "external_safety_gate": { "$ref": "https://luminousdynamics.io/schemas/kitchen/FoodQualityAssessmentRequestV1.schema.json#/$defs/external_safety_gate" },
+    "instrumental_summaries": {
+      "type": "array"
+    },
+    "external_safety_gate": {
+      "$ref": "https://luminousdynamics.io/schemas/kitchen/FoodQualityAssessmentRequestV1.schema.json#/$defs/external_safety_gate"
+    },
     "raw_evidence_sha256": {
       "type": "array",
       "uniqueItems": true,
-      "items": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      "items": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      }
     },
     "claim_ceiling": {
       "const": "Descriptive evidence assessment for the exact declared samples and protocol only; not food-safety or allergen qualification, nutrition/medical suitability, universal taste, regulatory conformity, a serving permit, or product superiority."
+    },
+    "randomization_assignment_sha256": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      }
     }
   }
 }
