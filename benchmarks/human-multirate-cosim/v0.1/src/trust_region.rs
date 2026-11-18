@@ -5,6 +5,8 @@
 //! where the linear term is orthogonal to the top eigenspace. It is intended as
 //! a small, auditable exact reference, not a large-scale optimizer.
 
+#![allow(clippy::needless_range_loop)]
+
 use crate::network::{symmetric_eigen, NetworkError};
 use std::fmt;
 
@@ -89,7 +91,7 @@ pub fn maximize_psd_quadratic_on_ball(
     if matrix.iter().any(|row| row.len() != n) {
         return Err(TrustRegionError::NonSquareMatrix);
     }
-    if !radius.is_finite() || radius < 0.0 {
+    if !radius.is_finite() || radius <= 0.0 {
         return Err(TrustRegionError::InvalidRadius);
     }
     if matrix.iter().flatten().any(|value| !value.is_finite())
@@ -111,29 +113,6 @@ pub fn maximize_psd_quadratic_on_ball(
                 return Err(TrustRegionError::AsymmetricMatrix);
             }
         }
-    }
-
-    if radius == 0.0 {
-        let point = vec![0.0; n];
-        let stationarity_residual = vector_norm(linear);
-        if stationarity_residual
-            > RESIDUAL_TOLERANCE * (1.0 + vector_norm(linear))
-        {
-            return Err(TrustRegionError::KktResidualTooLarge);
-        }
-        return Ok(TrustRegionSolutionV1 {
-            point,
-            multiplier: 0.0,
-            largest_eigenvalue: 0.0,
-            objective_without_constant: 0.0,
-            point_norm: 0.0,
-            radius,
-            stationarity_residual,
-            feasibility_residual: 0.0,
-            secular_residual: 0.0,
-            iterations: 0,
-            disposition: TrustRegionDisposition::FlatObjective,
-        });
     }
 
     let (eigenvalues, eigenvectors) = symmetric_eigen(matrix.to_vec())
