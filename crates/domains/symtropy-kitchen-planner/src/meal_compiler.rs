@@ -2465,7 +2465,12 @@ mod tests {
     fn compiles_linked_action_and_material_flow_graphs_without_recounting_inputs() {
         let request = valid_request();
         let report = compile_meal(&request);
-        assert_eq!(report.disposition, MealCompilationDispositionV1::Compiled, "{:?}", report.issues);
+        assert_eq!(
+            report.disposition,
+            MealCompilationDispositionV1::Compiled,
+            "{:?}",
+            report.issues
+        );
         assert!(report.is_compiled(), "{:?}", report.issues);
         let graph = report.recipe_graph.unwrap();
         let chop = graph
