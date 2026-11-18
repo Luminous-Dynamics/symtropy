@@ -593,5 +593,67 @@
       ],
       "optimization_scope": "exact enumeration over a finite single-node rectangular pulse catalogue only; no continuous-control optimality guarantee"
     }
+  },
+  "robust_discrimination_extension": {
+    "benchmark_id": "HUMAN-NESTED-ROBUST-DISCRIMINATION-001",
+    "evidence_class": "synthetic_mathematical_software_only",
+    "candidate_models": [
+      {
+        "id": 1,
+        "label": "chain_nominal",
+        "family_id": 100,
+        "bypass_conductance": 0
+      },
+      {
+        "id": 2,
+        "label": "bypass_nominal",
+        "family_id": 200,
+        "bypass_conductance": 0.5
+      },
+      {
+        "id": 3,
+        "label": "bypass_zero_limit",
+        "family_id": 200,
+        "bypass_conductance": 0
+      }
+    ],
+    "common_state_basis": {
+      "capacities": [
+        1,
+        1,
+        1
+      ],
+      "initial": [
+        0,
+        0,
+        0
+      ],
+      "horizon": 2
+    },
+    "input_profile_id": 101,
+    "selected_sensor_ids": [
+      30
+    ],
+    "observation_times": [
+      0.25,
+      0.5,
+      1,
+      2
+    ],
+    "noise_covariance": [
+      [
+        0.01
+      ]
+    ],
+    "family_pair_count": 1,
+    "least_favourable_variant_pair": [
+      1,
+      3
+    ],
+    "nominal_fixed_parameter_gaussian_kl": 0.3344981676303682,
+    "expected_minimum_profiled_family_gaussian_kl": 0,
+    "expected_disposition": "IN_FAMILY_UNRESOLVED",
+    "interpretation": "the bypass family includes a parameter endpoint that reproduces the chain; nominal separation does not establish family identifiability",
+    "claim_ceiling": "Exact least-favourable finite-grid variant-pair arithmetic only; not profile likelihood or continuous robust optimal control."
   }
 }
