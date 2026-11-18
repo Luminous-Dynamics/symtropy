@@ -1100,6 +1100,116 @@ mod tests {
         report.diagnostics.iter().any(|item| item.code == code)
     }
 
+
+    #[test]
+    fn frozen_conformance_fixture_maps_all_vectors_to_rust_tests() {
+        const FIXTURE: &str = include_str!("../fixtures/conformance-vectors-v0.1.json");
+        assert_eq!(
+            FIXTURE.matches("\\\"id\\\": \\"LEV-").count(),
+            33,
+            "conformance vector count changed; update schema and review protocol deliberately"
+        );
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-BASE-001\\\""), "missing vector LEV-BASE-001");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"bounded_valid_input_is_ready_for_human_review_only\\\""), "missing test mapping bounded_valid_input_is_ready_for_human_review_only");
+        assert!(stringify!(bounded_valid_input_is_ready_for_human_review_only).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-CRANE-001\\\""), "missing vector LEV-CRANE-001");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"exact_chart_cell_capacity_is_a_hard_gate\\\""), "missing test mapping exact_chart_cell_capacity_is_a_hard_gate");
+        assert!(stringify!(exact_chart_cell_capacity_is_a_hard_gate).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-CRANE-002\\\""), "missing vector LEV-CRANE-002");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"no_chart_interpolation_or_configuration_substitution_is_permitted\\\""), "missing test mapping no_chart_interpolation_or_configuration_substitution_is_permitted");
+        assert!(stringify!(no_chart_interpolation_or_configuration_substitution_is_permitted).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-RIG-001\\\""), "missing vector LEV-RIG-001");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"rigging_leg_tension_is_checked_with_conservative_rounding\\\""), "missing test mapping rigging_leg_tension_is_checked_with_conservative_rounding");
+        assert!(stringify!(rigging_leg_tension_is_checked_with_conservative_rounding).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-RIG-002\\\""), "missing vector LEV-RIG-002");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"missing_load_share_is_not_replaced_with_equal_sharing\\\""), "missing test mapping missing_load_share_is_not_replaced_with_equal_sharing");
+        assert!(stringify!(missing_load_share_is_not_replaced_with_equal_sharing).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-RIG-003\\\""), "missing vector LEV-RIG-003");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"conservative_maximum_share_bounds_may_sum_above_one\\\""), "missing test mapping conservative_maximum_share_bounds_may_sum_above_one");
+        assert!(stringify!(conservative_maximum_share_bounds_may_sum_above_one).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-RIG-004\\\""), "missing vector LEV-RIG-004");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"share_upper_bounds_below_total_load_are_indeterminate\\\""), "missing test mapping share_upper_bounds_below_total_load_are_indeterminate");
+        assert!(stringify!(share_upper_bounds_below_total_load_are_indeterminate).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-EVID-001\\\""), "missing vector LEV-EVID-001");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"stale_evidence_abstains_instead_of_becoming_a_pass\\\""), "missing test mapping stale_evidence_abstains_instead_of_becoming_a_pass");
+        assert!(stringify!(stale_evidence_abstains_instead_of_becoming_a_pass).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-EVID-002\\\""), "missing vector LEV-EVID-002");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"revoked_source_record_is_not_admissible\\\""), "missing test mapping revoked_source_record_is_not_admissible");
+        assert!(stringify!(revoked_source_record_is_not_admissible).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-WEATHER-001\\\""), "missing vector LEV-WEATHER-001");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"weather_limit_exceeded_and_stale_envelope_are_distinct_failures\\\""), "missing test mapping weather_limit_exceeded_and_stale_envelope_are_distinct_failures");
+        assert!(stringify!(weather_limit_exceeded_and_stale_envelope_are_distinct_failures).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-WEATHER-002\\\""), "missing vector LEV-WEATHER-002");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"weather_observation_cannot_substitute_for_limit_profile\\\""), "missing test mapping weather_observation_cannot_substitute_for_limit_profile");
+        assert!(stringify!(weather_observation_cannot_substitute_for_limit_profile).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-MOTION-001\\\""), "missing vector LEV-MOTION-001");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"wrong_block_revision_in_motion_binding_abstains\\\""), "missing test mapping wrong_block_revision_in_motion_binding_abstains");
+        assert!(stringify!(wrong_block_revision_in_motion_binding_abstains).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-MOTION-002\\\""), "missing vector LEV-MOTION-002");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"occupancy_projection_must_cover_the_entire_lift\\\""), "missing test mapping occupancy_projection_must_cover_the_entire_lift");
+        assert!(stringify!(occupancy_projection_must_cover_the_entire_lift).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-EVID-003\\\""), "missing vector LEV-EVID-003");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"identical_source_evidence_may_support_multiple_claims\\\""), "missing test mapping identical_source_evidence_may_support_multiple_claims");
+        assert!(stringify!(identical_source_evidence_may_support_multiple_claims).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-EVID-004\\\""), "missing vector LEV-EVID-004");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"conflicting_metadata_for_one_source_record_id_is_indeterminate\\\""), "missing test mapping conflicting_metadata_for_one_source_record_id_is_indeterminate");
+        assert!(stringify!(conflicting_metadata_for_one_source_record_id_is_indeterminate).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-EVID-005\\\""), "missing vector LEV-EVID-005");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"evidence_validity_in_a_different_clock_domain_is_indeterminate\\\""), "missing test mapping evidence_validity_in_a_different_clock_domain_is_indeterminate");
+        assert!(stringify!(evidence_validity_in_a_different_clock_domain_is_indeterminate).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-EVID-006\\\""), "missing vector LEV-EVID-006");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"evidence_for_another_block_revision_cannot_be_reused\\\""), "missing test mapping evidence_for_another_block_revision_cannot_be_reused");
+        assert!(stringify!(evidence_for_another_block_revision_cannot_be_reused).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-RIG-005\\\""), "missing vector LEV-RIG-005");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"wll_must_bind_to_the_exact_rigging_component_revision\\\""), "missing test mapping wll_must_bind_to_the_exact_rigging_component_revision");
+        assert!(stringify!(wll_must_bind_to_the_exact_rigging_component_revision).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-EVID-007\\\""), "missing vector LEV-EVID-007");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"malformed_digest_cannot_support_human_review\\\""), "missing test mapping malformed_digest_cannot_support_human_review");
+        assert!(stringify!(malformed_digest_cannot_support_human_review).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-META-001\\\""), "missing vector LEV-META-001");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"input_permutation_preserves_canonical_report\\\""), "missing test mapping input_permutation_preserves_canonical_report");
+        assert!(stringify!(input_permutation_preserves_canonical_report).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-ORACLE-001\\\""), "missing vector LEV-ORACLE-001");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"checked_ceil_mul_div_matches_independent_bounded_integer_oracle\\\""), "missing test mapping checked_ceil_mul_div_matches_independent_bounded_integer_oracle");
+        assert!(stringify!(checked_ceil_mul_div_matches_independent_bounded_integer_oracle).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-META-002\\\""), "missing vector LEV-META-002");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"canonical_input_json_is_identical_under_leg_input_permutation\\\""), "missing test mapping canonical_input_json_is_identical_under_leg_input_permutation");
+        assert!(stringify!(canonical_input_json_is_identical_under_leg_input_permutation).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-META-003\\\""), "missing vector LEV-META-003");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"canonical_input_json_binds_source_digests_and_crane_configuration\\\""), "missing test mapping canonical_input_json_binds_source_digests_and_crane_configuration");
+        assert!(stringify!(canonical_input_json_binds_source_digests_and_crane_configuration).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-META-004\\\""), "missing vector LEV-META-004");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"canonical_json_is_identical_under_input_permutation\\\""), "missing test mapping canonical_json_is_identical_under_input_permutation");
+        assert!(stringify!(canonical_json_is_identical_under_input_permutation).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-SERIAL-001\\\""), "missing vector LEV-SERIAL-001");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"canonical_json_escapes_diagnostic_text\\\""), "missing test mapping canonical_json_escapes_diagnostic_text");
+        assert!(stringify!(canonical_json_escapes_diagnostic_text).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-ORACLE-002\\\""), "missing vector LEV-ORACLE-002");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"fixed_point_ceiling_rounds_demand_up\\\""), "missing test mapping fixed_point_ceiling_rounds_demand_up");
+        assert!(stringify!(fixed_point_ceiling_rounds_demand_up).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-OVERFLOW-001\\\""), "missing vector LEV-OVERFLOW-001");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"checked_load_arithmetic_abstains_on_overflow\\\""), "missing test mapping checked_load_arithmetic_abstains_on_overflow");
+        assert!(stringify!(checked_load_arithmetic_abstains_on_overflow).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-TIME-001\\\""), "missing vector LEV-TIME-001");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"invalid_empty_lift_window_is_indeterminate\\\""), "missing test mapping invalid_empty_lift_window_is_indeterminate");
+        assert!(stringify!(invalid_empty_lift_window_is_indeterminate).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-RIG-006\\\""), "missing vector LEV-RIG-006");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"duplicate_rigging_leg_identity_is_indeterminate\\\""), "missing test mapping duplicate_rigging_leg_identity_is_indeterminate");
+        assert!(stringify!(duplicate_rigging_leg_identity_is_indeterminate).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-CRANE-003\\\""), "missing vector LEV-CRANE-003");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"crane_capacity_equal_to_conservative_demand_is_accepted_for_human_review\\\""), "missing test mapping crane_capacity_equal_to_conservative_demand_is_accepted_for_human_review");
+        assert!(stringify!(crane_capacity_equal_to_conservative_demand_is_accepted_for_human_review).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-CRANE-004\\\""), "missing vector LEV-CRANE-004");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"crane_capacity_one_millinewton_below_demand_is_rejected\\\""), "missing test mapping crane_capacity_one_millinewton_below_demand_is_rejected");
+        assert!(stringify!(crane_capacity_one_millinewton_below_demand_is_rejected).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-RIG-007\\\""), "missing vector LEV-RIG-007");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"rigging_wll_equal_to_conservative_tension_is_accepted_for_human_review\\\""), "missing test mapping rigging_wll_equal_to_conservative_tension_is_accepted_for_human_review");
+        assert!(stringify!(rigging_wll_equal_to_conservative_tension_is_accepted_for_human_review).starts_with(""));
+        assert!(FIXTURE.contains("\\\"id\\\": \\"LEV-RIG-008\\\""), "missing vector LEV-RIG-008");
+        assert!(FIXTURE.contains("\\\"test_name\\\": \\"rigging_wll_one_millinewton_below_conservative_tension_is_rejected\\\""), "missing test mapping rigging_wll_one_millinewton_below_conservative_tension_is_rejected");
+        assert!(stringify!(rigging_wll_one_millinewton_below_conservative_tension_is_rejected).starts_with(""));
+    }
+
     #[test]
     fn bounded_valid_input_is_ready_for_human_review_only() {
         let report = evaluate(&baseline());
