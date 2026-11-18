@@ -24,7 +24,6 @@
         {
           "file_id": "frame-level-metrics",
           "filename": "metrics_frame_level.csv",
-          "bytes": 40737280,
           "display_size": "38.8 MB",
           "md5": "55c298d9edccc571f0ca0a3ec8e36fbd",
           "role": "primary_first_pass_reproduction",
@@ -33,7 +32,6 @@
         {
           "file_id": "raw-and-processed-video",
           "filename": "materials.zip",
-          "bytes": 42277224448,
           "display_size": "39.4 GB",
           "md5": "2bf754879dc088c2cb648c5441c7d640",
           "role": "video_pipeline_and_audit",
@@ -61,7 +59,6 @@
         {
           "file_id": "hopper-video-corpus",
           "filename": "Data_for_Vibrationally_Aided_Flow_of_Lunar_Regolith_Simulant_in_a_Hopper-Based_Conveying_Device_2_.zip",
-          "bytes": 584000000,
           "display_size": "558 MB",
           "md5": null,
           "role": "video-reproduction-and-flow-regime-classification",
