@@ -99,6 +99,14 @@ pub struct PublicResearchProfile {
     pub model_catalogue: PublicModelCatalogue,
 }
 
+impl PublicResearchProfile {
+    /// Canonical digest of task description, candidate priors/semantics,
+    /// action/observation catalogues, and the predictive model-catalogue digest.
+    pub fn sha256(&self) -> Result<String, String> {
+        crate::model_catalogue::canonical_sha256(self)
+    }
+}
+
 /// Public, non-secret identities and semantics that bind one episode to its exact model inputs.
 ///
 /// All digests are lowercase SHA-256 hex strings supplied by the trusted runner.
@@ -142,6 +150,12 @@ impl EpisodeManifest {
             }
         }
         let profile = &self.public_profile;
+        let computed_profile_sha256 = profile
+            .sha256()
+            .map_err(EpisodeError::InvalidManifest)?;
+        if computed_profile_sha256 != self.model_profile_sha256 {
+            return Err(EpisodeError::InvalidManifest);
+        }
         if profile.task_description.trim().is_empty() || profile.task_description.len() > 4096 {
             return Err(EpisodeError::InvalidManifest);
         }
