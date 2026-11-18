@@ -20,7 +20,9 @@ use std::error::Error;
 use std::f64::consts::{PI, TAU};
 use std::fmt;
 
+mod geometry;
 mod renewal;
+pub use geometry::{FreePathLaw, FreePathLawError};
 pub use renewal::{
     DirectionalWaitingTimes, SurvivalCurve, SurvivalError, SurvivalObservation,
     SurvivalOutcome, SurvivalPoint, WaitingTimeCandidate, WaitingTimeCandidateScore,
@@ -73,6 +75,14 @@ pub enum EventEvidenceStatus {
     ModelLatent,
     /// Evidence does not support assigning a mechanism.
     Unresolved,
+}
+
+/// Why a self-propelled run ended. This is independent of the event
+/// mechanism that governs the subsequent stationary/reorientation phase.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RunTerminationCause {
+    IntrinsicMotorSwitch,
+    GeometryLimitedFreePath,
 }
 
 /// Probabilities of the three physical event mechanisms.
@@ -251,6 +261,9 @@ pub struct PorousMotilityProfile {
     pub integration_step_s: f64,
     pub run_duration_s: DirectionalWaitingTimes,
     pub run_duration_unconditional_s: WaitingTimeLaw,
+    /// Optional matrix-controlled effective free-path length distribution.
+    /// When present, actual run time is min(motor persistence, free path / speed).
+    pub geometry_free_path_um: Option<FreePathLaw>,
     pub mechanism_probabilities: MechanismProbabilities,
     pub threshold_boundary_policy: ThresholdBoundaryPolicy,
     /// Duration samples conditioned on an active motor event.
@@ -286,6 +299,9 @@ impl PorousMotilityProfile {
         self.mechanism_probabilities.validate()?;
         self.run_duration_s.validate()?;
         self.run_duration_unconditional_s.validate()?;
+        if let Some(free_path_law) = &self.geometry_free_path_um {
+            free_path_law.validate()?;
+        }
         self.active_motor_event_duration_s.validate()?;
         self.passive_trap_event_duration_s.validate()?;
         self.unresolved_event_duration_s.validate()?;
@@ -343,6 +359,7 @@ pub enum ProfileError {
     InvalidIntegrationStep,
     InvalidMechanismProbabilities,
     InvalidWaitingTimeLaw(WaitingTimeLawError),
+    InvalidFreePathLaw(FreePathLawError),
     InvalidEventDuration,
     InvalidEventThreshold,
 }
@@ -377,6 +394,9 @@ impl fmt::Display for ProfileError {
             Self::InvalidWaitingTimeLaw(error) => {
                 write!(formatter, "invalid waiting-time law: {error}")
             }
+            Self::InvalidFreePathLaw(error) => {
+                write!(formatter, "invalid free-path law: {error}")
+            }
             Self::InvalidEventDuration => {
                 write!(formatter, "event duration must be finite and positive")
             }
@@ -392,6 +412,12 @@ impl Error for ProfileError {}
 impl From<WaitingTimeLawError> for ProfileError {
     fn from(value: WaitingTimeLawError) -> Self {
         Self::InvalidWaitingTimeLaw(value)
+    }
+}
+
+impl From<FreePathLawError> for ProfileError {
+    fn from(value: FreePathLawError) -> Self {
+        Self::InvalidFreePathLaw(value)
     }
 }
 
