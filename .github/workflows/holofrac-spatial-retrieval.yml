@@ -1,0 +1,100 @@
+name: HoloFrac spatial retrieval
+
+concurrency:
+  group: holofrac-spatial-retrieval-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    branches:
+      - research/freeflow-modular-fractal-v0
+      - research/holofrac-architecture-v0
+    paths:
+      - "research/holofrac-retrieval/**"
+      - "crates/core/symtropy-hdc-core/**"
+      - ".github/workflows/holofrac-spatial-retrieval.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  spatial-retrieval:
+    name: format, test and clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact PR head (or pushed commit)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/holofrac-retrieval/Cargo.toml --all -- --check
+
+      - name: Run tests
+        run: cargo test --manifest-path research/holofrac-retrieval/Cargo.toml
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path research/holofrac-retrieval/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run deterministic benchmark fixtures
+        run: |
+          mkdir -p artifacts
+          echo "rustc:"
+          rustc --version --verbose
+          echo "host:"
+          uname -a
+          grep -m1 "model name" /proc/cpuinfo || true
+          echo "spatial retrieval:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml > artifacts/spatial-retrieval.csv
+          cat artifacts/spatial-retrieval.csv
+          echo "factorization capacity sweep:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin factorization_sweep > artifacts/factorization-sweep.csv
+          cat artifacts/factorization-sweep.csv
+          echo "continuous spatial field:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin field_sweep > artifacts/continuous-field.csv
+          cat artifacts/continuous-field.csv
+          echo "exact evidence impact:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin impact_sweep > artifacts/evidence-impact.csv
+          cat artifacts/evidence-impact.csv
+          echo "shared multi-channel fields:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin multichannel_sweep > artifacts/multichannel-fields.csv
+          cat artifacts/multichannel-fields.csv
+          echo "geometric scale qualification:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin fractal_sweep > artifacts/fractal-geometry.csv
+          cat artifacts/fractal-geometry.csv
+          echo "bitemporal spatial observations:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin temporal_fixture_sweep > artifacts/temporal-observations.csv
+          cat artifacts/temporal-observations.csv
+          echo "sensor placement and virtual sensing:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin sensor_placement_sweep > artifacts/sensor-placement.csv
+          cat artifacts/sensor-placement.csv
+          echo "component lifecycle and material accounting:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin lifecycle_sweep > artifacts/component-lifecycle.csv
+          cat artifacts/component-lifecycle.csv
+          echo "lifecycle mutation and evidence impact:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin lifecycle_impact_sweep > artifacts/lifecycle-evidence-impact.csv
+          cat artifacts/lifecycle-evidence-impact.csv
+          echo "consent-first pluralistic design decisions:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin pluralistic_decision_sweep > artifacts/pluralistic-decisions.csv
+          cat artifacts/pluralistic-decisions.csv
+          echo "decision-value and information-gain experiment selection:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin experiment_selection_sweep > artifacts/experiment-selection-voi.csv
+          cat artifacts/experiment-selection-voi.csv
+          echo "cross-scenario climate robustness and regret:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin climate_robustness_sweep > artifacts/climate-robustness.csv
+          cat artifacts/climate-robustness.csv
+
+      - name: Upload raw benchmark outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: holofrac-benchmarks-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/*.csv
+          if-no-files-found: warn
+          retention-days: 14
