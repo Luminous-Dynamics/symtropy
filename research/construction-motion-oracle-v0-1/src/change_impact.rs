@@ -1587,4 +1587,245 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn generated_dependency_dags_match_independent_invalidation_closure_oracle() {
+        for seed in 0..8_usize {
+            let mut artifacts = Vec::new();
+            let mut current_by_key = BTreeMap::<DependencyKey, String>::new();
+
+            for index in 0..48_usize {
+                let artifact_id = format!("artifact-{index:03}");
+                let (kind, persistence, domain) = match index % 4 {
+                    0 => (
+                        ConstructionArtifactKind::MotionEnvelope,
+                        ArtifactPersistence::Recomputable,
+                        DependencyDomain::EntityGeometry,
+                    ),
+                    1 => (
+                        ConstructionArtifactKind::SpaceTimeOccupancyAssessment,
+                        ArtifactPersistence::Recomputable,
+                        DependencyDomain::ObstacleMap,
+                    ),
+                    2 => (
+                        ConstructionArtifactKind::DispatchReadiness,
+                        ArtifactPersistence::Recomputable,
+                        DependencyDomain::AuthorityPolicy,
+                    ),
+                    _ => (
+                        ConstructionArtifactKind::AcceptedConstructionRecord,
+                        ArtifactPersistence::HistoricalImmutable,
+                        DependencyDomain::DesignRevision,
+                    ),
+                };
+                let primary_key = key(domain, format!("scope:{seed}:{index}"));
+                current_by_key
+                    .entry(primary_key.clone())
+                    .or_insert_with(|| digest('1'));
+                let primary_observed = if (index + seed) % 9 == 0 {
+                    digest('0')
+                } else {
+                    digest('1')
+                };
+                let mut dependencies = vec![VersionedDependency {
+                    key: primary_key,
+                    observed_sha256: primary_observed,
+                }];
+
+                if index % 4 == 0 {
+                    let transform_key =
+                        key(DependencyDomain::CoordinateTransform, "floor:02");
+                    current_by_key
+                        .entry(transform_key.clone())
+                        .or_insert_with(|| digest('2'));
+                    dependencies.push(VersionedDependency {
+                        key: transform_key,
+                        observed_sha256: digest('2'),
+                    });
+                }
+
+                let mut parents = Vec::new();
+                if index > 0 && (index + seed) % 2 == 0 {
+                    parents.push(format!("artifact-{:03}", index - 1));
+                }
+                if index > 2 && (index + seed) % 3 == 0 {
+                    let parent = index / 2;
+                    let parent_id = format!("artifact-{parent:03}");
+                    if parent < index && !parents.contains(&parent_id) {
+                        parents.push(parent_id);
+                    }
+                }
+
+                artifacts.push(ConstructionArtifact {
+                    artifact_id,
+                    artifact_sha256: digest(char::from(b'a' + (index % 20) as u8)),
+                    kind,
+                    persistence,
+                    dependencies,
+                    depends_on_artifact_ids: parents,
+                });
+            }
+
+            let current_dependencies: Vec<VersionedDependency> = current_by_key
+                .iter()
+                .map(|(key, observed_sha256)| VersionedDependency {
+                    key: key.clone(),
+                    observed_sha256: observed_sha256.clone(),
+                })
+                .collect();
+            let graph = ConstructionArtifactGraph {
+                graph_snapshot_sha256: digest('f'),
+                current_dependencies,
+                artifacts: artifacts.clone(),
+            };
+
+            let changes: Vec<DependencyTransition> = current_by_key
+                .iter()
+                .enumerate()
+                .filter(|(position, _)| (position + seed) % 11 == 0)
+                .map(|(_, (key, previous_sha256))| DependencyTransition {
+                    key: key.clone(),
+                    previous_sha256: previous_sha256.clone(),
+                    current_sha256: digest('3'),
+                })
+                .collect();
+            let changes = if changes.is_empty() {
+                let (key, previous_sha256) = current_by_key.first_key_value().unwrap();
+                vec![DependencyTransition {
+                    key: key.clone(),
+                    previous_sha256: previous_sha256.clone(),
+                    current_sha256: digest('3'),
+                }]
+            } else {
+                changes
+            };
+            let change_set = ConstructionChangeSet {
+                change_id: format!("generated-change-{seed}"),
+                source_event_sha256: digest('e'),
+                changes,
+            };
+
+            // Independent oracle: compare every artifact input with the
+            // post-change snapshot, then walk graph edges to form the closure.
+            let mut effective_versions = current_by_key.clone();
+            for transition in &change_set.changes {
+                effective_versions.insert(
+                    transition.key.clone(),
+                    transition.current_sha256.clone(),
+                );
+            }
+            let direct: BTreeSet<String> = artifacts
+                .iter()
+                .filter(|artifact| {
+                    artifact.dependencies.iter().any(|dependency| {
+                        effective_versions.get(&dependency.key)
+                            != Some(&dependency.observed_sha256)
+                    })
+                })
+                .map(|artifact| artifact.artifact_id.clone())
+                .collect();
+            let mut impacted = direct.clone();
+            let mut progressed = true;
+            while progressed {
+                progressed = false;
+                for artifact in &artifacts {
+                    if !impacted.contains(&artifact.artifact_id)
+                        && artifact
+                            .depends_on_artifact_ids
+                            .iter()
+                            .any(|parent| impacted.contains(parent))
+                    {
+                        impacted.insert(artifact.artifact_id.clone());
+                        progressed = true;
+                    }
+                }
+            }
+
+            let expected_historical: BTreeSet<String> = artifacts
+                .iter()
+                .filter(|artifact| {
+                    impacted.contains(&artifact.artifact_id)
+                        && artifact.persistence == ArtifactPersistence::HistoricalImmutable
+                })
+                .map(|artifact| artifact.artifact_id.clone())
+                .collect();
+            let expected_direct: BTreeSet<String> = artifacts
+                .iter()
+                .filter(|artifact| {
+                    direct.contains(&artifact.artifact_id)
+                        && artifact.persistence == ArtifactPersistence::Recomputable
+                })
+                .map(|artifact| artifact.artifact_id.clone())
+                .collect();
+            let expected_transitive: BTreeSet<String> = artifacts
+                .iter()
+                .filter(|artifact| {
+                    impacted.contains(&artifact.artifact_id)
+                        && !direct.contains(&artifact.artifact_id)
+                        && artifact.persistence == ArtifactPersistence::Recomputable
+                })
+                .map(|artifact| artifact.artifact_id.clone())
+                .collect();
+            let expected_unaffected: BTreeSet<String> = artifacts
+                .iter()
+                .filter(|artifact| !impacted.contains(&artifact.artifact_id))
+                .map(|artifact| artifact.artifact_id.clone())
+                .collect();
+
+            let report = compile_change_impact(&graph, &change_set).unwrap();
+            let actual_direct: BTreeSet<String> = report
+                .direct_invalidations
+                .iter()
+                .map(|artifact| artifact.artifact_id.clone())
+                .collect();
+            let actual_transitive: BTreeSet<String> = report
+                .transitive_invalidations
+                .iter()
+                .map(|artifact| artifact.artifact_id.clone())
+                .collect();
+            let actual_historical: BTreeSet<String> = report
+                .preserved_historical_records
+                .iter()
+                .map(|artifact| artifact.artifact_id.clone())
+                .collect();
+            let actual_unaffected: BTreeSet<String> =
+                report.unaffected_artifact_ids.iter().cloned().collect();
+
+            assert_eq!(actual_direct, expected_direct, "seed {seed}: direct set");
+            assert_eq!(
+                actual_transitive, expected_transitive,
+                "seed {seed}: transitive set"
+            );
+            assert_eq!(
+                actual_historical, expected_historical,
+                "seed {seed}: historical set"
+            );
+            assert_eq!(
+                actual_unaffected, expected_unaffected,
+                "seed {seed}: unaffected set"
+            );
+
+            let requalification_positions: BTreeMap<&str, usize> = report
+                .requalification_order
+                .iter()
+                .enumerate()
+                .map(|(position, id)| (id.as_str(), position))
+                .collect();
+            for artifact in &artifacts {
+                for parent in &artifact.depends_on_artifact_ids {
+                    if let (Some(parent_position), Some(child_position)) = (
+                        requalification_positions.get(parent.as_str()),
+                        requalification_positions.get(artifact.artifact_id.as_str()),
+                    ) {
+                        assert!(
+                            parent_position < child_position,
+                            "seed {seed}: parent {parent} must precede child {}",
+                            artifact.artifact_id
+                        );
+                    }
+                }
+            }
+        }
+    }
+
 }
