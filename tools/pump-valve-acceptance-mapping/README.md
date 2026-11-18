@@ -30,12 +30,12 @@ An APPLICABLE result is not a test pass, conformity finding, safety case, certif
 ## Frozen corpus
 
 - 6 standard profiles.
-- 31 synthetic applicability scenarios.
-- Separate 31-row expected-disposition file.
-- 21 Rust unit tests.
-- Expected disposition totals: 11 APPLICABLE, 8 NOT_APPLICABLE, 7 PROFILE_INCOMPLETE, 1 EVIDENCE_INCOMPLETE, 1 STALE_OR_SUPERSEDED and 3 UNSUPPORTED_CLAIM.
+- 35 synthetic applicability scenarios.
+- Separate 35-row expected-disposition file.
+- 25 Rust unit tests.
+- Expected disposition totals: 11 APPLICABLE, 8 NOT_APPLICABLE, 10 PROFILE_INCOMPLETE, 2 EVIDENCE_INCOMPLETE, 1 STALE_OR_SUPERSEDED and 3 UNSUPPORTED_CLAIM.
 
-The public metadata fields are linked in the profile fixture and the research note. No copyrighted normative clauses, numerical test limits or acceptance tolerances are encoded.
+Every profile pins the date its catalogue state was checked. Each assessment's `assessment_as_of` must match that snapshot; a different date returns EVIDENCE_INCOMPLETE until a matching historical snapshot is supplied. Purchaser/fitting agreements and governing product standards have exact reference fields; their presence flags must match those references. The references are not authenticated by this classifier. The public metadata fields are linked in the profile fixture and research note. No copyrighted normative clauses, numerical test limits or acceptance tolerances are encoded.
 
 ## Run
 
@@ -46,7 +46,7 @@ cargo test --locked --all-targets
 cargo run --locked -- --report
 ```
 
-The focused workflow pins Rust 1.96.0 and archives the report plus exact fixture/source hashes.
+The focused workflow pins Rust 1.96.0 and archives the report plus exact fixture/source hashes. It asserts 36 report lines (header + 35 scenarios).
 
 ## Claim ceiling
 
