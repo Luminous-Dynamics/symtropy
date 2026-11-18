@@ -1,5 +1,7 @@
 use std::time::Instant;
 
+use human_multirate_cosim::adjoint_reference::total_kl_control_gradient_adjoint;
+
 use human_multirate_cosim::experiment_design::{
     ExperimentDesignScenario, ModelCandidate,
 };
@@ -175,7 +177,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let horizon = scenario.horizon();
 
     println!(
-        "mesh,segments,basis_dimension,total_kl,passive_kl,incremental_kl,energy,peak,multiplier,stationarity_residual,replay_residual,objective_gain,normalized_projection_delta,wall_seconds,disposition"
+        "mesh,segments,basis_dimension,total_kl,passive_kl,incremental_kl,energy,peak,multiplier,stationarity_residual,adjoint_stationarity_residual,adjoint_objective_abs_error,replay_residual,objective_gain,normalized_projection_delta,wall_seconds,disposition"
     );
 
     for segment_count in segment_counts {
@@ -206,6 +208,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .into());
         }
 
+        let adjoint = total_kl_control_gradient_adjoint(
+            &scenario,
+            &report.profile,
+            1,
+            2,
+            &selected_sensor_ids,
+            &actuator_nodes,
+            &covariance,
+            &identity,
+            Some(report.trust_region_multiplier),
+        )?;
+        let adjoint_objective_abs_error =
+            (adjoint.total_gaussian_kl - report.achieved_total_gaussian_kl).abs();
+
         let objective_gain = if previous_segments == 0 {
             0.0
         } else {
@@ -225,7 +241,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
 
         println!(
-            "mesh,{},{},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.6e},{:?}",
+            "mesh,{},{},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.6e},{:?}",
             segment_count,
             report.basis_dimension,
             report.achieved_total_gaussian_kl,
@@ -235,6 +251,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             report.achieved_peak_amplitude,
             report.trust_region_multiplier,
             report.trust_region_stationarity_residual,
+            adjoint.energy_ball_stationarity_residual,
+            adjoint_objective_abs_error,
             report.replay_total_kl_abs_error,
             objective_gain,
             projection_delta,
