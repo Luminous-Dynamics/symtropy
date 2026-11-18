@@ -614,14 +614,15 @@ fn build_robust_capacity_benchmark_scenario(
 ) -> RobustCumulativeCapacityScenario {
     let base = build_cumulative_capacity_benchmark_scenario(claim_count);
     let mut availability_windows = Vec::with_capacity(base.resources.len() * 3);
-    for definition in &base.resources {
+    for (resource_index, definition) in base.resources.iter().enumerate() {
+        let receipt_base = 2_000_000 + (resource_index as u64 * 3);
         availability_windows.extend([
             CapacityAvailabilityWindow {
                 resource_id: definition.resource_id.clone(),
                 resource_definition_sha256: definition.definition_sha256.clone(),
                 site_snapshot_sha256: base.site_snapshot_sha256.clone(),
                 capacity_owner_id: format!("owner:{}", definition.resource_id),
-                evidence_receipt_sha256: benchmark_digest(2_000_000 + availability_windows.len() as u64),
+                evidence_receipt_sha256: benchmark_digest(receipt_base),
                 start_tick: 1_000,
                 end_tick: 2_500,
                 lower_capacity_units: 6,
@@ -633,7 +634,7 @@ fn build_robust_capacity_benchmark_scenario(
                 resource_definition_sha256: definition.definition_sha256.clone(),
                 site_snapshot_sha256: base.site_snapshot_sha256.clone(),
                 capacity_owner_id: format!("owner:{}", definition.resource_id),
-                evidence_receipt_sha256: benchmark_digest(2_000_000 + availability_windows.len() as u64),
+                evidence_receipt_sha256: benchmark_digest(receipt_base + 1),
                 start_tick: 2_500,
                 end_tick: 4_000,
                 lower_capacity_units: 3,
@@ -645,7 +646,7 @@ fn build_robust_capacity_benchmark_scenario(
                 resource_definition_sha256: definition.definition_sha256.clone(),
                 site_snapshot_sha256: base.site_snapshot_sha256.clone(),
                 capacity_owner_id: format!("owner:{}", definition.resource_id),
-                evidence_receipt_sha256: benchmark_digest(2_000_000 + availability_windows.len() as u64),
+                evidence_receipt_sha256: benchmark_digest(receipt_base + 2),
                 start_tick: 4_000,
                 end_tick: 6_000,
                 lower_capacity_units: 5,
