@@ -259,3 +259,19 @@ The two published hopper comparators cannot be collapsed into a single trend: th
 This is a proposed matched bridge, not source reproduction. Gamma 3.4 is included because it is a demonstrated sustained-flow level for ICN-LHT-1 in the cited parabolic-flight apparatus; it is not a universal threshold. Frequency bands and charge limits must be commissioned against the actual test rig. Matching Gamma does not match displacement, contact dynamics, particle adhesion or the full gravity/contact regime. Preserve measured frequency, peak acceleration, displacement, packing state, bed height, material batch, wall contact and feeder response.
 
 Analyse material × gravity × Gamma × frequency × charge-mass interactions with a preregistered mixed-effects model. Do not pool LHS-1 and ICN-LHT-1 into one material class, and do not infer lunar gravity equivalence from matched Gamma alone.
+
+## Additional public LHS-1 video corpus and source-data boundary
+
+The 2026 Lappa, Watson & Vincent Bonnieu *Journal of Rheology* paper is a complementary LHS-1 hopper-discharge baseline (DOI [10.1122/8.0001055](https://doi.org/10.1122/8.0001055)). It reports that vibration regularizes flow and reduces arching, but average mass rate can remain below purely gravitational flow. Its regime map includes funnel, mass, asymmetric and ratholing patterns; low frequencies promote arching, while some high-frequency / low-amplitude settings can reintroduce clogging. Effectiveness also weakens as sample mass grows. This is a reminder that an "increase Gamma" controller cannot ignore frequency, fill/charge mass and flow morphology.
+
+The corresponding University of Strathclyde video dataset is publicly listed under DOI [10.15129/22b792eb-7ca4-46b1-b2eb-6ef15b95a281](https://doi.org/10.15129/22b792eb-7ca4-46b1-b2eb-6ef15b95a281), 558 MB, CC BY 4.0. It contains labelled folders of videos used to generate the paper's analysis and figures. Source page: [Strathclyde dataset record](https://pureportal.strath.ac.uk/en/datasets/data-for-vibrationally-aided-flow-of-lunar-regolith-simulant-in-a/). The download endpoint returned HTTP 403 during this authoring session, so no video files were ingested and no computer-vision measurements are claimed. The benchmark records it as a public ingestion target, subject to successfully retrieving and hashing the exact archive.
+
+The newer Stepanova, Dreyer & Garvey 2026 parabolic-flight article is separate: it reports 480 experiments at 0.16 g / 27–60 Pa with ICN-LHT-1, but its data-availability statement says load-cell, accelerometer and video records are available from the corresponding author on reasonable request. It does **not** provide a public 480-row archive. The 480 objects in `advanced-doe-v0.json` are empty structural templates awaiting an author data request; they must never be used as synthetic labels, reconstructed results or a model-training set.
+
+### Cross-gravity and second-simulant extensions
+
+The advanced DOE also separates two planned transfers:
+- **80-cell LHS-1 / ICN-LHT-1 × 1 g / 0.16 g matched-envelope sentinel** with a common apparatus boundary, feeder, charge-mass role, measured Gamma and frequency bands. This tests which transfer variables change with gravity and how output metering shifts; it is planned, not run.
+- **63-cell LHS-1 hopper regime extension** based on the 2026 Journal of Rheology paper's four flow morphologies and vibration response, using a three-frequency band × seven Gamma levels × three rated fill/charge levels. Exact frequencies and displacement must be commissioned from the apparatus response curve, and source levels must be recovered from the paper before calling this a reproduction.
+
+These extensions keep **material identity, flow morphology and gravity** visible rather than treating one simulant's operating point as a universal lunar control law.
