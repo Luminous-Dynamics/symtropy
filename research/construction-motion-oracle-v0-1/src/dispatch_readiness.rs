@@ -1323,13 +1323,16 @@ mod tests {
                 release_receipt_sha256: digest('d'),
             },
         };
+        let release_sequence = ledger.last_sequence();
+        let release_receipt = digest('d');
+        let release_snapshot = digest('c');
         assert_eq!(
             release_space_time_reservation(
                 &mut ledger,
                 "reservation-001",
-                &digest('d'),
-                &digest('c'),
-                ledger.last_sequence(),
+                &release_receipt,
+                &release_snapshot,
+                release_sequence,
                 &ledger_head,
                 "site-clock-01",
                 220,
