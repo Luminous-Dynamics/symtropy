@@ -818,3 +818,53 @@ models (DOI 10.1016/j.cma.2025.118068). Our claim is the explicit coupling
 of these experiment policies with declared model-set adequacy,
 identity-bound covariance, held-out structural false-acceptance evaluation
 and auditable selective abstention—not the invention of sequential OED.
+## Held-out structural false-acceptance evaluator
+
+The `estimate_held_out_model_false_acceptance_evaluator_only` function
+separates a candidate scenario from an evaluator scenario. The evaluator
+scenario must contain the exact candidate models unchanged plus exactly
+one extra held-out graph. It must preserve sensor definitions, full
+independent per-sensor covariance, observation times, sensor budget, input
+budget and forcing cap.
+
+The held-out model is used only to generate the synthetic trace. The policy
+receives the original candidate scenario, its registered actions, the
+candidate-visible trace and the existing prior. A commit to any candidate
+model or family is counted as false candidate acceptance;
+`OUT_OF_MODEL_SET` abstention is counted separately from other abstentions.
+
+The negative control duplicates a registered graph under a new held-out
+model ID while the candidate prior maps registered variants to the same
+family. With a permissive residual threshold, the policy can commit the
+registered family even though the evaluator truth is not registered. This
+is intentional: posterior certainty conditional on the model set cannot
+substitute for model-set adequacy.
+
+The `selective_risk` runner reports three actions, 1,000 evaluator replicates
+per in-family or held-out truth, per-model Wilson intervals, held-out
+false-candidate-acceptance intervals, OOD abstention, Brier/log loss, and
+risk-adjusted utilities over false-family-commit penalties
+`[0, 0.25, 0.5, 1, 2]`.
+
+Run with:
+
+    cargo run --manifest-path benchmarks/human-multirate-cosim/v0.1/Cargo.toml --release --bin selective_risk
+
+Risk estimator guardrails:
+
+- A request is rejected if the next action would exceed the maximum number
+  of experiments or the total campaign cost.
+- Candidate/evaluator model copies must match exactly; the held-out ID must
+  be absent from the candidate set.
+- Wilson intervals are fixed-sample, per-truth binomial intervals. They are
+  not confidence sequences and do not remain valid under optional stopping.
+- Risk estimates are conditional on the supplied candidate prior, action
+  covariance, noise process and held-out evaluator distribution.
+- The linear false-commit penalty is a transparent user-specified decision
+  utility. It is not the exact evidential-bias criterion in Chen et al.
+
+Next extensions: covariance misspecification, prior shift, multiple held-out
+families, contamination/heavy-tailed noise, drift, missingness, action-
+dependent cross-campaign noise, and sequentially valid e-processes. These
+must be evaluated separately rather than inferred from the current one-step
+Monte Carlo scorecard.
