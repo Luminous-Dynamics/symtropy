@@ -404,7 +404,8 @@
       "required": [
         "hypothesis_id",
         "structural_family",
-        "description"
+        "description",
+        "prior_probability"
       ],
       "properties": {
         "hypothesis_id": {
@@ -421,6 +422,9 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 2048
+        },
+        "prior_probability": {
+          "$ref": "#/$defs/publicProbability"
         }
       }
     },
@@ -486,7 +490,8 @@
         "task_description",
         "candidate_hypotheses",
         "actions",
-        "observations"
+        "observations",
+        "model_catalogue"
       ],
       "properties": {
         "task_description": {
@@ -514,6 +519,193 @@
           "items": {
             "$ref": "#/$defs/observationDescription"
           }
+        },
+        "model_catalogue": {
+          "$ref": "#/$defs/modelCatalogue"
+        }
+      }
+    },
+    "publicProbability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "numerator",
+        "denominator"
+      ],
+      "properties": {
+        "numerator": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,38})$"
+        },
+        "denominator": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,38}$"
+        }
+      }
+    },
+    "initialStateMass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "physical_state",
+        "sensor_state",
+        "conditional_mass"
+      ],
+      "properties": {
+        "physical_state": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sensor_state": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "conditional_mass": {
+          "$ref": "#/$defs/publicProbability"
+        }
+      }
+    },
+    "transitionOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "probability",
+        "next_physical_state",
+        "next_sensor_state",
+        "observation_id"
+      ],
+      "properties": {
+        "probability": {
+          "$ref": "#/$defs/publicProbability"
+        },
+        "next_physical_state": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "next_sensor_state": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observation_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 96
+        }
+      }
+    },
+    "transitionRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "physical_state",
+        "sensor_state",
+        "action_id",
+        "outcomes"
+      ],
+      "properties": {
+        "physical_state": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sensor_state": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "action_id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_.:-]{1,96}$"
+        },
+        "outcomes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/transitionOutcome"
+          }
+        }
+      }
+    },
+    "candidateModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hypothesis_id",
+        "initial_state_belief",
+        "transition_rows"
+      ],
+      "properties": {
+        "hypothesis_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 96
+        },
+        "initial_state_belief": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/initialStateMass"
+          }
+        },
+        "transition_rows": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/transitionRow"
+          }
+        }
+      }
+    },
+    "modelCatalogue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "physical_state_count",
+        "sensor_state_count",
+        "action_ids",
+        "observation_ids",
+        "candidate_models",
+        "catalogue_sha256"
+      ],
+      "properties": {
+        "version": {
+          "const": "sim-rel-public-model-catalogue-v0"
+        },
+        "physical_state_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sensor_state_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "action_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_.:-]{1,96}$"
+          }
+        },
+        "observation_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_.:-]{1,96}$"
+          }
+        },
+        "candidate_models": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/candidateModel"
+          }
+        },
+        "catalogue_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
         }
       }
     }
