@@ -526,7 +526,7 @@ pub fn evaluate_group(
 
     let mut stakeholder_ids = BTreeSet::new();
     let mut active_profiles = Vec::new();
-    let mut excluded_profile_count = snapshot.excluded_profile_count;
+    let excluded_profile_count = snapshot.excluded_profile_count;
     let mut observed_anonymous_count = 0_usize;
 
     for profile in &snapshot.profiles {
@@ -824,7 +824,7 @@ mod tests {
         );
         assert_eq!(
             report.rejected_alternatives[0].veto_violations[0].stakeholder_id,
-            Some("resident-a".to_owned())
+            "resident-a"
         );
     }
 
@@ -886,14 +886,12 @@ mod tests {
             report.rank_by_leximin(),
             vec!["balanced".to_owned(), "majority-favoured".to_owned()]
         );
+        assert_eq!(report.anonymous_stakeholder_count, 3);
         assert!(
             report
                 .assessments
                 .iter()
-                .all(|assessment| assessment
-                    .per_stakeholder_satisfaction
-                    .iter()
-                    .all(|stakeholder| stakeholder.stakeholder_id.is_none()))
+                .all(|assessment| assessment.per_stakeholder_satisfaction.is_empty())
         );
     }
 
@@ -912,13 +910,33 @@ mod tests {
                 [None; CRITERION_COUNT],
             ),
             granted_event(
-                "anonymous-person",
+                "anonymous-person-a",
                 2,
                 1,
                 None,
                 10,
                 ConsentScope::AnonymousAggregate,
                 balanced_weights(1),
+                [None; CRITERION_COUNT],
+            ),
+            granted_event(
+                "anonymous-person-b",
+                4,
+                1,
+                None,
+                10,
+                ConsentScope::AnonymousAggregate,
+                balanced_weights(2),
+                [None; CRITERION_COUNT],
+            ),
+            granted_event(
+                "anonymous-person-c",
+                5,
+                1,
+                None,
+                10,
+                ConsentScope::AnonymousAggregate,
+                balanced_weights(3),
                 [None; CRITERION_COUNT],
             ),
         ];
@@ -938,19 +956,179 @@ mod tests {
         let snapshot = PreferenceLedger { events }.snapshot_as_of(10).unwrap();
         let report = evaluate_group(&[alternative("a", 0.5, 0.5, 0.5)], &snapshot).unwrap();
 
-        assert_eq!(report.active_stakeholder_count, 1);
+        assert_eq!(report.active_stakeholder_count, 3);
+        assert_eq!(report.anonymous_stakeholder_count, 3);
         assert_eq!(report.excluded_profile_count, 2);
-        assert_eq!(snapshot.profiles.len(), 1);
-        assert!(
-            snapshot
-                .profiles
-                .iter()
-                .all(|profile| profile.stakeholder_id != "local-person"
-                    && profile.stakeholder_id != "withdrawn-person")
-        );
+        assert_eq!(snapshot.profiles.len(), 3);
+        assert!(snapshot
+            .profiles
+            .iter()
+            .all(|profile| profile.stakeholder_id.is_none()));
+        assert!(report.assessments[0].per_stakeholder_satisfaction.is_empty());
+    }
+
+    #[test]
+    fn anonymous_snapshot_redacts_ids_and_small_groups_fail_closed() {
+        let one = PreferenceLedger {
+            events: vec![granted_event(
+                "anonymous-one",
+                1,
+                1,
+                None,
+                10,
+                ConsentScope::AnonymousAggregate,
+                balanced_weights(0),
+                [None; CRITERION_COUNT],
+            )],
+        }
+        .snapshot_as_of(10)
+        .unwrap();
+        assert_eq!(one.anonymous_profile_count, 1);
+        assert!(one.profiles[0].stakeholder_id.is_none());
+        assert!(matches!(
+            evaluate_group(&[alternative("a", 0.5, 0.5, 0.5)], &one),
+            Err(PreferenceError::InsufficientAnonymousGroupSize {
+                observed: 1,
+                required: MIN_ANONYMOUS_GROUP_SIZE
+            })
+        ));
+
+        let two = PreferenceLedger {
+            events: vec![
+                granted_event(
+                    "anonymous-one",
+                    1,
+                    1,
+                    None,
+                    10,
+                    ConsentScope::AnonymousAggregate,
+                    balanced_weights(0),
+                    [None; CRITERION_COUNT],
+                ),
+                granted_event(
+                    "anonymous-two",
+                    2,
+                    1,
+                    None,
+                    10,
+                    ConsentScope::AnonymousAggregate,
+                    balanced_weights(1),
+                    [None; CRITERION_COUNT],
+                ),
+            ],
+        }
+        .snapshot_as_of(10)
+        .unwrap();
+        assert!(matches!(
+            evaluate_group(&[alternative("a", 0.5, 0.5, 0.5)], &two),
+            Err(PreferenceError::InsufficientAnonymousGroupSize {
+                observed: 2,
+                required: MIN_ANONYMOUS_GROUP_SIZE
+            })
+        ));
+        assert!(two.profiles.iter().all(|profile| profile.stakeholder_id.is_none()));
+    }
+
+    #[test]
+    fn anonymous_vetoes_preserve_the_block_without_exposing_thresholds_or_counts() {
+        let mut first_veto = [None; CRITERION_COUNT];
+        first_veto[5] = Some(0.7);
+        let mut second_veto = [None; CRITERION_COUNT];
+        second_veto[5] = Some(0.95);
+        let snapshot = PreferenceLedger {
+            events: vec![
+                granted_event(
+                    "anonymous-a",
+                    1,
+                    1,
+                    None,
+                    10,
+                    ConsentScope::AnonymousAggregate,
+                    balanced_weights(0),
+                    first_veto,
+                ),
+                granted_event(
+                    "anonymous-b",
+                    2,
+                    1,
+                    None,
+                    10,
+                    ConsentScope::AnonymousAggregate,
+                    balanced_weights(1),
+                    second_veto,
+                ),
+                granted_event(
+                    "anonymous-c",
+                    3,
+                    1,
+                    None,
+                    10,
+                    ConsentScope::AnonymousAggregate,
+                    balanced_weights(2),
+                    [None; CRITERION_COUNT],
+                ),
+            ],
+        }
+        .snapshot_as_of(10)
+        .unwrap();
+
+        let mut privacy_failure = alternative("privacy-failure", 0.8, 0.8, 0.8);
+        privacy_failure.outcomes[5] = 0.5;
+        let report = evaluate_group(&[privacy_failure], &snapshot).unwrap();
+
+        assert!(report.assessments.is_empty());
+        assert_eq!(report.rejected_alternatives.len(), 1);
+        let rejected = &report.rejected_alternatives[0];
+        assert!(rejected.veto_violations.is_empty());
         assert_eq!(
-            report.assessments[0].per_stakeholder_satisfaction[0].stakeholder_id,
-            None
+            rejected.anonymous_veto_criteria,
+            vec![DecisionCriterion::Privacy]
+        );
+    }
+
+    #[test]
+    fn anonymous_snapshot_cannot_be_forged_with_an_identity_or_wrong_count() {
+        let mut snapshot = PreferenceLedger {
+            events: vec![
+                granted_event(
+                    "anonymous-a",
+                    1,
+                    1,
+                    None,
+                    10,
+                    ConsentScope::AnonymousAggregate,
+                    balanced_weights(0),
+                    [None; CRITERION_COUNT],
+                ),
+                granted_event(
+                    "anonymous-b",
+                    2,
+                    1,
+                    None,
+                    10,
+                    ConsentScope::AnonymousAggregate,
+                    balanced_weights(1),
+                    [None; CRITERION_COUNT],
+                ),
+                granted_event(
+                    "anonymous-c",
+                    3,
+                    1,
+                    None,
+                    10,
+                    ConsentScope::AnonymousAggregate,
+                    balanced_weights(2),
+                    [None; CRITERION_COUNT],
+                ),
+            ],
+        }
+        .snapshot_as_of(10)
+        .unwrap();
+
+        snapshot.anonymous_profile_count = 2;
+        assert_eq!(
+            evaluate_group(&[alternative("a", 0.5, 0.5, 0.5)], &snapshot),
+            Err(PreferenceError::InvalidPreferenceSnapshot)
         );
     }
 
