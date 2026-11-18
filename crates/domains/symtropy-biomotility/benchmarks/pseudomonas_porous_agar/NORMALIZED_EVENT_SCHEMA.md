@@ -34,10 +34,11 @@ A record must link back to the original source file and trajectory. It must not 
 | frame_rate_hz | Hz | Source cadence, not guessed from nominal camera settings |
 | gradient_heading_rad | rad | Direction of increasing attractant in the declared image/world frame |
 | previous_run_duration_s | s | Time between detected run start/end |
-| previous_heading_rad | rad | Heading of preceding run in the declared frame |
+| previous_run_start_heading_rad | rad | Heading at the beginning of the preceding run; candidate conditioning variable for run-time bias |
+| incoming_heading_rad | rad | Heading immediately before the interruption, after within-run directional change; candidate conditioning variable for short-event turn-angle bias |
 | event_duration_s | s | Duration of the interruption |
-| turn_angle_rad | rad | Signed change in heading using a declared wrap convention |
-| following_heading_rad | rad | Heading of the following run |
+| turn_angle_rad | rad | Signed change from incoming to outgoing heading, using a declared wrap convention |
+| following_heading_rad | rad | Heading at the beginning of the run following this event |
 | event_label_source | string/enum | Original source label if present; preserve exactly |
 | event_class_derived | enum | Derived short/long class under a versioned threshold |
 | event_class_threshold_s | s | Threshold versioned with the transformation |
@@ -45,6 +46,13 @@ A record must link back to the original source file and trajectory. It must not 
 | coordinate_frame | string | Source image/world frame and handedness |
 
 The derived direction classes use the paper's declared 36-degree cones only if the exact analysis definition is confirmed from the article/supplement. Record the cone angle and classifier revision in each analysis manifest.
+
+Do not collapse the three directional observations:
+- run-start heading is used to select a run-time distribution;
+- incoming heading immediately before the event is used to select a short-turn-angle distribution;
+- following-run start heading is used to calculate the post-event orientation outcome.
+
+When only a full-segment vector heading is observable, record its construction method and uncertainty rather than pretending it is an instantaneous motor-state heading. The simulator's incoming-heading state is a model variable; it is not guaranteed to be directly observed in a microscopy track.
 
 ## Derived classes
 
