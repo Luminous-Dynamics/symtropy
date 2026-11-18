@@ -330,7 +330,9 @@
         "ground_ready_spares",
         "launch_lead_time_h",
         "recovery_duration_h",
-        "reposition_duration_h"
+        "reposition_duration_h",
+        "airborne_holding_slots",
+        "simultaneous_reposition_capacity"
       ],
       "properties": {
         "simultaneous_launch_capacity": {
@@ -359,6 +361,14 @@
         },
         "reposition_duration_h": {
           "type": "number",
+          "minimum": 0
+        },
+        "airborne_holding_slots": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "simultaneous_reposition_capacity": {
+          "type": "integer",
           "minimum": 0
         }
       }
@@ -395,7 +405,8 @@
             "launch_operations",
             "recovery_operations",
             "maintenance_overlap_violations",
-            "reserve_strategy_energy_wh"
+            "reserve_strategy_energy_wh",
+            "reposition_operations"
           ],
           "properties": {
             "strict_availability_gain_percentage_points": {
@@ -422,6 +433,10 @@
             },
             "reserve_strategy_energy_wh": {
               "type": "number",
+              "minimum": 0
+            },
+            "reposition_operations": {
+              "type": "integer",
               "minimum": 0
             }
           }
@@ -514,7 +529,8 @@
         "unserved_service_equivalent_h",
         "strict_outage_h",
         "maximum_contiguous_outage_h",
-        "outage_intervals"
+        "outage_intervals",
+        "reserve_strategy_energy_wh"
       ],
       "properties": {
         "strict_service_available_h": {
@@ -577,9 +593,13 @@
               }
             }
           }
+        },
+        "reserve_strategy_energy_wh": {
+          "type": "number",
+          "minimum": 0
         }
       }
     }
   },
-  "$comment": "Semantic validation: platform IDs unique; primary/reserve IDs exist and role matches; segment intervals are contiguous, non-overlapping and cover [0,evaluation_window_h]; on_station capacity_fraction > 0 and every non-on-station state contributes zero; event intervals are within the evaluation window and all affected platform IDs exist; event multipliers apply to the effective contribution of affected on-station platforms; launch/recovery durations match state segments and do not exceed logistics concurrency; launch_site_open/recovery_site_open must be true for the matching event; required service capacity is constant over each interval; expected results are independently recomputed by partitioning at every state and common-cause event boundary. A service availability claim must not be inferred from a platform endurance record. Reserve strategy energy is reported separately from primary-fleet energy. It is calculated from declared reserve-state power × state duration (Wh); it does not include unmodelled propulsion/avionics/payload loads or primary platform energy. `airborne_holding` and `repositioning` allow a synthetic airborne reserve/holding-region variant to be compared against a ground_ready spare."
+  "$comment": "Semantic validation: platform IDs unique; primary/reserve IDs exist and role matches; segment intervals are contiguous, non-overlapping and cover [0,evaluation_window_h]; on_station capacity_fraction > 0 and every non-on-station state contributes zero; event intervals are within the evaluation window and all affected platform IDs exist; event multipliers apply to the effective contribution of affected on-station platforms; launch/recovery durations match state segments and do not exceed logistics concurrency; launch_site_open/recovery_site_open must be true for the matching event; required service capacity is constant over each interval; expected results are independently recomputed by partitioning at every state and common-cause event boundary. A service availability claim must not be inferred from a platform endurance record. Reserve strategy energy is reported separately from primary-fleet energy. It is calculated from declared reserve-state power × state duration (Wh); it does not include unmodelled propulsion/avionics/payload loads or primary platform energy. `airborne_holding` and `repositioning` allow a synthetic airborne reserve/holding-region variant to be compared against a ground_ready spare. The reserve-ready location is strategy-dependent: ground_ready uses ground_ready_spares; airborne_holding uses airborne_holding_slots. Repositioning is a distinct zero-service interval with its own duration and concurrency limit. Report reserve strategy energy in Wh separately from primary fleet power/energy."
 }
