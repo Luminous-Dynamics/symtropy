@@ -5,7 +5,9 @@ This directory holds a run-level JSON Schema and an intentionally synthetic exam
 ## Files
 
 - \`benchmark-run.schema.json\`: JSON Schema Draft 2020-12 for one experiment/model-comparison record.
-- \`examples/synthetic-calibration-run.json\`: structurally representative but non-physical fixture.
+- \`dataset-manifest.schema.json\`: JSON Schema for group-disjoint partition assignments and blind-test freeze policy.
+- \`examples/synthetic-calibration-run.json\`: structurally representative but non-physical run fixture.
+- \`examples/synthetic-dataset-manifest.json\`: three-partition, group-isolated synthetic manifest.
 - \`examples/synthetic-force-trace.csv\`: tiny synthetic force trace referenced by the fixture.
 - \`examples/synthetic-model-config.json\`: fixture model configuration.
 
@@ -30,7 +32,7 @@ Every record declares one partition: \`calibration\`, \`validation\`, or \`blind
 4. operating regime (including static, continuous, vibratory and percussive families);
 5. laboratory or campaign when that axis is relevant.
 
-Do not randomly split repeated samples from the same batch/run campaign and then call the result out-of-distribution generalization. Keep blind-test labels and raw outcomes outside the model-facing environment until the candidate has frozen its executable, configuration, parameters and predictions. Repeats from one specimen or campaign stay in one partition. A run-level schema cannot prove dataset-level disjointness; that needs an independent manifest validator.
+Do not randomly split repeated samples from the same batch/run campaign and then call the result out-of-distribution generalization. The dataset manifest maps every group identifier on each isolation axis to one partition, so a given group cannot be assigned to two partitions within that axis. Keep blind-test labels and raw outcomes outside the model-facing environment until the candidate has frozen its executable, source revision, configuration, parameters, random seed and predictions. Repeats from one specimen or campaign stay in one partition. The CI guard checks the synthetic manifest fixture; a general evaluator must still validate every imported run against a real manifest and verify that the sealed blind data were not exposed.
 
 ## Measurement and artifact rules
 
@@ -42,7 +44,7 @@ Do not randomly split repeated samples from the same batch/run campaign and then
 - Keep observed measurements separate from model predictions and prediction intervals.
 - Do not convert simulant measurements into lunar-regolith facts or transfer bulk-regolith DEM calibration to competent-rock tunnelling.
 
-The schema checks record shape. Cross-field constraints (ID/reference integrity, time-series unit consistency, interval ordering, calibration validity/freshness, partition isolation, repeat leakage, source licensing and digest verification) remain evaluator responsibilities and must fail closed.
+The schemas check run/manifest shape. The fixture CI checks the example's group-to-partition assignments and required axes. Cross-file constraints (run-to-manifest agreement for every imported record, ID/reference integrity, time-series unit consistency, interval ordering, calibration validity/freshness, repeat leakage, source licensing, blind-set custody and digest verification) remain independent evaluator responsibilities and must fail closed.
 
 ## Benchmark protocol
 
@@ -119,6 +121,10 @@ The percentage targets above are deliberately comparative. Absolute tolerances m
 - **Integrated regolith handling:** MoLES3 shows why transfer and beneficiation boundaries must be measured separately from excavation.
 
 The credible competitive claim is not “we are already faster than NASA / TBM industry / SOTA.” It is that a common, provenance-preserving protocol can compare material response, solver fidelity, blind generalization and end-to-end delivered service without hiding losses or uncertainty.
+
+## CI fixture guard
+
+The Linux CI step parses both schemas and examples, checks artifact and run-ID uniqueness, verifies that the sample run's group keys match the manifest partition maps, requires all four isolation axes and all three partitions, checks blind-test freeze flags, verifies included file SHA-256 digests, and recomputes force-trace peak/mean/impulse/work/displaced-volume arithmetic. This is fixture regression coverage, not a general JSON Schema engine or a validator for arbitrary external datasets.
 
 ## Authority boundaries
 
