@@ -88,7 +88,7 @@ pub struct PreferenceEvent {
     pub veto_thresholds: [Option<f64>; CRITERION_COUNT],
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Default, PartialEq)]
 pub struct PreferenceLedger {
     /// Raw preference/consent records remain encapsulated after ownership is
     /// transferred into the ledger. No public getter exposes this collection.
@@ -107,7 +107,7 @@ struct PreferenceProfile {
     veto_thresholds: [Option<f64>; CRITERION_COUNT],
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct PreferenceSnapshot {
     pub decision_cutoff_micros: i64,
     // The raw profile collection and all cohort counts stay inside this module.
@@ -145,7 +145,7 @@ pub struct VetoViolation {
     pub minimum_outcome: f64,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct AlternativeAssessment {
     pub alternative_id: String,
     pub outcomes: [f64; CRITERION_COUNT],
@@ -171,7 +171,7 @@ pub struct RejectedAlternative {
     pub anonymous_veto_criteria: Vec<DecisionCriterion>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct GroupDecisionReport {
     pub decision_cutoff_micros: i64,
     active_stakeholder_count: usize,
