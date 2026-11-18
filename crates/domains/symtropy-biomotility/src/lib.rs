@@ -414,6 +414,12 @@ pub struct BehaviorSummary {
     pub event_count: usize,
     pub short_event_count: usize,
     pub long_trap_count: usize,
+    /// Number of completed runs with a resolved net displacement direction.
+    pub resolved_run_direction_count: usize,
+    /// Number of resolved completed runs oriented up-gradient.
+    pub up_gradient_run_count: usize,
+    /// Fraction of resolved completed runs oriented up-gradient.
+    pub up_gradient_run_fraction: Option<f64>,
     /// Number of short events with an observed following run.
     pub short_event_followed_run_count: usize,
     /// Number of those following runs initially oriented up-gradient.
@@ -767,6 +773,9 @@ pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
             event_count: 0,
             short_event_count: 0,
             long_trap_count: 0,
+            resolved_run_direction_count: 0,
+            up_gradient_run_count: 0,
+            up_gradient_run_fraction: None,
             short_event_followed_run_count: 0,
             short_event_followed_up_gradient_count: 0,
             short_event_followed_up_gradient_fraction: None,
@@ -784,6 +793,16 @@ pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
         .filter(|event| event.event_class == EventClass::ShortReorientation)
         .count();
     let long_trap_count = result.events.len() - short_event_count;
+    let resolved_run_directions: Vec<_> = result
+        .events
+        .iter()
+        .filter_map(|event| event.run_displacement_heading_rad.map(|_| event.completed_run_direction))
+        .collect();
+    let resolved_run_direction_count = resolved_run_directions.len();
+    let up_gradient_run_count = resolved_run_directions
+        .iter()
+        .filter(|direction| **direction == DirectionClass::UpGradient)
+        .count();
     // An event in record i precedes the run in record i+1. The final event
     // has no observed following run and is deliberately excluded from these
     // conditional fractions. This aligns the denominator with "runs after
@@ -831,6 +850,10 @@ pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
         event_count: result.events.len(),
         short_event_count,
         long_trap_count,
+        resolved_run_direction_count,
+        up_gradient_run_count,
+        up_gradient_run_fraction: (resolved_run_direction_count > 0)
+            .then_some(up_gradient_run_count as f64 / resolved_run_direction_count as f64),
         short_event_followed_run_count,
         short_event_followed_up_gradient_count,
         short_event_followed_up_gradient_fraction: (short_event_followed_run_count > 0)
@@ -1184,6 +1207,9 @@ mod tests {
         let summary = summarize(&result);
         assert_eq!(summary.short_event_count, 8);
         assert_eq!(summary.long_trap_count, 0);
+        assert_eq!(summary.resolved_run_direction_count, 8);
+        assert_eq!(summary.up_gradient_run_count, 7);
+        assert_eq!(summary.up_gradient_run_fraction, Some(7.0 / 8.0));
         assert_eq!(summary.short_event_followed_run_count, 7);
         assert_eq!(summary.short_event_followed_up_gradient_count, 7);
         assert_eq!(
@@ -1420,6 +1446,8 @@ mod tests {
         assert_eq!(summary.event_count, 0);
         assert_eq!(summary.mean_run_duration_s, None);
         assert_eq!(summary.projected_drift_um_s, None);
+        assert_eq!(summary.resolved_run_direction_count, 0);
+        assert_eq!(summary.up_gradient_run_fraction, None);
         assert_eq!(summary.short_event_followed_up_gradient_fraction, None);
         assert_eq!(summary.long_trap_followed_up_gradient_fraction, None);
 
