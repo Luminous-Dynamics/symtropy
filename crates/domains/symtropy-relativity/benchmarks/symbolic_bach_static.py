@@ -170,6 +170,9 @@ E = sp.Rational(1, 2) * (
 )
 X = sp.diff(A, r) + A / r
 published_sum = clean(-2 * F * X / r - sp.Rational(2, 3) * F * sp.diff(X, r))
+factorized_published_sum = clean(
+    -F * (r * sp.diff(F, r, 4) + 4 * sp.diff(F, r, 3)) / (3 * r)
+)
 published_difference = clean(
     -sp.Rational(8, 3) * A * E
     - sp.Rational(4, 3) * X * (sp.diff(F, r) + F / r)
@@ -216,6 +219,54 @@ on_shell = {
 off_shell = dict(on_shell)
 off_shell[c_constant] = sp.Rational(11, 10)
 
+# Frechet linearization of the two independent reduced equations along the
+# complete four-term solution family.
+epsilon = sp.symbols("epsilon", real=True)
+delta_inverse, delta_constant, delta_linear, delta_quadratic = sp.symbols(
+    "delta_inverse delta_constant delta_linear delta_quadratic", real=True
+)
+four_term_variation = (
+    delta_inverse / r + delta_constant + delta_linear * r + delta_quadratic * r**2
+)
+variation_substitutions = {F: four_term + epsilon * four_term_variation}
+for derivative_order in range(1, 5):
+    variation_substitutions[sp.diff(F, r, derivative_order)] = sp.diff(
+        four_term + epsilon * four_term_variation, r, derivative_order
+    )
+linearized_sum = clean(
+    sp.diff(published_sum.subs(variation_substitutions), epsilon).subs(epsilon, 0)
+)
+linearized_difference = clean(
+    sp.diff(published_difference.subs(variation_substitutions), epsilon).subs(epsilon, 0)
+)
+expected_linearized_difference = clean(
+    4 * (
+        2 * c_constant * delta_constant
+        - 3 * c_linear * delta_inverse
+        - 3 * c_inverse * delta_linear
+    ) / (3 * r**4)
+)
+mk_linearized_constraint = clean(
+    (
+        2 * c_constant * delta_constant
+        - 3 * c_inverse * delta_linear
+        - 3 * c_linear * delta_inverse
+    ).subs(on_shell)
+)
+mk_tangent_equation = clean(10 * mk_linearized_constraint)
+mk_tangent_basis = [
+    [sp.Integer(1), sp.Rational(3, 14), sp.Integer(0), sp.Integer(0)],
+    [sp.Integer(0), -sp.Rational(51, 14), sp.Integer(1), sp.Integer(0)],
+    [sp.Integer(0), sp.Integer(0), sp.Integer(0), sp.Integer(1)],
+]
+mk_tangent_basis_checks = [
+    sp.simplify(
+        14 * vector[1] - 3 * vector[0] + 51 * vector[2]
+    ) == 0
+    for vector in mk_tangent_basis
+]
+mk_tangent_basis_rank = sp.Matrix(mk_tangent_basis).T.rank()
+
 
 def sample_record(coefficients: dict[sp.Symbol, sp.Expr], radius: int) -> dict[str, str | bool]:
     b_value = sp.factor(four_term.subs(coefficients).subs(r, radius))
@@ -240,6 +291,15 @@ assert bach_trace == 0
 assert all(value == 0 for value in bach_divergence)
 assert clean(B1_plus_B2 - published_sum) == 0
 assert clean(B1_minus_B2 - published_difference) == 0
+assert clean(published_sum - factorized_published_sum) == 0
+assert clean(published_sum.subs(substitutions)) == 0
+assert clean(linearized_sum) == 0
+assert clean(linearized_difference - expected_linearized_difference) == 0
+assert mk_tangent_equation == (
+    14 * delta_constant - 3 * delta_inverse + 51 * delta_linear
+)
+assert all(mk_tangent_basis_checks)
+assert mk_tangent_basis_rank == 3
 assert all(value == 0 for value in component_checks.values())
 assert all(value == 0 for value in off_diagonal)
 
@@ -263,6 +323,30 @@ fixture = {
         "B1_minus_B2": str(B1_minus_B2),
         "matches_published_B1_plus_B2": clean(B1_plus_B2 - published_sum) == 0,
         "matches_published_B1_minus_B2": clean(B1_minus_B2 - published_difference) == 0,
+        "factorized_B1_plus_B2": str(factorized_published_sum),
+        "generic_factorization_verified": clean(published_sum - factorized_published_sum) == 0,
+        "first_equation_integrated_form": "(r^4*B'''(r))'=0",
+        "complete_local_solution_of_first_equation": "c_inverse/r+c_constant+c_linear*r+c_quadratic*r^2",
+    },
+    "static_solution_family_linearization": {
+        "variation": "delta_B=delta_inverse/r+delta_constant+delta_linear*r+delta_quadratic*r^2",
+        "linearized_B1_plus_B2": str(linearized_sum),
+        "linearized_B1_minus_B2": str(linearized_difference),
+        "linearized_B1_minus_B2_expected": str(expected_linearized_difference),
+        "frozen_mk_coefficients": {
+            "c_inverse": str(on_shell[c_inverse]),
+            "c_constant": str(on_shell[c_constant]),
+            "c_linear": str(on_shell[c_linear]),
+            "c_quadratic": str(on_shell[c_quadratic])
+        },
+        "frozen_mk_tangent_constraint": str(mk_tangent_equation),
+        "coefficient_order": ["delta_inverse", "delta_constant", "delta_linear", "delta_quadratic"],
+        "tangent_basis": [[str(value) for value in vector] for vector in mk_tangent_basis],
+        "tangent_basis_constraint_checks": mk_tangent_basis_checks,
+        "tangent_basis_rank": mk_tangent_basis_rank,
+        "tangent_dimension": 3,
+        "c_quadratic_direction_unconstrained": True,
+        "tangent_directions_are_gauge": False
     },
     "four_term_ansatz": {
         "B_of_r": str(four_term),
