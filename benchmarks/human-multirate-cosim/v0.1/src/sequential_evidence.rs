@@ -45,6 +45,10 @@ impl SequentialActionV1 {
         self.profile.id
     }
 
+    pub fn profile(&self) -> &InputProfile {
+        &self.profile
+    }
+
     pub fn selected_sensor_ids(&self) -> &[u32] {
         &self.selected_sensor_ids
     }
