@@ -163,7 +163,8 @@ close_enough() {
   awk -v actual="$1" -v expected="$2" '
     function abs(x) { return x < 0 ? -x : x }
     BEGIN {
-      scale = abs(expected) > 1e-12 ? abs(expected) : 1
+      scale = abs(expected)
+      if (scale < 1e-12) scale = 1e-12
       exit (abs(actual - expected) <= 1e-9 * scale ? 0 : 1)
     }
   '
