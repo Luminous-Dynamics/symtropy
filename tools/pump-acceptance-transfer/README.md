@@ -22,7 +22,7 @@ No speed-law, fluid correction, curve extrapolation, boundary correction or fuzz
 - 32 independently authored expected dispositions.
 - 31 authored Rust unit tests.
 - Dependency-free Rust library and deterministic CLI.
-- 26-column evidence-carrying TSV report.
+- 43-column evidence-carrying TSV report.
 - Focused Rust 1.96.0 workflow with locked build/tests/Clippy, report-line assertion, SHA-256 manifest and 30-day evidence artifact.
 
 Expected dispositions:
