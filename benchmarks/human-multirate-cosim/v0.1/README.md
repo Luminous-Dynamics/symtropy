@@ -656,3 +656,103 @@ but four basis levels do not prove convergence to the infinite-dimensional
 L2 optimum. The normalized L2 profile differences on each refined grid were
 `0.2882868509`, `0.2063312872` and `0.1044940718` for 1→2, 2→4 and 4→8.
 These are independent mathematical reference values, not Rust runner output.
+## Sequential evidence policy: adaptive experiments, stopping and abstention
+
+The `sequential_evidence` module adds a finite-campaign Bayesian reference.
+It does not claim to invent sequential OED, Bayesian model discrimination,
+or optimal stopping. Existing methods already cover these areas:
+
+- Shen, Dong and Huan (2025), vsOED, supports finite-horizon Bayesian
+  sequential design with nuisance parameters, implicit likelihoods and
+  multiple candidate models; it uses an actor-critic policy and variational
+  posterior approximations (DOI 10.1016/j.cma.2025.118068).
+- Cheng and Huan (2025; revised June 2026) formulate sequential experiment
+  choice and stopping jointly as a finite-horizon decision problem
+  (arXiv:2509.21734).
+- Chen et al. (2026) propose an evidential-bias criterion that penalizes
+  designs whose EIG may reward misleading evidence (arXiv:2608.16466).
+- Pagnier et al. (2026) demonstrate closed-loop model discrimination using
+  optimal control in simulations and an electrophysiology experiment
+  (arXiv:2603.00709).
+
+The current implementation is deliberately smaller: an exact finite-action
+Bayesian update, seeded stratified-Monte-Carlo one-step EIG estimate, greedy
+next-action selection, an explicit model-set residual gate, and stop/abstain
+decisions. It is a reference against which later lookahead, actor-critic,
+evidential-bias and sequentially valid evidence policies can be compared.
+
+### Policy and evidence boundary
+
+Each action is prepared through `prepare_sequential_action`. The action's
+profile, sensor order, candidate model means and versioned covariance binding
+are then exposed read-only. A request identity is supplied separately and
+must match covariance/process/sampling/operator/availability identifiers,
+sensor order and observation schedule before the action can be prepared.
+
+At each completed action, the policy updates log posterior weights using
+the full joint Gaussian Mahalanobis score under that action's covariance.
+The Gaussian normalization term cancels between candidate models because
+every candidate uses the same covariance for that action. The posterior
+remains conditional on the registered candidate model set; it is not proof
+that one of those models is physically true.
+
+Model-set adequacy is separate from posterior preference. The policy
+distinguishes a unique compatible candidate, multiple compatible variants
+inside one family (`PARAMETER_NOT_IDENTIFIED`), multiple compatible structural
+families (`IN_FAMILY_UNRESOLVED`), and `OUT_OF_MODEL_SET`. It never turns
+posterior ranking alone into an adequacy assertion.
+
+The stop policy can commit a model, commit a family while preserving
+parameter non-identifiability, continue while actions/cost remain, or
+abstain. The policy report carries action IDs, profile IDs, selected sensors,
+schedule, covariance/process/sampling/operator/availability identities and
+covariance kind for each observed action. These are identifiers, not
+cryptographic attestations; an evidence receipt service must verify the
+referenced manifests and execution records.
+
+### Current matched two-step runner
+
+The `sequential_evidence` runner uses a chain-versus-bypass fixture, three
+bounded pulse actions, two sensors, five observation times, AR(1) rho `0.6`,
+a maximum of two experiments and a campaign cost ceiling of `2.0`. It
+compares a fixed open-loop pair ranked by prior EIG against a greedy policy
+that re-selects the second action after observing the first result. Both
+policies inspect the stop/abstain decision after the first experiment.
+
+The evaluator uses a balanced held-out truth schedule. The truth model ID
+exists only in evaluator code; candidate policy structures contain no
+generating-truth field. Observation noise is independently sampled between
+campaign actions conditional on the model and each action's declared
+covariance. Cross-action correlated noise is not yet supported.
+
+The scorecard reports correct/wrong model commits, family commits with
+parameter non-identifiability, out-of-model-set and other abstentions,
+multiclass Brier score, log loss, average number of experiments and average
+campaign cost. EIG is a deterministic seeded Monte Carlo estimate with a
+reported standard error, not an exact expectation. The current greedy
+selector is one-step myopic; it is not a two-step Bellman-optimal policy.
+
+Run with:
+
+    cargo run --manifest-path benchmarks/human-multirate-cosim/v0.1/Cargo.toml --release --bin sequential_evidence
+
+### Statistical claim ceiling and next gates
+
+The campaign residual threshold is a declared protocol input and requires
+calibration on a separate stream. The current posterior threshold plus
+residual gate does **not** provide a sequential frequentist false-commit
+guarantee. Repeated adaptive looks and optional stopping require a
+campaign-level error allocation or an anytime-valid e-process/confidence
+sequence before such a claim can be made. The deterministic Monte Carlo
+PRNG is for reproducible benchmarking, not cryptographic randomness.
+
+Next steps: exact two-step dynamic programming on a tiny discrete observation
+approximation; posterior-predictive Bayes-risk and variance-penalized EIG
+baselines; nuisance-parameter and family-level adversarial fixtures; held-out
+covariance, drift, heavy-tail and missingness regimes; calibration/coverage
+curves; and receipt-bound execution with unknown-outcome reconciliation.
+
+Primary comparison metric: experiment cost per independently supported
+family decision at a preregistered selective-risk target, with Brier/log loss,
+coverage, OOD abstention, false-commit rate and lower-tail results reported
+separately. Do not compress these into one intelligence score.
