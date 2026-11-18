@@ -9,6 +9,8 @@ use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 pub const PREFERENCE_SCHEMA_VERSION: u32 = 1;
 pub const CRITERION_COUNT: usize = 8;
+/// Anonymous shared aggregation is suppressed below this explicit cohort size.
+pub const MIN_ANONYMOUS_GROUP_SIZE: usize = 3;
 pub const PREFERENCE_GENERATOR: &str = "holofrac-pluralistic-decision-fixture-v0";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -95,7 +97,9 @@ pub struct PreferenceLedger {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PreferenceProfile {
-    pub stakeholder_id: String,
+    /// Present only for explicitly named/shared consent. Anonymous profile IDs
+    /// are removed when the decision snapshot crosses the aggregation boundary.
+    pub stakeholder_id: Option<String>,
     pub revision: u32,
     pub consent_scope: ConsentScope,
     pub consent_status: ConsentStatus,
@@ -107,9 +111,11 @@ pub struct PreferenceProfile {
 pub struct PreferenceSnapshot {
     pub decision_cutoff_micros: i64,
     pub visible_event_count: usize,
-    /// Profiles authorized for group aggregation, sorted by stable stakeholder ID.
-    /// Local-only, not-granted and withdrawn raw profiles are never exposed here.
+    /// Profiles authorized for group aggregation. Named profiles retain an ID;
+    /// anonymous profiles have no participant ID or stable pseudonym in this view.
     pub profiles: Vec<PreferenceProfile>,
+    /// Count of anonymous profiles included in the aggregate, without identity.
+    pub anonymous_profile_count: usize,
     /// Count of latest profiles excluded by consent scope or status, without identity.
     pub excluded_profile_count: usize,
 }
@@ -126,15 +132,16 @@ pub struct DesignAlternative {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct StakeholderSatisfaction {
-    /// None for anonymous aggregate consent; never infer a participant identity.
-    pub stakeholder_id: Option<String>,
+    /// Only named/shared participants appear as individually attributable rows.
+    /// Anonymous participants contribute to group statistics, never per-person output.
+    pub stakeholder_id: String,
     pub satisfaction: f64,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct VetoViolation {
-    /// None when the vetoing participant authorized anonymous aggregation.
-    pub stakeholder_id: Option<String>,
+    /// This record is emitted only for explicitly named/shared consent.
+    pub stakeholder_id: String,
     pub criterion: DecisionCriterion,
     pub observed_outcome: f64,
     pub minimum_outcome: f64,
@@ -150,20 +157,27 @@ pub struct AlternativeAssessment {
     pub mean_satisfaction: f64,
     pub minimum_satisfaction: f64,
     /// Sorted ascending so maximin/leximin comparisons expose the least-satisfied first.
-    pub leximin_vector: Vec<f64>,
+    /// Internal ranking vector; kept private so anonymous individual scores
+    /// cannot be extracted from the public report.
+    leximin_vector: Vec<f64>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RejectedAlternative {
     pub alternative_id: String,
     pub hard_constraints_satisfied: bool,
+    /// Named/shared vetoes retain their participant-attributed explanation.
     pub veto_violations: Vec<VetoViolation>,
+    /// Anonymous vetoes expose only the affected criteria, never participant
+    /// counts, identities, observations or thresholds.
+    pub anonymous_veto_criteria: Vec<DecisionCriterion>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct GroupDecisionReport {
     pub decision_cutoff_micros: i64,
     pub active_stakeholder_count: usize,
+    pub anonymous_stakeholder_count: usize,
     pub excluded_profile_count: usize,
     pub assessments: Vec<AlternativeAssessment>,
     pub rejected_alternatives: Vec<RejectedAlternative>,
@@ -244,6 +258,8 @@ pub enum PreferenceError {
     InvalidOutcome(String),
     EmptyAlternativeSet,
     NoParticipatingStakeholders,
+    InsufficientAnonymousGroupSize { observed: usize, required: usize },
+    InvalidPreferenceSnapshot,
 }
 
 impl std::fmt::Display for PreferenceError {
@@ -275,6 +291,13 @@ impl std::fmt::Display for PreferenceError {
             Self::EmptyAlternativeSet => f.write_str("decision requires at least one alternative"),
             Self::NoParticipatingStakeholders => {
                 f.write_str("no participants authorized anonymous or named group aggregation")
+            }
+            Self::InsufficientAnonymousGroupSize { observed, required } => write!(
+                f,
+                "anonymous aggregation suppressed: {observed} participants is below the required minimum of {required}"
+            ),
+            Self::InvalidPreferenceSnapshot => {
+                f.write_str("preference snapshot violates its consent/redaction contract")
             }
         }
     }
@@ -422,8 +445,13 @@ impl PreferenceLedger {
                 continue;
             }
 
+            let stakeholder_id = match event.consent_scope {
+                ConsentScope::AnonymousAggregate => None,
+                ConsentScope::NamedAggregate => Some(event.stakeholder_id.clone()),
+                ConsentScope::LocalOnly => continue,
+            };
             profiles.push(PreferenceProfile {
-                stakeholder_id: event.stakeholder_id.clone(),
+                stakeholder_id,
                 revision: event.revision,
                 consent_scope: event.consent_scope,
                 consent_status: event.consent_status,
@@ -432,10 +460,16 @@ impl PreferenceLedger {
             });
         }
 
+        let anonymous_profile_count = profiles
+            .iter()
+            .filter(|profile| profile.consent_scope == ConsentScope::AnonymousAggregate)
+            .count();
+
         Ok(PreferenceSnapshot {
             decision_cutoff_micros,
             visible_event_count,
             profiles,
+            anonymous_profile_count,
             excluded_profile_count,
         })
     }
@@ -493,48 +527,71 @@ pub fn evaluate_group(
     let mut stakeholder_ids = BTreeSet::new();
     let mut active_profiles = Vec::new();
     let mut excluded_profile_count = snapshot.excluded_profile_count;
+    let mut observed_anonymous_count = 0_usize;
 
     for profile in &snapshot.profiles {
-        if profile.stakeholder_id.trim().is_empty() {
-            return Err(PreferenceError::EmptyStakeholderId);
-        }
-        if !stakeholder_ids.insert(profile.stakeholder_id.clone()) {
-            return Err(PreferenceError::DuplicateStakeholder(
-                profile.stakeholder_id.clone(),
-            ));
-        }
-
         if profile.consent_status != ConsentStatus::Granted
             || profile.consent_scope == ConsentScope::LocalOnly
         {
-            excluded_profile_count += 1;
-            continue;
+            return Err(PreferenceError::InvalidPreferenceSnapshot);
         }
 
+        match (profile.consent_scope, profile.stakeholder_id.as_deref()) {
+            (ConsentScope::NamedAggregate, Some(stakeholder_id)) => {
+                if stakeholder_id.trim().is_empty() {
+                    return Err(PreferenceError::EmptyStakeholderId);
+                }
+                if !stakeholder_ids.insert(stakeholder_id.to_owned()) {
+                    return Err(PreferenceError::DuplicateStakeholder(
+                        stakeholder_id.to_owned(),
+                    ));
+                }
+            }
+            (ConsentScope::AnonymousAggregate, None) => {
+                observed_anonymous_count += 1;
+            }
+            // Anonymous identities must already have been removed by the ledger
+            // snapshot. Named identities may never be silently discarded.
+            _ => return Err(PreferenceError::InvalidPreferenceSnapshot),
+        }
+
+        let profile_label = profile
+            .stakeholder_id
+            .as_deref()
+            .unwrap_or("anonymous aggregate");
         let mut sum = 0.0;
         for weight in profile.weights {
             if !weight.is_finite() || weight < 0.0 {
                 return Err(PreferenceError::InvalidPreferenceWeights(
-                    profile.stakeholder_id.clone(),
+                    profile_label.to_owned(),
                 ));
             }
             sum += weight;
         }
         if (sum - 1.0).abs() > 1.0e-9 {
             return Err(PreferenceError::InvalidPreferenceWeights(
-                profile.stakeholder_id.clone(),
+                profile_label.to_owned(),
             ));
         }
         for threshold in profile.veto_thresholds.iter().flatten() {
             if !threshold.is_finite() || !(0.0..=1.0).contains(threshold) {
                 return Err(PreferenceError::InvalidVetoThreshold(
-                    profile.stakeholder_id.clone(),
+                    profile_label.to_owned(),
                 ));
             }
         }
         active_profiles.push(profile);
     }
 
+    if observed_anonymous_count != snapshot.anonymous_profile_count {
+        return Err(PreferenceError::InvalidPreferenceSnapshot);
+    }
+    if observed_anonymous_count > 0 && observed_anonymous_count < MIN_ANONYMOUS_GROUP_SIZE {
+        return Err(PreferenceError::InsufficientAnonymousGroupSize {
+            observed: observed_anonymous_count,
+            required: MIN_ANONYMOUS_GROUP_SIZE,
+        });
+    }
     if active_profiles.is_empty() {
         return Err(PreferenceError::NoParticipatingStakeholders);
     }
@@ -544,52 +601,69 @@ pub fn evaluate_group(
 
     for alternative in alternatives {
         let mut veto_violations = Vec::new();
+        let mut anonymous_veto_criteria = BTreeSet::new();
         for profile in &active_profiles {
             for (index, threshold) in profile.veto_thresholds.iter().enumerate() {
                 if let Some(minimum_outcome) = threshold {
                     let observed_outcome = alternative.outcomes[index];
                     if observed_outcome < *minimum_outcome {
-                        let stakeholder_id = match profile.consent_scope {
-                            ConsentScope::AnonymousAggregate => None,
-                            ConsentScope::NamedAggregate => {
-                                Some(profile.stakeholder_id.clone())
+                        match profile.consent_scope {
+                            ConsentScope::AnonymousAggregate => {
+                                // Collapse all anonymous vetoes on the same
+                                // criterion; do not publish count or threshold.
+                                anonymous_veto_criteria.insert(DecisionCriterion::ALL[index]);
                             }
-                            ConsentScope::LocalOnly => None,
-                        };
-                        veto_violations.push(VetoViolation {
-                            stakeholder_id,
-                            criterion: DecisionCriterion::ALL[index],
-                            observed_outcome,
-                            minimum_outcome: *minimum_outcome,
-                        });
+                            ConsentScope::NamedAggregate => {
+                                let stakeholder_id = profile
+                                    .stakeholder_id
+                                    .as_deref()
+                                    .ok_or(PreferenceError::InvalidPreferenceSnapshot)?;
+                                veto_violations.push(VetoViolation {
+                                    stakeholder_id: stakeholder_id.to_owned(),
+                                    criterion: DecisionCriterion::ALL[index],
+                                    observed_outcome,
+                                    minimum_outcome: *minimum_outcome,
+                                });
+                            }
+                            ConsentScope::LocalOnly => {
+                                return Err(PreferenceError::InvalidPreferenceSnapshot);
+                            }
+                        }
                     }
                 }
             }
         }
 
-        if !alternative.hard_constraints_satisfied || !veto_violations.is_empty() {
+        if !alternative.hard_constraints_satisfied
+            || !veto_violations.is_empty()
+            || !anonymous_veto_criteria.is_empty()
+        {
             rejected_alternatives.push(RejectedAlternative {
                 alternative_id: alternative.alternative_id.clone(),
                 hard_constraints_satisfied: alternative.hard_constraints_satisfied,
                 veto_violations,
+                anonymous_veto_criteria: anonymous_veto_criteria.into_iter().collect(),
             });
             continue;
         }
 
-        let mut individual = Vec::with_capacity(active_profiles.len());
+        let mut individual = Vec::new();
         let mut leximin_vector = Vec::with_capacity(active_profiles.len());
 
         for profile in &active_profiles {
             let satisfaction = weighted_satisfaction(&profile.weights, &alternative.outcomes);
-            let stakeholder_id = match profile.consent_scope {
-                ConsentScope::AnonymousAggregate => None,
-                ConsentScope::NamedAggregate => Some(profile.stakeholder_id.clone()),
-                ConsentScope::LocalOnly => None,
-            };
-            individual.push(StakeholderSatisfaction {
-                stakeholder_id,
-                satisfaction,
-            });
+            if profile.consent_scope == ConsentScope::NamedAggregate {
+                let stakeholder_id = profile
+                    .stakeholder_id
+                    .as_deref()
+                    .ok_or(PreferenceError::InvalidPreferenceSnapshot)?;
+                individual.push(StakeholderSatisfaction {
+                    stakeholder_id: stakeholder_id.to_owned(),
+                    satisfaction,
+                });
+            }
+            // Anonymous satisfaction contributes to maximin/leximin internally,
+            // but is never emitted as an individually attributable row.
             leximin_vector.push(satisfaction);
         }
 
@@ -629,6 +703,7 @@ pub fn evaluate_group(
         assessments,
         rejected_alternatives,
         pareto_frontier_ids,
+        anonymous_stakeholder_count: observed_anonymous_count,
     })
 }
 
