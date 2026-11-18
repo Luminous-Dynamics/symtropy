@@ -65,13 +65,13 @@ It models:
 - the previous acknowledged setpoints and sequence carried with every proposal;
 - at most one outstanding mutation;
 - explicit pending, unknown, applied, rejected-with-no-effect and partial response states;
-- applied acknowledgements accepted only with fresh, independent, current-calibration readback matching the requested setpoints;
+- applied acknowledgements accepted only with fresh, independent, current-calibration readback matching the requested setpoints and a readback-artifact SHA-256;
 - rejected-with-no-effect accepted only when independent readback confirms the previous acknowledged state;
-- unknown/partial outcomes that block new proposals until a fresh independently calibrated readback reconciles the actual state;
+- unknown/partial outcomes that block new proposals until a fresh independently calibrated readback with a source digest reconciles the actual state;
 - stale/uncalibrated/invalid readbacks rejected, and observed state recorded as reconciled rather than falsely labelled as an applied command.
 
 The ledger has regression tests for pending blocking, unknown-outcome blocking, duplicate/mismatched identities, partial application, stale readback, no-effect rejection, repeated rejection sequence gaps, and independent reconciliation.
 
-**Still not implemented:** cryptographic command-payload digest, append-only durable journal, validated crash/restart recovery, actual network/fieldbus transport, device-side idempotency, heartbeat/watchdog and HIL testing. Command IDs are currently sequence-derived identifiers, not cryptographic digests. Do not connect this prototype to actuators or treat it as a safety interlock.
+**Still not implemented:** cryptographic command-payload digest (the current command ID is sequence-derived, not a hash), append-only durable journal, validated crash/restart recovery, actual network/fieldbus transport, device-side idempotency, heartbeat/watchdog and HIL testing. The ledger's state and commissioning envelope are private and cannot be deserialized directly into an unchecked state. Command IDs are currently sequence-derived identifiers, not cryptographic digests. Do not connect this prototype to actuators or treat it as a safety interlock.
 
 The requirements and acceptance plan are tracked in [#6103](https://github.com/Luminous-Dynamics/symtropy/issues/6103).
