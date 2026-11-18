@@ -2,6 +2,7 @@ name: Cartesian SHAKE RATTLE three-body spatial chain
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - "tools/rattle-threebody-chain/**"
       - "tools/constraint-graph-rank/**"
@@ -16,6 +17,7 @@ permissions:
 
 jobs:
   rattle-open-chain:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact commit
@@ -30,6 +32,7 @@ jobs:
         run: |
           rustup run 1.96.0 rustfmt --edition 2021 --check tools/constraint-graph-rank/constraint_graph_rank.rs
           rustup run 1.96.0 rustfmt --edition 2021 --check tools/rattle-threebody-chain/cartesian_rattle_chain.rs
+          rustup run 1.96.0 rustfmt --edition 2021 --check tools/rattle-threebody-chain/dense_coordinate_covariance.rs
 
       - name: Compile and run warning-denied tests
         run: |
