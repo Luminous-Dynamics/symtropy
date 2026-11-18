@@ -103,7 +103,10 @@ impl PublicResearchProfile {
     /// Canonical digest of task description, candidate priors/semantics,
     /// action/observation catalogues, and the predictive model-catalogue digest.
     pub fn sha256(&self) -> Result<String, String> {
-        crate::model_catalogue::canonical_sha256(self)
+        crate::model_catalogue::canonical_sha256(self)?
+            .strip_prefix("sha256:")
+            .map(str::to_owned)
+            .ok_or_else(|| "canonical profile digest is missing its SHA-256 prefix".to_owned())
     }
 }
 
