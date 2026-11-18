@@ -203,7 +203,57 @@
             "minLength": 1
           }
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "as_built_measurement",
+                  "accepted_construction_record",
+                  "handover_record"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "persistence": {
+                "const": "historical_immutable"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "not": {
+                  "enum": [
+                    "as_built_measurement",
+                    "accepted_construction_record",
+                    "handover_record"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "persistence": {
+                "const": "recomputable"
+              }
+            }
+          }
+        }
+      ]
     },
     "graph": {
       "type": "object",
