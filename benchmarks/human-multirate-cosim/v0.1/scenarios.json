@@ -132,5 +132,170 @@
     "accepted_state": "two_half_step_result",
     "positivity_guard": "enabled_when_initial_states_are_nonnegative",
     "score_claim": "local tolerance is not a global error guarantee; global error is scored against analytic oracle"
+  },
+  "network_extension": {
+    "benchmark_id": "HUMAN-NESTED-NETWORK-001",
+    "evidence_class": "synthetic_mathematical_software_only",
+    "human_subject_data_used": false,
+    "human_participant_records_used": false,
+    "personal_data_used": false,
+    "state_semantics": "arbitrary graph-compartment quantity; no physiological units or human interpretation",
+    "governing_equation": "C_i dx_i/dt = sum_j g_ij (x_j - x_i)",
+    "conserved_quantity": "sum_i C_i x_i per connected component",
+    "quadratic_energy": "0.5 * sum_i C_i * x_i^2",
+    "oracle": "symmetric spectral decomposition of C^(-1/2) L C^(-1/2)",
+    "networks": [
+      {
+        "id": "MCS-NET-001",
+        "name": "three_node_heterogeneous_chain",
+        "capacities": [
+          1,
+          2,
+          4
+        ],
+        "initial": [
+          1,
+          0.2,
+          0
+        ],
+        "edges": [
+          [
+            0,
+            1,
+            0.8
+          ],
+          [
+            1,
+            2,
+            0.2
+          ]
+        ],
+        "horizon": 4,
+        "steps": [
+          0.01,
+          0.1,
+          0.5
+        ]
+      },
+      {
+        "id": "MCS-NET-002",
+        "name": "four_node_cycle",
+        "capacities": [
+          1,
+          0.7,
+          2,
+          1.5
+        ],
+        "initial": [
+          1,
+          0.4,
+          0.1,
+          0
+        ],
+        "edges": [
+          [
+            0,
+            1,
+            0.8
+          ],
+          [
+            1,
+            2,
+            0.2
+          ],
+          [
+            2,
+            3,
+            0.5
+          ],
+          [
+            3,
+            0,
+            0.1
+          ]
+        ],
+        "horizon": 4,
+        "steps": [
+          0.01,
+          0.1,
+          0.5
+        ]
+      }
+    ],
+    "methods": [
+      "jacobi_shared_flux_euler",
+      "serial_forward_edge_sweep",
+      "serial_reverse_edge_sweep",
+      "implicit_midpoint_reference",
+      "backward_euler_reference",
+      "adaptive_jacobi_shared_flux"
+    ],
+    "metrics": [
+      "max_abs_state_error",
+      "rms_state_error",
+      "max_abs_total_residual",
+      "max_quadratic_energy_increase",
+      "min_state",
+      "max_state",
+      "max_spectral_stability_number",
+      "positive_states"
+    ],
+    "candidate_visibility": [
+      "graph_topology",
+      "capacities",
+      "initial_state",
+      "conductance",
+      "communication_step"
+    ],
+    "evaluator_only": [
+      "spectral_oracle_eigenvalues",
+      "analytic_modal_trajectory"
+    ],
+    "claim_ceiling": "Numerical software qualification for these synthetic graph systems only.",
+    "adaptive_config": {
+      "initial_step": "network_horizon",
+      "min_step": 1e-8,
+      "max_step": "network_horizon",
+      "absolute_tolerance": 1e-7,
+      "relative_tolerance": 0.000001,
+      "max_attempts": 100000,
+      "error_estimator": "one_full_step_vs_two_half_steps",
+      "accepted_state": "two_half_step_result",
+      "guards": [
+        "all_nodes_nonnegative_when_initially_nonnegative",
+        "quadratic_energy_nonincrease_with_roundoff_slack"
+      ],
+      "claim": "local error tolerance is not a global error guarantee; score global error independently against the spectral oracle"
+    },
+    "topology_events": {
+      "method": "piecewise_topology_event_backward_euler",
+      "scenario": "three_node_heterogeneous_chain",
+      "horizon": 4,
+      "communication_step": 0.1,
+      "events": [
+        {
+          "at_time": 2,
+          "edges": [
+            [
+              0,
+              1,
+              0.1
+            ],
+            [
+              1,
+              2,
+              0.9
+            ]
+          ]
+        }
+      ],
+      "policy": "exact grid-aligned event split; state carries continuously across topology change",
+      "invalid_controls": [
+        "non-grid-aligned event",
+        "reordered event times",
+        "event at or beyond horizon"
+      ],
+      "claim_ceiling": "Synthetic event-time and state-continuity software check only."
+    }
   }
 }

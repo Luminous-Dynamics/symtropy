@@ -88,3 +88,37 @@ A passing test establishes behavior of this mathematical benchmark implementatio
 - any human health, performance or clinical conclusion.
 
 Better-than-industry claims require matched models, same scenarios and budgets, source-pinned reference implementations, lower-tail robustness, uncertainty and compute accounting, plus independent reproduction.
+
+## Graph-coupled network extension
+
+The `network` module extends the two-node fixture to generic undirected compartment graphs. For capacities `C_i` and edge conductances `g_ij` it uses
+
+\[
+C_i \dot{x}_i = \sum_j g_{ij}(x_j-x_i), \qquad C\dot{x}=-Lx.
+\]
+
+The independent oracle diagonalizes the symmetric matrix \(C^{-1/2}LC^{-1/2}\) and evaluates its matrix exponential. It exposes multiple decay modes, connected-component zero modes, conservation of \(\sum_i C_i x_i\), and monotonic decay of \(\frac12\sum_i C_i x_i^2\).
+
+The command-line scorecard now includes a heterogeneous three-node chain and four-node cycle. Candidate methods include simultaneous shared-edge Euler, conservative edge sweeps in both orders, implicit midpoint, and backward Euler. This is a small-graph mathematical oracle; it is not a scalable graph solver or a physiological model.
+
+The graph extension is tracked by [HUMAN-NESTED-NETWORK-001 / #5944](https://github.com/Luminous-Dynamics/symtropy/issues/5944). All graph weights and states are arbitrary mathematical fixtures, not human-derived parameters.
+
+
+### Adaptive graph-network controller
+
+The graph module also provides adaptive simultaneous shared-flux subcycling. It:
+- compares one full network step with two half steps;
+- accepts the two-half-step state;
+- rejects steps that exceed the local error indicator;
+- rejects negative states when the initial state is nonnegative;
+- rejects steps that increase the weighted quadratic energy beyond a floating-point slack;
+- preserves the weighted total through paired edge fluxes;
+- scores global trajectory error independently against the spectral oracle.
+
+The configured local absolute/relative tolerance is an error-indicator target, not a global error guarantee. The report keeps accepted/rejected steps, global error, conservation, dissipation, positivity and step sizes distinct. This remains a small-graph synthetic mathematical reference.
+
+### Event-aligned topology changes
+
+The `simulate_network_topology_events` reference runs piecewise-constant graphs. Each topology event is an exact model-time boundary: the segment before the event uses the old edge set, the accepted endpoint state is carried unchanged into the new graph, and a new spectral oracle is built for the next segment. Events that are reordered, outside the horizon or not aligned with the fixed communication grid are rejected; v0.1 does not round event times or interpolate across topology changes.
+
+The runner includes one three-node conductance-switch example. This qualifies event splitting and state continuity for a tiny synthetic graph, not a general asynchronous federation.
