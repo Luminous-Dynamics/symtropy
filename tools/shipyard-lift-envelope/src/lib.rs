@@ -21,6 +21,8 @@ pub struct EvidenceRef {
     pub source_record_id: String,
     pub owner_id: String,
     pub revision: String,
+    pub subject_id: String,
+    pub subject_revision: String,
     pub sha256: String,
     /// Inclusive start of the evidence-validity interval.
     pub valid_from_tick: u64,
@@ -32,6 +34,7 @@ pub struct EvidenceRef {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RiggingLeg {
     pub leg_id: String,
+    pub component_revision: String,
     /// Engineer-supplied upper bound on this leg's share of vertical load.
     pub maximum_vertical_share_ppm: u64,
     /// Engineer-supplied lower bound on sin(angle above horizontal).
@@ -95,6 +98,9 @@ pub struct LiftPlan {
     pub mass_upper_kg: u64,
     /// Source-approved dynamic amplification factor in parts per million.
     pub dynamic_factor_ppm: u64,
+    pub dynamic_factor_profile_id: String,
+    pub dynamic_factor_profile_revision: String,
+    pub weather_profile_revision: String,
     pub mass_evidence: EvidenceRef,
     pub centre_of_gravity_envelope_evidence: EvidenceRef,
     pub pick_point_and_load_share_evidence: EvidenceRef,
@@ -181,13 +187,18 @@ fn validate_evidence(
     diagnostics: &mut Vec<Diagnostic>,
 ) {
     let id = evidence.source_record_id.as_str();
-    if !nonblank(id) || !nonblank(&evidence.owner_id) || !nonblank(&evidence.revision) {
+    if !nonblank(id)
+        || !nonblank(&evidence.owner_id)
+        || !nonblank(&evidence.revision)
+        || !nonblank(&evidence.subject_id)
+        || !nonblank(&evidence.subject_revision)
+    {
         diagnostic(
             diagnostics,
             "EVIDENCE_IDENTITY_INCOMPLETE",
             DiagnosticSeverity::Indeterminate,
             Some(id),
-            "source record, owner and revision must be nonblank",
+            "source record, owner, document revision and exact subject binding must be nonblank",
         );
     }
     if !is_sha256(&evidence.sha256) {
@@ -256,6 +267,31 @@ fn ceil_mul_div(left: u128, right: u128, divisor: u128) -> Option<u128> {
 
 fn to_u64(value: u128) -> Option<u64> {
     u64::try_from(value).ok()
+}
+
+fn validate_subject_binding(
+    evidence: &EvidenceRef,
+    expected_subject_id: &str,
+    expected_subject_revision: &str,
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    if evidence.subject_id != expected_subject_id
+        || evidence.subject_revision != expected_subject_revision
+    {
+        diagnostic(
+            diagnostics,
+            "EVIDENCE_SUBJECT_MISMATCH",
+            DiagnosticSeverity::Indeterminate,
+            Some(&evidence.source_record_id),
+            format!(
+                "evidence subject {}/{} does not match required {}/{}",
+                evidence.subject_id,
+                evidence.subject_revision,
+                expected_subject_id,
+                expected_subject_revision
+            ),
+        );
+    }
 }
 
 fn validate_context(plan: &LiftPlan, diagnostics: &mut Vec<Diagnostic>) {
@@ -436,6 +472,50 @@ pub fn evaluate(plan: &LiftPlan) -> PreflightReport {
         );
     }
 
+    validate_subject_binding(&plan.mass_evidence, &plan.block_id, &plan.block_revision, &mut diagnostics);
+    validate_subject_binding(
+        &plan.centre_of_gravity_envelope_evidence,
+        &plan.block_id,
+        &plan.block_revision,
+        &mut diagnostics,
+    );
+    validate_subject_binding(
+        &plan.pick_point_and_load_share_evidence,
+        &plan.block_id,
+        &plan.block_revision,
+        &mut diagnostics,
+    );
+    validate_subject_binding(
+        &plan.dynamic_factor_evidence,
+        &plan.dynamic_factor_profile_id,
+        &plan.dynamic_factor_profile_revision,
+        &mut diagnostics,
+    );
+    validate_subject_binding(
+        &plan.crane_chart.evidence,
+        &plan.crane_id,
+        &plan.crane_configuration_revision,
+        &mut diagnostics,
+    );
+    validate_subject_binding(
+        &plan.weather.evidence,
+        &plan.site_epoch_id,
+        &plan.weather_profile_revision,
+        &mut diagnostics,
+    );
+    validate_subject_binding(
+        &plan.motion.motion_report_evidence,
+        &plan.block_id,
+        &plan.block_revision,
+        &mut diagnostics,
+    );
+    validate_subject_binding(
+        &plan.motion.occupancy_evidence,
+        &plan.block_id,
+        &plan.block_revision,
+        &mut diagnostics,
+    );
+
     validate_crane_chart(plan, &mut diagnostics);
     validate_motion_binding(plan, &mut diagnostics);
 
@@ -534,7 +614,24 @@ pub fn evaluate(plan: &LiftPlan) -> PreflightReport {
             ),
         }
 
-        let valid_leg = leg.maximum_vertical_share_ppm > 0
+        if !nonblank(&leg.component_revision) {
+            diagnostic(
+                &mut diagnostics,
+                "RIGGING_COMPONENT_REVISION_EMPTY",
+                DiagnosticSeverity::Indeterminate,
+                Some(&leg.leg_id),
+                "each rigging leg must bind to an exact component revision",
+            );
+        }
+        validate_subject_binding(
+            &leg.wll_evidence,
+            &leg.leg_id,
+            &leg.component_revision,
+            &mut diagnostics,
+        );
+
+        let valid_leg = nonblank(&leg.component_revision)
+            && leg.maximum_vertical_share_ppm > 0
             && leg.maximum_vertical_share_ppm <= PPM_SCALE
             && leg.minimum_sine_angle_ppm > 0
             && leg.minimum_sine_angle_ppm <= PPM_SCALE
@@ -635,11 +732,13 @@ pub fn evaluate(plan: &LiftPlan) -> PreflightReport {
 mod tests {
     use super::*;
 
-    fn evidence(id: &str) -> EvidenceRef {
+    fn evidence_for(id: &str, subject: &str, subject_revision: &str) -> EvidenceRef {
         EvidenceRef {
             source_record_id: id.to_owned(),
             owner_id: format!("owner::{id}"),
             revision: "r1".to_owned(),
+            subject_id: subject.to_owned(),
+            subject_revision: subject_revision.to_owned(),
             sha256: "a".repeat(64),
             valid_from_tick: 0,
             valid_until_tick: 1_000,
@@ -659,10 +758,13 @@ mod tests {
             end_tick: 200,
             mass_upper_kg: 40_000,
             dynamic_factor_ppm: 1_100_000,
-            mass_evidence: evidence("mass-record-001"),
-            centre_of_gravity_envelope_evidence: evidence("cog-envelope-001"),
-            pick_point_and_load_share_evidence: evidence("pick-load-share-001"),
-            dynamic_factor_evidence: evidence("dynamic-factor-001"),
+            dynamic_factor_profile_id: "dynamic-factor-profile-01".to_owned(),
+            dynamic_factor_profile_revision: "r1".to_owned(),
+            weather_profile_revision: "r1".to_owned(),
+            mass_evidence: evidence_for("mass-record-001", "block-001", "block-r7"),
+            centre_of_gravity_envelope_evidence: evidence_for("cog-envelope-001", "block-001", "block-r7"),
+            pick_point_and_load_share_evidence: evidence_for("pick-load-share-001", "block-001", "block-r7"),
+            dynamic_factor_evidence: evidence_for("dynamic-factor-001", "dynamic-factor-profile-01", "r1"),
             crane_id: "gantry-01".to_owned(),
             crane_configuration_revision: "gantry-config-r4".to_owned(),
             crane_chart: CraneChartCell {
@@ -672,36 +774,38 @@ mod tests {
                 working_quadrant_id: "quadrant-A".to_owned(),
                 net_capacity_mn: 500_000_000,
                 record_id: "gantry-chart-cell-001".to_owned(),
-                evidence: evidence("gantry-chart-cell-001"),
+                evidence: evidence_for("gantry-chart-cell-001", "gantry-01", "gantry-config-r4"),
             },
             crane_radius_band_id: "radius-band-10m".to_owned(),
             crane_working_quadrant_id: "quadrant-A".to_owned(),
             rigging_legs: vec![
                 RiggingLeg {
                     leg_id: "leg-A".to_owned(),
+                    component_revision: "leg-A-r1".to_owned(),
                     maximum_vertical_share_ppm: 500_000,
                     minimum_sine_angle_ppm: 707_107,
                     working_load_limit_mn: 350_000_000,
-                    wll_evidence: evidence("wll-leg-A"),
+                    wll_evidence: evidence_for("wll-leg-A", "leg-A", "leg-A-r1"),
                 },
                 RiggingLeg {
                     leg_id: "leg-B".to_owned(),
+                    component_revision: "leg-B-r1".to_owned(),
                     maximum_vertical_share_ppm: 500_000,
                     minimum_sine_angle_ppm: 707_107,
                     working_load_limit_mn: 350_000_000,
-                    wll_evidence: evidence("wll-leg-B"),
+                    wll_evidence: evidence_for("wll-leg-B", "leg-B", "leg-B-r1"),
                 },
             ],
             weather: WeatherEnvelope {
                 gust_upper_mm_per_s: 8_000,
                 maximum_gust_mm_per_s: 10_000,
-                evidence: evidence("weather-envelope-001"),
+                evidence: evidence_for("weather-envelope-001", "yard-epoch-3", "r1"),
             },
             motion: MotionOccupancyBinding {
                 motion_report_id: "motion-report-001".to_owned(),
-                motion_report_evidence: evidence("motion-report-001"),
+                motion_report_evidence: evidence_for("motion-report-001", "block-001", "block-r7"),
                 occupancy_projection_id: "occupancy-projection-001".to_owned(),
-                occupancy_evidence: evidence("occupancy-projection-001"),
+                occupancy_evidence: evidence_for("occupancy-projection-001", "block-001", "block-r7"),
                 block_id: "block-001".to_owned(),
                 block_revision: "block-r7".to_owned(),
                 payload_id: "block-001".to_owned(),
@@ -829,6 +933,24 @@ mod tests {
         let report = evaluate(&plan);
         assert_eq!(report.disposition, Disposition::Indeterminate);
         assert!(has_code(&report, "DUPLICATE_EVIDENCE_ID"));
+    }
+
+    #[test]
+    fn evidence_for_another_block_revision_cannot_be_reused() {
+        let mut plan = baseline();
+        plan.mass_evidence.subject_id = "another-block".to_owned();
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "EVIDENCE_SUBJECT_MISMATCH"));
+    }
+
+    #[test]
+    fn wll_must_bind_to_the_exact_rigging_component_revision() {
+        let mut plan = baseline();
+        plan.rigging_legs[0].component_revision = "leg-A-r2".to_owned();
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "EVIDENCE_SUBJECT_MISMATCH"));
     }
 
     #[test]
