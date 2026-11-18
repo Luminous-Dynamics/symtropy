@@ -81,6 +81,16 @@ def main() -> int:
         raise AssertionError("the analysis plan must forbid a composite kitchen score")
     if plan["reporting"]["forbid_metric_compensation"] is not True:
         raise AssertionError("hard quality/safety gates must not be compensable")
+    if "meal_intent_fidelity_rate" not in plan["primary_endpoints"]:
+        raise AssertionError("whole-meal intent fidelity must remain a primary endpoint")
+    if not any(
+        "non-negotiable household exclusion" in gate
+        for gate in plan["hard_gates"]
+    ):
+        raise AssertionError("unapproved hard-constraint violations must remain a non-compensatory gate")
+    for required_metric in ["meal_intent_fidelity_rate", "meal_hard_constraint_violation_count"]:
+        if required_metric not in metric_ids:
+            raise AssertionError(f"required intent metric is missing: {required_metric}")
     if plan["sample_size"]["status"] != "not_calculated":
         raise AssertionError("sample size must remain uncalculated until a reviewed power plan exists")
     if (
