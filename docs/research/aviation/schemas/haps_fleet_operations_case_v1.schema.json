@@ -67,7 +67,8 @@
           "node_id",
           "platform_class",
           "service_region_ref",
-          "base_capacity_units"
+          "base_capacity_units",
+          "hazard_domain"
         ],
         "properties": {
           "node_id": {
@@ -88,6 +89,11 @@
           "base_capacity_units": {
             "type": "number",
             "minimum": 0
+          },
+          "hazard_domain": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Declared common-cause weather / operating exposure domain used for audit and diversity assumptions."
           }
         }
       }
