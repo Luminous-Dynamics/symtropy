@@ -104,7 +104,7 @@ Connect excavation to collection, transfer, screening/beneficiation, storage and
 Use the best matched published or independently reproduced baseline on each test family. Then preregister candidate targets:
 
 1. **Reproduction:** reproduce source metrics within the uncertainty and repeatability of the source protocol before tuning for blind data.
-2. **Generalization:** reduce held-out normalized force-curve error by at least 20% versus the strongest predeclared empirical/analytical baseline, while maintaining nominal 90–95% interval coverage within a preregistered tolerance. This is a research target to test, not a claim of present capability.
+2. **Generalization:** on identical group-disjoint test partitions, reduce held-out normalized force-curve error by at least 20% versus the strongest predeclared baseline in the full tournament—including published XGBR, not merely an analytical equation—while maintaining nominal 90–95% interval coverage within a preregistered tolerance. Reproduce the published XGBR result on its matched source protocol before making a direct comparison. This is a research target to test, not a claim of present capability.
 3. **Calibration efficiency:** reach the same held-out error and interval coverage with at least 25% fewer physical calibration runs than the strongest baseline. Count total specimens, operator-hours and test energy, not only solver iterations.
 4. **Robustness:** no hidden pooling across material batches; publish worst-regime error and all non-converged cases. Any critical regime failure blocks a broad-model claim.
 5. **Material chain:** close measured mass balance within combined instrument uncertainty or return `indeterminate / reconciliation required`; no loss is silently set to zero.
