@@ -6,6 +6,8 @@ cd "$root"
 
 schema="tools/lunar-excavation-benchmark/benchmark-run.schema.json"
 record="tools/lunar-excavation-benchmark/examples/synthetic-calibration-run.json"
+validation_record="tools/lunar-excavation-benchmark/examples/synthetic-validation-run.json"
+blind_record="tools/lunar-excavation-benchmark/examples/synthetic-blind-run.json"
 force_trace="tools/lunar-excavation-benchmark/examples/synthetic-force-trace.csv"
 model_config="tools/lunar-excavation-benchmark/examples/synthetic-model-config.json"
 manifest_schema="tools/lunar-excavation-benchmark/dataset-manifest.schema.json"
@@ -192,6 +194,7 @@ close_enough "$(awk -v w="$width" -v d="$depth" -v v="$feed_rate" -v t="$duratio
 
 bash scripts/validate-lunar-excavation-dataset.sh \
   --allow-synthetic-placeholders \
-  "$manifest" "$record" || fail "reusable dataset admission validator rejected the synthetic fixture"
+  "$manifest" "$record" "$validation_record" "$blind_record" \
+  || fail "reusable dataset admission validator rejected the synthetic fixture"
 
 printf 'lunar benchmark fixture check: PASS (synthetic fixture only; no physical qualification)\n'
