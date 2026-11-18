@@ -46,6 +46,7 @@ impl CoverageSeriesV1 {
         }
         let mut ids = HashSet::with_capacity(outcomes.len());
         let mut previous_step = None;
+        let mut previous_issue_time = None;
         let mut previous_event_time = None;
         for outcome in &outcomes {
             if !ids.insert(outcome.forecast_id) {
@@ -68,10 +69,14 @@ impl CoverageSeriesV1 {
             if previous_step.is_some_and(|step| outcome.issue_step <= step) {
                 return Err(CoverageInferenceError::NonMonotonicIssueStep);
             }
+            if previous_issue_time.is_some_and(|time| outcome.issue_time <= time) {
+                return Err(CoverageInferenceError::NonMonotonicIssueTime);
+            }
             if previous_event_time.is_some_and(|time| outcome.event_time <= time) {
                 return Err(CoverageInferenceError::NonMonotonicEventTime);
             }
             previous_step = Some(outcome.issue_step);
+            previous_issue_time = Some(outcome.issue_time);
             previous_event_time = Some(outcome.event_time);
         }
         Ok(Self { series_id, outcomes })
@@ -126,6 +131,7 @@ pub enum CoverageInferenceError {
     NonFiniteTime,
     InvalidOutcomeTimeOrder,
     NonMonotonicIssueStep,
+    NonMonotonicIssueTime,
     NonMonotonicEventTime,
     InvalidTargetCoverage,
     BandwidthTooLarge,
@@ -152,6 +158,7 @@ impl fmt::Display for CoverageInferenceError {
             Self::NonFiniteTime => write!(f, "coverage times must be finite"),
             Self::InvalidOutcomeTimeOrder => write!(f, "issue, event and availability times are inconsistent"),
             Self::NonMonotonicIssueStep => write!(f, "coverage issue steps must be strictly increasing"),
+            Self::NonMonotonicIssueTime => write!(f, "coverage issue times must be strictly increasing"),
             Self::NonMonotonicEventTime => write!(f, "coverage event times must be strictly increasing"),
             Self::InvalidTargetCoverage => write!(f, "target coverage must be finite and strictly between zero and one"),
             Self::BandwidthTooLarge => write!(f, "HAC bandwidth must be smaller than the sequence length"),
@@ -448,9 +455,12 @@ impl DelayedAciSchedulerV1 {
             || config.minimum_miscoverage <= 0.0
             || config.maximum_miscoverage >= 1.0
             || config.minimum_miscoverage >= config.maximum_miscoverage
+            || config.target_miscoverage < config.minimum_miscoverage
+            || config.target_miscoverage > config.maximum_miscoverage
             || config.initial_miscoverage < config.minimum_miscoverage
             || config.initial_miscoverage > config.maximum_miscoverage
             || config.learning_rate <= 0.0
+            || config.learning_rate > 1.0
             || config.delay_steps == 0
         {
             return Err(CoverageInferenceError::InvalidAciConfig);
@@ -488,7 +498,7 @@ impl DelayedAciSchedulerV1 {
         if let Some(due) = self
             .pending
             .values()
-            .find(|ticket| ticket.lane == lane && ticket.due_step <= issue_step)
+            .find(|ticket| ticket.due_step <= issue_step)
         {
             return Err(CoverageInferenceError::DueFeedbackMustSettleBeforeIssue(
                 due.forecast_id,
@@ -711,6 +721,28 @@ mod tests {
         assert!(matches!(
             scheduler.resolve(20, 2, false),
             Err(CoverageInferenceError::UnknownForecastId(20))
+        ));
+    }
+
+    #[test]
+    fn any_overdue_feedback_blocks_new_issue_even_on_a_different_lane() {
+        let mut scheduler = DelayedAciSchedulerV1::new(config()).unwrap();
+        scheduler.issue(40, 0).unwrap();
+        assert!(matches!(
+            scheduler.issue(41, 3),
+            Err(CoverageInferenceError::DueFeedbackMustSettleBeforeIssue(40))
+        ));
+    }
+
+    #[test]
+    fn target_miscoverage_must_be_inside_the_admitted_alpha_bounds() {
+        let invalid = DelayedAciConfigV1 {
+            target_miscoverage: 0.8,
+            ..config()
+        };
+        assert!(matches!(
+            DelayedAciSchedulerV1::new(invalid),
+            Err(CoverageInferenceError::InvalidAciConfig)
         ));
     }
 
