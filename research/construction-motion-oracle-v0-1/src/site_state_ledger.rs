@@ -598,6 +598,14 @@ impl SiteStateLedger {
                 if resources.is_empty() {
                     return Err(SiteLedgerError::EmptyResourceCatalog);
                 }
+                if self.active_space_time_reservations().next().is_some()
+                    && self.resource_catalog_sha256.as_deref()
+                        != Some(catalog_sha256.as_str())
+                {
+                    return Err(SiteLedgerError::ResourceCatalogWouldOrphanReservation(
+                        "resource-catalog-version".into(),
+                    ));
+                }
                 let mut definitions = BTreeMap::new();
                 for resource in resources {
                     if resource.resource_id.trim().is_empty() {
@@ -3058,6 +3066,79 @@ mod tests {
             );
             assert_eq!(ledger.active_resource_count(), usize::from(projection_claim_count > 0));
         }
+    }
+
+
+    #[test]
+    fn resource_catalog_version_cannot_change_while_a_reservation_is_active() {
+        let mut ledger = SiteStateLedger::new();
+        publish_package(&mut ledger, package('a', &["point-1"]));
+        publish_exclusive_resource_catalog(&mut ledger);
+        let reservation =
+            reservation_for(&ledger, "reservation-1", 130, 300, 120, 100, 450);
+        commit_reservation_event(&mut ledger, reservation, "reservation-event-1", '3').unwrap();
+
+        let changed_version = event(
+            "event-resource-catalog-v2",
+            ledger.last_sequence() + 1,
+            ledger.last_event_sha256().map(str::to_owned),
+            '4',
+            "resource-authority",
+            SiteActorRole::SiteResourceAuthority,
+            SiteEventPayload::ResourceCatalogPublished {
+                catalog_sha256: digest('5'),
+                resources: vec![SiteResourceDefinition {
+                    resource_id: "crane-zone-1".into(),
+                    definition_sha256: digest('c'),
+                }],
+            },
+        );
+        assert_eq!(
+            ledger.apply(changed_version),
+            Err(SiteLedgerError::ResourceCatalogWouldOrphanReservation(
+                "resource-catalog-version".into()
+            ))
+        );
+        assert_eq!(ledger.resource_catalog_sha256(), Some(digest('b').as_str()));
+        assert_eq!(ledger.last_sequence(), 3);
+    }
+
+    #[test]
+    fn work_package_revision_cannot_supersede_an_active_resource_reservation() {
+        let mut ledger = SiteStateLedger::new();
+        let package_digest = publish_package(&mut ledger, package('a', &["point-1"]));
+        publish_exclusive_resource_catalog(&mut ledger);
+        let reservation = reservation_for(
+            &ledger,
+            "reservation-1",
+            130,
+            300,
+            120,
+            100,
+            450,
+        );
+        commit_reservation_event(&mut ledger, reservation, "reservation-event-1", '3').unwrap();
+
+        let next_package = package('d', &["point-1"]);
+        let event = event(
+            "event-package-v2",
+            ledger.last_sequence() + 1,
+            ledger.last_event_sha256().map(str::to_owned),
+            '4',
+            "design-authority",
+            SiteActorRole::DesignAuthority,
+            SiteEventPayload::WorkPackagePublished {
+                package: next_package,
+            },
+        );
+        assert_eq!(
+            ledger.apply(event),
+            Err(SiteLedgerError::PackageHasActiveSpaceTimeReservations(
+                package_digest.clone()
+            ))
+        );
+        assert_eq!(ledger.active_package_sha256(), Some(package_digest.as_str()));
+        assert_eq!(ledger.last_sequence(), 4);
     }
 
 }
