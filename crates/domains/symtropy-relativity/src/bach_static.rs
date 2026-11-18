@@ -246,9 +246,31 @@ mod tests {
         result
     }
 
+    fn mannheim_kazanas_jet(
+        radius: f64,
+        c_inverse: f64,
+        c_constant: f64,
+        c_linear: f64,
+        c_quadratic: f64,
+    ) -> TaylorJet4Order5 {
+        let r = TaylorJet4Order5::variable(radius, 1).unwrap();
+        let r_inverse = r.reciprocal().unwrap();
+        let r2 = r.multiply(r).unwrap();
+        TaylorJet4Order5::constant(c_inverse)
+            .unwrap()
+            .multiply(r_inverse)
+            .unwrap()
+            .add(TaylorJet4Order5::constant(c_constant).unwrap())
+            .unwrap()
+            .add(r.scale(c_linear).unwrap())
+            .unwrap()
+            .add(r2.scale(c_quadratic).unwrap())
+            .unwrap()
+    }
+
     #[test]
     fn schwarzschild_bach_tensor_and_identities_vanish() {
-        let jet = polynomial_jet(8.0, &[1.0, 0.0, -2.0]);
+        let jet = mannheim_kazakas_jet(8.0, -2.0, 1.0, 0.0, 0.0);
         let result = static_spherical_bach(8.0, jet).unwrap();
         assert!(result.max_abs_component() < 2e-12);
         assert!(result.max_abs_reduced_residual() < 2e-12);
@@ -259,7 +281,7 @@ mod tests {
     #[test]
     fn mannheim_kazanas_bach_tensor_vanishes_with_nonzero_gamma_and_kappa() {
         let radius = 3.0;
-        let jet = polynomial_jet(radius, &[-1.7, 0.7, 0.1, -0.01]);
+        let jet = mannheim_kazakas_jet(radius, -1.7, 0.7, 0.1, -0.01);
         let result = static_spherical_bach(radius, jet).unwrap();
         assert!(result.max_abs_component() < 2e-12);
         assert!(result.trace.abs() < 2e-12);
@@ -271,11 +293,11 @@ mod tests {
         let q = 18.0 / 25.0;
         let at3 = static_spherical_bach(
             3.0,
-            polynomial_jet(3.0, &[-1.7, 1.1, 0.1, -0.01]),
+            mannheim_kazakas_jet(3.0, -1.7, 1.1, 0.1, -0.01),
         ).unwrap();
         let at6 = static_spherical_bach(
             6.0,
-            polynomial_jet(6.0, &[-1.7, 1.1, 0.1, -0.01]),
+            mannheim_kazakas_jet(6.0, -1.7, 1.1, 0.1, -0.01),
         ).unwrap();
         close(at3.b1_plus_b2, 0.0, 2e-12);
         close(at6.b1_plus_b2, 0.0, 2e-12);
@@ -305,7 +327,7 @@ mod tests {
 
     #[test]
     fn horizon_and_invalid_derivative_domains_fail_closed() {
-        let horizon = polynomial_jet(2.0, &[0.0, 0.0, 0.0]);
+        let horizon = mannheim_kazakas_jet(2.0, -2.0, 1.0, 0.0, 0.0);
         assert!(matches!(
             static_spherical_bach(2.0, horizon),
             Err(StaticSphericalBachError::OutsideStaticRegion { .. })
