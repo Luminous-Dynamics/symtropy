@@ -38,6 +38,12 @@ pub struct EvidenceRef {
 pub struct RiggingLeg {
     pub leg_id: String,
     pub component_revision: String,
+    /// Exact lifting-point identity on the pinned block revision.
+    pub lifting_point_id: String,
+    /// Per-leg approved upper share and lower sling-angle evidence, bound to the rigging assembly.
+    pub load_case_evidence: EvidenceRef,
+    /// Lifting-point identity/qualification evidence, bound to the pinned block revision.
+    pub lifting_point_evidence: EvidenceRef,
     /// Engineer-supplied upper bound on this leg's share of vertical load.
     pub maximum_vertical_share_ppm: u64,
     /// Engineer-supplied lower bound on sin(angle above horizontal).
@@ -116,6 +122,8 @@ pub struct LiftPlan {
     pub mass_evidence: EvidenceRef,
     pub centre_of_gravity_envelope_evidence: EvidenceRef,
     pub pick_point_and_load_share_evidence: EvidenceRef,
+    pub rigging_assembly_id: String,
+    pub rigging_assembly_revision: String,
     pub dynamic_factor_evidence: EvidenceRef,
     pub crane_id: String,
     pub crane_configuration_revision: String,
@@ -337,6 +345,8 @@ fn validate_context(plan: &LiftPlan, diagnostics: &mut Vec<Diagnostic>) {
         ("crane_working_quadrant_id", plan.crane_working_quadrant_id.as_str()),
         ("dynamic_factor_profile_id", plan.dynamic_factor_profile_id.as_str()),
         ("dynamic_factor_profile_revision", plan.dynamic_factor_profile_revision.as_str()),
+        ("rigging_assembly_id", plan.rigging_assembly_id.as_str()),
+        ("rigging_assembly_revision", plan.rigging_assembly_revision.as_str()),
         ("weather_observation_subject_id", plan.weather.observation_subject_id.as_str()),
         ("weather_observation_subject_revision", plan.weather.observation_subject_revision.as_str()),
         ("weather_limit_profile_id", plan.weather.limit_profile_id.as_str()),
@@ -517,9 +527,12 @@ impl LiftPlan {
             .iter()
             .map(|leg| {
                 format!(
-                    "{{\"leg_id\":{},\"component_revision\":{},\"maximum_vertical_share_ppm\":{},\"minimum_sine_angle_ppm\":{},\"working_load_limit_mn\":{},\"wll_evidence\":{}}}",
+                    "{{\"leg_id\":{},\"component_revision\":{},\"lifting_point_id\":{},\"load_case_evidence\":{},\"lifting_point_evidence\":{},\"maximum_vertical_share_ppm\":{},\"minimum_sine_angle_ppm\":{},\"working_load_limit_mn\":{},\"wll_evidence\":{}}}",
                     json_quote(&leg.leg_id),
                     json_quote(&leg.component_revision),
+                    json_quote(&leg.lifting_point_id),
+                    evidence_json(&leg.load_case_evidence),
+                    evidence_json(&leg.lifting_point_evidence),
                     leg.maximum_vertical_share_ppm,
                     leg.minimum_sine_angle_ppm,
                     leg.working_load_limit_mn,
@@ -572,7 +585,7 @@ impl LiftPlan {
         );
 
         format!(
-            "{{\"contract_version\":{},\"lift_id\":{},\"block_id\":{},\"block_revision\":{},\"site_epoch_id\":{},\"frame_id\":{},\"clock_domain_id\":{},\"start_tick\":{},\"end_tick\":{},\"mass_upper_kg\":{},\"dynamic_factor_ppm\":{},\"dynamic_factor_profile_id\":{},\"dynamic_factor_profile_revision\":{},\"mass_evidence\":{},\"centre_of_gravity_envelope_evidence\":{},\"pick_point_and_load_share_evidence\":{},\"dynamic_factor_evidence\":{},\"crane_id\":{},\"crane_configuration_revision\":{},\"crane_radius_band_id\":{},\"crane_working_quadrant_id\":{},\"crane_chart\":{},\"rigging_legs\":[{}],\"weather\":{},\"motion\":{}}}",
+            "{{\"contract_version\":{},\"lift_id\":{},\"block_id\":{},\"block_revision\":{},\"site_epoch_id\":{},\"frame_id\":{},\"clock_domain_id\":{},\"start_tick\":{},\"end_tick\":{},\"mass_upper_kg\":{},\"dynamic_factor_ppm\":{},\"dynamic_factor_profile_id\":{},\"dynamic_factor_profile_revision\":{},\"mass_evidence\":{},\"centre_of_gravity_envelope_evidence\":{},\"pick_point_and_load_share_evidence\":{},\"rigging_assembly_id\":{},\"rigging_assembly_revision\":{},\"dynamic_factor_evidence\":{},\"crane_id\":{},\"crane_configuration_revision\":{},\"crane_radius_band_id\":{},\"crane_working_quadrant_id\":{},\"crane_chart\":{},\"rigging_legs\":[{}],\"weather\":{},\"motion\":{}}}",
             json_quote(CONTRACT_VERSION),
             json_quote(&self.lift_id),
             json_quote(&self.block_id),
@@ -589,6 +602,8 @@ impl LiftPlan {
             evidence_json(&self.mass_evidence),
             evidence_json(&self.centre_of_gravity_envelope_evidence),
             evidence_json(&self.pick_point_and_load_share_evidence),
+            json_quote(&self.rigging_assembly_id),
+            json_quote(&self.rigging_assembly_revision),
             evidence_json(&self.dynamic_factor_evidence),
             json_quote(&self.crane_id),
             json_quote(&self.crane_configuration_revision),
@@ -860,6 +875,22 @@ pub fn evaluate(plan: &LiftPlan) -> PreflightReport {
         }
 
         validate_evidence(
+            &leg.load_case_evidence,
+            plan.start_tick,
+            plan.end_tick,
+            &plan.clock_domain_id,
+            &mut seen_evidence_ids,
+            &mut diagnostics,
+        );
+        validate_evidence(
+            &leg.lifting_point_evidence,
+            plan.start_tick,
+            plan.end_tick,
+            &plan.clock_domain_id,
+            &mut seen_evidence_ids,
+            &mut diagnostics,
+        );
+        validate_evidence(
             &leg.wll_evidence,
             plan.start_tick,
             plan.end_tick,
@@ -888,11 +919,32 @@ pub fn evaluate(plan: &LiftPlan) -> PreflightReport {
             );
         }
         validate_subject_binding(
+            &leg.load_case_evidence,
+            &plan.rigging_assembly_id,
+            &plan.rigging_assembly_revision,
+            &mut diagnostics,
+        );
+        validate_subject_binding(
+            &leg.lifting_point_evidence,
+            &plan.block_id,
+            &plan.block_revision,
+            &mut diagnostics,
+        );
+        validate_subject_binding(
             &leg.wll_evidence,
             &leg.leg_id,
             &leg.component_revision,
             &mut diagnostics,
         );
+        if !nonblank(&leg.lifting_point_id) {
+            diagnostic(
+                &mut diagnostics,
+                "LIFTING_POINT_ID_EMPTY",
+                DiagnosticSeverity::Indeterminate,
+                Some(&leg.leg_id),
+                "each rigging leg must identify its exact lifting point on the block revision",
+            );
+        }
 
         let valid_leg = nonblank(&leg.component_revision)
             && leg.maximum_vertical_share_ppm > 0
@@ -1029,6 +1081,8 @@ mod tests {
             mass_evidence: evidence_for("mass-record-001", "block-001", "block-r7"),
             centre_of_gravity_envelope_evidence: evidence_for("cog-envelope-001", "block-001", "block-r7"),
             pick_point_and_load_share_evidence: evidence_for("pick-load-share-001", "block-001", "block-r7"),
+            rigging_assembly_id: "rigging-assembly-01".to_owned(),
+            rigging_assembly_revision: "assembly-r3".to_owned(),
             dynamic_factor_evidence: evidence_for("dynamic-factor-001", "dynamic-factor-profile-01", "r1"),
             crane_id: "gantry-01".to_owned(),
             crane_configuration_revision: "gantry-config-r4".to_owned(),
@@ -1047,6 +1101,9 @@ mod tests {
                 RiggingLeg {
                     leg_id: "leg-A".to_owned(),
                     component_revision: "leg-A-r1".to_owned(),
+                    lifting_point_id: "padeye-A".to_owned(),
+                    load_case_evidence: evidence_for("load-case-leg-A", "rigging-assembly-01", "assembly-r3"),
+                    lifting_point_evidence: evidence_for("lifting-point-A", "block-001", "block-r7"),
                     maximum_vertical_share_ppm: 500_000,
                     minimum_sine_angle_ppm: 707_107,
                     working_load_limit_mn: 350_000_000,
@@ -1055,6 +1112,9 @@ mod tests {
                 RiggingLeg {
                     leg_id: "leg-B".to_owned(),
                     component_revision: "leg-B-r1".to_owned(),
+                    lifting_point_id: "padeye-B".to_owned(),
+                    load_case_evidence: evidence_for("load-case-leg-B", "rigging-assembly-01", "assembly-r3"),
+                    lifting_point_evidence: evidence_for("lifting-point-B", "block-001", "block-r7"),
                     maximum_vertical_share_ppm: 500_000,
                     minimum_sine_angle_ppm: 707_107,
                     working_load_limit_mn: 350_000_000,
@@ -1485,6 +1545,30 @@ mod tests {
     fn wll_must_bind_to_the_exact_rigging_component_revision() {
         let mut plan = baseline();
         plan.rigging_legs[0].component_revision = "leg-A-r2".to_owned();
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "EVIDENCE_SUBJECT_MISMATCH"));
+    }
+
+    #[test]
+    fn load_share_and_sling_angle_require_exact_rigging_assembly_evidence() {
+        let mut plan = baseline();
+        plan.rigging_legs[0].load_case_evidence.subject_revision = "assembly-r2".to_owned();
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "EVIDENCE_SUBJECT_MISMATCH"));
+    }
+
+    #[test]
+    fn lifting_point_must_be_identified_and_bound_to_block_revision() {
+        let mut plan = baseline();
+        plan.rigging_legs[0].lifting_point_id.clear();
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "LIFTING_POINT_ID_EMPTY"));
+
+        plan.rigging_legs[0].lifting_point_id = "padeye-A".to_owned();
+        plan.rigging_legs[0].lifting_point_evidence.subject_revision = "block-r6".to_owned();
         let report = evaluate(&plan);
         assert_eq!(report.disposition, Disposition::Indeterminate);
         assert!(has_code(&report, "EVIDENCE_SUBJECT_MISMATCH"));
