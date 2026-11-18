@@ -168,7 +168,11 @@ The benchmark should treat compute placement as a decision variable:
 - compute electrical power, waste heat, cooling burden and thermal derating added to the HAPS multi-day energy ledger;
 - service continuity under gateway/backhaul outage and platform node loss.
 
-The important paradigm shift is to optimize **where a task is processed**, not assume all data must be backhauled or that all compute should sit onboard. Some missions should process video locally and send only alerts/metadata; some should relay raw data to a ground gateway; safety-critical drone commands need a bounded control-loop response and defined fail-safe when the HAPS edge path is lost. Do not conflate a 68 ms average round-trip trial metric with a p95 control-loop SLA.
+The important paradigm shift is to optimize **where a task is processed**, not assume all data must be backhauled or that all compute should sit onboard. Some missions should process video locally and send only alerts/metadata; some should relay raw data to a ground gateway; safety-critical drone commands need a bounded control-loop response and defined fail-safe when the HAPS edge path is lost.
+
+A separate workload-placement benchmark now makes this executable rather than leaving it as a service-profile aspiration: [AERO-HAPS-EDGE-PLACE-001 #5989](https://github.com/Luminous-Dynamics/symtropy/issues/5989), with [schema](schemas/haps_edge_placement_case_v1.schema.json), [synthetic exact-oracle fixture](examples/synthetic_haps_edge_placement_case_v1.json) and [research specification](HAPS_EDGE_PLACEMENT_001.md).
+
+The current synthetic case enumerates 36 assignments for three tasks across HAPS, drone, gateway and cloud nodes; only 11 satisfy all declared deadlines, compute capacities, node power/heat limits and HAPS reserve-facing power/heat/backhaul limits. The exact minimum-system-power assignment uses HAPS for emergency fusion and drone control, with wildfire analytics at the gateway: 93 W total system power, 58 W HAPS incremental power, 49 W HAPS heat and 8 Mbps HAPS backhaul. A lowest-latency feasible assignment uses 113 W total / 73 W HAPS power / 65 W heat. The 17.7% power reduction is a fixture-specific Pareto illustration; its priority-weighted response is higher, and none of the values are hardware measurements. Do not conflate a 68 ms average round-trip trial metric with a p95 control-loop SLA.
 
 
 
@@ -280,6 +284,15 @@ Design/decision baselines:
 7. Robust-feasibility/minimax-regret selection when probability assumptions are unavailable.
 8. Symthaea decision-aware analysis/fidelity selection.
 
+Edge workload-placement baselines (see #5989):
+9. Fixed all-HAPS, all-drone, gateway and cloud placement.
+10. Earliest-deadline-first / priority-aware greedy placement.
+11. Minimum total system energy with hard deadline, node-capacity, HAPS-power and heat constraints.
+12. Exact enumeration / ILP on small cases.
+13. MAPPO, MADDPG and HAPS-assisted MATD3 (Nguyen et al. 2026); hybrid-action MADRL with task migration; priority-aware MAPPO + bipartite matching; HAPS–LEO MAPPO/potential-game coordination.
+
+For edge comparisons, freeze task arrivals, candidate nodes, compute capacities, response-basis semantics, node and network power, heat-rejection limits, backhaul, training budget and failure traces. No policy may see future task arrivals or outages. Reproduce the published MATD3/MAPPO/MADDPG comparison before claiming algorithmic superiority.
+
 Freeze mission, geography, weather sequence, payload, reserve, model versions, input digests, compute/test budget and meter boundaries. A method must not receive a better surrogate, more solver calls, broader operating domain or more independent evidence than its comparator. Publish seeds, solver failures, aborted runs, budgets and Pareto fronts.
 
 ## 8. Research targets and staged milestones
@@ -298,6 +311,14 @@ These are goals, not certification criteria or performance guarantees.
 - Then seek less than 3% RMS power error and less than 2% daily-energy error on a new independently instrumented, multi-heading, multi-temperature and multi-season holdout. These are stretch goals and only count with an independently frozen test set.
 - Calibrate battery and thermal models against measured cells/packs at relevant pressure/temperature; do not infer pack behavior from cell data.
 - Report station-keeping energy prediction error by altitude/wind regime before claiming trajectory optimization superiority.
+
+**Edge-compute placement and co-scheduling goals**
+- Reproduce Nguyen et al.'s MATD3/MAPPO/MADDPG HAPS-assisted multi-UAV cost comparison under a matched simulation boundary before claiming SOTA.
+- At equal task completion and deadline compliance, target at least 10% reduction in total system energy or latency-energy-deadline cost on held-out task traces.
+- At equal HAPS incremental Wh and heat headroom, target at least 10% more priority-weighted tasks completed.
+- Zero safety-critical control-loop tasks assigned to paths that exceed the validated response limit; link loss or late/stale commands must activate the declared local-safe fallback.
+- Zero node compute/power/heat, HAPS incremental power, heat rejection, backhaul or battery-reserve violations in runs labelled feasible.
+- Report task-level p50/p95/p99 latency, deadline miss rate by criticality, placement, compute utilization, bytes backhauled/avoided, heat generated/rejected, HAPS Wh and gateway/space-link failover. Do not compare Sceye's source-reported 68 ms average trial response directly with p95/p99 or control-loop deadlines.
 
 **Wind-navigation qualification goals**
 - Reproduce the published Fan et al. 2024 forecast baseline on its reported region/split before comparing against it: 1-hour median wind-speed error (4.8% PredRNN / 6.1% ResNet / 10.0% persistence) and 4-hour mean errors (25.3% / 26.2% / 33.0%). These are source-paper values, not universal SOTA.
@@ -337,6 +358,7 @@ Reject or mark INDETERMINATE when the energy ledger fails to close; a sequence b
 - Symtropy #3885 / #4286: aircraft/energy co-design and replenishment.
 - Symtropy #3458 / #3448 / #4080 / #4115 / #4157: optical physics, empirical WPT boundaries, session lifecycle, observability and ground-air scheduling.
 - Mycelix #3638: component, configuration, inspection and maintenance provenance.
+- [Symtropy #5989](https://github.com/Luminous-Dynamics/symtropy/issues/5989): HAPS workload placement and latency/energy/thermal co-scheduling; it composes this service contract and the existing mission electro-thermal and battery owners.
 
 This document defines benchmark contracts only. It must not create duplicate discipline solvers or self-authorize engineering results.
 
