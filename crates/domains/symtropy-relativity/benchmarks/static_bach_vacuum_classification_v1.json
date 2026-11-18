@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "static_spherical_bach_vacuum_classification",
+  "status": "symbolic_reduction_independently_checked_lean_formalization_pending",
+  "assumptions": [
+    "r>0",
+    "B(r)>0",
+    "connected interval",
+    "classical derivatives through fourth order",
+    "static spherical areal-radius gauge"
+  ],
+  "metric": "ds^2=-B(r)dt^2+dr^2/B(r)+r^2dOmega^2",
+  "definitions": {
+    "A": "(1-B)/r^2+B''/2",
+    "E": "((1-B)/r^2+B'/r-B''/2)/2",
+    "X": "A'+A/r"
+  },
+  "equations": {
+    "B1_plus_B2": "-(2*B/3)*(X'+3*X/r)",
+    "B1_minus_B2": "-8*A*E/3-4*X*(B'+B/r)/3-4*B*X'/3"
+  },
+  "integration": [
+    "B1_plus_B2=0 and B>0 imply X'+3X/r=0",
+    "X=C/r^3",
+    "X=(r*A)'/r implies A=D/r-C/r^2",
+    "Substitution into A=(1-B)/r^2+B''/2 gives r^2*B''-2B=2D*r-2C-2",
+    "Complete Euler solution: B=c_minus/r+c0+c1*r+c2*r^2, with c0=C+1 and c1=-D"
+  ],
+  "second_equation_on_integrated_family": "B1_minus_B2=4*(c0^2-3*c1*c_minus-1)/(3*r^4)",
+  "vacuum_constraint": "c0^2-3*c1*c_minus-1=0",
+  "parameter_dimension": "three-dimensional coefficient manifold in R^4, before imposing boundary or physical normalization conditions",
+  "known_controls": {
+    "schwarzschild": {
+      "c_minus": "-2",
+      "c0": "1",
+      "c1": "0",
+      "c2": "0",
+      "Q": "0"
+    },
+    "mannheim_kazanas": {
+      "c_minus": "-17/10",
+      "c0": "7/10",
+      "c1": "1/10",
+      "c2": "-1/100",
+      "Q": "0"
+    },
+    "off_shell": {
+      "c_minus": "-17/10",
+      "c0": "11/10",
+      "c1": "1/10",
+      "c2": "-1/100",
+      "Q": "18/25",
+      "B1minus_r3": "8/675",
+      "B1minus_r6": "1/1350",
+      "ratio": "16"
+    }
+  },
+  "consequences": [
+    "The static vacuum family is analytically integrable; a static vacuum radii-polynomial run should not be the first discovery benchmark.",
+    "A local uniqueness theorem must remove or parameterize the three family directions and account for gauge/normalization conditions.",
+    "Radii-polynomial certification remains appropriate for sourced/static deformations, other actions and rotating stationary PDEs."
+  ],
+  "validation": {
+    "sympy_generic_reduction_checked": true,
+    "integration_substitution_checked": true,
+    "second_projection_constraint_checked": true,
+    "independent_full_component_controls_checked": true,
+    "Lean_formalization_written": false,
+    "Lean_formalization_executed": false
+  },
+  "claim_ceiling": "Exact symbolic classification on the declared static domain; no horizon, rotating, stability, EFT or observational claim."
+}
