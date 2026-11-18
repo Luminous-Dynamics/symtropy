@@ -678,7 +678,7 @@ fn run_robust_capacity_derating_benchmarks() {
         durations.sort_unstable();
         let report = last_report.expect("at least one robust capacity sample");
         println!(
-            "{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{}",
             claim_count,
             scenario.availability_windows.len(),
             percentile(&durations, 50).as_micros(),
@@ -710,7 +710,7 @@ fn run_cumulative_resource_capacity_sweep_benchmarks() {
         durations.sort_unstable();
         let report = last_report.expect("at least one cumulative capacity sample");
         println!(
-            "{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{}",
             claim_count,
             percentile(&durations, 50).as_micros(),
             percentile(&durations, 95).as_micros(),
