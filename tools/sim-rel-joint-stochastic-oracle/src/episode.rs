@@ -1328,6 +1328,86 @@ mod tests {
     }
 
     #[test]
+    fn public_profile_ids_must_match_the_owner_kernel_catalogue_exactly() {
+        let kernel = persistent_sensor_confounding_kernel();
+        let mut manifest = test_manifest(&kernel);
+        manifest.public_profile.candidate_hypotheses.swap(0, 1);
+        assert!(matches!(
+            EpisodeProvider::new(
+                "profile-order-mismatch-0001",
+                manifest,
+                kernel,
+                EpisodeConfig::default(),
+                3,
+            ),
+            Err(EpisodeError::InvalidManifest)
+        ));
+    }
+
+    #[test]
+    fn checked_in_wire_examples_deserialize_to_typed_protocol_frames() {
+        let request: EpisodeRequest = serde_json::from_str(include_str!(
+            "../../../benchmarks/scientific-world-episodes/v0.1/wire/episode-request.example.json"
+        ))
+        .expect("request fixture must match the Rust protocol type");
+        assert_eq!(request.protocol_version, EPISODE_PROTOCOL_VERSION);
+        assert_eq!(request.view.actions.len(), 2);
+        assert_eq!(request.view.manifest.public_profile.candidate_hypotheses.len(), 2);
+
+        let probe: EpisodeResponse = serde_json::from_str(include_str!(
+            "../../../benchmarks/scientific-world-episodes/v0.1/wire/episode-response-probe.example.json"
+        ))
+        .expect("probe fixture must match the Rust protocol type");
+        assert!(matches!(
+            probe.command,
+            EpisodeCommand::Probe { ref action_id } if action_id == "calibrate-sensor"
+        ));
+
+        let finish: EpisodeResponse = serde_json::from_str(include_str!(
+            "../../../benchmarks/scientific-world-episodes/v0.1/wire/episode-response-finish.example.json"
+        ))
+        .expect("finish fixture must match the Rust protocol type");
+        match finish.command {
+            EpisodeCommand::Finish { finish } => {
+                assert_eq!(
+                    finish.compatible_hypothesis_ids,
+                    vec![
+                        "latent-mechanism-a".to_owned(),
+                        "latent-mechanism-b".to_owned()
+                    ]
+                );
+            }
+            other => panic!("expected finish fixture, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn status_correctness_is_separate_from_candidate_identity_correctness() {
+        let mut provider = new_provider(persistent_sensor_confounding_kernel(), 3);
+        for action in [
+            "measure-combined-signal",
+            "calibrate-sensor",
+            "measure-combined-signal",
+        ] {
+            provider.submit_action(action).expect("apply known intervention");
+        }
+        provider
+            .finish_episode(EpisodeFinish {
+                disposition: EpisodeFinishDisposition::Identified,
+                compatible_hypothesis_ids: vec!["latent-mechanism-b".to_owned()],
+                rationale: "The evidence identifies one mechanism, but this candidate label is deliberately wrong.".to_owned(),
+            })
+            .expect("finish with an incorrect singleton identity");
+
+        let evaluation = provider.evaluate_after_finish().unwrap();
+        assert!(evaluation.evidence_identifies_unique_hypothesis);
+        assert!(evaluation.disposition_correct);
+        assert!(!evaluation.version_space_exact_match);
+        assert_eq!(evaluation.correct_candidate_count, 0);
+        assert!(evaluation.false_unique_claim);
+    }
+
+    #[test]
     fn versioned_wire_frames_round_trip_without_hidden_kernel_or_seed() {
         let provider = new_provider(persistent_sensor_confounding_kernel(), 991);
         let request = provider.request();
