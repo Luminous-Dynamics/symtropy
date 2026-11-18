@@ -108,6 +108,18 @@ The public JSON contracts live in `schemas/`:
 
 The 42 synthetic vectors are in `fixtures/conformance-vectors-v0.1.json`; each maps to a named Rust test. A Rust test verifies all vector IDs/test names are present, and the exact-head workflow checks unique IDs, unique test names, schema anchors and that each mapped test exists in source. Schema shape validation does not authenticate evidence or establish that sensors are physically true.
 
+## Machine-readable schemas and conformance
+
+The V0.1 interface schemas are under `schemas/`:
+- `execution-binding-v0.1.schema.json` — exact plan/preflight/authorisation/limit/motion bindings and caller-supplied input digests;
+- `telemetry-event-v0.1.schema.json` — source identity, sequence, source-to-yard clock mapping, mapped event-time interval, receipt time and tagged observation;
+- `stream-coverage-v0.1.schema.json` — exact source and sequence window, target clock domain and source coverage evidence;
+- `reconciliation-policy-v0.1.schema.json` — channels, sample-gap bound and ingestion-lateness bound;
+- `reconciliation-report-v0.1.schema.json` — complete execution context, input digests, disposition, unknown intervals and diagnostics;
+- `conformance-vectors-v0.1.schema.json` — the frozen conformance set envelope.
+
+The 42 frozen synthetic vectors are in `fixtures/conformance-vectors-v0.1.json`. Each maps to an executable Rust unit test. A Rust test checks vector-to-test mapping, and CI checks unique vector IDs/test names, mapped test presence and the schema anchors. The schemas validate data shape only; semantic checks remain in Rust and source authenticity/physical truth remain with the responsible owner systems.
+
 ## Build and test
 
 The crate depends only on the local `shipyard-lift-envelope` package; it adds no third-party Rust dependencies.
