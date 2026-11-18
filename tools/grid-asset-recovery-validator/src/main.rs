@@ -158,6 +158,40 @@ fn unique_ids<'a>(ids: impl Iterator<Item = &'a str>, label: &str, errors: &mut 
     }
 }
 
+fn dependency_reaches_stage(
+    task: &Task,
+    required_stage: &str,
+    tasks_by_id: &BTreeMap<String, &Task>,
+) -> bool {
+    fn visit(
+        dependencies: &[String],
+        required_stage: &str,
+        tasks_by_id: &BTreeMap<String, &Task>,
+        visited: &mut BTreeSet<String>,
+    ) -> bool {
+        for dependency in dependencies {
+            if !visited.insert(dependency.clone()) {
+                continue;
+            }
+            if let Some(predecessor) = tasks_by_id.get(dependency) {
+                if predecessor.stage == required_stage
+                    || visit(&predecessor.depends_on, required_stage, tasks_by_id, visited)
+                {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    visit(
+        &task.depends_on,
+        required_stage,
+        tasks_by_id,
+        &mut BTreeSet::new(),
+    )
+}
+
 fn validate(case: &Case) -> Vec<String> {
     let mut errors = Vec::new();
 
@@ -248,7 +282,6 @@ fn validate(case: &Case) -> Vec<String> {
 
         let mut stages = BTreeSet::new();
         let mut task_ids = BTreeSet::new();
-        let mut stage_by_task = BTreeMap::new();
         for task in &plan.tasks {
             stages.insert(task.stage.as_str());
             if !allowed_stages.contains(task.stage.as_str()) {
@@ -260,8 +293,6 @@ fn validate(case: &Case) -> Vec<String> {
             if !task_ids.insert(task.task_id.clone()) {
                 errors.push(format!("{} has duplicate taskId {}", event.event_id, task.task_id));
             }
-            stage_by_task.insert(task.task_id.clone(), task.stage.clone());
-
             match (&task.resource_id, task.resource_units) {
                 (Some(_), Some(units)) if units > 0 => {}
                 (None, None) => {}
@@ -289,11 +320,14 @@ fn validate(case: &Case) -> Vec<String> {
         }
 
         let is_depot_stock = matches!(&plan.part_source, PartSource::DepotStock { .. });
+        let tasks_by_id: BTreeMap<String, &Task> = plan
+            .tasks
+            .iter()
+            .map(|task| (task.task_id.clone(), task))
+            .collect();
         for task in &plan.tasks {
             let dependency_has_stage = |required_stage: &str| {
-                task.depends_on.iter().any(|dependency| {
-                    stage_by_task.get(dependency).map(String::as_str) == Some(required_stage)
-                })
+                dependency_reaches_stage(task, required_stage, &tasks_by_id)
             };
             let required_predecessors: &[&str] = match task.stage.as_str() {
                 "diagnose" => &["detect_and_isolate"],
