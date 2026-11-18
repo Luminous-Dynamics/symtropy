@@ -1097,11 +1097,48 @@ pub fn simulate_with_bias_mode(
         let run_start_x_um = state.x_um;
         let run_start_y_um = state.y_um;
 
-        let run_duration = if bias_mode.uses_run_time_bias() {
+        let intrinsic_motor_persistence_time_s = if bias_mode.uses_run_time_bias() {
             profile.run_duration_s.sample_with_rng(direction, &mut rng)
         } else {
             profile.run_duration_unconditional_s.sample_with_rng(&mut rng)
         };
+        let geometry_free_path_um = profile
+            .geometry_free_path_um
+            .as_ref()
+            .map(|law| law.sample_with_rng(&mut rng));
+        if geometry_free_path_um
+            .is_some_and(|length_um| !length_um.is_finite() || length_um <= 0.0)
+        {
+            return Err(SimulationError::NonFiniteTrajectory);
+        }
+
+        // Geometry and motor persistence are independent constraints. Exact
+        // ties are attributed to the intrinsic motor switch; only a strictly
+        // earlier free-path limit is recorded as geometry-limited.
+        let geometry_limited_duration_s =
+            geometry_free_path_um.map(|length_um| length_um / profile.swimming_speed_um_s);
+        if geometry_limited_duration_s
+            .is_some_and(|duration_s| !duration_s.is_finite() || duration_s <= 0.0)
+        {
+            return Err(SimulationError::NonFiniteTrajectory);
+        }
+        let geometry_limited = geometry_limited_duration_s
+            .is_some_and(|duration_s| duration_s < intrinsic_motor_persistence_time_s);
+        let run_termination_cause = if geometry_limited {
+            RunTerminationCause::GeometryLimitedFreePath
+        } else {
+            RunTerminationCause::IntrinsicMotorSwitch
+        };
+        let run_duration = if geometry_limited {
+            geometry_limited_duration_s.expect("geometry-limited run has a path duration")
+        } else {
+            intrinsic_motor_persistence_time_s
+        };
+        let run_arc_length_um = profile.swimming_speed_um_s * run_duration;
+        if !run_arc_length_um.is_finite() || run_arc_length_um <= 0.0 {
+            return Err(SimulationError::NonFiniteTrajectory);
+        }
+
         let run_end_time_s = state.elapsed_s + run_duration;
         if !run_end_time_s.is_finite() {
             return Err(SimulationError::NonFiniteTrajectory);
@@ -1221,6 +1258,10 @@ pub fn simulate_with_bias_mode(
             run_displacement_heading_rad,
             run_displacement_um,
             incoming_heading_rad,
+            intrinsic_motor_persistence_time_s,
+            geometry_free_path_um,
+            run_termination_cause,
+            run_arc_length_um,
             run_duration_s: run_duration,
             mechanism,
             evidence_status: EventEvidenceStatus::ModelLatent,
@@ -1242,6 +1283,17 @@ pub fn simulate_with_bias_mode(
 
 /// Compute dimensionally explicit summary measures for a simulated result.
 pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
+    let intrinsic_motor_terminated_run_count = result
+        .events
+        .iter()
+        .filter(|event| event.run_termination_cause == RunTerminationCause::IntrinsicMotorSwitch)
+        .count();
+    let geometry_limited_run_count = result
+        .events
+        .iter()
+        .filter(|event| event.run_termination_cause == RunTerminationCause::GeometryLimitedFreePath)
+        .count();
+
     let short_duration_event_count = result
         .events
         .iter()
@@ -1474,6 +1526,8 @@ pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
                 unresolved_mechanism_followed_up_gradient_count as f64
                     / unresolved_mechanism_followed_run_count as f64
             }),
+        intrinsic_motor_terminated_run_count,
+        geometry_limited_run_count,
         mean_run_duration_s: (!result.events.is_empty())
             .then(|| total_run_duration / result.events.len() as f64),
         projected_drift_um_s: (elapsed > 0.0)
