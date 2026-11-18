@@ -146,6 +146,8 @@ pub enum SiteEventPayload {
         site_clock_domain_id: String,
         cleared_at_tick: u64,
         site_snapshot_sha256: String,
+        site_ledger_sequence: u64,
+        site_ledger_event_sha256: String,
         release_receipt_sha256: String,
     },
     StationQualified {
@@ -290,6 +292,8 @@ pub enum SiteLedgerError {
     DuplicateResourceId(String),
     ResourceCatalogWouldOrphanReservation(String),
     ResourceCatalogMismatch,
+    PackageHasActiveSpaceTimeReservations(String),
+    ReservationSnapshotMismatch,
     InvalidSpaceTimeReservation(String),
     DuplicateSpaceTimeReservation(String),
     UnknownSpaceTimeReservation(String),
@@ -522,6 +526,13 @@ impl SiteStateLedger {
                     ));
                 }
                 if let Some(previous) = self.active_package_sha256.as_ref() {
+                    if self.active_space_time_reservations().any(|record| {
+                        record.reservation.package_sha256 == *previous
+                    }) {
+                        return Err(SiteLedgerError::PackageHasActiveSpaceTimeReservations(
+                            previous.clone(),
+                        ));
+                    }
                     let previous_projection = self
                         .packages
                         .get(previous)
@@ -654,11 +665,20 @@ impl SiteStateLedger {
                 site_clock_domain_id,
                 cleared_at_tick,
                 site_snapshot_sha256,
+                site_ledger_sequence,
+                site_ledger_event_sha256,
                 release_receipt_sha256,
             } => {
                 require_role(event.actor_role, SiteActorRole::Referee)?;
                 if !is_sha256(site_snapshot_sha256) || !is_sha256(release_receipt_sha256) {
                     return Err(SiteLedgerError::InvalidReceiptDigest);
+                }
+                if !is_sha256(site_ledger_event_sha256)
+                    || *site_ledger_sequence != self.last_sequence
+                    || self.last_event_sha256.as_deref()
+                        != Some(site_ledger_event_sha256.as_str())
+                {
+                    return Err(SiteLedgerError::ReservationSnapshotMismatch);
                 }
                 let record = self
                     .space_time_reservations
