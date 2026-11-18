@@ -27,13 +27,39 @@ pub struct ModelPriorV1 {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SequentialActionV1 {
-    pub action_id: u32,
-    pub profile: InputProfile,
-    pub selected_sensor_ids: Vec<u32>,
-    pub covariance: ObservationCovarianceV1,
-    pub expected_identity: ObservationDesignIdentityV1,
-    pub cost: f64,
-    pub model_means: Vec<ModelObservationMeans>,
+    action_id: u32,
+    profile: InputProfile,
+    selected_sensor_ids: Vec<u32>,
+    covariance: ObservationCovarianceV1,
+    expected_identity: ObservationDesignIdentityV1,
+    cost: f64,
+    model_means: Vec<ModelObservationMeans>,
+}
+
+impl SequentialActionV1 {
+    pub fn action_id(&self) -> u32 {
+        self.action_id
+    }
+
+    pub fn profile_id(&self) -> u32 {
+        self.profile.id
+    }
+
+    pub fn selected_sensor_ids(&self) -> &[u32] {
+        &self.selected_sensor_ids
+    }
+
+    pub fn covariance(&self) -> &ObservationCovarianceV1 {
+        &self.covariance
+    }
+
+    pub fn cost(&self) -> f64 {
+        self.cost
+    }
+
+    pub fn model_means_for(&self, model_id: u32) -> Option<&ModelObservationMeans> {
+        self.model_means.iter().find(|means| means.model_id == model_id)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

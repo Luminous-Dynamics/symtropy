@@ -148,13 +148,11 @@ fn evaluator_sample(
     seed: u64,
 ) -> Result<ActionObservationV1, Box<dyn Error>> {
     let means = action
-        .model_means
-        .iter()
-        .find(|item| item.model_id == true_model_id)
+        .model_means_for(true_model_id)
         .ok_or_else(|| std::io::Error::other("evaluator truth is not a candidate model"))?;
     let flattened: Vec<f64> = means.observations.iter().flatten().copied().collect();
     let mut rng = SplitMix64::new(seed);
-    let noise = action.covariance.covariance().sample_gaussian(&mut rng)?;
+    let noise = action.covariance().covariance().sample_gaussian(&mut rng)?;
     if flattened.len() != noise.len() {
         return Err(std::io::Error::other("noise/prediction dimensions differ").into());
     }
@@ -167,12 +165,12 @@ fn evaluator_sample(
         return Err(std::io::Error::other("evaluator generated non-finite observation").into());
     }
     let rows = values
-        .chunks(action.selected_sensor_ids.len())
+        .chunks(action.selected_sensor_ids().len())
         .map(|row| row.to_vec())
         .collect();
     Ok(ActionObservationV1 {
-        action_id: action.action_id,
-        sensor_ids: action.selected_sensor_ids.clone(),
+        action_id: action.action_id(),
+        sensor_ids: action.selected_sensor_ids().to_vec(),
         times: scenario.observation_times.clone(),
         values: rows,
     })
@@ -272,7 +270,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             &actions,
             &prior,
             &[],
-            action.action_id,
+            action.action_id(),
             config.eig_replicates_per_model,
             config.eig_seed,
         )?);
@@ -316,13 +314,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let first = actions
             .iter()
-            .find(|action| action.action_id == first_action)
+            .find(|action| action.action_id() == first_action)
             .ok_or_else(|| std::io::Error::other("first action disappeared"))?;
         let first_observation = evaluator_sample(
             first,
             truth,
             &scenario,
-            trial_seed ^ u64::from(first.action_id),
+            trial_seed ^ u64::from(first.action_id()),
         )?;
 
         let mut open_history = vec![first_observation.clone()];
@@ -335,13 +333,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             let fixed_second = open_loop_sequence[1];
             let second_open = actions
                 .iter()
-                .find(|action| action.action_id == fixed_second)
+                .find(|action| action.action_id() == fixed_second)
                 .ok_or_else(|| std::io::Error::other("fixed second action disappeared"))?;
             open_history.push(evaluator_sample(
                 second_open,
                 truth,
                 &scenario,
-                trial_seed ^ u64::from(second_open.action_id),
+                trial_seed ^ u64::from(second_open.action_id()),
             )?);
             open_report =
                 decide_sequential_stop(&scenario, &actions, &prior, &open_history, config)?;
@@ -367,13 +365,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             .action_id;
             let second_adaptive = actions
                 .iter()
-                .find(|action| action.action_id == selected_second)
+                .find(|action| action.action_id() == selected_second)
                 .ok_or_else(|| std::io::Error::other("adaptive second action disappeared"))?;
             adaptive_history.push(evaluator_sample(
                 second_adaptive,
                 truth,
                 &scenario,
-                trial_seed ^ u64::from(second_adaptive.action_id),
+                trial_seed ^ u64::from(second_adaptive.action_id()),
             )?);
             adaptive_report =
                 decide_sequential_stop(&scenario, &actions, &prior, &adaptive_history, config)?;
