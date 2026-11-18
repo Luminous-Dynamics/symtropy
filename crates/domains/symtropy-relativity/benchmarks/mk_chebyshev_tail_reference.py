@@ -103,14 +103,22 @@ def rational_tail_upper(n: int) -> Fraction:
 tail_values = {}
 for n in (4, 8, 12, 16, 24, 32):
     exact = tail_bound(n)
+    exact_decimal = mp.mpf(str(sp.N(exact, 100)))
+    rational_upper = rational_tail_upper(n)
+    rational_upper_decimal = mp.mpf(rational_upper.numerator) / rational_upper.denominator
+    # Independent high-precision check that the exact rational upper fraction
+    # dominates the analytic real-valued geometric tail.
+    assert rational_upper_decimal >= exact_decimal
     tail_values[str(n)] = {
         "exact_expression": str(exact),
-        "decimal": mp.nstr(mp.mpf(str(sp.N(exact, 100))), 50),
+        "decimal": mp.nstr(exact_decimal, 50),
+        "rational_upper": str(rational_upper),
+        "rational_upper_decimal": mp.nstr(rational_upper_decimal, 50),
     }
     for x in (mp.mpf(-1), mp.mpf("-0.75"), mp.mpf("-0.25"), mp.mpf(0),
               mp.mpf("0.25"), mp.mpf("0.75"), mp.mpf(1)):
         error = abs(exact_reciprocal(x) - chebyshev_partial_sum(x, n))
-        assert error <= mp.mpf(str(sp.N(exact, 100))) * (1 + mp.mpf("1e-70"))
+        assert error <= exact_decimal * (1 + mp.mpf("1e-70"))
 
 B = c_inverse / sp.Symbol("r") + c_constant + c_linear * sp.Symbol("r") + c_quadratic * sp.Symbol("r")**2
 B3 = sp.simplify(B.subs(sp.Symbol("r"), 3))
