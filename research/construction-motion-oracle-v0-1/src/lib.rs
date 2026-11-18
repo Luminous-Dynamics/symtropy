@@ -16,7 +16,8 @@ pub use dispatch_readiness::{
     DispatchEnvelopeBinding, DispatchReadinessFailure, DispatchReadinessReceipt,
     DispatchReadinessRequest, OccupancyAssessmentReceipt,
     DISPATCH_READINESS_RECEIPT_SCHEMA_VERSION, DISPATCH_READINESS_REQUEST_SCHEMA_VERSION,
-    check_dispatch_readiness, verify_dispatch_readiness_receipt_current,
+    check_dispatch_readiness, commit_dispatch_reservation, release_space_time_reservation,
+    verify_dispatch_readiness_receipt_current,
 };
 pub use site_state_ledger::{
     ExclusiveResourceClaim, SiteResourceDefinition, SpaceTimeReservation,
