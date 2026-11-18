@@ -2,6 +2,9 @@ use std::cmp::Ordering;
 use std::collections::BTreeSet;
 use std::fmt;
 
+/// Bound quadratic ring validation and pairwise edge comparisons.
+pub const MAX_POLYGON_VERTICES: usize = 128;
+
 /// Coordinates use signed integer ticks. The caller must declare the physical
 /// scale (for example millimetres) in its benchmark manifest. No floating-point
 /// epsilon participates in authoritative predicates.
@@ -20,6 +23,7 @@ impl Point {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum GeometryError {
     TooFewVertices,
+    TooManyVertices { count: usize, max: usize },
     ConsecutiveDuplicateVertex {
         index: usize,
     },
@@ -46,6 +50,9 @@ impl fmt::Display for GeometryError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::TooFewVertices => write!(f, "a polygon requires at least three vertices"),
+            Self::TooManyVertices { count, max } => {
+                write!(f, "polygon has {count} vertices; maximum is {max}")
+            }
             Self::ConsecutiveDuplicateVertex { index } => {
                 write!(f, "consecutive duplicate vertex at index {index}")
             }
@@ -108,6 +115,12 @@ impl Polygon {
     pub fn new(vertices: Vec<Point>) -> Result<Self, GeometryError> {
         if vertices.len() < 3 {
             return Err(GeometryError::TooFewVertices);
+        }
+        if vertices.len() > MAX_POLYGON_VERTICES {
+            return Err(GeometryError::TooManyVertices {
+                count: vertices.len(),
+                max: MAX_POLYGON_VERTICES,
+            });
         }
 
         for index in 0..vertices.len() {
@@ -598,6 +611,37 @@ mod tests {
 
     fn rectangle(x0: i64, y0: i64, x1: i64, y1: i64) -> Polygon {
         polygon(&[(x0, y0), (x1, y0), (x1, y1), (x0, y1)])
+    }
+
+    #[test]
+    fn polygon_vertex_limit_bounds_quadratic_validation_cost() {
+        fn rectangle_ring(width: i64, height: i64) -> Vec<Point> {
+            let mut vertices = Vec::new();
+            for x in 0..=width {
+                vertices.push(p(x, 0));
+            }
+            for y in 1..=height {
+                vertices.push(p(width, y));
+            }
+            for x in (0..width).rev() {
+                vertices.push(p(x, height));
+            }
+            for y in (1..height).rev() {
+                vertices.push(p(0, y));
+            }
+            vertices
+        }
+
+        let at_limit = rectangle_ring(34, 30);
+        assert_eq!(at_limit.len(), MAX_POLYGON_VERTICES);
+        assert!(Polygon::new(at_limit).is_ok());
+
+        let over_limit = rectangle_ring(34, 31);
+        assert_eq!(over_limit.len(), MAX_POLYGON_VERTICES + 2);
+        assert!(matches!(
+            Polygon::new(over_limit),
+            Err(GeometryError::TooManyVertices { .. })
+        ));
     }
 
     #[test]
