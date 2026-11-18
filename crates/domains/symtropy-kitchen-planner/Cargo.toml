@@ -8,9 +8,8 @@ description = "Deterministic resource-constrained cooking schedule kernel"
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10.9"
+serde_json = "1.0"
 
 [lints.rust]
 unsafe_code = "forbid"
 
-[dev-dependencies]
-serde_json = "1.0"
