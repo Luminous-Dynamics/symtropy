@@ -768,6 +768,23 @@ pub fn run_ar1_negative_control(
     })
 }
 
+/// Run the preregistered AR(1) correlation sweep used by the noise-robustness
+/// corpus. Each rho receives a separate deterministic stream identity.
+pub fn run_ar1_robustness_corpus(
+    trials_per_rho: usize,
+    seed: u64,
+) -> Result<Vec<Ar1NegativeControlReport>, NoiseRobustnessError> {
+    let mut reports = Vec::with_capacity(3);
+    for (index, rho) in [0.2, 0.5, 0.8].into_iter().enumerate() {
+        reports.push(run_ar1_negative_control(
+            trials_per_rho,
+            seed.wrapping_add(index as u64),
+            rho,
+        )?);
+    }
+    Ok(reports)
+}
+
 fn rate(count: usize, total: usize) -> f64 {
     count as f64 / total as f64
 }
@@ -884,6 +901,23 @@ mod tests {
         assert!(report.iid_assumption_false_rejection_rate < 0.115);
         assert!(report.full_covariance_false_rejection_rate > 0.04);
         assert!(report.full_covariance_false_rejection_rate < 0.06);
+    }
+
+    #[test]
+    fn ar1_correlation_sweep_exposes_increasing_iid_miscalibration() {
+        let reports = run_ar1_robustness_corpus(20_000, 20_261_118).unwrap();
+        assert_eq!(reports.len(), 3);
+        assert_eq!(reports[0].rho, 0.2);
+        assert_eq!(reports[1].rho, 0.5);
+        assert_eq!(reports[2].rho, 0.8);
+        assert!(reports[0].iid_assumption_false_rejection_rate
+            < reports[1].iid_assumption_false_rejection_rate);
+        assert!(reports[1].iid_assumption_false_rejection_rate
+            < reports[2].iid_assumption_false_rejection_rate);
+        for report in reports {
+            assert!(report.full_covariance_false_rejection_rate > 0.04);
+            assert!(report.full_covariance_false_rejection_rate < 0.06);
+        }
     }
 
     #[test]
