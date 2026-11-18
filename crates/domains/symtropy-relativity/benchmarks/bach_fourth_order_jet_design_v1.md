@@ -232,3 +232,8 @@ This document is a design contract only. It does not implement Taylor jets or a 
 ## Derivative-order contract for the static evaluator
 
 The four Bach component values depend on fourth derivatives of B(r). The Rust API currently returns those components **and** a numerical covariant-divergence diagnostic formed by differentiating the radial Bach component. That derivative consumes fifth-order metric data. The full `static_spherical_bach` call therefore rejects an order-four jet and requires order five. The component-only algebra can be split into a separate order-four API later if callers need it; no order-four divergence check is claimed.
+
+
+## Static radial divergence derivative-order refinement
+
+The general arbitrary-metric contracted-divergence diagnostic requires fifth-order metric jets. The static spherical specialization is lower order: the explicit B_rr formula contains derivatives of B(r) only through B'''(r). Differentiating B_rr once in the radial covariant-divergence expression therefore requires B''''(r), not B'''''(r). The B_tt and angular components also require at most B''''(r), but are not differentiated by this diagnostic. The complete static_spherical_bach API consequently requires Taylor order four. The Rust regression tests check that an order-four jet succeeds and an order-three jet fails.
