@@ -67,6 +67,29 @@ pub struct IdsRequirementEvaluation {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct GeometryPreflightEvaluation {
+    /// Geometry digest that was actually evaluated.
+    pub geometry_sha256: String,
+    /// Exact build of the independent geometry/placement/clash validator.
+    pub validator_build_sha256: String,
+    /// Frame and transform context used by the geometry validator.
+    pub frame_sha256: String,
+    pub transform_sha256: String,
+    /// The validator resolved the representation, placement graph and units.
+    pub placements_resolved: bool,
+    /// The geometry is valid for the supported extraction/representation scope.
+    pub geometry_valid: bool,
+    /// All required coordinate and map-conversion checks passed.
+    pub coordinate_transform_valid: bool,
+    /// Required clash/clearance checks ran to completion over the declared scope.
+    pub clash_check_complete: bool,
+    pub critical_clash_count: u64,
+    pub unresolved_geometry_issue_count: u64,
+    /// Digest of the canonical evaluation result.
+    pub evaluation_receipt_sha256: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct IfcSourceEntity {
     /// The 22-character compressed IFC GlobalId from the source model.
     pub global_id: String,
@@ -85,6 +108,9 @@ pub struct IfcSourceEntity {
     /// Full IDS engine evaluations. A property name being present does not
     /// prove that its type/value/cardinality/constraint facets passed.
     pub ids_requirement_evaluations: Vec<IdsRequirementEvaluation>,
+    /// Separate geometry/placement/clash result; IDS 1.0 does not perform this
+    /// class of validation.
+    pub geometry_preflight: GeometryPreflightEvaluation,
     pub in_work_scope: bool,
 }
 
@@ -121,6 +147,7 @@ pub struct SourceEntityBinding {
     pub geometry_sha256: String,
     pub required_ids_properties: Vec<String>,
     pub ids_applicability_receipt_sha256: String,
+    pub geometry_preflight: GeometryPreflightEvaluation,
     pub applicable_ids_requirement_ids: Vec<String>,
     pub ids_requirement_evaluations: Vec<IdsRequirementEvaluation>,
 }
@@ -163,6 +190,15 @@ pub enum IfcIdsPreflightError {
     InvalidGlobalId(String),
     DuplicateGlobalId(String),
     InvalidGeometryDigest(String),
+    GeometryPreflightContextMismatch { global_id: String },
+    InvalidGeometryPreflightReceipt { global_id: String },
+    InvalidGeometryValidatorBuildDigest { global_id: String },
+    GeometryPlacementUnresolved { global_id: String },
+    GeometryValidationFailed { global_id: String },
+    GeometryCoordinateTransformUnqualified { global_id: String },
+    GeometryClashCheckIncomplete { global_id: String },
+    CriticalGeometryClashes { global_id: String, count: u64 },
+    UnresolvedGeometryIssues { global_id: String, count: u64 },
     InvalidIdsApplicabilityReceipt { global_id: String },
     DuplicateRequiredIdsProperty { global_id: String, property: String },
     DuplicateDeliveredIdsProperty { global_id: String, property: String },
@@ -303,6 +339,58 @@ pub fn preflight_ifc_ids_work_package(
         if !is_sha256(&source_entity.ids_applicability_receipt_sha256) {
             errors.push(IfcIdsPreflightError::InvalidIdsApplicabilityReceipt {
                 global_id: source_entity.global_id.clone(),
+            });
+        }
+
+        let geometry = &source_entity.geometry_preflight;
+        if geometry.geometry_sha256 != source_entity.geometry_sha256
+            || geometry.frame_sha256 != input.frame_sha256
+            || geometry.transform_sha256 != input.transform_sha256
+        {
+            errors.push(IfcIdsPreflightError::GeometryPreflightContextMismatch {
+                global_id: source_entity.global_id.clone(),
+            });
+        }
+        if !is_sha256(&geometry.validator_build_sha256) {
+            errors.push(IfcIdsPreflightError::InvalidGeometryValidatorBuildDigest {
+                global_id: source_entity.global_id.clone(),
+            });
+        }
+        if !is_sha256(&geometry.evaluation_receipt_sha256) {
+            errors.push(IfcIdsPreflightError::InvalidGeometryPreflightReceipt {
+                global_id: source_entity.global_id.clone(),
+            });
+        }
+        if !geometry.placements_resolved {
+            errors.push(IfcIdsPreflightError::GeometryPlacementUnresolved {
+                global_id: source_entity.global_id.clone(),
+            });
+        }
+        if !geometry.geometry_valid {
+            errors.push(IfcIdsPreflightError::GeometryValidationFailed {
+                global_id: source_entity.global_id.clone(),
+            });
+        }
+        if !geometry.coordinate_transform_valid {
+            errors.push(IfcIdsPreflightError::GeometryCoordinateTransformUnqualified {
+                global_id: source_entity.global_id.clone(),
+            });
+        }
+        if !geometry.clash_check_complete {
+            errors.push(IfcIdsPreflightError::GeometryClashCheckIncomplete {
+                global_id: source_entity.global_id.clone(),
+            });
+        }
+        if geometry.critical_clash_count > 0 {
+            errors.push(IfcIdsPreflightError::CriticalGeometryClashes {
+                global_id: source_entity.global_id.clone(),
+                count: geometry.critical_clash_count,
+            });
+        }
+        if geometry.unresolved_geometry_issue_count > 0 {
+            errors.push(IfcIdsPreflightError::UnresolvedGeometryIssues {
+                global_id: source_entity.global_id.clone(),
+                count: geometry.unresolved_geometry_issue_count,
             });
         }
 
@@ -527,6 +615,26 @@ mod tests {
         std::iter::repeat_n(byte, 22).collect()
     }
 
+    fn geometry_preflight(
+        geometry_sha256: String,
+        frame_sha256: String,
+        transform_sha256: String,
+    ) -> GeometryPreflightEvaluation {
+        GeometryPreflightEvaluation {
+            geometry_sha256,
+            validator_build_sha256: digest('f'),
+            frame_sha256,
+            transform_sha256,
+            placements_resolved: true,
+            geometry_valid: true,
+            coordinate_transform_valid: true,
+            clash_check_complete: true,
+            critical_clash_count: 0,
+            unresolved_geometry_issue_count: 0,
+            evaluation_receipt_sha256: digest('b'),
+        }
+    }
+
     fn valid_input() -> IfcIdsWorkPackageInput {
         IfcIdsWorkPackageInput {
             package_sha256: digest('1'),
@@ -593,6 +701,7 @@ mod tests {
                             evaluation_receipt_sha256: digest('d'),
                         },
                     ],
+                    geometry_preflight: geometry_preflight(digest('9'), digest('5'), digest('6')),
                     in_work_scope: true,
                 },
                 IfcSourceEntity {
@@ -608,6 +717,7 @@ mod tests {
                         passed: true,
                         evaluation_receipt_sha256: digest('e'),
                     }],
+                    geometry_preflight: geometry_preflight(digest('a'), digest('5'), digest('6')),
                     in_work_scope: true,
                 },
             ],
@@ -696,6 +806,7 @@ mod tests {
             ids_applicability_receipt_sha256: digest('1'),
             applicable_ids_requirement_ids: Vec::new(),
             ids_requirement_evaluations: Vec::new(),
+            geometry_preflight: geometry_preflight(digest('e'), digest('5'), digest('6')),
             in_work_scope: false,
         });
         let report = preflight_ifc_ids_work_package(input).unwrap();
@@ -1272,6 +1383,41 @@ mod tests {
             preflight_ifc_ids_work_package(input)
                 .unwrap_err()
                 .contains(&IfcIdsPreflightError::InvalidIdsEngineBuildDigest)
+        );
+    }
+
+
+    #[test]
+    fn incomplete_or_failed_geometry_preflight_blocks_package_compilation() {
+        let mut missing_clash_check = valid_input();
+        missing_clash_check.entities[0].geometry_preflight.clash_check_complete = false;
+        assert!(
+            preflight_ifc_ids_work_package(missing_clash_check)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::GeometryClashCheckIncomplete {
+                    global_id: global_id('0'),
+                })
+        );
+
+        let mut clash = valid_input();
+        clash.entities[0].geometry_preflight.critical_clash_count = 1;
+        assert!(
+            preflight_ifc_ids_work_package(clash)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::CriticalGeometryClashes {
+                    global_id: global_id('0'),
+                    count: 1,
+                })
+        );
+
+        let mut stale_transform = valid_input();
+        stale_transform.entities[0].geometry_preflight.transform_sha256 = digest('0');
+        assert!(
+            preflight_ifc_ids_work_package(stale_transform)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::GeometryPreflightContextMismatch {
+                    global_id: global_id('0'),
+                })
         );
     }
 
