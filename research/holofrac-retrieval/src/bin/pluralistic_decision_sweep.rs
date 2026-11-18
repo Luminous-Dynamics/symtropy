@@ -45,81 +45,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("# source_sha={source_sha}");
     println!("# target_arch={}", env::consts::ARCH);
     println!("# target_os={}", env::consts::OS);
-    println!("metric,value");
-
-    let mut privacy_veto = [None; CRITERION_COUNT];
-    privacy_veto[5] = Some(0.7);
-    let mut access_veto = [None; CRITERION_COUNT];
-    access_veto[4] = Some(0.7);
-    let mut comfort_veto = [None; CRITERION_COUNT];
-    comfort_veto[0] = Some(0.6);
-
-    let events = vec![
-        profile_event(
-            1,
-            "synthetic:resident-thermal",
-            ConsentScope::AnonymousAggregate,
-            ConsentStatus::Granted,
-            [0.4, 0.1, 0.1, 0.1, 0.1, 0.1, 0.05, 0.05],
-            comfort_veto,
-        ),
-        profile_event(
-            2,
-            "synthetic:resident-privacy",
-            ConsentScope::AnonymousAggregate,
-            ConsentStatus::Granted,
-            [0.1, 0.1, 0.05, 0.05, 0.05, 0.4, 0.1, 0.15],
-            privacy_veto,
-        ),
-        profile_event(
-            3,
-            "synthetic:facility-operator",
-            ConsentScope::AnonymousAggregate,
-            ConsentStatus::Granted,
-            [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.4, 0.3],
-            [None; CRITERION_COUNT],
-        ),
-        profile_event(
-            4,
-            "synthetic:accessibility-panel",
-            ConsentScope::AnonymousAggregate,
-            ConsentStatus::Granted,
-            [0.1, 0.1, 0.05, 0.05, 0.45, 0.05, 0.05, 0.15],
-            access_veto,
-        ),
-        profile_event(
-            5,
-            "synthetic:community",
-            ConsentScope::AnonymousAggregate,
-            ConsentStatus::Granted,
-            [0.05, 0.15, 0.05, 0.25, 0.1, 0.05, 0.2, 0.15],
-            [None; CRITERION_COUNT],
-        ),
-        profile_event(
-            6,
-            "synthetic:owner",
-            ConsentScope::NamedAggregate,
-            ConsentStatus::Granted,
-            [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.4, 0.3],
-            [None; CRITERION_COUNT],
-        ),
-        profile_event(
-            7,
-            "synthetic:local-only",
-            ConsentScope::LocalOnly,
-            ConsentStatus::Granted,
-            [0.125; CRITERION_COUNT],
-            [None; CRITERION_COUNT],
-        ),
-        profile_event(
-            8,
-            "synthetic:withdrawn",
-            ConsentScope::NamedAggregate,
-            ConsentStatus::Withdrawn,
-            [0.0; CRITERION_COUNT],
-            [None; CRITERION_COUNT],
-        ),
-    ];
+    println!("row_type,alternative,metric,value,detail");
 
     let snapshot = PreferenceLedger { events }.snapshot_as_of(100)?;
     let alternatives = vec![
@@ -151,37 +77,61 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     let report = evaluate_group(&alternatives, &snapshot)?;
-    println!("decision_cutoff_micros,{}", report.decision_cutoff_micros);
-    println!("active_stakeholders,{}", report.active_stakeholder_count);
-    println!("excluded_profiles,{}", report.excluded_profile_count);
-    println!("pareto_frontier,{}", report.pareto_frontier_ids.join(";"));
-    println!("rank_mean,{}", report.rank_by_mean().join(";"));
-    println!("rank_maximin,{}", report.rank_by_maximin().join(";"));
-    println!("rank_leximin,{}", report.rank_by_leximin().join(";"));
-    println!("# alternative,mean_satisfaction,minimum_satisfaction,individual_satisfaction");
-    for assessment in &report.assessments {
-        let per_stakeholder = assessment
-            .per_stakeholder_satisfaction
-            .iter()
-            .map(|stakeholder| {
-                format!(
-                    "{}:{:.6}",
-                    stakeholder.stakeholder_id.as_deref().unwrap_or("anonymous"),
-                    stakeholder.satisfaction
-                )
-            })
-            .collect::<Vec<_>>()
-            .join(";");
-        println!(
-            "{},{:.8},{:.8},{}",
-            assessment.alternative_id,
-            assessment.mean_satisfaction,
-            assessment.minimum_satisfaction,
-            per_stakeholder
-        );
+    println!(
+        "summary,,decision_cutoff_micros,{},",
+        report.decision_cutoff_micros
+    );
+    println!(
+        "summary,,visible_preference_events,{},",
+        snapshot.visible_event_count
+    );
+    println!(
+        "summary,,active_stakeholders,{},",
+        report.active_stakeholder_count
+    );
+    println!(
+        "summary,,excluded_profiles,{},",
+        report.excluded_profile_count
+    );
+
+    for (method, ranking) in [
+        ("mean", report.rank_by_mean()),
+        ("maximin", report.rank_by_maximin()),
+        ("leximin", report.rank_by_leximin()),
+    ] {
+        for (rank, alternative_id) in ranking.iter().enumerate() {
+            println!(
+                "ranking,{alternative_id},{method},{},",
+                rank + 1
+            );
+        }
     }
 
-    println!("# rejected alternatives");
+    for frontier_id in &report.pareto_frontier_ids {
+        println!("pareto,{frontier_id},non_dominated,true,");
+    }
+
+    for assessment in &report.assessments {
+        println!(
+            "candidate,{},{:.8},mean_satisfaction,",
+            assessment.alternative_id,
+            assessment.mean_satisfaction
+        );
+        println!(
+            "candidate,{},{:.8},minimum_satisfaction,",
+            assessment.alternative_id,
+            assessment.minimum_satisfaction
+        );
+        for stakeholder in &assessment.per_stakeholder_satisfaction {
+            println!(
+                "participant,{},{:.8},satisfaction,{}",
+                assessment.alternative_id,
+                stakeholder.satisfaction,
+                stakeholder.stakeholder_id.as_deref().unwrap_or("anonymous")
+            );
+        }
+    }
+
     for rejected in &report.rejected_alternatives {
         let reasons = rejected
             .veto_violations
@@ -200,10 +150,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .collect::<Vec<_>>()
             .join(";");
         println!(
-            "{},hard_constraints_satisfied={},vetoes={}",
-            rejected.alternative_id, rejected.hard_constraints_satisfied, reasons
+            "rejected,{},{},{},{}",
+            rejected.alternative_id,
+            "hard_constraints_satisfied",
+            rejected.hard_constraints_satisfied,
+            reasons
         );
     }
-
     Ok(())
 }
