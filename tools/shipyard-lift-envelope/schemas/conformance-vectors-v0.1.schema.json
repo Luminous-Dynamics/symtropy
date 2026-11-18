@@ -32,7 +32,7 @@
     },
     "vectors": {
       "type": "array",
-      "minItems": 35,
+      "minItems": 37,
       "items": {
         "type": "object",
         "additionalProperties": false,
