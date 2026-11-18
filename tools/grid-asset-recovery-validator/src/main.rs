@@ -1,6 +1,6 @@
 mod scheduler;
 
-use scheduler::{ScheduledTask, TaskSpec, schedule};
+use scheduler::{ScheduledTask, TaskSpec, exact_small_schedule, schedule};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -604,23 +604,35 @@ struct EventScheduleReport {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+struct ExactSmallComparison {
+    greedy_makespan_hours: f64,
+    exact_makespan_hours: f64,
+    absolute_gap_hours: f64,
+    relative_gap: f64,
+    exact_schedule: Vec<ScheduledTask>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 struct ScheduleReport {
     case_id: String,
     case_maturity: String,
     scheduler: String,
     optimality_status: String,
+    exact_small_comparison: Option<ExactSmallComparison>,
     events: Vec<EventScheduleReport>,
     scheduled_tasks: Vec<ScheduledTask>,
 }
 
-fn schedule_for_case(case: &Case) -> Result<Vec<ScheduledTask>, Vec<String>> {
-    let capacities: BTreeMap<String, u32> = case
-        .resources
+fn resource_capacities(case: &Case) -> BTreeMap<String, u32> {
+    case.resources
         .iter()
         .map(|resource| (resource.resource_id.clone(), resource.available_units))
-        .collect();
-    let tasks: Vec<TaskSpec> = case
-        .events
+        .collect()
+}
+
+fn task_specs_for_case(case: &Case) -> Vec<TaskSpec> {
+    case.events
         .iter()
         .flat_map(|event| {
             event.selected_plan.tasks.iter().map(move |task| TaskSpec {
@@ -633,11 +645,18 @@ fn schedule_for_case(case: &Case) -> Result<Vec<ScheduledTask>, Vec<String>> {
                 resource_units: task.resource_units.unwrap_or(0),
             })
         })
-        .collect();
-    schedule(&tasks, &capacities)
+        .collect()
 }
 
-fn build_report(case: &Case, mut scheduled_tasks: Vec<ScheduledTask>) -> ScheduleReport {
+fn schedule_for_case(case: &Case) -> Result<Vec<ScheduledTask>, Vec<String>> {
+    schedule(&task_specs_for_case(case), &resource_capacities(case))
+}
+
+fn build_report(
+    case: &Case,
+    mut scheduled_tasks: Vec<ScheduledTask>,
+    exact_small_comparison: Option<ExactSmallComparison>,
+) -> ScheduleReport {
     scheduled_tasks.sort_by(|left, right| {
         left.start_hour
             .total_cmp(&right.start_hour)
@@ -674,7 +693,12 @@ fn build_report(case: &Case, mut scheduled_tasks: Vec<ScheduledTask>) -> Schedul
         case_id: case.case_id.clone(),
         case_maturity: case.case_maturity.clone(),
         scheduler: "earliest_feasible_start_list_v0.1".to_string(),
-        optimality_status: "heuristic_not_proven_optimal".to_string(),
+        optimality_status: if exact_small_comparison.is_some() {
+            "exhaustively_optimal_for_bounded_case".to_string()
+        } else {
+            "heuristic_not_proven_optimal".to_string()
+        },
+        exact_small_comparison,
         events,
         scheduled_tasks,
     }
@@ -692,8 +716,20 @@ fn run(input: &str) -> Result<(Case, Vec<ScheduledTask>), Vec<String>> {
 }
 
 fn main() {
-    let Some(path) = env::args().nth(1) else {
-        eprintln!("usage: grid-asset-recovery-validator <case.json>");
+    let mut path = None;
+    let mut exact_small = false;
+    for argument in env::args().skip(1) {
+        if argument == "--exact-small" {
+            exact_small = true;
+        } else if path.is_none() {
+            path = Some(argument);
+        } else {
+            eprintln!("usage: grid-asset-recovery-validator [--exact-small] <case.json>");
+            process::exit(2);
+        }
+    }
+    let Some(path) = path else {
+        eprintln!("usage: grid-asset-recovery-validator [--exact-small] <case.json>");
         process::exit(2);
     };
     let input = fs::read_to_string(&path).unwrap_or_else(|error| {
@@ -702,7 +738,42 @@ fn main() {
     });
     match run(&input) {
         Ok((case, scheduled)) => {
-            let report = build_report(&case, scheduled);
+            let exact_comparison = if exact_small {
+                let tasks = task_specs_for_case(&case);
+                let capacities = resource_capacities(&case);
+                match exact_small_schedule(&tasks, &capacities) {
+                    Ok(exact_schedule) => {
+                        let greedy_makespan = scheduled
+                            .iter()
+                            .map(|task| task.end_hour)
+                            .fold(0.0, f64::max);
+                        let exact_makespan = exact_schedule
+                            .iter()
+                            .map(|task| task.end_hour)
+                            .fold(0.0, f64::max);
+                        Some(ExactSmallComparison {
+                            greedy_makespan_hours: greedy_makespan,
+                            exact_makespan_hours: exact_makespan,
+                            absolute_gap_hours: (greedy_makespan - exact_makespan).max(0.0),
+                            relative_gap: if exact_makespan > 0.0 {
+                                (greedy_makespan - exact_makespan).max(0.0) / exact_makespan
+                            } else {
+                                0.0
+                            },
+                            exact_schedule,
+                        })
+                    }
+                    Err(errors) => {
+                        for error in errors {
+                            eprintln!("EXACT-REFERENCE-FAIL: {error}");
+                        }
+                        process::exit(1);
+                    }
+                }
+            } else {
+                None
+            };
+            let report = build_report(&case, scheduled, exact_comparison);
             println!(
                 "{}",
                 serde_json::to_string_pretty(&report).expect("schedule report serializes")
