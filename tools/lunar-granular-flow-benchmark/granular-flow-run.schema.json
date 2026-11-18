@@ -1147,10 +1147,6 @@
         "derived_from_artifact_ids",
         "formula_set_id",
         "uncertainty_propagation_method",
-        "granular_bond_number_p05",
-        "granular_bond_number_p50",
-        "granular_bond_number_p95",
-        "granular_bond_number_p99",
         "adhesion_bond_by_size_class",
         "confinement_to_tensile_strength_ratio",
         "breakage_segregation_timescale_ratio"
@@ -1202,18 +1198,6 @@
             "interval_bounds",
             "not_applicable_synthetic"
           ]
-        },
-        "granular_bond_number_p05": {
-          "$ref": "#/$defs/measurement"
-        },
-        "granular_bond_number_p50": {
-          "$ref": "#/$defs/measurement"
-        },
-        "granular_bond_number_p95": {
-          "$ref": "#/$defs/measurement"
-        },
-        "granular_bond_number_p99": {
-          "$ref": "#/$defs/measurement"
         },
         "adhesion_bond_by_size_class": {
           "type": "array",
