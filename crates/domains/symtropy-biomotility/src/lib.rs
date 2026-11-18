@@ -19,6 +19,12 @@ use std::error::Error;
 use std::f64::consts::{PI, TAU};
 use std::fmt;
 
+mod renewal;
+pub use renewal::{
+    DirectionalWaitingTimes, SurvivalCurve, SurvivalError, SurvivalObservation,
+    SurvivalOutcome, SurvivalPoint, WaitingTimeLaw, WaitingTimeLawError, kaplan_meier,
+};
+
 pub const EVENT_CLASS_THRESHOLD_S: f64 = 1.0;
 /// Numerical deadband around a mathematically cross-gradient direction.
 pub const DIRECTION_ALIGNMENT_EPSILON: f64 = 1.0e-12;
@@ -240,16 +246,16 @@ pub struct PorousMotilityProfile {
     pub swimming_speed_um_s: f64,
     pub rotational_diffusion_rad2_s: f64,
     pub integration_step_s: f64,
-    pub run_duration_s: DirectionalSamples,
-    pub run_duration_unconditional_s: SampleSet,
+    pub run_duration_s: DirectionalWaitingTimes,
+    pub run_duration_unconditional_s: WaitingTimeLaw,
     pub mechanism_probabilities: MechanismProbabilities,
     pub threshold_boundary_policy: ThresholdBoundaryPolicy,
     /// Duration samples conditioned on an active motor event.
-    pub active_motor_event_duration_s: SampleSet,
-    /// Duration samples conditioned on passive mechanical trapping.
-    pub passive_trap_event_duration_s: SampleSet,
-    /// Duration samples when event cause remains unresolved.
-    pub unresolved_event_duration_s: SampleSet,
+    pub active_motor_event_duration_s: WaitingTimeLaw,
+    /// Duration law conditioned on passive mechanical trapping.
+    pub passive_trap_event_duration_s: WaitingTimeLaw,
+    /// Duration law when event cause remains unresolved.
+    pub unresolved_event_duration_s: WaitingTimeLaw,
     /// Direction-conditioned turns for active motor events.
     pub active_motor_turn_angle_rad: DirectionalSamples,
     /// Pooled active-turn angles for the turn-angle-bias ablation.
@@ -275,15 +281,11 @@ impl PorousMotilityProfile {
         }
 
         self.mechanism_probabilities.validate()?;
-        self.run_duration_s.validate_positive("run_duration_s")?;
-        self.run_duration_unconditional_s
-            .validate_positive("run_duration_unconditional_s")?;
-        self.active_motor_event_duration_s
-            .validate_positive("active_motor_event_duration_s")?;
-        self.passive_trap_event_duration_s
-            .validate_positive("passive_trap_event_duration_s")?;
-        self.unresolved_event_duration_s
-            .validate_positive("unresolved_event_duration_s")?;
+        self.run_duration_s.validate()?;
+        self.run_duration_unconditional_s.validate()?;
+        self.active_motor_event_duration_s.validate()?;
+        self.passive_trap_event_duration_s.validate()?;
+        self.unresolved_event_duration_s.validate()?;
         self.active_motor_turn_angle_rad
             .validate_finite("active_motor_turn_angle_rad")?;
         self.active_motor_turn_angle_unconditional_rad
@@ -337,6 +339,7 @@ pub enum ProfileError {
     InvalidRotationalDiffusion,
     InvalidIntegrationStep,
     InvalidMechanismProbabilities,
+    InvalidWaitingTimeLaw(WaitingTimeLawError),
     InvalidEventDuration,
     InvalidEventThreshold,
 }
@@ -368,6 +371,9 @@ impl fmt::Display for ProfileError {
                     "event mechanism probabilities must be finite, bounded and sum to one"
                 )
             }
+            Self::InvalidWaitingTimeLaw(error) => {
+                write!(formatter, "invalid waiting-time law: {error}")
+            }
             Self::InvalidEventDuration => {
                 write!(formatter, "event duration must be finite and positive")
             }
@@ -379,6 +385,12 @@ impl fmt::Display for ProfileError {
 }
 
 impl Error for ProfileError {}
+
+impl From<WaitingTimeLawError> for ProfileError {
+    fn from(value: WaitingTimeLawError) -> Self {
+        Self::InvalidWaitingTimeLaw(value)
+    }
+}
 
 /// Canonical two-dimensional agent state.
 ///
@@ -1041,9 +1053,9 @@ pub fn simulate_with_bias_mode(
         let run_start_y_um = state.y_um;
 
         let run_duration = if bias_mode.uses_run_time_bias() {
-            profile.run_duration_s.sample(direction, &mut rng)
+            profile.run_duration_s.sample_with_rng(direction, &mut rng)
         } else {
-            profile.run_duration_unconditional_s.sample(&mut rng)
+            profile.run_duration_unconditional_s.sample_with_rng(&mut rng)
         };
         let run_end_time_s = state.elapsed_s + run_duration;
         if !run_end_time_s.is_finite() {
@@ -1119,16 +1131,16 @@ pub fn simulate_with_bias_mode(
                         .sample(&mut rng)
                 };
                 (
-                    profile.active_motor_event_duration_s.sample(&mut rng),
+                    profile.active_motor_event_duration_s.sample_with_rng(&mut rng),
                     angle,
                 )
             }
             EventMechanism::PassiveMechanicalTrap => (
-                profile.passive_trap_event_duration_s.sample(&mut rng),
+                profile.passive_trap_event_duration_s.sample_with_rng(&mut rng),
                 profile.passive_trap_turn_angle_rad.sample(&mut rng),
             ),
             EventMechanism::Unresolved => (
-                profile.unresolved_event_duration_s.sample(&mut rng),
+                profile.unresolved_event_duration_s.sample_with_rng(&mut rng),
                 profile.unresolved_turn_angle_rad.sample(&mut rng),
             ),
         };
@@ -1663,22 +1675,38 @@ mod tests {
         }
     }
 
+    fn empirical_time(values: Vec<f64>) -> WaitingTimeLaw {
+        WaitingTimeLaw::empirical(values)
+    }
+
+    fn directional_times(
+        up: Vec<f64>,
+        cross: Vec<f64>,
+        down: Vec<f64>,
+    ) -> DirectionalWaitingTimes {
+        DirectionalWaitingTimes {
+            up_gradient: empirical_time(up),
+            cross_gradient: empirical_time(cross),
+            down_gradient: empirical_time(down),
+        }
+    }
+
     fn steering_profile() -> PorousMotilityProfile {
         PorousMotilityProfile {
             swimming_speed_um_s: 20.0,
             rotational_diffusion_rad2_s: 0.0,
             integration_step_s: 0.05,
-            run_duration_s: directional(vec![0.25], vec![0.25], vec![0.25]),
-            run_duration_unconditional_s: SampleSet::new(vec![0.25]),
+            run_duration_s: directional_times(vec![0.25], vec![0.25], vec![0.25]),
+            run_duration_unconditional_s: empirical_time(vec![0.25]),
             mechanism_probabilities: MechanismProbabilities {
                 active_motor: 1.0,
                 passive_trap: 0.0,
                 unresolved: 0.0,
             },
             threshold_boundary_policy: ThresholdBoundaryPolicy::ShortInclusive,
-            active_motor_event_duration_s: SampleSet::new(vec![0.25]),
-            passive_trap_event_duration_s: SampleSet::new(vec![2.0]),
-            unresolved_event_duration_s: SampleSet::new(vec![1.0]),
+            active_motor_event_duration_s: empirical_time(vec![0.25]),
+            passive_trap_event_duration_s: empirical_time(vec![2.0]),
+            unresolved_event_duration_s: empirical_time(vec![1.0]),
             active_motor_turn_angle_rad: directional(
                 vec![0.0],
                 vec![-PI / 2.0, PI / 2.0],
@@ -1712,9 +1740,9 @@ mod tests {
     #[test]
     fn validates_physical_mechanism_profiles_without_duration_causation() {
         let mut profile = steering_profile();
-        profile.active_motor_event_duration_s = SampleSet::new(vec![0.4, 1.2]);
-        profile.passive_trap_event_duration_s = SampleSet::new(vec![0.2, 2.0]);
-        profile.unresolved_event_duration_s = SampleSet::new(vec![1.0]);
+        profile.active_motor_event_duration_s = empirical_time(vec![0.4, 1.2]);
+        profile.passive_trap_event_duration_s = empirical_time(vec![0.2, 2.0]);
+        profile.unresolved_event_duration_s = empirical_time(vec![1.0]);
         assert!(profile.validate().is_ok());
 
         let mut invalid = steering_profile();
@@ -1729,10 +1757,12 @@ mod tests {
         );
 
         let mut invalid = steering_profile();
-        invalid.active_motor_event_duration_s = SampleSet::new(vec![0.0]);
+        invalid.active_motor_event_duration_s = empirical_time(vec![0.0]);
         assert_eq!(
             invalid.validate(),
-            Err(ProfileError::NonPositiveSample("active_motor_event_duration_s"))
+            Err(ProfileError::InvalidWaitingTimeLaw(
+                WaitingTimeLawError::InvalidEmpiricalSample
+            ))
         );
 
         let mut invalid = steering_profile();
@@ -1778,7 +1808,7 @@ mod tests {
             passive_trap: 0.0,
             unresolved: 0.0,
         };
-        profile.active_motor_event_duration_s = SampleSet::new(vec![2.0]);
+        profile.active_motor_event_duration_s = empirical_time(vec![2.0]);
 
         let active = simulate(
             &profile,
@@ -1807,7 +1837,7 @@ mod tests {
             passive_trap: 1.0,
             unresolved: 0.0,
         };
-        profile.passive_trap_event_duration_s = SampleSet::new(vec![0.25]);
+        profile.passive_trap_event_duration_s = empirical_time(vec![0.25]);
 
         let passive = simulate(
             &profile,
@@ -2020,8 +2050,8 @@ mod tests {
     #[test]
     fn four_bias_modes_isolate_temporal_and_angular_mechanisms() {
         let mut profile = steering_profile();
-        profile.run_duration_s = directional(vec![0.1], vec![0.25], vec![0.4]);
-        profile.run_duration_unconditional_s = SampleSet::new(vec![0.25]);
+        profile.run_duration_s = directional_times(vec![0.1], vec![0.25], vec![0.4]);
+        profile.run_duration_unconditional_s = empirical_time(vec![0.25]);
 
         let initial = AgentState::new(0.0, 0.0, PI);
         let modes = [
