@@ -426,7 +426,13 @@ pub struct EventRecord {
     /// Instantaneous tangent at the end of the run, before the interruption.
     pub incoming_heading_rad: f64,
     pub run_duration_s: f64,
-    pub event_class: EventClass,
+    /// Physical mechanism selected by the model; never inferred from duration.
+    pub mechanism: EventMechanism,
+    /// Evidence class for the mechanism assignment. Simulated ground-truth
+    /// labels are MODEL_LATENT, not direct biological observations.
+    pub evidence_status: EventEvidenceStatus,
+    /// Duration subgroup derived independently from the physical mechanism.
+    pub duration_bin: EventDurationBin,
     pub event_duration_s: f64,
     pub turn_angle_rad: f64,
     pub heading_after_event_rad: f64,
@@ -456,26 +462,35 @@ pub struct SimulationResult {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BehaviorSummary {
     pub event_count: usize,
-    pub short_event_count: usize,
-    pub long_trap_count: usize,
+    /// Event counts by observed duration bin (not physical cause).
+    pub short_duration_event_count: usize,
+    pub long_duration_event_count: usize,
+    pub exact_boundary_excluded_event_count: usize,
+    /// Event counts by physical mechanism (not duration).
+    pub active_motor_event_count: usize,
+    pub passive_trap_event_count: usize,
+    pub unresolved_mechanism_event_count: usize,
     /// Number of completed runs with a resolved net displacement direction.
     pub resolved_run_direction_count: usize,
-    /// Number of resolved completed runs oriented up-gradient.
     pub up_gradient_run_count: usize,
-    /// Fraction of resolved completed runs oriented up-gradient.
     pub up_gradient_run_fraction: Option<f64>,
-    /// Number of short events with an observed following run.
-    pub short_event_followed_run_count: usize,
-    /// Number of those following runs initially oriented up-gradient.
-    pub short_event_followed_up_gradient_count: usize,
-    /// Conditional fraction among observed runs following short events.
-    pub short_event_followed_up_gradient_fraction: Option<f64>,
-    /// Number of long traps with an observed following run.
-    pub long_trap_followed_run_count: usize,
-    /// Number of those following runs initially oriented up-gradient.
-    pub long_trap_followed_up_gradient_count: usize,
-    /// Conditional fraction among observed runs following long traps.
-    pub long_trap_followed_up_gradient_fraction: Option<f64>,
+    /// Next-run orientation conditioned on the previous event's duration bin.
+    pub short_duration_followed_run_count: usize,
+    pub short_duration_followed_up_gradient_count: usize,
+    pub short_duration_followed_up_gradient_fraction: Option<f64>,
+    pub long_duration_followed_run_count: usize,
+    pub long_duration_followed_up_gradient_count: usize,
+    pub long_duration_followed_up_gradient_fraction: Option<f64>,
+    /// Next-run orientation conditioned on the previous event's mechanism.
+    pub active_motor_followed_run_count: usize,
+    pub active_motor_followed_up_gradient_count: usize,
+    pub active_motor_followed_up_gradient_fraction: Option<f64>,
+    pub passive_trap_followed_run_count: usize,
+    pub passive_trap_followed_up_gradient_count: usize,
+    pub passive_trap_followed_up_gradient_fraction: Option<f64>,
+    pub unresolved_mechanism_followed_run_count: usize,
+    pub unresolved_mechanism_followed_up_gradient_count: usize,
+    pub unresolved_mechanism_followed_up_gradient_fraction: Option<f64>,
     pub mean_run_duration_s: Option<f64>,
     pub projected_drift_um_s: Option<f64>,
 }
