@@ -15,7 +15,9 @@
     ],
     "optional_isolation_axes": [
       "laboratory_id",
-      "campaign_id"
+      "campaign_id",
+      "feeder_geometry_id",
+      "vibration_profile_id"
     ],
     "partition_order": [
       "calibration",
