@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-reservation-command-request-v0.1.json",
+  "title": "Construction Reservation Command Request v0.1",
+  "description": "A command-admission request bound to a committed space-time reservation. This schema is not an authorization signature or actuator permit.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "reservation_id",
+    "fencing_token",
+    "robot_id",
+    "attempt_id",
+    "package_sha256",
+    "design_revision_sha256",
+    "entity_id",
+    "envelope_sha256",
+    "resource_catalog_sha256",
+    "resource_claim_manifest_sha256",
+    "readiness_receipt_sha256",
+    "readiness_receipt",
+    "current_ledger_sequence",
+    "current_ledger_event_sha256",
+    "site_clock_domain_id",
+    "command_id",
+    "command_sha256",
+    "command_sequence",
+    "issued_at_tick",
+    "now_tick"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-space-time-reservation-command/0.1"
+    },
+    "reservation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fencing_token": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "robot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "attempt_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "package_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "design_revision_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "entity_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "envelope_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "resource_catalog_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "resource_claim_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "readiness_receipt_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "readiness_receipt": {
+      "$ref": "#/$defs/readiness_receipt"
+    },
+    "current_ledger_sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "current_ledger_event_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "site_clock_domain_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "command_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "command_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "command_sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "issued_at_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "now_tick": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "readiness_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "package_sha256",
+        "design_revision_sha256",
+        "entity_id",
+        "robot_id",
+        "envelope_sha256",
+        "site_snapshot_sha256",
+        "occupancy_assessment_receipt_sha256",
+        "occupancy_engine_build_sha256",
+        "clearance_policy_sha256",
+        "site_ledger_sequence",
+        "site_ledger_event_sha256",
+        "site_clock_domain_id",
+        "checked_at_tick",
+        "valid_until_tick"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "construction-dispatch-readiness-receipt/0.1"
+        },
+        "package_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "design_revision_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "entity_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "robot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "envelope_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "occupancy_assessment_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "occupancy_engine_build_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "clearance_policy_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_ledger_sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "site_ledger_event_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checked_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_tick": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}
