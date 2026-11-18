@@ -100,7 +100,10 @@ cargo fmt --manifest-path tools/shipyard-lift-envelope/Cargo.toml -- --check
 cargo test --locked --offline --manifest-path tools/shipyard-lift-envelope/Cargo.toml
 cargo check --locked --offline --manifest-path tools/shipyard-lift-envelope/Cargo.toml --all-targets
 cargo clippy --locked --offline --manifest-path tools/shipyard-lift-envelope/Cargo.toml --all-targets -- -D warnings
+cargo run --locked --offline --manifest-path tools/shipyard-lift-envelope/Cargo.toml --example synthetic_preflight
 ```
+
+The exact-head workflow also runs the synthetic example, verifies its canonical input/report fields, checks the expected human-review-only disposition, computes separate SHA-256 digests for both byte streams, and retains a small evidence receipt/artifact. This example remains synthetic; it is not a real crane chart or lift instruction.
 
 The Rust toolchain is unavailable in the current authoring environment. These tests have been authored but have **not** been compiled or run locally; the exact-head workflow is the next gate.
 
