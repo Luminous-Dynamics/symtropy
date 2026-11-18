@@ -42,13 +42,6 @@ impl Default for EpisodeConfig {
     }
 }
 
-/// Public, non-secret identities that bind one episode to its exact model inputs.
-///
-/// All digests are lowercase SHA-256 hex strings supplied by the trusted runner.
-/// These values may be shown to the research policy; per-episode seeds and hidden
-/// initial-state realizations must not be included here.
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 /// Public description of one candidate mechanism in a closed-family identification task.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
