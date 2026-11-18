@@ -1,6 +1,6 @@
 # SIM-REL-013 joint stochastic experimental-design oracle
 
-This dependency-free Rust crate is the bounded exact reference for SIM-REL-013.
+This Rust crate is the bounded exact reference for SIM-REL-013. The oracle core remains deterministic and dependency-light; the interactive wire surface uses pinned `serde` and `serde_json` for typed JSONL serialization.
 
 ## Research shift: one joint latent state, not three convenient marginals
 
@@ -54,11 +54,23 @@ The 18 authored adapter tests include a known-answer confounding world: two priv
 
 The first profile is synchronous and discrete: for each emitted observation, event, acquisition, and availability steps are equal. Each action receipt records its pre-action request step and post-transition execution step separately. It does not simulate delayed acquisition or late delivery. Add those semantics only with an owner model that represents the relevant clock and process evolution.
 
+### Versioned policy wire protocol
+
+The adapter defines `EPISODE_PROTOCOL_VERSION = "symtropy-joint-world-episode-v0"` and two serde frames:
+- `EpisodeRequest`: trusted runner → policy; contains the version and public `EpisodeView` only.
+- `EpisodeResponse`: policy → trusted runner; contains the version and one `EpisodeCommand` (`probe` or `finish`).
+
+The public JSON Schemas and example frames live under `benchmarks/scientific-world-episodes/v0.1/wire/`. A Symthaea process runner can call its generic `ProcessAgent::exchange::<EpisodeRequest, EpisodeResponse>`; the trusted world runner then applies the command through `EpisodeProvider::apply_response`, creates the next request and repeats. The provider object, sampled state, complete kernel, seed and evaluator output must remain in the trusted runner—not in the policy process.
+
+A finish command reports one of `identified`, `ambiguous`, `no_compatible_model`, or `abstain`, plus a bounded rationale. The trusted provider then computes `EpisodeEvaluation` from exact rational likelihood propagation over the supplied joint kernel and the recorded action/observation history. Its exact compatible-hypothesis list and false-unique/abstention outcomes are evaluator-only and are never placed in a public request or response.
+
+**Claim ceiling:** v0 evaluates epistemic-status calibration against a finite supplied hypothesis family. It does not yet score the semantic correctness of a free-form mechanism/model description, nor discover mechanisms outside the kernel's candidate family. Because a valid episode is generated from the supplied candidate family, `no_compatible_model` cannot be a correct outcome on an ordinary in-support fixture; genuine open-world/OOD qualification requires a separately modelled external mechanism and an independent task oracle. Do not call this an ansatz-free discovery result.
+
 ### Randomness and claim ceiling
 
 The trajectory sampler uses the named SplitMix64 generator for reproducible runs. It is **not cryptographic randomness** and must not protect a sealed challenge seed from a process that can inspect/control the provider. A blind evaluation still needs an independently isolated runner and oracle custody.
 
-The trajectory sampler converts exact rational weights to f64 and uses a 53-bit uniform draw. To avoid silently dropping positive events below the draw grid, it rejects any positive outcome or initial-state mass below 2^-52. This is a conservative representability guard, not an exact rational sampler; it excludes rare-event kernels from this adapter even though the exact oracle can still analyze them. The exact kernel, finite-horizon optimizer and independent policy replay remain the authorities for exact finite-domain probability calculations. The adapter does not turn a modelled transition into measured evidence, validate a biological/physical model, or control a real experiment.
+The trajectory sampler converts exact rational weights to f64 and uses a 53-bit uniform draw. To avoid silently dropping positive events below the draw grid, it rejects any positive outcome or initial-state mass below 2^-52. This is a conservative representability guard, not an exact rational sampler; it excludes rare-event kernels from this adapter even though the exact oracle can still analyze them. The exact kernel, finite-horizon optimizer and independent policy replay remain the authorities for exact finite-domain probability calculations. The adapter does not turn a modelled transition into measured evidence, validate a biological/physical model, score a free-form scientific model claim, or control a real experiment.
 
 ### Run the adapter tests
 
