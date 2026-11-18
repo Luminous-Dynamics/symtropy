@@ -10,7 +10,12 @@
       "wall_roughness_to_particle_ratio": 0.1,
       "fill_fraction": 0.25,
       "gravity_m_s2": 9.81,
-      "chamber_pressure_pa": 0.08
+      "chamber_pressure_pa": 0.08,
+      "inertial_number": 0.01,
+      "electrostatic_number": -0.5,
+      "vibration_gamma": 0.816,
+      "vibration_frequency_gravity_scale": 0.0857,
+      "vibration_amplitude_to_particle_size": 2.22
     },
     "categorical": {
       "atmosphere": "high_vacuum",
@@ -30,7 +35,12 @@
       "wall_roughness_to_particle_ratio": 0.11,
       "fill_fraction": 0.27,
       "gravity_m_s2": 9.81,
-      "chamber_pressure_pa": 0.08
+      "chamber_pressure_pa": 0.08,
+      "inertial_number": 0.011,
+      "electrostatic_number": -0.55,
+      "vibration_gamma": 0.84,
+      "vibration_frequency_gravity_scale": 0.088,
+      "vibration_amplitude_to_particle_size": 2.3
     },
     "categorical": {
       "atmosphere": "high_vacuum",
@@ -47,6 +57,11 @@
     "wall_roughness_factor": 1.2,
     "fill_fraction_absolute": 0.05,
     "gravity_factor": 1.1,
-    "pressure_factor": 1.25
+    "pressure_factor": 1.25,
+    "inertial_number_factor": 1.25,
+    "electrostatic_number_factor": 1.25,
+    "vibration_gamma_factor": 1.25,
+    "vibration_frequency_factor": 1.25,
+    "vibration_amplitude_factor": 1.25
   }
 }
