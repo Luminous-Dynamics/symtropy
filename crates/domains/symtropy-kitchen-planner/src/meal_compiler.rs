@@ -273,6 +273,7 @@ pub struct MealTaskCompilationBindingV1 {
     pub ontology_binding: Option<ActionOntologyBindingV1>,
     pub action_resolution_ref: String,
     pub duration_method_ref: String,
+    pub schedule_resolution_ref: String,
     pub resource_resolution_ref: String,
     pub instruction_ref: Option<String>,
     pub outputs: Vec<PlannedTaskOutputV1>,
@@ -330,7 +331,7 @@ pub struct FoodFlowGraphV1 {
 
 pub const FOOD_FLOW_GRAPH_CLAIM_CEILING: &str = "Planned typed ingredient and intermediate material allocations only; not measured process yield, mass-balance closure, physical inventory, food safety, sensory acceptance, or disposal evidence.";
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct MealCompilationRequestV1 {
     pub schema_version: u32,
@@ -426,6 +427,7 @@ pub struct MealCompilationReportV1 {
     pub compiler_version_ref: String,
     pub disposition: MealCompilationDispositionV1,
     pub issues: Vec<MealCompilationIssueV1>,
+    pub resolution_refs: Vec<String>,
     pub recipe_graph: Option<RecipeTaskGraphV1>,
     pub food_flow_graph: Option<FoodFlowGraphV1>,
     pub claim_ceiling: String,
@@ -613,6 +615,14 @@ fn validate_proposal(
             "proposal identity, title, source, revision and serving count must be valid",
         );
     }
+    if proposal.ingredients.is_empty() || proposal.tasks.is_empty() {
+        add_issue(
+            issues,
+            MealCompilationIssueCodeV1::InvalidProposal,
+            Some(&proposal.proposal_id),
+            "proposal requires at least one ingredient and one task",
+        );
+    }
     if proposal.claim_ceiling != MEAL_PROPOSAL_CLAIM_CEILING {
         add_issue(
             issues,
@@ -740,6 +750,15 @@ fn validate_proposal(
                     "task ingredient references must be unique",
                 );
             }
+        }
+        let mut dependency_ids = BTreeSet::new();
+        if task.depends_on.iter().any(|dependency| !dependency_ids.insert(dependency.as_str())) {
+            add_issue(
+                issues,
+                MealCompilationIssueCodeV1::InvalidProposal,
+                Some(&task.task_id),
+                "proposal task dependency IDs must be unique",
+            );
         }
         if task
             .estimated_duration_min_ms
@@ -1036,6 +1055,14 @@ fn validate_task_bindings(
                 "a duration method or evidence reference is required",
             );
         }
+        if !nonempty(&binding.schedule_resolution_ref) {
+            add_issue(
+                issues,
+                MealCompilationIssueCodeV1::MissingDurationEvidence,
+                Some(&binding.task_id),
+                "an explicit schedule and dependency-lag resolution reference is required",
+            );
+        }
         if !nonempty(&binding.resource_resolution_ref) {
             add_issue(
                 issues,
@@ -1126,9 +1153,9 @@ fn validate_task_bindings(
             {
                 add_issue(
                     issues,
-                    MealCompilationIssueCodeV1::InvalidTaskOutput,
+                    MealCompilationIssueCodeV1::OutputIngredientLineageMismatch,
                     Some(&binding.task_id),
-                    "output ingredient-origin references must be non-empty and unique",
+                    "output ingredient origins must be unique and declared by the producing proposal task",
                 );
             }
         }
@@ -1302,10 +1329,9 @@ fn validate_food_flows(
                 FoodFlowSourceV1::TaskOutput { task_id: producer, output_ref },
                 FoodFlowDestinationV1::TaskInput { task_id: consumer },
             ) => {
-                let (Some(producer_task), Some(consumer_task), Some(binding)) = (
+                let (Some(producer_task), Some(consumer_task)) = (
                     tasks.get(producer.as_str()),
                     tasks.get(consumer.as_str()),
-                    bindings.get(producer.as_str()),
                 ) else {
                     add_issue(
                         issues,
@@ -1313,6 +1339,9 @@ fn validate_food_flows(
                         Some(&edge.edge_id),
                         "intermediate flow references an unknown producer or consumer task",
                     );
+                    continue;
+                };
+                let Some(binding) = bindings.get(producer.as_str()) else {
                     continue;
                 };
                 let Some(output) = binding.outputs.iter().find(|item| item.output_ref == *output_ref)
@@ -1347,7 +1376,7 @@ fn validate_food_flows(
                     .entry((producer.clone(), output_ref.clone()))
                     .and_modify(|count| *count += 1)
                     .or_insert(1);
-                        let _ = (producer_task, consumer_task);
+                let _ = (producer_task, consumer_task);
                 task_input_origins
                     .entry(consumer.clone())
                     .or_default()
@@ -1446,6 +1475,41 @@ fn validate_food_flows(
             }
         }
     }
+}
+
+fn compilation_resolution_refs(request: &MealCompilationRequestV1) -> Vec<String> {
+    let mut refs = BTreeSet::new();
+    if nonempty(&request.source_resolution.reviewed_resolution_ref) {
+        refs.insert(request.source_resolution.reviewed_resolution_ref.clone());
+    }
+    for binding in &request.task_bindings {
+        for reference in [
+            &binding.action_resolution_ref,
+            &binding.duration_method_ref,
+            &binding.schedule_resolution_ref,
+            &binding.resource_resolution_ref,
+        ] {
+            if nonempty(reference) {
+                refs.insert(reference.clone());
+            }
+        }
+        for output in &binding.outputs {
+            if nonempty(&output.quantity_basis_ref) {
+                refs.insert(output.quantity_basis_ref.clone());
+            }
+            for origin in &output.ingredient_origins {
+                if nonempty(origin) {
+                    refs.insert(format!("ingredient-origin:{origin}"));
+                }
+            }
+        }
+    }
+    for edge in &request.food_flow_edges {
+        if nonempty(&edge.evidence_ref) {
+            refs.insert(edge.evidence_ref.clone());
+        }
+    }
+    refs.into_iter().collect()
 }
 
 fn build_recipe_graph(
@@ -1678,6 +1742,7 @@ pub fn compile_meal(request: &MealCompilationRequestV1) -> MealCompilationReport
         compiler_version_ref: MEAL_COMPILER_VERSION_REF.to_owned(),
         disposition: final_disposition,
         issues,
+        resolution_refs: compilation_resolution_refs(request),
         recipe_graph,
         food_flow_graph,
         claim_ceiling: MEAL_COMPILATION_CLAIM_CEILING.to_owned(),
@@ -1764,7 +1829,6 @@ mod tests {
             claim_ceiling: MEAL_PROPOSAL_CLAIM_CEILING.to_owned(),
         };
 
-        let proposal = proposal;
         let proposal_sha256 = proposal_digest(&proposal).unwrap();
 
         let mut chop_binding = MealTaskCompilationBindingV1 {
@@ -1785,6 +1849,7 @@ mod tests {
             )),
             action_resolution_ref: "builtin:symtropy-kitchen-action-rules-v1".to_owned(),
             duration_method_ref: "method:manual-cutting-v1".to_owned(),
+            schedule_resolution_ref: "schedule:manual-prep-v1".to_owned(),
             resource_resolution_ref: "resolution:manual-prep-v1".to_owned(),
             instruction_ref: Some("instruction:step-1".to_owned()),
             outputs: vec![PlannedTaskOutputV1 {
@@ -1816,6 +1881,7 @@ mod tests {
             )),
             action_resolution_ref: "builtin:symtropy-kitchen-action-rules-v1".to_owned(),
             duration_method_ref: "method:saute-v1".to_owned(),
+            schedule_resolution_ref: "schedule:hob-zone-1-v1".to_owned(),
             resource_resolution_ref: "resolution:hob-zone-1-v1".to_owned(),
             instruction_ref: Some("instruction:step-2".to_owned()),
             outputs: vec![PlannedTaskOutputV1 {
