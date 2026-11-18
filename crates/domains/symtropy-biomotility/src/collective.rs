@@ -529,8 +529,9 @@ mod tests {
                 evidence_status: EventEvidenceStatus::AlgorithmInferred,
             },
         ];
+        // Four seconds of exposure across two simultaneously tracked cells.
         let summary =
-            CollisionResponseSummary::from_observations(&observations, 4.0).unwrap();
+            CollisionResponseSummary::from_observations(&observations, 8.0).unwrap();
         assert_eq!(summary.total_contact_count, 3);
         assert_eq!(summary.evidence_qualified_contact_count, 2);
         assert_eq!(summary.excluded_contact_count, 1);
@@ -657,6 +658,20 @@ mod tests {
         assert_eq!(four_summary.contact_incidence_rate_per_cell_second, Some(1.0));
         assert_eq!(one_summary.reversal_rate_per_cell_second, Some(0.25));
         assert_eq!(four_summary.reversal_rate_per_cell_second, Some(1.0));
+    }
+
+    #[test]
+    fn collision_summary_rejects_invalid_cell_time_exposure() {
+        let observations = [];
+        for invalid_exposure in [0.0, -1.0, f64::NAN, f64::INFINITY] {
+            assert_eq!(
+                CollisionResponseSummary::from_observations(
+                    &observations,
+                    invalid_exposure,
+                ),
+                Err(CollisionResponseError::InvalidCellTimeExposure)
+            );
+        }
     }
 
     #[test]
