@@ -424,6 +424,7 @@ pub fn evaluate_cargo_loading(
     ];
     let mut placed = Vec::with_capacity(input.packages.len());
     let mut total_cargo_mass_g = 0_u64;
+    let mut placement_complete = true;
 
     for package in &input.packages {
         if !evidence_is_current(package.geometry_evidence) {
@@ -478,6 +479,7 @@ pub fn evaluate_cargo_loading(
             }
             Err(error) => {
                 known_infeasible = true;
+                placement_complete = false;
                 findings.push(format!("INFEASIBLE: {error}"));
             }
         }
@@ -530,7 +532,7 @@ pub fn evaluate_cargo_loading(
     }
 
     let total_mass = gross_vehicle_mass_g.unwrap_or(0);
-    let weighted_cg_result = if total_mass > 0 {
+    let weighted_cg_result = if total_mass > 0 && placement_complete {
         match weighted_cg(&input.bay, &placed, total_mass) {
             Ok(result) => Some(result),
             Err(error) => {
@@ -716,6 +718,15 @@ mod tests {
         let report = evaluate_cargo_loading(&test).expect("well-formed input");
         assert_eq!(report.verdict, CargoFeasibilityVerdict::Infeasible);
         assert!(report.findings.iter().any(|f| f.contains("overlap")));
+    }
+
+    #[test]
+    fn omits_combined_cg_when_package_extent_arithmetic_overflows() {
+        let mut test = input();
+        test.packages[2].placement.x_mm = u32::MAX;
+        let report = evaluate_cargo_loading(&test).expect("well-formed input");
+        assert_eq!(report.verdict, CargoFeasibilityVerdict::Infeasible);
+        assert_eq!(report.combined_cg_mm, None);
     }
 
     #[test]
