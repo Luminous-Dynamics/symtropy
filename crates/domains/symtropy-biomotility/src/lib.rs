@@ -20,8 +20,14 @@ use std::error::Error;
 use std::f64::consts::{PI, TAU};
 use std::fmt;
 
+mod collective;
 mod geometry;
 mod renewal;
+pub use collective::{
+    CollisionContact, CollisionResponseError, CollisionResponseObservation,
+    CollisionResponseSummary, CollisionReversalLaw, ConstitutiveReversalLaw,
+    OrientationOrder, ReversalPhenotype, orientation_order,
+};
 pub use geometry::{FreePathLaw, FreePathLawError};
 pub use renewal::{
     DirectionalWaitingTimes, SurvivalCurve, SurvivalError, SurvivalObservation,
