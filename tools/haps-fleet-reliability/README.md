@@ -30,3 +30,9 @@ Exact enumeration is bounded to 20 binary variables (1,048,576 scenarios). Proba
 The current implementation is limited to a static Bernoulli screen: it rejects non-static analysis methods, non-null maintenance-profile inputs and node records outside the declared service region. It does not model repair-time distributions, weather episode duration, maintenance schedules or handover state.
 
 The checked-in fleet cases are synthetic. The 32-scenario fixtures are known-answer arithmetic tests, not measured HAPS or fleet uptime, a 30-day observation, a repair-time model, or a semi-Markov result. The published multi-HAPS semi-Markov reliability paper remains a baseline to reproduce on a matched model boundary.
+
+## Heterogeneous fallback / common-cause case
+
+The cross-layer case adds three HAPS nodes, one terrestrial gateway and one LEO backhaul node, plus two independent common-cause events: regional HAPS weather grounding and a shared terrestrial/LEO external dependency outage. The exact enumerator covers 128 states and tests a 99.99% illustrative service target. It demonstrates that an independent-node model can overstate availability when providers share a common failure domain.
+
+The checked-in cross-layer case is a static Bernoulli model. It does not model outage duration, repair, maintenance scheduling, weather episode persistence, capacity, geography or group handover.
