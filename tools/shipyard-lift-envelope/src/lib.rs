@@ -4,7 +4,7 @@
 //! identity, validity windows, exact crane-chart-cell matching, and bindings
 //! to separately qualified motion/occupancy reports. It does not design rigging.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub const PPM_SCALE: u64 = 1_000_000;
 pub const GRAVITY_MILLINEWTONS_PER_KG: u128 = 9_807;
@@ -39,7 +39,9 @@ pub struct RiggingLeg {
     pub maximum_vertical_share_ppm: u64,
     /// Engineer-supplied lower bound on sin(angle above horizontal).
     pub minimum_sine_angle_ppm: u64,
-    /// WLL for this exact component/configuration, already derated as declared.
+    /// Axial tensile WLL for this exact component/configuration. Sling-angle
+    /// amplification is applied separately by the verifier; other required
+    /// deratings must already be reflected in this source-supplied WLL.
     pub working_load_limit_mn: u64,
     pub wll_evidence: EvidenceRef,
 }
@@ -183,7 +185,7 @@ fn validate_evidence(
     evidence: &EvidenceRef,
     start_tick: u64,
     end_tick: u64,
-    seen_ids: &mut BTreeSet<String>,
+    seen_ids: &mut BTreeMap<String, EvidenceRef>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
     let id = evidence.source_record_id.as_str();
@@ -239,14 +241,20 @@ fn validate_evidence(
             "superseded evidence cannot support this preflight",
         ),
     }
-    if nonblank(id) && !seen_ids.insert(id.to_owned()) {
-        diagnostic(
-            diagnostics,
-            "DUPLICATE_EVIDENCE_ID",
-            DiagnosticSeverity::Indeterminate,
-            Some(id),
-            "evidence source-record identities must be unique within one lift plan",
-        );
+    if nonblank(id) {
+        match seen_ids.get(id) {
+            Some(existing) if existing != evidence => diagnostic(
+                diagnostics,
+                "EVIDENCE_ID_CONFLICT",
+                DiagnosticSeverity::Indeterminate,
+                Some(id),
+                "the same evidence source-record ID was supplied with conflicting metadata",
+            ),
+            Some(_) => {}
+            None => {
+                seen_ids.insert(id.to_owned(), evidence.clone());
+            }
+        }
     }
 }
 
@@ -306,6 +314,9 @@ fn validate_context(plan: &LiftPlan, diagnostics: &mut Vec<Diagnostic>) {
         ("crane_configuration_revision", plan.crane_configuration_revision.as_str()),
         ("crane_radius_band_id", plan.crane_radius_band_id.as_str()),
         ("crane_working_quadrant_id", plan.crane_working_quadrant_id.as_str()),
+        ("dynamic_factor_profile_id", plan.dynamic_factor_profile_id.as_str()),
+        ("dynamic_factor_profile_revision", plan.dynamic_factor_profile_revision.as_str()),
+        ("weather_profile_revision", plan.weather_profile_revision.as_str()),
     ] {
         if !nonblank(value) {
             diagnostic(
@@ -447,7 +458,7 @@ fn disposition_for(diagnostics: &[Diagnostic]) -> Disposition {
 /// their underlying measurements/calculations true.
 pub fn evaluate(plan: &LiftPlan) -> PreflightReport {
     let mut diagnostics = Vec::new();
-    let mut seen_evidence_ids = BTreeSet::new();
+    let mut seen_evidence_ids = BTreeMap::new();
     let mut seen_leg_ids = BTreeSet::new();
     let mut leg_assessments = Vec::new();
 
@@ -702,13 +713,13 @@ pub fn evaluate(plan: &LiftPlan) -> PreflightReport {
             Some(&plan.lift_id),
             "at least one explicitly identified rigging leg is required",
         );
-    } else if total_share_ppm != PPM_SCALE {
+    } else if total_share_ppm < PPM_SCALE {
         diagnostic(
             &mut diagnostics,
-            "RIGGING_SHARES_DO_NOT_SUM_TO_ONE",
+            "RIGGING_SHARE_BOUNDS_DO_NOT_COVER_LOAD",
             DiagnosticSeverity::Indeterminate,
             Some(&plan.lift_id),
-            "source-supplied maximum vertical load-share fractions must sum exactly to 1,000,000 ppm; equal sharing is never inferred",
+            "the sum of source-supplied per-leg maximum vertical load-share bounds must be at least 1,000,000 ppm; conservative upper bounds may sum above one, and equal sharing is never inferred",
         );
     }
 
@@ -871,6 +882,30 @@ mod tests {
     }
 
     #[test]
+    fn conservative_maximum_share_bounds_may_sum_above_one() {
+        let mut plan = baseline();
+        plan.rigging_legs[0].maximum_vertical_share_ppm = 600_000;
+        plan.rigging_legs[1].maximum_vertical_share_ppm = 600_000;
+        plan.rigging_legs[0].working_load_limit_mn = 400_000_000;
+        plan.rigging_legs[1].working_load_limit_mn = 400_000_000;
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::ReadyForHumanReview);
+    }
+
+    #[test]
+    fn share_upper_bounds_below_total_load_are_indeterminate() {
+        let mut plan = baseline();
+        plan.rigging_legs[0].maximum_vertical_share_ppm = 400_000;
+        plan.rigging_legs[1].maximum_vertical_share_ppm = 500_000;
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(
+            &report,
+            "RIGGING_SHARE_BOUNDS_DO_NOT_COVER_LOAD"
+        ));
+    }
+
+    #[test]
     fn stale_evidence_abstains_instead_of_becoming_a_pass() {
         let mut plan = baseline();
         plan.mass_evidence.valid_until_tick = 199;
@@ -927,12 +962,21 @@ mod tests {
     }
 
     #[test]
-    fn duplicate_source_record_identities_are_indeterminate() {
+    fn identical_source_evidence_may_support_multiple_claims() {
         let mut plan = baseline();
         plan.rigging_legs[1].wll_evidence = plan.rigging_legs[0].wll_evidence.clone();
         let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::ReadyForHumanReview);
+    }
+
+    #[test]
+    fn conflicting_metadata_for_one_source_record_id_is_indeterminate() {
+        let mut plan = baseline();
+        plan.rigging_legs[1].wll_evidence = plan.rigging_legs[0].wll_evidence.clone();
+        plan.rigging_legs[1].wll_evidence.sha256 = "b".repeat(64);
+        let report = evaluate(&plan);
         assert_eq!(report.disposition, Disposition::Indeterminate);
-        assert!(has_code(&report, "DUPLICATE_EVIDENCE_ID"));
+        assert!(has_code(&report, "EVIDENCE_ID_CONFLICT"));
     }
 
     #[test]
