@@ -238,6 +238,7 @@
         "ids_applicability_receipt_sha256",
         "applicable_ids_requirement_ids",
         "ids_requirement_evaluations",
+        "geometry_preflight",
         "in_work_scope"
       ],
       "properties": {
@@ -292,6 +293,63 @@
           "type": "boolean"
         },
         "ids_applicability_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "geometry_preflight": {
+          "$ref": "#/$defs/geometry_preflight"
+        }
+      }
+    },
+    "geometry_preflight": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "geometry_sha256",
+        "validator_build_sha256",
+        "frame_sha256",
+        "transform_sha256",
+        "placements_resolved",
+        "geometry_valid",
+        "coordinate_transform_valid",
+        "clash_check_complete",
+        "critical_clash_count",
+        "unresolved_geometry_issue_count",
+        "evaluation_receipt_sha256"
+      ],
+      "properties": {
+        "geometry_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "validator_build_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "frame_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "transform_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "placements_resolved": {
+          "type": "boolean"
+        },
+        "geometry_valid": {
+          "type": "boolean"
+        },
+        "coordinate_transform_valid": {
+          "type": "boolean"
+        },
+        "clash_check_complete": {
+          "type": "boolean"
+        },
+        "critical_clash_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unresolved_geometry_issue_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evaluation_receipt_sha256": {
           "$ref": "#/$defs/sha256"
         }
       }
