@@ -227,6 +227,46 @@
       "adoption_authority_uri": "https://cea.nic.in/",
       "known_supersession_or_work_item": null,
       "notes": "India-specific planning manual, not a universal HVDC break-even threshold."
+    },
+    {
+      "record_id": "STD-IEC-60287-1-1-2023",
+      "designation": "IEC 60287-1-1:2023",
+      "title": "Electric cables — Calculation of the current rating — Part 1-1: Current rating equations (100% load factor) and calculation of losses — General",
+      "publisher": "International Electrotechnical Commission",
+      "edition": "3",
+      "status": "published_active",
+      "publication_date": "2023-05-22",
+      "status_checked_on": "2026-11-18",
+      "scope": "Steady-state current rating and loss calculations for cables at AC voltages and DC voltages up to 5 kV, including buried, duct, trough, steel pipe and aerial installations. Site-specific thermal resistivity and ambient conditions remain input assumptions.",
+      "source_uri": "https://webstore.iec.ch/en/publication/68118",
+      "verified_on": "2026-11-18",
+      "jurisdiction_scope": [
+        "International reference; national adoption and utility requirements must be checked"
+      ],
+      "national_adoption_status": "not_checked",
+      "adoption_authority_uri": null,
+      "known_supersession_or_work_item": "Included in IEC 60287:2026 SER; series collection is not itself a new technical edition of each included part.",
+      "notes": "IEC catalogue lists edition 3 and stability date 2030. The formulae leave important site and manufacturer/user parameters to be selected and evidenced."
+    },
+    {
+      "record_id": "STD-IEC-60287-2-3-2024",
+      "designation": "IEC 60287-2-3:2024",
+      "title": "Electric cables — Calculation of the current rating — Part 2-3: Thermal resistance — Cables installed in ventilated tunnels",
+      "publisher": "International Electrotechnical Commission",
+      "edition": "2",
+      "status": "published_active",
+      "publication_date": "2024-06-28",
+      "status_checked_on": "2026-11-18",
+      "scope": "Continuous current rating factor for cables in naturally or forcibly ventilated tunnels. Published method assumes identical cables, unchanged tunnel cross-section along the route, and negligible longitudinal heat transfer in cables and tunnel surroundings.",
+      "source_uri": "https://webstore.iec.ch/en/publication/80333",
+      "verified_on": "2026-11-18",
+      "jurisdiction_scope": [
+        "International reference; national adoption and utility requirements must be checked"
+      ],
+      "national_adoption_status": "not_checked",
+      "adoption_authority_uri": null,
+      "known_supersession_or_work_item": null,
+      "notes": "Tunnel thermal boundary assumptions must be checked against actual geometry, ventilation, cable arrangement, heat sources and longitudinal effects; do not extrapolate beyond the stated model assumptions."
     }
   ],
   "regional_profiles": [
@@ -263,7 +303,9 @@
         "STD-IEC-60826-2017",
         "STD-IEEE-738-2023",
         "STD-IEC-60840-2020-A1-2023-COR1-2025",
-        "STD-IEC-62067-2022"
+        "STD-IEC-62067-2022",
+        "STD-IEC-60287-1-1-2023",
+        "STD-IEC-60287-2-3-2024"
       ],
       "data_gaps": [
         [
@@ -301,7 +343,9 @@
       "standards_references": [
         "STD-IEEE-738-2023",
         "STD-IEC-60826-2017",
-        "STD-NERC-TPL-001-5.1"
+        "STD-NERC-TPL-001-5.1",
+        "STD-IEC-60287-1-1-2023",
+        "STD-IEC-60287-2-3-2024"
       ],
       "data_gaps": [
         [
@@ -339,7 +383,9 @@
         "STD-IEC-60826-2017",
         "STD-IEC-60840-2020-A1-2023-COR1-2025",
         "STD-IEC-62067-2022",
-        "STD-IEC-60071-2-2023"
+        "STD-IEC-60071-2-2023",
+        "STD-IEC-60287-1-1-2023",
+        "STD-IEC-60287-2-3-2024"
       ],
       "data_gaps": [
         [
@@ -380,7 +426,8 @@
       "standards_references": [
         "STD-CEA-TRANSMISSION-PLANNING-2023",
         "STD-IEC-60071-2-2023",
-        "STD-IEC-62067-2022"
+        "STD-IEC-62067-2022",
+        "STD-IEC-60287-1-1-2023"
       ],
       "data_gaps": [
         [
@@ -417,7 +464,9 @@
       "standards_references": [
         "STD-IEC-60826-2017",
         "STD-IEC-62067-2022",
-        "STD-IEC-60071-11-2022"
+        "STD-IEC-60071-11-2022",
+        "STD-IEC-60287-1-1-2023",
+        "STD-IEC-60287-2-3-2024"
       ],
       "data_gaps": [
         [
@@ -460,7 +509,8 @@
       "standards_references": [
         "STD-IEC-60826-2017",
         "STD-IEC-60071-2-2023",
-        "STD-IEC-62067-2022"
+        "STD-IEC-62067-2022",
+        "STD-IEC-60287-1-1-2023"
       ],
       "data_gaps": [
         [
@@ -505,7 +555,8 @@
         "STD-IEC-60826-2017",
         "STD-IEEE-738-2023",
         "STD-ASME-B31-12-2023",
-        "STD-ISO-14687-2025"
+        "STD-ISO-14687-2025",
+        "STD-IEC-60287-1-1-2023"
       ],
       "data_gaps": [
         [
@@ -543,7 +594,8 @@
       "standards_references": [
         "STD-IEC-60826-2017",
         "STD-IEEE-738-2023",
-        "STD-IEC-62067-2022"
+        "STD-IEC-62067-2022",
+        "STD-IEC-60287-1-1-2023"
       ],
       "data_gaps": [
         [
@@ -582,7 +634,8 @@
       "standards_references": [
         "STD-IEEE-738-2023",
         "STD-IEC-60826-2017",
-        "STD-IEC-62067-2022"
+        "STD-IEC-62067-2022",
+        "STD-IEC-60287-1-1-2023"
       ],
       "data_gaps": [
         [
@@ -619,7 +672,8 @@
       "standards_references": [
         "STD-IEC-60826-2017",
         "STD-IEEE-738-2023",
-        "STD-IEC-60071-2-2023"
+        "STD-IEC-60071-2-2023",
+        "STD-IEC-60287-1-1-2023"
       ],
       "data_gaps": [
         [
