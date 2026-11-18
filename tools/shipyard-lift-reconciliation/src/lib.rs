@@ -401,10 +401,9 @@ impl ReconciliationPolicy {
             .collect::<Vec<_>>()
             .join(",");
         format!(
-            "{{\"policy_id\":{},\"policy_revision\":{},\"policy_sha256\":{},\"required_channels\":[{}],\"maximum_sample_gap_ticks\":{},\"maximum_ingest_lateness_ticks\":{}}}",
+            "{{\"policy_id\":{},\"policy_revision\":{},\"required_channels\":[{}],\"maximum_sample_gap_ticks\":{},\"maximum_ingest_lateness_ticks\":{}}}",
             json_quote(&self.policy_id),
             json_quote(&self.policy_revision),
-            json_quote(&self.policy_sha256.to_ascii_lowercase()),
             names,
             self.maximum_sample_gap_ticks,
             self.maximum_ingest_lateness_ticks,
