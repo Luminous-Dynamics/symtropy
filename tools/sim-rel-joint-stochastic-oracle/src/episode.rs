@@ -1438,6 +1438,16 @@ mod tests {
             }
             other => panic!("expected finish fixture, got {other:?}"),
         }
+
+        let outside: EpisodeResponse = serde_json::from_str(include_str!(
+            "../../../benchmarks/scientific-world-episodes/v0.1/wire/episode-response-outside-family.example.json"
+        ))
+        .expect("outside-family fixture must match the Rust protocol type");
+        assert!(matches!(
+            outside.command,
+            EpisodeCommand::Finish { finish }
+                if finish.disposition == EpisodeFinishDisposition::OutsideCandidateFamily
+        ));
     }
 
     #[test]
