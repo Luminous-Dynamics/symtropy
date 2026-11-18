@@ -10,7 +10,7 @@ use std::collections::{BTreeMap, BTreeSet, HashSet};
 pub const PREFERENCE_SCHEMA_VERSION: u32 = 1;
 pub const CRITERION_COUNT: usize = 8;
 /// Anonymous shared aggregation is suppressed below this explicit cohort size.
-pub const MIN_ANONYMOUS_GROUP_SIZE: usize = 3;
+pub const MIN_ANONYMOUS_GROUP_SIZE: usize = 5;
 pub const PREFERENCE_GENERATOR: &str = "holofrac-pluralistic-decision-fixture-v0";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -256,7 +256,7 @@ pub enum PreferenceError {
     InvalidOutcome(String),
     EmptyAlternativeSet,
     NoParticipatingStakeholders,
-    InsufficientAnonymousGroupSize { observed: usize, required: usize },
+    InsufficientAnonymousGroupSize,
     InvalidPreferenceSnapshot,
 }
 
@@ -290,10 +290,9 @@ impl std::fmt::Display for PreferenceError {
             Self::NoParticipatingStakeholders => {
                 f.write_str("no participants authorized anonymous or named group aggregation")
             }
-            Self::InsufficientAnonymousGroupSize { observed, required } => write!(
-                f,
-                "anonymous aggregation suppressed: {observed} participants is below the required minimum of {required}"
-            ),
+            Self::InsufficientAnonymousGroupSize => {
+                f.write_str("anonymous aggregation suppressed because the cohort is below the required minimum")
+            }
             Self::InvalidPreferenceSnapshot => {
                 f.write_str("preference snapshot violates its consent/redaction contract")
             }
@@ -585,10 +584,7 @@ pub fn evaluate_group(
         return Err(PreferenceError::InvalidPreferenceSnapshot);
     }
     if observed_anonymous_count > 0 && observed_anonymous_count < MIN_ANONYMOUS_GROUP_SIZE {
-        return Err(PreferenceError::InsufficientAnonymousGroupSize {
-            observed: observed_anonymous_count,
-            required: MIN_ANONYMOUS_GROUP_SIZE,
-        });
+        return Err(PreferenceError::InsufficientAnonymousGroupSize);
     }
     if active_profiles.is_empty() {
         return Err(PreferenceError::NoParticipatingStakeholders);
@@ -985,10 +981,7 @@ mod tests {
         assert!(one.profiles[0].stakeholder_id.is_none());
         assert!(matches!(
             evaluate_group(&[alternative("a", 0.5, 0.5, 0.5)], &one),
-            Err(PreferenceError::InsufficientAnonymousGroupSize {
-                observed: 1,
-                required: MIN_ANONYMOUS_GROUP_SIZE
-            })
+            Err(PreferenceError::InsufficientAnonymousGroupSize)
         ));
 
         let two = PreferenceLedger {
@@ -1019,10 +1012,7 @@ mod tests {
         .unwrap();
         assert!(matches!(
             evaluate_group(&[alternative("a", 0.5, 0.5, 0.5)], &two),
-            Err(PreferenceError::InsufficientAnonymousGroupSize {
-                observed: 2,
-                required: MIN_ANONYMOUS_GROUP_SIZE
-            })
+            Err(PreferenceError::InsufficientAnonymousGroupSize)
         ));
         assert!(two.profiles.iter().all(|profile| profile.stakeholder_id.is_none()));
     }
