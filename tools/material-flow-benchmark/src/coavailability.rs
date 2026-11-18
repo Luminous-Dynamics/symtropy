@@ -633,6 +633,18 @@ mod tests {
     }
 
     #[test]
+    fn uses_latest_arrival_and_earliest_departure_for_guaranteed_presence() {
+        let mut test = input();
+        test.carrier.route_stops[1].arrival_earliest_ms = 1_200_000;
+        test.carrier.route_stops[1].arrival_latest_ms = 1_550_000;
+        test.carrier.route_stops[1].departure_earliest_ms = 1_610_000;
+        test.carrier.route_stops[1].departure_latest_ms = 1_700_000;
+        let report = evaluate_coavailability(&test).expect("valid structure");
+        assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
+        assert!(report.findings.iter().any(|finding| finding.contains("rendezvous")));
+    }
+
+    #[test]
     fn rejects_duplicate_route_stop_identity() {
         let mut test = input();
         test.carrier.route_stops.push(CarrierStop {
