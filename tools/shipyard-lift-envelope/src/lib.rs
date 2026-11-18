@@ -1212,14 +1212,14 @@ mod tests {
 
         assert_eq!(test_functions.len(), 33);
         assert_eq!(test_names.len(), vector_ids.len());
-        assert_eq!(FIXTURE.matches("\\\"id\\\": \\"LEV-").count(), 33);
+        assert_eq!(FIXTURE.matches(r#""id": "LEV-"#).count(), 33);
         for (test_name, vector_id) in test_names.iter().zip(vector_ids.iter()) {
             assert!(
-                FIXTURE.contains(&format!("\\\"id\\\": \\"{vector_id}\\\"")),
+                FIXTURE.contains(&format!(r#""id": "{vector_id}""#)),
                 "missing conformance vector {vector_id}"
             );
             assert!(
-                FIXTURE.contains(&format!("\\\"test_name\\\": \\"{test_name}\\\"")),
+                FIXTURE.contains(&format!(r#""test_name": "{test_name}""#)),
                 "missing unit-test mapping {test_name}"
             );
         }
