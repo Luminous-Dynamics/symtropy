@@ -31,7 +31,43 @@
         "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "kind": "space_time_occupancy_assessment",
         "persistence": "recomputable",
-        "dependencies": [],
+        "dependencies": [
+          {
+            "key": {
+              "domain": "obstacle_map",
+              "scope_id": "region:A"
+            },
+            "observed_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          {
+            "key": {
+              "domain": "dynamic_actor_manifest",
+              "scope_id": "region:A"
+            },
+            "observed_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          },
+          {
+            "key": {
+              "domain": "site_clock_map",
+              "scope_id": "site"
+            },
+            "observed_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+          },
+          {
+            "key": {
+              "domain": "occupancy_engine_build",
+              "scope_id": "engine"
+            },
+            "observed_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+          },
+          {
+            "key": {
+              "domain": "clearance_policy",
+              "scope_id": "site"
+            },
+            "observed_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+          }
+        ],
         "depends_on_artifact_ids": [
           "motion:A"
         ]
@@ -41,7 +77,22 @@
         "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "kind": "dispatch_readiness",
         "persistence": "recomputable",
-        "dependencies": [],
+        "dependencies": [
+          {
+            "key": {
+              "domain": "work_package_schedule",
+              "scope_id": "work-package"
+            },
+            "observed_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "key": {
+              "domain": "authority_policy",
+              "scope_id": "site"
+            },
+            "observed_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+          }
+        ],
         "depends_on_artifact_ids": [
           "occupancy:A"
         ]
@@ -90,7 +141,43 @@
         "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
         "kind": "space_time_occupancy_assessment",
         "persistence": "recomputable",
-        "dependencies": [],
+        "dependencies": [
+          {
+            "key": {
+              "domain": "obstacle_map",
+              "scope_id": "region:B"
+            },
+            "observed_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          {
+            "key": {
+              "domain": "dynamic_actor_manifest",
+              "scope_id": "region:B"
+            },
+            "observed_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          },
+          {
+            "key": {
+              "domain": "site_clock_map",
+              "scope_id": "site"
+            },
+            "observed_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+          },
+          {
+            "key": {
+              "domain": "occupancy_engine_build",
+              "scope_id": "engine"
+            },
+            "observed_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+          },
+          {
+            "key": {
+              "domain": "clearance_policy",
+              "scope_id": "site"
+            },
+            "observed_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+          }
+        ],
         "depends_on_artifact_ids": [
           "motion:B"
         ]
@@ -100,7 +187,22 @@
         "artifact_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
         "kind": "dispatch_readiness",
         "persistence": "recomputable",
-        "dependencies": [],
+        "dependencies": [
+          {
+            "key": {
+              "domain": "work_package_schedule",
+              "scope_id": "work-package"
+            },
+            "observed_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "key": {
+              "domain": "authority_policy",
+              "scope_id": "site"
+            },
+            "observed_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+          }
+        ],
         "depends_on_artifact_ids": [
           "occupancy:B"
         ]
@@ -118,6 +220,41 @@
         },
         "previous_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
         "current_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+      }
+    ]
+  },
+  "dependency_contract_set": {
+    "contract_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "contracts": [
+      {
+        "artifact_kind": "motion_envelope",
+        "required_domains": [
+          "entity_geometry",
+          "coordinate_transform"
+        ]
+      },
+      {
+        "artifact_kind": "space_time_occupancy_assessment",
+        "required_domains": [
+          "obstacle_map",
+          "dynamic_actor_manifest",
+          "site_clock_map",
+          "occupancy_engine_build",
+          "clearance_policy"
+        ]
+      },
+      {
+        "artifact_kind": "dispatch_readiness",
+        "required_domains": [
+          "work_package_schedule",
+          "authority_policy"
+        ]
+      },
+      {
+        "artifact_kind": "accepted_construction_record",
+        "required_domains": [
+          "entity_geometry"
+        ]
       }
     ]
   }
