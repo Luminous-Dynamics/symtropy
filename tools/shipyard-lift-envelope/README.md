@@ -81,7 +81,7 @@ These remain unsupported, not implicitly passed.
 
 ## Tests
 
-The dependency-free unit suite currently contains 27 tests and covers:
+The dependency-free unit suite currently contains 28 tests and covers:
 
 - nominal arithmetic and human-review-only disposition;
 - crane chart capacity and exact-cell mismatch/no interpolation;
