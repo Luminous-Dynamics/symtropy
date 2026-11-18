@@ -287,6 +287,7 @@ pub enum SiteLedgerError {
     InvalidWaiver(String),
     AcceptanceScorerRejectedMeasurement(String),
     InvalidResourceCatalogDigest,
+    ResourceCatalogDigestContentMismatch,
     EmptyResourceCatalog,
     EmptyResourceId,
     DuplicateResourceId(String),
@@ -606,7 +607,7 @@ impl SiteStateLedger {
                         "resource-catalog-version".into(),
                     ));
                 }
-                let mut definitions = BTreeMap::new();
+                let mut definitions = BTreeMap::<String, String>::new();
                 for resource in resources {
                     if resource.resource_id.trim().is_empty() {
                         return Err(SiteLedgerError::EmptyResourceId);
@@ -615,7 +616,10 @@ impl SiteStateLedger {
                         return Err(SiteLedgerError::InvalidReceiptDigest);
                     }
                     if definitions
-                        .insert(resource.resource_id.as_str(), resource.definition_sha256.as_str())
+                        .insert(
+                            resource.resource_id.clone(),
+                            resource.definition_sha256.clone(),
+                        )
                         .is_some()
                     {
                         return Err(SiteLedgerError::DuplicateResourceId(
@@ -623,10 +627,15 @@ impl SiteStateLedger {
                         ));
                     }
                 }
+                if self.resource_catalog_sha256.as_deref() == Some(catalog_sha256.as_str())
+                    && self.resource_catalog != definitions
+                {
+                    return Err(SiteLedgerError::ResourceCatalogDigestContentMismatch);
+                }
                 for record in self.active_space_time_reservations() {
                     for claim in &record.reservation.claims {
-                        if definitions.get(claim.resource_id.as_str())
-                            != Some(&claim.definition_sha256.as_str())
+                        if definitions.get(&claim.resource_id)
+                            != Some(&claim.definition_sha256)
                         {
                             return Err(SiteLedgerError::ResourceCatalogWouldOrphanReservation(
                                 claim.resource_id.clone(),
@@ -636,12 +645,7 @@ impl SiteStateLedger {
                 }
                 Ok(PreparedSiteMutation::PublishResourceCatalog {
                     catalog_sha256: catalog_sha256.clone(),
-                    definitions: resources
-                        .iter()
-                        .map(|resource| {
-                            (resource.resource_id.clone(), resource.definition_sha256.clone())
-                        })
-                        .collect(),
+                    definitions,
                 })
             }
             SiteEventPayload::SpaceTimeReservationCommitted { reservation } => {
@@ -3143,6 +3147,39 @@ mod tests {
         );
         assert_eq!(ledger.active_package_sha256(), Some(package_digest.as_str()));
         assert_eq!(ledger.last_sequence(), 3);
+    }
+
+
+    #[test]
+    fn identical_catalog_digest_cannot_be_reused_for_changed_definitions() {
+        let mut ledger = SiteStateLedger::new();
+        publish_package(&mut ledger, package('a', &["point-1"]));
+        publish_exclusive_resource_catalog(&mut ledger);
+        let before_sequence = ledger.last_sequence();
+        let changed_content_same_digest = event(
+            "event-resource-catalog-same-digest-different-content",
+            before_sequence + 1,
+            ledger.last_event_sha256().map(str::to_owned),
+            '3',
+            "resource-authority",
+            SiteActorRole::SiteResourceAuthority,
+            SiteEventPayload::ResourceCatalogPublished {
+                catalog_sha256: digest('b'),
+                resources: vec![SiteResourceDefinition {
+                    resource_id: "crane-zone-1".into(),
+                    definition_sha256: digest('4'),
+                }],
+            },
+        );
+        assert_eq!(
+            ledger.apply(changed_content_same_digest),
+            Err(SiteLedgerError::ResourceCatalogDigestContentMismatch)
+        );
+        assert_eq!(ledger.last_sequence(), before_sequence);
+        assert_eq!(
+            ledger.resource_definition_sha256("crane-zone-1"),
+            Some(digest('c').as_str())
+        );
     }
 
 }
