@@ -126,12 +126,35 @@ impl DirectionalSamples {
     }
 }
 
+/// Which directional chemotaxis mechanisms are enabled for a matched ablation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BiasMode {
+    /// Both run-duration and short-turn-angle distributions are direction-independent.
+    None,
+    /// Only run-duration distributions depend on the preceding run direction.
+    RunTimeOnly,
+    /// Only short-event turn-angle distributions depend on the preceding run direction.
+    TurnAngleOnly,
+    /// Both run-duration and short-turn-angle distributions are direction-conditioned.
+    Combined,
+}
+
+impl BiasMode {
+    const fn uses_run_time_bias(self) -> bool {
+        matches!(self, Self::RunTimeOnly | Self::Combined)
+    }
+
+    const fn uses_turn_angle_bias(self) -> bool {
+        matches!(self, Self::TurnAngleOnly | Self::Combined)
+    }
+}
+
 /// A sampled event profile for one declared biological condition.
 ///
 /// Run durations and short-turn angles are conditioned on the direction of
-/// the preceding run. Long mechanical-trap angles are intentionally pooled:
-/// the current research hypothesis is that passive trapping must not be
-/// mistaken for the active directional turn-angle response.
+/// the preceding run. Separate unconditional empirical distributions enable
+/// matched no-bias, run-time-only, turn-angle-only and combined ablations.
+/// Long mechanical-trap angles are intentionally pooled.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PorousMotilityProfile {
     /// Swimming speed in micrometres per second.
@@ -143,6 +166,8 @@ pub struct PorousMotilityProfile {
     pub integration_step_s: f64,
     /// Empirical run-duration samples by preceding-run direction, in seconds.
     pub run_duration_s: DirectionalSamples,
+    /// Pooled run-duration samples used by ablations with run-time bias disabled.
+    pub run_duration_unconditional_s: SampleSet,
     /// Fraction of interruptions represented by short reorientation events.
     /// Calibrate this from admitted event observations; do not infer it from
     /// the published paper's headline values.
@@ -154,6 +179,8 @@ pub struct PorousMotilityProfile {
     /// Signed heading changes in radians for short events, conditional on the
     /// direction of the run immediately before the event.
     pub short_turn_angle_rad: DirectionalSamples,
+    /// Pooled short-event turn-angle samples used when turn-angle bias is disabled.
+    pub short_turn_angle_unconditional_rad: SampleSet,
     /// Signed heading changes in radians for long traps, not direction-biased
     /// by this model.
     pub long_trap_turn_angle_rad: SampleSet,
@@ -179,12 +206,16 @@ impl PorousMotilityProfile {
         }
 
         self.run_duration_s.validate_positive("run_duration_s")?;
+        self.run_duration_unconditional_s
+            .validate_positive("run_duration_unconditional_s")?;
         self.short_event_duration_s
             .validate_positive("short_event_duration_s")?;
         self.long_trap_duration_s
             .validate_positive("long_trap_duration_s")?;
         self.short_turn_angle_rad
             .validate_finite("short_turn_angle_rad")?;
+        self.short_turn_angle_unconditional_rad
+            .validate_finite("short_turn_angle_unconditional_rad")?;
         self.long_trap_turn_angle_rad
             .validate_finite("long_trap_turn_angle_rad")?;
 
@@ -390,6 +421,29 @@ pub fn simulate(
     event_count: usize,
     seed: u64,
 ) -> Result<SimulationResult, SimulationError> {
+    simulate_with_bias_mode(
+        profile,
+        initial_state,
+        gradient_heading_rad,
+        event_count,
+        seed,
+        BiasMode::Combined,
+    )
+}
+
+/// Run the same seeded model with a declared mechanistic ablation.
+///
+/// All four modes use the same profile, seed and event interface. Ablation
+/// modes switch only the direction-conditioning mechanism; the unconditional
+/// sample sets must be admitted from the same declared source condition.
+pub fn simulate_with_bias_mode(
+    profile: &PorousMotilityProfile,
+    initial_state: AgentState,
+    gradient_heading_rad: f64,
+    event_count: usize,
+    seed: u64,
+    bias_mode: BiasMode,
+) -> Result<SimulationResult, SimulationError> {
     profile.validate()?;
     if !initial_state.is_valid() {
         return Err(SimulationError::InvalidInitialState);
@@ -410,7 +464,11 @@ pub fn simulate(
         )
         .expect("validated finite headings produce a direction class");
 
-        let run_duration = profile.run_duration_s.sample(direction, &mut rng);
+        let run_duration = if bias_mode.uses_run_time_bias() {
+            profile.run_duration_s.sample(direction, &mut rng)
+        } else {
+            profile.run_duration_unconditional_s.sample(&mut rng)
+        };
         let mut remaining_run_s = run_duration;
         while remaining_run_s > 0.0 {
             let step_s = remaining_run_s.min(profile.integration_step_s);
@@ -433,7 +491,11 @@ pub fn simulate(
                 (
                     EventClass::ShortReorientation,
                     profile.short_event_duration_s.sample(&mut rng),
-                    profile.short_turn_angle_rad.sample(direction, &mut rng),
+                    if bias_mode.uses_turn_angle_bias() {
+                        profile.short_turn_angle_rad.sample(direction, &mut rng)
+                    } else {
+                        profile.short_turn_angle_unconditional_rad.sample(&mut rng)
+                    },
                 )
             } else {
                 (
@@ -622,6 +684,7 @@ mod tests {
             rotational_diffusion_rad2_s: 0.0,
             integration_step_s: 0.05,
             run_duration_s: directional(vec![0.25], vec![0.25], vec![0.25]),
+            run_duration_unconditional_s: SampleSet::new(vec![0.25]),
             short_event_probability: 1.0,
             short_event_duration_s: SampleSet::new(vec![0.25]),
             long_trap_duration_s: SampleSet::new(vec![2.0]),
@@ -630,6 +693,7 @@ mod tests {
                 vec![-PI / 2.0, PI / 2.0],
                 vec![PI],
             ),
+            short_turn_angle_unconditional_rad: SampleSet::new(vec![0.0]),
             long_trap_turn_angle_rad: SampleSet::new(vec![0.0]),
         }
     }
@@ -773,6 +837,42 @@ mod tests {
             profile.validate(),
             Err(ProfileError::InvalidIntegrationStep)
         );
+    }
+
+    #[test]
+    fn four_bias_modes_isolate_temporal_and_angular_mechanisms() {
+        let mut profile = steering_profile();
+        profile.run_duration_s = directional(vec![0.1], vec![0.25], vec![0.4]);
+        profile.run_duration_unconditional_s = SampleSet::new(vec![0.25]);
+
+        let initial = AgentState::new(0.0, 0.0, PI);
+        let modes = [
+            BiasMode::None,
+            BiasMode::RunTimeOnly,
+            BiasMode::TurnAngleOnly,
+            BiasMode::Combined,
+        ];
+        let results: Vec<_> = modes
+            .into_iter()
+            .map(|mode| {
+                simulate_with_bias_mode(&profile, initial, 0.0, 2, 77, mode)
+                    .expect("valid bias-mode simulation")
+            })
+            .collect();
+
+        // The first run is down-gradient. Only the run-time-enabled modes use
+        // the down-gradient duration sample (0.4 s instead of pooled 0.25 s).
+        assert_eq!(results[0].events[0].run_duration_s, 0.25);
+        assert_eq!(results[1].events[0].run_duration_s, 0.4);
+        assert_eq!(results[2].events[0].run_duration_s, 0.25);
+        assert_eq!(results[3].events[0].run_duration_s, 0.4);
+
+        // Only turn-angle-enabled modes use the down-gradient short-turn sample
+        // (pi radians); otherwise the pooled short-turn distribution is zero.
+        assert_eq!(results[0].events[0].turn_angle_rad, 0.0);
+        assert_eq!(results[1].events[0].turn_angle_rad, 0.0);
+        assert_eq!(results[2].events[0].turn_angle_rad, PI);
+        assert_eq!(results[3].events[0].turn_angle_rad, PI);
     }
 
     #[test]
