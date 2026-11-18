@@ -380,6 +380,7 @@ pub enum MealCompilationIssueCodeV1 {
     DuplicateFactId,
     UnknownIngredientReference,
     UnknownFactReference,
+    UnknownFactIngredient,
     InvalidQuantity,
     QuantityStateMismatch,
     UnknownQuantity,
@@ -421,8 +422,10 @@ pub enum MealCompilationIssueCodeV1 {
     InputQuantityExceedsProposal,
     InputQuantityArithmeticOverflow,
     MissingTaskIngredientFlow,
+    DuplicateTaskIngredientFlow,
     TaskIngredientLineageMismatch,
     OutputIngredientLineageMismatch,
+    TaskOutputLineageIncomplete,
     InvalidCompiledRecipeGraph,
 }
 
@@ -501,6 +504,7 @@ fn disposition(issues: &[MealCompilationIssueV1]) -> MealCompilationDispositionV
                 | MealCompilationIssueCodeV1::DependencyBindingMismatch
                 | MealCompilationIssueCodeV1::DurationOutsideProposalWindow
                 | MealCompilationIssueCodeV1::DuplicateTaskOutput
+                | MealCompilationIssueCodeV1::DuplicateTaskIngredientFlow
                 | MealCompilationIssueCodeV1::DuplicateFlowId
                 | MealCompilationIssueCodeV1::DuplicateMaterialRef
                 | MealCompilationIssueCodeV1::FlowQuantityMismatch
@@ -528,6 +532,8 @@ fn disposition(issues: &[MealCompilationIssueV1]) -> MealCompilationDispositionV
                 | MealCompilationIssueCodeV1::QuantityStateMismatch
                 | MealCompilationIssueCodeV1::InvalidFactTimeWindow
                 | MealCompilationIssueCodeV1::InvalidAllergenFactScope
+                | MealCompilationIssueCodeV1::UnknownFactIngredient
+                | MealCompilationIssueCodeV1::TaskOutputLineageIncomplete
                 | MealCompilationIssueCodeV1::DependencyCycle
                 | MealCompilationIssueCodeV1::ProposalRejected
                 | MealCompilationIssueCodeV1::IngredientAllocationIncomplete
@@ -861,14 +867,30 @@ fn validate_proposal(
                 "referenced fact is not valid at the compiler as-of time",
             );
         }
+        if fact
+            .ingredient_id
+            .as_deref()
+            .is_some_and(|ingredient_id| !ingredient_ids.contains(ingredient_id))
+        {
+            add_issue(
+                issues,
+                MealCompilationIssueCodeV1::UnknownFactIngredient,
+                Some(&fact.fact_id),
+                "fact ingredient_id must reference an ingredient in this proposal",
+            );
+        }
         if fact.kind == CulinaryFactKindV1::AllergenDeclaration
-            && !matches!(fact.scope, FactScopeV1::ProductSku | FactScopeV1::SupplierLot)
+            && (fact
+                .ingredient_id
+                .as_deref()
+                .is_none_or(|ingredient_id| !ingredient_ids.contains(ingredient_id))
+                || !matches!(fact.scope, FactScopeV1::ProductSku | FactScopeV1::SupplierLot))
         {
             add_issue(
                 issues,
                 MealCompilationIssueCodeV1::InvalidAllergenFactScope,
                 Some(&fact.fact_id),
-                "allergen declarations require product-SKU or supplier-lot scope",
+                "allergen declarations require a known ingredient reference and product-SKU or supplier-lot scope",
             );
         }
         if matches!(
@@ -890,16 +912,17 @@ fn validate_proposal(
         if matches!(
             fact.kind,
             CulinaryFactKindV1::Price | CulinaryFactKindV1::Availability
-        ) && fact
+        ) && (fact
             .market_ref
             .as_deref()
             .is_none_or(|value| !nonempty(value))
+            || fact.valid_until_epoch_ms.is_none())
         {
             add_issue(
                 issues,
                 MealCompilationIssueCodeV1::InvalidProposal,
                 Some(&fact.fact_id),
-                "price and availability facts require a market reference",
+                "price and availability facts require a market reference and an explicit validity end",
             );
         }
     }
@@ -1131,6 +1154,7 @@ fn validate_task_bindings(
             && binding
                 .action_label
                 .as_deref()
+                .or(task.action_label.as_deref())
                 .is_none_or(|label| !nonempty(label))
         {
             add_issue(
@@ -1161,6 +1185,14 @@ fn validate_task_bindings(
                 );
             }
             let mut origins = BTreeSet::new();
+            if output.ingredient_origins.is_empty() {
+                add_issue(
+                    issues,
+                    MealCompilationIssueCodeV1::OutputIngredientLineageMismatch,
+                    Some(&output.output_ref),
+                    "every planned output must carry at least one explicit ingredient-origin reference",
+                );
+            }
             if output
                 .ingredient_origins
                 .iter()
@@ -1218,6 +1250,8 @@ fn validate_food_flows(
     let mut output_use_counts: BTreeMap<(String, String), usize> = BTreeMap::new();
     let mut terminal_output_refs = BTreeSet::new();
     let mut task_input_origins: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    let mut direct_task_ingredient_inputs: BTreeSet<(String, String)> = BTreeSet::new();
+    let mut task_output_origins: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
 
     for edge in edges {
         if !nonempty(&edge.edge_id) || !edge_ids.insert(edge.edge_id.as_str()) {
@@ -1340,6 +1374,14 @@ fn validate_food_flows(
                         "checked input quantity aggregation overflowed",
                     ),
                 }
+                if !direct_task_ingredient_inputs.insert((task_id.clone(), ingredient_id.clone())) {
+                    add_issue(
+                        issues,
+                        MealCompilationIssueCodeV1::DuplicateTaskIngredientFlow,
+                        Some(&edge.edge_id),
+                        "V1 supports one direct raw-material input edge per ingredient and task",
+                    );
+                }
                 task_input_origins
                     .entry(task_id.clone())
                     .or_default()
@@ -1392,6 +1434,10 @@ fn validate_food_flows(
                         "intermediate flow quantity must equal its explicit producer-output quantity",
                     );
                 }
+                task_output_origins
+                    .entry(producer.clone())
+                    .or_default()
+                    .extend(output.ingredient_origins.iter().cloned());
                 output_use_counts
                     .entry((producer.clone(), output_ref.clone()))
                     .and_modify(|count| *count += 1)
@@ -1594,6 +1640,22 @@ fn validate_food_flows(
         }
     }
 
+    for task in &proposal.tasks {
+        let expected: BTreeSet<String> = task.ingredient_refs.iter().cloned().collect();
+        let actual = task_output_origins
+            .get(&task.task_id)
+            .cloned()
+            .unwrap_or_default();
+        if actual != expected {
+            add_issue(
+                issues,
+                MealCompilationIssueCodeV1::TaskOutputLineageIncomplete,
+                Some(&task.task_id),
+                "the union of all planned task-output origins must exactly cover the task's declared ingredient inputs",
+            );
+        }
+    }
+
     for (task_id, binding) in bindings {
         for output in &binding.outputs {
             let count = output_use_counts
@@ -1619,6 +1681,9 @@ fn compilation_resolution_refs(request: &MealCompilationRequestV1) -> Vec<String
     }
     if nonempty(&request.acceptance.accepted_by_ref) {
         refs.insert(request.acceptance.accepted_by_ref.clone());
+    }
+    if nonempty(&request.proposal.source.source_ref) {
+        refs.insert(request.proposal.source.source_ref.clone());
     }
     if nonempty(&request.source_resolution.reviewed_resolution_ref) {
         refs.insert(request.source_resolution.reviewed_resolution_ref.clone());
