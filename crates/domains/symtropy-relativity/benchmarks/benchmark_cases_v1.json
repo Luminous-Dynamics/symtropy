@@ -83,7 +83,13 @@
         "Chebyshev tail fixture"
       ],
       "source_fixture": "crates/domains/symtropy-relativity/benchmarks/bach_static_symbolic_fixture_v1.json",
-      "spectral_tail_fixture": "crates/domains/symtropy-relativity/benchmarks/mk_chebyshev_rational_tail_certificate_v1.json"
+      "spectral_tail_fixture": "crates/domains/symtropy-relativity/benchmarks/mk_chebyshev_rational_tail_certificate_v1.json",
+      "factorized_first_equation": {
+        "formula": "B1_plus_B2=-B*(r*B''''+4*B''')/(3*r)",
+        "expected_residual": "0",
+        "oracle": "static_spherical_bach_sum_factorized",
+        "purpose": "independent reduced-ODE factorization control"
+      }
     },
     {
       "case_id": "Weyl-MK-OFF-SHELL-MUTATION-001",
@@ -122,7 +128,14 @@
         "false-acceptance negative control",
         "r^-4 residual scaling"
       ],
-      "source_fixture": "crates/domains/symtropy-relativity/benchmarks/bach_static_symbolic_fixture_v1.json"
+      "source_fixture": "crates/domains/symtropy-relativity/benchmarks/bach_static_symbolic_fixture_v1.json",
+      "factorized_first_equation": {
+        "formula": "B1_plus_B2=-B*(r*B''''+4*B''')/(3*r)",
+        "expected_residual": "0",
+        "second_equation": "B1_minus_B2=4Q/(3*r^4)",
+        "second_equation_must_exclude_zero": true,
+        "purpose": "ensure the first differential equation is not confused with the independent algebraic Q constraint"
+      }
     },
     {
       "case_id": "DCS-SGB-SCALAR-QNM-HIGH-SPIN-EXTERNAL-001",
@@ -365,6 +378,7 @@
     "Inconclusive is not refuted and not verified.",
     "Akribeia's 5D/7D Lovelock cases are not directly comparable to 4D pure-Weyl cases; compare only after action/dimension/ansatz/gauge/boundary matching.",
     "Akribeia's reported ~1e-160 relative L2 error is a Myers-Perry GR-limit result at 300-digit precision, not a universal error on all higher-curvature branches.",
-    "Akribeia's continuous neural-field certification and quantified residuals are not to be equated automatically with an interval/radii-polynomial existence theorem."
+    "Akribeia's continuous neural-field certification and quantified residuals are not to be equated automatically with an interval/radii-polynomial existence theorem.",
+    "The two static reduced Bach equations are distinct: the factorized B1+B2 equation selects the four-term profile; B1-B2 then imposes Q=0. Both must be checked."
   ]
 }
