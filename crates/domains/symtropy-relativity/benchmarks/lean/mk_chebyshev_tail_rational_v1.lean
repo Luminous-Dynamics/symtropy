@@ -34,6 +34,12 @@ def qUpper : ℚ := 3 - 2 * sqrt2Lower
 def qNuUpper : ℚ := 2 * qUpper
 def prefactorUpper : ℚ := 17 / (15 * sqrt2Lower)
 
+theorem qNuUpper_positive : 0 < qNuUpper := by
+  norm_num [qNuUpper, qUpper, sqrt2Lower]
+
+theorem qNuUpper_lt_one : qNuUpper < 1 := by
+  norm_num [qNuUpper, qUpper, sqrt2Lower]
+
 def qExact : ℝ := 3 - 2 * Real.sqrt 2
 
 def qNuExact : ℝ := 2 * qExact
@@ -159,12 +165,6 @@ theorem exact_tail_le_upper_expression (N : ℕ) :
     _ ≤ prefactorUpperReal * qNuUpperReal ^ (N + 1) * (1 - qNuExact) := by
           exact mul_le_mul_of_nonneg_left hden
             (mul_nonneg hpref (pow_nonneg qNuUpper_positive.le _))
-
-theorem qNuUpper_positive : 0 < qNuUpper := by
-  norm_num [qNuUpper, qUpper, sqrt2Lower]
-
-theorem qNuUpper_lt_one : qNuUpper < 1 := by
-  norm_num [qNuUpper, qUpper, sqrt2Lower]
 
 def tailUpper (N : ℕ) : ℚ :=
   prefactorUpper * qNuUpper ^ (N + 1) / (1 - qNuUpper)
