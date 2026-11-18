@@ -675,8 +675,7 @@ mod tests {
 
     #[test]
     fn repository_waveform_fixture_matches_every_sample_and_claim_boundary() {
-        let source =
-            include_str!("../../../../benchmarks/plasma/waveform-fault-replay-v0.json");
+        let source = include_str!("../../../../benchmarks/plasma/waveform-fault-replay-v0.json");
         let manifest: WaveformBenchmarkManifest =
             serde_json::from_str(source).expect("waveform fixture should deserialize");
         assert_eq!(
@@ -711,16 +710,18 @@ mod tests {
 
             for index in 0..sample_count {
                 let actual = &receipt.body.samples[index];
-                assert_eq!(actual.state, case.expected_states[index], "{}", case.case_id);
                 assert_eq!(
-                    actual.source_sample_index,
-                    case.expected_source_sample_indices[index],
+                    actual.state, case.expected_states[index],
+                    "{}",
+                    case.case_id
+                );
+                assert_eq!(
+                    actual.source_sample_index, case.expected_source_sample_indices[index],
                     "{} sample {index}",
                     case.case_id
                 );
                 assert_eq!(
-                    actual.active_fault_id,
-                    case.expected_active_fault_ids[index],
+                    actual.active_fault_id, case.expected_active_fault_ids[index],
                     "{} sample {index}",
                     case.case_id
                 );
