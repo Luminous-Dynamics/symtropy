@@ -128,6 +128,21 @@ pub struct SequentialPolicyConfigV1 {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct ActionEvidenceBindingV1 {
+    pub action_id: u32,
+    pub profile_id: u32,
+    pub selected_sensor_ids: Vec<u32>,
+    pub observation_times: Vec<f64>,
+    pub covariance_id: String,
+    pub observation_process_id: String,
+    pub sampling_policy_id: String,
+    pub observation_operator_id: String,
+    pub availability_cutoff_id: String,
+    pub covariance_kind: &'static str,
+    pub cost: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct SequentialPolicyReportV1 {
     pub posterior: PosteriorReportV1,
     pub adequacy: ModelSetAdequacyV1,
@@ -135,6 +150,8 @@ pub struct SequentialPolicyReportV1 {
     pub experiments_used: usize,
     pub total_cost: f64,
     pub remaining_action_ids: Vec<u32>,
+    pub observed_action_bindings: Vec<ActionEvidenceBindingV1>,
+    pub assumptions: Vec<&'static str>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -730,6 +747,29 @@ pub fn decide_sequential_stop(
         }
     };
 
+    let observed_action_bindings = history
+        .iter()
+        .map(|observation| {
+            let action = actions
+                .iter()
+                .find(|action| action.action_id == observation.action_id)
+                .ok_or(SequentialEvidenceError::UnknownAction(observation.action_id))?;
+            Ok(ActionEvidenceBindingV1 {
+                action_id: action.action_id,
+                profile_id: action.profile.id,
+                selected_sensor_ids: action.selected_sensor_ids.clone(),
+                observation_times: scenario.observation_times.clone(),
+                covariance_id: action.expected_identity.covariance_id.clone(),
+                observation_process_id: action.expected_identity.observation_process_id.clone(),
+                sampling_policy_id: action.expected_identity.sampling_policy_id.clone(),
+                observation_operator_id: action.expected_identity.observation_operator_id.clone(),
+                availability_cutoff_id: action.expected_identity.availability_cutoff_id.clone(),
+                covariance_kind: action.covariance.covariance().kind_label(),
+                cost: action.cost,
+            })
+        })
+        .collect::<Result<Vec<_>, SequentialEvidenceError>>()?;
+
     Ok(SequentialPolicyReportV1 {
         posterior,
         adequacy,
@@ -737,6 +777,17 @@ pub fn decide_sequential_stop(
         experiments_used: history.len(),
         total_cost,
         remaining_action_ids,
+        observed_action_bindings,
+        assumptions: vec![
+            "posterior is conditional on the registered candidate model set",
+            "Gaussian likelihood uses the identity-bound covariance for each action",
+            "observation noises are conditionally independent between campaign actions",
+            "action likelihood normalizers cancel only because each action covariance is common across candidate models",
+            "expected information gain is estimated with seeded stratified Monte Carlo",
+            "campaign residual threshold requires independent calibration",
+            "posterior threshold and residual threshold do not provide a sequential frequentist error guarantee",
+            "covariance identity strings are references, not cryptographic attestations",
+        ],
     })
 }
 
@@ -1186,6 +1237,33 @@ mod tests {
             SequentialDecisionV1::CommitFamilyParameterNotIdentified { .. }
                 | SequentialDecisionV1::AbstainParameterNotIdentified { .. }
         ));
+    }
+
+    #[test]
+    fn greedy_selector_respects_remaining_campaign_cost() {
+        let fixture = scenario();
+        let actions = vec![
+            action(&fixture, 1, 0, 1.0),
+            action(&fixture, 2, 2, -1.0),
+        ];
+        let first_observation = ActionObservationV1 {
+            action_id: 1,
+            sensor_ids: vec![10, 11],
+            times: fixture.observation_times.clone(),
+            values: actions[0].model_means[0].observations.clone(),
+        };
+        assert_eq!(
+            choose_greedy_information_action(
+                &fixture,
+                &actions,
+                &prior(),
+                &[first_observation],
+                1.5,
+                64,
+                77,
+            ),
+            Err(SequentialEvidenceError::NoRemainingActions)
+        );
     }
 
     #[test]
