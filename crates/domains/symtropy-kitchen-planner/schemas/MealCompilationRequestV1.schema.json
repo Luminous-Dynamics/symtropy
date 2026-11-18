@@ -19,23 +19,45 @@
     "claim_ceiling"
   ],
   "properties": {
-    "schema_version": { "const": 1 },
-    "request_id": { "type": "string", "minLength": 1 },
-    "compiled_at_epoch_ms": { "type": "integer", "minimum": 1 },
-    "as_of_time_evidence_ref": { "type": "string", "minLength": 1 },
-    "proposal_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "schema_version": {
+      "const": 1
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "compiled_at_epoch_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "as_of_time_evidence_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "proposal_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
     "proposal": {
       "$ref": "https://luminousdynamics.io/schemas/culinary/MealProposalV1.schema.json"
     },
-    "acceptance": { "$ref": "#/$defs/acceptance" },
-    "source_resolution": { "$ref": "#/$defs/source_resolution" },
+    "acceptance": {
+      "$ref": "#/$defs/acceptance"
+    },
+    "source_resolution": {
+      "$ref": "#/$defs/source_resolution"
+    },
     "task_bindings": {
       "type": "array",
-      "items": { "$ref": "#/$defs/task_binding" }
+      "items": {
+        "$ref": "#/$defs/task_binding"
+      }
     },
     "food_flow_edges": {
       "type": "array",
-      "items": { "$ref": "#/$defs/food_flow_edge" }
+      "items": {
+        "$ref": "#/$defs/food_flow_edge"
+      }
     },
     "claim_ceiling": {
       "const": "Deterministic compilation of a supplied, accepted meal proposal and explicit reviewed task/material-flow resolutions only; not proof of household inventory, freshness, food safety, allergen status, physical compatibility, measured process yield, sensory acceptance, appliance safety, schedule feasibility, or authority to actuate."
@@ -53,11 +75,26 @@
         "acceptance_ref"
       ],
       "properties": {
-        "proposal_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-        "proposal_revision": { "type": "integer", "minimum": 1 },
-        "accepted_by_ref": { "type": "string", "minLength": 1 },
-        "accepted_at_epoch_ms": { "type": "integer", "minimum": 1 },
-        "acceptance_ref": { "type": "string", "minLength": 1 }
+        "proposal_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "proposal_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "accepted_by_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "accepted_at_epoch_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "acceptance_ref": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "source_resolution": {
@@ -71,87 +108,269 @@
         "reviewed_resolution_ref"
       ],
       "properties": {
-        "source_ref": { "type": "string", "minLength": 1 },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        },
         "rights_status": {
-          "enum": ["public_domain", "licensed", "user_supplied", "permission_granted", "unknown", "restricted"]
+          "enum": [
+            "public_domain",
+            "licensed",
+            "user_supplied",
+            "permission_granted",
+            "unknown",
+            "restricted"
+          ]
         },
         "permitted_uses": {
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": { "enum": ["local_processing", "redistribution", "model_training"] }
+          "items": {
+            "enum": [
+              "local_processing",
+              "redistribution",
+              "model_training"
+            ]
+          }
         },
-        "permission_evidence_ref": { "type": ["string", "null"], "minLength": 1 },
-        "reviewed_resolution_ref": { "type": "string", "minLength": 1 }
+        "permission_evidence_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "reviewed_resolution_ref": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "quantity": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["dimension", "value", "decimal_places", "unit"],
+      "required": [
+        "dimension",
+        "value",
+        "decimal_places",
+        "unit"
+      ],
       "properties": {
-        "dimension": { "enum": ["mass", "volume", "count"] },
-        "value": { "type": "integer", "minimum": 1 },
-        "decimal_places": { "type": "integer", "minimum": 0, "maximum": 6 },
-        "unit": { "enum": ["milligram", "gram", "kilogram", "millilitre", "litre", "piece", "count"] }
+        "dimension": {
+          "enum": [
+            "mass",
+            "volume",
+            "count"
+          ]
+        },
+        "value": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "decimal_places": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "unit": {
+          "enum": [
+            "milligram",
+            "gram",
+            "kilogram",
+            "millilitre",
+            "litre",
+            "piece",
+            "count"
+          ]
+        }
       },
       "allOf": [
         {
-          "if": { "properties": { "dimension": { "const": "mass" } }, "required": ["dimension"] },
-          "then": { "properties": { "unit": { "enum": ["milligram", "gram", "kilogram"] } } }
+          "if": {
+            "properties": {
+              "dimension": {
+                "const": "mass"
+              }
+            },
+            "required": [
+              "dimension"
+            ]
+          },
+          "then": {
+            "properties": {
+              "unit": {
+                "enum": [
+                  "milligram",
+                  "gram",
+                  "kilogram"
+                ]
+              }
+            }
+          }
         },
         {
-          "if": { "properties": { "dimension": { "const": "volume" } }, "required": ["dimension"] },
-          "then": { "properties": { "unit": { "enum": ["millilitre", "litre"] } } }
+          "if": {
+            "properties": {
+              "dimension": {
+                "const": "volume"
+              }
+            },
+            "required": [
+              "dimension"
+            ]
+          },
+          "then": {
+            "properties": {
+              "unit": {
+                "enum": [
+                  "millilitre",
+                  "litre"
+                ]
+              }
+            }
+          }
         },
         {
-          "if": { "properties": { "dimension": { "const": "count" } }, "required": ["dimension"] },
-          "then": { "properties": { "unit": { "enum": ["piece", "count"] } } }
+          "if": {
+            "properties": {
+              "dimension": {
+                "const": "count"
+              }
+            },
+            "required": [
+              "dimension"
+            ]
+          },
+          "then": {
+            "properties": {
+              "unit": {
+                "enum": [
+                  "piece",
+                  "count"
+                ]
+              }
+            }
+          }
         }
       ]
     },
     "dependency": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["predecessor_task_id", "min_lag_ms", "max_lag_ms"],
+      "required": [
+        "predecessor_task_id",
+        "min_lag_ms",
+        "max_lag_ms"
+      ],
       "properties": {
-        "predecessor_task_id": { "type": "string", "minLength": 1 },
-        "min_lag_ms": { "type": "integer", "minimum": 0 },
-        "max_lag_ms": { "type": ["integer", "null"], "minimum": 0 }
+        "predecessor_task_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "min_lag_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_lag_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
       }
     },
     "schedule": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["task_id", "duration_ms", "resource_ids", "dependencies", "earliest_start_ms", "latest_finish_ms"],
+      "required": [
+        "task_id",
+        "duration_ms",
+        "resource_ids",
+        "dependencies",
+        "earliest_start_ms",
+        "latest_finish_ms"
+      ],
       "properties": {
-        "task_id": { "type": "string", "minLength": 1 },
-        "duration_ms": { "type": "integer", "minimum": 1 },
+        "task_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
         "resource_ids": {
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": { "type": "string", "minLength": 1 }
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         },
-        "dependencies": { "type": "array", "items": { "$ref": "#/$defs/dependency" } },
-        "earliest_start_ms": { "type": ["integer", "null"], "minimum": 0 },
-        "latest_finish_ms": { "type": ["integer", "null"], "minimum": 0 }
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/dependency"
+          }
+        },
+        "earliest_start_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "latest_finish_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
       }
     },
     "planned_output": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["output_ref", "quantity", "ingredient_origins", "quantity_basis_ref"],
+      "required": [
+        "output_ref",
+        "quantity",
+        "ingredient_origins",
+        "quantity_basis_ref",
+        "ingredient_contributions"
+      ],
       "properties": {
-        "output_ref": { "type": "string", "minLength": 1 },
-        "quantity": { "$ref": "#/$defs/quantity" },
+        "output_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quantity": {
+          "$ref": "#/$defs/quantity"
+        },
         "ingredient_origins": {
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": { "type": "string", "minLength": 1 }
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         },
-        "quantity_basis_ref": { "type": "string", "minLength": 1 }
+        "quantity_basis_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ingredient_contributions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/planned_ingredient_contribution"
+          },
+          "description": "Per-ingredient fixed-point contributions. The sum must exactly equal planned_output.quantity and each origin must match ingredient_origins."
+        }
       }
     },
     "task_binding": {
@@ -171,27 +390,101 @@
         "outputs"
       ],
       "properties": {
-        "task_id": { "type": "string", "minLength": 1 },
-        "action_kind": {
-          "enum": ["wash", "peel", "trim", "chop", "slice", "dice", "grate", "shred", "halve", "pour", "drain", "sprinkle", "stir", "add", "combine", "whisk", "mix", "knead", "blend", "emulsify", "pick", "place", "move", "cover", "cook", "heat", "freeze", "saute", "boil", "simmer", "steam", "bake", "roast", "pressure_cook", "cool", "rest", "serve", "other"]
+        "task_id": {
+          "type": "string",
+          "minLength": 1
         },
-        "action_label": { "type": ["string", "null"], "minLength": 1 },
-        "schedule": { "$ref": "#/$defs/schedule" },
-        "ontology_binding": {
-          "anyOf": [
-            { "$ref": "https://luminousdynamics.io/schemas/kitchen/ActionOntologyBindingV1.schema.json" },
-            { "type": "null" }
+        "action_kind": {
+          "enum": [
+            "wash",
+            "peel",
+            "trim",
+            "chop",
+            "slice",
+            "dice",
+            "grate",
+            "shred",
+            "halve",
+            "pour",
+            "drain",
+            "sprinkle",
+            "stir",
+            "add",
+            "combine",
+            "whisk",
+            "mix",
+            "knead",
+            "blend",
+            "emulsify",
+            "pick",
+            "place",
+            "move",
+            "cover",
+            "cook",
+            "heat",
+            "freeze",
+            "saute",
+            "boil",
+            "simmer",
+            "steam",
+            "bake",
+            "roast",
+            "pressure_cook",
+            "cool",
+            "rest",
+            "serve",
+            "other"
           ]
         },
-        "action_resolution_ref": { "type": "string", "minLength": 1 },
-        "duration_method_ref": { "type": "string", "minLength": 1 },
-        "schedule_resolution_ref": { "type": "string", "minLength": 1 },
-        "resource_resolution_ref": { "type": "string", "minLength": 1 },
-        "instruction_ref": { "type": ["string", "null"], "minLength": 1 },
+        "action_label": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "schedule": {
+          "$ref": "#/$defs/schedule"
+        },
+        "ontology_binding": {
+          "anyOf": [
+            {
+              "$ref": "https://luminousdynamics.io/schemas/kitchen/ActionOntologyBindingV1.schema.json"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "action_resolution_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "duration_method_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schedule_resolution_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_resolution_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instruction_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
         "outputs": {
           "type": "array",
           "minItems": 1,
-          "items": { "$ref": "#/$defs/planned_output" }
+          "items": {
+            "$ref": "#/$defs/planned_output"
+          }
         }
       }
     },
@@ -200,20 +493,40 @@
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["kind", "ingredient_id"],
+          "required": [
+            "kind",
+            "ingredient_id"
+          ],
           "properties": {
-            "kind": { "const": "ingredient" },
-            "ingredient_id": { "type": "string", "minLength": 1 }
+            "kind": {
+              "const": "ingredient"
+            },
+            "ingredient_id": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["kind", "task_id", "output_ref"],
+          "required": [
+            "kind",
+            "task_id",
+            "output_ref"
+          ],
           "properties": {
-            "kind": { "const": "task_output" },
-            "task_id": { "type": "string", "minLength": 1 },
-            "output_ref": { "type": "string", "minLength": 1 }
+            "kind": {
+              "const": "task_output"
+            },
+            "task_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "output_ref": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         }
       ]
@@ -223,29 +536,63 @@
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["kind", "task_id"],
+          "required": [
+            "kind",
+            "task_id"
+          ],
           "properties": {
-            "kind": { "const": "task_input" },
-            "task_id": { "type": "string", "minLength": 1 }
+            "kind": {
+              "const": "task_input"
+            },
+            "task_id": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["kind", "output_ref"],
+          "required": [
+            "kind",
+            "output_ref"
+          ],
           "properties": {
-            "kind": { "const": "planned_edible_output" },
-            "output_ref": { "type": "string", "minLength": 1 }
+            "kind": {
+              "const": "planned_edible_output"
+            },
+            "output_ref": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["kind", "output_ref", "loss_kind"],
+          "required": [
+            "kind",
+            "output_ref",
+            "loss_kind"
+          ],
           "properties": {
-            "kind": { "const": "planned_loss_output" },
-            "output_ref": { "type": "string", "minLength": 1 },
-            "loss_kind": { "enum": ["trim", "expected_reject", "expected_residue", "expected_drainage", "expected_evaporation", "other"] }
+            "kind": {
+              "const": "planned_loss_output"
+            },
+            "output_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "loss_kind": {
+              "enum": [
+                "trim",
+                "expected_reject",
+                "expected_residue",
+                "expected_drainage",
+                "expected_evaporation",
+                "other"
+              ]
+            }
           }
         }
       ]
@@ -253,14 +600,53 @@
     "food_flow_edge": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["edge_id", "material_ref", "source", "destination", "quantity", "evidence_ref"],
+      "required": [
+        "edge_id",
+        "material_ref",
+        "source",
+        "destination",
+        "quantity",
+        "evidence_ref"
+      ],
       "properties": {
-        "edge_id": { "type": "string", "minLength": 1 },
-        "material_ref": { "type": "string", "minLength": 1 },
-        "source": { "$ref": "#/$defs/flow_source" },
-        "destination": { "$ref": "#/$defs/flow_destination" },
-        "quantity": { "$ref": "#/$defs/quantity" },
-        "evidence_ref": { "type": "string", "minLength": 1 }
+        "edge_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "$ref": "#/$defs/flow_source"
+        },
+        "destination": {
+          "$ref": "#/$defs/flow_destination"
+        },
+        "quantity": {
+          "$ref": "#/$defs/quantity"
+        },
+        "evidence_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "planned_ingredient_contribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ingredient_id",
+        "quantity"
+      ],
+      "properties": {
+        "ingredient_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quantity": {
+          "$ref": "#/$defs/quantity"
+        }
       }
     }
   }
