@@ -1060,7 +1060,6 @@ pub fn assess_food_quality(
                 | QualityIssueCodeV1::DuplicatePresentationAssignment
                 | QualityIssueCodeV1::InvalidPresentationAssignmentDigest
                 | QualityIssueCodeV1::PresentationAssignmentMismatch
-                | QualityIssueCodeV1::IncompletePresentationBlock
                 | QualityIssueCodeV1::InvalidPresentationOrderSequence
                 | QualityIssueCodeV1::InvalidProtocolDigest
         )
@@ -1335,6 +1334,78 @@ mod tests {
                 .iter()
                 .any(|entry| { entry.code == QualityIssueCodeV1::InvalidProtocolDigest })
         );
+    }
+
+    #[test]
+    fn complete_blinded_study_binds_each_response_to_a_randomized_assignment() {
+        let report = assess_food_quality(&valid_request());
+        assert_eq!(report.disposition, QualityDispositionV1::Complete, "{:?}", report.issues);
+        assert_eq!(report.randomization_assignment_sha256.len(), 3);
+    }
+
+    #[test]
+    fn incomplete_participant_block_is_indeterminate_not_imputed() {
+        let mut request = valid_request();
+        request.consumer_responses.retain(|response| {
+            !(response.respondent_token_ref == "token:0"
+                && response.sample_ref == "sample:workcell")
+        });
+        let report = assess_food_quality(&request);
+        assert_eq!(report.disposition, QualityDispositionV1::Indeterminate);
+        assert!(report.issues.iter().any(|entry| {
+            entry.code == QualityIssueCodeV1::IncompletePresentationBlock
+        }));
+    }
+
+    #[test]
+    fn response_order_must_match_the_assigned_sample_sequence() {
+        let mut request = valid_request();
+        let response = request.consumer_responses.iter_mut().find(|response| {
+            response.respondent_token_ref == "token:0"
+                && response.sample_ref == "sample:workcell"
+        }).unwrap();
+        response.presentation_order = 1;
+        let report = assess_food_quality(&request);
+        assert_eq!(report.disposition, QualityDispositionV1::Conflicted);
+        assert!(report.issues.iter().any(|entry| {
+            entry.code == QualityIssueCodeV1::PresentationAssignmentMismatch
+        }));
+    }
+
+    #[test]
+    fn presentation_assignment_digest_binds_exact_order() {
+        let mut request = valid_request();
+        request.presentation_assignments[0].ordered_sample_refs.swap(0, 1);
+        let report = assess_food_quality(&request);
+        assert_eq!(report.disposition, QualityDispositionV1::Conflicted);
+        assert!(report.issues.iter().any(|entry| {
+            entry.code == QualityIssueCodeV1::InvalidPresentationAssignmentDigest
+        }));
+    }
+
+    #[test]
+    fn duplicate_participant_assignment_is_conflicted() {
+        let mut request = valid_request();
+        request.presentation_assignments.push(request.presentation_assignments[0].clone());
+        let report = assess_food_quality(&request);
+        assert_eq!(report.disposition, QualityDispositionV1::Conflicted);
+        assert!(report.issues.iter().any(|entry| {
+            entry.code == QualityIssueCodeV1::DuplicatePresentationAssignment
+        }));
+    }
+
+    #[test]
+    fn assignment_randomization_reference_must_match_protocol() {
+        let mut request = valid_request();
+        request.presentation_assignments[0].randomization_protocol_ref =
+            "randomization:unreviewed".to_owned();
+        request.presentation_assignments[0].assignment_sha256 =
+            presentation_assignment_digest(&request.presentation_assignments[0]).unwrap();
+        let report = assess_food_quality(&request);
+        assert_eq!(report.disposition, QualityDispositionV1::Conflicted);
+        assert!(report.issues.iter().any(|entry| {
+            entry.code == QualityIssueCodeV1::PresentationAssignmentMismatch
+        }));
     }
 
     #[test]
