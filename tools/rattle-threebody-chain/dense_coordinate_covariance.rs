@@ -548,6 +548,130 @@ mod tests {
         }
     }
 
+    fn flatten_state(state: &super::super::State) -> (Vec9, Vec9) {
+        (
+            [
+                state.q[0][0],
+                state.q[0][1],
+                state.q[0][2],
+                state.q[1][0],
+                state.q[1][1],
+                state.q[1][2],
+                state.q[2][0],
+                state.q[2][1],
+                state.q[2][2],
+            ],
+            [
+                state.v[0][0],
+                state.v[0][1],
+                state.v[0][2],
+                state.v[1][0],
+                state.v[1][1],
+                state.v[1][2],
+                state.v[2][0],
+                state.v[2][1],
+                state.v[2][2],
+            ],
+        )
+    }
+
+    fn state_from_flat(q: &Vec9, v: &Vec9) -> super::super::State {
+        super::super::State {
+            q: [
+                [q[0], q[1], q[2]],
+                [q[3], q[4], q[5]],
+                [q[6], q[7], q[8]],
+            ],
+            v: [
+                [v[0], v[1], v[2]],
+                [v[3], v[4], v[5]],
+                [v[6], v[7], v[8]],
+            ],
+        }
+    }
+
+    #[test]
+    fn dense_coordinate_rattle_covariance_survives_a_32_step_trajectory() {
+        let masses = [1.3, 2.1, 0.8];
+        let lengths = [1.0_f64, 1.25_f64.sqrt()];
+        let dt = 0.01;
+        let cartesian = super::super::CartesianRattleChain::new(masses, lengths).unwrap();
+        let options = super::super::SolverOptions::default();
+
+        for scale in [1_i64, 2_i64] {
+            let (basis_i, inverse_i) = basis_pair(scale);
+            let basis = to_float(&basis_i);
+            let inverse = to_float(&inverse_i);
+            let mut dense_q = initial_position();
+            let mut dense_v = initial_velocity();
+            let mut cartesian_state = state_from_flat(&dense_q, &dense_v);
+            let mut maximum_position_error = 0.0_f64;
+            let mut maximum_velocity_error = 0.0_f64;
+            let mut maximum_position_multiplier_error = 0.0_f64;
+            let mut maximum_velocity_multiplier_error = 0.0_f64;
+            let mut maximum_endpoint_tangency = 0.0_f64;
+            let mut maximum_constraint_residual = 0.0_f64;
+
+            for _step in 0..32 {
+                let reference = cartesian.step(cartesian_state, dt, options).unwrap();
+                let (dense_q_next, dense_v_next, dense_position_lambda, dense_velocity_lambda, residuals) =
+                    dense_coordinate_rattle_step(
+                        &basis,
+                        &inverse,
+                        masses,
+                        lengths,
+                        &dense_q,
+                        &dense_v,
+                        dt,
+                    );
+                let (reference_q, reference_v) = flatten_state(&reference.after);
+
+                maximum_position_error =
+                    maximum_position_error.max(vector_max_abs(&dense_q_next, &reference_q));
+                maximum_velocity_error =
+                    maximum_velocity_error.max(vector_max_abs(&dense_v_next, &reference_v));
+                for edge in 0..2 {
+                    maximum_position_multiplier_error = maximum_position_multiplier_error.max(
+                        (dense_position_lambda[edge] - reference.position_multipliers[edge]).abs(),
+                    );
+                    maximum_velocity_multiplier_error = maximum_velocity_multiplier_error.max(
+                        (dense_velocity_lambda[edge] - reference.velocity_multipliers[edge]).abs(),
+                    );
+                    maximum_constraint_residual = maximum_constraint_residual.max(residuals[edge].abs());
+                }
+
+                let endpoint_jacobian = constraint_jacobian_at(&dense_q_next);
+                let endpoint_tangency = jacobian_vec(&endpoint_jacobian, &dense_v_next);
+                for value in endpoint_tangency {
+                    maximum_endpoint_tangency = maximum_endpoint_tangency.max(value.abs());
+                }
+
+                dense_q = dense_q_next;
+                dense_v = dense_v_next;
+                cartesian_state = reference.after;
+            }
+
+            assert!(maximum_position_error <= 2.0e-7, "scale={scale}, position={maximum_position_error:e}");
+            assert!(maximum_velocity_error <= 2.0e-7, "scale={scale}, velocity={maximum_velocity_error:e}");
+            assert!(
+                maximum_position_multiplier_error <= 2.0e-7,
+                "scale={scale}, position multiplier={maximum_position_multiplier_error:e}"
+            );
+            assert!(
+                maximum_velocity_multiplier_error <= 2.0e-7,
+                "scale={scale}, velocity multiplier={maximum_velocity_multiplier_error:e}"
+            );
+            assert!(
+                maximum_constraint_residual <= 2.0e-12,
+                "scale={scale}, constraint residual={maximum_constraint_residual:e}"
+            );
+            assert!(
+                maximum_endpoint_tangency <= 2.0e-9,
+                "scale={scale}, endpoint tangency={maximum_endpoint_tangency:e}"
+            );
+        }
+    }
+
     fn constraint_jacobian_at(q: &Vec9) -> Jacobian {
         let first = [q[3] - q[0], q[4] - q[1], q[5] - q[2]];
         let second = [q[6] - q[3], q[7] - q[4], q[8] - q[5]];
