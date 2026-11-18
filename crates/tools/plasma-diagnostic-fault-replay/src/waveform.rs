@@ -710,10 +710,13 @@ mod tests {
 
             for index in 0..sample_count {
                 let actual = &receipt.body.samples[index];
-                assert_eq!(actual.state, case.expected_states[index], "{}", case.case_id);
                 assert_eq!(
-                    actual.source_sample_index,
-                    case.expected_source_sample_indices[index],
+                    actual.state, case.expected_states[index],
+                    "{}",
+                    case.case_id
+                );
+                assert_eq!(
+                    actual.source_sample_index, case.expected_source_sample_indices[index],
                     "{} sample {index}",
                     case.case_id
                 );
