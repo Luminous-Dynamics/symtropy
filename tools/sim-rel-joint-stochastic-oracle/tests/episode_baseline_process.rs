@@ -134,6 +134,7 @@ fn fixture_provider(seed: u64) -> EpisodeProvider {
                     unit: "categorical".to_owned(),
                 },
             ],
+            model_catalogue,
         },
     };
     EpisodeProvider::new(
