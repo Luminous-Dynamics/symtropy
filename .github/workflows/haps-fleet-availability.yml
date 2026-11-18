@@ -1,0 +1,37 @@
+name: HAPS Fleet Availability
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/haps-fleet-availability/**"
+      - "docs/research/aviation/schemas/haps_fleet_availability_case_v1.schema.json"
+      - "docs/research/aviation/examples/synthetic_haps_fleet_availability_case_v1.json"
+
+permissions:
+  contents: read
+
+jobs:
+  standalone-rust:
+    name: Standalone HAPS fleet availability
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/haps-fleet-availability/Cargo.toml --all -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --locked --manifest-path tools/haps-fleet-availability/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run unit and fixture-replay tests
+        run: cargo test --locked --manifest-path tools/haps-fleet-availability/Cargo.toml
+
+      - name: Run fixture CLI
+        run: cargo run --locked --manifest-path tools/haps-fleet-availability/Cargo.toml
