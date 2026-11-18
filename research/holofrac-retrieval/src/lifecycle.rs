@@ -202,8 +202,12 @@ pub enum LifecycleError {
 impl std::fmt::Display for LifecycleError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::InvalidPassport => f.write_str("component passport contains an empty required field"),
-            Self::InvalidMass => f.write_str("component or event mass must be finite and non-negative"),
+            Self::InvalidPassport => {
+                f.write_str("component passport contains an empty required field")
+            }
+            Self::InvalidMass => {
+                f.write_str("component or event mass must be finite and non-negative")
+            }
             Self::InvalidLossFraction => f.write_str("recovery loss fractions must lie in [0, 1)"),
             Self::InvalidRecordingDelay => f.write_str("late recording delay must be non-negative"),
             Self::DuplicateEventId(id) => write!(f, "duplicate lifecycle event ID: {id}"),
@@ -226,10 +230,16 @@ impl std::fmt::Display for LifecycleError {
                 write!(f, "event {id} attempts an unsupported lifecycle transition")
             }
             Self::MassDiscontinuity(id) => {
-                write!(f, "event {id} mass_before does not equal the prior mass_after")
+                write!(
+                    f,
+                    "event {id} mass_before does not equal the prior mass_after"
+                )
             }
             Self::MassImbalance(id) => {
-                write!(f, "event {id} does not conserve component mass across active/loss/recovery flows")
+                write!(
+                    f,
+                    "event {id} does not conserve component mass across active/loss/recovery flows"
+                )
             }
             Self::ManifestMismatch => {
                 f.write_str("lifecycle fixture manifest does not match its declared contents")
@@ -479,11 +489,7 @@ impl ComponentLifecycleLedger {
         let mut disposed_mass_kg = 0.0;
         let mut loss_mass_kg = 0.0;
 
-        for event in self
-            .events
-            .iter()
-            .take(snapshot.visible_event_count)
-        {
+        for event in self.events.iter().take(snapshot.visible_event_count) {
             recycled_mass_kg += event.recycled_mass_kg;
             disposed_mass_kg += event.disposed_mass_kg;
             loss_mass_kg += event.mass_loss_kg;
@@ -596,8 +602,7 @@ impl LifecycleFixture {
         let mass = passport.initial_mass_kg;
 
         let first_recovered = mass * (1.0 - config.first_recovery_loss_fraction);
-        let second_recovered =
-            first_recovered * (1.0 - config.second_recovery_loss_fraction);
+        let second_recovered = first_recovered * (1.0 - config.second_recovery_loss_fraction);
         let mut next_event_id = 10_001_u64;
 
         let specifications = [
@@ -852,10 +857,7 @@ mod tests {
     #[test]
     fn two_use_cycles_close_mass_balance_exactly_with_explicit_recovery_loss() {
         let fixture = LifecycleFixture::generate(LifecycleFixtureConfig::default()).unwrap();
-        let accounting = fixture
-            .ledger
-            .accounting_as_of(i64::MAX)
-            .unwrap();
+        let accounting = fixture.ledger.accounting_as_of(i64::MAX).unwrap();
 
         assert!(mass_close(accounting.residual_kg, 0.0));
         assert_eq!(accounting.active_mass_kg, 0.0);
@@ -870,14 +872,8 @@ mod tests {
         let recycle = fixture.ledger.events.last().unwrap();
         let before_recording = recycle.effective_at_micros + YEAR_MICROS / 2;
 
-        let earlier = fixture
-            .ledger
-            .snapshot_as_of(before_recording)
-            .unwrap();
-        let earlier_accounting = fixture
-            .ledger
-            .accounting_as_of(before_recording)
-            .unwrap();
+        let earlier = fixture.ledger.snapshot_as_of(before_recording).unwrap();
+        let earlier_accounting = fixture.ledger.accounting_as_of(before_recording).unwrap();
 
         assert_eq!(earlier.state, LifecycleState::Recovered);
         assert!(earlier.mass_kg > 0.0);
@@ -900,10 +896,7 @@ mod tests {
     #[test]
     fn reuse_preserves_identity_but_changes_the_functional_use_class() {
         let fixture = LifecycleFixture::generate(LifecycleFixtureConfig::default()).unwrap();
-        let snapshot = fixture
-            .ledger
-            .snapshot_as_of(12 * YEAR_MICROS)
-            .unwrap();
+        let snapshot = fixture.ledger.snapshot_as_of(12 * YEAR_MICROS).unwrap();
 
         assert_eq!(snapshot.state, LifecycleState::InService);
         assert_eq!(snapshot.use_class, "canopy_beam");
