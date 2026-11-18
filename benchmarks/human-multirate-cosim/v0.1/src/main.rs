@@ -12,6 +12,10 @@ use human_multirate_cosim::{
     robust_discrimination::{
         ModelFamilyAssignment, ProfiledModelFamilyScenario, evaluate_profiled_tournament,
     },
+    adequacy_calibration::{
+        AdequacyCalibrationConfig, HiddenOutOfFamilyTruth,
+        calibrate_model_family_adequacy,
+    },
     sensor_design::{
         PlacementCriterion, SensorCandidate, SensorDesignScenario,
         enumerate_placements, enumerate_robust_placements,
@@ -457,6 +461,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             horizon: 2.0,
         },
     });
+    profiled_experiment.noise_covariance = vec![vec![1.0e-5]];
     let profiled_scenario = ProfiledModelFamilyScenario {
         experiment: profiled_experiment,
         family_assignments: vec![
@@ -490,6 +495,69 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             best.worst_case_family_overlap,
         );
     }
+
+    let calibration_profile = input_profiles
+        .iter()
+        .find(|profile| profile.id == 101)
+        .expect("pulse profile 101 must exist in the declared pulse grid");
+    let held_out_truth = HiddenOutOfFamilyTruth {
+        evaluator_id: 900,
+        network: NetworkScenario {
+            name: "held_out_bypass_three_quarters",
+            capacities: vec![1.0, 1.0, 1.0],
+            initial: vec![0.0, 0.0, 0.0],
+            edges: vec![
+                Edge {
+                    left: 0,
+                    right: 1,
+                    conductance: 1.0,
+                },
+                Edge {
+                    left: 1,
+                    right: 2,
+                    conductance: 1.0,
+                },
+                Edge {
+                    left: 0,
+                    right: 2,
+                    conductance: 0.75,
+                },
+            ],
+            horizon: 2.0,
+        },
+    };
+    let adequacy = calibrate_model_family_adequacy(
+        &profiled_scenario,
+        calibration_profile,
+        &[30],
+        &[held_out_truth],
+        AdequacyCalibrationConfig {
+            calibration_seed: 0xCA11_BA7E,
+            validation_seed: 0xB01D_5EED,
+            replicates_per_model: 128,
+            target_in_family_coverage: 0.95,
+        },
+    )?;
+    println!(
+        "adequacy_calibration,threshold,{:.12e},calibration_coverage,{:.6},validation_coverage,{:.6},validation_false_ood,{:.6},held_out_ood_rejection,{:.6}",
+        adequacy.threshold,
+        adequacy.calibration_in_family_coverage,
+        adequacy.validation_in_family_coverage,
+        adequacy.validation_false_out_of_model_set_rate,
+        adequacy.out_of_family_rejection_rate,
+    );
+    println!(
+        "adequacy_calibration,validation_coverage_wilson_95,[{:.6},{:.6}],false_ood_wilson_95,[{:.6},{:.6}],held_out_rejection_wilson_95,[{:.6},{:.6}],calibration_samples,{},validation_samples,{},out_of_family_samples,{}",
+        adequacy.validation_in_family_coverage_ci_95[0],
+        adequacy.validation_in_family_coverage_ci_95[1],
+        adequacy.validation_false_out_of_model_set_ci_95[0],
+        adequacy.validation_false_out_of_model_set_ci_95[1],
+        adequacy.out_of_family_rejection_ci_95[0],
+        adequacy.out_of_family_rejection_ci_95[1],
+        adequacy.calibration_samples,
+        adequacy.validation_samples,
+        adequacy.out_of_family_samples,
+    );
 
     Ok(())
 }
