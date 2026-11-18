@@ -77,3 +77,18 @@ let receipt = run_waveform_replay(&request)?;
 `benchmarks/plasma/waveform-fault-replay-v0.json` contains eight deterministic cases: nominal input, dropout, integrity failure, delay, saturation, additive bias, gain drift and stale calibration. The waveform unit-test audit checks each sample's expected state, optional value, source index and active fault identity, then verifies every receipt remains synthetic.
 
 The corpus uses hand-authored vectors and declared perturbation parameters. It is a regression fixture for the transformation implementation, not a statistically representative instrument-failure dataset and not a substitute for the TokaMark robustness benchmark.
+
+## Symthaea observation-frame export
+
+The `observation_export` module converts a verified waveform receipt into a sequence of wire-compatible Symthaea `PlasmaObservationFrame` v0.1 records. It is deliberately **synthetic-only**:
+
+- Numeric values from `synthetic_nominal`, `degraded`, and value-bearing `delayed` samples map to the `Synthetic` disposition.
+- Dropout and delayed samples without an earlier source map to `Unavailable`.
+- Integrity failure and stale-calibration samples map to `Invalid`.
+- The adapter never emits `Measured`, `Delayed`, or `Degraded` measurement dispositions because the synthetic replay has no physical source/calibration evidence.
+- The outer envelope preserves the original sample state, active fault ID, source sample index, sample timestamp, and waveform receipt digest.
+- The export itself remains `SYNTHETIC_WAVEFORM_FAULT_REPLAY`, `physical_measurements=false`, with its fixed synthetic-only claim ceiling.
+
+The JSON frame shape matches Symthaea's observation schema for interchange. It is not a source-authentication mechanism and does not prove the synthetic values are physically plausible. Downstream consumers must still apply the normal evidence gate; synthetic frames must abstain at a direct-measurement gate.
+
+Tests cover state mapping, leading delay without a source sample, serialization round-trip, receipt tampering, and attempted measured-state/physical-measurement promotion.
