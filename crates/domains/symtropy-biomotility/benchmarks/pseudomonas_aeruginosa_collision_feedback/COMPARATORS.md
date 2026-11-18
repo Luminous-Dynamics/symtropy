@@ -6,7 +6,7 @@ Le Blanc et al., “Bacteria regulate collective behaviour by mechanosensing cel
 
 The study reports that *P. aeruginosa* surface twitching cells can reverse after type-IV-pilus-mediated contact with another cell. A characteristic collision-response timescale is defined such that a perpendicular contact maintained for that time gives 50% reversal probability; the probability decreases linearly to zero as contact angle decreases from pi/2 to pi/6.
 
-The paper reports a density-dependent increase in wild-type reversal frequency while per-contact reversal probability remains largely constant. A non-reversing Delta-pilH control becomes increasingly clustered and nematically ordered at high density; WT and Delta-pilG remain comparatively disordered, with Delta-pilG behaving as a constitutive reverser.
+The paper reports a density-dependent increase in wild-type reversal frequency while per-contact reversal probability remains largely constant. In this benchmark, contact and reversal incidence are normalized by total tracked cell-time (cell-seconds), not wall-clock recording duration, so population-size differences do not masquerade as increased per-cell rates. A non-reversing Delta-pilH control becomes increasingly clustered and nematically ordered at high density; WT and Delta-pilG remain comparatively disordered, with Delta-pilG behaving as a constitutive reverser.
 
 The exact biological parameter values and the raw source dataset are not admitted by this benchmark yet.
 
@@ -37,10 +37,10 @@ All arms must share initial configurations, cell dimensions, surface coverage, c
 
 ## Primary outcomes
 
-- Contact incidence per cell-time.
+- Total detected contact count and evidence-qualified contact count per total tracked cell-time (cell-seconds).
 - Contact-angle and contact-duration distributions.
 - Per-contact reversal fraction, stratified by evidence-qualified response labels.
-- Reversals per cell-time.
+- Evidence-qualified reversals per total tracked cell-time (cell-seconds).
 - Global polar and nematic order parameters.
 - Local nematic correlation and correlation length when positions and neighbour identity are available.
 - Voronoi-cell area skewness and cluster statistics when complete spatial snapshots are available.
