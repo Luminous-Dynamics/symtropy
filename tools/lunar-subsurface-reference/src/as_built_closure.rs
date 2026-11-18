@@ -113,6 +113,9 @@ fn reconcile_volume(
         lower: (measured.volume_m3 - measured.expanded_uncertainty_m3).max(0.0),
         upper: measured.volume_m3 + measured.expanded_uncertainty_m3,
     };
+    if !actual.upper.is_finite() {
+        return Err("measured volume interval overflows".to_owned());
+    }
     let residual = ReconciliationInterval {
         lower: actual.lower - planned_volume_m3,
         upper: actual.upper - planned_volume_m3,
@@ -135,6 +138,7 @@ fn validate_mass_measurement(measurement: &MassMeasurement) -> Result<(), String
         || measurement.mass_kg < 0.0
         || !measurement.expanded_uncertainty_kg.is_finite()
         || measurement.expanded_uncertainty_kg < 0.0
+        || !(measurement.mass_kg + measurement.expanded_uncertainty_kg).is_finite()
     {
         return Err("mass and uncertainty must be finite and non-negative".to_owned());
     }
@@ -163,6 +167,9 @@ fn reconcile_mass_flow(
         });
     };
     validate_mass_measurement(&input)?;
+    if input.mass_kg <= 0.0 {
+        return Err("input mass must be finite and positive".to_owned());
+    }
 
     if !input.calibrated {
         return Ok(ClosureResult {
@@ -227,6 +234,9 @@ fn reconcile_mass_flow(
         let interval = mass_interval(measurement);
         output_lower_kg += interval.lower;
         output_upper_kg += interval.upper;
+    }
+    if !output_lower_kg.is_finite() || !output_upper_kg.is_finite() {
+        return Err("summed material disposition mass overflows".to_owned());
     }
 
     let input_interval = mass_interval(&input);
