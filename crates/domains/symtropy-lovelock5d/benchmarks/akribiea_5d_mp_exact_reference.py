@@ -116,6 +116,18 @@ horizon_flux_squared = sp.factor(w1**2 * (r_h**2 / (1 - q))**2
                                    * r_h**4)
 zero("horizon flux square", horizon_flux_squared - 16 * W**2)
 
+# Brihaye et al. (2010), Eq. (2.14), gives a second radial first integral
+# on a full EGB solution:
+# P_t = sqrt(f*h/b)*r^2*(h*w*w' - b') = constant = 2*U.
+p_t = sp.factor(sp.sqrt(f * h / b) * r**2 * (h * w * wp - bp))
+p_t_squared = sp.factor((f * h / b) * r**4 * (h * w * wp - bp)**2)
+zero("MP time-sector flux square", p_t_squared - 4 * U**2)
+horizon_p_t_squared = sp.factor(
+    (r_h**2 * sp.sqrt(f1 * (r_h**2 / (1 - q)) / b1)
+     * ((r_h**2 / (1 - q)) * omega * w1 - b1))**2
+)
+zero("horizon time-sector flux square", horizon_p_t_squared - 4 * U**2)
+
 # EGB bracket is kept symbolic. The quadrature w'=P_w/(h sqrt(fh/b) K)
 # is valid only after K is enclosed away from zero by an independent verifier.
 K = sp.factor(r**2 - alpha * (f - 4 + 3 * h / r**2))
@@ -251,6 +263,14 @@ fixture = {
         "alpha_zero_mp_flux": "-4*Omega_H*r_H^4/(1-q)",
         "quadrature_gate": "K(r)=r^2-alpha*(f-4+3*h/r^2) must be enclosed away from zero before division"
     },
+    "time_sector_first_integral": {
+        "source_equation": "R_t^t+alpha/4*(H_t^t+L_GB/2)=(1/(2*r^2))*sqrt(f/(b*h))*d/dr[ sqrt(f*h/b)*r^2*(h*w*w'-b') ]",
+        "constant": "P_t=sqrt(f*h/b)*r^2*(h*w*w'-b')",
+        "asymptotic_relation": "P_t=2*U",
+        "alpha_zero_mp_flux_square": "P_t^2=4*U^2",
+        "horizon_flux": "r_H^2*sqrt(f1*h_H/b1)*(h_H*Omega_H*w1-b1)",
+        "use": "independent field-equation-combination diagnostic and optional b' reconstruction"
+    },
     "boulware_deser_control": {
         "b_equals_f": "1+r^2/alpha*(1-sqrt(1+alpha*(alpha+2*r_H^2)/r^4))",
         "h": "r^2",
@@ -281,6 +301,8 @@ fixture = {
         "V_equals_minus_W_squared_over_U": "passed",
         "alpha_zero_noether_flux_squared": "passed",
         "horizon_flux_magnitude": "passed",
+        "alpha_zero_time_sector_flux_squared": "passed",
+        "horizon_time_sector_flux_squared": "passed",
         "boulware_deser_rationalization": "passed",
         "boulware_deser_horizon_and_einstein_limit": "passed"
     },
