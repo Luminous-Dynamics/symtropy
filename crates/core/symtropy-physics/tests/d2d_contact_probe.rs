@@ -146,13 +146,17 @@ impl ProbeManifestV1 {
         hash_text(&mut hash, &self.engine_package);
         hash_text(&mut hash, &self.engine_version);
         hash_u64(&mut hash, u64::from(self.dimension));
-        for value in self.gravity { hash_u64(&mut hash, value.to_bits()); }
+        for value in self.gravity {
+            hash_u64(&mut hash, value.to_bits());
+        }
         hash_u64(&mut hash, self.solver_iterations as u64);
         hash_u64(&mut hash, self.sleep_threshold.to_bits());
         hash_u64(&mut hash, u64::from(self.sleep_ticks));
         hash_text(&mut hash, &self.floor_geometry);
         hash_u64(&mut hash, self.floor_radius.to_bits());
-        for value in self.floor_center { hash_u64(&mut hash, value.to_bits()); }
+        for value in self.floor_center {
+            hash_u64(&mut hash, value.to_bits());
+        }
         hash_u64(&mut hash, self.ball_radius.to_bits());
         hash_u64(&mut hash, self.ball_mass.to_bits());
         hash_u64(&mut hash, self.ball_friction.to_bits());
@@ -160,8 +164,12 @@ impl ProbeManifestV1 {
         hash_u64(&mut hash, self.restitution.to_bits());
         hash_u64(&mut hash, self.linear_damping.to_bits());
         hash_u64(&mut hash, self.angular_damping.to_bits());
-        for value in self.initial_position { hash_u64(&mut hash, value.to_bits()); }
-        for value in self.initial_linear_velocity { hash_u64(&mut hash, value.to_bits()); }
+        for value in self.initial_position {
+            hash_u64(&mut hash, value.to_bits());
+        }
+        for value in self.initial_linear_velocity {
+            hash_u64(&mut hash, value.to_bits());
+        }
         hash_u64(&mut hash, self.timestep.to_bits());
         hash_u64(&mut hash, self.step_count as u64);
         hash_u64(&mut hash, self.surface_friction.to_bits());
@@ -286,11 +294,15 @@ fn trajectory_fingerprint(snapshots: &[WorldSnapshot<3>]) -> u64 {
                 symtropy_physics::body::BodyType::Dynamic => 3,
             };
             hash_u64(&mut hash, body_type);
-            for value in &body.translation { hash_u64(&mut hash, *value); }
+            for value in &body.translation {
+                hash_u64(&mut hash, *value);
+            }
             for row in &body.rotation {
                 for value in row { hash_u64(&mut hash, *value); }
             }
-            for value in &body.linear_velocity { hash_u64(&mut hash, *value); }
+            for value in &body.linear_velocity {
+                hash_u64(&mut hash, *value);
+            }
             for row in &body.angular_velocity {
                 for value in row { hash_u64(&mut hash, *value); }
             }
@@ -302,7 +314,9 @@ fn trajectory_fingerprint(snapshots: &[WorldSnapshot<3>]) -> u64 {
             hash_u64(&mut hash, event.body_a.0 as u64);
             hash_u64(&mut hash, event.body_b.0 as u64);
             hash_u64(&mut hash, event.impulse);
-            for value in &event.normal { hash_u64(&mut hash, *value); }
+            for value in &event.normal {
+                hash_u64(&mut hash, *value);
+            }
             hash_u64(&mut hash, event.depth);
         }
     }
@@ -515,7 +529,10 @@ fn same_frozen_contact_probe_replays_bitwise_at_each_tick() {
     let (replayed, replayed_outcome) = execute_probe(spec);
 
     assert_eq!(recorded.len(), STEPS);
-    assert_eq!(recorded, replayed, "body/event snapshot diverged during replay");
+    assert_eq!(
+        recorded, replayed,
+        "body/event snapshot diverged during replay"
+    );
     assert_eq!(recorded_outcome, replayed_outcome);
     assert!(
         recorded_outcome.collision_event_count > 0,
@@ -539,7 +556,7 @@ fn surface_friction_change_changes_the_executed_probe_observation() {
     assert!(
         (low.terminal_vx - high.terminal_vx).abs() > 1e-5
             || (low.terminal_x - high.terminal_x).abs() > 1e-5,
-        "the declared friction intervention should change the simulated outcome: low={low:?}, high={high:?}"
+        "declared friction intervention should change simulated outcome: low={low:?}, high={high:?}"
     );
 }
 
@@ -557,10 +574,9 @@ fn tangential_probe_magnitude_changes_the_executed_observation() {
     assert!(
         (gentle.terminal_vx - strong.terminal_vx).abs() > 1e-5
             || (gentle.terminal_x - strong.terminal_x).abs() > 1e-5,
-        "the declared probe intervention should change the simulated outcome: gentle={gentle:?}, strong={strong:?}"
+        "declared probe intervention should change simulated outcome: gentle={gentle:?}, strong={strong:?}"
     );
 }
-
 
 #[test]
 fn contact_probe_emits_versioned_identity_bound_result_records() {
@@ -594,10 +610,34 @@ fn factorial_contact_probe_covers_both_materials_and_both_interventions() {
         "high-strong",
     ];
     let conditions = [
-        ("low-gentle", ProbeSpec { surface_friction: 0.05, tangential_impulse: 1.0 }),
-        ("low-strong", ProbeSpec { surface_friction: 0.05, tangential_impulse: 3.0 }),
-        ("high-gentle", ProbeSpec { surface_friction: 0.90, tangential_impulse: 1.0 }),
-        ("high-strong", ProbeSpec { surface_friction: 0.90, tangential_impulse: 3.0 }),
+        (
+            "low-gentle",
+            ProbeSpec {
+                surface_friction: 0.05,
+                tangential_impulse: 1.0,
+            },
+        ),
+        (
+            "low-strong",
+            ProbeSpec {
+                surface_friction: 0.05,
+                tangential_impulse: 3.0,
+            },
+        ),
+        (
+            "high-gentle",
+            ProbeSpec {
+                surface_friction: 0.90,
+                tangential_impulse: 1.0,
+            },
+        ),
+        (
+            "high-strong",
+            ProbeSpec {
+                surface_friction: 0.90,
+                tangential_impulse: 3.0,
+            },
+        ),
     ];
 
     let mut outcomes = Vec::new();
@@ -646,7 +686,10 @@ fn branch_denominator_audit_preserves_missing_unsupported_and_unexpected_cases()
         ProbeResultRecordV1 {
             schema_version: 1,
             branch_id: "branch-a".to_string(),
-            manifest: ProbeManifestV1::from_spec(ProbeSpec { surface_friction: 0.3, tangential_impulse: 2.0 }),
+            manifest: ProbeManifestV1::from_spec(ProbeSpec {
+                surface_friction: 0.3,
+                tangential_impulse: 2.0,
+            }),
             disposition: ProbeDispositionV1::Completed,
             completed_steps: STEPS,
             collision_event_count: 1,
@@ -659,7 +702,10 @@ fn branch_denominator_audit_preserves_missing_unsupported_and_unexpected_cases()
         ProbeResultRecordV1 {
             schema_version: 1,
             branch_id: "branch-a".to_string(),
-            manifest: ProbeManifestV1::from_spec(ProbeSpec { surface_friction: 0.3, tangential_impulse: 2.0 }),
+            manifest: ProbeManifestV1::from_spec(ProbeSpec {
+                surface_friction: 0.3,
+                tangential_impulse: 2.0,
+            }),
             disposition: ProbeDispositionV1::Completed,
             completed_steps: STEPS,
             collision_event_count: 1,
@@ -672,7 +718,10 @@ fn branch_denominator_audit_preserves_missing_unsupported_and_unexpected_cases()
         ProbeResultRecordV1 {
             schema_version: 1,
             branch_id: "branch-b".to_string(),
-            manifest: ProbeManifestV1::from_spec(ProbeSpec { surface_friction: 0.4, tangential_impulse: 2.0 }),
+            manifest: ProbeManifestV1::from_spec(ProbeSpec {
+                surface_friction: 0.4,
+                tangential_impulse: 2.0,
+            }),
             disposition: ProbeDispositionV1::Unsupported,
             completed_steps: 0,
             collision_event_count: 0,
@@ -685,7 +734,10 @@ fn branch_denominator_audit_preserves_missing_unsupported_and_unexpected_cases()
         ProbeResultRecordV1 {
             schema_version: 1,
             branch_id: "unexpected".to_string(),
-            manifest: ProbeManifestV1::from_spec(ProbeSpec { surface_friction: 0.5, tangential_impulse: 2.0 }),
+            manifest: ProbeManifestV1::from_spec(ProbeSpec {
+                surface_friction: 0.5,
+                tangential_impulse: 2.0,
+            }),
             disposition: ProbeDispositionV1::Failed,
             completed_steps: 0,
             collision_event_count: 0,
