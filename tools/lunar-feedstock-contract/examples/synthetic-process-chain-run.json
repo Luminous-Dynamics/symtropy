@@ -43,7 +43,8 @@
       "calibration_record_id": null
     },
     "required_properties": [],
-    "source_scope": "Synthetic contract fixture only. The cited 20–200 um and >70 wt% target are study-specific and do not qualify HPS, MWS, SLM, electrolysis, or any universal lunar reactor."
+    "source_scope": "Synthetic contract fixture only. The cited 20–200 um and >70 wt% target are study-specific and do not qualify HPS, MWS, SLM, electrolysis, or any universal lunar reactor.",
+    "property_constraints": []
   },
   "stage_events": [
     {
@@ -465,7 +466,8 @@
       "thermal_properties_artifact_id": null,
       "charge_profile_artifact_id": null,
       "shape_profile_artifact_id": null,
-      "uncertainty_budget_artifact_id": null
+      "uncertainty_budget_artifact_id": null,
+      "property_measurements": []
     },
     {
       "sample_id": "Q-REACTOR-001",
@@ -621,7 +623,8 @@
       "thermal_properties_artifact_id": null,
       "charge_profile_artifact_id": null,
       "shape_profile_artifact_id": null,
-      "uncertainty_budget_artifact_id": null
+      "uncertainty_budget_artifact_id": null,
+      "property_measurements": []
     }
   ],
   "artifacts": [
