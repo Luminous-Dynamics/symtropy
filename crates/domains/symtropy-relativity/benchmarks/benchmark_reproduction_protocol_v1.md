@@ -76,17 +76,17 @@ For the Rust static Bach API, component values depend on fourth derivatives. Its
 
 Paper: Agurto-Sepúlveda et al., PRD accepted 12 Nov 2026, DOI 10.1103/3kz2-6dvv; arXiv:2607.07418.
 
-The paper's concrete comparison targets are now split into two machine-readable cases in `benchmark_cases_v1.json`:
+The paper's concrete comparison targets are split into two machine-readable cases in `benchmark_cases_v1.json`:
 
-- **5D Einstein–Gauss–Bonnet, equal angular momenta:** paper normalization uses horizon radius 1 and horizon angular velocity 0.33, with the Gauss–Bonnet coupling explored over alpha in [0,3]. The reported PINN uses three hidden layers of width 20; neural discovery is followed by Chebyshev pseudo-spectral Gauss–Newton refinement. The paper reports 10^4–10^5 neural optimization steps and a pre-refinement residual of order 10^-3. In the Myers–Perry/GR limit it reports relative L2 error around 10^-160 using 300-digit extended precision.
-- **7D cubic Lovelock, equal angular momenta:** the reported setup fixes alpha=0.5 and explores beta in [0,0.5], with a four-layer width-64 neural field followed by the same spectral-refinement family.
+- **5D Einstein–Gauss–Bonnet, equal angular momenta:** the action uses `alpha_1=(16*pi*G)^-1`, `alpha=4*alpha_2/alpha_1`, and `alpha_0=0`. The paper fixes `r_H=1`, `Omega_H=0.33`, and sweeps `alpha∈[0,3]` in steps of 0.01. Its cohomogeneity-one ansatz has functions `b,f,g,h,w`, with radial gauge `g(r)=r^2`; horizon conditions include `f(r_H)=b(r_H)=0`, `w(r_H)=Omega_H`, and `h(r_H)=Theta_H`. The radial compactification is `r-r_H=tan(x)`. The reported neural field uses three hidden layers of width 20, Swish activations, and strong boundary reparameterization. Its global training uses 10^4–10^5 steps (Adam warm-up/stable/decay, then L-BFGS). The paper reports pre-refinement residuals around 10^-3, followed by Chebyshev pseudo-spectral Gauss–Newton with extended precision. At alpha=0 it recovers Myers–Perry; at alpha=3 it matches a prior 5D EGB numerical branch. The paper reports relative L2 error around 10^-160 for the Myers–Perry limit using 300-digit arithmetic.
+- **7D cubic Lovelock, equal angular momenta:** the action conventions are `alpha=4*alpha_2/alpha_1` and `beta=16*alpha_3/alpha_1`, with `alpha_0=0`. It fixes `r_H=1`, `Omega_H=0.33`, `alpha=0.5`, and sweeps `beta∈[0,0.5]` in steps of 0.01, with a four-layer width-64 neural field. Crucially, `beta→0` at fixed `alpha=0.5` is a quadratic EGB limit, not the GR/Myers–Perry limit; GR requires `alpha=beta=0`.
 
-The exact action normalizations, boundary formulas and published branch arrays must still be extracted from the complete paper/supplement before these become matched numerical cases. These are not matched to Symtropy's current 4D pure-Weyl static problem.
+The main paper pins the action coupling definitions, symmetry ansatz, radial gauge, horizon data and compactification. Exact asymptotic series coefficients and detailed per-point solution arrays still need extraction from the Supplemental Material before a fully matched numerical run. Neither case is matched to Symtropy's current 4D pure-Weyl static problem.
 
 Before any matched run:
-- pin the exact theory/action and normalization, spacetime dimension, symmetry ansatz and coupling definitions;
+- pin the exact theory/action and normalization, dimension, symmetry ansatz and coupling definitions;
 - reconstruct the horizon/asymptotic boundary conditions and radial compactification;
-- reproduce at least one published point and the GR limit where available;
+- reproduce at least one published point and the correct GR limit where available;
 - compare PINN discovery cost/convergence separately from pseudo-spectral refinement cost/accuracy;
 - retain the same branch/parameter points and residual norm;
 - inspect the meaning of “certified” in the source: a continuous globally parameterized neural field and a quantified residual are not automatically an interval/radii-polynomial existence theorem.
