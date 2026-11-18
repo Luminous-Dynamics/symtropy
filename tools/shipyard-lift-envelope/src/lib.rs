@@ -469,6 +469,125 @@ fn json_quote(input: &str) -> String {
     output
 }
 
+fn evidence_state_name(value: EvidenceState) -> &'static str {
+    match value {
+        EvidenceState::Current => "current",
+        EvidenceState::Revoked => "revoked",
+        EvidenceState::Superseded => "superseded",
+    }
+}
+
+fn evidence_json(evidence: &EvidenceRef) -> String {
+    format!(
+        "{{\"source_record_id\":{},\"owner_id\":{},\"revision\":{},\"subject_id\":{},\"subject_revision\":{},\"sha256\":{},\"valid_from_tick\":{},\"valid_until_tick\":{},\"state\":{}}}",
+        json_quote(&evidence.source_record_id),
+        json_quote(&evidence.owner_id),
+        json_quote(&evidence.revision),
+        json_quote(&evidence.subject_id),
+        json_quote(&evidence.subject_revision),
+        json_quote(&evidence.sha256.to_ascii_lowercase()),
+        evidence.valid_from_tick,
+        evidence.valid_until_tick,
+        json_quote(evidence_state_name(evidence.state)),
+    )
+}
+
+impl LiftPlan {
+    /// Canonical JSON bytes for the exact declared input and all evidence references.
+    /// A caller should hash these bytes separately from the report's canonical JSON.
+    /// The serializer does not authenticate evidence or certify physical truth.
+    pub fn canonical_json(&self) -> String {
+        let mut legs = self.rigging_legs.clone();
+        legs.sort_by(|left, right| left.leg_id.cmp(&right.leg_id));
+        let legs_json = legs
+            .iter()
+            .map(|leg| {
+                format!(
+                    "{{\"leg_id\":{},\"component_revision\":{},\"maximum_vertical_share_ppm\":{},\"minimum_sine_angle_ppm\":{},\"working_load_limit_mn\":{},\"wll_evidence\":{}}}",
+                    json_quote(&leg.leg_id),
+                    json_quote(&leg.component_revision),
+                    leg.maximum_vertical_share_ppm,
+                    leg.minimum_sine_angle_ppm,
+                    leg.working_load_limit_mn,
+                    evidence_json(&leg.wll_evidence),
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+
+        let chart = &self.crane_chart;
+        let crane_json = format!(
+            "{{\"crane_id\":{},\"configuration_revision\":{},\"radius_band_id\":{},\"working_quadrant_id\":{},\"net_capacity_mn\":{},\"record_id\":{},\"evidence\":{}}}",
+            json_quote(&chart.crane_id),
+            json_quote(&chart.configuration_revision),
+            json_quote(&chart.radius_band_id),
+            json_quote(&chart.working_quadrant_id),
+            chart.net_capacity_mn,
+            json_quote(&chart.record_id),
+            evidence_json(&chart.evidence),
+        );
+
+        let weather = &self.weather;
+        let weather_json = format!(
+            "{{\"gust_upper_mm_per_s\":{},\"maximum_gust_mm_per_s\":{},\"observation_subject_id\":{},\"observation_subject_revision\":{},\"limit_profile_id\":{},\"limit_profile_revision\":{},\"observation_evidence\":{},\"operating_limit_evidence\":{}}}",
+            weather.gust_upper_mm_per_s,
+            weather.maximum_gust_mm_per_s,
+            json_quote(&weather.observation_subject_id),
+            json_quote(&weather.observation_subject_revision),
+            json_quote(&weather.limit_profile_id),
+            json_quote(&weather.limit_profile_revision),
+            evidence_json(&weather.observation_evidence),
+            evidence_json(&weather.operating_limit_evidence),
+        );
+
+        let motion = &self.motion;
+        let motion_json = format!(
+            "{{\"motion_report_id\":{},\"motion_report_evidence\":{},\"occupancy_projection_id\":{},\"occupancy_evidence\":{},\"block_id\":{},\"block_revision\":{},\"payload_id\":{},\"site_epoch_id\":{},\"frame_id\":{},\"clock_domain_id\":{},\"occupancy_start_tick\":{},\"occupancy_end_tick\":{}}}",
+            json_quote(&motion.motion_report_id),
+            evidence_json(&motion.motion_report_evidence),
+            json_quote(&motion.occupancy_projection_id),
+            evidence_json(&motion.occupancy_evidence),
+            json_quote(&motion.block_id),
+            json_quote(&motion.block_revision),
+            json_quote(&motion.payload_id),
+            json_quote(&motion.site_epoch_id),
+            json_quote(&motion.frame_id),
+            json_quote(&motion.clock_domain_id),
+            motion.occupancy_start_tick,
+            motion.occupancy_end_tick,
+        );
+
+        format!(
+            "{{\"contract_version\":{},\"lift_id\":{},\"block_id\":{},\"block_revision\":{},\"site_epoch_id\":{},\"frame_id\":{},\"clock_domain_id\":{},\"start_tick\":{},\"end_tick\":{},\"mass_upper_kg\":{},\"dynamic_factor_ppm\":{},\"dynamic_factor_profile_id\":{},\"dynamic_factor_profile_revision\":{},\"mass_evidence\":{},\"centre_of_gravity_envelope_evidence\":{},\"pick_point_and_load_share_evidence\":{},\"dynamic_factor_evidence\":{},\"crane_id\":{},\"crane_configuration_revision\":{},\"crane_radius_band_id\":{},\"crane_working_quadrant_id\":{},\"crane_chart\":{},\"rigging_legs\":[{}],\"weather\":{},\"motion\":{}}}",
+            json_quote(CONTRACT_VERSION),
+            json_quote(&self.lift_id),
+            json_quote(&self.block_id),
+            json_quote(&self.block_revision),
+            json_quote(&self.site_epoch_id),
+            json_quote(&self.frame_id),
+            json_quote(&self.clock_domain_id),
+            self.start_tick,
+            self.end_tick,
+            self.mass_upper_kg,
+            self.dynamic_factor_ppm,
+            json_quote(&self.dynamic_factor_profile_id),
+            json_quote(&self.dynamic_factor_profile_revision),
+            evidence_json(&self.mass_evidence),
+            evidence_json(&self.centre_of_gravity_envelope_evidence),
+            evidence_json(&self.pick_point_and_load_share_evidence),
+            evidence_json(&self.dynamic_factor_evidence),
+            json_quote(&self.crane_id),
+            json_quote(&self.crane_configuration_revision),
+            json_quote(&self.crane_radius_band_id),
+            json_quote(&self.crane_working_quadrant_id),
+            crane_json,
+            legs_json,
+            weather_json,
+            motion_json,
+        )
+    }
+}
+
 fn disposition_name(value: Disposition) -> &'static str {
     match value {
         Disposition::ReadyForHumanReview => "ready_for_human_review",
@@ -1183,6 +1302,26 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn canonical_input_json_is_identical_under_leg_input_permutation() {
+        let first = baseline();
+        let mut second = baseline();
+        second.rigging_legs.reverse();
+        assert_eq!(first.canonical_json(), second.canonical_json());
+    }
+
+    #[test]
+    fn canonical_input_json_binds_source_digests_and_crane_configuration() {
+        let baseline = baseline();
+        let mut changed_mass_source = baseline.clone();
+        changed_mass_source.mass_evidence.sha256 = "b".repeat(64);
+        assert_ne!(baseline.canonical_json(), changed_mass_source.canonical_json());
+
+        let mut changed_crane = baseline.clone();
+        changed_crane.crane_configuration_revision = "gantry-config-r5".to_owned();
+        assert_ne!(baseline.canonical_json(), changed_crane.canonical_json());
     }
 
     #[test]
