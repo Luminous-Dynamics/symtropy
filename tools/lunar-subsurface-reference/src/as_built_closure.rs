@@ -254,7 +254,7 @@ fn reconcile_mass_flow(
     })
 }
 
-fn render_report_json() -> Result<String, String> {
+pub(super) fn render_report_json() -> Result<String, String> {
     let within = reconcile_volume(
         1_000_000.0,
         Some(GeometryMeasurement {
