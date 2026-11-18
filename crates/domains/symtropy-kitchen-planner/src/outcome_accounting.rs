@@ -1461,7 +1461,9 @@ mod tests {
         );
 
         let mut repeated_stage_request = request();
-        repeated_stage_request.water_terms.push(repeated_stage_request.water_terms[0].clone());
+        repeated_stage_request
+            .water_terms
+            .push(repeated_stage_request.water_terms[0].clone());
         assert_eq!(
             evaluate_kitchen_outcome_accounting(&repeated_stage_request).disposition,
             KitchenOutcomeDispositionV1::Blocked
