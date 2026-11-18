@@ -46,9 +46,12 @@ jobs:
             and ([.vectors[].test_name] | unique | length) == 33
             and all(.vectors[];
               .synthetic_only == true
-              and (.mode == "evaluation" implies (.expected_disposition != null))
-              and (.mode == "multi_case" implies ((.expected_dispositions | length) >= 2))
-              and (.mode != "evaluation" and .mode != "multi_case" implies (.expected_disposition == null))
+              and (
+                if .mode == "evaluation" then (.expected_disposition != null)
+                elif .mode == "multi_case" then ((.expected_disposition == null) and ((.expected_dispositions | length) >= 2))
+                else .expected_disposition == null
+                end
+              )
             )
           ' "$vectors"
           jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.contract_version.const == "shipyard-lift-envelope-v0.1" and (.required | index("rigging_legs") != null) and (.required | index("motion") != null)' tools/shipyard-lift-envelope/schemas/lift-plan-v0.1.schema.json
