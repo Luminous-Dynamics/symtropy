@@ -1,0 +1,542 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/grid-asset-recovery-v0.1.schema.json",
+  "title": "Grid Asset Recovery Benchmark v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "caseId",
+    "caseMaturity",
+    "serviceBoundary",
+    "assets",
+    "parts",
+    "depots",
+    "resources",
+    "logisticsRoutes",
+    "evidenceRecords",
+    "events"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "caseId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "caseMaturity": {
+      "enum": [
+        "synthetic_fixture",
+        "engineering_estimate",
+        "field_observed",
+        "independently_reviewed"
+      ]
+    },
+    "serviceBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "serviceId",
+        "serviceUnit",
+        "energyUnit"
+      ],
+      "properties": {
+        "serviceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "serviceUnit": {
+          "const": "MW"
+        },
+        "energyUnit": {
+          "const": "MWh"
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "assetId",
+          "assetClass",
+          "variantId",
+          "interfaceProfileId",
+          "locationId"
+        ],
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "assetClass": {
+            "type": "string",
+            "minLength": 1
+          },
+          "variantId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "interfaceProfileId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "locationId": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "parts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "partId",
+          "partClass",
+          "variantId",
+          "approvedInterfaceProfiles",
+          "evidenceRecordId"
+        ],
+        "properties": {
+          "partId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "partClass": {
+            "type": "string",
+            "minLength": 1
+          },
+          "variantId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "approvedInterfaceProfiles": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "evidenceRecordId": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "depots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "depotId",
+          "locationId",
+          "inventory"
+        ],
+        "properties": {
+          "depotId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "locationId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "inventory": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "partId",
+                "quantityOnHand",
+                "quantityReserved",
+                "quantityServiceable"
+              ],
+              "properties": {
+                "partId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "quantityOnHand": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "quantityReserved": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "quantityServiceable": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "resourceId",
+          "resourceType",
+          "availableUnits"
+        ],
+        "properties": {
+          "resourceId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "resourceType": {
+            "type": "string",
+            "minLength": 1
+          },
+          "availableUnits": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "logisticsRoutes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "routeId",
+          "fromLocationId",
+          "toLocationId",
+          "transitHours",
+          "maxCargoKg"
+        ],
+        "properties": {
+          "routeId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fromLocationId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "toLocationId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "transitHours": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "maxCargoKg": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        }
+      }
+    },
+    "evidenceRecords": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidenceRecordId",
+          "evidenceClass",
+          "description"
+        ],
+        "properties": {
+          "evidenceRecordId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidenceClass": {
+            "enum": [
+              "synthetic_fixture",
+              "manufacturer_claim",
+              "type_tested",
+              "site_qualified",
+              "independent_field_verified"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceUri": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "eventId",
+          "assetId",
+          "startHour",
+          "failureMode",
+          "firmCapacityLostMw",
+          "selectedPlan"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "assetId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "startHour": {
+            "type": "number",
+            "minimum": 0
+          },
+          "failureMode": {
+            "type": "string",
+            "minLength": 1
+          },
+          "firmCapacityLostMw": {
+            "type": "number",
+            "minimum": 0
+          },
+          "selectedPlan": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "planId",
+              "partSource",
+              "alternativeFirmCapacityMw",
+              "claimedRestorationHours",
+              "expectedUnservedEnergyMwh",
+              "tasks"
+            ],
+            "properties": {
+              "planId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "partSource": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "kind",
+                      "depotId",
+                      "partId",
+                      "quantity"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "const": "depot_stock"
+                      },
+                      "depotId": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "partId": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "quantity": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "kind",
+                      "supplierId",
+                      "partId"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "const": "oem_procurement"
+                      },
+                      "supplierId": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "partId": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              "logisticsRouteId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "transportMassKg": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "alternativeFirmCapacityMw": {
+                "type": "number",
+                "minimum": 0
+              },
+              "claimedRestorationHours": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "expectedUnservedEnergyMwh": {
+                "type": "number",
+                "minimum": 0
+              },
+              "tasks": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "stage",
+                    "durationHours"
+                  ],
+                  "properties": {
+                    "stage": {
+                      "enum": [
+                        "detect_and_isolate",
+                        "diagnose",
+                        "source_part",
+                        "transport",
+                        "crew_mobilise",
+                        "repair_or_replace",
+                        "test_and_commission"
+                      ]
+                    },
+                    "durationHours": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "resourceId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "resourceUnits": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "required": [
+                          "resourceId"
+                        ]
+                      },
+                      "then": {
+                        "required": [
+                          "resourceUnits"
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "required": [
+                          "resourceUnits"
+                        ]
+                      },
+                      "then": {
+                        "required": [
+                          "resourceId"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "partSource": {
+                      "properties": {
+                        "kind": {
+                          "const": "depot_stock"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "partSource"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "logisticsRouteId",
+                    "transportMassKg"
+                  ]
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "partSource": {
+                      "properties": {
+                        "kind": {
+                          "const": "oem_procurement"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "partSource"
+                  ]
+                },
+                "then": {
+                  "not": {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "logisticsRouteId"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "transportMassKg"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
