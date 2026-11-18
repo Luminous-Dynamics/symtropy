@@ -1477,7 +1477,7 @@ mod tests {
     fn rotational_diffusion_is_seeded_and_changes_heading() {
         let mut profile = steering_profile();
         profile.rotational_diffusion_rad2_s = 0.8;
-        profile.short_turn_angle_rad = directional(
+        profile.active_motor_turn_angle_rad = directional(
             vec![0.0],
             vec![0.0],
             vec![0.0],
@@ -1494,7 +1494,7 @@ mod tests {
     fn short_turn_bias_uses_realized_run_displacement_direction() {
         let mut profile = steering_profile();
         profile.rotational_diffusion_rad2_s = 0.8;
-        profile.short_turn_angle_rad = directional(
+        profile.active_motor_turn_angle_rad = directional(
             vec![0.0],
             vec![0.1],
             vec![0.2],
@@ -1667,8 +1667,8 @@ mod tests {
         assert_eq!(summary.projected_drift_um_s, None);
         assert_eq!(summary.resolved_run_direction_count, 0);
         assert_eq!(summary.up_gradient_run_fraction, None);
-        assert_eq!(summary.short_event_followed_up_gradient_fraction, None);
-        assert_eq!(summary.long_trap_followed_up_gradient_fraction, None);
+        assert_eq!(summary.short_duration_followed_up_gradient_fraction, None);
+        assert_eq!(summary.long_duration_followed_up_gradient_fraction, None);
 
         let one_event = simulate(
             &steering_profile(),
@@ -1679,10 +1679,10 @@ mod tests {
         )
         .expect("one-event simulation is valid");
         let one_event_summary = summarize(&one_event);
-        assert_eq!(one_event_summary.short_event_count, 1);
-        assert_eq!(one_event_summary.short_event_followed_run_count, 0);
+        assert_eq!(one_event_summary.short_duration_event_count, 1);
+        assert_eq!(one_event_summary.short_duration_followed_run_count, 0);
         assert_eq!(
-            one_event_summary.short_event_followed_up_gradient_fraction,
+            one_event_summary.short_duration_followed_up_gradient_fraction,
             None
         );
     }
