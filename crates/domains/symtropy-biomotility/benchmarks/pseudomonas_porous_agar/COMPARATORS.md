@@ -121,6 +121,7 @@ All arms must use the same source split, empirical event distribution where appl
 2. Event-duration survival/density, stratified by independently assigned mechanism where evidence supports it.
 3. Right-censor-aware Kaplan–Meier survival curves with risk sets, event counts, censor counts and Greenwood standard errors.
 4. Matched empirical, exponential, double-exponential and piecewise-power-law waiting-time models using identical source splits and censoring assumptions.
+5. Age-dependent MSD (M(\\Delta;t_a)) across the observed recording window, with long-time normal-diffusion predictions reported separately as model extrapolations.
 5. Turn-angle distributions conditioned on preceding run-displacement direction and active-motor evidence class.
 6. Up-gradient run fraction after short versus long duration bins, independently of mechanism.
 7. Mechanism-by-duration overlap matrix, only where mechanism evidence is independently available.
