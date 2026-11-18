@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WDN repair outcome T0 oracle v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "benchmark_id",
+    "cases"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "wdn-repair-outcome-t0-oracle-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WDN-REPAIR-OUTCOME-T0-001"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 14,
+      "maxItems": 14,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "inspection_confirmation",
+          "repair_completion",
+          "outcome_disposition",
+          "observed_target_flow_change_lps",
+          "adjusted_flow_reduction_lps",
+          "uncertainty_screened_lower_reduction_lps",
+          "observed_horizon_lower_volume_l",
+          "followup_duration_seconds",
+          "causal_claim_eligibility",
+          "annualized_savings_claimed"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "inspection_confirmation": {
+            "enum": [
+              "leak_confirmed",
+              "no_leak_found",
+              "inconclusive"
+            ]
+          },
+          "repair_completion": {
+            "enum": [
+              "completed",
+              "not_started",
+              "incomplete"
+            ]
+          },
+          "outcome_disposition": {
+            "type": "string"
+          },
+          "observed_target_flow_change_lps": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "adjusted_flow_reduction_lps": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "uncertainty_screened_lower_reduction_lps": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "observed_horizon_lower_volume_l": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "followup_duration_seconds": {
+            "type": "integer"
+          },
+          "causal_claim_eligibility": {
+            "const": "NotEligible"
+          },
+          "annualized_savings_claimed": {
+            "const": false
+          }
+        }
+      }
+    }
+  }
+}
