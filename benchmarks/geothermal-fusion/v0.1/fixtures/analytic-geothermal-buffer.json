@@ -1,0 +1,119 @@
+{
+  "schema_version": "0.1.0",
+  "case_id": "SYN-GEOFUSION-GEOTHERMAL-BUFFER-001",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "analytic_energy_ledger_only",
+  "description": "Hand-calculable 70-minute geothermal-to-facility electrical and direct-heat fixture. Facility demand is hypothetical and is not a measured fusion-device load. No fusion plasma or fusion heat source is modelled.",
+  "provenance": {
+    "source_refs": [],
+    "note": "All values in this fixture are analyst-authored synthetic assumptions for arithmetic verification; they are not site data, vendor performance, or physical measurements."
+  },
+  "timebase": {
+    "duration_seconds": 4200,
+    "intervals": [
+      {
+        "start_offset_seconds": 0,
+        "duration_seconds": 3600,
+        "facility_base_load_mwe": 6.0,
+        "facility_pulse_increment_mwe": 0.0,
+        "geothermal_net_generation_mwe": 8.0,
+        "storage_charge_bus_power_mwe": 2.0,
+        "storage_discharge_bus_power_mwe": 0.0
+      },
+      {
+        "start_offset_seconds": 3600,
+        "duration_seconds": 600,
+        "facility_base_load_mwe": 6.0,
+        "facility_pulse_increment_mwe": 8.0,
+        "geothermal_net_generation_mwe": 8.0,
+        "storage_charge_bus_power_mwe": 0.0,
+        "storage_discharge_bus_power_mwe": 6.0
+      }
+    ]
+  },
+  "geothermal_source": {
+    "asset_id": "synthetic-geothermal-source-01",
+    "resource_class": "synthetic_subcritical",
+    "source_temperature_c": 200.0,
+    "extracted_thermal_power_mwth": 100.0,
+    "fluid_property_model": "not_used_declared_thermal_duty",
+    "note": "Declared thermal duty only. No water/brine enthalpy calculation, reservoir model, wellbore model, or South African site inference is included."
+  },
+  "thermal_allocations": {
+    "direct_heat": {
+      "input_mwth": 20.0,
+      "useful_output_mwth": 18.0,
+      "useful_delivery_temperature_c": 170.0,
+      "sink_minimum_temperature_c": 150.0,
+      "minimum_approach_temperature_c": 20.0,
+      "loss_mwth": 2.0
+    },
+    "power_cycle": {
+      "cycle_family": "synthetic_orc_like",
+      "thermal_input_mwth": 70.0,
+      "gross_electric_output_mwe": 10.0,
+      "rejected_heat_mwth": 60.0,
+      "gross_conversion_efficiency": 0.14285714285714285
+    },
+    "unrecovered_or_transport_loss_mwth": 10.0
+  },
+  "electrical_conversion": {
+    "gross_generation_mwe": 10.0,
+    "geothermal_parasitic_load_mwe": 2.0,
+    "net_generation_mwe": 8.0
+  },
+  "facility_demand": {
+    "facility_class": "hypothetical_fusion_research_campus",
+    "profile_class": "synthetic_not_device_representative",
+    "base_load_mwe": 6.0,
+    "pulse": {
+      "start_offset_seconds": 3600,
+      "duration_seconds": 600,
+      "incremental_load_mwe": 8.0
+    },
+    "note": "This is a generic synthetic campus load pulse. It is not ITER, SPARC, a commercial fusion plant, or a validated plasma-heating duty."
+  },
+  "electrical_storage": {
+    "asset_id": "synthetic-battery-buffer-01",
+    "energy_capacity_mwh": 3.0,
+    "initial_state_mwh": 0.0,
+    "charge_efficiency": 0.95,
+    "discharge_efficiency": 0.95,
+    "charge_input_energy_mwh": 2.0,
+    "stored_energy_gain_mwh": 1.9,
+    "delivered_discharge_energy_mwh": 1.0,
+    "storage_energy_drawdown_mwh": 1.0526315789473684,
+    "final_state_mwh": 0.8473684210526316,
+    "conversion_losses_mwh": 0.1526315789473684,
+    "maximum_discharge_power_mwe": 6.0
+  },
+  "expected_energy_ledger": {
+    "duration_hours": 1.1666666666666667,
+    "thermal_input_mwhth": 116.66666666666667,
+    "thermal_output_and_loss_terms_mwh": {
+      "useful_direct_heat_mwhth": 21.0,
+      "direct_heat_loss_mwhth": 2.3333333333333335,
+      "power_cycle_electricity_mwhe": 11.666666666666666,
+      "power_cycle_rejected_heat_mwhth": 70.0,
+      "unrecovered_or_transport_loss_mwhth": 11.666666666666666
+    },
+    "net_electric_generation_mwhe": 9.333333333333334,
+    "facility_service_energy_mwhe": 8.333333333333334,
+    "net_storage_state_increase_mwhe": 0.8473684210526316,
+    "storage_conversion_losses_mwhe": 0.1526315789473684,
+    "first_law_residual_mwh": 0.0,
+    "electric_bus_residual_mwh": 0.0
+  },
+  "explicitly_not_modelled": [
+    "fusion plasma physics or ignition",
+    "fusion heat generation or blanket/divertor thermal hydraulics",
+    "fusion plant representative load profile",
+    "geothermal reservoir and wellbore physics",
+    "water/brine thermodynamic properties",
+    "ORC component maps or real conversion efficiency",
+    "grid dynamics, protection, frequency, voltage, or interconnection studies",
+    "battery electrochemistry, degradation, temperature, and power electronics",
+    "exergy accounting",
+    "economics, permitting, water rights, induced seismicity, materials lifetime, and safety case"
+  ]
+}
