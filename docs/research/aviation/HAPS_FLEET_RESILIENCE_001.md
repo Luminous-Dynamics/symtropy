@@ -167,6 +167,43 @@ The event-schedule evaluator reports reserve energy separately from primary-flee
 
 The general fleet reliability tool has a dedicated path-scoped workflow for rustfmt, Clippy and fixture replay. Exact-head CI status is tracked separately; no Rust test or physical reliability pass is inferred from structural inspection alone.
 
+### 7.3 Cyclic fleet sizing: service duration versus refurbishment turnaround
+
+*Payload* reported on 3 November 2026 that Sceye's recovered platforms were being dismantled and tested before component reuse, with turnaround then measured in months; the stated objective was to reduce this to weeks, while also pursuing individual platform flights of six months or more. The article also reports a five-year SoftBank fleet agreement and an executive target of at least 40 platforms. These are interview-reported operating context and plans, not a public achieved fleet-availability SLA. [Payload, 3 November 2026](https://payloadspace.com/exclusive-sceye-signs-five-year-deal-to-fly-haps-fleet-for-softbank/). The official five-year MSA announcement describes manufacturing, launch and operation toward nationwide Japanese coverage, but does not publish a fleet availability SLA. [Sceye/SoftBank MSA](https://sceye.com/press-releases/sceye-softbank-sign-agreement-for-fleet-of-stratospheric-platforms/).
+
+This creates a first-order lifecycle trade-off. For identical aircraft with one unit of service capacity each, required continuous service (R), active service interval (D), and sequential recovery/refurbishment/relaunch turnaround (T), the idealized service duty fraction is:
+
+`d = D / (D + T)`
+
+The aggregate fleet-size lower bound is:
+
+`N_min = ceil(R / d) = ceil(R × (D + T) / D)`
+
+This is a **lower bound only**. It assumes perfect phase staggering, identical platforms, no failures during active service, no common-cause weather, unlimited maintenance bays and launch/recovery capacity, no spare failures and no handover gaps. It does not prove that a strict zero-outage rotation schedule exists. The ST1 30-day record was a US–Japan round-trip flight including transit and about a week of Japan operations; it is not treated here as a measured 30-day on-station duration. All durations below are synthetic what-if inputs.
+
+The new machine-readable inputs and exact arithmetic evaluator are:
+- [haps_fleet_rotation_capacity_v1.schema.json](schemas/haps_fleet_rotation_capacity_v1.schema.json)
+- [synthetic_haps_fleet_rotation_capacity_v1.json](examples/synthetic_haps_fleet_rotation_capacity_v1.json)
+- [rotation_capacity.rs](../../../tools/haps-fleet-reliability/src/rotation_capacity.rs)
+- CLI: `cargo run --locked --manifest-path tools/haps-fleet-reliability/Cargo.toml --bin rotation-capacity -- docs/research/aviation/examples/synthetic_haps_fleet_rotation_capacity_v1.json`
+
+<text></text>
+| Scenario | Active service | Turnaround | Duty fraction | Fleet lower bound for 3 continuous units | Reserve lower bound |
+|---|---:|---:|---:|---:|---:|
+| Weeks-scale turnaround | 30 d | 14 d | 68.18% | 5 | 2 |
+| One-month turnaround | 30 d | 30 d | 50.00% | 6 | 3 |
+| Two-month turnaround | 30 d | 60 d | 33.33% | 9 | 6 |
+| Three-month turnaround | 30 d | 90 d | 25.00% | 12 | 9 |
+| Six-month turnaround | 30 d | 180 d | 14.29% | 21 | 18 |
+| Six-month active / weeks turnaround | 180 d | 14 d | 92.78% | 4 | 1 |
+| Six-month active / three-month turnaround | 180 d | 90 d | 66.67% | 5 | 2 |
+
+The key implication is that **serviceability and turnaround engineering can reduce fleet capital almost as much as endurance improvements**. In this idealized three-unit service, moving from a 30-day active / 90-day turnaround cycle (12 aircraft lower bound) to a 180-day active / 14-day turnaround cycle (4 aircraft lower bound) reduces the theoretical fleet lower bound by two-thirds. This is not a forecast of any operator's actual fleet size; it is a sensitivity result that identifies the value of longer station service and faster depot turnaround.
+
+The next qualification increment should replace this scalar lower bound with a constrained rotation scheduler that includes recovery/transport/inspection/repair/replenishment/launch stages, limited maintenance bays, spares, launch and recovery throughput, weather windows, transit, staggered schedules and shared-component shortages. After that, use empirical repair-duration distributions and weather-conditioned failure records to reproduce semi-Markov and discrete-event reliability baselines. Report median/p95/p99 turnaround, service interruption, fleet size, reserve ratio, maintenance-bay utilization and cost per continuously served region.
+
+The current Rust module enforces the sequential turnaround components and checks fixture oracle values; its tests are authored but must not be described as executed until exact-head CI completes. It remains an analytical duty-cycle lower bound, not a semi-Markov or operational fleet model.
+
 ## 8. Ownership
 
 - Parent HAPS network/persistence: [#5885](https://github.com/Luminous-Dynamics/symtropy/issues/5885).
