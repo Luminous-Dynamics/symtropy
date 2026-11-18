@@ -899,4 +899,52 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn readiness_receipt_is_bound_to_the_current_ledger_head_at_consumption() {
+        let mut ledger = site_ledger();
+        let request = make_request(&ledger);
+        let receipt = check_dispatch_readiness(&ledger, &request).unwrap();
+
+        ledger
+            .apply(SiteEventEnvelope {
+                event_id: "station-after-readiness".into(),
+                sequence: 2,
+                previous_event_sha256: ledger.last_event_sha256().map(str::to_owned),
+                event_sha256: digest('5'),
+                actor_id: "surveyor".into(),
+                actor_role: SiteActorRole::Surveyor,
+                payload: SiteEventPayload::StationQualified {
+                    package_sha256: request.envelope.package_sha256.clone(),
+                    station_id: "station-01".into(),
+                    frame_sha256: digest('f'),
+                    transform_sha256: digest('1'),
+                    calibration_sha256: digest('6'),
+                },
+            })
+            .unwrap();
+
+        assert_eq!(
+            verify_dispatch_readiness_receipt_current(
+                &ledger,
+                &receipt,
+                &request.trusted_occupancy_engine_build_sha256,
+                &request.required_clearance_policy_sha256,
+                130,
+            ),
+            Err(DispatchReadinessFailure::SiteSnapshotSequenceMismatch)
+        );
+    }
+
+    #[test]
+    fn wrong_or_unknown_request_schema_version_is_rejected() {
+        let ledger = site_ledger();
+        let mut request = make_request(&ledger);
+        request.schema_version = "construction-dispatch-readiness-request/0.2".into();
+        assert_eq!(
+            check_dispatch_readiness(&ledger, &request),
+            Err(DispatchReadinessFailure::UnsupportedSchemaVersion)
+        );
+    }
+
 }
