@@ -65,6 +65,24 @@ Use:
 Only compare matched tasks, embodiments, sensors, simulator versions and success rubrics. Do not place the three benchmarks on one leaderboard or compare their aggregate success rates as if they were interchangeable. For each external evaluation, record the exact 2026 challenge release, split, task subset, assets/license, robot embodiment, RGB/depth/proprioception availability, partial-credit rule, recovery, collision and human-takeover behavior.
 
 
+## Dual-graph meal compilation conformance
+
+The integrated manifest now includes a software-only compiler conformance lane that composes with the Symthaea proposal handoff and the Symtropy compiler branch:
+
+- [Symthaea MealProposalV1 handoff PR #12715](https://github.com/Luminous-Dynamics/symthaea/pull/12715)
+- [Symtropy dual-graph meal compiler PR #5972](https://github.com/Luminous-Dynamics/symtropy/pull/5972)
+
+The compiler emits two linked representations rather than forcing material transformations into a task DAG:
+
+1. The existing `RecipeTaskGraphV1` for culinary actions, explicit ontology mapping, dependency and scheduling fields.
+2. A typed `FoodFlowGraphV1` for raw ingredient allocations, task-output transformations, planned edible outputs and explicit planned losses.
+
+The manifest adds a 28th task and seven software-conformance metrics covering false-compilation rate, unknown promotion, material lineage, evidence-reference coverage, exact acceptance binding, deterministic replay and p95 latency. Its target hypotheses are deliberately separate:
+- **Hard gates:** zero false compiled results, zero unknown-to-known promotion, exact acceptance binding, complete material lineage and complete decision-evidence references.
+- **Performance hypothesis:** p95 below 50 ms for 100 tasks / 500 material edges on a frozen reference host, only after correctness gates pass.
+
+The conformance lane is synthetic software verification. It does not establish that household stock exists, that lots are physically present or fresh, that allergens or food safety are qualified, that the schedule is feasible, that a module is admitted, that the food is accepted, or that an appliance can be actuated. The manifest still has zero physical runs and remains draft/unpreregistered.
+
 ## Pre-trial metrology gate
 
 The manifest now names the minimum measurement roles without implying that any instrument has been acquired or calibrated. All instrument slots currently have `status=not_selected` and `calibration_ref=null`. The shortlist covers true electrical real-power/transient capture, water, precision and platform mass, temperature, ambient conditions, particle-size distribution, sound and cleaning residue. See [KITCHEN-METROLOGY-001](https://github.com/Luminous-Dynamics/symtropy/issues/5894).
