@@ -1373,9 +1373,7 @@ fn validate_space_time_reservation(
         || ledger.last_event_sha256.as_deref()
             != Some(reservation.site_ledger_event_sha256.as_str())
     {
-        return Err(SiteLedgerError::ReservationReleaseContextMismatch(
-            reservation.reservation_id.clone(),
-        ));
+        return Err(SiteLedgerError::ReservationSnapshotMismatch);
     }
     let package = ledger.current_package(&reservation.package_sha256)?;
     if package.package.design_revision_sha256 != reservation.design_revision_sha256 {
