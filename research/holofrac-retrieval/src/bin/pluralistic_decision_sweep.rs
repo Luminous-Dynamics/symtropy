@@ -104,6 +104,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             [None; CRITERION_COUNT],
         ),
         profile_event(
+            9,
+            "synthetic:future-use-representative",
+            ConsentScope::AnonymousAggregate,
+            ConsentStatus::Granted,
+            [0.1, 0.05, 0.05, 0.05, 0.1, 0.05, 0.1, 0.5],
+            [None; CRITERION_COUNT],
+        ),
+        profile_event(
             7,
             "synthetic:local-only",
             ConsentScope::LocalOnly,
