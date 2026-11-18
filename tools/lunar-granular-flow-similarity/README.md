@@ -1,6 +1,6 @@
 # Lunar granular-flow similarity envelope
 
-This small Rust utility compares two declared granular-flow profiles across a caller-defined set of dimensionless coordinates and hard categorical boundaries. It is a screening tool for experimental similitude—not a physics solver and not a lunar qualification certificate.
+This small Rust utility compares two declared granular-flow profiles across seventeen caller-defined dimensionless coordinates and hard categorical boundaries. It is a screening tool for experimental similitude—not a physics solver and not a lunar qualification certificate.
 
 ## Run
 
@@ -26,18 +26,18 @@ Provide the JSON path as the first argument or pipe JSON to stdin.
 - Vibration acceleration ratio Γ, dimensionless frequency f sqrt(d50/g), and peak displacement/d50.
 - Exact-match categorical boundaries: atmosphere, wall material, wall grounding and flow regime.
 
-The Cw and Aw ratios are proposed operational similarity coordinates. Their numerator definitions, particle representative mass, contact sampling and uncertainty must be recorded by the experimenter; the evaluator does not infer them from angle of repose.
+`Bo_m` and `Aw` are proposed operational similarity coordinates. Their force numerators, representative particle mass, contact sampling and uncertainty must be recorded by the experimenter; the evaluator does not infer them from angle of repose. The signed electrostatic number preserves polarity: equal magnitudes with opposite signs are outside the envelope.
 
 ## Comparison semantics
 
-Positive-valued coordinates use symmetric multiplicative deviation: max(candidate/target, target/candidate) <= caller-declared factor tolerance. Fill fraction uses an absolute difference tolerance. Categorical fields require exact equality.
+Positive-valued coordinates use symmetric multiplicative deviation: max(candidate/target, target/candidate) <= caller-declared factor tolerance. Fill fraction uses an absolute difference tolerance. The signed electrostatic coordinate requires equal polarity before comparing magnitude. Categorical fields require exact equality.
 
 Overall results are fail-closed:
 - `within_declared_similarity_envelope`: every required coordinate is present and within tolerance;
 - `outside_declared_similarity_envelope`: at least one known coordinate is outside or categorical boundary differs;
 - `indeterminate_missing_coordinate`: no known mismatch proves an out-of-envelope state, but a required coordinate is missing.
 
-No single aggregate similarity score is emitted. Every coordinate and tolerance remains visible. If Fr matches but Cw or Aw is unknown or mismatched, a lunar-similarity pass is not reported.
+No single aggregate similarity score is emitted. Every coordinate and tolerance remains visible. A Froude match cannot compensate for a mismatch or missing `Bo_m`, `Aw`, `I`, signed `El`, or a vibration coordinate.
 
 ## Claim ceiling
 
