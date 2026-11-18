@@ -717,6 +717,12 @@ impl EpisodeProvider {
         let outside_candidate_family = !generating_hypothesis_declared;
         let generating_hypothesis_retained =
             compatible_hypotheses.iter().any(|candidate| candidate == generating_id);
+        if generating_hypothesis_declared && !generating_hypothesis_retained {
+            return Err(EpisodeError::EvaluationFailure(
+                "an in-catalogue generating mechanism was eliminated by its own emitted trace"
+                    .to_owned(),
+            ));
+        }
 
         let exact_set: BTreeSet<&str> =
             compatible_hypotheses.iter().map(String::as_str).collect();
@@ -1563,6 +1569,31 @@ mod tests {
             Err(EpisodeError::InvalidFinish)
         );
         assert!(!provider.view().terminal);
+    }
+
+    #[test]
+    fn evaluator_fails_closed_if_trace_eliminates_an_in_catalogue_generator() {
+        let mut provider = new_provider(persistent_sensor_confounding_kernel(), 3);
+        provider
+            .submit_action("measure-combined-signal")
+            .expect("record actual first observation");
+        // Corrupt the provider-owned trace to simulate a broken adapter or
+        // evaluator/protocol mismatch. An in-catalogue generator cannot be
+        // eliminated by an observation emitted by its own validated kernel.
+        provider.attempts[0].disposition = AttemptDisposition::Applied {
+            observation_id: "not-the-emitted-observation".to_owned(),
+        };
+        provider
+            .finish_episode(EpisodeFinish {
+                disposition: EpisodeFinishDisposition::NoCompatibleModel,
+                compatible_hypothesis_ids: Vec::new(),
+                rationale: "Corrupted trace negative control.".to_owned(),
+            })
+            .unwrap();
+        assert!(matches!(
+            provider.evaluate_after_finish(),
+            Err(EpisodeError::EvaluationFailure(_))
+        ));
     }
 
     #[test]
