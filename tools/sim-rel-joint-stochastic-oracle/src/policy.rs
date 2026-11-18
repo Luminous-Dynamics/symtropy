@@ -212,6 +212,7 @@ fn validate_public_view(view: &crate::episode::EpisodeView) -> Result<(), Policy
                 declared.action_id != visible.action_id
                     || declared.description != visible.description
                     || declared.target != visible.target
+                    || declared.cost_units != visible.cost_units
                     || visible.cost_units == 0
             })
     {
@@ -828,6 +829,16 @@ mod tests {
                 action_id: "measure-a".to_owned()
             }
         );
+    }
+
+    #[test]
+    fn policy_rejects_action_cost_tampering_without_profile_digest_update() {
+        let mut request = request();
+        request.view.actions[0].cost_units = 99;
+        assert!(matches!(
+            next_response(&request, BaselineStrategy::OneStepJointEig),
+            Err(PolicyError::InvalidPublicModel(_))
+        ));
     }
 
     #[test]
