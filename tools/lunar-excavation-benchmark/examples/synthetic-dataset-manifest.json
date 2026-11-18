@@ -34,24 +34,24 @@
   },
   "group_assignments": {
     "material_batch_id": {
-      "SYN-BATCH-A": "calibration",
       "SYN-BATCH-B": "validation",
-      "SYN-BATCH-C": "blind_test"
+      "SYN-BATCH-C": "blind_test",
+      "SYNTHETIC-BATCH-A": "calibration"
     },
     "preparation_protocol_id": {
-      "SYN-PREP-A": "calibration",
       "SYN-PREP-B": "validation",
-      "SYN-PREP-C": "blind_test"
+      "SYN-PREP-C": "blind_test",
+      "SYNTHETIC-PREP-A": "calibration"
     },
     "tool_geometry_id": {
-      "SYN-TOOL-A": "calibration",
       "SYN-TOOL-B": "validation",
-      "SYN-TOOL-C": "blind_test"
+      "SYN-TOOL-C": "blind_test",
+      "SYNTHETIC-TOOL-A": "calibration"
     },
     "operating_regime_id": {
-      "SYN-REGIME-A": "calibration",
       "SYN-REGIME-B": "validation",
-      "SYN-REGIME-C": "blind_test"
+      "SYN-REGIME-C": "blind_test",
+      "SYNTHETIC-QUASISTATIC-A": "calibration"
     },
     "laboratory_id": {
       "SYN-LAB-A": "calibration",
@@ -66,13 +66,13 @@
   },
   "run_assignments": [
     {
-      "run_id": "SYN-RUN-CAL-001",
+      "run_id": "SYNTHETIC-JLUH-TOOL-A-001",
       "partition": "calibration",
       "group_keys": {
-        "material_batch_id": "SYN-BATCH-A",
-        "preparation_protocol_id": "SYN-PREP-A",
-        "tool_geometry_id": "SYN-TOOL-A",
-        "operating_regime_id": "SYN-REGIME-A",
+        "material_batch_id": "SYNTHETIC-BATCH-A",
+        "preparation_protocol_id": "SYNTHETIC-PREP-A",
+        "tool_geometry_id": "SYNTHETIC-TOOL-A",
+        "operating_regime_id": "SYNTHETIC-QUASISTATIC-A",
         "laboratory_id": "SYN-LAB-A",
         "campaign_id": "SYN-CAMPAIGN-A"
       }
