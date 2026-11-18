@@ -135,8 +135,8 @@
     "metric": "ds^2=-B(r)dt^2+dr^2/B(r)+r^2 dOmega^2",
     "signature": "(-+++)",
     "units": "radius and coefficients use one consistent geometric length unit; B(r) is dimensionless; covariant component units follow the declared coordinate basis",
-    "minimum_metric_derivative_order": 5,
-    "static_radial_divergence_check_uses_fifth_metric_derivative": true,
+    "minimum_metric_derivative_order": 4,
+    "static_radial_divergence_check_uses_fifth_metric_derivative": false,
     "general_arbitrary_metric_bach_divergence_requires_fifth_metric_derivative": true,
     "azimuthal_component_representation": "B_phi_phi divided by sin(theta)^2",
     "chart_scope": "static chart only where r>0 and B(r)>0",
@@ -239,7 +239,7 @@
       }
     },
     "minimum_metric_derivative_order_for_components": 4,
-    "minimum_metric_derivative_order_for_full_result": 5,
-    "static_radial_divergence_check_uses_fourth_metric_derivative": false
+    "minimum_metric_derivative_order_for_full_result": 4,
+    "static_radial_divergence_check_uses_fourth_metric_derivative": true
   }
 }
