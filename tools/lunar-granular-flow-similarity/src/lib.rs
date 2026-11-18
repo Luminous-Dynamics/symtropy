@@ -294,6 +294,17 @@ pub fn compare(input: &ComparisonInput) -> Result<SimilarityReport, String> {
     let ca = &input.target.categorical;
     let cb = &input.candidate.categorical;
 
+    for (value, name) in [
+        (a.gravity_m_s2, "target gravity"),
+        (b.gravity_m_s2, "candidate gravity"),
+        (a.chamber_pressure_pa, "target chamber pressure"),
+        (b.chamber_pressure_pa, "candidate chamber pressure"),
+    ] {
+        if let Some(value) = value {
+            require_strictly_positive(value, name)?;
+        }
+    }
+
     let mut coordinates = vec![
         positive_ratio_result("froude_number", a.froude_number, b.froude_number, t.froude_factor)?,
         positive_ratio_result(
@@ -504,14 +515,7 @@ mod tests {
 
         let mut value = input();
         value.candidate.numeric.chamber_pressure_pa = Some(0.0);
-        // Zero is finite and non-negative, but a chamber pressure ratio
-        // against a positive reference is deliberately treated as outside
-        // rather than divided by zero.
-        let report = compare(&value).expect("zero/non-zero pressure is classifiable");
-        assert_eq!(
-            report.coordinates[7].status,
-            CoordinateStatus::OutsideTolerance
-        );
+        assert!(compare(&value).is_err());
     }
 
     #[test]
