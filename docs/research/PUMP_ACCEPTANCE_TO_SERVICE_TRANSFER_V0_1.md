@@ -44,6 +44,8 @@ This remains a distinct comparator: a pump factory curve is not a whole-system a
 
 ## Decision contract
 
+The evaluator emits a self-contained 43-field receipt, including all inputs that drive the disposition, so a reviewer does not need to re-open a mutable fixture to interpret the outcome.
+
 The Stage-0 input binds:
 - pump serial, exact configuration and test speed;
 - factory test fluid and hydraulic boundary;
