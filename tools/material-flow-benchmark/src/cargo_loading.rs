@@ -20,6 +20,7 @@ pub const MAX_PACKAGES_V1: usize = 256;
 #[serde(rename_all = "snake_case")]
 pub enum CargoEvidenceStatus {
     FreshInDomain,
+    Missing,
     Unknown,
     Stale,
     Conflicted,
@@ -313,28 +314,29 @@ fn weighted_cg(
     placed: &[PlacedPackage],
     total_mass_g: u64,
 ) -> Result<[i64; 3], String> {
-    let mut weighted = [0_u128; 3];
+    // Doubled coordinates preserve half-millimetre package centres while
+    // signed arithmetic permits the vehicle tare CG below the cargo floor.
+    let mut weighted = [0_i128; 3];
     for axis in 0..3 {
         let doubled_tare_cg = i128::from(bay.vehicle_tare_cg_mm[axis])
             .checked_mul(2)
             .ok_or_else(|| "tare CG doubled-coordinate overflow".to_string())?;
-        if doubled_tare_cg < 0 {
-            return Err("negative tare CG is outside the v1 cargo-bay coordinate frame".into());
-        }
-        weighted[axis] = u128::from(bay.vehicle_tare_mass_g)
-            .checked_mul(doubled_tare_cg as u128)
+        weighted[axis] = i128::from(bay.vehicle_tare_mass_g)
+            .checked_mul(doubled_tare_cg)
             .ok_or_else(|| "tare CG weighted-mass overflow".to_string())?;
     }
 
     for package in placed {
         for axis in 0..3 {
-            let doubled_center = u128::from(package.bounds.minimum[axis])
+            let doubled_center = i128::from(package.bounds.minimum[axis])
                 .checked_mul(2)
-                .and_then(|value| value.checked_add(u128::from(
-                    package.bounds.maximum[axis] - package.bounds.minimum[axis]
-                )))
+                .and_then(|value| {
+                    value.checked_add(i128::from(
+                        package.bounds.maximum[axis] - package.bounds.minimum[axis],
+                    ))
+                })
                 .ok_or_else(|| "package CG coordinate overflow".to_string())?;
-            let contribution = u128::from(package.mass_g)
+            let contribution = i128::from(package.mass_g)
                 .checked_mul(doubled_center)
                 .ok_or_else(|| "package weighted-mass overflow".to_string())?;
             weighted[axis] = weighted[axis]
@@ -343,7 +345,7 @@ fn weighted_cg(
         }
     }
 
-    let denominator = u128::from(total_mass_g)
+    let denominator = i128::from(total_mass_g)
         .checked_mul(2)
         .ok_or_else(|| "combined mass denominator overflow".to_string())?;
     let mut result = [0_i64; 3];
@@ -355,7 +357,12 @@ fn weighted_cg(
     Ok(result)
 }
 
-fn check_accessibility(placed: &[PlacedPackage], bay: [u32; 3], findings: &mut Vec<String>) {
+fn check_accessibility(
+    placed: &[PlacedPackage],
+    bay: [u32; 3],
+    findings: &mut Vec<String>,
+) -> bool {
+    let mut blocked = false;
     for target in placed {
         let corridor = access_corridor(target.bounds, bay, target.access_face);
         for blocker in placed {
@@ -363,6 +370,7 @@ fn check_accessibility(placed: &[PlacedPackage], bay: [u32; 3], findings: &mut V
                 continue;
             }
             if blocker.bounds.intersects_access_corridor(corridor) {
+                blocked = true;
                 findings.push(format!(
                     "INFEASIBLE: package {} is blocked from {:?} by package {}",
                     target.package_id, target.access_face, blocker.package_id
@@ -371,6 +379,7 @@ fn check_accessibility(placed: &[PlacedPackage], bay: [u32; 3], findings: &mut V
             }
         }
     }
+    blocked
 }
 
 /// Validate one declared multi-package cargo arrangement.
@@ -419,6 +428,13 @@ pub fn evaluate_cargo_loading(
         }
         match package.restraint_evidence {
             CargoEvidenceStatus::FreshInDomain => {}
+            CargoEvidenceStatus::Missing => {
+                known_infeasible = true;
+                findings.push(format!(
+                    "INFEASIBLE: package {} has no declared restraint evidence",
+                    package.package_id
+                ));
+            }
             CargoEvidenceStatus::Unknown
             | CargoEvidenceStatus::Stale
             | CargoEvidenceStatus::Conflicted
@@ -475,12 +491,7 @@ pub fn evaluate_cargo_loading(
         }
     }
 
-    check_accessibility(&placed, bay_dimensions, &mut findings);
-    if findings.iter().any(|finding| finding.starts_with("INFEASIBLE: package ")
-        && finding.contains(" is blocked from "))
-    {
-        known_infeasible = true;
-    }
+    known_infeasible |= check_accessibility(&placed, bay_dimensions, &mut findings);
 
     if total_cargo_mass_g > input.bay.maximum_cargo_payload_g {
         known_infeasible = true;
@@ -537,6 +548,7 @@ pub fn evaluate_cargo_loading(
     if findings.is_empty() {
         findings.push("FEASIBLE: declared 3D placements, access, mass and CG envelopes pass".into());
     }
+    findings.sort();
     let verdict = if known_infeasible {
         CargoFeasibilityVerdict::Infeasible
     } else if indeterminate {
