@@ -36,10 +36,23 @@ pub enum DirectionClass {
 /// Operational class of a reorientation event.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EventClass {
-    /// Event duration is at most EVENT_CLASS_THRESHOLD_S.
+    /// Event assigned to the short reorientation category by the declared threshold policy.
     ShortReorientation,
-    /// Event duration is greater than EVENT_CLASS_THRESHOLD_S.
+    /// Event assigned to the long mechanical-trap category by the declared threshold policy.
     LongMechanicalTrap,
+}
+
+/// The cited papers use both <= 1 s and < 1 s in different figure/method
+/// descriptions. The equality convention must therefore be explicit in every
+/// source-bound benchmark manifest.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ThresholdBoundaryPolicy {
+    /// Exactly one second is assigned to short reorientation.
+    ShortInclusive,
+    /// Exactly one second is assigned to long trapping.
+    LongInclusive,
+    /// Exactly one second is excluded because the source convention is unresolved.
+    ExcludeExactBoundary,
 }
 
 /// A finite empirical sample set used as a transparent non-parametric kernel.
@@ -174,7 +187,9 @@ pub struct PorousMotilityProfile {
     /// Calibrate this from admitted event observations; do not infer it from
     /// the published paper's headline values.
     pub short_event_probability: f64,
-    /// Duration samples for short events (all must be < 1 second).
+    /// How an event exactly at the class threshold is treated.
+    pub threshold_boundary_policy: ThresholdBoundaryPolicy,
+    /// Duration samples for short events; validation follows the declared threshold policy.
     pub short_event_duration_s: SampleSet,
     /// Duration samples for long mechanical traps (all must be > 1 second).
     pub long_trap_duration_s: SampleSet,
@@ -221,21 +236,38 @@ impl PorousMotilityProfile {
         self.long_trap_turn_angle_rad
             .validate_finite("long_trap_turn_angle_rad")?;
 
-        if self
+        let short_event_outside_policy = self
             .short_event_duration_s
             .values()
             .iter()
-            .any(|duration| *duration >= EVENT_CLASS_THRESHOLD_S)
-        {
-            return Err(ProfileError::ShortEventAtOrAboveThreshold);
+            .any(|duration| match self.threshold_boundary_policy {
+                ThresholdBoundaryPolicy::ShortInclusive => {
+                    *duration > EVENT_CLASS_THRESHOLD_S
+                }
+                ThresholdBoundaryPolicy::LongInclusive
+                | ThresholdBoundaryPolicy::ExcludeExactBoundary => {
+                    *duration >= EVENT_CLASS_THRESHOLD_S
+                }
+            });
+        if short_event_outside_policy {
+            return Err(ProfileError::ShortEventOutsideThresholdPolicy);
         }
-        if self
+
+        let long_trap_outside_policy = self
             .long_trap_duration_s
             .values()
             .iter()
-            .any(|duration| *duration <= EVENT_CLASS_THRESHOLD_S)
-        {
-            return Err(ProfileError::LongTrapAtOrBelowThreshold);
+            .any(|duration| match self.threshold_boundary_policy {
+                ThresholdBoundaryPolicy::ShortInclusive
+                | ThresholdBoundaryPolicy::ExcludeExactBoundary => {
+                    *duration <= EVENT_CLASS_THRESHOLD_S
+                }
+                ThresholdBoundaryPolicy::LongInclusive => {
+                    *duration < EVENT_CLASS_THRESHOLD_S
+                }
+            });
+        if long_trap_outside_policy {
+            return Err(ProfileError::LongTrapOutsideThresholdPolicy);
         }
         Ok(())
     }
@@ -250,8 +282,8 @@ pub enum ProfileError {
     InvalidRotationalDiffusion,
     InvalidIntegrationStep,
     InvalidShortEventProbability,
-    ShortEventAtOrAboveThreshold,
-    LongTrapAtOrBelowThreshold,
+    ShortEventOutsideThresholdPolicy,
+    LongTrapOutsideThresholdPolicy,
 }
 
 impl fmt::Display for ProfileError {
@@ -278,11 +310,17 @@ impl fmt::Display for ProfileError {
             Self::InvalidShortEventProbability => {
                 write!(formatter, "short_event_probability must be in [0, 1]")
             }
-            Self::ShortEventAtOrAboveThreshold => {
-                write!(formatter, "short-event duration must be strictly below one second")
+            Self::ShortEventOutsideThresholdPolicy => {
+                write!(
+                    formatter,
+                    "short-event duration violates the declared threshold-boundary policy"
+                )
             }
-            Self::LongTrapAtOrBelowThreshold => {
-                write!(formatter, "long-trap duration must be strictly above one second")
+            Self::LongTrapOutsideThresholdPolicy => {
+                write!(
+                    formatter,
+                    "long-trap duration violates the declared threshold-boundary policy"
+                )
             }
         }
     }
@@ -979,6 +1017,7 @@ mod tests {
             run_duration_s: directional(vec![0.25], vec![0.25], vec![0.25]),
             run_duration_unconditional_s: SampleSet::new(vec![0.25]),
             short_event_probability: 1.0,
+            threshold_boundary_policy: ThresholdBoundaryPolicy::ShortInclusive,
             short_event_duration_s: SampleSet::new(vec![0.25]),
             long_trap_duration_s: SampleSet::new(vec![2.0]),
             short_turn_angle_rad: directional(
@@ -1017,21 +1056,21 @@ mod tests {
         profile.short_event_duration_s = SampleSet::new(vec![0.4, 1.2]);
         assert_eq!(
             profile.validate(),
-            Err(ProfileError::ShortEventAtOrAboveThreshold)
+            Err(ProfileError::ShortEventOutsideThresholdPolicy)
         );
 
         let mut profile = steering_profile();
         profile.long_trap_duration_s = SampleSet::new(vec![0.8]);
         assert_eq!(
             profile.validate(),
-            Err(ProfileError::LongTrapAtOrBelowThreshold)
+            Err(ProfileError::LongTrapOutsideThresholdPolicy)
         );
 
         let mut profile = steering_profile();
         profile.short_event_duration_s = SampleSet::new(vec![1.0]);
         assert_eq!(
             profile.validate(),
-            Err(ProfileError::ShortEventAtOrAboveThreshold)
+            Err(ProfileError::ShortEventOutsideThresholdPolicy)
         );
 
         let mut profile = steering_profile();
@@ -1039,6 +1078,26 @@ mod tests {
         assert_eq!(
             profile.validate(),
             Err(ProfileError::InvalidSwimmingSpeed)
+        );
+    }
+
+    #[test]
+    fn exact_one_second_boundary_follows_declared_source_policy() {
+        let mut short_inclusive = steering_profile();
+        short_inclusive.short_event_duration_s = SampleSet::new(vec![1.0]);
+        assert!(short_inclusive.validate().is_ok());
+
+        let mut long_inclusive = steering_profile();
+        long_inclusive.threshold_boundary_policy = ThresholdBoundaryPolicy::LongInclusive;
+        long_inclusive.long_trap_duration_s = SampleSet::new(vec![1.0]);
+        assert!(long_inclusive.validate().is_ok());
+
+        let mut excluded = steering_profile();
+        excluded.threshold_boundary_policy = ThresholdBoundaryPolicy::ExcludeExactBoundary;
+        excluded.short_event_duration_s = SampleSet::new(vec![1.0]);
+        assert_eq!(
+            excluded.validate(),
+            Err(ProfileError::ShortEventOutsideThresholdPolicy)
         );
     }
 
