@@ -69,7 +69,7 @@ pub struct ConstructionChangeSet {
     pub changes: Vec<DependencyTransition>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ConstructionArtifactKind {
     IfcIdsPreflight,
     DesignWorkPackage,
@@ -112,6 +112,39 @@ pub struct ConstructionArtifactGraph {
     pub artifacts: Vec<ConstructionArtifact>,
 }
 
+
+/// Owner-approved minimum dependency domains for one artifact class.
+/// The contract is a coverage floor; artifact-specific scope identities and
+/// all additional dependencies remain explicit on each artifact.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ArtifactDependencyContract {
+    pub artifact_kind: ConstructionArtifactKind,
+    pub required_domains: Vec<DependencyDomain>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DependencyContractSet {
+    pub contract_sha256: String,
+    pub contracts: Vec<ArtifactDependencyContract>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DependencyCoverageGap {
+    pub artifact_id: String,
+    pub artifact_kind: ConstructionArtifactKind,
+    pub missing_domains: Vec<DependencyDomain>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DependencyCoverageAudit {
+    pub graph_snapshot_sha256: String,
+    pub contract_sha256: String,
+    pub artifacts_checked: u64,
+    pub complete_artifacts: u64,
+    pub gaps: Vec<DependencyCoverageGap>,
+    pub source_records_mutated: bool,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ChangeImpactError {
     EmptyChangeIdentity,
@@ -143,6 +176,16 @@ pub enum ChangeImpactError {
         parent_artifact_id: String,
     },
     DependencyCycle,
+    InvalidDependencyContractDigest,
+    EmptyDependencyContractSet,
+    DuplicateArtifactKindContract(ConstructionArtifactKind),
+    EmptyRequiredDependencyDomains(ConstructionArtifactKind),
+    DuplicateRequiredDependencyDomain {
+        artifact_kind: ConstructionArtifactKind,
+        domain: DependencyDomain,
+    },
+    MissingArtifactKindContract(ConstructionArtifactKind),
+    DependencyCoverageIncomplete(usize),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -174,6 +217,10 @@ pub struct ChangeImpactReport {
     /// Rebuild/requalification order: dependencies before their dependents.
     pub requalification_order: Vec<String>,
     pub source_records_mutated: bool,
+    /// None/false means only graph-internal consistency was checked. A
+    /// readiness path must use compile_change_impact_with_contract.
+    pub dependency_contract_sha256: Option<String>,
+    pub dependency_coverage_complete: bool,
 }
 
 impl ChangeImpactReport {
@@ -190,6 +237,12 @@ impl ChangeImpactReport {
 
     pub fn invalidated_artifact_count(&self) -> usize {
         self.direct_invalidations.len() + self.transitive_invalidations.len()
+    }
+
+    /// Selective requalification is eligible only when owner-declared
+    /// dependency coverage passed and every changed key mapped to the graph.
+    pub fn selective_requalification_gate_passed(&self) -> bool {
+        self.dependency_coverage_complete && self.unmatched_change_keys.is_empty()
     }
 }
 
@@ -351,7 +404,111 @@ pub fn compile_change_impact(
         unaffected_artifact_ids,
         requalification_order,
         source_records_mutated: false,
+        dependency_contract_sha256: None,
+        dependency_coverage_complete: false,
     })
+}
+
+/// Audit every artifact against an owner-approved minimum dependency contract.
+/// Missing kind contracts or domains are explicit gaps; a structurally valid
+/// graph is not considered dependency-complete by default.
+pub fn audit_dependency_coverage(
+    graph: &ConstructionArtifactGraph,
+    contracts: &DependencyContractSet,
+) -> Result<DependencyCoverageAudit, ChangeImpactError> {
+    validate_and_topologically_sort(graph)?;
+    if !is_sha256(&contracts.contract_sha256) {
+        return Err(ChangeImpactError::InvalidDependencyContractDigest);
+    }
+    if contracts.contracts.is_empty() {
+        return Err(ChangeImpactError::EmptyDependencyContractSet);
+    }
+
+    let mut contract_by_kind = BTreeMap::new();
+    for contract in &contracts.contracts {
+        if contract.required_domains.is_empty() {
+            return Err(ChangeImpactError::EmptyRequiredDependencyDomains(
+                contract.artifact_kind,
+            ));
+        }
+        let mut domains = BTreeSet::new();
+        for domain in &contract.required_domains {
+            if !domains.insert(*domain) {
+                return Err(ChangeImpactError::DuplicateRequiredDependencyDomain {
+                    artifact_kind: contract.artifact_kind,
+                    domain: *domain,
+                });
+            }
+        }
+        if contract_by_kind
+            .insert(contract.artifact_kind, &contract.required_domains)
+            .is_some()
+        {
+            return Err(ChangeImpactError::DuplicateArtifactKindContract(
+                contract.artifact_kind,
+            ));
+        }
+    }
+
+    let mut gaps = Vec::new();
+    let mut complete_artifacts = 0_u64;
+    for artifact in &graph.artifacts {
+        let required_domains = contract_by_kind
+            .get(&artifact.kind)
+            .ok_or(ChangeImpactError::MissingArtifactKindContract(
+                artifact.kind,
+            ))?;
+        let observed_domains: BTreeSet<DependencyDomain> = artifact
+            .dependencies
+            .iter()
+            .map(|dependency| dependency.key.domain)
+            .collect();
+        let mut missing_domains: Vec<DependencyDomain> = required_domains
+            .iter()
+            .copied()
+            .filter(|domain| !observed_domains.contains(domain))
+            .collect();
+        missing_domains.sort();
+        if missing_domains.is_empty() {
+            complete_artifacts += 1;
+        } else {
+            gaps.push(DependencyCoverageGap {
+                artifact_id: artifact.artifact_id.clone(),
+                artifact_kind: artifact.kind,
+                missing_domains,
+            });
+        }
+    }
+
+    Ok(DependencyCoverageAudit {
+        graph_snapshot_sha256: graph.graph_snapshot_sha256.clone(),
+        contract_sha256: contracts.contract_sha256.clone(),
+        artifacts_checked: graph.artifacts.len() as u64,
+        complete_artifacts,
+        gaps,
+        source_records_mutated: false,
+    })
+}
+
+/// High-assurance entry point for selective requalification. It first validates
+/// graph structure and owner-declared minimum dependency coverage, then
+/// computes the exact invalidation closure. The returned report is marked
+/// coverage-complete only after every artifact kind and required domain passes.
+pub fn compile_change_impact_with_contract(
+    graph: &ConstructionArtifactGraph,
+    contracts: &DependencyContractSet,
+    changes: &ConstructionChangeSet,
+) -> Result<ChangeImpactReport, ChangeImpactError> {
+    let audit = audit_dependency_coverage(graph, contracts)?;
+    if !audit.gaps.is_empty() {
+        return Err(ChangeImpactError::DependencyCoverageIncomplete(
+            audit.gaps.len(),
+        ));
+    }
+    let mut report = compile_change_impact(graph, changes)?;
+    report.dependency_contract_sha256 = Some(audit.contract_sha256);
+    report.dependency_coverage_complete = true;
+    Ok(report)
 }
 
 fn build_artifact_impact(
@@ -1053,6 +1210,133 @@ mod tests {
             ),
             Err(ChangeImpactError::DerivedArtifactMustBeRecomputable(
                 "dispatch".into()
+            ))
+        );
+    }
+
+
+    #[test]
+    fn dependency_contract_blocks_motion_envelopes_missing_required_tool_bindings() {
+        let graph = graph(vec![artifact(
+            "motion:A",
+            ConstructionArtifactKind::MotionEnvelope,
+            ArtifactPersistence::Recomputable,
+            vec![
+                dependency(DependencyDomain::EntityGeometry, "entity:A", '1'),
+                dependency(DependencyDomain::CoordinateTransform, "floor:02", '2'),
+            ],
+            &[],
+            'a',
+        )]);
+        let contracts = DependencyContractSet {
+            contract_sha256: digest('c'),
+            contracts: vec![ArtifactDependencyContract {
+                artifact_kind: ConstructionArtifactKind::MotionEnvelope,
+                required_domains: vec![
+                    DependencyDomain::EntityGeometry,
+                    DependencyDomain::CoordinateTransform,
+                    DependencyDomain::ToolConfiguration,
+                ],
+            }],
+        };
+        let audit = audit_dependency_coverage(&graph, &contracts).unwrap();
+        assert_eq!(audit.artifacts_checked, 1);
+        assert_eq!(audit.complete_artifacts, 0);
+        assert_eq!(
+            audit.gaps[0].missing_domains,
+            vec![DependencyDomain::ToolConfiguration]
+        );
+        assert!(matches!(
+            compile_change_impact_with_contract(
+                &graph,
+                &contracts,
+                &change_set(vec![change(
+                    DependencyDomain::EntityGeometry,
+                    "entity:A",
+                    '1',
+                    '3'
+                )])
+            ),
+            Err(ChangeImpactError::DependencyCoverageIncomplete(1))
+        ));
+    }
+
+    #[test]
+    fn dependency_contract_marks_a_change_report_ready_only_after_full_coverage() {
+        let graph = graph(vec![
+            artifact(
+                "motion:A",
+                ConstructionArtifactKind::MotionEnvelope,
+                ArtifactPersistence::Recomputable,
+                vec![
+                    dependency(DependencyDomain::EntityGeometry, "entity:A", '1'),
+                    dependency(DependencyDomain::ToolConfiguration, "robot:A:tool", '2'),
+                ],
+                &[],
+                'a',
+            ),
+            artifact(
+                "readiness:A",
+                ConstructionArtifactKind::DispatchReadiness,
+                ArtifactPersistence::Recomputable,
+                vec![dependency(DependencyDomain::AuthorityPolicy, "site", '3')],
+                &["motion:A"],
+                'b',
+            ),
+        ]);
+        let contracts = DependencyContractSet {
+            contract_sha256: digest('c'),
+            contracts: vec![
+                ArtifactDependencyContract {
+                    artifact_kind: ConstructionArtifactKind::MotionEnvelope,
+                    required_domains: vec![
+                        DependencyDomain::EntityGeometry,
+                        DependencyDomain::ToolConfiguration,
+                    ],
+                },
+                ArtifactDependencyContract {
+                    artifact_kind: ConstructionArtifactKind::DispatchReadiness,
+                    required_domains: vec![DependencyDomain::AuthorityPolicy],
+                },
+            ],
+        };
+        let report = compile_change_impact_with_contract(
+            &graph,
+            &contracts,
+            &change_set(vec![change(
+                DependencyDomain::EntityGeometry,
+                "entity:A",
+                '1',
+                '4',
+            )]),
+        )
+        .unwrap();
+        assert!(report.dependency_coverage_complete);
+        assert_eq!(report.dependency_contract_sha256, Some(digest('c')));
+        assert!(report.selective_requalification_gate_passed());
+    }
+
+    #[test]
+    fn missing_artifact_kind_contract_is_not_assumed_complete() {
+        let graph = graph(vec![artifact(
+            "motion:A",
+            ConstructionArtifactKind::MotionEnvelope,
+            ArtifactPersistence::Recomputable,
+            vec![dependency(DependencyDomain::EntityGeometry, "entity:A", '1')],
+            &[],
+            'a',
+        )]);
+        let contracts = DependencyContractSet {
+            contract_sha256: digest('c'),
+            contracts: vec![ArtifactDependencyContract {
+                artifact_kind: ConstructionArtifactKind::DispatchReadiness,
+                required_domains: vec![DependencyDomain::AuthorityPolicy],
+            }],
+        };
+        assert_eq!(
+            audit_dependency_coverage(&graph, &contracts),
+            Err(ChangeImpactError::MissingArtifactKindContract(
+                ConstructionArtifactKind::MotionEnvelope
             ))
         );
     }
