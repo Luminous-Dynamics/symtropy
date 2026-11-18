@@ -59,8 +59,8 @@ fn compare_measurements(from: &Value, to: &Value) -> (Value, bool) {
                 "from": from.get("value").cloned().unwrap_or(Value::Null),
                 "to": to.get("value").cloned().unwrap_or(Value::Null),
                 "delta": null,
-                "combined_standard_uncertainty": null,
-                "interval_1sigma": null,
+                "conservative_combined_uncertainty_bound": null,
+                "conservative_interval": null,
                 "status": DeltaStatus::UnknownMissingMeasurement.as_str(),
             }),
             false,
@@ -75,8 +75,8 @@ fn compare_measurements(from: &Value, to: &Value) -> (Value, bool) {
                 "from": from_value,
                 "to": to_value,
                 "delta": null,
-                "combined_standard_uncertainty": null,
-                "interval_1sigma": null,
+                "conservative_combined_uncertainty_bound": null,
+                "conservative_interval": null,
                 "status": "unknown_missing_unit",
             }),
             false,
@@ -90,8 +90,8 @@ fn compare_measurements(from: &Value, to: &Value) -> (Value, bool) {
                 "from_unit": from_unit,
                 "to_unit": to_unit,
                 "delta": null,
-                "combined_standard_uncertainty": null,
-                "interval_1sigma": null,
+                "conservative_combined_uncertainty_bound": null,
+                "conservative_interval": null,
                 "status": "incompatible_units",
             }),
             false,
@@ -99,7 +99,7 @@ fn compare_measurements(from: &Value, to: &Value) -> (Value, bool) {
     }
 
     let delta = to_value - from_value;
-    let combined_u = (from_u.powi(2) + to_u.powi(2)).sqrt();
+    let combined_u = from_u + to_u;
     let lower = delta - combined_u;
     let upper = delta + combined_u;
     let status = status_for_delta(delta, combined_u);
@@ -110,8 +110,8 @@ fn compare_measurements(from: &Value, to: &Value) -> (Value, bool) {
             "to": to_value,
             "unit": from_unit,
             "delta": delta,
-            "combined_standard_uncertainty": combined_u,
-            "interval_1sigma": {"lower": lower, "upper": upper},
+            "conservative_combined_uncertainty_bound": combined_u,
+            "conservative_interval": {"lower": lower, "upper": upper},
             "status": status.as_str(),
         }),
         true,
