@@ -424,7 +424,7 @@ mod tests {
             .unwrap();
         let at_midpoint = law()
             .reversal_probability(CollisionContact {
-                contact_angle_rad: 5.0 * PI / 12.0,
+                contact_angle_rad: PI / 3.0,
                 contact_duration_s: duration,
             })
             .unwrap();
