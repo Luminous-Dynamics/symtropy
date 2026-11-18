@@ -174,7 +174,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ("leximin", report.rank_by_leximin()),
     ] {
         for (rank, alternative_id) in ranking.iter().enumerate() {
-            println!("ranking,{alternative_id},{method},{},", rank + 1);
+            println!(
+                "ranking,{alternative_id},{method},{rank},",
+                rank = rank + 1
+            );
         }
     }
 
@@ -195,9 +198,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
         for stakeholder in &assessment.per_stakeholder_satisfaction {
             println!(
-                "participant,{al},satisfaction,{:.8},{id}",
-                stakeholder.satisfaction,
+                "participant,{al},satisfaction,{satisfaction:.8},{id}",
                 al = assessment.alternative_id,
+                satisfaction = stakeholder.satisfaction,
                 id = stakeholder.stakeholder_id.as_deref().unwrap_or("anonymous")
             );
         }
