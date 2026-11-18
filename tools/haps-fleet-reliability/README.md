@@ -27,4 +27,6 @@ Exact enumeration is bounded to 20 binary variables (1,048,576 scenarios). Proba
 
 ## Evidence boundary
 
+The current implementation is limited to a static Bernoulli screen: it rejects non-static analysis methods, non-null maintenance-profile inputs and node records outside the declared service region. It does not model repair-time distributions, weather episode duration, maintenance schedules or handover state.
+
 The checked-in fleet cases are synthetic. The 32-scenario fixtures are known-answer arithmetic tests, not measured HAPS or fleet uptime, a 30-day observation, a repair-time model, or a semi-Markov result. The published multi-HAPS semi-Markov reliability paper remains a baseline to reproduce on a matched model boundary.
