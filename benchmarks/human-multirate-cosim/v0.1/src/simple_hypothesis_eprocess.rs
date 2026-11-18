@@ -6,7 +6,7 @@
 //! known Gaussian covariance. Bonferroni allocates half the campaign alpha
 //! to each directional test.
 
-use crate::experiment_design::{ExcitationDesignError, ModelObservationMeans};
+use crate::experiment_design::ModelObservationMeans;
 use crate::noise_robustness::CovarianceError;
 use crate::sequential_evidence::{
     validate_action_catalogue, ActionObservationV1, ModelPriorV1,
@@ -15,8 +15,6 @@ use crate::sequential_evidence::{
 use crate::experiment_design::ExperimentDesignScenario;
 use std::collections::HashSet;
 use std::fmt;
-
-const ALPHA_TOLERANCE: f64 = 1.0e-12;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SimpleHypothesisEProcessDecisionV1 {
