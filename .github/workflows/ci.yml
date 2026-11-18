@@ -83,6 +83,10 @@ jobs:
     # These are standalone tool workspaces, so the main workspace matrix does not
     # automatically compile them. Keep their formatting, tests, Clippy and JSON
     # example executions explicit on Linux.
+    - name: Lunar Feeder Controller Tournament (Linux)
+      if: runner.os == 'Linux'
+      run: bash scripts/check-lunar-feeder-controller-tournament.sh
+
     - name: Lunar Granular Flow Source Registry (Linux)
       if: runner.os == 'Linux'
       run: bash scripts/check-lunar-granular-flow-sources.sh
