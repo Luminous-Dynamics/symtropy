@@ -119,6 +119,14 @@ The 2025 porous-gel study reports exponentially distributed run times and an imm
 
 This is right-censoring support, not interval-censoring or left-truncation support. An incomplete run or immobile event at the end of a video/track is not converted into a completed sample. The normalized schema retains censor reason, observation window, waiting-time state and process age. Parametric fitting must use censor-aware likelihoods or an explicitly documented source-specific estimator.
 
+## Matched survival-model comparison
+
+`compare_waiting_time_models` evaluates candidate laws against one shared Kaplan–Meier reference and one finite observation window. The effective grid automatically includes every observed event/censor time and empirical candidate jump time, even when the caller supplies a coarse display grid. It reports candidate survival probabilities and finite-window integrated squared error against the stepwise KM curve.
+
+For continuous parametric laws, the right-censor-aware log likelihood uses log-density contributions for observed transitions and log-survival contributions for right-censored episodes. A zero-probability observed event returns negative-infinite likelihood, not NaN. Completed-only empirical candidates are rejected when right censoring is present; on uncensored data they provide a non-parametric curve baseline but no parametric likelihood or AIC/BIC.
+
+AIC/BIC are omitted unless the caller supplies `independent_likelihood_sample_size`. Supply it only when the likelihood contributions are independent at that declared unit. Do not use the raw number of tracks/events as the independent sample count where observations share a biological recording or preparation. The comparator does not fit any parameters and does not score beyond the maximum observed duration. Curve ISE, likelihood and information criteria answer different questions and must not be collapsed into one score.
+
 ## Mean-squared displacement (MSD)
 
 Every simulation retains time-stamped positions during run integration and at stationary-event endpoints. `mean_squared_displacement` interpolates the trace at requested lag/origin times, computes a time-origin average for each trajectory, and then computes the mean and sample standard deviation across trajectories. `mean_squared_displacement_with_age` additionally starts eligible time origins at (t_a) after the first trace point, preserving the ageing-time dimension used by the 2025 intermittent active-particle model.
