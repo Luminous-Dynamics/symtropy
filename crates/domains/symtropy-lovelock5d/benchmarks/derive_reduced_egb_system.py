@@ -220,6 +220,20 @@ def main() -> None:
             name: len(sp.sstr(value)) for name, value in equations.items()
         },
         "second_derivative_inventory": derivative_inventory,
+        "known_solution_controls": {
+            "static_boulware_deser_finite_alpha": {
+                name: expression == 0 for name, expression in bd_residuals.items()
+            },
+            "equal_spin_myers_perry_alpha_zero": {
+                name: expression == 0 for name, expression in mp_residuals.items()
+            },
+            "all_boulware_deser_equations_zero": all(
+                expression == 0 for expression in bd_residuals.values()
+            ),
+            "all_myers_perry_equations_zero": all(
+                expression == 0 for expression in mp_residuals.values()
+            ),
+        },
         "angular_noether_current": {
             "general_gauge": sp.sstr(sp.factor(P_w)),
             "g_equals_r2": sp.sstr(gauge_P_w),
