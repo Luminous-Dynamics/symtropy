@@ -439,6 +439,8 @@ The finite lifecycle fixture's present current-evidence graph is synthetic and e
 
 ## 15. External benchmark and standards qualification map
 
+The companion repository map is `research/holofrac-architecture/EXTERNAL_BENCHMARK_MAP_V0.md` on the HoloFrac implementation branch and records current industry capabilities, benchmark scope limits and a six-layer comparison matrix.
+
 Symtropy issue #6007 establishes an external qualification suite:
 https://github.com/Luminous-Dynamics/symtropy/issues/6007
 
