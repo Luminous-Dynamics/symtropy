@@ -2,6 +2,11 @@
   "evidence_class": "synthetic_fixture_only",
   "settings": [
     {
+      "event_id": "EV-FEED-001",
+      "preparation_profile_id": "SYN-FEED-PREP-A",
+      "notes": "Illustrative settings only."
+    },
+    {
       "event_id": "EV-MAG-001",
       "magnet_stages": [
         "N-52",
