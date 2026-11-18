@@ -12,7 +12,7 @@ The first executable model represents a run/event process with distinct:
 
 This separation is important for the Pseudomonas putida porous-agar evidence base. A passive trap is not an active motor turn, and a model that pools them can erase the directional mechanism under investigation.
 
-The code is an **event-based reference kernel**, not a validated flagellar motor model, hydrodynamic solver, pore-resolved simulator, growth model or biological prediction system. It advances a cell at constant speed between sampled events. It does not yet simulate agar geometry, pore networks, cell-body hydrodynamics, motor torque, nutrient diffusion or population growth.
+The code is an **event-based reference kernel**, not a validated flagellar motor model, hydrodynamic solver, pore-resolved simulator, growth model or biological prediction system. It includes seeded rotational diffusion during runs (Euler–Maruyama-style heading increments) and sampled event durations/angles, but it does not yet resolve agar pore geometry, cell-body hydrodynamics, flagellar motor states, nutrient diffusion, population growth or ensemble mean-squared displacement.
 
 ## Research anchor
 
@@ -47,13 +47,18 @@ cargo test --manifest-path crates/domains/symtropy-biomotility/Cargo.toml
 
 The model uses only the Rust standard library. The seeded generator is for deterministic research fixtures only; it is not cryptographic.
 
+## Interpretation of conditional orientation metrics
+
+The summary attaches an event in record i to the run in record i+1. The final event has no observed following run and is excluded from the conditional denominator. Therefore short-event and long-trap fractions are not calculated from the run that occurred before the event. Direction is classified at the beginning of the following run; rotational diffusion during that following run is a separate trajectory effect.
+
 ## Next qualification gates
 
 1. Verify dataset rights, exact version, file listing, checksums, schemas and experimental-unit metadata.
 2. Map source event data into a documented, versioned normalized record format.
 3. Reproduce the reported conditional statistics with replicate-aware uncertainty, keeping plate/day/track grouping intact.
-4. Compare no-bias, run-time-only, turn-angle-only and combined models under identical seeds and parameter/data budgets.
-5. Add geometry-resolved pore obstruction and passive trapping as an independent physical process.
-6. Generalize only after held-out validation across media conditions and other organisms.
+4. Reproduce Datta et al.'s intermittent active-particle baseline, including rotational diffusion and mean-squared displacement, before claiming incremental value from event separation.
+5. Compare no-bias, run-time-only, turn-angle-only and combined models under identical seeds and parameter/data budgets.
+6. Add geometry-resolved pore obstruction and passive trapping as an independent physical process.
+7. Generalize only after held-out validation across media conditions and other organisms.
 
 No wet-lab work, bacterial culture, ecological release, or physical intervention is authorized by this software.
