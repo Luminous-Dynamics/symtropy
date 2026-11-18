@@ -13,6 +13,22 @@ Status: draft / not run. Parent execution issue: https://github.com/Luminous-Dyn
 4. Keep failed, aborted, incomplete and unknown runs in the manifest.
 5. Never change `evidence_class` from simulated/modelled to measured because a prediction matched an expected value.
 
+
+## Experimental design and analysis plan
+
+The V0.1 manifest now carries an explicit `analysis_plan`. It is proposed, not preregistered. The following are design commitments for a future confirmatory study, not evidence that a trial has been conducted.
+
+- **Matched randomized crossover:** use the same meal/task graph, input lots and masses, serving count, accessories, electrical envelope, water boundary, environmental stratum and instrumentation across comparator conditions. Randomize condition order within blocks and balance operators.
+- **Freeze exact identity:** comparator is the exact type plate, model/revision, firmware, accessory kit and market SKU—not a retailer product name.
+- **Keep endpoints separate:** accepted servings, Wh/accepted serving, water/accepted serving, actual cost/accepted serving, user-present time and blinded sensory liking remain separate estimates. There is no composite score.
+- **Calculate power before confirmatory trials:** pilot variance informs the predeclared power calculation and any sensory non-inferiority margin. Required repetitions and panel size are intentionally null until the power analysis is reviewed.
+- **Paired inference and uncertainty:** report per-block paired differences/ratios, raw distributions, two-sided 95% intervals, clustered effects by meal/operator/day/revision and propagation of meter/assay uncertainty. The exact inferential model is to be selected and frozen by the reviewer before confirmatory data collection.
+- **Retain all attempts:** failed, aborted, indeterminate and withdrawn observations are counted and explained. Unknown measurements are not zero-filled; exclusions are predeclared and sensitivity results retained.
+- **Hard gates do not trade:** physical safety, food-contact hygiene, allergen cross-contact, independent conformity and user consent are eligibility gates. Energy, water, speed, throughput, sensory or cost cannot compensate for a gate failure.
+- **External benchmark parity:** RoboCasa365, BEHAVIOR-1K and Kitchen-R remain different benchmark families. Compare only matched task splits, evaluator versions, embodiment, sensors, initial states, seeds and data restrictions; never rank a physical appliance trial on a simulator leaderboard.
+
+The first trial basket remains a pilot. Confirmatory sample counts, power analysis, exact sensory method, exclusions, statistical model and all acceptance margins must be frozen before the first confirmatory run. The manifest remains `draft_not_run`, `frozen_before_trials=false`, with an empty `runs` array.
+
 ## Comparator sourcing note
 
 Consumer Reports' 2026 public test descriptions are a task-basket source, not a standard or proof of local model availability:
