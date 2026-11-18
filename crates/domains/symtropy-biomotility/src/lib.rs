@@ -336,9 +336,9 @@ pub enum ProfileError {
     InvalidSwimmingSpeed,
     InvalidRotationalDiffusion,
     InvalidIntegrationStep,
-    InvalidShortEventProbability,
-    ShortEventOutsideThresholdPolicy,
-    LongTrapOutsideThresholdPolicy,
+    InvalidMechanismProbabilities,
+    InvalidEventDuration,
+    InvalidEventThreshold,
 }
 
 impl fmt::Display for ProfileError {
@@ -362,20 +362,14 @@ impl fmt::Display for ProfileError {
             Self::InvalidIntegrationStep => {
                 write!(formatter, "integration_step_s must be finite and positive")
             }
-            Self::InvalidShortEventProbability => {
-                write!(formatter, "short_event_probability must be in [0, 1]")
+            Self::InvalidMechanismProbabilities => {
+                write!(formatter, "event mechanism probabilities must be finite, bounded and sum to one")
             }
-            Self::ShortEventOutsideThresholdPolicy => {
-                write!(
-                    formatter,
-                    "short-event duration violates the declared threshold-boundary policy"
-                )
+            Self::InvalidEventDuration => {
+                write!(formatter, "event duration must be finite and positive")
             }
-            Self::LongTrapOutsideThresholdPolicy => {
-                write!(
-                    formatter,
-                    "long-trap duration violates the declared threshold-boundary policy"
-                )
+            Self::InvalidEventThreshold => {
+                write!(formatter, "event duration threshold must be finite and positive")
             }
         }
     }
