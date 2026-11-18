@@ -230,12 +230,22 @@ pub fn validate_case(case: &FleetOperationsCase) -> Result<(), OperationsError> 
         }
     }
 
+    let fleet_region = case.nodes[0].service_region_ref.as_str();
+    for node in &case.nodes {
+        if node.service_region_ref != fleet_region {
+            return Err(OperationsError::new(
+                "this case aggregates one service region; split multi-region cases before replay",
+            ));
+        }
+    }
+
     let mut fallback_ids = HashSet::new();
     for fallback in &case.fallback_sources {
         if fallback.source_id.trim().is_empty() || !fallback_ids.insert(fallback.source_id.as_str()) {
             return Err(OperationsError::new(format!("empty or duplicate fallback source_id: {}", fallback.source_id)));
         }
         if fallback.service_region_ref.trim().is_empty()
+            || fallback.service_region_ref != fleet_region
             || fallback.independence_domain.trim().is_empty()
             || !fallback.base_capacity_units.is_finite()
             || fallback.base_capacity_units < 0.0
@@ -248,6 +258,17 @@ pub fn validate_case(case: &FleetOperationsCase) -> Result<(), OperationsError> 
     for event in &case.events {
         if event.event_id.trim().is_empty() || !event_ids.insert(event.event_id.as_str()) {
             return Err(OperationsError::new(format!("empty or duplicate event_id: {}", event.event_id)));
+        }
+        let expected_class = match event.event_type.as_str() {
+            "launch_transit" | "reposition" | "planned_maintenance" | "recovery_transit" => "planned_operation",
+            "unplanned_fault" => "independent_asset",
+            "shared_weather_derate" | "shared_weather_outage" => "shared_weather",
+            "shared_infrastructure_outage" => "shared_infrastructure",
+            "group_handover" => "service_handover",
+            _ => return Err(OperationsError::new(format!("event {} has unsupported event_type", event.event_id))),
+        };
+        if event.event_class != expected_class {
+            return Err(OperationsError::new(format!("event {} event_class does not match event_type", event.event_id)));
         }
         if event.start_hour >= event.end_hour || event.end_hour > case.horizon_hours {
             return Err(OperationsError::new(format!("event {} has invalid half-open interval", event.event_id)));
