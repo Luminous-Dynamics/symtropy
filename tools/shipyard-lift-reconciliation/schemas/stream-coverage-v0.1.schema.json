@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/shipyard-lift-stream-coverage-v0.1.schema.json",
+  "title": "Shipyard Lift Stream Coverage V0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "channel",
+    "source_id",
+    "source_revision",
+    "first_sequence",
+    "next_sequence_exclusive",
+    "clock_domain_id",
+    "covered_start_tick",
+    "covered_end_tick",
+    "complete",
+    "evidence"
+  ],
+  "properties": {
+    "channel": {
+      "enum": [
+        "hook_load",
+        "wind_gust",
+        "crane_configuration",
+        "motion_envelope",
+        "occupancy_projection",
+        "overload_alarm",
+        "hoist_state"
+      ]
+    },
+    "source_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "first_sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "next_sequence_exclusive": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "clock_domain_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "covered_start_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "covered_end_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "complete": {
+      "type": "boolean"
+    },
+    "evidence": {
+      "$ref": "#/$defs/evidence"
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_record_id",
+        "owner_id",
+        "revision",
+        "subject_id",
+        "subject_revision",
+        "sha256",
+        "validity_clock_domain_id",
+        "valid_from_tick",
+        "valid_until_tick",
+        "state"
+      ],
+      "properties": {
+        "source_record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{64}$"
+        },
+        "validity_clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "valid_from_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "state": {
+          "enum": [
+            "current",
+            "revoked",
+            "superseded"
+          ]
+        }
+      }
+    }
+  }
+}
