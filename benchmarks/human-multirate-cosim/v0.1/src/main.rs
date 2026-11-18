@@ -9,6 +9,14 @@ use human_multirate_cosim::{
         ExperimentDesignScenario, ForcingSegment, InputProfile, ModelCandidate,
         enumerate_single_node_pulses, evaluate_input_tournament,
     },
+    robust_discrimination::{
+        ModelFamilyAssignment, ProfiledModelFamilyScenario, evaluate_profiled_input,
+        evaluate_profiled_tournament,
+    },
+    adequacy_calibration::{
+        AdequacyCalibrationConfig, HiddenOutOfFamilyTruth,
+        calibrate_model_family_adequacy,
+    },
     sensor_design::{
         PlacementCriterion, SensorCandidate, SensorDesignScenario,
         enumerate_placements, enumerate_robust_placements,
@@ -430,6 +438,136 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             rejected.reason,
         );
     }
+
+    let mut profiled_experiment = excitation_scenario.clone();
+    profiled_experiment.models.push(ModelCandidate {
+        id: 3,
+        label: "bypass_zero_limit",
+        network: NetworkScenario {
+            name: "bypass_zero_limit",
+            capacities: vec![1.0, 1.0, 1.0],
+            initial: vec![0.0, 0.0, 0.0],
+            edges: vec![
+                Edge {
+                    left: 0,
+                    right: 1,
+                    conductance: 1.0,
+                },
+                Edge {
+                    left: 1,
+                    right: 2,
+                    conductance: 1.0,
+                },
+            ],
+            horizon: 2.0,
+        },
+    });
+    let profiled_scenario = ProfiledModelFamilyScenario {
+        experiment: profiled_experiment,
+        family_assignments: vec![
+            ModelFamilyAssignment {
+                model_id: 1,
+                family_id: 100,
+            },
+            ModelFamilyAssignment {
+                model_id: 2,
+                family_id: 200,
+            },
+            ModelFamilyAssignment {
+                model_id: 3,
+                family_id: 200,
+            },
+        ],
+    };
+    let profiled_tournament =
+        evaluate_profiled_tournament(&profiled_scenario, &input_profiles, &[30])?;
+    if let Some(best) = profiled_tournament.best_worst_case {
+        let nominal_pulse = input_profiles
+            .iter()
+            .find(|profile| profile.id == 101)
+            .expect("pulse profile 101 must exist in the declared pulse grid");
+        let nominal_profile_score =
+            evaluate_profiled_input(&profiled_scenario, nominal_pulse, &[30])?;
+        let nominal_fixed_pair_kl = nominal_profile_score
+            .base_score
+            .pairwise_separations
+            .iter()
+            .find(|pair| pair.left_model_id == 1 && pair.right_model_id == 2)
+            .expect("the nominal chain/bypass pair must exist")
+            .gaussian_kl_separation;
+        println!(
+            "profiled_discrimination,best_profile_id,{},worst_case_family_kl,{:.12e},nominal_fixed_pair_kl_same_covariance,{:.12e},family_overlap,{}",
+            best.base_score.profile_id,
+            best.minimum_profiled_family_separation,
+            nominal_fixed_pair_kl,
+            best.worst_case_family_overlap,
+        );
+    }
+
+    let mut calibration_scenario = profiled_scenario.clone();
+    calibration_scenario.experiment.noise_covariance = vec![vec![1.0e-5]];
+    let calibration_profile = input_profiles
+        .iter()
+        .find(|profile| profile.id == 101)
+        .expect("pulse profile 101 must exist in the declared pulse grid");
+    let held_out_truth = HiddenOutOfFamilyTruth {
+        evaluator_id: 900,
+        network: NetworkScenario {
+            name: "held_out_bypass_three_quarters",
+            capacities: vec![1.0, 1.0, 1.0],
+            initial: vec![0.0, 0.0, 0.0],
+            edges: vec![
+                Edge {
+                    left: 0,
+                    right: 1,
+                    conductance: 1.0,
+                },
+                Edge {
+                    left: 1,
+                    right: 2,
+                    conductance: 1.0,
+                },
+                Edge {
+                    left: 0,
+                    right: 2,
+                    conductance: 0.75,
+                },
+            ],
+            horizon: 2.0,
+        },
+    };
+    let adequacy = calibrate_model_family_adequacy(
+        &calibration_scenario,
+        calibration_profile,
+        &[30],
+        &[held_out_truth],
+        AdequacyCalibrationConfig {
+            calibration_seed: 0xCA11_BA7E,
+            validation_seed: 0xB01D_5EED,
+            replicates_per_model: 128,
+            target_in_family_coverage: 0.95,
+        },
+    )?;
+    println!(
+        "adequacy_calibration,threshold,{:.12e},calibration_coverage,{:.6},validation_coverage,{:.6},validation_false_ood,{:.6},held_out_ood_rejection,{:.6}",
+        adequacy.threshold,
+        adequacy.calibration_in_family_coverage,
+        adequacy.validation_in_family_coverage,
+        adequacy.validation_false_out_of_model_set_rate,
+        adequacy.out_of_family_rejection_rate,
+    );
+    println!(
+        "adequacy_calibration,validation_coverage_wilson_95,[{:.6},{:.6}],false_ood_wilson_95,[{:.6},{:.6}],held_out_rejection_wilson_95,[{:.6},{:.6}],calibration_samples,{},validation_samples,{},out_of_family_samples,{}",
+        adequacy.validation_in_family_coverage_ci_95[0],
+        adequacy.validation_in_family_coverage_ci_95[1],
+        adequacy.validation_false_out_of_model_set_ci_95[0],
+        adequacy.validation_false_out_of_model_set_ci_95[1],
+        adequacy.out_of_family_rejection_ci_95[0],
+        adequacy.out_of_family_rejection_ci_95[1],
+        adequacy.calibration_samples,
+        adequacy.validation_samples,
+        adequacy.out_of_family_samples,
+    );
 
     Ok(())
 }

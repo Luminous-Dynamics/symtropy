@@ -593,5 +593,138 @@
       ],
       "optimization_scope": "exact enumeration over a finite single-node rectangular pulse catalogue only; no continuous-control optimality guarantee"
     }
+  },
+  "robust_discrimination_extension": {
+    "benchmark_id": "HUMAN-NESTED-ROBUST-DISCRIMINATION-001",
+    "evidence_class": "synthetic_mathematical_software_only",
+    "candidate_models": [
+      {
+        "id": 1,
+        "label": "chain_nominal",
+        "family_id": 100,
+        "bypass_conductance": 0
+      },
+      {
+        "id": 2,
+        "label": "bypass_nominal",
+        "family_id": 200,
+        "bypass_conductance": 0.5
+      },
+      {
+        "id": 3,
+        "label": "bypass_zero_limit",
+        "family_id": 200,
+        "bypass_conductance": 0
+      }
+    ],
+    "common_state_basis": {
+      "capacities": [
+        1,
+        1,
+        1
+      ],
+      "initial": [
+        0,
+        0,
+        0
+      ],
+      "horizon": 2
+    },
+    "input_profile_id": 101,
+    "selected_sensor_ids": [
+      30
+    ],
+    "observation_times": [
+      0.25,
+      0.5,
+      1,
+      2
+    ],
+    "noise_covariance": [
+      [
+        0.01
+      ]
+    ],
+    "family_pair_count": 1,
+    "least_favourable_variant_pair": [
+      1,
+      3
+    ],
+    "nominal_fixed_parameter_gaussian_kl": 0.3344981676303682,
+    "expected_minimum_profiled_family_gaussian_kl": 0,
+    "expected_disposition": "IN_FAMILY_UNRESOLVED",
+    "interpretation": "the bypass family includes a parameter endpoint that reproduces the chain; nominal separation does not establish family identifiability",
+    "claim_ceiling": "Exact least-favourable finite-grid variant-pair arithmetic only; not profile likelihood or continuous robust optimal control.",
+    "adequacy": {
+      "observation_trace": "candidate-visible sensor history with exact declared sensor IDs and observation times",
+      "residual": "sum over independent observation-time blocks of 0.5 * r^T R^(-1) r",
+      "threshold": 1e-12,
+      "threshold_semantics": "explicit exact synthetic known-answer threshold; not a calibrated chi-square test",
+      "dispositions": [
+        "IN_FAMILY_PREFERRED",
+        "PARAMETER_NOT_IDENTIFIED",
+        "IN_FAMILY_UNRESOLVED",
+        "OUT_OF_MODEL_SET"
+      ],
+      "controls": [
+        "exact chain trace fits two overlapping structural families => IN_FAMILY_UNRESOLVED",
+        "one family with two indistinguishable parameter variants => PARAMETER_NOT_IDENTIFIED",
+        "held-out bypass conductance 0.75 outside fixed candidate grid => OUT_OF_MODEL_SET",
+        "wrong sensor order or observation schedule => reject before scoring"
+      ],
+      "claim_ceiling": "Residual adequacy checks for frozen finite-grid synthetic models only; not calibrated OOD detection."
+    },
+    "adequacy_calibration": {
+      "method": "empirical nearest-rank residual threshold",
+      "calibration_seed": "0xCA11_BA7E",
+      "validation_seed": "0xB01D_5EED",
+      "replicates_per_candidate_model": 128,
+      "candidate_model_count": 3,
+      "calibration_samples": 384,
+      "validation_samples": 384,
+      "target_in_family_coverage": 0.95,
+      "calibration_covariance": [
+        [
+          0.00001
+        ]
+      ],
+      "hidden_out_of_family_truth": {
+        "evaluator_id": 900,
+        "label": "held_out_bypass_three_quarters",
+        "bypass_conductance": 0.75
+      },
+      "expected_independent_reproduction": {
+        "calibrated_threshold": 4.462410038741245,
+        "calibration_in_family_accepts": 365,
+        "calibration_in_family_coverage": 0.9505208333333334,
+        "validation_in_family_accepts": 358,
+        "validation_in_family_coverage": 0.9322916666666666,
+        "validation_false_out_of_model_set": 26,
+        "validation_false_out_of_model_set_rate": 0.06770833333333333,
+        "out_of_family_samples": 128,
+        "out_of_family_rejections": 128,
+        "out_of_family_rejection_rate": 1,
+        "wilson95_validation_coverage": [
+          0.9026415058945665,
+          0.9533783765839834
+        ],
+        "wilson95_false_ood": [
+          0.04662162341601646,
+          0.09735849410575444
+        ],
+        "wilson95_out_of_family_rejection": [
+          0.9708630437264916,
+          1
+        ]
+      },
+      "assumptions": [
+        "additive zero-mean Gaussian noise",
+        "known full covariance shared by all candidate models",
+        "independent noise blocks across observation times",
+        "fixed candidate model parameters within each run",
+        "finite synthetic Monte Carlo results only"
+      ],
+      "claim_ceiling": "Empirical threshold calibration for the declared synthetic graph families and noise assumptions only."
+    }
   }
 }

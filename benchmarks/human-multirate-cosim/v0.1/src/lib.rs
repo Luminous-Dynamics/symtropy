@@ -11,6 +11,8 @@ use std::fmt;
 
 pub mod network;
 pub mod experiment_design;
+pub mod robust_discrimination;
+pub mod adequacy_calibration;
 pub mod sensor_design;
 
 /// Arbitrary two-compartment exchange system:

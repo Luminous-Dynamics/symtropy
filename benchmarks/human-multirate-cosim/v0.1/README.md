@@ -155,3 +155,45 @@ The active-input runner now enumerates a deterministic finite grid over:
 Every candidate gets a stable profile ID. Feasible profiles are scored; over-amplitude and over-energy candidates are retained as explicit rejection rows. On this frozen fixture, the finite grid contains 30 feasible profiles and 6 rejected profiles. The best worst-case pairwise Gaussian KL score is approximately 0.334498 for a unit-amplitude, 0.5-duration pulse at node 0 or node 2.
 
 This is exact enumeration of a small, preregistered pulse family. It is not the continuous-control optimum and does not imply that the best discrete candidate is globally optimal. A future comparison should use the low-dimensional Pontryagin/optimal-control formulation from the cited model-discrimination literature and report the continuous-vs-grid optimality gap.
+
+## Nuisance-profiled model-family discrimination
+
+The `robust_discrimination` module groups fixed-parameter graph variants into declared structural model families and computes the least-favourable equal-covariance Gaussian KL separation over every cross-family variant pair. Within-family variant pairs are excluded from the structural-family objective and remain visible in the base experiment score.
+
+The frozen negative control deliberately puts a zero-bypass-conductance variant inside the bypass family. This variant reproduces the chain model exactly. Therefore a fixed nominal chain-vs-positive-bypass pulse score can be about 0.334498 while the family-level worst-case separation is zero. Correct disposition: the candidate family sets overlap under their declared parameter bounds; do not claim structural identification.
+
+This is an exact finite-grid nuisance-profile reference. It is not continuous profile likelihood: no likelihood optimizer, interval threshold, posterior, or Pontryagin control solver is implemented. The model-family map and every variant remain explicit and digested. Work is tracked in [HUMAN-NESTED-ROBUST-DISCRIMINATION-001 / #5995](https://github.com/Luminous-Dynamics/symtropy/issues/5995).
+
+### Candidate-visible adequacy and out-of-model-set control
+
+The robust-discrimination module now accepts an explicit candidate-visible observation trace and a preregistered maximum Gaussian residual threshold. It evaluates every finite-grid parameter variant, reports the best residual per family and returns one of four dispositions:
+- IN_FAMILY_PREFERRED;
+- PARAMETER_NOT_IDENTIFIED;
+- IN_FAMILY_UNRESOLVED;
+- OUT_OF_MODEL_SET.
+
+The evaluator uses the exact declared sensor order, sample times and full covariance submatrix. A trace with a different sensor order, time schedule, shape or non-finite value rejects before scoring. OUT_OF_MODEL_SET means no registered finite-grid variant passes the declared residual threshold; it does not identify the missing physical cause.
+
+The threshold is an explicit protocol input, not an automatically calibrated chi-square quantile or false-alarm guarantee. These controls are deterministic synthetic software checks only.
+
+### Empirical adequacy-threshold calibration
+
+The `adequacy_calibration` module generates additive zero-mean Gaussian observation noise using the full admitted channel covariance and independent time blocks. It selects an empirical nearest-rank residual threshold on a calibration PRNG seed, then evaluates it on a distinct validation seed. Hidden out-of-family graph truths are evaluated only on the validation stream. The Monte Carlo PRNG is deterministic and explicitly non-cryptographic.
+
+The report includes counts, empirical rates and 95% Wilson intervals for:
+- calibration/validation true-family coverage;
+- false OUT_OF_MODEL_SET disposition on registered in-family truths;
+- wrong-family preference and ambiguous outcomes;
+- rejection of declared held-out out-of-family systems.
+
+Registered reference fixture:
+- candidate families: chain, bypass conductance 0.5 and bypass-family zero limit;
+- selected pulse and node-2 sensor;
+- calibration/validation seeds: 0xCA11_BA7E / 0xB01D_5EED;
+- 128 replicates per candidate model, target calibration coverage 95%;
+- covariance 1e-5 for the threshold-calibration sub-experiment;
+- hidden held-out bypass conductance 0.75.
+
+Independent reproduction of this fixed setup yielded 365/384 calibration in-family accepts (95.05%), 358/384 validation accepts (93.23%), 26/384 false OUT_OF_MODEL_SET (6.77%), and 128/128 rejection of the held-out bypass 0.75 (100%). The corresponding validation Wilson 95% intervals were approximately 90.26–95.34% for in-family coverage, 4.66–9.74% for false OUT_OF_MODEL_SET, and 97.09–100% for held-out rejection.
+
+These are deterministic synthetic Monte Carlo results for one declared fixture, not a calibrated real-world OOD detector or a general guarantee. The Gaussian/noise covariance model is assumed correct. The test does not establish robustness to covariance misspecification, non-Gaussian noise, temporal correlation, hidden MNAR missingness or arbitrary omitted model structures.
