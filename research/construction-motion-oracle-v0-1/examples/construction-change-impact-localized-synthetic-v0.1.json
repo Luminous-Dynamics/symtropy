@@ -22,6 +22,55 @@
               "scope_id": "floor:02"
             },
             "observed_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          {
+            "key": {
+              "domain": "design_revision",
+              "scope_id": "floor:02"
+            },
+            "observed_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          },
+          {
+            "key": {
+              "domain": "coordinate_frame",
+              "scope_id": "site-frame:02"
+            },
+            "observed_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          {
+            "key": {
+              "domain": "robot_configuration",
+              "scope_id": "robot:A"
+            },
+            "observed_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+          },
+          {
+            "key": {
+              "domain": "tool_configuration",
+              "scope_id": "robot:A:tool"
+            },
+            "observed_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+          },
+          {
+            "key": {
+              "domain": "payload_configuration",
+              "scope_id": "robot:A:payload"
+            },
+            "observed_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+          },
+          {
+            "key": {
+              "domain": "trajectory_configuration",
+              "scope_id": "robot:A:trajectory"
+            },
+            "observed_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "key": {
+              "domain": "site_clock_map",
+              "scope_id": "site-clock"
+            },
+            "observed_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
           }
         ],
         "depends_on_artifact_ids": []
@@ -66,6 +115,20 @@
               "scope_id": "site"
             },
             "observed_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+          },
+          {
+            "key": {
+              "domain": "coordinate_frame",
+              "scope_id": "site-frame:02"
+            },
+            "observed_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          {
+            "key": {
+              "domain": "coordinate_transform",
+              "scope_id": "floor:02"
+            },
+            "observed_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
           }
         ],
         "depends_on_artifact_ids": [
@@ -91,6 +154,97 @@
               "scope_id": "site"
             },
             "observed_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+          },
+          {
+            "key": {
+              "domain": "design_revision",
+              "scope_id": "floor:02"
+            },
+            "observed_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          },
+          {
+            "key": {
+              "domain": "coordinate_frame",
+              "scope_id": "site-frame:02"
+            },
+            "observed_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          {
+            "key": {
+              "domain": "coordinate_transform",
+              "scope_id": "floor:02"
+            },
+            "observed_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          {
+            "key": {
+              "domain": "robot_configuration",
+              "scope_id": "robot:A"
+            },
+            "observed_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+          },
+          {
+            "key": {
+              "domain": "tool_configuration",
+              "scope_id": "robot:A:tool"
+            },
+            "observed_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+          },
+          {
+            "key": {
+              "domain": "payload_configuration",
+              "scope_id": "robot:A:payload"
+            },
+            "observed_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+          },
+          {
+            "key": {
+              "domain": "trajectory_configuration",
+              "scope_id": "robot:A:trajectory"
+            },
+            "observed_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "key": {
+              "domain": "obstacle_map",
+              "scope_id": "region:A"
+            },
+            "observed_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          {
+            "key": {
+              "domain": "dynamic_actor_manifest",
+              "scope_id": "region:A"
+            },
+            "observed_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          },
+          {
+            "key": {
+              "domain": "site_clock_map",
+              "scope_id": "site"
+            },
+            "observed_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+          },
+          {
+            "key": {
+              "domain": "occupancy_engine_build",
+              "scope_id": "engine"
+            },
+            "observed_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+          },
+          {
+            "key": {
+              "domain": "clearance_policy",
+              "scope_id": "site"
+            },
+            "observed_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+          },
+          {
+            "key": {
+              "domain": "site_ledger_state",
+              "scope_id": "site"
+            },
+            "observed_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           }
         ],
         "depends_on_artifact_ids": [
@@ -109,6 +263,62 @@
               "scope_id": "entity:ifc4x3:AAAAAAAAAAAAAAAAAAAAAA"
             },
             "observed_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "key": {
+              "domain": "design_revision",
+              "scope_id": "floor:02"
+            },
+            "observed_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          },
+          {
+            "key": {
+              "domain": "coordinate_frame",
+              "scope_id": "site-frame:02"
+            },
+            "observed_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          {
+            "key": {
+              "domain": "coordinate_transform",
+              "scope_id": "floor:02"
+            },
+            "observed_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          {
+            "key": {
+              "domain": "acceptance_profile",
+              "scope_id": "site"
+            },
+            "observed_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "key": {
+              "domain": "metrology_reference",
+              "scope_id": "reference-chain"
+            },
+            "observed_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "key": {
+              "domain": "material_lot",
+              "scope_id": "lot:LOT-2026-01"
+            },
+            "observed_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "key": {
+              "domain": "authority_policy",
+              "scope_id": "site"
+            },
+            "observed_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+          },
+          {
+            "key": {
+              "domain": "site_ledger_state",
+              "scope_id": "site"
+            },
+            "observed_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           }
         ],
         "depends_on_artifact_ids": []
@@ -132,6 +342,55 @@
               "scope_id": "floor:02"
             },
             "observed_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          {
+            "key": {
+              "domain": "design_revision",
+              "scope_id": "floor:02"
+            },
+            "observed_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          },
+          {
+            "key": {
+              "domain": "coordinate_frame",
+              "scope_id": "site-frame:02"
+            },
+            "observed_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          {
+            "key": {
+              "domain": "robot_configuration",
+              "scope_id": "robot:B"
+            },
+            "observed_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+          },
+          {
+            "key": {
+              "domain": "tool_configuration",
+              "scope_id": "robot:B:tool"
+            },
+            "observed_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+          },
+          {
+            "key": {
+              "domain": "payload_configuration",
+              "scope_id": "robot:B:payload"
+            },
+            "observed_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+          },
+          {
+            "key": {
+              "domain": "trajectory_configuration",
+              "scope_id": "robot:B:trajectory"
+            },
+            "observed_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "key": {
+              "domain": "site_clock_map",
+              "scope_id": "site-clock"
+            },
+            "observed_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
           }
         ],
         "depends_on_artifact_ids": []
@@ -176,6 +435,20 @@
               "scope_id": "site"
             },
             "observed_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+          },
+          {
+            "key": {
+              "domain": "coordinate_frame",
+              "scope_id": "site-frame:02"
+            },
+            "observed_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          {
+            "key": {
+              "domain": "coordinate_transform",
+              "scope_id": "floor:02"
+            },
+            "observed_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
           }
         ],
         "depends_on_artifact_ids": [
@@ -201,6 +474,97 @@
               "scope_id": "site"
             },
             "observed_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+          },
+          {
+            "key": {
+              "domain": "design_revision",
+              "scope_id": "floor:02"
+            },
+            "observed_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          },
+          {
+            "key": {
+              "domain": "coordinate_frame",
+              "scope_id": "site-frame:02"
+            },
+            "observed_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          {
+            "key": {
+              "domain": "coordinate_transform",
+              "scope_id": "floor:02"
+            },
+            "observed_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          {
+            "key": {
+              "domain": "robot_configuration",
+              "scope_id": "robot:B"
+            },
+            "observed_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+          },
+          {
+            "key": {
+              "domain": "tool_configuration",
+              "scope_id": "robot:B:tool"
+            },
+            "observed_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+          },
+          {
+            "key": {
+              "domain": "payload_configuration",
+              "scope_id": "robot:B:payload"
+            },
+            "observed_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+          },
+          {
+            "key": {
+              "domain": "trajectory_configuration",
+              "scope_id": "robot:B:trajectory"
+            },
+            "observed_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "key": {
+              "domain": "obstacle_map",
+              "scope_id": "region:B"
+            },
+            "observed_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          {
+            "key": {
+              "domain": "dynamic_actor_manifest",
+              "scope_id": "region:B"
+            },
+            "observed_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          },
+          {
+            "key": {
+              "domain": "site_clock_map",
+              "scope_id": "site"
+            },
+            "observed_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+          },
+          {
+            "key": {
+              "domain": "occupancy_engine_build",
+              "scope_id": "engine"
+            },
+            "observed_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+          },
+          {
+            "key": {
+              "domain": "clearance_policy",
+              "scope_id": "site"
+            },
+            "observed_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+          },
+          {
+            "key": {
+              "domain": "site_ledger_state",
+              "scope_id": "site"
+            },
+            "observed_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           }
         ],
         "depends_on_artifact_ids": [
@@ -209,6 +573,13 @@
       }
     ],
     "current_dependencies": [
+      {
+        "key": {
+          "domain": "acceptance_profile",
+          "scope_id": "site"
+        },
+        "observed_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
       {
         "key": {
           "domain": "authority_policy",
@@ -225,10 +596,24 @@
       },
       {
         "key": {
+          "domain": "coordinate_frame",
+          "scope_id": "site-frame:02"
+        },
+        "observed_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      {
+        "key": {
           "domain": "coordinate_transform",
           "scope_id": "floor:02"
         },
         "observed_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      {
+        "key": {
+          "domain": "design_revision",
+          "scope_id": "floor:02"
+        },
+        "observed_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
       },
       {
         "key": {
@@ -260,6 +645,20 @@
       },
       {
         "key": {
+          "domain": "material_lot",
+          "scope_id": "lot:LOT-2026-01"
+        },
+        "observed_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      {
+        "key": {
+          "domain": "metrology_reference",
+          "scope_id": "reference-chain"
+        },
+        "observed_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      {
+        "key": {
           "domain": "obstacle_map",
           "scope_id": "region:A"
         },
@@ -281,10 +680,80 @@
       },
       {
         "key": {
+          "domain": "payload_configuration",
+          "scope_id": "robot:A:payload"
+        },
+        "observed_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+      },
+      {
+        "key": {
+          "domain": "payload_configuration",
+          "scope_id": "robot:B:payload"
+        },
+        "observed_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+      },
+      {
+        "key": {
+          "domain": "robot_configuration",
+          "scope_id": "robot:A"
+        },
+        "observed_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      {
+        "key": {
+          "domain": "robot_configuration",
+          "scope_id": "robot:B"
+        },
+        "observed_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      {
+        "key": {
+          "domain": "site_clock_map",
+          "scope_id": "site-clock"
+        },
+        "observed_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+      },
+      {
+        "key": {
           "domain": "site_clock_map",
           "scope_id": "site"
         },
         "observed_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      {
+        "key": {
+          "domain": "site_ledger_state",
+          "scope_id": "site"
+        },
+        "observed_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "key": {
+          "domain": "tool_configuration",
+          "scope_id": "robot:A:tool"
+        },
+        "observed_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      {
+        "key": {
+          "domain": "tool_configuration",
+          "scope_id": "robot:B:tool"
+        },
+        "observed_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      {
+        "key": {
+          "domain": "trajectory_configuration",
+          "scope_id": "robot:A:trajectory"
+        },
+        "observed_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+      },
+      {
+        "key": {
+          "domain": "trajectory_configuration",
+          "scope_id": "robot:B:trajectory"
+        },
+        "observed_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
       },
       {
         "key": {
@@ -315,13 +784,22 @@
       {
         "artifact_kind": "motion_envelope",
         "required_domains": [
+          "design_revision",
           "entity_geometry",
-          "coordinate_transform"
+          "coordinate_frame",
+          "coordinate_transform",
+          "robot_configuration",
+          "tool_configuration",
+          "payload_configuration",
+          "trajectory_configuration",
+          "site_clock_map"
         ]
       },
       {
         "artifact_kind": "space_time_occupancy_assessment",
         "required_domains": [
+          "coordinate_frame",
+          "coordinate_transform",
           "obstacle_map",
           "dynamic_actor_manifest",
           "site_clock_map",
@@ -332,6 +810,19 @@
       {
         "artifact_kind": "dispatch_readiness",
         "required_domains": [
+          "design_revision",
+          "coordinate_frame",
+          "coordinate_transform",
+          "robot_configuration",
+          "tool_configuration",
+          "payload_configuration",
+          "trajectory_configuration",
+          "obstacle_map",
+          "dynamic_actor_manifest",
+          "site_clock_map",
+          "occupancy_engine_build",
+          "clearance_policy",
+          "site_ledger_state",
           "work_package_schedule",
           "authority_policy"
         ]
@@ -339,7 +830,15 @@
       {
         "artifact_kind": "accepted_construction_record",
         "required_domains": [
-          "entity_geometry"
+          "design_revision",
+          "entity_geometry",
+          "coordinate_frame",
+          "coordinate_transform",
+          "acceptance_profile",
+          "metrology_reference",
+          "material_lot",
+          "authority_policy",
+          "site_ledger_state"
         ]
       }
     ]
