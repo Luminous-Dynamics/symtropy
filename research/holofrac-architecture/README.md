@@ -171,6 +171,7 @@ The current executable research slices are intentionally separated:
 - [Consent-first pluralistic decision support](../holofrac-retrieval/src/pluralistic.rs)
 - [Chosen-query anonymous preference attack](../holofrac-retrieval/src/privacy_attack.rs)
 - [Typed module composition oracle](../holofrac-retrieval/src/composition.rs)
+- [Held-out compositional generalization protocol](COMPOSITIONAL_GENERALIZATION_PROTOCOL_V0.md)
 - [Privacy reconstruction red-team #6034](https://github.com/Luminous-Dynamics/symtropy/issues/6034)
 - [Compositional generalization benchmark #6039](https://github.com/Luminous-Dynamics/symtropy/issues/6039)
 - [Exact finite-state value-of-information selection](../holofrac-retrieval/src/experiment_selection.rs)
