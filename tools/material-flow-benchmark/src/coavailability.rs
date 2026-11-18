@@ -173,7 +173,9 @@ fn structural_errors(input: &CoAvailabilityInput) -> Vec<String> {
         || input.sortie.launch_pad_resource_id.trim().is_empty()
         || input.sortie.recovery_pad_resource_id.trim().is_empty()
     {
-        errors.push("scenario, asset, sortie, node and resource identifiers must be non-empty".into());
+        errors.push(
+            "scenario, asset, sortie, node and resource identifiers must be non-empty".into(),
+        );
     }
     if input.carrier.route_stops.is_empty() {
         errors.push("carrier.route_stops: must not be empty".into());
@@ -181,7 +183,9 @@ fn structural_errors(input: &CoAvailabilityInput) -> Vec<String> {
     let mut stop_ids = BTreeSet::new();
     for (index, stop) in input.carrier.route_stops.iter().enumerate() {
         if stop.stop_id.trim().is_empty() || stop.node_id.trim().is_empty() {
-            errors.push(format!("carrier.route_stops[{index}]: stop and node identifiers must be non-empty"));
+            errors.push(format!(
+                "carrier.route_stops[{index}]: stop and node identifiers must be non-empty"
+            ));
         }
         if !stop_ids.insert(stop.stop_id.as_str()) {
             errors.push(format!(
@@ -232,14 +236,18 @@ fn structural_errors(input: &CoAvailabilityInput) -> Vec<String> {
     }
     let mut reservation_ids = BTreeSet::new();
     for (index, reservation) in input.existing_reservations.iter().enumerate() {
-        if reservation.reservation_id.trim().is_empty() || reservation.resource_id.trim().is_empty() {
+        if reservation.reservation_id.trim().is_empty()
+            || reservation.resource_id.trim().is_empty()
+        {
             errors.push(format!("existing_reservations[{index}]: identifiers must be non-empty"));
         }
         if reservation.start_ms >= reservation.end_ms {
             errors.push(format!("existing_reservations[{index}]: interval must be non-empty"));
         }
         if !reservation_ids.insert(reservation.reservation_id.as_str()) {
-            errors.push(format!("existing_reservations[{index}].reservation_id: duplicate identity"));
+            errors.push(format!(
+                "existing_reservations[{index}].reservation_id: duplicate identity"
+            ));
         }
     }
     errors
@@ -295,7 +303,8 @@ pub fn evaluate_coavailability(
     }
 
     let required_energy = sortie.flight_energy_wh.checked_add(aircraft.reserve_energy_wh);
-    let energy_margin = required_energy.and_then(|required| aircraft.usable_energy_wh.checked_sub(required));
+    let energy_margin = required_energy
+        .and_then(|required| aircraft.usable_energy_wh.checked_sub(required));
     match (required_energy, energy_margin) {
         (None, _) => {
             known_infeasible = true;
@@ -303,7 +312,9 @@ pub fn evaluate_coavailability(
         }
         (Some(_), None) => {
             known_infeasible = true;
-            findings.push("INFEASIBLE: usable aircraft energy does not cover mission plus reserve".into());
+            findings.push(
+                "INFEASIBLE: usable aircraft energy does not cover mission plus reserve".into(),
+            );
         }
         (Some(_), Some(_)) => {}
     }
@@ -313,7 +324,9 @@ pub fn evaluate_coavailability(
         known_infeasible = true;
         findings.push("INFEASIBLE: peak power demand exceeds aircraft capability".into());
     }
-    let continuous_margin = aircraft.maximum_continuous_power_w.checked_sub(sortie.continuous_power_w);
+    let continuous_margin = aircraft
+        .maximum_continuous_power_w
+        .checked_sub(sortie.continuous_power_w);
     if continuous_margin.is_none() {
         known_infeasible = true;
         findings.push("INFEASIBLE: continuous power demand exceeds aircraft capability".into());
@@ -362,7 +375,9 @@ pub fn evaluate_coavailability(
         (Some(launch), Some(recovery)) => {
             if launch.index > recovery.index {
                 known_infeasible = true;
-                findings.push("INFEASIBLE: recovery stop precedes launch stop on carrier route".into());
+                findings.push(
+                    "INFEASIBLE: recovery stop precedes launch stop on carrier route".into(),
+                );
             } else {
                 let launch_latest_from_window = sortie
                     .launch_window_close_ms
@@ -383,13 +398,21 @@ pub fn evaluate_coavailability(
                     recovery_latest_from_window,
                     recovery_latest_from_stop,
                 ) {
-                    (Some(launch_window_hi), Some(launch_stop_hi), Some(recovery_window_hi), Some(recovery_stop_hi)) => {
+                    (
+                        Some(launch_window_hi),
+                        Some(launch_stop_hi),
+                        Some(recovery_window_hi),
+                        Some(recovery_stop_hi),
+                    ) => {
                         let launch_lo = sortie.launch_window_open_ms.max(launch.arrival_latest_ms);
                         let launch_hi = launch_window_hi.min(launch_stop_hi);
-                        let recovery_lo = sortie.recovery_window_open_ms.max(recovery.arrival_latest_ms);
+                        let recovery_lo = sortie
+                            .recovery_window_open_ms
+                            .max(recovery.arrival_latest_ms);
                         let recovery_hi = recovery_window_hi.min(recovery_stop_hi);
 
-                        let recovery_launch_lo = recovery_lo.saturating_sub(sortie.flight_duration_ms);
+                        let recovery_launch_lo =
+                            recovery_lo.saturating_sub(sortie.flight_duration_ms);
                         let recovery_launch_hi = recovery_hi.checked_sub(sortie.flight_duration_ms);
 
                         if let Some(recovery_launch_hi) = recovery_launch_hi {
@@ -397,26 +420,37 @@ pub fn evaluate_coavailability(
                             let feasible_launch_hi = launch_hi.min(recovery_launch_hi);
                             if feasible_launch_lo <= feasible_launch_hi {
                                 let launch_time = feasible_launch_lo;
-                                let recovery_time = launch_time.checked_add(sortie.flight_duration_ms);
+                                let recovery_time =
+                                    launch_time.checked_add(sortie.flight_duration_ms);
                                 if let Some(recovery_time) = recovery_time {
                                     selected_launch = Some(launch_time);
                                     selected_recovery = Some(recovery_time);
                                 } else {
                                     known_infeasible = true;
-                                    findings.push("INFEASIBLE: launch plus flight duration overflows".into());
+                                    findings.push(
+                                        "INFEASIBLE: launch plus flight duration overflows".into(),
+                                    );
                                 }
                             } else {
                                 known_infeasible = true;
-                                findings.push("INFEASIBLE: no launch time can meet both carrier stop windows and sortie recovery window".into());
+                                findings.push(
+                                    "INFEASIBLE: no launch time can meet both carrier stop windows and sortie recovery window".into(),
+                                );
                             }
                         } else {
                             known_infeasible = true;
-                            findings.push("INFEASIBLE: recovery window closes before the proposed flight can return".into());
+                            findings.push(
+                                "INFEASIBLE: recovery window closes before the proposed flight can return"
+                                    .into(),
+                            );
                         }
                     }
                     _ => {
                         known_infeasible = true;
-                        findings.push("INFEASIBLE: service duration does not fit the carrier or site window".into());
+                        findings.push(
+                            "INFEASIBLE: service duration does not fit the carrier or site window"
+                                .into(),
+                        );
                     }
                 }
             }
@@ -435,7 +469,9 @@ pub fn evaluate_coavailability(
                     launch_end,
                 ).is_some() {
                     known_infeasible = true;
-                    findings.push("INFEASIBLE: launch pad is occupied during the required interval".into());
+                    findings.push(
+                        "INFEASIBLE: launch pad is occupied during the required interval".into(),
+                    );
                 }
                 if interval_conflict(
                     &input.existing_reservations,
@@ -444,7 +480,9 @@ pub fn evaluate_coavailability(
                     recovery_end,
                 ).is_some() {
                     known_infeasible = true;
-                    findings.push("INFEASIBLE: recovery pad is occupied during the required interval".into());
+                    findings.push(
+                        "INFEASIBLE: recovery pad is occupied during the required interval".into(),
+                    );
                 }
             }
             _ => {
@@ -455,7 +493,9 @@ pub fn evaluate_coavailability(
     }
 
     if findings.is_empty() {
-        findings.push("FEASIBLE: declared capability, permission and timing envelopes admit this sortie".into());
+        findings.push(
+            "FEASIBLE: declared capability, permission and timing envelopes admit this sortie".into(),
+        );
     }
     let verdict = if known_infeasible {
         FeasibilityVerdict::Infeasible
