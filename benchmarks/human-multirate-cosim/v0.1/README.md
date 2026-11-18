@@ -868,3 +868,66 @@ families, contamination/heavy-tailed noise, drift, missingness, action-
 dependent cross-campaign noise, and sequentially valid e-processes. These
 must be evaluated separately rather than inferred from the current one-step
 Monte Carlo scorecard.
+## Anytime-valid simple-hypothesis e-process
+
+The `simple_hypothesis_eprocess` module provides a sequential likelihood-
+ratio test for exactly two fully specified candidate models under a known,
+action-specific Gaussian covariance. For action `a_t`, candidate means
+`mu_0(a_t)` and `mu_1(a_t)`, and observed vector `y_t`, it computes
+
+    ell_t = 0.5 * (y_t - mu_0)^T Sigma_t^-1 (y_t - mu_0)
+          - 0.5 * (y_t - mu_1)^T Sigma_t^-1 (y_t - mu_1)
+
+which equals `log p_1(y_t | a_t) - log p_0(y_t | a_t)` because the same
+action covariance applies to both simple hypotheses. The log E-values are
+the running sum of `ell_t` and its negative. The first boundary crossing is
+absorbing in the reported stopping decision.
+
+For a total campaign alpha `alpha`, the implementation allocates
+`alpha/2` to each direction and uses the threshold `2/alpha` for each
+likelihood-ratio process. Under the corresponding fully specified simple
+null, with actions chosen predictably from past candidate-visible history
+and action observations conditionally independent under the admitted
+covariance, the likelihood-ratio process is a non-negative martingale.
+Ville's inequality bounds the probability of ever crossing its boundary;
+the two-direction decision uses a Bonferroni allocation.
+
+Each prefix records action ID, covariance/process/sampling/operator/
+availability identity, covariance kind, selected sensor order and exact
+observation times, plus the log-likelihood increment and cumulative log
+E-values. The result can be replayed from the ordered action/observation
+history without using posterior priors.
+
+### Optional-stopping comparison runner
+
+The `simple_hypothesis_eprocess` binary compares an adaptive E-process
+stopping rule with a fixed posterior-threshold/residual-gate baseline under
+the same chain-vs-bypass candidate models. Both use a greedy, history-aware
+action selector over three bounded pulse actions. The synthetic evaluator
+runs 500 trials per true model, allows up to three observations, and reports
+truth-conditional false-commit Wilson intervals, correct commits, abstention
+and mean number of looks.
+
+Run with:
+
+    cargo run --manifest-path benchmarks/human-multirate-cosim/v0.1/Cargo.toml --release --bin simple_hypothesis_eprocess
+
+Monte Carlo rates are diagnostic, not the proof of the error bound. The
+mathematical guarantee is the likelihood-ratio martingale plus Ville's
+inequality under the declared conditional model.
+
+### Exact claim ceiling
+
+The guarantee applies only to two fully specified simple models; known
+action-specific Gaussian covariance; the same covariance under both
+hypotheses for each action; a correctly identity-bound sensor/schedule
+process; predictable action selection; and conditional independence of
+action noises. It does not cover fitted nuisance parameters, composite
+model families, covariance estimation from the same campaign,
+misspecification, held-out physical models or correlated noise across
+different experiment actions. Composite hypotheses require mixture or
+least-favourable e-processes and separate qualification.
+
+The simple-hypothesis e-process is a stronger sequential gate than a fixed
+posterior threshold for its stated model class. It is not a general-purpose
+scientific decision guarantee.
