@@ -469,6 +469,15 @@ pub struct EventRecord {
     pub run_displacement_um: f64,
     /// Instantaneous tangent at the end of the run, before the interruption.
     pub incoming_heading_rad: f64,
+    /// Motor-selected persistence time before any geometric truncation.
+    pub intrinsic_motor_persistence_time_s: f64,
+    /// Sampled effective free-path budget; None when geometry is disabled.
+    pub geometry_free_path_um: Option<f64>,
+    /// Cause that ended the run, separate from the subsequent event mechanism.
+    pub run_termination_cause: RunTerminationCause,
+    /// Arc length traversed during the run (speed × realized run duration).
+    pub run_arc_length_um: f64,
+    /// Realized duration after applying the motor and optional geometry limits.
     pub run_duration_s: f64,
     /// Physical mechanism selected by the model; never inferred from duration.
     pub mechanism: EventMechanism,
@@ -561,6 +570,9 @@ pub struct BehaviorSummary {
     pub unresolved_mechanism_followed_run_count: usize,
     pub unresolved_mechanism_followed_up_gradient_count: usize,
     pub unresolved_mechanism_followed_up_gradient_fraction: Option<f64>,
+    /// Run-termination counts, independent of subsequent event mechanism.
+    pub intrinsic_motor_terminated_run_count: usize,
+    pub geometry_limited_run_count: usize,
     pub mean_run_duration_s: Option<f64>,
     pub projected_drift_um_s: Option<f64>,
 }
