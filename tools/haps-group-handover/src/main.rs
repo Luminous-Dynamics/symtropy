@@ -3,11 +3,18 @@ use std::{env, fs, process};
 use haps_group_handover::{evaluate_case, parse_case_json};
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let path = env::args()
-        .nth(1)
-        .ok_or("usage: haps-group-handover <handover-case.json>")?;
+    let path = env::args().nth(1).ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "usage: haps-group-handover <handover-case.json>",
+        )
+    })?;
     if env::args().nth(2).is_some() {
-        return Err("only one input path is accepted".into());
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "only one input path is accepted",
+        )
+        .into());
     }
 
     let bytes = fs::read(&path)?;
