@@ -249,6 +249,169 @@ fn json_quote(input: &str) -> String {
     output
 }
 
+fn evidence_json(evidence: &EvidenceRef) -> String {
+    let state = match evidence.state {
+        EvidenceState::Current => "current",
+        EvidenceState::Revoked => "revoked",
+        EvidenceState::Superseded => "superseded",
+    };
+    format!(
+        "{{\"source_record_id\":{},\"owner_id\":{},\"revision\":{},\"subject_id\":{},\"subject_revision\":{},\"sha256\":{},\"validity_clock_domain_id\":{},\"valid_from_tick\":{},\"valid_until_tick\":{},\"state\":{}}}",
+        json_quote(&evidence.source_record_id),
+        json_quote(&evidence.owner_id),
+        json_quote(&evidence.revision),
+        json_quote(&evidence.subject_id),
+        json_quote(&evidence.subject_revision),
+        json_quote(&evidence.sha256.to_ascii_lowercase()),
+        json_quote(&evidence.validity_clock_domain_id),
+        evidence.valid_from_tick,
+        evidence.valid_until_tick,
+        json_quote(state),
+    )
+}
+
+fn observation_json(observation: &Observation) -> String {
+    match observation {
+        Observation::HookLoad { upper_mn } => {
+            format!("{{\"kind\":\"hook_load\",\"upper_mn\":{upper_mn}}}")
+        }
+        Observation::WindGust { upper_mm_per_s } => {
+            format!("{{\"kind\":\"wind_gust\",\"upper_mm_per_s\":{upper_mm_per_s}}}")
+        }
+        Observation::CraneConfiguration { crane_id, configuration_revision } => format!(
+            "{{\"kind\":\"crane_configuration\",\"crane_id\":{},\"configuration_revision\":{}}}",
+            json_quote(crane_id),
+            json_quote(configuration_revision),
+        ),
+        Observation::MotionEnvelope { report_id, report_sha256, within_envelope } => format!(
+            "{{\"kind\":\"motion_envelope\",\"report_id\":{},\"report_sha256\":{},\"within_envelope\":{}}}",
+            json_quote(report_id),
+            json_quote(&report_sha256.to_ascii_lowercase()),
+            within_envelope,
+        ),
+        Observation::OccupancyProjection { projection_id, projection_sha256, covers_lift } => format!(
+            "{{\"kind\":\"occupancy_projection\",\"projection_id\":{},\"projection_sha256\":{},\"covers_lift\":{}}}",
+            json_quote(projection_id),
+            json_quote(&projection_sha256.to_ascii_lowercase()),
+            covers_lift,
+        ),
+        Observation::OverloadAlarm { active } => {
+            format!("{{\"kind\":\"overload_alarm\",\"active\":{active}}}")
+        }
+        Observation::HoistState { state } => {
+            let name = match state {
+                HoistState::Hoisting => "hoisting",
+                HoistState::Lowering => "lowering",
+                HoistState::Paused => "paused",
+                HoistState::Idle => "idle",
+                HoistState::Unknown => "unknown",
+            };
+            format!("{{\"kind\":\"hoist_state\",\"state\":{}}}", json_quote(name))
+        }
+    }
+}
+
+impl TelemetryEvent {
+    pub fn canonical_json(&self) -> String {
+        format!(
+            "{{\"event_id\":{},\"source_id\":{},\"source_revision\":{},\"sequence\":{},\"event_tick\":{},\"received_tick\":{},\"clock_domain_id\":{},\"calibration_or_source_evidence\":{},\"observation\":{}}}",
+            json_quote(&self.event_id),
+            json_quote(&self.source_id),
+            json_quote(&self.source_revision),
+            self.sequence,
+            self.event_tick,
+            self.received_tick,
+            json_quote(&self.clock_domain_id),
+            evidence_json(&self.calibration_or_source_evidence),
+            observation_json(&self.observation),
+        )
+    }
+}
+
+impl StreamCoverage {
+    pub fn canonical_json(&self) -> String {
+        format!(
+            "{{\"channel\":{},\"source_id\":{},\"source_revision\":{},\"first_sequence\":{},\"next_sequence_exclusive\":{},\"covered_start_tick\":{},\"covered_end_tick\":{},\"complete\":{},\"evidence\":{}}}",
+            json_quote(channel_name(self.channel)),
+            json_quote(&self.source_id),
+            json_quote(&self.source_revision),
+            self.first_sequence,
+            self.next_sequence_exclusive,
+            self.covered_start_tick,
+            self.covered_end_tick,
+            self.complete,
+            evidence_json(&self.evidence),
+        )
+    }
+}
+
+/// Canonical source event ledger. Permitted transport reordering does not alter
+/// these bytes; duplicate retransmissions remain represented and auditable.
+pub fn canonical_event_ledger_json(events: &[TelemetryEvent]) -> String {
+    let mut ordered = events.to_vec();
+    ordered.sort_by(|left, right| {
+        left.observation
+            .channel()
+            .cmp(&right.observation.channel())
+            .then_with(|| left.source_id.cmp(&right.source_id))
+            .then_with(|| left.sequence.cmp(&right.sequence))
+            .then_with(|| left.event_id.cmp(&right.event_id))
+            .then_with(|| left.event_tick.cmp(&right.event_tick))
+            .then_with(|| left.received_tick.cmp(&right.received_tick))
+    });
+    format!(
+        "[{}]",
+        ordered
+            .iter()
+            .map(TelemetryEvent::canonical_json)
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+/// Canonical coverage bundle. Source attestations are retained as records and
+/// never inferred from the mere absence of alarm events.
+pub fn canonical_coverage_bundle_json(coverage: &[StreamCoverage]) -> String {
+    let mut ordered = coverage.to_vec();
+    ordered.sort_by(|left, right| {
+        left.channel
+            .cmp(&right.channel)
+            .then_with(|| left.source_id.cmp(&right.source_id))
+            .then_with(|| left.source_revision.cmp(&right.source_revision))
+            .then_with(|| left.first_sequence.cmp(&right.first_sequence))
+    });
+    format!(
+        "[{}]",
+        ordered
+            .iter()
+            .map(StreamCoverage::canonical_json)
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+impl ReconciliationPolicy {
+    pub fn canonical_json(&self) -> String {
+        let mut channels = self.required_channels.clone();
+        channels.sort();
+        channels.dedup();
+        let names = channels
+            .iter()
+            .map(|channel| json_quote(channel_name(*channel)))
+            .collect::<Vec<_>>()
+            .join(",");
+        format!(
+            "{{\"policy_id\":{},\"policy_revision\":{},\"policy_sha256\":{},\"required_channels\":[{}],\"maximum_sample_gap_ticks\":{},\"maximum_ingest_lateness_ticks\":{}}}",
+            json_quote(&self.policy_id),
+            json_quote(&self.policy_revision),
+            json_quote(&self.policy_sha256.to_ascii_lowercase()),
+            names,
+            self.maximum_sample_gap_ticks,
+            self.maximum_ingest_lateness_ticks,
+        )
+    }
+}
+
 fn channel_name(channel: Channel) -> &'static str {
     match channel {
         Channel::HookLoad => "hook_load",
