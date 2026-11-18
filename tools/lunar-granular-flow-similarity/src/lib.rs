@@ -1,3 +1,5 @@
+# Copyright (C) 2026 Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,7 +49,7 @@ pub struct ComparisonInput {
     pub tolerances: SimilarityTolerances,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum CoordinateStatus {
     WithinTolerance,
@@ -68,7 +70,7 @@ pub struct CoordinateResult {
     pub interpretation: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum EnvelopeStatus {
     WithinDeclaredSimilarityEnvelope,
@@ -287,6 +289,11 @@ pub fn compare(input: &ComparisonInput) -> Result<SimilarityReport, String> {
     if input.target.profile_id.trim().is_empty() || input.candidate.profile_id.trim().is_empty() {
         return Err("profile IDs must not be empty".to_owned());
     }
+    if input.target.evidence_class.trim().is_empty()
+        || input.candidate.evidence_class.trim().is_empty()
+    {
+        return Err("both evidence classes must be explicit and non-empty".to_owned());
+    }
 
     let t = &input.tolerances;
     let a = &input.target.numeric;
@@ -361,9 +368,6 @@ pub fn compare(input: &ComparisonInput) -> Result<SimilarityReport, String> {
     } else {
         EnvelopeStatus::WithinDeclaredSimilarityEnvelope
     };
-
-    // Stable ordering is part of the report contract.
-    coordinates.shrink_to_fit();
 
     Ok(SimilarityReport {
         report_class: "granular_flow_similarity_envelope_comparison".to_owned(),
