@@ -5,7 +5,7 @@
 //! event windows. It is not a stochastic process, semi-Markov model, weather
 //! predictor, flight model, or empirical service-availability estimator.
 
-use std::collections::{BTreeSet, HashSet};
+use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
 
@@ -189,7 +189,7 @@ pub fn validate_service_availability_case(
     }
 
     let mut platform_indices = HashSet::with_capacity(case.platforms.len());
-    for (index, platform) in case.platforms.iter().enumerate() {
+    for platform in &case.platforms {
         if platform.platform_id.trim().is_empty()
             || !platform_indices.insert(platform.platform_id.as_str())
         {
@@ -279,7 +279,6 @@ pub fn validate_service_availability_case(
                 )));
             }
         }
-        let _ = index;
     }
 
     let platform_by_id: std::collections::HashMap<&str, &ServicePlatform> = case
@@ -474,9 +473,7 @@ pub fn validate_service_availability_case(
         }
     }
 
-    if case.fleet_policy.reserve_platform_ids.len() > case.logistics_limits.ground_ready_spares
-        && case.logistics_limits.ground_ready_spares == 0
-    {
+    if case.fleet_policy.reserve_platform_ids.len() > case.logistics_limits.ground_ready_spares {
         return Err(ReliabilityError::new("reserve fleet declared without ground-ready spare capacity"));
     }
     Ok(())
