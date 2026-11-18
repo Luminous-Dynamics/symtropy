@@ -9,7 +9,8 @@
 //! including AR(1) temporal correlation. Unknown/non-Gaussian processes are not
 //! assigned an iid threshold by this module.
 
-use crate::experiment_design::{evaluate_input_profile, InputProfile};
+use crate::adequacy_calibration::{AdequacyCalibrationConfig, HiddenOutOfFamilyTruth};
+use crate::experiment_design::{evaluate_input_profile, InputProfile, ModelCandidate};
 use crate::robust_discrimination::{
     ModelFamilyAdequacyDisposition, ModelFamilyAdequacyPolicy, ModelFamilyAdequacyScore,
     ModelFamilyFitScore, ObservedSensorTrace, ProfiledDiscriminationError,
@@ -20,6 +21,7 @@ use std::fmt;
 
 const MAX_DENSE_DIMENSION: usize = 4096;
 const MAX_MONTE_CARLO_TRIALS: usize = 1_000_000;
+const MAX_TOTAL_NOISE_CALIBRATION_SAMPLES: usize = 100_000;
 const SPLITMIX_INCREMENT: u64 = 0x9E37_79B9_7F4A_7C15;
 const WILSON_Z_95: f64 = 1.959_963_984_540_054;
 const CHI_SQUARE_DF4_95: f64 = 9.487_729_036_781_154;
@@ -863,6 +865,499 @@ pub fn run_ar1_robustness_corpus(
         )?);
     }
     Ok(reports)
+}
+
+
+/// Full-covariance calibration report, bound to one observation process,
+/// sampling policy, sensor operator, availability cutoff and time schedule.
+#[derive(Debug, Clone, PartialEq)]
+pub struct NoiseAdequacyCalibrationReportV1 {
+    pub covariance_id: String,
+    pub observation_process_id: String,
+    pub sampling_policy_id: String,
+    pub observation_operator_id: String,
+    pub availability_cutoff_id: String,
+    pub sensor_ids: Vec<u32>,
+    pub times: Vec<f64>,
+    pub covariance_dimension: usize,
+    pub threshold: f64,
+    pub target_in_family_coverage: f64,
+    pub calibration_samples: usize,
+    pub calibration_in_family_accepts: usize,
+    pub calibration_in_family_coverage: f64,
+    pub calibration_in_family_coverage_wilson_95: [f64; 2],
+    pub validation_samples: usize,
+    pub validation_in_family_accepts: usize,
+    pub validation_in_family_coverage: f64,
+    pub validation_in_family_coverage_wilson_95: [f64; 2],
+    pub validation_false_out_of_model_set_count: usize,
+    pub validation_false_out_of_model_set_rate: f64,
+    pub validation_false_out_of_model_set_wilson_95: [f64; 2],
+    pub validation_wrong_family_preference_count: usize,
+    pub validation_wrong_family_preference_rate: f64,
+    pub validation_ambiguous_count: usize,
+    pub validation_ambiguous_rate: f64,
+    pub out_of_family_samples: usize,
+    pub out_of_family_rejections: usize,
+    pub out_of_family_rejection_rate: f64,
+    pub out_of_family_rejection_wilson_95: [f64; 2],
+    pub calibration_seed: u64,
+    pub validation_seed: u64,
+    pub assumptions: Vec<&'static str>,
+}
+
+/// Fail-closed errors for full space-time covariance calibration.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NoiseCalibrationError {
+    Covariance(CovarianceError),
+    Robustness(NoiseRobustnessError),
+    Profiled(ProfiledDiscriminationError),
+    InvalidReplicateCount,
+    ExcessiveSampleCount,
+    DuplicateHiddenTruthId(u32),
+    InvalidTargetCoverage,
+    SeedsMustDiffer,
+    IncompatibleHiddenTruth { evaluator_id: u32 },
+    MissingTrueFamily(u32),
+    MissingModelPrediction(u32),
+    MissingFamilyResidual(u32),
+    MissingHiddenPrediction(u32),
+    InvalidPredictionShape,
+    NonFinitePrediction,
+    NoAvailableHiddenModelId,
+}
+
+impl From<CovarianceError> for NoiseCalibrationError {
+    fn from(error: CovarianceError) -> Self {
+        Self::Covariance(error)
+    }
+}
+
+impl From<NoiseRobustnessError> for NoiseCalibrationError {
+    fn from(error: NoiseRobustnessError) -> Self {
+        Self::Robustness(error)
+    }
+}
+
+impl fmt::Display for NoiseCalibrationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Covariance(error) => write!(f, "covariance calibration failed: {error}"),
+            Self::Robustness(error) => write!(f, "noise robustness evaluation failed: {error}"),
+            Self::Profiled(error) => write!(f, "profiled scenario invalid: {error}"),
+            Self::InvalidReplicateCount => write!(f, "replicates per model must be positive"),
+            Self::ExcessiveSampleCount => write!(f, "full-covariance calibration exceeds the 100,000-sample campaign bound"),
+            Self::DuplicateHiddenTruthId(id) => write!(f, "duplicate hidden truth evaluator ID {id}"),
+            Self::InvalidTargetCoverage => write!(f, "target in-family coverage must be finite and strictly between zero and one"),
+            Self::SeedsMustDiffer => write!(f, "calibration and validation seeds must differ"),
+            Self::IncompatibleHiddenTruth { evaluator_id } => write!(f, "hidden truth {evaluator_id} does not share the declared state basis and horizon"),
+            Self::MissingTrueFamily(id) => write!(f, "candidate model {id} has no declared structural family"),
+            Self::MissingModelPrediction(id) => write!(f, "candidate model {id} has no predicted observation trace"),
+            Self::MissingFamilyResidual(id) => write!(f, "candidate family {id} has no residual in the adequacy result"),
+            Self::MissingHiddenPrediction(id) => write!(f, "hidden evaluator truth {id} has no generated observation prediction"),
+            Self::InvalidPredictionShape => write!(f, "predicted observations do not match the bound time/sensor dimensions"),
+            Self::NonFinitePrediction => write!(f, "predicted or sampled observation is non-finite"),
+            Self::NoAvailableHiddenModelId => write!(f, "could not allocate collision-free hidden model IDs"),
+        }
+    }
+}
+
+impl std::error::Error for NoiseCalibrationError {}
+
+/// Calibrate and validate residual thresholds under one explicitly bound
+/// full space-time Gaussian covariance.
+///
+/// Candidate models are sampled on an independent calibration stream and an
+/// independent validation stream. Hidden out-of-family model identities and
+/// evaluator-only truth are never returned in the report. The caller-supplied
+/// covariance/process/sampling/operator/availability IDs are preserved, but
+/// this function does not authenticate the external manifests behind them.
+pub fn calibrate_model_family_adequacy_full_covariance(
+    scenario: &ProfiledModelFamilyScenario,
+    profile: &InputProfile,
+    selected_sensor_ids: &[u32],
+    covariance: &ObservationCovarianceV1,
+    hidden_out_of_family_truths: &[HiddenOutOfFamilyTruth],
+    config: AdequacyCalibrationConfig,
+) -> Result<NoiseAdequacyCalibrationReportV1, NoiseCalibrationError> {
+    scenario
+        .validate()
+        .map_err(NoiseCalibrationError::Profiled)?;
+    if config.replicates_per_model == 0 {
+        return Err(NoiseCalibrationError::InvalidReplicateCount);
+    }
+    if !config.target_in_family_coverage.is_finite()
+        || config.target_in_family_coverage <= 0.0
+        || config.target_in_family_coverage >= 1.0
+    {
+        return Err(NoiseCalibrationError::InvalidTargetCoverage);
+    }
+    if config.calibration_seed == config.validation_seed {
+        return Err(NoiseCalibrationError::SeedsMustDiffer);
+    }
+
+    let calibration_units = scenario
+        .experiment
+        .models
+        .len()
+        .checked_mul(2)
+        .and_then(|count| count.checked_add(hidden_out_of_family_truths.len()))
+        .ok_or(NoiseCalibrationError::ExcessiveSampleCount)?;
+    let requested_samples = calibration_units
+        .checked_mul(config.replicates_per_model)
+        .ok_or(NoiseCalibrationError::ExcessiveSampleCount)?;
+    if requested_samples > MAX_TOTAL_NOISE_CALIBRATION_SAMPLES {
+        return Err(NoiseCalibrationError::ExcessiveSampleCount);
+    }
+
+    let base_score = evaluate_input_profile(
+        &scenario.experiment,
+        profile,
+        selected_sensor_ids,
+    )
+    .map_err(|error| {
+        NoiseCalibrationError::Profiled(ProfiledDiscriminationError::Experiment(error))
+    })?;
+    if base_score.selected_sensor_ids != covariance.sensor_ids {
+        return Err(NoiseCalibrationError::Covariance(
+            CovarianceError::TraceSensorOrderMismatch,
+        ));
+    }
+    if scenario.experiment.observation_times != covariance.times {
+        return Err(NoiseCalibrationError::Covariance(
+            CovarianceError::TraceTimeScheduleMismatch,
+        ));
+    }
+    let expected_dimension = covariance
+        .times
+        .len()
+        .checked_mul(covariance.sensor_ids.len())
+        .ok_or(CovarianceError::DimensionTooLarge)?;
+    if covariance.covariance().dimension() != expected_dimension {
+        return Err(NoiseCalibrationError::Covariance(
+            CovarianceError::DimensionMismatch {
+                expected: expected_dimension,
+                actual: covariance.covariance().dimension(),
+            },
+        ));
+    }
+
+    let family_by_model: HashMap<u32, u32> = scenario
+        .family_assignments
+        .iter()
+        .map(|assignment| (assignment.model_id, assignment.family_id))
+        .collect();
+    let predictions: HashMap<u32, Vec<Vec<f64>>> = base_score
+        .model_observation_means
+        .iter()
+        .map(|model| (model.model_id, model.observations.clone()))
+        .collect();
+
+    let mut hidden_truth_ids = std::collections::HashSet::new();
+    for hidden in hidden_out_of_family_truths {
+        if !hidden_truth_ids.insert(hidden.evaluator_id) {
+            return Err(NoiseCalibrationError::DuplicateHiddenTruthId(
+                hidden.evaluator_id,
+            ));
+        }
+        if hidden.network.capacities != scenario.experiment.models[0].network.capacities
+            || hidden.network.initial != scenario.experiment.models[0].network.initial
+            || hidden.network.horizon != scenario.experiment.horizon()
+        {
+            return Err(NoiseCalibrationError::IncompatibleHiddenTruth {
+                evaluator_id: hidden.evaluator_id,
+            });
+        }
+    }
+
+    let mut calibration_rng = SplitMix64::new(config.calibration_seed);
+    let mut calibration_residuals = Vec::with_capacity(
+        scenario.experiment.models.len() * config.replicates_per_model,
+    );
+    for model in &scenario.experiment.models {
+        let true_family_id = *family_by_model
+            .get(&model.id)
+            .ok_or(NoiseCalibrationError::MissingTrueFamily(model.id))?;
+        let means = predictions
+            .get(&model.id)
+            .ok_or(NoiseCalibrationError::MissingModelPrediction(model.id))?;
+        for _ in 0..config.replicates_per_model {
+            let trace = sample_bound_observation_trace(covariance, means, &mut calibration_rng)?;
+            let adequacy = evaluate_model_family_adequacy_full_covariance(
+                scenario,
+                profile,
+                selected_sensor_ids,
+                &trace,
+                covariance,
+                ModelFamilyAdequacyPolicy {
+                    maximum_gaussian_residual: f64::MAX,
+                },
+            )?;
+            let residual = adequacy
+                .adequacy
+                .family_fits
+                .iter()
+                .find(|fit| fit.family_id == true_family_id)
+                .map(|fit| fit.minimum_gaussian_residual)
+                .ok_or(NoiseCalibrationError::MissingFamilyResidual(true_family_id))?;
+            calibration_residuals.push(residual);
+        }
+    }
+    if calibration_residuals.is_empty() {
+        return Err(NoiseCalibrationError::ExcessiveSampleCount);
+    }
+    calibration_residuals.sort_by(f64::total_cmp);
+    let rank = ((config.target_in_family_coverage * calibration_residuals.len() as f64).ceil()
+        as usize)
+        .clamp(1, calibration_residuals.len());
+    let threshold = calibration_residuals[rank - 1];
+
+    let mut validation_rng = SplitMix64::new(config.validation_seed);
+    let mut validation_samples = 0_usize;
+    let mut validation_in_family_accepts = 0_usize;
+    let mut validation_false_out_of_model_set_count = 0_usize;
+    let mut validation_wrong_family_preference_count = 0_usize;
+    let mut validation_ambiguous_count = 0_usize;
+
+    for model in &scenario.experiment.models {
+        let true_family_id = *family_by_model
+            .get(&model.id)
+            .ok_or(NoiseCalibrationError::MissingTrueFamily(model.id))?;
+        let means = predictions
+            .get(&model.id)
+            .ok_or(NoiseCalibrationError::MissingModelPrediction(model.id))?;
+        for _ in 0..config.replicates_per_model {
+            validation_samples += 1;
+            let trace = sample_bound_observation_trace(covariance, means, &mut validation_rng)?;
+            let adequacy = evaluate_model_family_adequacy_full_covariance(
+                scenario,
+                profile,
+                selected_sensor_ids,
+                &trace,
+                covariance,
+                ModelFamilyAdequacyPolicy {
+                    maximum_gaussian_residual: threshold,
+                },
+            )?;
+            match &adequacy.adequacy.disposition {
+                ModelFamilyAdequacyDisposition::OutOfModelSet => {
+                    validation_false_out_of_model_set_count += 1;
+                }
+                ModelFamilyAdequacyDisposition::InFamilyPreferred { family_id, .. } => {
+                    if *family_id == true_family_id {
+                        validation_in_family_accepts += 1;
+                    } else {
+                        validation_wrong_family_preference_count += 1;
+                    }
+                }
+                ModelFamilyAdequacyDisposition::ParameterNotIdentified { family_id, .. } => {
+                    if *family_id == true_family_id {
+                        validation_in_family_accepts += 1;
+                    } else {
+                        validation_wrong_family_preference_count += 1;
+                    }
+                    validation_ambiguous_count += 1;
+                }
+                ModelFamilyAdequacyDisposition::InFamilyUnresolved {
+                    compatible_family_ids,
+                } => {
+                    if compatible_family_ids.contains(&true_family_id) {
+                        validation_in_family_accepts += 1;
+                    } else {
+                        validation_wrong_family_preference_count += 1;
+                    }
+                    validation_ambiguous_count += 1;
+                }
+            }
+        }
+    }
+
+    let mut out_of_family_samples = 0_usize;
+    let mut out_of_family_rejections = 0_usize;
+    for hidden in hidden_out_of_family_truths {
+        let means = predict_hidden_network(
+            &hidden.network,
+            scenario,
+            profile,
+            selected_sensor_ids,
+        )?;
+        for _ in 0..config.replicates_per_model {
+            out_of_family_samples += 1;
+            let trace = sample_bound_observation_trace(covariance, &means, &mut validation_rng)?;
+            let adequacy = evaluate_model_family_adequacy_full_covariance(
+                scenario,
+                profile,
+                selected_sensor_ids,
+                &trace,
+                covariance,
+                ModelFamilyAdequacyPolicy {
+                    maximum_gaussian_residual: threshold,
+                },
+            )?;
+            if adequacy.adequacy.disposition == ModelFamilyAdequacyDisposition::OutOfModelSet {
+                out_of_family_rejections += 1;
+            }
+        }
+    }
+
+    let calibration_samples = calibration_residuals.len();
+    let calibration_accepts = calibration_residuals
+        .iter()
+        .filter(|residual| **residual <= threshold)
+        .count();
+    let validation_in_family_coverage =
+        rate(validation_in_family_accepts, validation_samples);
+    Ok(NoiseAdequacyCalibrationReportV1 {
+        covariance_id: covariance.covariance_id.clone(),
+        observation_process_id: covariance.observation_process_id.clone(),
+        sampling_policy_id: covariance.sampling_policy_id.clone(),
+        observation_operator_id: covariance.observation_operator_id.clone(),
+        availability_cutoff_id: covariance.availability_cutoff_id.clone(),
+        sensor_ids: covariance.sensor_ids.clone(),
+        times: covariance.times.clone(),
+        covariance_dimension: covariance.covariance().dimension(),
+        threshold,
+        target_in_family_coverage: config.target_in_family_coverage,
+        calibration_samples,
+        calibration_in_family_accepts: calibration_accepts,
+        calibration_in_family_coverage: rate(calibration_accepts, calibration_samples),
+        calibration_in_family_coverage_wilson_95: wilson_interval(
+            calibration_accepts,
+            calibration_samples,
+        ),
+        validation_samples,
+        validation_in_family_accepts,
+        validation_in_family_coverage,
+        validation_in_family_coverage_wilson_95: wilson_interval(
+            validation_in_family_accepts,
+            validation_samples,
+        ),
+        validation_false_out_of_model_set_count,
+        validation_false_out_of_model_set_rate: rate(
+            validation_false_out_of_model_set_count,
+            validation_samples,
+        ),
+        validation_false_out_of_model_set_wilson_95: wilson_interval(
+            validation_false_out_of_model_set_count,
+            validation_samples,
+        ),
+        validation_wrong_family_preference_count,
+        validation_wrong_family_preference_rate: rate(
+            validation_wrong_family_preference_count,
+            validation_samples,
+        ),
+        validation_ambiguous_count,
+        validation_ambiguous_rate: rate(validation_ambiguous_count, validation_samples),
+        out_of_family_samples,
+        out_of_family_rejections,
+        out_of_family_rejection_rate: rate(out_of_family_rejections, out_of_family_samples),
+        out_of_family_rejection_wilson_95: wilson_interval(
+            out_of_family_rejections,
+            out_of_family_samples,
+        ),
+        calibration_seed: config.calibration_seed,
+        validation_seed: config.validation_seed,
+        assumptions: vec![
+            "additive zero-mean Gaussian noise",
+            "known full space-time covariance shared by candidate and hidden truths",
+            "covariance/process/sampling/operator/availability identity is fixed for this calibration",
+            "independent calibration and validation PRNG streams",
+            "finite synthetic Monte Carlo counts; rates are empirical, not universal guarantees",
+            "candidate/evaluator truth separation is enforced by the API shape, not by this in-process function",
+        ],
+    })
+}
+
+fn sample_bound_observation_trace(
+    covariance: &ObservationCovarianceV1,
+    means: &[Vec<f64>],
+    rng: &mut SplitMix64,
+) -> Result<ObservationProcessTraceV1, NoiseCalibrationError> {
+    let time_count = covariance.times.len();
+    let sensor_count = covariance.sensor_ids.len();
+    if means.len() != time_count || means.iter().any(|row| row.len() != sensor_count) {
+        return Err(NoiseCalibrationError::InvalidPredictionShape);
+    }
+    if means.iter().flatten().any(|value| !value.is_finite()) {
+        return Err(NoiseCalibrationError::NonFinitePrediction);
+    }
+    let noise = covariance.covariance().sample_gaussian(rng)?;
+    let mut values = means.to_vec();
+    for time_index in 0..time_count {
+        for sensor_index in 0..sensor_count {
+            let flattened_index = time_index * sensor_count + sensor_index;
+            values[time_index][sensor_index] += noise[flattened_index];
+            if !values[time_index][sensor_index].is_finite() {
+                return Err(NoiseCalibrationError::NonFinitePrediction);
+            }
+        }
+    }
+    ObservationProcessTraceV1::new(
+        covariance.observation_process_id.clone(),
+        covariance.sampling_policy_id.clone(),
+        covariance.observation_operator_id.clone(),
+        covariance.availability_cutoff_id.clone(),
+        ObservedSensorTrace {
+            sensor_ids: covariance.sensor_ids.clone(),
+            times: covariance.times.clone(),
+            values,
+        },
+    )
+    .map_err(NoiseCalibrationError::Covariance)
+}
+
+fn predict_hidden_network(
+    hidden_network: &crate::network::NetworkScenario,
+    scenario: &ProfiledModelFamilyScenario,
+    profile: &InputProfile,
+    selected_sensor_ids: &[u32],
+) -> Result<Vec<Vec<f64>>, NoiseCalibrationError> {
+    let mut hidden_experiment = scenario.experiment.clone();
+    let mut first_id = 0_u32;
+    while scenario.experiment.models.iter().any(|model| model.id == first_id) {
+        first_id = first_id
+            .checked_add(1)
+            .ok_or(NoiseCalibrationError::NoAvailableHiddenModelId)?;
+    }
+    let mut second_id = first_id
+        .checked_add(1)
+        .ok_or(NoiseCalibrationError::NoAvailableHiddenModelId)?;
+    while scenario
+        .experiment
+        .models
+        .iter()
+        .any(|model| model.id == second_id)
+    {
+        second_id = second_id
+            .checked_add(1)
+            .ok_or(NoiseCalibrationError::NoAvailableHiddenModelId)?;
+    }
+    hidden_experiment.models = vec![
+        ModelCandidate {
+            id: first_id,
+            label: "sealed hidden out-of-family truth",
+            network: hidden_network.clone(),
+        },
+        ModelCandidate {
+            id: second_id,
+            label: "sealed hidden duplicate for reference execution",
+            network: hidden_network.clone(),
+        },
+    ];
+    let hidden_score = evaluate_input_profile(
+        &hidden_experiment,
+        profile,
+        selected_sensor_ids,
+    )
+    .map_err(|error| {
+        NoiseCalibrationError::Profiled(ProfiledDiscriminationError::Experiment(error))
+    })?;
+    hidden_score
+        .model_observation_means
+        .iter()
+        .find(|prediction| prediction.model_id == first_id)
+        .map(|prediction| prediction.observations.clone())
+        .ok_or(NoiseCalibrationError::MissingHiddenPrediction(first_id))
 }
 
 fn rate(count: usize, total: usize) -> f64 {
