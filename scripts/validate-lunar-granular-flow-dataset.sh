@@ -21,7 +21,7 @@ USAGE
 }
 
 allow_placeholders=false
-if [[ "\${1:-}" == "--allow-synthetic-placeholders" ]]; then
+if [[ "${1:-}" == "--allow-synthetic-placeholders" ]]; then
   allow_placeholders=true
   shift
 fi
@@ -56,7 +56,7 @@ jq -e '
     "operating_regime_id"
   ]
   and ((.split_policy.optional_isolation_axes // []) as $a
-       | all($a[]; . == "laboratory_id" or . == "campaign_id")
+       | all($a[]; . == "laboratory_id" or . == "campaign_id" or . == "feeder_geometry_id" or . == "vibration_profile_id")
        and ($a | length == ($a | unique | length)))
   and .split_policy.partition_order == ["calibration", "validation", "blind_test"]
   and .split_policy.blind_test_access.hidden_from_model == true
@@ -78,7 +78,7 @@ active_axes="$(jq -c '.split_policy.isolation_axes + (.split_policy.optional_iso
 manifest_ids="$(jq -r '.run_assignments[].run_id' "$manifest_path" | LC_ALL=C sort)"
 provided_ids=()
 
-for run_path in "\${run_paths[@]}"; do
+for run_path in "${run_paths[@]}"; do
   [[ -f "$run_path" && ! -L "$run_path" ]] || fail "run record missing or symlinked: $run_path"
 
   jq -e --arg source_class "$(jq -r '.source_class' "$manifest_path")" '
@@ -90,6 +90,13 @@ for run_path in "\${run_paths[@]}"; do
     and (.group_keys | type == "object")
     and (.artifacts | type == "array" and length >= 1)
     and (.observations | type == "object")
+    and (.observations.flow_continuity_status
+         | . == "continuous" or . == "reduced" or . == "intermittent" or . == "no_flow" or . == "unknown")
+    and (.observations.flow_interruption_count | type == "number" and . >= 0)
+    and (.observations.mass_flow_rate_cv.status != null)
+    and (.observations.vibration_energy_j.status != null)
+    and (.observations.agglomerate_fragmentation_fraction.status != null)
+    and (.operation.vibration_enabled | type == "boolean")
     and (.model.predictions | type == "object" and length >= 1)
   ' "$run_path" >/dev/null || fail "run record header or required blocks invalid: $run_path"
 
@@ -135,6 +142,8 @@ for run_path in "\${run_paths[@]}"; do
         $r.material.particle_size_distribution_artifact_id,
         $r.apparatus.geometry_artifact_id,
         $r.observations.raw_observation_artifact_id,
+        $r.observations.size_fraction_profile_artifact_id,
+        $r.observations.composition_profile_artifact_id,
         $r.model.configuration_artifact_id,
         $r.model.parameters_artifact_id
       ] as $refs
@@ -154,6 +163,17 @@ for run_path in "\${run_paths[@]}"; do
          | all($cal_ids[];
              . as $id | any($r.artifacts[]; .artifact_id == $id and .role == "calibration_record")))
   ' "$run_path" >/dev/null || fail "measured/published source or calibration artifact reference does not resolve: $run_path"
+
+  jq -e '
+    if .operation.vibration_enabled then
+      (.operation.vibration_gamma.value > 0)
+      and (.operation.vibration_peak_acceleration_m_s2.value > 0)
+      and (.environment.gravity_m_s2.value > 0)
+      and (((.operation.vibration_gamma.value
+             - (.operation.vibration_peak_acceleration_m_s2.value / .environment.gravity_m_s2.value))
+            | fabs) <= 0.05)
+    else true end
+  ' "$run_path" >/dev/null || fail "vibration enablement, measured Gamma and acceleration do not reconcile: $run_path"
 
   jq -e '
     all(.model.predictions[];
@@ -177,6 +197,8 @@ for run_path in "\${run_paths[@]}"; do
     and ($r.group_keys.wall_surface_id == $r.apparatus.wall_surface_id)
     and ($r.group_keys.apparatus_geometry_id == $r.apparatus.geometry_id)
     and ($r.group_keys.environment_profile_id == $r.environment.pressure_profile_id)
+    and ($r.group_keys.feeder_geometry_id == $r.apparatus.feeder_geometry_id)
+    and ($r.group_keys.vibration_profile_id == $r.operation.vibration_profile_id)
   ' "$run_path" >/dev/null || fail "run group keys do not match material, wall, apparatus or environment partition: $run_path"
 
   while IFS=$'\t' read -r artifact_id artifact_path artifact_sha; do
@@ -200,11 +222,11 @@ done
 
 provided_sorted="$(mktemp)"
 trap 'rm -f "$provided_sorted"' EXIT
-printf '%s\n' "\${provided_ids[@]}" | LC_ALL=C sort > "$provided_sorted"
+printf '%s\n' "${provided_ids[@]}" | LC_ALL=C sort > "$provided_sorted"
 [[ "$(uniq -d "$provided_sorted")" == "" ]] || fail "duplicate run IDs provided"
 [[ "$(cat "$provided_sorted")" == "$manifest_ids" ]] || fail "provided run records do not exactly match manifest assignments"
 
-for run_path in "\${run_paths[@]}"; do
+for run_path in "${run_paths[@]}"; do
   jq -e -s --argjson axes "$active_axes" '
     .[0] as $r
     | .[1] as $m
@@ -216,4 +238,4 @@ for run_path in "\${run_paths[@]}"; do
   ' "$run_path" "$manifest_path" >/dev/null || fail "run does not match exactly one manifest assignment: $run_path"
 done
 
-printf 'lunar granular-flow validation: PASS (%s run records; semantic/provenance checks only)\n' "\${#run_paths[@]}"
+printf 'lunar granular-flow validation: PASS (%s run records; semantic/provenance checks only)\n' "${#run_paths[@]}"
