@@ -218,3 +218,10 @@ The fixed capacity-N oracle remains the baseline. The robust evaluator combines 
 Unit tests cover time-local derating, indeterminate capacity bands, exact lower-bound acceptance, zero capacity, overlapping windows, invalid receipts, stale snapshots, resource-definition mismatch, permutation invariance and prevention of transient capacity increases.
 
 The Linux microbenchmark evaluates robust windows across 10 resources and 100/1,000/10,000/100,000 weighted claims. It reports p50/p95/p99 latency and separates indeterminate from definitely-over-capacity intervals. These are synthetic algorithm measurements only.
+
+
+### Robust capacity derating input fixture and validation
+
+schema/robust-capacity-scenario-v0.1.schema.json defines the versioned input shape for capacity resources, weighted reservations and owner-attested availability windows. examples/robust-capacity-scenario-synthetic-v0.1.json demonstrates two resources: a temporary hoist derated enough to be definitely over its upper bound, and a power feed whose demand falls between lower and upper capacity, therefore indeterminate. The hashes and receipts are synthetic placeholders. Cross-field constraints such as window non-overlap, resource-definition binding, snapshot binding and upper capacity not exceeding installed capacity are checked by the Rust evaluator, not all expressible in JSON Schema.
+
+The robust evaluator is exported by the oracle crate and its Linux benchmark compares four sizes (100, 1,000, 10,000 and 100,000 claims) against ten resources with three time-varying windows per resource. The output separates indeterminate windows from definite overloads; a single boolean is not used to collapse those categories.
