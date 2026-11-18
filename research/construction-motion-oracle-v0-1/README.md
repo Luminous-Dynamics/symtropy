@@ -183,3 +183,8 @@ The zero-miss target is a correctness gate, not a statistical claim about the co
 ### Trust boundary
 
 The caller must verify the change event, graph snapshot, source digests and signatures. This crate validates digest encoding but does not recompute SHA-256, verify signatures, prove that an upstream adapter declared every dependency, or mutate the site ledger. An unmatched change is explicitly surfaced; a caller must not treat a report as dispatch-ready until graph completeness and unmatched-key disposition are independently satisfied.
+
+
+The machine-readable graph/change contract is schema/construction-change-impact-v0.1.schema.json. The localized replay fixture is examples/construction-change-impact-localized-synthetic-v0.1.json. It demonstrates an entity-A geometry change invalidating motion:A, occupancy:A and readiness:A while preserving accepted:A as immutable history and leaving entity B's chain unaffected. Digests are synthetic placeholders; the fixture is not a signed event or complete site dependency manifest.
+
+The wire schema and typed validator enforce the same persistence rule: accepted construction records, as-built measurements and handover records are historical_immutable; derived artifacts such as trajectories, envelopes, occupancy assessments and dispatch readiness are recomputable. The typed Rust module is the authoritative validation path; the JSON Schema is the interoperable input shape.
