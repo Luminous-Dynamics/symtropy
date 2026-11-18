@@ -27,10 +27,43 @@ jobs:
         with:
           components: clippy
 
-      - name: Validate JSON syntax
+      - name: Install JSON Schema validator
+        run: python3 -m pip install 'jsonschema>=4.20,<5'
+
+      - name: Validate JSON syntax and JSON Schema contracts
         run: |
           python3 -m json.tool docs/research/grid-transmission-portfolio/data/route-portfolio-v0.1.schema.json >/dev/null
           python3 -m json.tool docs/research/grid-transmission-portfolio/data/synthetic-route-portfolio-v0.1.json >/dev/null
+          python3 -m json.tool docs/research/grid-transmission-portfolio/data/global-portability-v0.1.schema.json >/dev/null
+          python3 -m json.tool docs/research/grid-transmission-portfolio/data/global-portability-v0.1.json >/dev/null
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("docs/research/grid-transmission-portfolio/data")
+          pairs = [
+              ("route-portfolio-v0.1.schema.json", "synthetic-route-portfolio-v0.1.json"),
+              ("global-portability-v0.1.schema.json", "global-portability-v0.1.json"),
+          ]
+          for schema_name, instance_name in pairs:
+              schema = json.loads((root / schema_name).read_text())
+              instance = json.loads((root / instance_name).read_text())
+              Draft202012Validator.check_schema(schema)
+              errors = sorted(
+                  Draft202012Validator(schema).iter_errors(instance),
+                  key=lambda error: list(map(str, error.absolute_path)),
+              )
+              if errors:
+                  for error in errors:
+                      location = ".".join(map(str, error.absolute_path)) or "$"
+                      print(f"{instance_name}:{location}: {error.message}")
+                  raise SystemExit(1)
+              print(f"JSON Schema PASS: {instance_name} conforms to {schema_name}")
+          PY
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/grid-transmission-portfolio-validator/Cargo.toml -- --check
 
       - name: Run semantic validator tests
         run: cargo test --manifest-path tools/grid-transmission-portfolio-validator/Cargo.toml
