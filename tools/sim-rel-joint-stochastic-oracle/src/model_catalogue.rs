@@ -5,7 +5,8 @@
 //! observation and hazard distributions. It never contains the sampled
 //! owner generator identity, sampled hidden state or episode RNG seed.
 
-use crate::{JointKernel, Rational};
+use crate::{JointKernel, JointMass, JointOutcome, KernelRow, Rational};
+use crate::episode::{PublicAction, PublicHypothesis};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
@@ -269,6 +270,178 @@ impl PublicModelCatalogue {
             ));
         }
         Ok(catalogue)
+    }
+
+    /// Reconstruct the declared candidate predictive kernel without access to
+    /// the hidden owner generator. Task priors come from the public profile;
+    /// costs come from the public action catalogue.
+    pub fn to_joint_kernel(
+        &self,
+        hypotheses: &[PublicHypothesis],
+        actions: &[PublicAction],
+    ) -> Result<JointKernel, String> {
+        self.verify_sha256()?;
+        if self.version != PUBLIC_MODEL_CATALOGUE_VERSION {
+            return Err("unsupported public model catalogue version".to_owned());
+        }
+        if hypotheses.is_empty()
+            || hypotheses.len() != self.candidate_models.len()
+            || actions.len() != self.action_ids.len()
+        {
+            return Err("public catalogue/profile dimensions do not agree".to_owned());
+        }
+
+        let mut prior_total = Rational::zero();
+        let mut initial_belief = Vec::new();
+        let mut hypothesis_ids = Vec::with_capacity(hypotheses.len());
+        let mut hypothesis_seen = BTreeSet::new();
+        for (index, (hypothesis, model)) in
+            hypotheses.iter().zip(&self.candidate_models).enumerate()
+        {
+            if hypothesis.hypothesis_id != model.hypothesis_id
+                || !hypothesis_seen.insert(hypothesis.hypothesis_id.as_str())
+            {
+                return Err("public candidate and model catalogue order/IDs disagree".to_owned());
+            }
+            let prior = hypothesis.prior_probability.to_rational()?;
+            if prior.is_zero() {
+                return Err("public task prior must be positive for each candidate".to_owned());
+            }
+            prior_total = prior_total.checked_add(prior)?;
+            hypothesis_ids.push(hypothesis.hypothesis_id.clone());
+
+            let mut conditional_total = Rational::zero();
+            for state in &model.initial_state_belief {
+                if state.physical_state >= self.physical_state_count
+                    || state.sensor_state >= self.sensor_state_count
+                {
+                    return Err("public initial-state belief references an invalid state".to_owned());
+                }
+                let conditional = state.conditional_mass.to_rational()?;
+                if conditional.is_zero() {
+                    return Err("public initial-state conditional mass must be positive".to_owned());
+                }
+                conditional_total = conditional_total.checked_add(conditional)?;
+                initial_belief.push(JointMass {
+                    hypothesis: index,
+                    physical_state: state.physical_state,
+                    sensor_state: state.sensor_state,
+                    mass: prior.checked_mul(conditional)?,
+                });
+            }
+            if conditional_total != Rational::one() {
+                return Err("each candidate's conditional initial-state mass must sum to one".to_owned());
+            }
+        }
+        if prior_total != Rational::one() {
+            return Err("public candidate task priors must sum exactly to one".to_owned());
+        }
+
+        let action_ids: Vec<String> = actions.iter().map(|action| action.action_id.clone()).collect();
+        let action_costs: Vec<u64> = actions.iter().map(|action| action.cost_units).collect();
+        if action_ids != self.action_ids || action_costs.iter().any(|cost| *cost == 0) {
+            return Err("public action identities/costs do not match model catalogue".to_owned());
+        }
+        let mut observation_seen = BTreeSet::new();
+        for observation_id in &self.observation_ids {
+            if observation_id.trim().is_empty() || !observation_seen.insert(observation_id.as_str()) {
+                return Err("public observation IDs must be non-empty and unique".to_owned());
+            }
+        }
+
+        let mut rows = Vec::new();
+        let expected_rows = self
+            .physical_state_count
+            .checked_mul(self.sensor_state_count)
+            .and_then(|count| count.checked_mul(self.action_ids.len()))
+            .ok_or_else(|| "public candidate row count overflow".to_owned())?;
+        for (hypothesis_index, model) in self.candidate_models.iter().enumerate() {
+            if model.transition_rows.len() != expected_rows {
+                return Err("public candidate model has an incomplete transition table".to_owned());
+            }
+            let mut seen_rows = BTreeSet::new();
+            let mut indexed_rows = Vec::with_capacity(expected_rows);
+            for public_row in &model.transition_rows {
+                let action_index = self
+                    .action_ids
+                    .iter()
+                    .position(|action_id| action_id == &public_row.action_id)
+                    .ok_or_else(|| "public transition row references an unknown action".to_owned())?;
+                if public_row.physical_state >= self.physical_state_count
+                    || public_row.sensor_state >= self.sensor_state_count
+                    || !seen_rows.insert((
+                        public_row.physical_state,
+                        public_row.sensor_state,
+                        action_index,
+                    ))
+                    || public_row.outcomes.is_empty()
+                {
+                    return Err("public transition row has invalid/duplicate coordinates".to_owned());
+                }
+                let mut outcomes = Vec::with_capacity(public_row.outcomes.len());
+                let mut probability_total = Rational::zero();
+                for public_outcome in &public_row.outcomes {
+                    if public_outcome.next_physical_state >= self.physical_state_count
+                        || public_outcome.next_sensor_state >= self.sensor_state_count
+                    {
+                        return Err("public transition outcome points outside state dimensions".to_owned());
+                    }
+                    let observation = match &public_outcome.observation_id {
+                        Some(id) => Some(
+                            self.observation_ids
+                                .iter()
+                                .position(|candidate| candidate == id)
+                                .ok_or_else(|| "public transition outcome references unknown observation".to_owned())?,
+                        ),
+                        None => None,
+                    };
+                    let probability = public_outcome.probability.to_rational()?;
+                    if probability.is_zero() {
+                        return Err("public transition outcome probability must be positive".to_owned());
+                    }
+                    probability_total = probability_total.checked_add(probability)?;
+                    outcomes.push(JointOutcome {
+                        probability,
+                        next_physical_state: public_outcome.next_physical_state,
+                        next_sensor_state: public_outcome.next_sensor_state,
+                        observation,
+                    });
+                }
+                if probability_total != Rational::one() {
+                    return Err("public transition outcome probabilities must sum exactly to one".to_owned());
+                }
+                indexed_rows.push((
+                    public_row.physical_state,
+                    public_row.sensor_state,
+                    action_index,
+                    KernelRow {
+                        hypothesis: hypothesis_index,
+                        physical_state: public_row.physical_state,
+                        sensor_state: public_row.sensor_state,
+                        action: action_index,
+                        outcomes,
+                    },
+                ));
+            }
+            if seen_rows.len() != expected_rows {
+                return Err("public candidate transition table is not a complete state/action grid".to_owned());
+            }
+            indexed_rows.sort_by_key(|(physical, sensor, action, _)| (*physical, *sensor, *action));
+            rows.extend(indexed_rows.into_iter().map(|(_, _, _, row)| row));
+        }
+
+        let kernel = JointKernel {
+            hypothesis_ids,
+            physical_state_count: self.physical_state_count,
+            sensor_state_count: self.sensor_state_count,
+            action_ids: self.action_ids.clone(),
+            observation_ids: self.observation_ids.clone(),
+            action_costs,
+            initial_belief,
+            rows,
+        };
+        kernel.validate()?;
+        Ok(kernel)
     }
 
     /// Recompute the catalogue digest and verify exact owner-derived model rows.
