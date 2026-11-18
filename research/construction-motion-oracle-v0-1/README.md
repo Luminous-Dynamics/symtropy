@@ -187,3 +187,16 @@ Official references:
 This adds a new explicit layer to the evidence architecture:
 
 Protocol intent/status → normalized construction task semantics → independently qualified body/tool/payload envelope → fresh occupancy and exclusive resource reservation → separate safety authority → physical execution → independent referee acceptance.
+
+
+### Capacity-N resource research oracle (separate from exclusive reservation v0.1)
+
+The experimental module cumulative_resource_capacity implements a deterministic weighted sweep-line evaluator for shared-capacity resources. Each resource has a finite integer capacity and domain unit (for example kW, kg, pallet positions or parallel bays). Each reservation contributes one or more claims with a resource-definition digest, demand units and a half-open tick interval.
+
+At each tick, ending demand is subtracted before new demand is added. This makes adjacent [a,b) and [b,c) reservations non-overlapping, while concurrent demands accumulate. The oracle reports peak load, over-capacity intervals and over-capacity duration per resource. It uses checked u128 sums so combining several u64 demands cannot silently wrap.
+
+This is deliberately a research oracle rather than a scheduler or ledger mutation. It does not decide priorities, preempt reservations, estimate resource capacity from sensor data or authorize execution. The caller must bind the resource definition, site snapshot, clock domain and reservation receipts to independently authenticated source evidence. The exclusive v0.1 ledger remains capacity-one until this capacity-N model has a mature reservation/index implementation and differential evidence.
+
+Unit tests compare capacity-one behavior to a mutex model, demonstrate capacity-N sharing and weighted overload intervals, check half-open boundaries and digest/clock/resource mismatches, verify input-order determinism and compare randomized peak loads against a discrete-tick reference oracle.
+
+The CI microbenchmark evaluates 100, 1,000, 10,000 and 100,000 claims across ten resource definitions, reporting p50/p95/p99 sweep latency, boundary count, violation segment count and feasibility. These are synthetic algorithm measurements only.
