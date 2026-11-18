@@ -1,0 +1,797 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:symtropy:lunar-granular-flow-run:0.1.0",
+  "title": "Lunar Granular Flow and Material Transfer Run",
+  "description": "Evidence-scoped record for rotating-drum, hopper, chute, conveyor and beneficiation flow tests. Schema conformance is necessary but not sufficient for physical admission.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "run_id",
+    "recorded_at",
+    "source_class",
+    "partition",
+    "group_keys",
+    "material",
+    "environment",
+    "apparatus",
+    "operation",
+    "observations",
+    "model",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "lunar-granular-flow-validation-v0"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]+$"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source_class": {
+      "enum": [
+        "physical_analogue_measurement",
+        "published_measurement",
+        "simulation",
+        "synthetic_fixture"
+      ]
+    },
+    "partition": {
+      "enum": [
+        "calibration",
+        "validation",
+        "blind_test"
+      ]
+    },
+    "group_keys": {
+      "$ref": "#/$defs/groupKeys"
+    },
+    "material": {
+      "$ref": "#/$defs/material"
+    },
+    "environment": {
+      "$ref": "#/$defs/environment"
+    },
+    "apparatus": {
+      "$ref": "#/$defs/apparatus"
+    },
+    "operation": {
+      "$ref": "#/$defs/operation"
+    },
+    "observations": {
+      "$ref": "#/$defs/observations"
+    },
+    "model": {
+      "$ref": "#/$defs/model"
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "source_citation": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "standard_uncertainty",
+        "unit",
+        "status",
+        "source_artifact_id",
+        "calibration_record_id"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "standard_uncertainty": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "measured",
+            "published",
+            "estimated",
+            "synthetic",
+            "unknown"
+          ]
+        },
+        "source_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "calibration_record_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "unknown"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "null"
+              },
+              "standard_uncertainty": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "value": {
+                "type": "number"
+              },
+              "standard_uncertainty": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "groupKeys": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "material_batch_id",
+        "preparation_protocol_id",
+        "wall_surface_id",
+        "apparatus_geometry_id",
+        "environment_profile_id",
+        "operating_regime_id"
+      ],
+      "properties": {
+        "material_batch_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preparation_protocol_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "wall_surface_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "apparatus_geometry_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "environment_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operating_regime_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "laboratory_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "campaign_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "material": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "material_family",
+        "material_name",
+        "batch_id",
+        "preparation_protocol_id",
+        "particle_size_distribution_artifact_id",
+        "d10_um",
+        "d50_um",
+        "d60_um",
+        "d90_um",
+        "bulk_density_kg_m3",
+        "particle_morphology",
+        "compaction_history_id"
+      ],
+      "properties": {
+        "material_family": {
+          "enum": [
+            "returned_lunar_regolith",
+            "lunar_regolith_simulant",
+            "terrestrial_analogue",
+            "other"
+          ]
+        },
+        "material_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "batch_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preparation_protocol_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "particle_size_distribution_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "d10_um": {
+          "$ref": "#/$defs/measurement"
+        },
+        "d50_um": {
+          "$ref": "#/$defs/measurement"
+        },
+        "d60_um": {
+          "$ref": "#/$defs/measurement"
+        },
+        "d90_um": {
+          "$ref": "#/$defs/measurement"
+        },
+        "bulk_density_kg_m3": {
+          "$ref": "#/$defs/measurement"
+        },
+        "cohesion_pa": {
+          "$ref": "#/$defs/measurement"
+        },
+        "water_or_volatile_mass_fraction": {
+          "$ref": "#/$defs/measurement"
+        },
+        "surface_charge_coulomb_per_kg": {
+          "$ref": "#/$defs/measurement"
+        },
+        "particle_morphology": {
+          "type": "string",
+          "minLength": 1
+        },
+        "particle_shape_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "compaction_history_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "conditioning_protocol_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gravity_m_s2",
+        "chamber_pressure_pa",
+        "temperature_k",
+        "pressure_profile_id",
+        "atmosphere"
+      ],
+      "properties": {
+        "gravity_m_s2": {
+          "$ref": "#/$defs/measurement"
+        },
+        "chamber_pressure_pa": {
+          "$ref": "#/$defs/measurement"
+        },
+        "temperature_k": {
+          "$ref": "#/$defs/measurement"
+        },
+        "pressure_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "atmosphere": {
+          "enum": [
+            "air",
+            "high_vacuum",
+            "inert_gas",
+            "other",
+            "unknown"
+          ]
+        },
+        "humidity_relative_percent": {
+          "$ref": "#/$defs/measurement"
+        },
+        "electrostatic_grounding_state": {
+          "enum": [
+            "grounded",
+            "floating",
+            "controlled_bias",
+            "unknown"
+          ]
+        },
+        "environment_notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "apparatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "apparatus_type",
+        "geometry_id",
+        "geometry_artifact_id",
+        "wall_surface_id",
+        "wall_material",
+        "wall_roughness_ra_um",
+        "wall_conductivity_s_m",
+        "wall_grounding",
+        "fill_fraction"
+      ],
+      "properties": {
+        "apparatus_type": {
+          "enum": [
+            "rotating_drum",
+            "fixed_funnel",
+            "hopper",
+            "chute",
+            "conveyor",
+            "sieve",
+            "transfer_system",
+            "other"
+          ]
+        },
+        "geometry_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "geometry_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "drum_inner_radius_m": {
+          "$ref": "#/$defs/measurement"
+        },
+        "outlet_width_m": {
+          "$ref": "#/$defs/measurement"
+        },
+        "hopper_wall_angle_deg": {
+          "$ref": "#/$defs/measurement"
+        },
+        "chute_inclination_deg": {
+          "$ref": "#/$defs/measurement"
+        },
+        "wall_surface_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "wall_material": {
+          "type": "string",
+          "minLength": 1
+        },
+        "wall_roughness_ra_um": {
+          "$ref": "#/$defs/measurement"
+        },
+        "wall_conductivity_s_m": {
+          "$ref": "#/$defs/measurement"
+        },
+        "wall_grounding": {
+          "enum": [
+            "grounded",
+            "floating",
+            "controlled_bias",
+            "unknown"
+          ]
+        },
+        "wall_coating": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fill_fraction": {
+          "$ref": "#/$defs/measurement"
+        }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_type",
+        "flow_regime",
+        "protocol_id",
+        "duration_s",
+        "speed_rpm",
+        "angular_velocity_rad_s",
+        "target_froude_number",
+        "actual_froude_number",
+        "vibration_frequency_hz",
+        "vibration_amplitude_m"
+      ],
+      "properties": {
+        "operation_type": {
+          "enum": [
+            "rotating_drum",
+            "funnel_discharge",
+            "hopper_discharge",
+            "chute_transfer",
+            "conveyor_transfer",
+            "screening",
+            "beneficiation",
+            "integrated_chain"
+          ]
+        },
+        "flow_regime": {
+          "enum": [
+            "slumping",
+            "rolling",
+            "cascading",
+            "cataracting",
+            "continuous_discharge",
+            "intermittent_discharge",
+            "bridging",
+            "unknown"
+          ]
+        },
+        "protocol_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "duration_s": {
+          "$ref": "#/$defs/measurement"
+        },
+        "speed_rpm": {
+          "$ref": "#/$defs/measurement"
+        },
+        "angular_velocity_rad_s": {
+          "$ref": "#/$defs/measurement"
+        },
+        "target_froude_number": {
+          "$ref": "#/$defs/measurement"
+        },
+        "actual_froude_number": {
+          "$ref": "#/$defs/measurement"
+        },
+        "vibration_frequency_hz": {
+          "$ref": "#/$defs/measurement"
+        },
+        "vibration_amplitude_m": {
+          "$ref": "#/$defs/measurement"
+        },
+        "start_stop_profile_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wear_state": {
+          "enum": [
+            "new",
+            "run_in",
+            "worn",
+            "reconditioned",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "observations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raw_observation_artifact_id",
+        "static_angle_of_repose_deg",
+        "dynamic_angle_of_repose_deg",
+        "angle_stability_cv",
+        "avalanche_count",
+        "discharge_mass_rate_kg_s",
+        "input_mass_kg",
+        "delivered_mass_kg",
+        "residual_mass_kg",
+        "dust_and_fines_mass_kg",
+        "energy_input_j",
+        "accepted_target_size_mass_kg"
+      ],
+      "properties": {
+        "raw_observation_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "static_angle_of_repose_deg": {
+          "$ref": "#/$defs/measurement"
+        },
+        "dynamic_angle_of_repose_deg": {
+          "$ref": "#/$defs/measurement"
+        },
+        "angle_stability_cv": {
+          "$ref": "#/$defs/measurement"
+        },
+        "avalanche_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "avalanche_frequency_hz": {
+          "$ref": "#/$defs/measurement"
+        },
+        "avalanche_size_distribution_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "agglomerate_fraction": {
+          "$ref": "#/$defs/measurement"
+        },
+        "agglomerate_lifetime_s": {
+          "$ref": "#/$defs/measurement"
+        },
+        "discharge_mass_rate_kg_s": {
+          "$ref": "#/$defs/measurement"
+        },
+        "jam_event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "jam_duration_s": {
+          "$ref": "#/$defs/measurement"
+        },
+        "input_mass_kg": {
+          "$ref": "#/$defs/measurement"
+        },
+        "delivered_mass_kg": {
+          "$ref": "#/$defs/measurement"
+        },
+        "residual_mass_kg": {
+          "$ref": "#/$defs/measurement"
+        },
+        "dust_and_fines_mass_kg": {
+          "$ref": "#/$defs/measurement"
+        },
+        "energy_input_j": {
+          "$ref": "#/$defs/measurement"
+        },
+        "accepted_target_size_mass_kg": {
+          "$ref": "#/$defs/measurement"
+        },
+        "output_particle_size_distribution_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mass_balance_residual_kg": {
+          "$ref": "#/$defs/measurement"
+        },
+        "transfer_efficiency": {
+          "$ref": "#/$defs/measurement"
+        },
+        "beneficiation_yield": {
+          "$ref": "#/$defs/measurement"
+        },
+        "video_segmentation_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "failure_observations": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "solver_family",
+        "model_name",
+        "model_version",
+        "source_revision",
+        "executable_sha256",
+        "configuration_artifact_id",
+        "parameters_artifact_id",
+        "random_seed",
+        "run_status",
+        "predictions"
+      ],
+      "properties": {
+        "solver_family": {
+          "enum": [
+            "force_balance",
+            "dem",
+            "continuum",
+            "physics_informed_residual",
+            "ml_surrogate",
+            "other"
+          ]
+        },
+        "model_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executable_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "configuration_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parameters_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "random_seed": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "run_status": {
+          "enum": [
+            "converged",
+            "failed",
+            "not_run",
+            "not_applicable"
+          ]
+        },
+        "predictions": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/predictionInterval"
+          }
+        }
+      }
+    },
+    "predictionInterval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "estimate",
+        "lower",
+        "upper",
+        "unit",
+        "nominal_coverage"
+      ],
+      "properties": {
+        "estimate": {
+          "type": "number"
+        },
+        "lower": {
+          "type": "number"
+        },
+        "upper": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nominal_coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "role",
+        "path",
+        "media_type",
+        "sha256"
+      ],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "enum": [
+            "raw_video",
+            "raw_image",
+            "sensor_trace",
+            "particle_size_distribution",
+            "material_characterization",
+            "apparatus_geometry",
+            "calibration_record",
+            "model_configuration",
+            "model_parameters",
+            "model_output",
+            "segmentation_output",
+            "other"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}
