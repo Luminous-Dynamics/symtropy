@@ -756,3 +756,65 @@ Primary comparison metric: experiment cost per independently supported
 family decision at a preregistered selective-risk target, with Brier/log loss,
 coverage, OOD abstention, false-commit rate and lower-tail results reported
 separately. Do not compress these into one intelligence score.
+## Selective-risk evaluation and held-out model false acceptance
+
+The `selective_risk` module adds an evaluator-only Monte Carlo layer around
+the finite-action sequential policy. It reports model-stratified Wilson
+intervals for wrong model commits, wrong family commits, in-family OOD
+rejection, parameter non-identifiability, other abstention and correct model
+commits, plus Brier score and log loss.
+
+The separate held-out evaluator accepts two scenarios:
+
+- the candidate scenario, which is passed to the policy and contains the
+  registered candidate models only;
+- the evaluator scenario, which must contain those exact candidate models
+  unchanged plus exactly one held-out model.
+
+The held-out model is used only to generate synthetic observations under the
+action's covariance. The policy receives the original candidate scenario,
+registered model means, and candidate-visible observations. The result
+estimates false acceptance of any registered model or family, correct
+OUT_OF_MODEL_SET abstention, and other abstention. A duplicate held-out
+model negative control demonstrates that a system can commit a declared
+family even when the evaluator truth is outside the registered set.
+
+Run the matched selective-risk scorecard with:
+
+    cargo run --manifest-path benchmarks/human-multirate-cosim/v0.1/Cargo.toml --release --bin selective_risk
+
+The runner evaluates three bounded pulse actions with 1,000 Monte Carlo
+replicates per registered/held-out truth, AR(1) rho 0.6, two sensors and five
+observation times. It emits per-action EIG, false model/family commits,
+95% Wilson limits, in-family OOD rejection, parameter non-identifiability,
+Brier/log loss, and held-out structural false acceptance. It also sweeps a
+user-declared false-family-commit penalty. This penalty is a transparent
+decision utility for Pareto analysis; it is not the exact evidential-bias
+criterion proposed by Chen et al.
+
+### Statistical limitations
+
+Each model/held-out model is sampled in a separate stratum, then registered
+models are prior-weighted. The Wilson intervals are fixed-sample, per-truth
+binomial intervals. They are not sequentially valid confidence sequences,
+and this one-step estimator does not calibrate posterior/residual thresholds
+or provide an anytime false-commit guarantee. Cross-action covariance and
+prior shift are not yet covered by this initial evaluator. These must be
+separate, explicit benchmark dimensions.
+
+### Evidence-risk comparison
+
+The comparator set includes EIG per cost, nuisance-profiled maximin family
+separation, posterior-predictive Bayes risk, an explicitly penalized EIG
+utility, and the published evidential-bias criterion when its exact
+definition is implemented. Report the Pareto frontier of information gain
+versus selective risk and cost; do not collapse them into one opaque score.
+
+Chen et al. (2026), *Deep adaptive design with an evidential bias criterion*
+(arXiv:2608.16466), argue that EIG alone may reward misleading evidence and
+propose an evidential-bias criterion. Shen, Dong and Huan's vsOED already
+covers sequential Bayesian design with nuisance parameters and multiple
+models (DOI 10.1016/j.cma.2025.118068). Our claim is the explicit coupling
+of these experiment policies with declared model-set adequacy,
+identity-bound covariance, held-out structural false-acceptance evaluation
+and auditable selective abstention—not the invention of sequential OED.
