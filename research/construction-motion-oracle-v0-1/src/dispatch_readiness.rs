@@ -155,29 +155,69 @@ pub fn check_dispatch_readiness(
         ("design revision", envelope.design_revision_sha256.as_str()),
         ("frame", envelope.frame_sha256.as_str()),
         ("transform", envelope.transform_sha256.as_str()),
-        ("robot configuration", envelope.robot_configuration_sha256.as_str()),
-        ("tool configuration", envelope.tool_configuration_sha256.as_str()),
-        ("payload configuration", envelope.payload_configuration_sha256.as_str()),
-        ("primitive manifest", envelope.primitive_manifest_sha256.as_str()),
+        (
+            "robot configuration",
+            envelope.robot_configuration_sha256.as_str(),
+        ),
+        (
+            "tool configuration",
+            envelope.tool_configuration_sha256.as_str(),
+        ),
+        (
+            "payload configuration",
+            envelope.payload_configuration_sha256.as_str(),
+        ),
+        (
+            "primitive manifest",
+            envelope.primitive_manifest_sha256.as_str(),
+        ),
         ("trajectory", envelope.trajectory_sha256.as_str()),
         ("motion envelope", envelope.envelope_sha256.as_str()),
-        ("occupancy envelope", occupancy.assessed_envelope_sha256.as_str()),
-        ("occupancy primitive manifest", occupancy.primitive_manifest_sha256.as_str()),
+        (
+            "occupancy envelope",
+            occupancy.assessed_envelope_sha256.as_str(),
+        ),
+        (
+            "occupancy primitive manifest",
+            occupancy.primitive_manifest_sha256.as_str(),
+        ),
         ("site snapshot", occupancy.site_snapshot_sha256.as_str()),
-        ("site ledger head", occupancy.site_ledger_event_sha256.as_str()),
-        ("dynamic occupancy manifest", occupancy.dynamic_occupancy_manifest_sha256.as_str()),
+        (
+            "site ledger head",
+            occupancy.site_ledger_event_sha256.as_str(),
+        ),
+        (
+            "dynamic occupancy manifest",
+            occupancy.dynamic_occupancy_manifest_sha256.as_str(),
+        ),
         ("actor manifest", occupancy.actor_manifest_sha256.as_str()),
-        ("occupancy engine build", occupancy.occupancy_engine_build_sha256.as_str()),
-        ("clearance policy", occupancy.clearance_policy_sha256.as_str()),
-        ("trusted occupancy engine build", request.trusted_occupancy_engine_build_sha256.as_str()),
-        ("required clearance policy", request.required_clearance_policy_sha256.as_str()),
-        ("assessment receipt", occupancy.assessment_receipt_sha256.as_str()),
+        (
+            "occupancy engine build",
+            occupancy.occupancy_engine_build_sha256.as_str(),
+        ),
+        (
+            "clearance policy",
+            occupancy.clearance_policy_sha256.as_str(),
+        ),
+        (
+            "trusted occupancy engine build",
+            request.trusted_occupancy_engine_build_sha256.as_str(),
+        ),
+        (
+            "required clearance policy",
+            request.required_clearance_policy_sha256.as_str(),
+        ),
+        (
+            "assessment receipt",
+            occupancy.assessment_receipt_sha256.as_str(),
+        ),
     ] {
         if !is_sha256(digest) {
             return Err(DispatchReadinessFailure::InvalidDigest(label));
         }
     }
-    if envelope.entity_id.trim().is_empty() || envelope.robot_id.trim().is_empty()
+    if envelope.entity_id.trim().is_empty()
+        || envelope.robot_id.trim().is_empty()
         || envelope.site_clock_domain_id.trim().is_empty()
         || occupancy.site_clock_domain_id.trim().is_empty()
     {
@@ -303,10 +343,7 @@ pub fn check_dispatch_readiness(
         occupancy_engine_build_sha256: occupancy.occupancy_engine_build_sha256.clone(),
         clearance_policy_sha256: occupancy.clearance_policy_sha256.clone(),
         site_ledger_sequence: ledger.last_sequence(),
-        site_ledger_event_sha256: ledger
-            .last_event_sha256()
-            .unwrap_or_default()
-            .to_owned(),
+        site_ledger_event_sha256: ledger.last_event_sha256().unwrap_or_default().to_owned(),
         site_clock_domain_id: occupancy.site_clock_domain_id.clone(),
         checked_at_tick: request.now_tick,
         valid_until_tick,
@@ -335,9 +372,15 @@ pub fn verify_dispatch_readiness_receipt_current(
             "occupancy assessment receipt",
             receipt.occupancy_assessment_receipt_sha256.as_str(),
         ),
-        ("occupancy engine build", receipt.occupancy_engine_build_sha256.as_str()),
+        (
+            "occupancy engine build",
+            receipt.occupancy_engine_build_sha256.as_str(),
+        ),
         ("clearance policy", receipt.clearance_policy_sha256.as_str()),
-        ("site ledger head", receipt.site_ledger_event_sha256.as_str()),
+        (
+            "site ledger head",
+            receipt.site_ledger_event_sha256.as_str(),
+        ),
     ] {
         if !is_sha256(digest) {
             return Err(DispatchReadinessFailure::InvalidDigest(label));
@@ -415,8 +458,12 @@ fn is_sha256(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::field_layout_acceptance::{DesignIntentEntity, FieldAcceptanceProfile, FieldLayoutEntityType};
-    use crate::site_state_ledger::{SiteActorRole, SiteEventEnvelope, SiteEventPayload, SiteWorkPackage};
+    use crate::field_layout_acceptance::{
+        DesignIntentEntity, FieldAcceptanceProfile, FieldLayoutEntityType,
+    };
+    use crate::site_state_ledger::{
+        SiteActorRole, SiteEventEnvelope, SiteEventPayload, SiteWorkPackage,
+    };
 
     fn digest(value: char) -> String {
         std::iter::repeat_n(value, 64).collect()
@@ -677,14 +724,12 @@ mod tests {
 
         let mut request = make_request(&ledger);
         request.occupancy.site_ledger_sequence = ledger.last_sequence();
-        request.occupancy.site_ledger_event_sha256 =
-            ledger.last_event_sha256().unwrap().to_owned();
+        request.occupancy.site_ledger_event_sha256 = ledger.last_event_sha256().unwrap().to_owned();
         assert_eq!(
             check_dispatch_readiness(&ledger, &request),
             Err(DispatchReadinessFailure::EntityNotDispatchable)
         );
     }
-
 
     #[test]
     fn stale_actor_invalid_bounds_and_unmodelled_occupants_are_not_clear() {
@@ -729,7 +774,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn unapproved_occupancy_engine_or_clearance_policy_blocks_readiness() {
         let ledger = site_ledger();
@@ -758,7 +802,6 @@ mod tests {
             Err(DispatchReadinessFailure::IncompleteNarrowphaseCoverage)
         );
     }
-
 
     #[test]
     fn readiness_receipt_must_be_revalidated_before_consume() {
@@ -891,14 +934,12 @@ mod tests {
             .unwrap();
         let mut request = make_request(&ledger);
         request.occupancy.site_ledger_sequence = ledger.last_sequence();
-        request.occupancy.site_ledger_event_sha256 =
-            ledger.last_event_sha256().unwrap().to_owned();
+        request.occupancy.site_ledger_event_sha256 = ledger.last_event_sha256().unwrap().to_owned();
         assert_eq!(
             check_dispatch_readiness(&ledger, &request),
             Err(DispatchReadinessFailure::EntityNotDispatchable)
         );
     }
-
 
     #[test]
     fn readiness_receipt_is_bound_to_the_current_ledger_head_at_consumption() {
@@ -946,5 +987,4 @@ mod tests {
             Err(DispatchReadinessFailure::UnsupportedSchemaVersion)
         );
     }
-
 }
