@@ -76,6 +76,9 @@ jobs:
           echo "component lifecycle and material accounting:"
           HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin lifecycle_sweep > artifacts/component-lifecycle.csv
           cat artifacts/component-lifecycle.csv
+          echo "lifecycle mutation and evidence impact:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin lifecycle_impact_sweep > artifacts/lifecycle-evidence-impact.csv
+          cat artifacts/lifecycle-evidence-impact.csv
 
       - name: Upload raw benchmark outputs
         if: always()
