@@ -883,11 +883,11 @@ mod tests {
         let report = evaluate_robust_cumulative_resource_capacity(
             &RobustCumulativeCapacityScenario {
                 base,
-                availability_windows: vec![window(10, 25, 2, 3, 4)],
+                availability_windows: vec![window(10, 25, 1, 3, 4)],
             },
         )
         .unwrap();
-        assert_eq!(report.non_robust_segments.len(), 2);
+        assert_eq!(report.non_robust_segments.len(), 3);
         for segment in &report.non_robust_segments {
             assert_eq!(
                 segment.contributing_reservation_ids,
