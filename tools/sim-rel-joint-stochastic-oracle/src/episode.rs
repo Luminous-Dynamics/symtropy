@@ -1581,7 +1581,7 @@ mod tests {
         // evaluator/protocol mismatch. An in-catalogue generator cannot be
         // eliminated by an observation emitted by its own validated kernel.
         provider.attempts[0].disposition = AttemptDisposition::Applied {
-            observation_id: "not-the-emitted-observation".to_owned(),
+            observation_id: "zero".to_owned(),
         };
         provider
             .finish_episode(EpisodeFinish {
