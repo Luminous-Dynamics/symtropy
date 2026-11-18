@@ -126,6 +126,45 @@ The credible competitive claim is not “we are already faster than NASA / TBM i
 
 The Linux CI step parses both schemas and examples, checks artifact and run-ID uniqueness, verifies that the sample run's group keys match the manifest partition maps, requires all four isolation axes and all three partitions, checks blind-test freeze flags, verifies included file SHA-256 digests, and recomputes force-trace peak/mean/impulse/work/displaced-volume arithmetic. This is fixture regression coverage, not a general JSON Schema engine or a validator for arbitrary external datasets.
 
+
+## New published comparators added to the tournament — 18 November 2026
+
+A further 2026 machine-learning result must now be treated as a named baseline:
+
+- **Srinivasan et al., Acta Astronautica (available online 18 August 2026), DOI 10.1016/j.actaastro.2026.08.051:** compares multiple linear regression, SVR, random forest and XGBoost for horizontal and vertical lunar-regolith excavation forces. XGBoost reports RMSE 11.305 N horizontal and 6.824 N vertical, and a 64% / 85.5% reduction versus the Lockheed–Martin analytical model. This is a published result on its study dataset, not demonstrated out-of-distribution transfer. Reproduce its precise feature set, split, denominators and test protocol before treating those RMSE values as a matched target.
+- **Bao et al., Acta Astronautica (available online 3 November 2026), DOI 10.1016/j.actaastro.2026.10.071:** tests authentic Chang'e-6 farside sample CE60100 in a rotating drum in the slumping regime. The available sample mass was only 1.85 g. Dynamic angle of repose decreased from 50.4° ± 3.1° at Fr = 3.3×10^-4 to 41.1° ± 1.8° at Fr = 3.3×10^-3; the model reproduced the Fr trend without fitting the reported CE-6 DAoR values. This is a valuable flow/handling reference, not an excavation-force validation set or broad lunar-material sample.
+- **NASA's current Lunar Surface Technology page:** describes IPEx as designed for 10 metric tonnes over 100 m and 11 days; the same public programme material also describes an approximately 20-tonne single-mission goal. Do not silently merge the two figures into one achieved productivity result; preserve mission profile, test boundary and goal/status label. NASA's 2026 ISAM State of Play separates excavation/site preparation, regolith processing, logistics and construction—useful evidence that the field's challenge is integrated surface infrastructure, not a single excavator metric.
+
+### Expanded model tournament
+
+The matched test set should compare, where the input data and permissions allow:
+
+1. Lockheed–Martin analytical baseline and other declared analytical/empirical equations.
+2. Published MLR, SVR, random-forest and XGBoost models, including the 2026 Srinivasan et al. XGBR baseline.
+3. DEM with the source-matched calibration strategy (including Sun et al.'s JLU-H result).
+4. CEL/FEM, including static and percussive JSC-1A cases.
+5. A physics-informed residual model: preserve physically meaningful force/energy constraints and allow a learned residual only inside the declared evidence envelope. Compare it against pure XGBR and each physics solver on identical held-out groups; no extrapolation is silently accepted.
+6. For material flow, a separate rotating-drum / hopper / transfer benchmark comparing force-balance, DEM and measured flow regimes. Keep flow-model scorecards separate from excavation-force scorecards.
+
+The ML tournament must publish two different claims:
+
+- **Interpolation:** held-out trials from already represented batches and operating envelopes.
+- **Transfer:** entirely unseen material batches, compaction histories, tool geometries, laboratories, gravity levels or operation modes.
+
+Do not call a random row split a transfer test. Include leave-one-batch-out and leave-one-laboratory-out partitions where the source corpus supports them. Keep a blind external set controlled by an independent custodian. Report calibration error, interval coverage, worst-group error, out-of-domain detection and abstention alongside RMSE. A model that recognizes it is outside its envelope and declines to predict can be safer and more useful than a lower-RMSE model that confidently extrapolates.
+
+### New physical-flow track
+
+Treat the flow of excavated material as its own benchmark:
+
+- authentic returned lunar material where access, mass limits and permissions permit;
+- terrestrial simulants each remain distinct by batch, size distribution, morphology and preparation;
+- rotating drum, hopper discharge, transfer chute and separator are separate boundary conditions;
+- report dynamic angle of repose, avalanche statistics, mass discharge rate, residual/retained mass, bridging/jam rate, transfer efficiency and energy per accepted delivered mass;
+- test gravity and Froude-number effects without assuming that Earth-g measurements directly scale to lunar gravity.
+
+The Chang'e-6 study is unusually useful but its 1.85-g retained sample and slumping regime are strict scope limits. It should seed a targeted micro-sample flow-reproduction protocol, not a general regolith handling calibration.
+
 ## Authority boundaries
 
 - Symtropy owns immutable inputs, schemas, run orchestration, replay and evidence receipts.
