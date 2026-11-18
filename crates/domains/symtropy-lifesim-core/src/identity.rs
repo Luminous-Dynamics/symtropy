@@ -358,7 +358,7 @@ mod tests {
     fn bacterium() -> TaxonConceptRef {
         taxon(
             "Catalogue of Life",
-            "col-xr-checklist-2026-10",
+            "7ddf754f-d193-4cc9-b351-99906754a03b",
             "COL26.10-XR",
             "col:EXAMPLE-BACTERIUM",
             "Bacterium example",
@@ -371,8 +371,8 @@ mod tests {
         let gbif = taxon("GBIF Backbone", "gbif-backbone", "2023-08-28", "12345", "Bacterium example");
         let older_col = taxon(
             "Catalogue of Life",
-            "col-xr-checklist-2026-10",
-            "COL26.9-XR",
+            "7ddf754f-d193-4cc9-b351-99906754a03b",
+            "test-earlier-snapshot",
             "col:EXAMPLE-BACTERIUM",
             "Bacterium example",
         );
@@ -386,7 +386,7 @@ mod tests {
         let original = bacterium();
         let renamed = taxon(
             "Catalogue of Life",
-            "col-xr-checklist-2026-10",
+            "7ddf754f-d193-4cc9-b351-99906754a03b",
             "COL26.10-XR",
             "col:EXAMPLE-BACTERIUM",
             "Bacterium example revised",
@@ -399,14 +399,14 @@ mod tests {
     fn life_stage_vocabularies_are_independently_versioned() {
         let plant = LifeStageConceptRef {
             vocabulary_authority: "Plant Ontology".to_owned(),
-            vocabulary_release: "2026-06".to_owned(),
-            concept_id: "PO:0007134".to_owned(),
+            vocabulary_release: "test-plant-stage-release".to_owned(),
+            concept_id: "PO:TEST-SEEDLING".to_owned(),
             label: "seedling".to_owned(),
         };
         let fungus = LifeStageConceptRef {
             vocabulary_authority: "Fungal Growth Ontology".to_owned(),
             vocabulary_release: "1.0".to_owned(),
-            concept_id: "FGO:STAGE-42".to_owned(),
+            concept_id: "FGO:TEST-MYCELIUM".to_owned(),
             label: "conidiating mycelium".to_owned(),
         };
         assert!(plant.validate().is_ok());
@@ -420,9 +420,9 @@ mod tests {
             "holobiont-1",
             LivingSystemLevel::Holobiont,
             vec![
-                member("host", taxon("NCBI", "taxonomy", "2026-08", "9606", "Homo sapiens")),
+                member("host", taxon("NCBI", "taxonomy", "test-ncbi-snapshot", "NCBI:TEST-9606", "Homo sapiens")),
                 member("microbe", bacterium()),
-                member("fungus", taxon("Catalogue of Life", "col-xr-checklist-2026-10", "COL26.10-XR", "col:EXAMPLE-FUNGUS", "Fungus example")),
+                member("fungus", taxon("Catalogue of Life", "7ddf754f-d193-4cc9-b351-99906754a03b", "COL26.10-XR", "col:EXAMPLE-FUNGUS", "Fungus example")),
             ],
         );
         assert!(holobiont.validate().is_ok());
