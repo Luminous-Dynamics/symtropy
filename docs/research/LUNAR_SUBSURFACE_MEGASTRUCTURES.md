@@ -398,3 +398,32 @@ The reference workflow now checks exact-known-answer bulk-mass intervals, materi
 - [#6006 — planned-to-as-built and mass-flow closure](https://github.com/Luminous-Dynamics/symtropy/issues/6006)
 
 The resulting engineering principle is: **no planned quantity, machine telemetry value, inferred material property, or model output silently becomes an accepted physical asset.** Each must retain its own identity, uncertainty, provenance and verification state.
+
+
+## 17. Excavation-model SOTA and a more demanding validation target
+
+The latest literature gives two useful but different reference points.
+
+**DEM reproduction reference:** Sun et al., *Calibration of simulation parameters for in-situ excavation of lunar highland simulant*, Powder Technology (15 March 2026), DOI 10.1016/j.powtec.2025.122070, uses dynamic-static calibration for JLU-H and reports relative error below 5% on its excavation-force / cone-penetration validation conditions. The study emphasizes that compacted simulant response differs from loose media and that static angle-of-repose or penetration-only calibration is insufficient. Source: https://doi.org/10.1016/j.powtec.2025.122070.
+
+**CEL model limitation reference:** Long-Fox et al., *Coupled Eulerian-Lagrangian finite element models of static and percussive excavation mechanics of lunar regolith and simulants*, Acta Astronautica (2026), DOI 10.1016/j.actaastro.2026.06.050, reports that its JSC-1A models reproduce broad excavation-force trends but overpredict mean force. It identifies strain softening and consolidation hardening as important missing behavior; percussive force reduction and high-frequency numerical stability also remain open. Source: https://doi.org/10.1016/j.actaastro.2026.06.050.
+
+A 2024 Icarus study on geotechnical testing standardization highlights that different methods, sample masses and procedures can create substantial variation across laboratories: https://doi.org/10.1016/j.icarus.2023.115812. A June 2026 Aerospace study also emphasizes the importance of stress-dependent friction behavior at low confining pressures, where density, particle rearrangement and dilation affect measured strength: https://doi.org/10.3390/aerospace13060527.
+
+**The challenge should not be "get below 5% once."** It should be:
+1. Reproduce the <5% JLU-H result on matched source conditions.
+2. Freeze separate calibration, validation and blind test sets.
+3. Hold out material batches, density/compaction states, excavation depth, tool geometry, speed and percussive mode.
+4. Compare DEM and CEL/FEM against analytical/empirical baselines without averaging model-form disagreement away.
+5. Report force-time residuals, peak/mean force, impulse, displaced volume, uncertainty coverage and generalization gap.
+6. Measure how much new physical calibration data is needed to recover predictive quality after material or tool transfer.
+
+This is now tracked in [#6012 LUNAR-EXCAVATION-SIM-VALIDATION-001](https://github.com/Luminous-Dynamics/symtropy/issues/6012). It composes the Earth analogue [#5988](https://github.com/Luminous-Dynamics/symtropy/issues/5988), material catalogue [#6004](https://github.com/Luminous-Dynamics/symtropy/issues/6004), and as-built closure [#6006](https://github.com/Luminous-Dynamics/symtropy/issues/6006).
+
+## 18. Current NASA capability maturity and the lunar construction gap
+
+NASA's 2026 *ISAM State of Play* groups surface infrastructure into excavation/site preparation, regolith processing, logistics and construction. Its technology map includes IPEX and LANCE as prototypes and STOMP as a concept. It is an excellent capability map, but it describes surface infrastructure maturity—not lunar tunnel boring or large cavern support. Source: https://assets.science.nasa.gov/content/dam/science/missions/isam/ISAM_State_of_Play_2026.pdf.
+
+NASA describes IPEx as a lightweight robotic regolith dig-and-haul system using counter-rotating bucket drums, designed for on the order of 20 metric tonnes over a mission. Its own description positions it for bulk regolith movement, landing-site preparation, berms and construction sites, not rock tunnel excavation: https://www.nasa.gov/lunar-surface-technology/.
+
+The immediate competition opportunity is therefore not to claim superior excavation hardware. It is to establish a reproducible, independently verifiable method for qualifying the entire chain: characterize material → calibrate tool interaction → excavate → measure actual geometry and mass → account for material disposition → install support → independently accept the asset.
