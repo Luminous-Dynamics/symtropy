@@ -52,6 +52,39 @@ theorem mannheim_kazanas_parameterization_vacuum (beta gamma : ℝ) :
   unfold vacuumConstraint
   ring
 
+/-- The gradient of Q is nonzero at every point of the vacuum coefficient
+manifold. Thus Q=0 is a regular hypersurface, not an isolated coefficient
+tuple. The free c2 direction is independent of this constraint. -/
+theorem vacuum_constraint_gradient_nonzero
+    (cMinus c0 c1 : ℝ)
+    (hVacuum : vacuumConstraint cMinus c0 c1 = 0) :
+    (-3 * c1 ≠ 0) ∨ (2 * c0 ≠ 0) ∨ (-3 * cMinus ≠ 0) := by
+  by_contra h
+  push_neg at h
+  rcases h with ⟨hC1, hC0, hCMinus⟩
+  have hc1 : c1 = 0 := by nlinarith [hC1]
+  have hc0 : c0 = 0 := by nlinarith [hC0]
+  have hcm : cMinus = 0 := by nlinarith [hCMinus]
+  unfold vacuumConstraint at hVacuum
+  rw [hc1, hc0, hcm] at hVacuum
+  norm_num at hVacuum
+
+/-- At the non-Einstein MK control point, the Q=0 tangent hyperplane is
+(-3/10) dc_-1 + (7/5) dc_0 + (51/10) dc_1 = 0; dc_2 remains free. -/
+def mkTangentConstraint
+    (deltaCMinus deltaC0 deltaC1 : ℝ) : ℝ :=
+  (-3 / 10) * deltaCMinus + (7 / 5) * deltaC0 + (51 / 10) * deltaC1
+
+theorem mk_constraint_gradient_cminus :
+    -3 * (1 / 10 : ℝ) = -3 / 10 := by norm_num
+
+theorem mk_constraint_gradient_c0 :
+    2 * (7 / 10 : ℝ) = 7 / 5 := by norm_num
+
+theorem mk_constraint_gradient_c1 :
+    -3 * (-17 / 10 : ℝ) = 51 / 10 := by norm_num
+
+
 theorem mk_lapse_at_3 : mkLapse 3 = 103 / 300 := by
   norm_num [mkLapse]
 
@@ -96,6 +129,7 @@ theorem mk_lapse_positive_on_annulus {r : ℝ}
 #print axioms off_shell_constraint
 #print axioms off_shell_residual_ratio
 #print axioms mannheim_kazanas_parameterization_vacuum
+#print axioms vacuum_constraint_gradient_nonzero
 #print axioms mk_lapse_positive_on_annulus
 
 end SymtropyStaticBachClassification
