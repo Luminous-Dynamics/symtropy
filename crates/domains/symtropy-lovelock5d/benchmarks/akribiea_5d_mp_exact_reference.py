@@ -128,7 +128,18 @@ bd_radical = sp.sqrt(1 + alpha * (alpha + 2 * r_h**2) / r**4)
 bd_lapse = 1 - (alpha + 2 * r_h**2) / (r**2 * (1 + bd_radical))
 bd_original = 1 + r**2 / alpha * (1 - bd_radical)
 zero("Boulware-Deser rationalization", bd_lapse - bd_original)
-zero("Boulware-Deser horizon", bd_lapse.subs(r, r_h))
+# At r=r_H the square root is the positive branch 1+alpha/r_H^2.
+# Prove the radicand identity and then substitute that positive root exactly.
+bd_horizon_radical_square = sp.factor(
+    (1 + alpha * (alpha + 2 * r_h**2) / r_h**4)
+    - (1 + alpha / r_h**2)**2
+)
+zero("Boulware-Deser horizon radical identity", bd_horizon_radical_square)
+bd_horizon_value = sp.factor(
+    1 - (alpha + 2 * r_h**2)
+    / (r_h**2 * (1 + (1 + alpha / r_h**2)))
+)
+zero("Boulware-Deser horizon", bd_horizon_value)
 zero("Boulware-Deser Einstein limit",
      sp.limit(bd_lapse, alpha, 0, dir="+") - (1 - r_h**2 / r**2))
 
