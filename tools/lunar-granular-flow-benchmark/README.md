@@ -298,3 +298,26 @@ Download attempts for the Wylęgała CSV and Lappa ZIP returned access errors in
 7. keep source material, batch, apparatus, pressure and test protocol boundaries intact.
 
 The CI source registry check only validates metadata and claim boundaries. It does not download, validate or qualify these datasets.
+
+## Controller tournament and SOTA comparison
+
+The machine-readable tournament contract is `controller-tournament.json`; CI checks that the comparison remains protocol-only and has not been mislabeled as a result. The benchmark compares seven policies on the same source/campaign boundary:
+1. passive no-vibration reference;
+2. fixed vibration;
+3. feeder-speed PID with fixed vibration;
+4. the current Rust rule-based advisory supervisor;
+5. gain-scheduled response-surface control;
+6. constrained model-predictive control;
+7. safe Bayesian experiment selection/adaptation, restricted to an independently commissioned envelope.
+
+The ambitious candidate is not unconstrained online learning. It is a **constrained quality-aware controller** that separates hopper continuity from metering, uses measured acceleration/frequency and feeder encoder feedback, minimizes energy per accepted kg, and treats segregation/fragmentation as state constraints. Unknown quality sensors, out-of-domain material/wall/pressure states or unacknowledged actuator outcomes must block new accepted-feed delivery commands.
+
+To beat current practice, the controller must outperform fixed vibration or simple feeder PID on group-disjoint material batches while preserving jam probability, off-spec mass, fragmentation and wear. Proposed targets are 15% lower vibration energy per accepted kg and 15% more accepted kg per mission-hour at matched constraints, with 90–95% calibrated interval coverage and zero hard-bound violations. These are hypotheses, not measured results.
+
+The comparison must distinguish the source papers' boundaries:
+- LHS-1 ground hopper gravity discharge (Lappa et al.);
+- ICN-LHT-1 reduced-gravity/vacuum hopper supply to a rotary pocket feeder (Stepanova et al.);
+- rotating-drum wall/vacuum surface stability (Wylęgała & Uhl).
+
+No model trained on rotating-drum angles may claim hopper flow qualification without a matched transfer experiment. No model trained on hopper-to-feeder flow may claim free gravity discharge or downstream beneficiation. The issue [#6090](https://github.com/Luminous-Dynamics/symtropy/issues/6090) tracks the controller tournament and its control/actuator acknowledgement contract.
+
