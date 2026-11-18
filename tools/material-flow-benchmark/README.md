@@ -273,6 +273,7 @@ This is **protocol-level event injection**, not physical fault injection: it doe
 
 The `mfb-evaluate-coavailability` binary screens one proposed delivery-UAV sortie against a declared carrier itinerary. It checks:
 - route-stop identity and carrier stop windows;
+- conservative rendezvous bounds: the latest possible arrival and earliest possible departure define the guaranteed carrier-presence interval (not optimistic ETA bounds);
 - launch and recovery service windows with interval arithmetic;
 - payload, usable battery energy plus protected reserve, peak power and continuous power;
 - declared operating permission and freshness/domain status of aircraft and weather evidence;
