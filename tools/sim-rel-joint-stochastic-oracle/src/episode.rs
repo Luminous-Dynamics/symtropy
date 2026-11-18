@@ -651,6 +651,21 @@ impl EpisodeProvider {
         if finish.rationale.trim().is_empty() || finish.rationale.len() > 4096 {
             return Err(EpisodeError::InvalidFinish);
         }
+        let declared: BTreeSet<&str> = self
+            .manifest
+            .public_profile
+            .candidate_hypotheses
+            .iter()
+            .map(|candidate| candidate.hypothesis_id.as_str())
+            .collect();
+        let mut claimed = BTreeSet::new();
+        for hypothesis_id in &finish.compatible_hypothesis_ids {
+            if !declared.contains(hypothesis_id.as_str())
+                || !claimed.insert(hypothesis_id.as_str())
+            {
+                return Err(EpisodeError::InvalidFinish);
+            }
+        }
         self.finish = Some(finish);
         self.terminal = true;
         Ok(())
@@ -682,19 +697,42 @@ impl EpisodeProvider {
             ))?;
         let generating_hypothesis_retained =
             compatible_hypotheses.iter().any(|candidate| candidate == generating_id);
+        if !generating_hypothesis_retained {
+            return Err(EpisodeError::EvaluationFailure(
+                "the in-support generating hypothesis is absent from the exact version space".to_owned(),
+            ));
+        }
+
+        let exact_set: BTreeSet<&str> =
+            compatible_hypotheses.iter().map(String::as_str).collect();
+        let claimed_set: BTreeSet<&str> = finish
+            .compatible_hypothesis_ids
+            .iter()
+            .map(String::as_str)
+            .collect();
+        let correct_candidate_count = claimed_set.intersection(&exact_set).count();
+        let version_space_exact_match = claimed_set == exact_set;
         let evidence_identifies_unique_hypothesis = compatible_hypotheses.len() == 1;
-        let false_unique_claim = finish.disposition == EpisodeFinishDisposition::Identified
-            && (!evidence_identifies_unique_hypothesis || !generating_hypothesis_retained);
+        let false_unique_claim = finish.compatible_hypothesis_ids.len() == 1
+            && (!evidence_identifies_unique_hypothesis
+                || !finish.compatible_hypothesis_ids.iter().any(|id| id == generating_id));
         let safe_abstention = finish.disposition == EpisodeFinishDisposition::Abstain
-            && compatible_hypotheses.len() != 1;
+            && compatible_hypotheses.len() > 1
+            && version_space_exact_match;
         let unnecessary_abstention = finish.disposition == EpisodeFinishDisposition::Abstain
             && evidence_identifies_unique_hypothesis;
         let disposition_correct = match finish.disposition {
             EpisodeFinishDisposition::Identified => {
-                evidence_identifies_unique_hypothesis && generating_hypothesis_retained
+                evidence_identifies_unique_hypothesis
+                    && generating_hypothesis_retained
+                    && version_space_exact_match
             }
-            EpisodeFinishDisposition::Ambiguous => compatible_hypotheses.len() > 1,
-            EpisodeFinishDisposition::NoCompatibleModel => compatible_hypotheses.is_empty(),
+            EpisodeFinishDisposition::Ambiguous => {
+                compatible_hypotheses.len() > 1 && version_space_exact_match
+            }
+            // The current provider only admits in-support kernels. An empty
+            // candidate set is a task/model contradiction and fails closed.
+            EpisodeFinishDisposition::NoCompatibleModel => false,
             EpisodeFinishDisposition::Abstain => safe_abstention,
         };
         let applied_interventions = self
@@ -707,6 +745,9 @@ impl EpisodeProvider {
             episode_id: self.episode_id.clone(),
             reported_disposition: finish.disposition,
             compatible_hypotheses,
+            claimed_compatible_hypotheses: finish.compatible_hypothesis_ids.clone(),
+            version_space_exact_match,
+            correct_candidate_count,
             generating_hypothesis_retained,
             evidence_identifies_unique_hypothesis,
             false_unique_claim,
