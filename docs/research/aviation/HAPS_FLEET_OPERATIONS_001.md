@@ -65,6 +65,17 @@ A second [weather-diverse reserve fixture](examples/synthetic_haps_fleet_weather
 
 The paired Rust negative control adds the reserve to the same shared weather event. Its capacity also falls to 0.4, restoring a 12-hour service outage and a 4.8 capacity-unit-hour deficit. This demonstrates that *declared exposure diversity*, not just adding a fourth airframe, drives the result. The different hazard domain is a synthetic hypothesis and must be established using real altitude/trajectory/weather exposure and component qualification data before an independence claim.
 
+## 4.2 Industry operating constraints and current reliability baselines
+
+Sceye/SoftBank's 3 November 2026 agreement is a five-year fleet manufacturing, launch and operations plan—not evidence of an achieved nationwide availability SLA. An industry interview reports an ambition to scale toward at least 40 platforms, current recovered-platform teardown/test/reuse turnaround measured in months, a target to reduce turnaround to weeks, and an objective for individual vehicles to remain aloft for six months or more. These are interview-reported plans and operating context, not achieved fleet size, production rate, turnaround distribution or service guarantee. [Official MSA](https://sceye.com/press-releases/sceye-softbank-sign-agreement-for-fleet-of-stratospheric-platforms/); [Payload interview, 3 November 2026](https://payloadspace.com/exclusive-sceye-signs-five-year-deal-to-fly-haps-fleet-for-softbank/).
+
+Current reliability research already includes semi-Markov baselines:
+- Jain et al. (Reliability Engineering & System Safety, 2026) model repairable multiple-HAPS service with a k-out-of-n configuration and a Semi-Markov Process to represent non-exponential sojourns, assessing availability, reliability and MTTF: [DOI 10.1016/j.ress.2025.111450](https://doi.org/10.1016/j.ress.2025.111450).
+- Mittal et al. (2024) use semi-Markov k-out-of-n for redundant rotors on a tethered HAPS. This is component-level rotor reliability, not fleet service availability: [DOI 10.1016/j.ress.2024.110419](https://doi.org/10.1016/j.ress.2024.110419).
+- A DCCN programme presentation on 22 September 2026 describes a Bayesian reliability/digital-twin framework that updates failure intensity from operational observations and reassesses mission readiness for a repairable tethered HAPS with hot standby. Treat it as a research comparator, not field-validated fleet evidence: [DCCN programme entry](https://dccn.ru/papers/4514).
+
+This deterministic replay is not a novel reliability theory and does not replace those models. It supplies chronological operations traces, resource/coverage semantics and a reproducible event layer that can later feed semi-Markov or Bayesian updating when real failure, repair, weather and maintenance telemetry exists.
+
 ## 5. Paradigm shift and research questions
 
 The product should be evaluated as a **service system with recoverable capacity**, not as a fleet of aircraft that happen to be airborne.
