@@ -122,15 +122,15 @@ All arms must use the same source split, empirical event distribution where appl
 3. Right-censor-aware Kaplan–Meier survival curves with risk sets, event counts, censor counts and Greenwood standard errors.
 4. Matched empirical, exponential, double-exponential and piecewise-power-law waiting-time models using identical source splits and censoring assumptions.
 5. Age-dependent MSD (M(\\Delta;t_a)) across the observed recording window, with long-time normal-diffusion predictions reported separately as model extrapolations.
-5. Turn-angle distributions conditioned on preceding run-displacement direction and active-motor evidence class.
-6. Up-gradient run fraction after short versus long duration bins, independently of mechanism.
-7. Mechanism-by-duration overlap matrix, only where mechanism evidence is independently available.
-8. Duration-as-mechanism diagnostic (sensitivity, specificity, PPV, NPV, balanced accuracy), evaluated only on DIRECTLY_OBSERVED or MODEL_LATENT ground-truth events; algorithm-inferred/unresolved/exact-boundary cases remain excluded.
-9. First circular Fourier harmonic magnitude and phase of realized run-displacement orientations.
-10. Mean-squared displacement as a function of lag time and renewal-process ageing time (t_a).
-11. Chemotactic drift velocity and projected displacement.
-12. Sensitivity to agar fraction, pore-size/free-path distribution and mutant condition.
-13. Predictive calibration and uncertainty on held-out biological recording/plate/day units.
+6. Turn-angle distributions conditioned on preceding run-displacement direction and active-motor evidence class.
+7. Up-gradient run fraction after short versus long duration bins, independently of mechanism.
+8. Mechanism-by-duration overlap matrix, only where mechanism evidence is independently available.
+9. Duration-as-mechanism diagnostic (sensitivity, specificity, PPV, NPV, balanced accuracy), evaluated only on DIRECTLY_OBSERVED or MODEL_LATENT ground-truth events; algorithm-inferred/unresolved/exact-boundary cases remain excluded.
+10. First circular Fourier harmonic magnitude and phase of realized run-displacement orientations.
+11. Mean-squared displacement as a function of lag time and renewal-process ageing time (t_a).
+12. Chemotactic drift velocity and projected displacement.
+13. Sensitivity to agar fraction, pore-size/free-path distribution and mutant condition.
+14. Predictive calibration and uncertainty on held-out biological recording/plate/day units.
 
 The observed microscopy window and model-only long-time extrapolation must be reported separately.
 
