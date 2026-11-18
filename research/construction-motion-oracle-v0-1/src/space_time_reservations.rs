@@ -339,11 +339,11 @@ impl SpaceTimeReservationCoordinator {
             if record.fencing_token != fencing_token {
                 return Err(ReservationCoordinatorError::FencingTokenMismatch);
             }
-            let until = match record.status {
+            let until = match &record.status {
                 ReservationStatus::Granted {
                     fencing_token: token,
                     authorization_until_tick,
-                } if token == fencing_token => authorization_until_tick,
+                } if *token == fencing_token => *authorization_until_tick,
                 _ => return Err(ReservationCoordinatorError::ReservationNotGranted),
             };
             if now_tick >= until {
@@ -387,15 +387,15 @@ impl SpaceTimeReservationCoordinator {
             if record.fencing_token != fencing_token {
                 return Err(ReservationCoordinatorError::FencingTokenMismatch);
             }
-            let (until, executing) = match record.status {
+            let (until, executing) = match &record.status {
                 ReservationStatus::Granted {
                     fencing_token: token,
                     authorization_until_tick,
-                } if token == fencing_token => (authorization_until_tick, false),
+                } if *token == fencing_token => (*authorization_until_tick, false),
                 ReservationStatus::Executing {
                     fencing_token: token,
                     authorization_until_tick,
-                } if token == fencing_token => (authorization_until_tick, true),
+                } if *token == fencing_token => (*authorization_until_tick, true),
                 ReservationStatus::ExpiredUnreconciled { .. } => {
                     return Err(ReservationCoordinatorError::AuthorizationExpired);
                 }
@@ -438,15 +438,15 @@ impl SpaceTimeReservationCoordinator {
             .reservations
             .iter()
             .filter_map(|(id, record)| {
-                let (until, execution_started) = match record.status {
+                let (until, execution_started) = match &record.status {
                     ReservationStatus::Granted {
                         authorization_until_tick,
                         ..
-                    } => (authorization_until_tick, false),
+                    } => (*authorization_until_tick, false),
                     ReservationStatus::Executing {
                         authorization_until_tick,
                         ..
-                    } => (authorization_until_tick, true),
+                    } => (*authorization_until_tick, true),
                     ReservationStatus::ExpiredUnreconciled { .. }
                     | ReservationStatus::Cleared { .. } => return None,
                 };
@@ -506,7 +506,7 @@ impl SpaceTimeReservationCoordinator {
             {
                 return Err(ReservationCoordinatorError::ClearanceContextMismatch);
             }
-            if matches!(record.status, ReservationStatus::Cleared { .. }) {
+            if matches!(&record.status, ReservationStatus::Cleared { .. }) {
                 return Err(ReservationCoordinatorError::ClearanceAlreadyRecorded);
             }
         }
@@ -549,12 +549,12 @@ impl SpaceTimeReservationCoordinator {
         if record.fencing_token != fencing_token {
             return Err(ReservationCoordinatorError::FencingTokenMismatch);
         }
-        match record.status {
+        match &record.status {
             ReservationStatus::Executing {
                 fencing_token: token,
                 authorization_until_tick,
-            } if token == fencing_token => {
-                if now_tick >= authorization_until_tick {
+            } if *token == fencing_token => {
+                if now_tick >= *authorization_until_tick {
                     return Err(ReservationCoordinatorError::AuthorizationExpired);
                 }
                 if now_tick < record.request.start_tick || now_tick >= record.request.end_tick {
@@ -578,7 +578,7 @@ impl SpaceTimeReservationCoordinator {
                 continue;
             }
             let may_still_be_physically_present = matches!(
-                existing.status,
+                &existing.status,
                 ReservationStatus::Executing { .. }
                     | ReservationStatus::ExpiredUnreconciled { .. }
             );
@@ -860,7 +860,7 @@ mod tests {
     #[test]
     fn execution_requires_exact_robot_token_and_reserved_time() {
         let mut coordinator = coordinator();
-        let grant = grant_one(&mut coordinator, "r1", "robot-1", 10, 20, 5, 20);
+        let grant = grant_one(&mut coordinator, "r1", "robot-1", 10, 20, 5, 40);
         assert_eq!(
             coordinator.begin_execution("r1", "robot-2", grant.fencing_token, 10),
             Err(ReservationCoordinatorError::RobotIdentityMismatch)
