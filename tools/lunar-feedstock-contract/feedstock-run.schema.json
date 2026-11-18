@@ -296,7 +296,8 @@
         "target_size_min_um",
         "target_size_max_um",
         "required_properties",
-        "source_scope"
+        "source_scope",
+        "property_constraints"
       ],
       "properties": {
         "profile_id": {
@@ -358,6 +359,12 @@
         "source_scope": {
           "type": "string",
           "minLength": 1
+        },
+        "property_constraints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/propertyConstraint"
+          }
         }
       }
     },
@@ -576,7 +583,8 @@
         "phase_fractions",
         "size_bins",
         "target_size_mass_fraction",
-        "assay_artifact_ids"
+        "assay_artifact_ids",
+        "property_measurements"
       ],
       "properties": {
         "sample_id": {
@@ -658,6 +666,12 @@
             "string",
             "null"
           ]
+        },
+        "property_measurements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/propertyMeasurement"
+          }
         }
       }
     },
@@ -747,6 +761,121 @@
         "sha256": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "propertyConstraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "property_id",
+        "minimum_value",
+        "maximum_value",
+        "unit",
+        "test_condition_id",
+        "rationale",
+        "source_scope"
+      ],
+      "properties": {
+        "property_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minimum_value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "maximum_value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "test_condition_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_scope": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "minimum_value": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "minimum_value"
+            ]
+          },
+          "then": {
+            "properties": {
+              "maximum_value": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "maximum_value": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "maximum_value"
+            ]
+          },
+          "then": {
+            "properties": {
+              "minimum_value": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "propertyMeasurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "property_id",
+        "measurement",
+        "test_condition_id"
+      ],
+      "properties": {
+        "property_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement": {
+          "$ref": "#/$defs/measurement"
+        },
+        "test_condition_id": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }
