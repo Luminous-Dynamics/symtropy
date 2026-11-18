@@ -14,7 +14,9 @@ pub mod site_state_ledger;
 pub mod dispatch_readiness;
 pub use dispatch_readiness::{
     DispatchEnvelopeBinding, DispatchReadinessFailure, DispatchReadinessReceipt,
-    DispatchReadinessRequest, OccupancyAssessmentReceipt, check_dispatch_readiness,
+    DispatchReadinessRequest, OccupancyAssessmentReceipt,
+    DISPATCH_READINESS_RECEIPT_SCHEMA_VERSION, DISPATCH_READINESS_REQUEST_SCHEMA_VERSION,
+    check_dispatch_readiness, verify_dispatch_readiness_receipt_current,
 };
 pub use field_layout_acceptance::{
     CrewHours, DesignIntentEntity, DesignIntentManifest, EntityAcceptanceResult, EntityScoreReason,
