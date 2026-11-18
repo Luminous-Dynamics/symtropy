@@ -257,7 +257,7 @@ fn compare_runs(
     Ok(differences)
 }
 
-fn compare_cases(left: &Vec<ExternalBinding>, right: &Vec<ExternalBinding>) -> Ordering {
+fn compare_cases(left: &[ExternalBinding], right: &[ExternalBinding]) -> Ordering {
     for (left_binding, right_binding) in left.iter().zip(right.iter()) {
         let order = left_binding
             .variable
@@ -286,13 +286,13 @@ mod tests {
         VariableRole, SCHEMA_VERSION_V0,
     };
 
-    fn affine_program(offset: f64, output_id: u16) -> ModelProgramV0 {
+    fn affine_program(include_offset: bool, output_id: u16) -> ModelProgramV0 {
         ModelProgramV0 {
             schema_version: SCHEMA_VERSION_V0,
-            model_id: if offset == 0.0 {
-                "linear_structure".to_owned()
-            } else {
+            model_id: if include_offset {
                 "affine_structure".to_owned()
+            } else {
+                "linear_structure".to_owned()
             },
             variables: vec![
                 VariableDecl {
@@ -341,18 +341,18 @@ mod tests {
             transitions: Vec::new(),
             outputs: vec![Assignment {
                 target: VariableId(output_id),
-                expression: if offset == 0.0 {
-                    Expr::multiply(
-                        Expr::variable(VariableId(1)),
-                        Expr::variable(VariableId(2)),
-                    )
-                } else {
+                expression: if include_offset {
                     Expr::add(
                         Expr::multiply(
                             Expr::variable(VariableId(1)),
                             Expr::variable(VariableId(2)),
                         ),
-                        Expr::constant(offset, Dimension::LENGTH),
+                        Expr::variable(VariableId(3)),
+                    )
+                } else {
+                    Expr::multiply(
+                        Expr::variable(VariableId(1)),
+                        Expr::variable(VariableId(2)),
                     )
                 },
             }],
@@ -372,7 +372,7 @@ mod tests {
             },
             ExternalBinding {
                 variable: VariableId(3),
-                value: 0.0,
+                value: 0.5,
             },
         ]
     }
@@ -391,8 +391,8 @@ mod tests {
 
     #[test]
     fn finds_lexicographically_first_distinguishing_intervention() {
-        let left = ValidatedModelProgramV0::new(affine_program(0.0, 4)).unwrap();
-        let right = ValidatedModelProgramV0::new(affine_program(0.5, 9)).unwrap();
+        let left = ValidatedModelProgramV0::new(affine_program(false, 4)).unwrap();
+        let right = ValidatedModelProgramV0::new(affine_program(true, 9)).unwrap();
         let grid = vec![binding_x(3.0), binding_x(0.0), binding_x(-2.0)];
         let report =
             find_lexicographically_first_counterexample(&left, &right, &grid, config()).unwrap();
@@ -407,12 +407,10 @@ mod tests {
     #[test]
     fn reports_no_witness_when_proposals_are_equivalent_on_the_supplied_grid() {
         let left = ValidatedModelProgramV0::new(affine_program(0.0, 4)).unwrap();
-        let right = ValidatedModelProgramV0::new(affine_program(0.5, 9)).unwrap();
+        let right = ValidatedModelProgramV0::new(affine_program(true, 9)).unwrap();
         let mut cases = vec![binding_x(-1.0), binding_x(0.0), binding_x(1.0)];
         for case in &mut cases {
-            if case[0].value == 0.0 {
-                case[2].value = -0.5;
-            }
+            case[2].value = 0.0;
         }
         let report =
             find_lexicographically_first_counterexample(&left, &right, &cases, config()).unwrap();
@@ -453,7 +451,7 @@ mod tests {
             absolute_tolerance: f64::NAN,
             ..config()
         };
-        let same = ValidatedModelProgramV0::new(affine_program(0.0, 9)).unwrap();
+        let same = ValidatedModelProgramV0::new(affine_program(false, 9)).unwrap();
         assert_eq!(
             find_lexicographically_first_counterexample(
                 &left,
