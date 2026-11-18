@@ -123,6 +123,7 @@ fn positive_ratio_result(
     target: Option<f64>,
     candidate: Option<f64>,
     factor_tolerance: f64,
+    zero_is_valid: bool,
 ) -> Result<CoordinateResult, String> {
     require_factor(factor_tolerance, &format!("{coordinate} tolerance"))?;
 
@@ -140,6 +141,10 @@ fn positive_ratio_result(
 
     require_nonnegative(target, &format!("target {coordinate}"))?;
     require_nonnegative(candidate, &format!("candidate {coordinate}"))?;
+
+    if (target == 0.0 || candidate == 0.0) && !zero_is_valid {
+        return Err(format!("{coordinate} must be strictly positive"));
+    }
 
     if target == 0.0 || candidate == 0.0 {
         let both_zero = target == 0.0 && candidate == 0.0;
@@ -313,38 +318,43 @@ pub fn compare(input: &ComparisonInput) -> Result<SimilarityReport, String> {
     }
 
     let coordinates = vec![
-        positive_ratio_result("froude_number", a.froude_number, b.froude_number, t.froude_factor)?,
+        positive_ratio_result("froude_number", a.froude_number, b.froude_number, t.froude_factor, false)?,
         positive_ratio_result(
             "cohesion_to_particle_weight",
             a.cohesion_to_particle_weight,
             b.cohesion_to_particle_weight,
             t.cohesion_factor,
+            true,
         )?,
         positive_ratio_result(
             "wall_adhesion_to_particle_weight",
             a.wall_adhesion_to_particle_weight,
             b.wall_adhesion_to_particle_weight,
             t.wall_adhesion_factor,
+            true,
         )?,
         positive_ratio_result(
             "particle_to_drum_ratio",
             a.particle_to_drum_ratio,
             b.particle_to_drum_ratio,
             t.particle_to_drum_factor,
+            false,
         )?,
         positive_ratio_result(
             "wall_roughness_to_particle_ratio",
             a.wall_roughness_to_particle_ratio,
             b.wall_roughness_to_particle_ratio,
             t.wall_roughness_factor,
+            false,
         )?,
         fill_result(a.fill_fraction, b.fill_fraction, t.fill_fraction_absolute)?,
-        positive_ratio_result("gravity_m_s2", a.gravity_m_s2, b.gravity_m_s2, t.gravity_factor)?,
+        positive_ratio_result("gravity_m_s2", a.gravity_m_s2, b.gravity_m_s2, t.gravity_factor, false)?,
         positive_ratio_result(
             "chamber_pressure_pa",
             a.chamber_pressure_pa,
             b.chamber_pressure_pa,
             t.pressure_factor,
+            false,
         )?,
         categorical_result("atmosphere", &ca.atmosphere, &cb.atmosphere),
         categorical_result("wall_material", &ca.wall_material, &cb.wall_material),
@@ -479,6 +489,21 @@ mod tests {
             mismatch.coordinates[1].status,
             CoordinateStatus::OutsideTolerance
         );
+    }
+
+    #[test]
+    fn zero_geometric_ratio_is_rejected_but_zero_contact_force_is_allowed() {
+        let mut value = input();
+        value.target.numeric.cohesion_to_particle_weight = Some(0.0);
+        value.candidate.numeric.cohesion_to_particle_weight = Some(0.0);
+        assert!(compare(&value).is_ok());
+
+        value.candidate.numeric.particle_to_drum_ratio = Some(0.0);
+        assert!(compare(&value).is_err());
+
+        value = input();
+        value.candidate.numeric.wall_roughness_to_particle_ratio = Some(0.0);
+        assert!(compare(&value).is_err());
     }
 
     #[test]
