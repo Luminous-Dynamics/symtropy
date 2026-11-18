@@ -192,6 +192,8 @@ pub struct EpisodeView {
     pub dropped_attempts: u64,
     /// False once any attempt receipt has been dropped; never promote an incomplete trace.
     pub trace_complete: bool,
+    /// Agent-reported terminal epistemic status, if the policy has submitted one.
+    pub finish: Option<EpisodeFinish>,
     /// Whether a hazard or terminal condition ended the episode.
     pub terminal: bool,
 }
@@ -255,8 +257,8 @@ pub enum EpisodeCommand {
 pub struct EpisodeResponse {
     /// Exact wire protocol version.
     pub protocol_version: String,
-    /// Updated policy-visible snapshot.
-    pub view: EpisodeView,
+    /// Command selected by the agent for the current public view.
+    pub command: EpisodeCommand,
 }
 
 /// Evaluator-only score computed after the agent submits its final epistemic status.
@@ -315,6 +317,18 @@ pub enum EpisodeError {
     AttemptOrdinalOverflow,
     /// The total accepted cost overflowed.
     CostOverflow,
+    /// The process peer used a different episode wire protocol version.
+    InvalidProtocolVersion,
+    /// A final decision contains invalid or overlong rationale.
+    InvalidFinish,
+    /// The agent tried to finish after a hazard or after an earlier finish.
+    EpisodeAlreadyTerminal,
+    /// The agent has not submitted a final epistemic-status decision.
+    EpisodeNotFinished,
+    /// The action trace is incomplete and cannot support evaluator qualification.
+    IncompleteTrace,
+    /// Exact version-space arithmetic or action reconstruction failed.
+    EvaluationFailure(String),
 }
 
 /// One active scientific-world episode over a frozen exact joint kernel.
@@ -338,6 +352,7 @@ pub struct EpisodeProvider {
     trace_complete: bool,
     observations: Vec<EpisodeObservation>,
     attempts: Vec<EpisodeAttempt>,
+    finish: Option<EpisodeFinish>,
 }
 
 impl EpisodeProvider {
@@ -392,6 +407,7 @@ impl EpisodeProvider {
             trace_complete: true,
             observations: Vec::new(),
             attempts: Vec::new(),
+            finish: None,
         })
     }
 
@@ -432,8 +448,203 @@ impl EpisodeProvider {
             max_world_steps: self.config.max_world_steps,
             dropped_attempts: self.dropped_attempts,
             trace_complete: self.trace_complete,
+            finish: self.finish.clone(),
             terminal: self.terminal,
         }
+    }
+
+    /// Construct the versioned public request frame for an external policy process.
+    pub fn request(&self) -> EpisodeRequest {
+        EpisodeRequest {
+            protocol_version: EPISODE_PROTOCOL_VERSION.to_owned(),
+            view: self.view(),
+        }
+    }
+
+    /// Apply one response from an external policy process.
+    ///
+    /// This method validates the wire version, then applies a probe or an
+    /// epistemic-status finish command. It never returns the hidden version
+    /// space or true generating hypothesis in the public response.
+    pub fn apply_response(
+        &mut self,
+        response: EpisodeResponse,
+    ) -> Result<EpisodeView, EpisodeError> {
+        if response.protocol_version != EPISODE_PROTOCOL_VERSION {
+            return Err(EpisodeError::InvalidProtocolVersion);
+        }
+        match response.command {
+            EpisodeCommand::Probe { action_id } => {
+                self.submit_action(&action_id)?;
+            }
+            EpisodeCommand::Finish { finish } => {
+                self.finish_episode(finish)?;
+            }
+        }
+        Ok(self.view())
+    }
+
+    /// Record the policy's final epistemic-status decision.
+    ///
+    /// A finish decision is terminal. The evaluator result is not included in
+    /// EpisodeView and must be computed separately after the child policy exits.
+    pub fn finish_episode(&mut self, finish: EpisodeFinish) -> Result<(), EpisodeError> {
+        if self.terminal || self.finish.is_some() {
+            return Err(EpisodeError::EpisodeAlreadyTerminal);
+        }
+        if finish.rationale.trim().is_empty() || finish.rationale.len() > 4096 {
+            return Err(EpisodeError::InvalidFinish);
+        }
+        self.finish = Some(finish);
+        self.terminal = true;
+        Ok(())
+    }
+
+    /// Compute the exact candidate version space from the public action/observation
+    /// history. This evaluator-only method must run in the trusted runner after finish.
+    pub fn evaluate_after_finish(&self) -> Result<EpisodeEvaluation, EpisodeError> {
+        let finish = self
+            .finish
+            .as_ref()
+            .ok_or(EpisodeError::EpisodeNotFinished)?;
+        if !self.trace_complete {
+            return Err(EpisodeError::IncompleteTrace);
+        }
+        if self.attempts.iter().any(|attempt| {
+            matches!(attempt.disposition, AttemptDisposition::HazardTerminal)
+        }) {
+            return Err(EpisodeError::EpisodeAlreadyTerminal);
+        }
+
+        let compatible_hypotheses = self.exact_compatible_hypotheses()?;
+        let generating_id = self
+            .kernel
+            .hypothesis_ids
+            .get(self.hypothesis)
+            .ok_or_else(|| EpisodeError::EvaluationFailure(
+                "sampled hypothesis index is outside the kernel catalogue".to_owned(),
+            ))?;
+        let generating_hypothesis_retained =
+            compatible_hypotheses.iter().any(|candidate| candidate == generating_id);
+        let evidence_identifies_unique_hypothesis = compatible_hypotheses.len() == 1;
+        let false_unique_claim = finish.disposition == EpisodeFinishDisposition::Identified
+            && (!evidence_identifies_unique_hypothesis || !generating_hypothesis_retained);
+        let safe_abstention = finish.disposition == EpisodeFinishDisposition::Abstain
+            && compatible_hypotheses.len() != 1;
+        let unnecessary_abstention = finish.disposition == EpisodeFinishDisposition::Abstain
+            && evidence_identifies_unique_hypothesis;
+        let disposition_correct = match finish.disposition {
+            EpisodeFinishDisposition::Identified => {
+                evidence_identifies_unique_hypothesis && generating_hypothesis_retained
+            }
+            EpisodeFinishDisposition::Ambiguous => compatible_hypotheses.len() > 1,
+            EpisodeFinishDisposition::NoCompatibleModel => compatible_hypotheses.is_empty(),
+            EpisodeFinishDisposition::Abstain => safe_abstention,
+        };
+        let applied_interventions = self
+            .attempts
+            .iter()
+            .filter(|attempt| matches!(attempt.disposition, AttemptDisposition::Applied { .. }))
+            .count();
+
+        Ok(EpisodeEvaluation {
+            episode_id: self.episode_id.clone(),
+            reported_disposition: finish.disposition,
+            compatible_hypotheses,
+            generating_hypothesis_retained,
+            evidence_identifies_unique_hypothesis,
+            false_unique_claim,
+            safe_abstention,
+            unnecessary_abstention,
+            disposition_correct,
+            applied_interventions,
+            total_requests: self.attempts.len(),
+        })
+    }
+
+    fn exact_compatible_hypotheses(&self) -> Result<Vec<String>, EpisodeError> {
+        let applied: Vec<(&str, &str)> = self
+            .attempts
+            .iter()
+            .filter_map(|attempt| match &attempt.disposition {
+                AttemptDisposition::Applied { observation_id } => {
+                    Some((attempt.requested_action_id.as_str(), observation_id.as_str()))
+                }
+                _ => None,
+            })
+            .collect();
+
+        let mut compatible = Vec::new();
+        for hypothesis in 0..self.kernel.hypothesis_ids.len() {
+            let mut belief: BTreeMap<(usize, usize), Rational> = BTreeMap::new();
+            for point in &self.kernel.initial_belief {
+                if point.hypothesis == hypothesis {
+                    let key = (point.physical_state, point.sensor_state);
+                    let current = belief.get(&key).copied().unwrap_or(Rational::zero());
+                    let mass = current.checked_add(point.mass).map_err(EpisodeError::EvaluationFailure)?;
+                    belief.insert(key, mass);
+                }
+            }
+
+            for (action_id, observation_id) in &applied {
+                let action = self
+                    .kernel
+                    .action_ids
+                    .iter()
+                    .position(|candidate| candidate == action_id)
+                    .ok_or_else(|| EpisodeError::EvaluationFailure(
+                        "applied attempt references an action outside the kernel".to_owned(),
+                    ))?;
+                let observation = self
+                    .kernel
+                    .observation_ids
+                    .iter()
+                    .position(|candidate| candidate == observation_id)
+                    .ok_or_else(|| EpisodeError::EvaluationFailure(
+                        "applied attempt references an observation outside the kernel".to_owned(),
+                    ))?;
+
+                let mut next: BTreeMap<(usize, usize), Rational> = BTreeMap::new();
+                for ((physical_state, sensor_state), prior_mass) in &belief {
+                    let row = self
+                        .kernel
+                        .transition_row(hypothesis, *physical_state, *sensor_state, action)
+                        .ok_or_else(|| EpisodeError::EvaluationFailure(
+                            "validated kernel is missing a transition row".to_owned(),
+                        ))?;
+                    for outcome in &row.outcomes {
+                        if outcome.observation == Some(observation) {
+                            let key = (outcome.next_physical_state, outcome.next_sensor_state);
+                            let weighted = prior_mass
+                                .checked_mul(outcome.probability)
+                                .map_err(EpisodeError::EvaluationFailure)?;
+                            let current = next.get(&key).copied().unwrap_or(Rational::zero());
+                            let mass = current
+                                .checked_add(weighted)
+                                .map_err(EpisodeError::EvaluationFailure)?;
+                            next.insert(key, mass);
+                        }
+                    }
+                }
+                belief = next;
+                if belief.is_empty() {
+                    break;
+                }
+            }
+
+            if !belief.is_empty() {
+                compatible.push(
+                    self.kernel
+                        .hypothesis_ids
+                        .get(hypothesis)
+                        .ok_or_else(|| EpisodeError::EvaluationFailure(
+                            "hypothesis index is outside the kernel catalogue".to_owned(),
+                        ))?
+                        .clone(),
+                );
+            }
+        }
+        Ok(compatible)
     }
 
     /// Submit one intervention request and retain its disposition.
