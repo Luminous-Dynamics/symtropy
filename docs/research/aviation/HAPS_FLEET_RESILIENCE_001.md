@@ -23,25 +23,19 @@ ITU-T Y.3212 provides a useful standards anchor: it describes HAP cooperation wi
 The first case is a deliberately transparent analytic model. It separates independent platform unavailability from a shared HAPS weather/common-mode outage. It models terrestrial and LEO fallback as additional layers under explicit independence assumptions.
 
 Let:
-- (p): independent availability of each HAPS, including individually attributable faults and planned maintenance;
-- (q): shared HAPS-only common-mode weather outage probability;
-- (g): terrestrial service availability;
-- (s): LEO backhaul/service availability;
-- (n): number of HAPS platforms.
+- p: independent availability of each HAPS, including individually attributable faults and planned maintenance;
+- q: shared HAPS-only common-mode weather outage probability;
+- r: common-mode outage that disables terrestrial and LEO fallback together (for example, a shared ground/core/power/backhaul domain);
+- g: terrestrial service availability conditional on no external common-mode event;
+- s: LEO backhaul/service availability conditional on no external common-mode event;
+- n: number of HAPS platforms.
 
 Then:
-
-[
-A_H(n)=(1-q),[1-(1-p)^n]
-]
-
-[
-A_{H+G}=1-(1-A_H)(1-g)
-]
-
-[
-A_{H+G+L}=1-(1-A_H)(1-g)(1-s)
-]
+- HAPS-only availability: A_H(n) = (1 - q) × [1 - (1 - p)^n]
+- External fallback unavailability: U_G = r + (1 - r)(1 - g)
+- Joint terrestrial+LEO unavailability: U_GL = r + (1 - r)(1 - g)(1 - s)
+- HAPS + terrestrial availability: A_HG = 1 - (1 - A_H)U_G
+- HAPS + terrestrial + LEO availability: A_HGL = 1 - (1 - A_H)U_GL
 
 These formulas are valid only under the declared conditional-independence assumptions. Shared power, fibre, gateway, spectrum, cyber, satellite-space-weather, ground-station or geopolitical failures can invalidate the products. The case is not a Markov model, empirical reliability estimate or fault-tree qualification.
 
@@ -62,6 +56,18 @@ For the 3% common-mode case:
 The key effect is the common-mode floor: going from 3 to 10 HAPS saves only about 0.068 hours (roughly four minutes) of expected HAPS-only downtime per year in this scenario. Additional same-class platforms do not remove a shared weather limit. A diverse fallback layer has much larger theoretical value—but only if it is genuinely independent and offers the required capacity, coverage, latency, power, security and operational permission.
 
 At 10% common HAPS outage, three HAPS plus terrestrial fallback gives about 99.9500%, while adding the assumed LEO fallback gives about 99.9995%. Again, this is only the product-form synthetic sensitivity, not measured network availability.
+
+### Correlated external fallback sensitivity
+
+The case sweeps a second common-mode probability r that disables both terrestrial and LEO fallback together. Holding HAPS common-weather outage at 3% and using three HAPS:
+
+| Shared terrestrial/LEO outage r | Expected layered downtime / year |
+|---:|---:|
+| 0% | 0.01314 h (about 47.3 s) |
+| 0.1% | 0.2760 h (about 16.6 min) |
+| 1% | 2.6417 h |
+
+A nominally diverse architecture can still fail through common ground/core/power/backhaul dependencies. In the 1% synthetic common-external case, layered service availability is about 99.9698%, below the illustrative 99.99% objective. The independence contract is conditional: terrestrial and LEO are independent only when the shared external common-mode event does not occur, and that event is assumed independent of HAPS weather.
 
 ## 4. Maintenance and service continuity
 
