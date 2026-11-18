@@ -133,25 +133,35 @@
     "sympy_script_executed_in_clean_checkout": false
   },
   "claim_ceiling": "Exact analytic controls and independent symbolic/rational checks only. No nonzero-alpha rotating EGB branch reproduction, interval enclosure, radii-polynomial proof, or stability claim.",
-  "time_sector_first_integral": {
-    "source": "Brihaye et al. (2010), Eq. (2.14)",
-    "field_equation_identity": "R_t^t+alpha/4*(H_t^t+L_GB/2)=(1/(2*r^2))*sqrt(f/(b*h))*d/dr[ sqrt(f*h/b)*r^2*(h*w*w'-b') ]",
-    "constant": "P_t=sqrt(f*h/b)*r^2*(h*w*w'-b')",
-    "asymptotic_relation": "P_t=2*U",
-    "alpha_zero_mp_identity": "P_t^2=4*U^2",
-    "horizon_limit": "r_H^2*sqrt(f1*h_H/b1)*(h_H*Omega_H*w1-b1)",
-    "akribeia_control": {
+  "time_sector_radial_identity": {
+    "source": "Brihaye et al. (2010), Eq. (2.14), full right-hand side including alpha corrections",
+    "current": "P_t(r)=sqrt(f*h/b)*(r^2*(h*w*w'-b')+alpha*((f-4+h/r^2+r*f*h'/h)*b'+(4-3*h/r^2-f)*h*w*w'+r*f*h*w'^2))",
+    "on_shell_source_balance": "dP_t/dr=(alpha/6)*r^2*sqrt(b*h/f)*L_GB",
+    "asymptotic_endpoint": "lim_{r->infinity} P_t(r)=2*U",
+    "alpha_zero_limit": "At alpha=0 the Gauss-Bonnet source vanishes and P_t is constant, P_t=2*U.",
+    "alpha_nonzero_status": "P_t is not a conserved charge at finite alpha; its radial variation is sourced by L_GB.",
+    "akribeia_control_alpha_zero": {
       "U": "-10000/8911",
-      "P_t": "-20000/8911",
+      "P_t_at_all_r": "-20000/8911",
+      "horizon_limit": "-20000/8911",
       "sample_r3": "-20000/8911"
     },
-    "implementation": {
-      "rust_api": "time_sector_radial_flux",
-      "reconstruction_api": "reconstruct_b_prime_from_time_flux",
-      "rust_tests_authored": 2,
-      "rust_tests_executed": false,
-      "symbolic_check_executed_in_development_session": true
+    "validation_control": {
+      "finite_alpha_case": "5D static Boulware-Deser Einstein branch",
+      "source_identity": "P_t'(r)=(alpha/6)*r^3*L_GB for b=f=F,h=r^2,w=0",
+      "gauss_bonnet_scalar": "L_GB=12/r^3*((F-1)*(r*F''+2*F')+r*(F')^2)",
+      "independent_curvature_formula": "symbolically checked against the exact Boulware-Deser profile",
+      "rust_test_authored": "corrected_time_sector_current_satisfies_b_d_source_balance",
+      "rust_test_executed": false
     },
-    "claim_ceiling": "This is a consequence of a specific EGB field-equation combination. Constancy alone does not establish the remaining field equations."
+    "implementation": {
+      "rust_current_api": "time_sector_radial_flux(sample,alpha)",
+      "source_api": "time_sector_current_source(sample,alpha,L_GB)",
+      "reconstruction_api": "reconstruct_b_prime_from_time_flux(sample,alpha,local_P_t)",
+      "rust_tests_authored": 4,
+      "rust_tests_executed": false,
+      "sympy_identity_checked_in_development_session": true
+    },
+    "claim_ceiling": "A source-balance identity and asymptotic endpoint, not a finite-alpha conserved charge. It does not permit the previous dual-conserved-flux reduction."
   }
 }
