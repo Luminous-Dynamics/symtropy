@@ -4,7 +4,7 @@ Standalone Rust tools for synthetic-first HAPS fleet reliability and service-con
 
 ## Static common-cause reliability
 
-`cargo run --locked --manifest-path tools/haps-fleet-reliability/Cargo.toml -- <case.json>`
+`cargo run --locked --manifest-path tools/haps-fleet-reliability/Cargo.toml --bin haps-fleet-reliability -- <case.json>`
 
 Exact Bernoulli enumeration of independent platform states, common-cause events and shared dependencies. It is static probability arithmetic, not a semi-Markov model.
 
