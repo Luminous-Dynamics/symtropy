@@ -158,25 +158,6 @@
       ]
     },
     {
-      "case_id": "AKRIBEIA-ROTATING-HIGHER-CURVATURE-MATCHED-001",
-      "status": "not_yet_matched",
-      "reference_paper": "Agurto-Sepulveda et al., Phys. Rev. D accepted 2026-11-12",
-      "doi": "10.1103/3kz2-6dvv",
-      "preprint": "arXiv:2607.07418",
-      "data_status": "inspect full article and supplement; select an action, dimension and branch with reference data",
-      "required_before_comparison": [
-        "same action and coupling normalization",
-        "same spacetime dimension",
-        "same symmetry ansatz",
-        "same chart and gauge",
-        "same boundary conditions",
-        "same residual norm and domain"
-      ],
-      "purpose": [
-        "neural discovery plus pseudospectral refinement methodology comparator"
-      ]
-    },
-    {
       "case_id": "DCS-SGB-NEAR-EXTREMAL-EFT-MATCHED-001",
       "status": "reference_data_required",
       "reference_paper": "Lam, Horowitz and Yunes, Phys. Rev. D 114, 104044 (2026)",
@@ -199,6 +180,85 @@
       "purpose": [
         "near-extremal regularity and EFT validity methodology comparator"
       ]
+    },
+    {
+      "case_id": "AKRIBEIA-5D-EGB-EQUAL-SPIN-001",
+      "status": "reference_method_pinned_data_reproduction_pending",
+      "theory_id": "5d_einstein_gauss_bonnet_lovelock",
+      "spacetime_dimension": 5,
+      "symmetry": "stationary_axisymmetric_equal_angular_momenta_cohomogeneity_one",
+      "reference_paper": "Agurto-Sepulveda et al., Neural-spectral discovery of rotating black holes beyond general relativity, PRD accepted 2026-11-12",
+      "doi": "10.1103/3kz2-6dvv",
+      "preprint": "arXiv:2607.07418",
+      "reference_setup": {
+        "horizon_radius": "1 (paper normalization)",
+        "horizon_angular_velocity": "0.33 (paper normalization)",
+        "gauss_bonnet_coupling_range": "alpha in [0,3] (paper convention; exact action normalization must be copied from paper before comparison)",
+        "branch_data": "full article and supplementary tables must be extracted before numerical reproduction"
+      },
+      "published_discovery_pipeline": {
+        "neural_field": "physics-informed continuous field trained over the coupling parameter",
+        "architecture": "3 hidden layers x 20 neurons in the reported 5D EGB example",
+        "optimization": "Adam with learning-rate decay followed by L-BFGS",
+        "reported_training_steps": "10^4 to 10^5",
+        "reported_pre_refinement_equation_residual_order": "approximately 1e-3",
+        "refinement": "Chebyshev pseudo-spectral Gauss-Newton with extended precision",
+        "refinement_precision_digits": 300,
+        "reported_gr_limit_relative_L2_error": "approximately 1e-160 for the Myers-Perry limit"
+      },
+      "matching_requirements": [
+        "same 5D EGB action and coupling normalization",
+        "same equal-angular-momenta cohomogeneity-one ansatz",
+        "same horizon and asymptotic boundary conditions",
+        "same dimensionless parameter conventions",
+        "same radial compactification and residual norm",
+        "same parameter points and branch identity"
+      ],
+      "metrics_to_reproduce": [
+        "neural discovery convergence over frozen seeds",
+        "pre-refinement residual and training cost",
+        "post-spectral-refinement equation residual",
+        "GR-limit relative L2 error",
+        "branch continuation and failed-start rate",
+        "runtime, memory and precision"
+      ],
+      "qualification_extension": "Symtropy should additionally report independently enclosed full-domain residual/tail bounds and, only if operator bounds are proved, a radii-polynomial existence/uniqueness result. Do not assume the source paper's 'certified' continuous neural-field terminology means an interval/radii-polynomial theorem.",
+      "data_status": "reported methodology and setup pinned; exact coefficient arrays and supplementary numerical values must be extracted before a matched run",
+      "purpose": "first fair discovery/refinement comparison to Akribeia on a same-dimension, same-action 5D EGB branch"
+    },
+    {
+      "case_id": "AKRIBEIA-7D-CUBIC-EQUAL-SPIN-001",
+      "status": "reference_method_pinned_data_reproduction_pending",
+      "theory_id": "7d_cubic_lovelock_higher_curvature",
+      "spacetime_dimension": 7,
+      "symmetry": "stationary_axisymmetric_equal_angular_momenta_cohomogeneity_one",
+      "reference_paper": "Agurto-Sepulveda et al., Neural-spectral discovery of rotating black holes beyond general relativity, PRD accepted 2026-11-12",
+      "doi": "10.1103/3kz2-6dvv",
+      "preprint": "arXiv:2607.07418",
+      "reference_setup": {
+        "quadratic_coupling": "alpha=0.5 (paper convention)",
+        "cubic_coupling_range": "beta in [0,0.5] (paper convention)",
+        "branch_data": "full article and supplementary tables must be extracted before numerical reproduction"
+      },
+      "published_discovery_pipeline": {
+        "neural_field": "physics-informed continuous field trained over the coupling parameter",
+        "architecture": "4 hidden layers x 64 neurons in the reported 7D cubic Lovelock example",
+        "optimization": "Adam with learning-rate decay followed by L-BFGS",
+        "reported_training_steps": "10^4 to 10^5",
+        "reported_pre_refinement_equation_residual_order": "approximately 1e-3",
+        "refinement": "Chebyshev pseudo-spectral Gauss-Newton with extended precision",
+        "refinement_precision_digits": 300
+      },
+      "matching_requirements": [
+        "same 7D cubic Lovelock action and coupling normalization",
+        "same equal-angular-momenta cohomogeneity-one ansatz",
+        "same horizon and asymptotic boundary conditions",
+        "same dimensionless parameter conventions",
+        "same radial compactification and residual norm",
+        "same parameter points and branch identity"
+      ],
+      "data_status": "reported methodology and coupling range pinned; exact source branch values must be extracted before a matched run",
+      "purpose": "second-stage scaling comparison after the 5D EGB control"
     }
   ],
   "fairness_rules": [
@@ -207,6 +267,9 @@
     "A low collocation residual is not a full-domain enclosure.",
     "A full-domain residual enclosure is not by itself an existence theorem.",
     "A local existence theorem does not establish EFT validity or observational admissibility.",
-    "Inconclusive is not refuted and not verified."
+    "Inconclusive is not refuted and not verified.",
+    "Akribeia's 5D/7D Lovelock cases are not directly comparable to 4D pure-Weyl cases; compare only after action/dimension/ansatz/gauge/boundary matching.",
+    "Akribeia's reported ~1e-160 relative L2 error is a Myers-Perry GR-limit result at 300-digit precision, not a universal error on all higher-curvature branches.",
+    "Akribeia's continuous neural-field certification and quantified residuals are not to be equated automatically with an interval/radii-polynomial existence theorem."
   ]
 }
