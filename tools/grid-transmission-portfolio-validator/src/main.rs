@@ -215,6 +215,36 @@ fn unit_supports_service(kind: &str, unit: &str) -> bool {
     }
 }
 
+fn transition_pair_is_compatible(technology: &str, input: &str, output: &str) -> bool {
+    match technology {
+        "transformer" => input == "electricity_ac" && output == "electricity_ac",
+        "ac_dc_converter" | "rectifier" => {
+            input == "electricity_ac" && output == "electricity_dc"
+        }
+        "dc_ac_converter" | "inverter" => {
+            input == "electricity_dc" && output == "electricity_ac"
+        }
+        "electrolyser" => {
+            matches!(input, "electricity_ac" | "electricity_dc") && output == "hydrogen"
+        }
+        "fuel_cell" => input == "hydrogen" && output == "electricity_dc",
+        "compression" | "purification" | "hydrogen_storage" => {
+            input == "hydrogen" && output == "hydrogen"
+        }
+        "ammonia_synthesis" => input == "hydrogen" && output == "ammonia",
+        "ammonia_cracker" => input == "ammonia" && output == "hydrogen",
+        "heat_pump" => {
+            matches!(input, "electricity_ac" | "electricity_dc") && output == "thermal"
+        }
+        "heat_exchanger" => input == "thermal" && output == "thermal",
+        "power_beam_receiver" => {
+            matches!(input, "rf" | "optical") && output == "electricity_dc"
+        }
+        "other" => true,
+        _ => false,
+    }
+}
+
 fn validate_portfolio(value: &Value) -> Report {
     let mut violations = Vec::new();
     let root = match value.as_object() {
@@ -862,6 +892,18 @@ fn validate_portfolio(value: &Value) -> Report {
                             let output = nonempty_string(transition.get("output_carrier"))
                                 .unwrap_or_default()
                                 .to_owned();
+                            let technology = nonempty_string(transition.get("technology"))
+                                .unwrap_or("invalid");
+                            if !transition_pair_is_compatible(technology, &input, &output) {
+                                violation(
+                                    &mut violations,
+                                    "transition_technology_carrier_mismatch",
+                                    format!("{transition_path}.technology"),
+                                    format!(
+                                        "Transition technology '{technology}' cannot represent '{input}' -> '{output}' in this v0.1 contract."
+                                    ),
+                                );
+                            }
                             let state = nonempty_string(transition.get("evidence_state"))
                                 .unwrap_or("invalid");
                             let evidence_ids =
@@ -1014,6 +1056,7 @@ fn main() -> ExitCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     const FIXTURE: &str = include_str!(
         "../../../docs/research/grid-transmission-portfolio/data/synthetic-route-portfolio-v0.1.json"
@@ -1071,6 +1114,32 @@ mod tests {
             json!("electricity_ac");
         let report = validate_portfolio(&value);
         assert!(has_code(&report, "broken_carrier_transition_chain"));
+    }
+
+    #[test]
+    fn rejects_converter_with_impossible_carrier_pair() {
+        let mut value = fixture();
+        value["route"]["designs"][1]["transitions"][0]["technology"] =
+            json!("electrolyser");
+        let report = validate_portfolio(&value);
+        assert!(has_code(
+            &report,
+            "transition_technology_carrier_mismatch"
+        ));
+    }
+
+    #[test]
+    fn accepts_electrolyser_only_for_electricity_to_hydrogen() {
+        assert!(transition_pair_is_compatible(
+            "electrolyser",
+            "electricity_ac",
+            "hydrogen"
+        ));
+        assert!(!transition_pair_is_compatible(
+            "electrolyser",
+            "hydrogen",
+            "electricity_ac"
+        ));
     }
 
     #[test]
