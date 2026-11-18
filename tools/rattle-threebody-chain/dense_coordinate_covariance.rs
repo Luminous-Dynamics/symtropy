@@ -614,8 +614,13 @@ mod tests {
 
             for _step in 0..32 {
                 let reference = cartesian.step(cartesian_state, dt, options).unwrap();
-                let (dense_q_next, dense_v_next, dense_position_lambda, dense_velocity_lambda, residuals) =
-                    dense_coordinate_rattle_step(
+                let (
+                    dense_q_next,
+                    dense_v_next,
+                    dense_position_lambda,
+                    dense_velocity_lambda,
+                    residuals,
+                ) = dense_coordinate_rattle_step(
                         &basis,
                         &inverse,
                         masses,
@@ -637,7 +642,8 @@ mod tests {
                     maximum_velocity_multiplier_error = maximum_velocity_multiplier_error.max(
                         (dense_velocity_lambda[edge] - reference.velocity_multipliers[edge]).abs(),
                     );
-                    maximum_constraint_residual = maximum_constraint_residual.max(residuals[edge].abs());
+                    maximum_constraint_residual =
+                        maximum_constraint_residual.max(residuals[edge].abs());
                 }
 
                 let endpoint_jacobian = constraint_jacobian_at(&dense_q_next);
@@ -651,8 +657,14 @@ mod tests {
                 cartesian_state = reference.after;
             }
 
-            assert!(maximum_position_error <= 2.0e-7, "scale={scale}, position={maximum_position_error:e}");
-            assert!(maximum_velocity_error <= 2.0e-7, "scale={scale}, velocity={maximum_velocity_error:e}");
+            assert!(
+                maximum_position_error <= 2.0e-7,
+                "scale={scale}, position={maximum_position_error:e}"
+            );
+            assert!(
+                maximum_velocity_error <= 2.0e-7,
+                "scale={scale}, velocity={maximum_velocity_error:e}"
+            );
             assert!(
                 maximum_position_multiplier_error <= 2.0e-7,
                 "scale={scale}, position multiplier={maximum_position_multiplier_error:e}"
