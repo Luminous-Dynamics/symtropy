@@ -233,6 +233,46 @@ pub fn static_spherical_bach(
     })
 }
 
+/// Evaluate the published factorization of the static B1+B2 Bach projection.
+///
+/// On the static domain B(r)>0, r>0:
+/// B1+B2 = -B(r) * (r*B''''(r) + 4*B'''(r)) / (3r).
+///
+/// This is a reduced-equation oracle, independent of the full component
+/// assembly in `static_spherical_bach`. The order-four jet is sufficient.
+pub fn static_spherical_bach_sum_factorized(
+    radius: f64,
+    lapse: TaylorJet4Order5,
+) -> Result<f64, StaticSphericalBachError> {
+    if !radius.is_finite() || radius <= 0.0 {
+        return Err(StaticSphericalBachError::InvalidRadius(radius));
+    }
+    if lapse.order() < 4 {
+        return Err(StaticSphericalBachError::InsufficientDerivativeOrder {
+            required: 4,
+            actual: lapse.order(),
+        });
+    }
+    lapse.require_coordinate_center(1, radius)?;
+    let b0 = lapse.value();
+    if !b0.is_finite() || b0 <= 0.0 {
+        return Err(StaticSphericalBachError::OutsideStaticRegion {
+            radius,
+            lapse: b0,
+        });
+    }
+
+    let b3 = lapse.partial(1)?.partial(1)?.partial(1)?;
+    let b4 = b3.partial(1)?;
+    let residual = -b0 * (radius * b4.value() + 4.0 * b3.value()) / (3.0 * radius);
+    if !residual.is_finite() {
+        return Err(StaticSphericalBachError::NonFiniteResult(
+            "factorized B1_plus_B2",
+        ));
+    }
+    Ok(residual)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -319,6 +359,33 @@ mod tests {
         close(at3.radial_covariant_divergence, 0.0, 2e-12);
         close(at6.radial_covariant_divergence, 0.0, 2e-12);
         close(at3.b1_minus_b2 / at6.b1_minus_b2, 16.0, 2e-12);
+    }
+
+    #[test]
+    fn factorized_sum_matches_full_tensor_projection_for_generic_lapses() {
+        for radius in [1.75, 2.0, 2.25, 2.5] {
+            let jet = polynomial_jet(
+                radius,
+                &[1.4, 0.03, -0.002, 0.0001, -0.00001, 0.000001],
+            );
+            let full = static_spherical_bach(radius, jet).unwrap();
+            let factorized = static_spherical_bach_sum_factorized(radius, jet).unwrap();
+            close(factorized, full.b1_plus_b2, 3e-10);
+        }
+    }
+
+    #[test]
+    fn factorized_sum_vanishes_for_on_and_off_shell_four_term_families() {
+        for c_constant in [0.7, 1.1] {
+            for radius in [3.0, 6.0] {
+                let jet = mk_metric_jet(radius, -1.7, c_constant, 0.1, -0.01);
+                close(
+                    static_spherical_bach_sum_factorized(radius, jet).unwrap(),
+                    0.0,
+                    2e-12,
+                );
+            }
+        }
     }
 
     #[test]
