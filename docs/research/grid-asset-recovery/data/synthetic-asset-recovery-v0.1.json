@@ -131,38 +131,65 @@
         "logisticsRouteId": "ROUTE-CENTRAL-NORTH",
         "transportMassKg": 90000,
         "alternativeFirmCapacityMw": 40,
-        "claimedRestorationHours": 36,
-        "expectedUnservedEnergyMwh": 2880,
+        "claimedRestorationHours": 32,
+        "expectedUnservedEnergyMwh": 2560,
         "tasks": [
           {
             "stage": "detect_and_isolate",
-            "durationHours": 2
+            "durationHours": 2,
+            "taskId": "detect",
+            "dependsOn": []
           },
           {
             "stage": "diagnose",
-            "durationHours": 3
+            "durationHours": 3,
+            "taskId": "diagnose",
+            "dependsOn": [
+              "detect"
+            ]
           },
           {
             "stage": "source_part",
-            "durationHours": 1
+            "durationHours": 1,
+            "taskId": "source-part",
+            "dependsOn": [
+              "diagnose"
+            ]
           },
           {
             "stage": "transport",
-            "durationHours": 12
+            "durationHours": 12,
+            "taskId": "transport",
+            "dependsOn": [
+              "source-part"
+            ]
           },
           {
             "stage": "crew_mobilise",
-            "durationHours": 4
+            "durationHours": 4,
+            "taskId": "crew-mobilise",
+            "dependsOn": [
+              "diagnose"
+            ]
           },
           {
             "stage": "repair_or_replace",
             "durationHours": 10,
             "resourceId": "CREW-HV-TX",
-            "resourceUnits": 1
+            "resourceUnits": 1,
+            "taskId": "repair",
+            "dependsOn": [
+              "transport",
+              "crew-mobilise"
+            ]
           },
           {
             "stage": "test_and_commission",
-            "durationHours": 4
+            "durationHours": 4,
+            "taskId": "test-commission",
+            "dependsOn": [
+              "repair"
+            ]
           }
         ]
       }
@@ -181,34 +208,57 @@
           "partId": "SPARE-A"
         },
         "alternativeFirmCapacityMw": 20,
-        "claimedRestorationHours": 1223,
-        "expectedUnservedEnergyMwh": 61150,
+        "claimedRestorationHours": 1219,
+        "expectedUnservedEnergyMwh": 60950,
         "tasks": [
           {
             "stage": "detect_and_isolate",
-            "durationHours": 2
+            "durationHours": 2,
+            "taskId": "detect",
+            "dependsOn": []
           },
           {
             "stage": "diagnose",
-            "durationHours": 3
+            "durationHours": 3,
+            "taskId": "diagnose",
+            "dependsOn": [
+              "detect"
+            ]
           },
           {
             "stage": "source_part",
-            "durationHours": 1200
+            "durationHours": 1200,
+            "taskId": "source-part",
+            "dependsOn": [
+              "diagnose"
+            ]
           },
           {
             "stage": "crew_mobilise",
-            "durationHours": 4
+            "durationHours": 4,
+            "taskId": "crew-mobilise",
+            "dependsOn": [
+              "diagnose"
+            ]
           },
           {
             "stage": "repair_or_replace",
             "durationHours": 10,
             "resourceId": "CREW-HV-TX",
-            "resourceUnits": 1
+            "resourceUnits": 1,
+            "taskId": "repair",
+            "dependsOn": [
+              "source-part",
+              "crew-mobilise"
+            ]
           },
           {
             "stage": "test_and_commission",
-            "durationHours": 4
+            "durationHours": 4,
+            "taskId": "test-commission",
+            "dependsOn": [
+              "repair"
+            ]
           }
         ]
       }
@@ -230,38 +280,65 @@
         "logisticsRouteId": "ROUTE-EAST-LOCAL",
         "transportMassKg": 18000,
         "alternativeFirmCapacityMw": 10,
-        "claimedRestorationHours": 26,
-        "expectedUnservedEnergyMwh": 650,
+        "claimedRestorationHours": 23,
+        "expectedUnservedEnergyMwh": 575,
         "tasks": [
           {
             "stage": "detect_and_isolate",
-            "durationHours": 2
+            "durationHours": 2,
+            "taskId": "detect",
+            "dependsOn": []
           },
           {
             "stage": "diagnose",
-            "durationHours": 3
+            "durationHours": 3,
+            "taskId": "diagnose",
+            "dependsOn": [
+              "detect"
+            ]
           },
           {
             "stage": "source_part",
-            "durationHours": 1
+            "durationHours": 1,
+            "taskId": "source-part",
+            "dependsOn": [
+              "diagnose"
+            ]
           },
           {
             "stage": "transport",
-            "durationHours": 2
+            "durationHours": 2,
+            "taskId": "transport",
+            "dependsOn": [
+              "source-part"
+            ]
           },
           {
             "stage": "crew_mobilise",
-            "durationHours": 4
+            "durationHours": 4,
+            "taskId": "crew-mobilise",
+            "dependsOn": [
+              "diagnose"
+            ]
           },
           {
             "stage": "repair_or_replace",
             "durationHours": 10,
             "resourceId": "CREW-HV-TX",
-            "resourceUnits": 1
+            "resourceUnits": 1,
+            "taskId": "repair",
+            "dependsOn": [
+              "transport",
+              "crew-mobilise"
+            ]
           },
           {
             "stage": "test_and_commission",
-            "durationHours": 4
+            "durationHours": 4,
+            "taskId": "test-commission",
+            "dependsOn": [
+              "repair"
+            ]
           }
         ]
       }
