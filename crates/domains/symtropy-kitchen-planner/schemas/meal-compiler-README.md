@@ -39,6 +39,12 @@ It does **not** mean:
 
 The next independent stages remain: Mycelix read-only lot resolution; Symtropy scheduling and exact module admission; independent physical safety controls; measured material/energy/water accounting; food-quality assessment and household acceptance.
 
+## Cross-repository wire conformance
+
+The focused harness freezes a real synthetic `MealProposalV1` fixture sourced from Symthaea PR #12715. The fixture records the upstream production-source commit, schema ID, schema blob SHA and fixture-bundle blob SHA. Symtropy deserializes that proposal into its local versioned mirror without a runtime dependency on the Symthaea crate.
+
+This is an explicit drift detector, not a claim that the two repositories are automatically synchronized. Any upstream schema or enum change requires a reviewed fixture refresh and a new exact-head conformance run. The test asserts that the unknown beans quantity and planning-blocker uncertainty remain unknown, the lot reference remains absent, and the proposal remains in the `proposed` state rather than silently becoming accepted.
+
 ## Conformance
 
 Run the exact-head focused workflow:
