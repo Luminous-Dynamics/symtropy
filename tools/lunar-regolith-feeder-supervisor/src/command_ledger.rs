@@ -95,6 +95,7 @@ pub struct IndependentActuatorReadback {
     pub device_id: String,
     pub calibration_record_id: String,
     pub observed_at_utc: String,
+    pub readback_artifact_sha256: String,
     pub fresh: bool,
     pub calibration_current: bool,
     pub independent: bool,
@@ -113,6 +114,14 @@ impl IndependentActuatorReadback {
             || self.observed_at_utc.trim().is_empty()
         {
             return Err("readback device, calibration and timestamp identities are required".to_owned());
+        }
+        if self.readback_artifact_sha256.len() != 64
+            || !self
+                .readback_artifact_sha256
+                .bytes()
+                .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+        {
+            return Err("readback artifact must have a lowercase SHA-256 digest".to_owned());
         }
         envelope.validate_setpoints(&self.setpoints)
     }
@@ -186,10 +195,10 @@ pub enum LedgerResolution {
     ReconciledObservedState,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct CommandLedger {
-    pub envelope: CommissioningEnvelope,
-    pub state: LedgerState,
+    envelope: CommissioningEnvelope,
+    state: LedgerState,
     next_sequence: u64,
 }
 
@@ -421,6 +430,14 @@ impl CommandLedger {
         Ok(LedgerResolution::ReconciledObservedState)
     }
 
+    pub fn state(&self) -> &LedgerState {
+        &self.state
+    }
+
+    pub fn envelope(&self) -> &CommissioningEnvelope {
+        &self.envelope
+    }
+
     pub fn next_sequence(&self) -> u64 {
         self.next_sequence
     }
@@ -456,6 +473,7 @@ mod tests {
             device_id: "SYNTHETIC-ACTUATOR".to_owned(),
             calibration_record_id: "SYNTHETIC-CALIBRATION".to_owned(),
             observed_at_utc: "2026-11-18T10:00:00Z".to_owned(),
+            readback_artifact_sha256: "a".repeat(64),
             fresh: true,
             calibration_current: true,
             independent: true,
