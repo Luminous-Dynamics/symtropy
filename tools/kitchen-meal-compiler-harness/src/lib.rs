@@ -169,6 +169,7 @@ mod tests {
             schema_version: 1,
             request_id: "compile:onion-side:1".to_owned(),
             compiled_at_epoch_ms: 1_750_000_000_000,
+            as_of_time_evidence_ref: "clock:fixture-as-of-v1".to_owned(),
             proposal_sha256: proposal_sha256.clone(),
             proposal,
             acceptance: ProposalAcceptanceV1 {
@@ -262,6 +263,87 @@ mod tests {
         let report = meal_compiler::compile_meal(&request);
         assert_eq!(report.disposition, MealCompilationDispositionV1::Indeterminate);
         assert!(report.recipe_graph.is_none());
+    }
+
+    #[test]
+    fn missing_as_of_time_evidence_keeps_freshness_indeterminate() {
+        let mut request = valid_request();
+        request.as_of_time_evidence_ref.clear();
+        let report = meal_compiler::compile_meal(&request);
+        assert_eq!(report.disposition, MealCompilationDispositionV1::Indeterminate);
+        assert!(report.issues.iter().any(|issue| {
+            issue.code == MealCompilationIssueCodeV1::MissingAsOfTimeEvidence
+        }));
+    }
+
+    #[test]
+    fn generic_ingredient_price_cannot_be_promoted_to_market_price() {
+        let mut request = valid_request();
+        request.proposal.ingredients[0].fact_refs.push("price:onion".to_owned());
+        request.proposal.facts.push(CulinaryFactV1 {
+            fact_id: "price:onion".to_owned(),
+            ingredient_id: Some("onion".to_owned()),
+            kind: CulinaryFactKindV1::Price,
+            scope: FactScopeV1::GenericIngredient,
+            value: serde_json::json!({"minor_units": 250}),
+            unit: Some("ZAR/kg".to_owned()),
+            basis: Some("retail-pack-normalized".to_owned()),
+            source_ref: "source:generic-catalogue".to_owned(),
+            source_record_id: "record:onion".to_owned(),
+            source_version: "revision:1".to_owned(),
+            evidence_class: ProposalEvidenceClassV1::Published,
+            observed_at_epoch_ms: 1_749_000_000_000,
+            valid_until_epoch_ms: Some(1_751_000_000_000),
+            market_ref: Some("market:johannesburg".to_owned()),
+            license_ref: None,
+        });
+        request.proposal_sha256 = digest(&request.proposal);
+        request.acceptance.proposal_sha256 = request.proposal_sha256.clone();
+        let report = meal_compiler::compile_meal(&request);
+        assert_eq!(report.disposition, MealCompilationDispositionV1::Blocked);
+        assert!(report.issues.iter().any(|issue| {
+            issue.code == MealCompilationIssueCodeV1::InvalidPriceFactScope
+        }));
+    }
+
+    #[test]
+    fn compilation_report_preserves_time_source_lot_and_market_references() {
+        let mut request = valid_request();
+        request.proposal.ingredients[0].product_lot_ref =
+            Some("mycelix:food-lot:onion-lot-001".to_owned());
+        request.proposal.ingredients[0].fact_refs.push("price:onion".to_owned());
+        request.proposal.facts.push(CulinaryFactV1 {
+            fact_id: "price:onion".to_owned(),
+            ingredient_id: Some("onion".to_owned()),
+            kind: CulinaryFactKindV1::Price,
+            scope: FactScopeV1::ProductSku,
+            value: serde_json::json!({"minor_units": 250}),
+            unit: Some("ZAR/kg".to_owned()),
+            basis: Some("retail-pack-normalized".to_owned()),
+            source_ref: "source:retailer".to_owned(),
+            source_record_id: "record:price-onion".to_owned(),
+            source_version: "revision:4".to_owned(),
+            evidence_class: ProposalEvidenceClassV1::Published,
+            observed_at_epoch_ms: 1_749_000_000_000,
+            valid_until_epoch_ms: Some(1_751_000_000_000),
+            market_ref: Some("market:johannesburg".to_owned()),
+            license_ref: Some("license:catalogue-v1".to_owned()),
+        });
+        request.proposal_sha256 = digest(&request.proposal);
+        request.acceptance.proposal_sha256 = request.proposal_sha256.clone();
+        let report = meal_compiler::compile_meal(&request);
+        assert_eq!(report.disposition, MealCompilationDispositionV1::Compiled, "{:?}", report.issues);
+        for reference in [
+            "clock:fixture-as-of-v1",
+            "mycelix:food-lot:onion-lot-001",
+            "source:retailer",
+            "record:price-onion",
+            "revision:4",
+            "market:johannesburg",
+            "license:catalogue-v1",
+        ] {
+            assert!(report.resolution_refs.iter().any(|item| item == reference), "missing {reference}");
+        }
     }
 
     #[test]
