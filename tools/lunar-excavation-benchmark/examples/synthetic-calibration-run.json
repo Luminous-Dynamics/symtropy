@@ -255,14 +255,14 @@
     {
       "artifact_id": "force-trace-fixture",
       "role": "raw_sensor_trace",
-      "path": "examples/synthetic-force-trace.csv",
+      "path": "synthetic-force-trace.csv",
       "media_type": "text/csv",
       "sha256": "706b23281d0b554eef6c6edc14a72707965bdd57692d4e8478f14b28de910bbc"
     },
     {
       "artifact_id": "model-config-fixture",
       "role": "model_configuration",
-      "path": "examples/synthetic-model-config.json",
+      "path": "synthetic-model-config.json",
       "media_type": "application/json",
       "sha256": "a56e6313d1891ac46bbd6f5075fbeb768d37cdb42c4a930d4504c7d6352e2324"
     },
