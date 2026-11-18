@@ -74,6 +74,12 @@ jobs:
       if: runner.os == 'Linux'
       run: bash scripts/check-licenses.sh
 
+    # This guard validates only the committed synthetic flow corpus and DOE manifest.
+    # The reusable validator checks run/manifest joins, provenance, interval shape and digests.
+    - name: Lunar Granular Flow Benchmark Fixture (Linux)
+      if: runner.os == 'Linux'
+      run: bash scripts/check-lunar-granular-flow-fixture.sh
+
     - name: Run Clippy
       run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
