@@ -7,7 +7,7 @@ use human_multirate_cosim::{
     simulate, simulate_adaptive_conservative_flux,
     experiment_design::{
         ExperimentDesignScenario, ForcingSegment, InputProfile, ModelCandidate,
-        evaluate_input_tournament,
+        enumerate_single_node_pulses, evaluate_input_tournament,
     },
     sensor_design::{
         PlacementCriterion, SensorCandidate, SensorDesignScenario,
@@ -383,33 +383,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         max_abs_forcing: 1.0,
         input_energy_budget: 0.5,
     };
-    let input_profiles = [
-        InputProfile {
-            id: 1,
-            label: "passive_zero_input",
-            segments: vec![ForcingSegment {
-                start_time: 0.0,
-                end_time: 2.0,
-                forcing: vec![0.0, 0.0, 0.0],
-            }],
-        },
-        InputProfile {
-            id: 2,
-            label: "bounded_node_zero_pulse",
-            segments: vec![
-                ForcingSegment {
-                    start_time: 0.0,
-                    end_time: 0.5,
-                    forcing: vec![1.0, 0.0, 0.0],
-                },
-                ForcingSegment {
-                    start_time: 0.5,
-                    end_time: 2.0,
-                    forcing: vec![0.0, 0.0, 0.0],
-                },
-            ],
-        },
-    ];
+    let passive_profile = InputProfile {
+        id: 1,
+        label: "passive_zero_input",
+        segments: vec![ForcingSegment {
+            start_time: 0.0,
+            end_time: 2.0,
+            forcing: vec![0.0, 0.0, 0.0],
+        }],
+    };
+    let pulse_catalogue = enumerate_single_node_pulses(
+        &excitation_scenario,
+        &[0, 1, 2],
+        &[-1.0, -0.5, 0.5, 1.0],
+        &[0.25, 0.5, 1.0],
+        100,
+    )?;
+    let mut input_profiles = vec![passive_profile];
+    input_profiles.extend(pulse_catalogue.profiles.iter().cloned());
     let excitation_tournament =
         evaluate_input_tournament(&excitation_scenario, &input_profiles, &[30])?;
     for score in &excitation_tournament.scores {
@@ -422,6 +413,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             score.minimum_pairwise_gaussian_kl,
             score.mean_pairwise_gaussian_kl,
             score.worst_case_indistinguishable,
+        );
+    }
+    println!(
+        "pulse_catalogue,feasible_profiles,{},rejected_profiles,{}",
+        pulse_catalogue.profiles.len(),
+        pulse_catalogue.rejected.len(),
+    );
+    for rejected in &pulse_catalogue.rejected {
+        println!(
+            "pulse_rejected,{},{},{:.6},{:.6},{:?}",
+            rejected.profile_id,
+            rejected.node,
+            rejected.amplitude,
+            rejected.duration,
+            rejected.reason,
         );
     }
 
