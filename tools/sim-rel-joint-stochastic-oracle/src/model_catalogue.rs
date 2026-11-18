@@ -486,3 +486,169 @@ impl PublicModelCatalogue {
         Ok(format!("sha256:{digest:x}"))
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::episode::{
+        PublicAction, PublicActionDescription, PublicHypothesis, PublicObservationDescription,
+        PublicProbability,
+    };
+
+    fn tiny_kernel() -> JointKernel {
+        JointKernel {
+            hypothesis_ids: vec!["candidate-a".to_owned(), "candidate-b".to_owned()],
+            physical_state_count: 1,
+            sensor_state_count: 1,
+            action_ids: vec!["measure".to_owned()],
+            observation_ids: vec!["zero".to_owned(), "one".to_owned()],
+            action_costs: vec![2],
+            initial_belief: vec![
+                JointMass {
+                    hypothesis: 0,
+                    physical_state: 0,
+                    sensor_state: 0,
+                    mass: Rational::new(1, 2).unwrap(),
+                },
+                JointMass {
+                    hypothesis: 1,
+                    physical_state: 0,
+                    sensor_state: 0,
+                    mass: Rational::new(1, 2).unwrap(),
+                },
+            ],
+            rows: vec![
+                KernelRow {
+                    hypothesis: 0,
+                    physical_state: 0,
+                    sensor_state: 0,
+                    action: 0,
+                    outcomes: vec![JointOutcome {
+                        probability: Rational::one(),
+                        next_physical_state: 0,
+                        next_sensor_state: 0,
+                        observation: Some(0),
+                    }],
+                },
+                KernelRow {
+                    hypothesis: 1,
+                    physical_state: 0,
+                    sensor_state: 0,
+                    action: 0,
+                    outcomes: vec![JointOutcome {
+                        probability: Rational::one(),
+                        next_physical_state: 0,
+                        next_sensor_state: 0,
+                        observation: Some(1),
+                    }],
+                },
+            ],
+        }
+    }
+
+    fn public_hypotheses() -> Vec<PublicHypothesis> {
+        vec![
+            PublicHypothesis {
+                hypothesis_id: "candidate-a".to_owned(),
+                structural_family: "test".to_owned(),
+                description: "Predicts zero.".to_owned(),
+                prior_probability: PublicProbability::new(1, 2).unwrap(),
+            },
+            PublicHypothesis {
+                hypothesis_id: "candidate-b".to_owned(),
+                structural_family: "test".to_owned(),
+                description: "Predicts one.".to_owned(),
+                prior_probability: PublicProbability::new(1, 2).unwrap(),
+            },
+        ]
+    }
+
+    fn public_actions() -> Vec<PublicAction> {
+        vec![PublicAction {
+            action_id: "measure".to_owned(),
+            description: "Measure the signal.".to_owned(),
+            target: "signal".to_owned(),
+            cost_units: 2,
+        }]
+    }
+
+    #[test]
+    fn public_probability_round_trips_exact_u128_values_without_float_conversion() {
+        let value = PublicProbability::new(u128::MAX - 1, u128::MAX).unwrap();
+        assert_eq!(value.to_rational().unwrap().numerator(), u128::MAX - 1);
+        assert_eq!(value.to_rational().unwrap().denominator(), u128::MAX);
+        assert!(PublicProbability {
+            numerator: "02".to_owned(),
+            denominator: "04".to_owned(),
+        }
+        .to_rational()
+        .is_err());
+    }
+
+    #[test]
+    fn public_catalogue_reconstructs_the_exact_candidate_kernel_and_task_prior() {
+        let owner = tiny_kernel();
+        let ids = owner.hypothesis_ids.clone();
+        let catalogue = PublicModelCatalogue::from_kernel(&owner, &ids).unwrap();
+        catalogue.verify_sha256().unwrap();
+        let reconstructed = catalogue
+            .to_joint_kernel(&public_hypotheses(), &public_actions())
+            .unwrap();
+        assert_eq!(reconstructed.hypothesis_ids, owner.hypothesis_ids);
+        assert_eq!(reconstructed.action_costs, vec![2]);
+        assert_eq!(reconstructed.rows, owner.rows);
+        assert_eq!(reconstructed.initial_belief, owner.initial_belief);
+    }
+
+    #[test]
+    fn public_catalogue_hash_detects_modified_candidate_transition() {
+        let owner = tiny_kernel();
+        let ids = owner.hypothesis_ids.clone();
+        let mut catalogue = PublicModelCatalogue::from_kernel(&owner, &ids).unwrap();
+        catalogue.candidate_models[0].transition_rows[0].outcomes[0].probability =
+            PublicProbability::new(1, 2).unwrap();
+        assert!(catalogue.verify_sha256().is_err());
+    }
+
+    #[test]
+    fn public_catalogue_is_subset_scoped_and_never_serializes_hidden_candidate() {
+        let owner = tiny_kernel();
+        let ids = vec!["candidate-a".to_owned()];
+        let catalogue = PublicModelCatalogue::from_kernel(&owner, &ids).unwrap();
+        let wire = serde_json::to_string(&catalogue).unwrap();
+        assert!(wire.contains("candidate-a"));
+        assert!(!wire.contains("candidate-b"));
+        assert_eq!(catalogue.candidate_models.len(), 1);
+    }
+
+    #[test]
+    fn task_prior_and_candidate_model_order_must_match() {
+        let owner = tiny_kernel();
+        let ids = owner.hypothesis_ids.clone();
+        let catalogue = PublicModelCatalogue::from_kernel(&owner, &ids).unwrap();
+        let mut hypotheses = public_hypotheses();
+        hypotheses.swap(0, 1);
+        assert!(catalogue.to_joint_kernel(&hypotheses, &public_actions()).is_err());
+    }
+
+    #[test]
+    fn public_catalogue_rejects_incomplete_or_duplicate_transition_rows() {
+        let owner = tiny_kernel();
+        let ids = owner.hypothesis_ids.clone();
+        let mut catalogue = PublicModelCatalogue::from_kernel(&owner, &ids).unwrap();
+        catalogue.candidate_models[0].transition_rows.pop();
+        catalogue.catalogue_sha256 = catalogue.compute_sha256().unwrap();
+        assert!(catalogue.to_joint_kernel(&public_hypotheses(), &public_actions()).is_err());
+    }
+
+    #[test]
+    fn public_catalogue_rejects_candidate_prior_that_does_not_sum_to_one() {
+        let owner = tiny_kernel();
+        let ids = owner.hypothesis_ids.clone();
+        let catalogue = PublicModelCatalogue::from_kernel(&owner, &ids).unwrap();
+        let mut hypotheses = public_hypotheses();
+        hypotheses[0].prior_probability = PublicProbability::new(3, 4).unwrap();
+        assert!(catalogue.to_joint_kernel(&hypotheses, &public_actions()).is_err());
+    }
+}
