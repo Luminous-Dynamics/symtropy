@@ -1,0 +1,132 @@
+{
+  "schema_version": "0.1.0",
+  "analysis_id": "synthetic-lifecycle-cost-fixture-001",
+  "project_context": {
+    "region_profile_id": "north-america",
+    "route_design_id": "synthetic-route-design",
+    "service_boundary_id": "synthetic-net-ac-boundary"
+  },
+  "valuation": {
+    "currency_code": "USD",
+    "price_year": 2026,
+    "price_basis": "real",
+    "tax_treatment": "taxes_separately_reported",
+    "local_currency_description": "Synthetic USD-denominated fixture only."
+  },
+  "study_horizon_years": 30,
+  "discounting": {
+    "annual_rate": 0.05,
+    "rate_basis": "real",
+    "source_or_method": "Synthetic 5% real discount-rate assumption for schema testing only.",
+    "evidence_ids": [
+      "cost-fixture-assumption"
+    ]
+  },
+  "service_denominator": {
+    "metric": "delivered_energy",
+    "value": 1000000,
+    "unit": "MWh",
+    "service_boundary_id": "synthetic-net-ac-boundary",
+    "evaluation_period_years": 30
+  },
+  "local_decision_case": {
+    "currency_code": "USD",
+    "price_year": 2026,
+    "price_basis": "real",
+    "fx_not_required_for_local_decision": true,
+    "local_context_notes": "Synthetic case; not an actual local project estimate."
+  },
+  "global_normalisation": {
+    "included": true,
+    "comparison_currency": "USD",
+    "comparison_price_year": 2026,
+    "fx_basis": "not_applicable",
+    "fx_rate_base_per_local": null,
+    "fx_as_of_date": null,
+    "fx_source_uri": null,
+    "inflation_index_uri": null,
+    "ppp_adjustment": "not_used",
+    "ppp_source_uri": null,
+    "normalisation_notes": "Same-currency synthetic fixture; no FX or PPP adjustment is performed."
+  },
+  "cost_items": [
+    {
+      "cost_item_id": "capex-design",
+      "category": "design_and_engineering",
+      "direction": "cost",
+      "period_year": 0,
+      "amount_minor_units": 1000000,
+      "currency_code": "USD",
+      "local_or_imported": "local",
+      "evidence_class": "analyst_scenario",
+      "evidence_ids": [
+        "cost-fixture-assumption"
+      ],
+      "quantity": 1,
+      "quantity_unit": "project",
+      "inclusion_boundary": "Illustrative design cost; not a benchmark estimate.",
+      "notes": ""
+    },
+    {
+      "cost_item_id": "capex-equipment",
+      "category": "equipment",
+      "direction": "cost",
+      "period_year": 0,
+      "amount_minor_units": 9000000,
+      "currency_code": "USD",
+      "local_or_imported": "mixed",
+      "evidence_class": "analyst_scenario",
+      "evidence_ids": [
+        "cost-fixture-assumption"
+      ],
+      "quantity": 1,
+      "quantity_unit": "project",
+      "inclusion_boundary": "Illustrative transmission equipment cost; excludes any real vendor quotation.",
+      "notes": ""
+    },
+    {
+      "cost_item_id": "year-10-replacement",
+      "category": "replacement",
+      "direction": "cost",
+      "period_year": 10,
+      "amount_minor_units": 500000,
+      "currency_code": "USD",
+      "local_or_imported": "mixed",
+      "evidence_class": "analyst_scenario",
+      "evidence_ids": [
+        "cost-fixture-assumption"
+      ],
+      "quantity": 1,
+      "quantity_unit": "event",
+      "inclusion_boundary": "Illustrative replacement event.",
+      "notes": ""
+    },
+    {
+      "cost_item_id": "year-30-salvage",
+      "category": "residual_value",
+      "direction": "credit",
+      "period_year": 30,
+      "amount_minor_units": 250000,
+      "currency_code": "USD",
+      "local_or_imported": "local",
+      "evidence_class": "analyst_scenario",
+      "evidence_ids": [
+        "cost-fixture-assumption"
+      ],
+      "quantity": 1,
+      "quantity_unit": "event",
+      "inclusion_boundary": "Illustrative residual-value credit, not an assumed universal salvage rate.",
+      "notes": ""
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "cost-fixture-assumption",
+      "classification": "analyst_scenario",
+      "publisher": "Luminous Dynamics synthetic fixture",
+      "claim_scope": "Schema/contract test only; no real price or cost data.",
+      "applicability": "Not applicable to procurement, valuation, project selection or SOTA comparisons."
+    }
+  ],
+  "claim_boundary": "Synthetic lifecycle economics fixture. No actual cost, currency conversion, discount rate, NPV, cost per MWh, supplier quote or project estimate is claimed."
+}
