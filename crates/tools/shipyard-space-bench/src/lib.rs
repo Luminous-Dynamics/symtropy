@@ -4,7 +4,7 @@
 //! are half-open [start, end). This is a deliberately limited verification profile,
 //! not a crane, lift, structural, soil-bearing, or real-yard safety model.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Disposition {
@@ -120,6 +120,7 @@ pub enum Violation {
     DuplicateResourceSpec { resource_id: String },
     DuplicateOperation { operation_id: String },
     InvalidReservation { reservation_id: String },
+    DuplicateReservation { reservation_id: String },
     BlockOverlap { first_block: String, second_block: String, area_id: String },
     AccessBlocked { block_id: String, access_id: String, area_id: String },
     ResourceOverCapacity { resource_id: String, at: u32, capacity: u32, active_units: u64 },
@@ -237,8 +238,18 @@ pub fn verify(plan: &Plan) -> Verification {
     }
 
     let mut events: BTreeMap<String, Vec<(u32, i64)>> = BTreeMap::new();
+    let mut reservation_ids = BTreeSet::new();
     for reservation in &plan.reservations {
-        if !reservation.interval.is_valid() || reservation.units == 0 {
+        if !reservation_ids.insert(reservation.reservation_id.clone()) {
+            violations.push(Violation::DuplicateReservation {
+                reservation_id: reservation.reservation_id.clone(),
+            });
+            continue;
+        }
+        if reservation.reservation_id.trim().is_empty()
+            || !reservation.interval.is_valid()
+            || reservation.units == 0
+        {
             violations.push(Violation::InvalidReservation {
                 reservation_id: reservation.reservation_id.clone(),
             });
@@ -440,6 +451,20 @@ mod tests {
             reservation.interval = Interval::new(0, 2);
         }
         assert_eq!(verify(&plan).disposition, Disposition::Feasible);
+    }
+
+    #[test]
+    fn duplicate_reservation_identity_is_rejected_below_resource_capacity() {
+        let mut plan = baseline();
+        plan.resources[0].capacity = Some(2);
+        plan.reservations[1] = plan.reservations[0].clone();
+
+        let result = verify(&plan);
+        assert_eq!(result.disposition, Disposition::Infeasible);
+        assert!(result.violations.iter().any(|violation| matches!(
+            violation,
+            Violation::DuplicateReservation { reservation_id } if reservation_id == "move-a"
+        )));
     }
 
     #[test]
