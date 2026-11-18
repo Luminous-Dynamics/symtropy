@@ -1226,10 +1226,10 @@ mod tests {
         .unwrap();
 
         snapshot.anonymous_profile_count = 2;
-        assert_eq!(
+        assert!(matches!(
             evaluate_group(&[alternative("a", 0.5, 0.5, 0.5)], &snapshot),
             Err(PreferenceError::InvalidPreferenceSnapshot)
-        );
+        ));
     }
 
     #[test]
