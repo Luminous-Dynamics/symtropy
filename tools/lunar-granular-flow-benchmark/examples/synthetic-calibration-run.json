@@ -135,10 +135,85 @@
       "derivation_method_id": null,
       "calculation_version": null
     },
-    "adhesion_characterization_status": "unknown",
-    "adhesion_characterization_method_id": null,
-    "adhesion_distribution_artifact_id": null,
-    "adhesion_by_size_class": []
+    "adhesion_characterization_status": "synthetic",
+    "adhesion_characterization_method_id": "synthetic-vacuum-contact-adhesion-quantile-fixture-v1",
+    "adhesion_distribution_artifact_id": "adhesion-quantile-fixture",
+    "adhesion_by_size_class": [
+      {
+        "size_bin_id": "SYN-FINE-001",
+        "d_min_um": {
+          "value": 10,
+          "standard_uncertainty": 0.1,
+          "unit": "um",
+          "status": "synthetic",
+          "source_artifact_id": null,
+          "calibration_record_id": null,
+          "derivation_method_id": null,
+          "calculation_version": null
+        },
+        "d_max_um": {
+          "value": 20,
+          "standard_uncertainty": 0.1,
+          "unit": "um",
+          "status": "synthetic",
+          "source_artifact_id": null,
+          "calibration_record_id": null,
+          "derivation_method_id": null,
+          "calculation_version": null
+        },
+        "representative_particle_mass_kg": {
+          "value": 1e-12,
+          "standard_uncertainty": 1e-14,
+          "unit": "kg",
+          "status": "synthetic",
+          "source_artifact_id": null,
+          "calibration_record_id": null,
+          "derivation_method_id": null,
+          "calculation_version": null
+        },
+        "contact_count": 100,
+        "adhesion_force_p05_n": {
+          "value": 1e-10,
+          "standard_uncertainty": 1e-12,
+          "unit": "N",
+          "status": "synthetic",
+          "source_artifact_id": null,
+          "calibration_record_id": null,
+          "derivation_method_id": null,
+          "calculation_version": null
+        },
+        "adhesion_force_p50_n": {
+          "value": 2e-10,
+          "standard_uncertainty": 2e-12,
+          "unit": "N",
+          "status": "synthetic",
+          "source_artifact_id": null,
+          "calibration_record_id": null,
+          "derivation_method_id": null,
+          "calculation_version": null
+        },
+        "adhesion_force_p95_n": {
+          "value": 5e-10,
+          "standard_uncertainty": 5e-12,
+          "unit": "N",
+          "status": "synthetic",
+          "source_artifact_id": null,
+          "calibration_record_id": null,
+          "derivation_method_id": null,
+          "calculation_version": null
+        },
+        "adhesion_force_p99_n": {
+          "value": 1e-9,
+          "standard_uncertainty": 1e-11,
+          "unit": "N",
+          "status": "synthetic",
+          "source_artifact_id": null,
+          "calibration_record_id": null,
+          "derivation_method_id": null,
+          "calculation_version": null
+        }
+      }
+    ]
   },
   "environment": {
     "gravity_m_s2": {
@@ -786,6 +861,13 @@
       "path": "synthetic-placeholder:model-parameters",
       "media_type": "application/json",
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "artifact_id": "adhesion-quantile-fixture",
+      "role": "adhesion_characterization",
+      "path": "synthetic-adhesion-quantile.json",
+      "media_type": "application/json",
+      "sha256": "296db25c9e75f07746490c3ea6e37c9e0f01b782cc334eccdd4740b44144b62b"
     }
   ],
   "source_citation": null,
@@ -866,11 +948,56 @@
     "derived_from_artifact_ids": [
       "psd-fixture",
       "apparatus-geometry-fixture",
-      "flow-trace-fixture"
+      "flow-trace-fixture",
+      "adhesion-quantile-fixture"
     ],
     "formula_set_id": "lunar-granular-dimensionless-groups-v1",
     "uncertainty_propagation_method": "not_applicable_synthetic",
-    "adhesion_bond_by_size_class": [],
+    "adhesion_bond_by_size_class": [
+      {
+        "size_bin_id": "SYN-FINE-001",
+        "bo_p05": {
+          "value": 10.193679918450561,
+          "standard_uncertainty": 0.2,
+          "unit": "dimensionless",
+          "status": "derived",
+          "source_artifact_id": null,
+          "calibration_record_id": null,
+          "derivation_method_id": "force-over-weight-by-size-bin-v1",
+          "calculation_version": "1.0.0"
+        },
+        "bo_p50": {
+          "value": 20.387359836901123,
+          "standard_uncertainty": 0.4,
+          "unit": "dimensionless",
+          "status": "derived",
+          "source_artifact_id": null,
+          "calibration_record_id": null,
+          "derivation_method_id": "force-over-weight-by-size-bin-v1",
+          "calculation_version": "1.0.0"
+        },
+        "bo_p95": {
+          "value": 50.96839959225281,
+          "standard_uncertainty": 1,
+          "unit": "dimensionless",
+          "status": "derived",
+          "source_artifact_id": null,
+          "calibration_record_id": null,
+          "derivation_method_id": "force-over-weight-by-size-bin-v1",
+          "calculation_version": "1.0.0"
+        },
+        "bo_p99": {
+          "value": 101.93679918450562,
+          "standard_uncertainty": 2,
+          "unit": "dimensionless",
+          "status": "derived",
+          "source_artifact_id": null,
+          "calibration_record_id": null,
+          "derivation_method_id": "force-over-weight-by-size-bin-v1",
+          "calculation_version": "1.0.0"
+        }
+      }
+    ],
     "confinement_to_tensile_strength_ratio": {
       "value": null,
       "standard_uncertainty": null,
