@@ -12,6 +12,7 @@
 //! safety test.
 
 use nalgebra::SVector;
+use serde::Serialize;
 use symtropy_math::{Point, Sphere};
 use symtropy_physics::body::{BodyHandle, RigidBody};
 use symtropy_physics::replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
@@ -64,7 +65,8 @@ struct ProbeOutcome {
 // Versioned, compact records for the D2D adapter fixture. The fingerprints
 // below are deterministic fixture identifiers, not cryptographic commitments.
 // Mycelix #5900 remains the authority for durable/content-addressed attestations.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
 enum ProbeDispositionV1 {
     Completed,
     Incomplete,
@@ -73,10 +75,108 @@ enum ProbeDispositionV1 {
     ResourceBound,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+struct ProbeManifestV1 {
+    schema_version: u32,
+    scenario_id: String,
+    engine_package: String,
+    engine_version: String,
+    dimension: u32,
+    gravity: [f64; 3],
+    solver_iterations: usize,
+    sleep_threshold: f64,
+    sleep_ticks: u32,
+    floor_geometry: String,
+    floor_radius: f64,
+    floor_center: [f64; 3],
+    ball_radius: f64,
+    ball_mass: f64,
+    ball_friction: f64,
+    floor_friction: f64,
+    restitution: f64,
+    linear_damping: f64,
+    angular_damping: f64,
+    initial_position: [f64; 3],
+    initial_linear_velocity: [f64; 3],
+    timestep: f64,
+    step_count: usize,
+    surface_friction: f64,
+    tangential_impulse: f64,
+    impulse_tick: usize,
+}
+
+impl ProbeManifestV1 {
+    fn from_spec(spec: ProbeSpec) -> Self {
+        Self {
+            schema_version: 1,
+            scenario_id: "contact-probe-sphere-floor-v1".to_string(),
+            engine_package: env!("CARGO_PKG_NAME").to_string(),
+            engine_version: env!("CARGO_PKG_VERSION").to_string(),
+            dimension: 3,
+            gravity: [0.0, GRAVITY_Y, 0.0],
+            solver_iterations: 8,
+            sleep_threshold: 0.0,
+            sleep_ticks: u32::MAX,
+            floor_geometry: "finite_sphere_approximation".to_string(),
+            floor_radius: FLOOR_RADIUS,
+            floor_center: [0.0, FLOOR_CENTER_Y, 0.0],
+            ball_radius: BALL_RADIUS,
+            ball_mass: BALL_MASS,
+            ball_friction: 1.0,
+            floor_friction: spec.surface_friction * spec.surface_friction,
+            restitution: 0.0,
+            linear_damping: 0.0,
+            angular_damping: 0.0,
+            initial_position: [0.0, BALL_RADIUS, 0.0],
+            initial_linear_velocity: [0.0; 3],
+            timestep: DT,
+            step_count: STEPS,
+            surface_friction: spec.surface_friction,
+            tangential_impulse: spec.tangential_impulse,
+            impulse_tick: 0,
+        }
+    }
+
+    fn fingerprint(&self) -> u64 {
+        let mut hash = FNV_OFFSET;
+        hash_text(&mut hash, "symtropy-d2d-contact-manifest-v1");
+        hash_u64(&mut hash, u64::from(self.schema_version));
+        hash_text(&mut hash, &self.scenario_id);
+        hash_text(&mut hash, &self.engine_package);
+        hash_text(&mut hash, &self.engine_version);
+        hash_u64(&mut hash, u64::from(self.dimension));
+        for value in self.gravity { hash_u64(&mut hash, value.to_bits()); }
+        hash_u64(&mut hash, self.solver_iterations as u64);
+        hash_u64(&mut hash, self.sleep_threshold.to_bits());
+        hash_u64(&mut hash, u64::from(self.sleep_ticks));
+        hash_text(&mut hash, &self.floor_geometry);
+        hash_u64(&mut hash, self.floor_radius.to_bits());
+        for value in self.floor_center { hash_u64(&mut hash, value.to_bits()); }
+        hash_u64(&mut hash, self.ball_radius.to_bits());
+        hash_u64(&mut hash, self.ball_mass.to_bits());
+        hash_u64(&mut hash, self.ball_friction.to_bits());
+        hash_u64(&mut hash, self.floor_friction.to_bits());
+        hash_u64(&mut hash, self.restitution.to_bits());
+        hash_u64(&mut hash, self.linear_damping.to_bits());
+        hash_u64(&mut hash, self.angular_damping.to_bits());
+        for value in self.initial_position { hash_u64(&mut hash, value.to_bits()); }
+        for value in self.initial_linear_velocity { hash_u64(&mut hash, value.to_bits()); }
+        hash_u64(&mut hash, self.timestep.to_bits());
+        hash_u64(&mut hash, self.step_count as u64);
+        hash_u64(&mut hash, self.surface_friction.to_bits());
+        hash_u64(&mut hash, self.tangential_impulse.to_bits());
+        hash_u64(&mut hash, self.impulse_tick as u64);
+        hash
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
 struct ProbeResultRecordV1 {
     schema_version: u32,
     branch_id: String,
+    manifest: ProbeManifestV1,
     disposition: ProbeDispositionV1,
     completed_steps: usize,
     collision_event_count: usize,
@@ -87,7 +187,8 @@ struct ProbeResultRecordV1 {
     record_fingerprint: u64,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
 struct ProbeBranchAuditV1 {
     expected_count: usize,
     reported_count: usize,
@@ -115,40 +216,6 @@ fn hash_u64(hash: &mut u64, value: u64) {
 fn hash_text(hash: &mut u64, value: &str) {
     hash_u64(hash, value.len() as u64);
     hash_bytes(hash, value.as_bytes());
-}
-
-/// Hash every scenario field that changes the declared execution conditions.
-fn scenario_fingerprint(spec: ProbeSpec) -> u64 {
-    let mut hash = FNV_OFFSET;
-    hash_text(&mut hash, "symtropy-d2d-contact-probe-manifest-v1");
-    hash_text(&mut hash, env!("CARGO_PKG_NAME"));
-    hash_text(&mut hash, env!("CARGO_PKG_VERSION"));
-    hash_u64(&mut hash, 3);
-    hash_u64(&mut hash, GRAVITY_Y.to_bits());
-    hash_u64(&mut hash, 8); // solver_iterations
-    hash_u64(&mut hash, 0.0f64.to_bits()); // sleep_threshold
-    hash_u64(&mut hash, u64::from(u32::MAX)); // sleep_ticks
-    hash_text(&mut hash, "finite_sphere_floor_approximation");
-    hash_u64(&mut hash, FLOOR_RADIUS.to_bits());
-    hash_u64(&mut hash, FLOOR_CENTER_Y.to_bits());
-    hash_u64(&mut hash, BALL_RADIUS.to_bits());
-    hash_u64(&mut hash, BALL_MASS.to_bits());
-    hash_u64(&mut hash, 1.0f64.to_bits()); // dynamic ball friction
-    hash_u64(&mut hash, (spec.surface_friction * spec.surface_friction).to_bits());
-    hash_u64(&mut hash, 0.0f64.to_bits()); // restitution
-    hash_u64(&mut hash, 0.0f64.to_bits()); // linear damping
-    hash_u64(&mut hash, 0.0f64.to_bits()); // angular damping
-    hash_u64(&mut hash, DT.to_bits());
-    hash_u64(&mut hash, STEPS as u64);
-    hash_u64(&mut hash, 0.0f64.to_bits()); // initial x
-    hash_u64(&mut hash, BALL_RADIUS.to_bits()); // initial y
-    hash_u64(&mut hash, 0.0f64.to_bits()); // initial z
-    hash_u64(&mut hash, 0.0f64.to_bits()); // initial velocity x
-    hash_u64(&mut hash, 0.0f64.to_bits()); // initial velocity y
-    hash_u64(&mut hash, 0.0f64.to_bits()); // initial velocity z
-    hash_u64(&mut hash, spec.surface_friction.to_bits());
-    hash_u64(&mut hash, spec.tangential_impulse.to_bits());
-    hash
 }
 
 fn replay_tape_fingerprint(tape: &ReplayTape<3>) -> u64 {
@@ -225,7 +292,7 @@ fn trajectory_fingerprint(snapshots: &[WorldSnapshot<3>]) -> u64 {
             for row in &body.angular_velocity {
                 for value in row { hash_u64(&mut hash, *value); }
             }
-            hash_u64(&mut hash, u64::from(body.sleeping));
+            hash_u64(&mut hash, body.sleeping as u64);
             hash_u64(&mut hash, u64::from(body.sleep_counter));
         }
         hash_u64(&mut hash, snapshot.collision_events.len() as u64);
@@ -256,6 +323,7 @@ fn record_fingerprint(record: &ProbeResultRecordV1) -> u64 {
     hash_text(&mut hash, "symtropy-d2d-probe-result-v1");
     hash_u64(&mut hash, u64::from(record.schema_version));
     hash_text(&mut hash, &record.branch_id);
+    hash_u64(&mut hash, record.manifest.fingerprint());
     let disposition = match record.disposition {
         ProbeDispositionV1::Completed => 1,
         ProbeDispositionV1::Incomplete => 2,
@@ -279,20 +347,20 @@ fn audit_expected_branches(
 ) -> ProbeBranchAuditV1 {
     use std::collections::{BTreeSet, HashMap};
 
-    let expected_set: BTreeSet<&str> = expected.iter().copied().collect();
-    let mut counts: HashMap<&str, usize> = HashMap::new();
+    let expected_set: BTreeSet<String> = expected.iter().map(|branch| (*branch).to_string()).collect();
+    let mut counts: HashMap<String, usize> = HashMap::new();
     let mut duplicate = BTreeSet::new();
     let mut unexpected = BTreeSet::new();
     let mut non_completed = BTreeSet::new();
     let mut completed_count = 0;
 
     for record in observed {
-        let count = counts.entry(record.branch_id.as_str()).or_default();
+        let count = counts.entry(record.branch_id.clone()).or_default();
         *count += 1;
         if *count > 1 {
             duplicate.insert(record.branch_id.clone());
         }
-        if !expected_set.contains(record.branch_id.as_str()) {
+        if !expected_set.contains(&record.branch_id) {
             unexpected.insert(record.branch_id.clone());
         }
         if record.disposition == ProbeDispositionV1::Completed {
@@ -304,8 +372,8 @@ fn audit_expected_branches(
 
     let missing = expected_set
         .iter()
-        .filter(|branch_id| !counts.contains_key(**branch_id))
-        .map(|branch_id| (*branch_id).to_string())
+        .filter(|branch_id| !counts.contains_key(*branch_id))
+        .cloned()
         .collect();
 
     ProbeBranchAuditV1 {
@@ -375,7 +443,8 @@ fn execute_probe_with_record(
     spec.validate();
     let (mut world, ball) = build_world(spec.surface_friction);
     let tape = build_tape(ball, spec.tangential_impulse);
-    let scenario_fingerprint = scenario_fingerprint(spec);
+    let manifest = ProbeManifestV1::from_spec(spec);
+    let scenario_fingerprint = manifest.fingerprint();
     let replay_tape_fingerprint = replay_tape_fingerprint(&tape);
 
     let mut snapshots = Vec::with_capacity(tape.frames.len());
@@ -399,6 +468,7 @@ fn execute_probe_with_record(
     let mut record = ProbeResultRecordV1 {
         schema_version: 1,
         branch_id: branch_id.to_string(),
+        manifest,
         disposition: ProbeDispositionV1::Completed,
         completed_steps: snapshots.len(),
         collision_event_count,
@@ -559,6 +629,7 @@ fn branch_denominator_audit_preserves_missing_unsupported_and_unexpected_cases()
         ProbeResultRecordV1 {
             schema_version: 1,
             branch_id: "branch-a".to_string(),
+            manifest: ProbeManifestV1::from_spec(ProbeSpec { surface_friction: 0.3, tangential_impulse: 2.0 }),
             disposition: ProbeDispositionV1::Completed,
             completed_steps: STEPS,
             collision_event_count: 1,
@@ -571,6 +642,7 @@ fn branch_denominator_audit_preserves_missing_unsupported_and_unexpected_cases()
         ProbeResultRecordV1 {
             schema_version: 1,
             branch_id: "branch-b".to_string(),
+            manifest: ProbeManifestV1::from_spec(ProbeSpec { surface_friction: 0.4, tangential_impulse: 2.0 }),
             disposition: ProbeDispositionV1::Unsupported,
             completed_steps: 0,
             collision_event_count: 0,
@@ -583,6 +655,7 @@ fn branch_denominator_audit_preserves_missing_unsupported_and_unexpected_cases()
         ProbeResultRecordV1 {
             schema_version: 1,
             branch_id: "unexpected".to_string(),
+            manifest: ProbeManifestV1::from_spec(ProbeSpec { surface_friction: 0.5, tangential_impulse: 2.0 }),
             disposition: ProbeDispositionV1::Failed,
             completed_steps: 0,
             collision_event_count: 0,
