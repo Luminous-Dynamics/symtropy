@@ -498,5 +498,47 @@
     "Payload's 3 November 2026 interview reports Sceye post-recovery dismantling/testing turnaround as 'in the months' and an ambition to reduce it to weeks. The exact distribution and measured percentiles are not public in that report. The field is marked source_attributed_unquantified and the unknown turnaround is excluded from this simple availability oracle.",
     "Recovery capacity, launch capacity, launch-to-service delay, ready ground spares and return-to-ready distributions require operator telemetry and are not inferred from the public interview.",
     "Availability target 99.5% is an illustrative programme target, not an industry-standard guarantee or achieved result."
+  ],
+  "rotation_sensitivity": [
+    {
+      "case_id": "service30-turnaround14-launch0",
+      "on_station_days": 30,
+      "recovery_to_ready_days": 14,
+      "launch_to_service_days": 0,
+      "required_service_platforms": 3,
+      "expected_minimum_fleet_size": 5
+    },
+    {
+      "case_id": "service30-turnaround30-launch0",
+      "on_station_days": 30,
+      "recovery_to_ready_days": 30,
+      "launch_to_service_days": 0,
+      "required_service_platforms": 3,
+      "expected_minimum_fleet_size": 6
+    },
+    {
+      "case_id": "service30-turnaround60-launch0",
+      "on_station_days": 30,
+      "recovery_to_ready_days": 60,
+      "launch_to_service_days": 0,
+      "required_service_platforms": 3,
+      "expected_minimum_fleet_size": 9
+    },
+    {
+      "case_id": "service30-turnaround60-launch1",
+      "on_station_days": 30,
+      "recovery_to_ready_days": 60,
+      "launch_to_service_days": 1,
+      "required_service_platforms": 3,
+      "expected_minimum_fleet_size": 10
+    },
+    {
+      "case_id": "service180-turnaround60-launch0",
+      "on_station_days": 180,
+      "recovery_to_ready_days": 60,
+      "launch_to_service_days": 0,
+      "required_service_platforms": 3,
+      "expected_minimum_fleet_size": 4
+    }
   ]
 }
