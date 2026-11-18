@@ -107,7 +107,8 @@ fn render_report_json() -> Result<String, String> {
         concat!(
             "{\n",
             "  \"schema_version\": \"0.1\",\n",
-            "  \"evidence_class\": \"geometry_only_excavation_volume_screen\",\n",
+            "  \"evidence_class\": \"composite_lunar_subsurface_reference_report\",\n",
+            "  \"geometry_evidence_class\": \"geometry_only_excavation_volume_screen\",\n",
             "  \"units\": {\n",
             "    \"circumference\": \"km (converted to m internally)\",\n",
             "    \"excavated_cross_section\": \"m^2\",\n",
