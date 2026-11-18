@@ -134,3 +134,79 @@ These are internal research objectives. They are not published SOTA values, guar
 8. Obtain TSO, OEM, cable-repair, logistics and maintenance review before introducing real asset or outage data.
 
 **Safety boundary:** This benchmark is research and decision support only. It does not authorize switching, protection, overload, energisation, substitution, lifting, repair or return to service. Asset owners, qualified engineers, OEMs and competent authorities retain those responsibilities.
+
+
+## 10. Deterministic dependency and resource scheduler (v0.2 increment)
+
+Each task now has:
+- a stable `taskId`;
+- a `dependsOn` list of predecessor task IDs within the same outage event;
+- duration;
+- optional renewable resource ID and required units.
+
+The scheduler performs non-preemptive, deterministic list scheduling across **all events in the case**, subject to precedence and resource capacity. Independent activities can overlap. When a crew or tool is unavailable, the next task is moved to the earliest feasible time slot. The reported event restoration time is the last scheduled task completion minus the event start; it is not the sum of all task durations.
+
+This is a transparent greedy baseline:
+1. Find tasks whose predecessors have completed.
+2. Calculate each task's earliest precedence-ready time.
+3. Find the earliest interval where its required resource capacity is available.
+4. Select the candidate with the earliest feasible start, with stable event/task-ID tie-breaking.
+5. Repeat until all tasks are scheduled or a dependency cycle / invalid resource is found.
+
+**This algorithm is not an optimal RCPSP solver.** It is intended to provide a deterministic, auditable baseline before introducing CP-SAT, MILP or specialised metaheuristics. A future optimiser must be compared against this baseline on identical frozen inputs and must prove every returned schedule feasible.
+
+### Synthetic fixture schedule
+
+The three-event fixture now represents parallel parts sourcing/logistics and crew mobilisation. With the current synthetic durations and resource capacities, it declares restoration spans of 32 h, 1,219 h and 23 h. These are calculated from the task dependency graphs and the declared single-crew capacity; they are not observed transformer restoration times.
+
+The second event's long OEM procurement duration is deliberately a stress case. It is a synthetic value used to exercise the schedule and must not be interpreted as a current supplier quote.
+
+### Scheduler benchmark plan
+
+A fair algorithm comparison should include:
+- deterministic serial schedule generation schemes (SSGS) with multiple priority rules;
+- the current earliest-feasible-start list scheduler;
+- CP-SAT with interval and cumulative-resource constraints;
+- MILP / branch-and-bound where the instance size supports exact or bounded-gap solutions;
+- optionally, metaheuristics after exact and lower-bound baselines are established.
+
+Use standard resource-constrained project scheduling corpora such as PSPLIB and more recent RCPLIB / MMLIB variants to verify generic scheduling correctness and scaling. They do not contain transmission-specific repair semantics, so they are **algorithmic scheduling baselines**, not grid asset benchmarks. Augment them with frozen transmission recovery archetypes covering crew skills, spare compatibility, transport, permits, weather windows, commissioning and correlated events.
+
+Report:
+- feasibility rate and zero false acceptance on adversarial cases;
+- makespan gap to proven optimum / best-known bound where available;
+- lower bound, upper bound and optimality gap separately;
+- p50/p95 runtime, memory, scaling, solver status and determinism;
+- sensitivity to task priority, tie-breaking, resource availability and delayed release;
+- schedule stability and service consequence, not just makespan.
+
+### External scheduling references
+
+- PSPLIB / RCPSP research and benchmark data: https://www.projectmanagement.ugent.be/research/project_scheduling/rcpsp
+- RCPSP benchmark dataset overview: https://www.tandfonline.com/doi/full/10.1080/00207543.2026.2683116
+- Google OR-Tools scheduling recipes for interval variables and cumulative resource constraints: https://github.com/google/or-tools/blob/stable/ortools/sat/docs/scheduling.md
+
+## 11. Industry comparison: outage indicators versus restoration-chain evidence
+
+NERC's 2026 State of Reliability reports 2025 transformer unavailability of 0.35% for transformers at 200 kV and above in its reporting area. NERC's Transmission Availability Data System records outage frequency, duration and causes. The asset-recovery benchmark is complementary: it adds stage-level repair, inventory, transport, crew and commissioning evidence to a system-level availability picture. It must not claim to replace or directly outperform NERC's reliability indicators.
+
+South African context is especially important. NTCSA's April 2026 winter outlook briefing reports 36–48 month lead times for certain transformer classes, a single supplier for Class 3 transformers that was not then producing, and no local Class 4 supplier. It also reports 23 pre-qualified international factories. These details justify region-specific supplier and spares scenarios; they do not prove every transformer class or project has the same lead time.
+
+For submarine cable restoration, the ICPC's August 2026 repair-commencement comparison offers a method for separating notification-to-departure delays from transit and repair. Its core dataset covers submarine telecommunications cable repairs, not power-cable repairs. Do not transfer its repair-time statistics directly to HVDC export cables; adapt the measurement method and obtain power-cable-specific evidence.
+
+Primary references:
+- NERC 2026 State of Reliability: https://prod.nerc.com/globalassets/programs/reliability-assessment--performance-analysis/nerc_sor_2026_technical_assessment.pdf
+- NERC TADS: https://prod.nerc.com/programs/reliability-assessment--performance-analysis/transmission-availability-data-system
+- NTCSA / Eskom Winter Outlook Briefing April 2026: https://www.eskom.co.za/wp-content/uploads/2026/04/State-of-the-System-%E2%80%93-Winter-Outlook-Briefing-2026.pdf
+- ICPC Global Comparison of Repair Commencement Times (updated 28 August 2026): https://www.iscpc.org/publications/icpc-global-comparison-of-repair-commencement-times/
+- CIGRE transformer overload capability discussion (10 September 2026): https://www.cigre.org/article/GB/news/the_latest_news/a-grid-that-must-do-more-possibilities-limits-and-risks-for-increasing-transformer-overload-capability
+
+## 12. Next SOTA-facing increments
+
+1. Add calendar-aware task windows, working shifts, site access and travel/permit constraints; continuous elapsed time is only the v0.2 abstraction.
+2. Add crew skill matrices, multiple crews, specialist subcontractors and equipment resources as separate renewable resource classes.
+3. Model stochastic repair durations and lead times with common random numbers so strategy comparisons use identical event scenarios.
+4. Add stock policy alternatives (local stock, regional pool, dual sourcing, repairable exchange pool, qualified modular replacement) under one frozen demand/failure sequence.
+5. Add failure dependency / common-cause scenarios across depots, factories, routes, communications and weather.
+6. Compare the heuristic to CP-SAT / MILP on small cases with proven optima, then scale through larger PSPLIB/RCPLIB scheduling corpora and transmission-specific cases.
+7. Feed scenario restoration and firm-shortfall outputs to #6080 without giving the scheduling engine dispatch or operational authority.
