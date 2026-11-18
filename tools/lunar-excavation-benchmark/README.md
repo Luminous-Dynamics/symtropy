@@ -24,15 +24,16 @@ A benchmark therefore needs to preserve material batch, preparation, tool geomet
 
 ## Partition and leakage policy
 
-Every record declares one partition: `calibration`, `validation`, or `blind_test`. The manifest/evaluator (a later dataset-level validator) must enforce disjoint groups across partitions on the preregistered isolation axes:
+Every record declares one partition: `calibration`, `validation`, or `blind_test`. The dataset-manifest schema requires four core isolation axes and can additionally promote laboratory and/or campaign identifiers when those axes are part of the study design:
 
 1. material batch;
 2. preparation / compaction protocol;
 3. tool geometry;
 4. operating regime (including static, continuous, vibratory and percussive families);
-5. laboratory or campaign when that axis is relevant.
+5. optionally, laboratory;
+6. optionally, campaign.
 
-Do not randomly split repeated samples from the same batch/run campaign and then call the result out-of-distribution generalization. The dataset manifest maps every group identifier on each isolation axis to one partition, so a given group cannot be assigned to two partitions within that axis. Keep blind-test labels and raw outcomes outside the model-facing environment until the candidate has frozen its executable, source revision, configuration, parameters, random seed and predictions. Repeats from one specimen or campaign stay in one partition. The CI guard checks the synthetic manifest fixture; a general evaluator must still validate every imported run against a real manifest and verify that the sealed blind data were not exposed.
+Do not randomly split repeated samples from the same batch/run campaign and then call the result out-of-distribution generalization. The dataset manifest maps every group identifier on each isolation axis to one partition, so a given group cannot be assigned to two partitions within that axis. Keep blind-test labels and raw outcomes outside the model-facing environment until the candidate has frozen its executable, source revision, configuration, parameters, random seed and predictions. Repeats from one specimen or campaign stay in one partition. The CI guard checks the synthetic run-to-manifest join and the four core plus optional lab/campaign group assignments; a general evaluator must still validate every imported run against a real manifest and verify that the sealed blind data were not exposed.
 
 ## Measurement and artifact rules
 
