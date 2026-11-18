@@ -54,7 +54,8 @@
         "shared_haps_weather_outage_probability",
         "terrestrial_availability",
         "leo_backhaul_availability",
-        "independence_contract"
+        "independence_contract",
+        "shared_external_common_mode_outage_probability"
       ],
       "properties": {
         "per_haps_independent_availability": {
@@ -100,6 +101,12 @@
               "const": true
             }
           }
+        },
+        "shared_external_common_mode_outage_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Synthetic common-mode probability that disables terrestrial and LEO fallback together (e.g., shared ground/core/power/backhaul domain)."
         }
       }
     },
@@ -148,7 +155,8 @@
           "scenario_id",
           "shared_weather_outage_probability",
           "haps_platform_counts",
-          "expected"
+          "expected",
+          "shared_external_outage_probability"
         ],
         "properties": {
           "scenario_id": {
@@ -212,6 +220,11 @@
                 }
               }
             }
+          },
+          "shared_external_outage_probability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
           }
         }
       }
@@ -232,5 +245,5 @@
       "uniqueItems": true
     }
   },
-  "$comment": "Analytic toy model. Let p be individual HAPS availability including independently attributable planned maintenance and faults; q is a shared HAPS-only common-mode weather outage probability; g is terrestrial availability; s is LEO availability. Conditional independence assumptions are explicit. HAPS fleet availability A_H=(1-q)*(1-(1-p)^n). Layered availability A_HG=1-(1-A_H)*(1-g). A_HGS=1-(1-A_H)*(1-g)*(1-s). Correlation between external providers or shared power/backhaul invalidates this product form. This is not measured availability, a Markov model, fault-tree qualification, maintenance scheduler, weather simulation or SLA."
+  "$comment": "Analytic toy model. Let p be individual HAPS availability including independently attributable planned maintenance and faults; q is a shared HAPS-only common-mode weather outage probability; r is a common-mode outage that disables terrestrial and LEO fallback together; g is terrestrial availability; s is LEO availability. Conditional independence assumptions are explicit. HAPS availability A_H=(1-q)*(1-(1-p)^n). External fallback failure is U_G=r+(1-r)*(1-g), and U_GL=r+(1-r)*(1-g)*(1-s). Layered availability A_HG=1-(1-A_H)*U_G; A_HGL=1-(1-A_H)*U_GL. Correlation between providers or shared power/backhaul not captured by r invalidates this product form. Not measured availability, a Markov model, fault-tree qualification, maintenance scheduler, weather simulation or SLA."
 }
