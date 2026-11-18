@@ -78,8 +78,7 @@ impl fmt::Display for StaticSphericalBachError {
             ),
             Self::InsufficientDerivativeOrder { required, actual } => write!(
                 f,
-                "static spherical Bach evaluation requires Taylor-jet order {required}, got {actual}"
-
+                "static Bach requires Taylor-jet order {required}, got {actual}"
             ),
             Self::NonFiniteResult(name) => write!(f, "static spherical Bach {name} is non-finite"),
             Self::TaylorJet(error) => write!(f, "{error}"),
