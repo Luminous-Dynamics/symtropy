@@ -17,12 +17,12 @@ No speed-law, fluid correction, curve extrapolation, boundary correction or fuzz
 
 ## Frozen Stage-0 corpus
 
-- 31 synthetic acceptance-to-service scenarios.
-- 93 Q-H test-point interval rows.
-- 31 independently authored expected dispositions.
-- 30 authored Rust unit tests.
+- 32 synthetic acceptance-to-service scenarios.
+- 96 Q-H test-point interval rows.
+- 32 independently authored expected dispositions.
+- 31 authored Rust unit tests.
 - Dependency-free Rust library and deterministic CLI.
-- 22-column evidence-carrying TSV report.
+- 26-column evidence-carrying TSV report.
 - Focused Rust 1.96.0 workflow with locked build/tests/Clippy, report-line assertion, SHA-256 manifest and 30-day evidence artifact.
 
 Expected dispositions:
@@ -33,7 +33,7 @@ Expected dispositions:
 | IDENTITY_MISMATCH | 4 |
 | OUT_OF_DOMAIN | 4 |
 | NOT_TRANSFERABLE | 4 |
-| EVIDENCE_INCOMPLETE | 7 |
+| EVIDENCE_INCOMPLETE | 8 |
 | PROFILE_INCOMPLETE | 7 |
 | INDETERMINATE | 2 |
 | INSUFFICIENT_NPSH_MARGIN | 1 |
@@ -52,7 +52,7 @@ The v0.1 unit profile is explicitly `SI_MLPS_MM`: flow in mL/s and head/NPSH in 
 
 ## NPSH logic
 
-The factory NPSH3 source, manufacturer NPSHr curve source and site NPSHa source must be distinct and independently identified. The manufacturer serial/configuration/speed must match the tested pump. Site NPSHa must have a source and method reference. A separately versioned application margin profile supplies the required margin.
+The factory NPSH3 source, manufacturer NPSHr curve source and site NPSHa source must be distinct and independently identified. The manufacturer serial/configuration/speed must match the tested pump. Site NPSHa must have its own source, method and calibration reference, distinct from factory calibration. A separately versioned application margin profile supplies the required margin.
 
 The conservative comparison is:
 
