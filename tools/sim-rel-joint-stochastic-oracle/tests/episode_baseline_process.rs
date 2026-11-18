@@ -113,11 +113,13 @@ fn fixture_provider(seed: u64) -> EpisodeProvider {
                     action_id: "measure-a".to_owned(),
                     description: "Measure the primary signal.".to_owned(),
                     target: "primary-signal".to_owned(),
+                    cost_units: 1,
                 },
                 PublicActionDescription {
                     action_id: "measure-b".to_owned(),
                     description: "Measure the replicate signal.".to_owned(),
                     target: "replicate-signal".to_owned(),
+                    cost_units: 1,
                 },
             ],
             observations: vec![
