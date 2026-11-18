@@ -121,6 +121,20 @@ for run_path in "\${run_paths[@]}"; do
 
   jq -e '
     . as $r
+    | [.. | objects | select(has("status") and has("unit")
+        and (.status == "measured" or .status == "published" or .status == "estimated"))
+       | .source_artifact_id] as $sources
+    | all($sources[];
+        . as $id | any($r.artifacts[]; .artifact_id == $id))
+    and ([.. | objects | select(has("status") and has("unit") and .status == "measured")
+          | .calibration_record_id] as $calibrations
+         | all($calibrations[];
+             . as $id
+             | any($r.artifacts[]; .artifact_id == $id and .role == "calibration_record")))
+  ' "$run_path" >/dev/null || fail "source or calibration record references do not resolve: $run_path"
+
+  jq -e '
+    . as $r
     | [
         $r.specimen.grain_size_distribution_artifact_id,
         $r.tool.geometry_artifact_id,
