@@ -251,7 +251,7 @@ pub enum EpisodeCommand {
     },
 }
 
-/// Versioned response frame returned by the trusted runner after applying a command.
+/// Versioned action frame returned by the policy process to the trusted runner.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct EpisodeResponse {
@@ -1024,6 +1024,173 @@ mod tests {
             seed,
         )
         .expect("valid episode")
+    }
+
+    #[test]
+    fn versioned_wire_frames_round_trip_without_hidden_kernel_or_seed() {
+        let provider = new_provider(persistent_sensor_confounding_kernel(), 991);
+        let request = provider.request();
+        let encoded_request = serde_json::to_vec(&request).expect("serialize public request");
+        let request_json = String::from_utf8(encoded_request.clone()).expect("JSON is UTF-8");
+        assert!(request_json.contains(EPISODE_PROTOCOL_VERSION));
+        assert!(request_json.contains("measure-combined-signal"));
+        assert!(!request_json.contains("latent-mechanism-a"));
+        assert!(!request_json.contains("latent-mechanism-b"));
+        assert!(!request_json.contains("sensor_state"));
+        assert!(!request_json.contains("991"));
+
+        let decoded_request: EpisodeRequest =
+            serde_json::from_slice(&encoded_request).expect("decode public request");
+        assert_eq!(decoded_request, request);
+
+        let response = EpisodeResponse {
+            protocol_version: EPISODE_PROTOCOL_VERSION.to_owned(),
+            command: EpisodeCommand::Probe {
+                action_id: "calibrate-sensor".to_owned(),
+            },
+        };
+        let encoded_response = serde_json::to_vec(&response).expect("serialize policy response");
+        let decoded_response: EpisodeResponse =
+            serde_json::from_slice(&encoded_response).expect("decode policy response");
+        assert_eq!(decoded_response, response);
+    }
+
+    #[test]
+    fn versioned_probe_command_updates_only_the_public_observation_view() {
+        let mut provider = new_provider(persistent_sensor_confounding_kernel(), 3);
+        let response = EpisodeResponse {
+            protocol_version: EPISODE_PROTOCOL_VERSION.to_owned(),
+            command: EpisodeCommand::Probe {
+                action_id: "measure-combined-signal".to_owned(),
+            },
+        };
+        let view = provider.apply_response(response).expect("apply wire command");
+        assert_eq!(view.accepted_attempts, 1);
+        assert_eq!(view.observations.len(), 1);
+        assert_eq!(view.observations[0].observation_id, "one");
+        assert!(!view.terminal);
+    }
+
+    #[test]
+    fn wire_protocol_version_mismatch_is_rejected_without_mutating_world() {
+        let mut provider = new_provider(persistent_sensor_confounding_kernel(), 3);
+        let before = provider.view();
+        let response = EpisodeResponse {
+            protocol_version: "wrong-protocol".to_owned(),
+            command: EpisodeCommand::Probe {
+                action_id: "measure-combined-signal".to_owned(),
+            },
+        };
+        assert_eq!(
+            provider.apply_response(response),
+            Err(EpisodeError::InvalidProtocolVersion)
+        );
+        assert_eq!(provider.view(), before);
+    }
+
+    #[test]
+    fn exact_evaluator_rejects_a_false_unique_claim_before_discriminating_probe() {
+        let mut provider = new_provider(persistent_sensor_confounding_kernel(), 3);
+        provider
+            .submit_action("measure-combined-signal")
+            .expect("first ambiguous measurement");
+        provider
+            .finish_episode(EpisodeFinish {
+                disposition: EpisodeFinishDisposition::Identified,
+                rationale: "The first signal appears to identify one mechanism.".to_owned(),
+            })
+            .expect("finish with a status report");
+
+        let evaluation = provider
+            .evaluate_after_finish()
+            .expect("complete exact evaluation");
+        assert_eq!(evaluation.compatible_hypotheses.len(), 2);
+        assert!(evaluation.generating_hypothesis_retained);
+        assert!(!evaluation.evidence_identifies_unique_hypothesis);
+        assert!(evaluation.false_unique_claim);
+        assert!(!evaluation.disposition_correct);
+        assert_eq!(evaluation.applied_interventions, 1);
+        assert_eq!(evaluation.total_requests, 1);
+    }
+
+    #[test]
+    fn exact_evaluator_accepts_unique_status_only_after_discriminating_sequence() {
+        let mut provider = new_provider(persistent_sensor_confounding_kernel(), 3);
+        for action in [
+            "measure-combined-signal",
+            "calibrate-sensor",
+            "measure-combined-signal",
+        ] {
+            provider.submit_action(action).expect("apply known intervention");
+        }
+        provider
+            .finish_episode(EpisodeFinish {
+                disposition: EpisodeFinishDisposition::Identified,
+                rationale: "Calibration removed the persistent sensor confound; the later signal separates the remaining mechanisms.".to_owned(),
+            })
+            .expect("finish with unique status");
+
+        let evaluation = provider
+            .evaluate_after_finish()
+            .expect("complete exact evaluation");
+        assert_eq!(evaluation.compatible_hypotheses.len(), 1);
+        assert!(evaluation.generating_hypothesis_retained);
+        assert!(evaluation.evidence_identifies_unique_hypothesis);
+        assert!(!evaluation.false_unique_claim);
+        assert!(evaluation.disposition_correct);
+        assert_eq!(evaluation.applied_interventions, 3);
+    }
+
+    #[test]
+    fn exact_evaluator_distinguishes_safe_from_unnecessary_abstention() {
+        let mut ambiguous = new_provider(persistent_sensor_confounding_kernel(), 3);
+        ambiguous
+            .submit_action("measure-combined-signal")
+            .expect("ambiguous measurement");
+        ambiguous
+            .finish_episode(EpisodeFinish {
+                disposition: EpisodeFinishDisposition::Abstain,
+                rationale: "The available observation is compatible with more than one mechanism.".to_owned(),
+            })
+            .expect("record safe abstention");
+        let safe = ambiguous.evaluate_after_finish().unwrap();
+        assert!(safe.safe_abstention);
+        assert!(!safe.unnecessary_abstention);
+        assert!(safe.disposition_correct);
+
+        let mut unique = new_provider(persistent_sensor_confounding_kernel(), 3);
+        for action in [
+            "measure-combined-signal",
+            "calibrate-sensor",
+            "measure-combined-signal",
+        ] {
+            unique.submit_action(action).unwrap();
+        }
+        unique
+            .finish_episode(EpisodeFinish {
+                disposition: EpisodeFinishDisposition::Abstain,
+                rationale: "I choose not to make a claim.".to_owned(),
+            })
+            .unwrap();
+        let unnecessary = unique.evaluate_after_finish().unwrap();
+        assert!(!unnecessary.safe_abstention);
+        assert!(unnecessary.unnecessary_abstention);
+        assert!(!unnecessary.disposition_correct);
+    }
+
+    #[test]
+    fn evaluator_refuses_to_promote_an_incomplete_attempt_trace() {
+        let mut provider = new_provider(persistent_sensor_confounding_kernel(), 3);
+        provider.trace_complete = false;
+        provider.finish = Some(EpisodeFinish {
+            disposition: EpisodeFinishDisposition::Abstain,
+            rationale: "Incomplete trace control.".to_owned(),
+        });
+        provider.terminal = true;
+        assert_eq!(
+            provider.evaluate_after_finish(),
+            Err(EpisodeError::IncompleteTrace)
+        );
     }
 
     #[test]
