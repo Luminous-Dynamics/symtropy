@@ -28,27 +28,36 @@ const FLOOR_CENTER_Y: f64 = -64.0;
 const BALL_RADIUS: f64 = 0.5;
 const BALL_MASS: f64 = 1.0;
 
-/// One frozen contact-probe experiment specification.
-///
-/// surface_friction is the intended effective Coulomb coefficient. The
-/// dynamic ball is assigned coefficient 1.0 and the floor coefficient is
-/// surface_friction squared because the current solver combines body
-/// coefficients as sqrt(mu_a * mu_b).
-#[derive(Clone, Copy, Debug)]
-struct ProbeSpec {
-    surface_friction: f64,
+/// Candidate-visible intervention request. It deliberately contains no
+/// evaluator-owned material parameters or hidden world truth.
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "snake_case")]
+struct ProbeRequestV1 {
     tangential_impulse: f64,
 }
 
-impl ProbeSpec {
+impl ProbeRequestV1 {
+    fn validate(self) -> Result<(), ProbeExecutionError> {
+        if !self.tangential_impulse.is_finite() || self.tangential_impulse < 0.0 {
+            return Err(ProbeExecutionError::InvalidTangentialImpulse);
+        }
+        Ok(())
+    }
+}
+
+/// Evaluator-owned scenario configuration. This type must remain outside the
+/// learner-facing request/response boundary.
+#[derive(Clone, Copy, Debug)]
+struct EvaluatorScenarioV1 {
+    surface_friction: f64,
+}
+
+impl EvaluatorScenarioV1 {
     fn validate(self) -> Result<(), ProbeExecutionError> {
         if !self.surface_friction.is_finite()
             || !(0.0..=1.0).contains(&self.surface_friction)
         {
             return Err(ProbeExecutionError::InvalidSurfaceFriction);
-        }
-        if !self.tangential_impulse.is_finite() || self.tangential_impulse < 0.0 {
-            return Err(ProbeExecutionError::InvalidTangentialImpulse);
         }
         Ok(())
     }
@@ -120,8 +129,13 @@ struct ProbeManifestV1 {
     impulse_tick: usize,
 }
 
+// Evaluator-private manifest: includes hidden world parameters. It is not a
+// learner-visible request and must not be returned before prediction sealing.
 impl ProbeManifestV1 {
-    fn from_spec(spec: ProbeSpec) -> Self {
+    fn from_request_and_scenario(
+        request: ProbeRequestV1,
+        scenario: EvaluatorScenarioV1,
+    ) -> Self {
         Self {
             schema_version: 1,
             scenario_id: "contact-probe-sphere-floor-v1".to_string(),
@@ -144,7 +158,7 @@ impl ProbeManifestV1 {
             ball_radius: BALL_RADIUS,
             ball_mass: BALL_MASS,
             ball_friction: 1.0,
-            floor_friction: spec.surface_friction * spec.surface_friction,
+            floor_friction: scenario.surface_friction * scenario.surface_friction,
             restitution: 0.0,
             linear_damping: 0.0,
             angular_damping: 0.0,
@@ -152,8 +166,8 @@ impl ProbeManifestV1 {
             initial_linear_velocity: [0.0; 3],
             timestep: DT,
             step_count: STEPS,
-            surface_friction: spec.surface_friction,
-            tangential_impulse: spec.tangential_impulse,
+            surface_friction: scenario.surface_friction,
+            tangential_impulse: request.tangential_impulse,
             impulse_tick: 0,
         }
     }
@@ -495,12 +509,14 @@ fn build_tape(body: BodyHandle, tangential_impulse: f64) -> ReplayTape<3> {
 
 fn execute_probe_with_record(
     branch_id: &str,
-    spec: ProbeSpec,
+    request: ProbeRequestV1,
+    scenario: EvaluatorScenarioV1,
 ) -> Result<(Vec<WorldSnapshot<3>>, ProbeOutcome, ProbeResultRecordV1), ProbeExecutionError> {
-    spec.validate()?;
-    let (mut world, ball) = build_world(spec.surface_friction)?;
-    let tape = build_tape(ball, spec.tangential_impulse);
-    let manifest = ProbeManifestV1::from_spec(spec);
+    request.validate()?;
+    scenario.validate()?;
+    let (mut world, ball) = build_world(scenario.surface_friction)?;
+    let tape = build_tape(ball, request.tangential_impulse);
+    let manifest = ProbeManifestV1::from_request_and_scenario(request, scenario);
     let scenario_fingerprint = manifest.fingerprint();
     let replay_tape_fingerprint = replay_tape_fingerprint(&tape);
 
@@ -542,22 +558,27 @@ fn execute_probe_with_record(
     Ok((snapshots, outcome, record))
 }
 
-fn execute_probe(spec: ProbeSpec) -> (Vec<WorldSnapshot<3>>, ProbeOutcome) {
+fn execute_probe(
+    request: ProbeRequestV1,
+    scenario: EvaluatorScenarioV1,
+) -> (Vec<WorldSnapshot<3>>, ProbeOutcome) {
     let (snapshots, outcome, _) =
-        execute_probe_with_record("unlabelled-fixture-run", spec)
+        execute_probe_with_record("unlabelled-fixture-run", request, scenario)
             .expect("test fixture probe should execute");
     (snapshots, outcome)
 }
 
 #[test]
 fn same_frozen_contact_probe_replays_bitwise_at_each_tick() {
-    let spec = ProbeSpec {
-        surface_friction: 0.45,
+    let request = ProbeRequestV1 {
         tangential_impulse: 3.0,
     };
+    let scenario = EvaluatorScenarioV1 {
+        surface_friction: 0.45,
+    };
 
-    let (recorded, recorded_outcome) = execute_probe(spec);
-    let (replayed, replayed_outcome) = execute_probe(spec);
+    let (recorded, recorded_outcome) = execute_probe(request, scenario);
+    let (replayed, replayed_outcome) = execute_probe(request, scenario);
 
     assert_eq!(recorded.len(), STEPS);
     assert_eq!(
@@ -573,14 +594,21 @@ fn same_frozen_contact_probe_replays_bitwise_at_each_tick() {
 
 #[test]
 fn surface_friction_change_changes_the_executed_probe_observation() {
-    let (low_replay, low) = execute_probe(ProbeSpec {
-        surface_friction: 0.05,
+    let request = ProbeRequestV1 {
         tangential_impulse: 3.0,
-    });
-    let (high_replay, high) = execute_probe(ProbeSpec {
-        surface_friction: 0.90,
-        tangential_impulse: 3.0,
-    });
+    };
+    let (low_replay, low) = execute_probe(
+        request,
+        EvaluatorScenarioV1 {
+            surface_friction: 0.05,
+        },
+    );
+    let (high_replay, high) = execute_probe(
+        request,
+        EvaluatorScenarioV1 {
+            surface_friction: 0.90,
+        },
+    );
 
     assert_eq!(low_replay.len(), STEPS);
     assert_eq!(high_replay.len(), STEPS);
@@ -593,14 +621,21 @@ fn surface_friction_change_changes_the_executed_probe_observation() {
 
 #[test]
 fn tangential_probe_magnitude_changes_the_executed_observation() {
-    let (_, gentle) = execute_probe(ProbeSpec {
+    let scenario = EvaluatorScenarioV1 {
         surface_friction: 0.45,
-        tangential_impulse: 1.0,
-    });
-    let (_, strong) = execute_probe(ProbeSpec {
-        surface_friction: 0.45,
-        tangential_impulse: 3.0,
-    });
+    };
+    let (_, gentle) = execute_probe(
+        ProbeRequestV1 {
+            tangential_impulse: 1.0,
+        },
+        scenario,
+    );
+    let (_, strong) = execute_probe(
+        ProbeRequestV1 {
+            tangential_impulse: 3.0,
+        },
+        scenario,
+    );
 
     assert!(
         (gentle.terminal_vx - strong.terminal_vx).abs() > 1e-5
@@ -612,35 +647,41 @@ fn tangential_probe_magnitude_changes_the_executed_observation() {
 
 #[test]
 fn invalid_probe_spec_returns_typed_error_without_panicking() {
-    let invalid_friction = ProbeSpec {
-        surface_friction: f64::NAN,
+    let valid_request = ProbeRequestV1 {
         tangential_impulse: 1.0,
     };
+    let invalid_scenario = EvaluatorScenarioV1 {
+        surface_friction: f64::NAN,
+    };
     assert!(matches!(
-        execute_probe_with_record("invalid-friction", invalid_friction),
+        execute_probe_with_record("invalid-scenario", valid_request, invalid_scenario),
         Err(ProbeExecutionError::InvalidSurfaceFriction)
     ));
 
-    let invalid_impulse = ProbeSpec {
-        surface_friction: 0.5,
+    let invalid_request = ProbeRequestV1 {
         tangential_impulse: f64::INFINITY,
     };
+    let valid_scenario = EvaluatorScenarioV1 {
+        surface_friction: 0.5,
+    };
     assert!(matches!(
-        execute_probe_with_record("invalid-impulse", invalid_impulse),
+        execute_probe_with_record("invalid-request", invalid_request, valid_scenario),
         Err(ProbeExecutionError::InvalidTangentialImpulse)
     ));
 }
 
 #[test]
 fn contact_probe_emits_versioned_identity_bound_result_records() {
-    let spec = ProbeSpec {
-        surface_friction: 0.45,
+    let request = ProbeRequestV1 {
         tangential_impulse: 3.0,
     };
+    let scenario = EvaluatorScenarioV1 {
+        surface_friction: 0.45,
+    };
     let (trace_a, outcome_a, receipt_a) =
-        execute_probe_with_record("replay-a", spec).unwrap();
+        execute_probe_with_record("replay-a", request, scenario).unwrap();
     let (trace_b, outcome_b, receipt_b) =
-        execute_probe_with_record("replay-a", spec).unwrap();
+        execute_probe_with_record("replay-a", request, scenario).unwrap();
 
     assert_eq!(receipt_a.schema_version, 1);
     assert_eq!(receipt_a.completed_steps, STEPS);
@@ -679,38 +720,47 @@ fn factorial_contact_probe_covers_both_materials_and_both_interventions() {
     let conditions = [
         (
             "low-gentle",
-            ProbeSpec {
-                surface_friction: 0.05,
+            ProbeRequestV1 {
                 tangential_impulse: 1.0,
+            },
+            EvaluatorScenarioV1 {
+                surface_friction: 0.05,
             },
         ),
         (
             "low-strong",
-            ProbeSpec {
-                surface_friction: 0.05,
+            ProbeRequestV1 {
                 tangential_impulse: 3.0,
+            },
+            EvaluatorScenarioV1 {
+                surface_friction: 0.05,
             },
         ),
         (
             "high-gentle",
-            ProbeSpec {
-                surface_friction: 0.90,
+            ProbeRequestV1 {
                 tangential_impulse: 1.0,
+            },
+            EvaluatorScenarioV1 {
+                surface_friction: 0.90,
             },
         ),
         (
             "high-strong",
-            ProbeSpec {
-                surface_friction: 0.90,
+            ProbeRequestV1 {
                 tangential_impulse: 3.0,
+            },
+            EvaluatorScenarioV1 {
+                surface_friction: 0.90,
             },
         ),
     ];
 
     let mut outcomes = Vec::new();
     let mut records = Vec::new();
-    for (branch_id, spec) in conditions {
-        let (_, outcome, record) = execute_probe_with_record(branch_id, spec).unwrap();
+    for (branch_id, request, scenario) in conditions {
+        let (_, outcome, record) =
+            execute_probe_with_record(branch_id, request, scenario).unwrap();
         assert_eq!(record.disposition, ProbeDispositionV1::Completed);
         outcomes.push(outcome);
         records.push(record);
@@ -753,10 +803,14 @@ fn branch_denominator_audit_preserves_missing_unsupported_and_unexpected_cases()
         ProbeResultRecordV1 {
             schema_version: 1,
             branch_id: "branch-a".to_string(),
-            manifest: ProbeManifestV1::from_spec(ProbeSpec {
-                surface_friction: 0.3,
-                tangential_impulse: 2.0,
-            }),
+            manifest: ProbeManifestV1::from_request_and_scenario(
+                ProbeRequestV1 {
+                    tangential_impulse: 2.0,
+                },
+                EvaluatorScenarioV1 {
+                    surface_friction: 0.3,
+                },
+            ),
             disposition: ProbeDispositionV1::Completed,
             completed_steps: STEPS,
             collision_event_count: 1,
@@ -769,10 +823,14 @@ fn branch_denominator_audit_preserves_missing_unsupported_and_unexpected_cases()
         ProbeResultRecordV1 {
             schema_version: 1,
             branch_id: "branch-a".to_string(),
-            manifest: ProbeManifestV1::from_spec(ProbeSpec {
-                surface_friction: 0.3,
-                tangential_impulse: 2.0,
-            }),
+            manifest: ProbeManifestV1::from_request_and_scenario(
+                ProbeRequestV1 {
+                    tangential_impulse: 2.0,
+                },
+                EvaluatorScenarioV1 {
+                    surface_friction: 0.3,
+                },
+            ),
             disposition: ProbeDispositionV1::Completed,
             completed_steps: STEPS,
             collision_event_count: 1,
@@ -785,10 +843,14 @@ fn branch_denominator_audit_preserves_missing_unsupported_and_unexpected_cases()
         ProbeResultRecordV1 {
             schema_version: 1,
             branch_id: "branch-b".to_string(),
-            manifest: ProbeManifestV1::from_spec(ProbeSpec {
-                surface_friction: 0.4,
-                tangential_impulse: 2.0,
-            }),
+            manifest: ProbeManifestV1::from_request_and_scenario(
+                ProbeRequestV1 {
+                    tangential_impulse: 2.0,
+                },
+                EvaluatorScenarioV1 {
+                    surface_friction: 0.4,
+                },
+            ),
             disposition: ProbeDispositionV1::Unsupported,
             completed_steps: 0,
             collision_event_count: 0,
@@ -801,10 +863,14 @@ fn branch_denominator_audit_preserves_missing_unsupported_and_unexpected_cases()
         ProbeResultRecordV1 {
             schema_version: 1,
             branch_id: "unexpected".to_string(),
-            manifest: ProbeManifestV1::from_spec(ProbeSpec {
-                surface_friction: 0.5,
-                tangential_impulse: 2.0,
-            }),
+            manifest: ProbeManifestV1::from_request_and_scenario(
+                ProbeRequestV1 {
+                    tangential_impulse: 2.0,
+                },
+                EvaluatorScenarioV1 {
+                    surface_friction: 0.5,
+                },
+            ),
             disposition: ProbeDispositionV1::Failed,
             completed_steps: 0,
             collision_event_count: 0,
