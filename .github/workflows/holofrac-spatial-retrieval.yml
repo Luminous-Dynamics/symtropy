@@ -8,6 +8,7 @@ on:
   pull_request:
     branches:
       - research/freeflow-modular-fractal-v0
+      - research/holofrac-architecture-v0
     paths:
       - "research/holofrac-retrieval/**"
       - "crates/core/symtropy-hdc-core/**"
