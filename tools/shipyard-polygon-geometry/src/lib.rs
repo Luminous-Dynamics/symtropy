@@ -940,25 +940,49 @@ mod tests {
         }
     }
 
+    fn reference_canonical_boundary(vertices: &[(i64, i64)]) -> Vec<(i64, i64)> {
+        let mut points = vertices.to_vec();
+        loop {
+            if points.len() <= 3 {
+                break;
+            }
+            let removable = (0..points.len()).find(|index| {
+                let previous = points[(*index + points.len() - 1) % points.len()];
+                let current = points[*index];
+                let next = points[(*index + 1) % points.len()];
+                reference_cross(previous, current, next) == 0
+                    && reference_on_segment(current, previous, next)
+            });
+            match removable {
+                Some(index) => {
+                    points.remove(index);
+                }
+                None => break,
+            }
+        }
+
+        let mut twice_area = 0_i128;
+        for index in 0..points.len() {
+            let next = points[(index + 1) % points.len()];
+            twice_area += i128::from(points[index].0) * i128::from(next.1)
+                - i128::from(next.0) * i128::from(points[index].1);
+        }
+        if twice_area < 0 {
+            points.reverse();
+        }
+        if let Some(min_index) = points
+            .iter()
+            .enumerate()
+            .min_by_key(|(_, point)| **point)
+            .map(|(index, _)| index)
+        {
+            points.rotate_left(min_index);
+        }
+        points
+    }
+
     fn reference_same_boundary(first: &[(i64, i64)], second: &[(i64, i64)]) -> bool {
-        if first.len() != second.len() {
-            return false;
-        }
-        for offset in 0..second.len() {
-            let forward = (0..first.len()).all(|index| {
-                first[index] == second[(offset + index) % second.len()]
-            });
-            if forward {
-                return true;
-            }
-            let reverse = (0..first.len()).all(|index| {
-                first[index] == second[(offset + second.len() - index) % second.len()]
-            });
-            if reverse {
-                return true;
-            }
-        }
-        false
+        reference_canonical_boundary(first) == reference_canonical_boundary(second)
     }
 
     fn exact_reference_relation(
@@ -987,16 +1011,21 @@ mod tests {
             }
         }
 
-        for point in first.iter().chain(second.iter()) {
-            let (subject, container) = if first.contains(point) {
-                (point, second)
-            } else {
-                (point, first)
-            };
+        for point in first {
             if reference_locate_doubled(
-                i128::from(subject.0) * 2,
-                i128::from(subject.1) * 2,
-                container,
+                i128::from(point.0) * 2,
+                i128::from(point.1) * 2,
+                second,
+            ) == PointLocation::Inside
+            {
+                return PolygonRelation::PositiveAreaOverlap;
+            }
+        }
+        for point in second {
+            if reference_locate_doubled(
+                i128::from(point.0) * 2,
+                i128::from(point.1) * 2,
+                first,
             ) == PointLocation::Inside
             {
                 return PolygonRelation::PositiveAreaOverlap;
@@ -1068,6 +1097,19 @@ mod tests {
         }
 
         assert_eq!(corpus.len(), 144, "frozen oblique corpus changed");
+
+        let square = [(0, 0), (4, 0), (4, 4), (0, 4)];
+        let same_square_with_redundant_vertex =
+            [(0, 0), (2, 0), (4, 0), (4, 4), (0, 4)];
+        assert_eq!(
+            exact_reference_relation(&square, &same_square_with_redundant_vertex),
+            PolygonRelation::PositiveAreaOverlap
+        );
+        assert_eq!(
+            polygon(&square).relation(&polygon(&same_square_with_redundant_vertex)),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
+
         let mut positive_area = 0usize;
         let mut boundary_contact = 0usize;
         let mut disjoint = 0usize;
