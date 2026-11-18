@@ -34,7 +34,7 @@ These are proposed falsifiable targets. Absolute tolerances must be set after a 
 
 ## Implementation
 
-The run-level data contract and synthetic example are in tools/lunar-excavation-benchmark/. The schema is the first increment only. A later independent evaluator must still enforce cross-record split disjointness, artifact digest and reference resolution, calibration validity, interval ordering, unit consistency, repeat leakage and licence admission. JSON Schema conformance alone is not evidence qualification.
+The run-level contract, dataset-level split manifest, synthetic examples and fixture CI guard are in tools/lunar-excavation-benchmark/. The schemas make the intended grouping and holdout boundaries explicit; CI currently verifies only the synthetic examples. A general independent evaluator must still enforce every imported record against the manifest, artifact digest and reference resolution, calibration validity, interval ordering, unit consistency, repeat leakage, blind-set custody and licence admission. JSON Schema conformance alone is not evidence qualification.
 
 Detailed protocol: tools/lunar-excavation-benchmark/README.md.
 
