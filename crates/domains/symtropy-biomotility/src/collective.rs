@@ -17,6 +17,7 @@ use super::{EventEvidenceStatus, SeededRng};
 const MIN_CONTACT_ANGLE_RAD: f64 = PI / 6.0;
 const ANGLE_GATE_WIDTH_RAD: f64 = FRAC_PI_2 - MIN_CONTACT_ANGLE_RAD;
 const LN_2: f64 = std::f64::consts::LN_2;
+const MAX_CONSTITUTIVE_REVERSALS: usize = 1_000_000;
 
 /// One already-detected cell-cell contact, with angle and duration.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -115,6 +116,93 @@ impl CollisionReversalLaw {
                 Ok(rng.next_unit_f64() < probability)
             })
             .collect()
+    }
+}
+
+/// Contact-response phenotype. Constitutive reversal is deliberately
+/// modelled as a separate time process below, never as a contact response.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ReversalPhenotype {
+    ContactSensitive(CollisionReversalLaw),
+    NonReversing,
+}
+
+impl ReversalPhenotype {
+    pub fn contact_reversal_probability(
+        &self,
+        contact: CollisionContact,
+    ) -> Result<f64, CollisionResponseError> {
+        match self {
+            Self::ContactSensitive(law) => law.reversal_probability(contact),
+            Self::NonReversing => {
+                contact.validate()?;
+                Ok(0.0)
+            }
+        }
+    }
+
+    pub fn sample_contact_with_seed(
+        &self,
+        contact: CollisionContact,
+        seed: u64,
+    ) -> Result<bool, CollisionResponseError> {
+        let probability = self.contact_reversal_probability(contact)?;
+        let mut rng = SeededRng::new(seed);
+        Ok(rng.next_unit_f64() < probability)
+    }
+}
+
+/// Independent, constitutive reversal process with a constant event rate.
+///
+/// The generated event times form a Poisson process and do not depend on the
+/// number, angle or duration of cell-cell contacts.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ConstitutiveReversalLaw {
+    pub rate_hz: f64,
+}
+
+impl ConstitutiveReversalLaw {
+    pub fn validate(&self) -> Result<(), CollisionResponseError> {
+        if !self.rate_hz.is_finite() || self.rate_hz < 0.0 {
+            return Err(CollisionResponseError::InvalidConstitutiveRate);
+        }
+        Ok(())
+    }
+
+    pub fn event_times_with_seed(
+        &self,
+        observation_time_s: f64,
+        seed: u64,
+    ) -> Result<Vec<f64>, CollisionResponseError> {
+        self.validate()?;
+        if !observation_time_s.is_finite() || observation_time_s < 0.0 {
+            return Err(CollisionResponseError::InvalidObservationTime);
+        }
+        if self.rate_hz == 0.0 || observation_time_s == 0.0 {
+            return Ok(Vec::new());
+        }
+
+        let mut rng = SeededRng::new(seed);
+        let mut time_s = 0.0;
+        let mut event_times = Vec::new();
+        loop {
+            let unit = rng
+                .next_unit_f64()
+                .clamp(f64::EPSILON, 1.0 - f64::EPSILON);
+            let inter_event_s = -(-unit).ln_1p() / self.rate_hz;
+            if !inter_event_s.is_finite() || inter_event_s <= 0.0 {
+                return Err(CollisionResponseError::InvalidConstitutiveRate);
+            }
+            time_s += inter_event_s;
+            if time_s > observation_time_s {
+                break;
+            }
+            event_times.push(time_s);
+            if event_times.len() >= MAX_CONSTITUTIVE_REVERSALS {
+                return Err(CollisionResponseError::ConstitutiveEventLimitExceeded);
+            }
+        }
+        Ok(event_times)
     }
 }
 
@@ -260,6 +348,8 @@ pub enum CollisionResponseError {
     InvalidContactAngle,
     InvalidContactDuration,
     InvalidObservationTime,
+    InvalidConstitutiveRate,
+    ConstitutiveEventLimitExceeded,
     NonFiniteHeading,
 }
 
@@ -277,6 +367,12 @@ impl fmt::Display for CollisionResponseError {
             }
             Self::InvalidObservationTime => {
                 write!(formatter, "observation time must be finite and positive")
+            }
+            Self::InvalidConstitutiveRate => {
+                write!(formatter, "constitutive reversal rate must be finite and non-negative")
+            }
+            Self::ConstitutiveEventLimitExceeded => {
+                write!(formatter, "constitutive reversal sample exceeded its event budget")
             }
             Self::NonFiniteHeading => {
                 write!(formatter, "orientation headings must be finite")
@@ -452,6 +548,73 @@ mod tests {
         assert_eq!(order.sample_count, 0);
         assert_eq!(order.polar_order, None);
         assert_eq!(order.nematic_order, None);
+    }
+
+    #[test]
+    fn non_reversing_phenotype_ignores_contact_exposure() {
+        let phenotype = ReversalPhenotype::NonReversing;
+        for contact in [
+            CollisionContact {
+                contact_angle_rad: FRAC_PI_2,
+                contact_duration_s: 0.0,
+            },
+            CollisionContact {
+                contact_angle_rad: FRAC_PI_2,
+                contact_duration_s: 10_000.0,
+            },
+            CollisionContact {
+                contact_angle_rad: MIN_CONTACT_ANGLE_RAD,
+                contact_duration_s: 10_000.0,
+            },
+        ] {
+            assert_eq!(phenotype.contact_reversal_probability(contact), Ok(0.0));
+            assert!(!phenotype.sample_contact_with_seed(contact, 8).unwrap());
+        }
+    }
+
+    #[test]
+    fn constitutive_reversals_are_reproducible_and_independent_of_contacts() {
+        let law = ConstitutiveReversalLaw { rate_hz: 2.0 };
+        let first = law.event_times_with_seed(10.0, 11).unwrap();
+        let replay = law.event_times_with_seed(10.0, 11).unwrap();
+        assert_eq!(first, replay);
+        assert!(first.windows(2).all(|pair| pair[0] < pair[1]));
+        assert!(first.iter().all(|time| *time > 0.0 && *time <= 10.0));
+        assert_eq!(
+            ConstitutiveReversalLaw { rate_hz: 0.0 }
+                .event_times_with_seed(10.0, 11)
+                .unwrap(),
+            Vec::<f64>::new()
+        );
+    }
+
+    #[test]
+    fn contact_incidence_changes_population_reversal_rate_without_changing_contact_law() {
+        let contact = CollisionContact {
+            contact_angle_rad: FRAC_PI_2,
+            contact_duration_s: 2.0,
+        };
+        let one = [CollisionResponseObservation {
+            contact,
+            reversal_observed: true,
+            evidence_status: EventEvidenceStatus::DirectlyObserved,
+        }];
+        let four = [
+            one[0],
+            one[0],
+            one[0],
+            one[0],
+        ];
+        let one_summary = CollisionResponseSummary::from_observations(&one, 4.0).unwrap();
+        let four_summary = CollisionResponseSummary::from_observations(&four, 4.0).unwrap();
+
+        assert_eq!(law().reversal_probability(contact).unwrap(), 0.5);
+        assert_eq!(one_summary.per_contact_reversal_fraction, Some(1.0));
+        assert_eq!(four_summary.per_contact_reversal_fraction, Some(1.0));
+        assert_eq!(one_summary.contact_incidence_rate_hz, Some(0.25));
+        assert_eq!(four_summary.contact_incidence_rate_hz, Some(1.0));
+        assert_eq!(one_summary.population_reversal_rate_hz, Some(0.25));
+        assert_eq!(four_summary.population_reversal_rate_hz, Some(1.0));
     }
 
     #[test]
