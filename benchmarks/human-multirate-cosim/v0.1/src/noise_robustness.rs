@@ -111,16 +111,25 @@ impl fmt::Display for CovarianceError {
                 write!(f, "bound covariance time schedule does not match the observation trace")
             }
             Self::TraceProcessIdentityMismatch => {
-                write!(f, "bound covariance observation process does not match the observation trace")
+                write!(
+                    f,
+                    "bound covariance observation process does not match the observation trace"
+                )
             }
             Self::TraceSamplingPolicyMismatch => {
                 write!(f, "bound covariance sampling policy does not match the observation trace")
             }
             Self::TraceOperatorMismatch => {
-                write!(f, "bound covariance observation operator does not match the observation trace")
+                write!(
+                    f,
+                    "bound covariance observation operator does not match the observation trace"
+                )
             }
             Self::TraceAvailabilityCutoffMismatch => {
-                write!(f, "bound covariance availability cutoff does not match the observation trace")
+                write!(
+                    f,
+                    "bound covariance availability cutoff does not match the observation trace"
+                )
             }
         }
     }
