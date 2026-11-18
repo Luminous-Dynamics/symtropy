@@ -516,10 +516,12 @@
     "metrics": [
       "integrated_squared_input",
       "maximum_abs_forcing",
-      "pairwise_equal_covariance_gaussian_kl",
+      "pairwise_gaussian_kl_separation",
       "minimum_pairwise_gaussian_kl",
       "mean_pairwise_gaussian_kl",
-      "worst_case_indistinguishable"
+      "worst_case_indistinguishable",
+      "feasible_profile_count",
+      "rejected_candidate_count"
     ],
     "assumptions": [
       "same initial state and capacities across candidate models",
@@ -529,6 +531,67 @@
       "piecewise-constant forcing and fixed graph within each candidate",
       "candidate-specific nuisance parameters are fixed; profile likelihood / parameter profiling is not included"
     ],
-    "claim_ceiling": "Exact piecewise-constant forced response and equal-covariance Gaussian KL discrimination arithmetic for this frozen synthetic graph family; not general T-optimal or optimal-control design."
+    "claim_ceiling": "Exact piecewise-constant forced response and equal-covariance Gaussian KL discrimination arithmetic for this frozen synthetic graph family; not general T-optimal or optimal-control design.",
+    "pulse_grid": {
+      "nodes": [
+        0,
+        1,
+        2
+      ],
+      "amplitudes": [
+        -1,
+        -0.5,
+        0.5,
+        1
+      ],
+      "durations": [
+        0.25,
+        0.5,
+        1
+      ],
+      "first_profile_id": 100,
+      "expected_total_candidates": 36,
+      "expected_feasible_candidates": 30,
+      "expected_rejected_candidates": 6,
+      "rejection_reasons": [
+        "maximum_amplitude_exceeded",
+        "integrated_squared_input_exceeded"
+      ],
+      "known_best_discrete_profiles": [
+        {
+          "profile_id": 101,
+          "node": 0,
+          "amplitude": -1,
+          "duration": 0.5,
+          "integrated_squared_input": 0.5,
+          "minimum_pairwise_gaussian_kl": 0.3344981676303682
+        },
+        {
+          "profile_id": 110,
+          "node": 0,
+          "amplitude": 1,
+          "duration": 0.5,
+          "integrated_squared_input": 0.5,
+          "minimum_pairwise_gaussian_kl": 0.3344981676303682
+        },
+        {
+          "profile_id": 128,
+          "node": 2,
+          "amplitude": -1,
+          "duration": 0.5,
+          "integrated_squared_input": 0.5,
+          "minimum_pairwise_gaussian_kl": 0.3344981676303682
+        },
+        {
+          "profile_id": 137,
+          "node": 2,
+          "amplitude": 1,
+          "duration": 0.5,
+          "integrated_squared_input": 0.5,
+          "minimum_pairwise_gaussian_kl": 0.3344981676303682
+        }
+      ],
+      "optimization_scope": "exact enumeration over a finite single-node rectangular pulse catalogue only; no continuous-control optimality guarantee"
+    }
   }
 }
