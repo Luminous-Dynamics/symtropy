@@ -14,6 +14,15 @@ Status: draft / not run. Parent execution issue: https://github.com/Luminous-Dyn
 5. Never change `evidence_class` from simulated/modelled to measured because a prediction matched an expected value.
 
 
+## Whole-meal intent fidelity
+
+Task success is not the same as satisfying the household's request. The manifest now adds an independent `meal-intent-adjudication` task and two metrics:
+
+- `meal_intent_fidelity_rate`: blind independent adjudication of original intent, user-approved amendments, compiled graphs and the final measured meal. Report non-negotiable constraints separately from soft preferences.
+- `meal_hard_constraint_violation_count`: count of unapproved violations of a non-negotiable exclusion/constraint. This is a hard gate with target zero; no sensory, energy, cost, throughput or robot-success score can offset it.
+
+The 0.98 intent-fidelity target is an unverified research hypothesis. The adjudicator sees the original human constraints and exact approved revisions before comparator identity is revealed. Missing evidence, disagreement and consent withdrawal are preserved separately; the system cannot retroactively redefine user intent after execution.
+
 ## Experimental design and analysis plan
 
 The V0.1 manifest now carries an explicit `analysis_plan`. It is proposed, not preregistered. The following are design commitments for a future confirmatory study, not evidence that a trial has been conducted.
