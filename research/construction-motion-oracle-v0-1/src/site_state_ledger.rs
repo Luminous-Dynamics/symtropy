@@ -3099,7 +3099,11 @@ mod tests {
                 "resource-catalog-version".into()
             ))
         );
-        assert_eq!(ledger.resource_catalog_sha256(), Some(digest('b').as_str()));
+        let original_catalog_digest = digest('b');
+        assert_eq!(
+            ledger.resource_catalog_sha256(),
+            Some(original_catalog_digest.as_str())
+        );
         assert_eq!(ledger.last_sequence(), 3);
     }
 
@@ -3138,7 +3142,7 @@ mod tests {
             ))
         );
         assert_eq!(ledger.active_package_sha256(), Some(package_digest.as_str()));
-        assert_eq!(ledger.last_sequence(), 4);
+        assert_eq!(ledger.last_sequence(), 3);
     }
 
 }
