@@ -168,12 +168,12 @@ fn valid_sha256_shape(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
-fn split_row(
-    line: &str,
+fn split_row<'a>(
+    line: &'a str,
     expected: usize,
     source: &str,
     line_no: usize,
-) -> Result<Vec<&str>, String> {
+) -> Result<Vec<&'a str>, String> {
     let fields: Vec<&str> = line.split('\t').collect();
     if fields.len() != expected {
         return Err(format!(
