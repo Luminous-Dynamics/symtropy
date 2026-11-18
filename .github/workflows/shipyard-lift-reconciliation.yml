@@ -55,7 +55,7 @@ jobs:
               )
             )
           ' "$vectors"
-          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.observation.oneOf | length == 7' tools/shipyard-lift-reconciliation/schemas/telemetry-event-v0.1.schema.json
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and (.properties.observation.oneOf | length) == 7' tools/shipyard-lift-reconciliation/schemas/telemetry-event-v0.1.schema.json
           jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and (.required | index("clock_domain_id") != null) and (.required | index("complete") != null)' tools/shipyard-lift-reconciliation/schemas/stream-coverage-v0.1.schema.json
           jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and (.required | index("maximum_sample_gap_ticks") != null) and (.required | index("maximum_ingest_lateness_ticks") != null)' tools/shipyard-lift-reconciliation/schemas/reconciliation-policy-v0.1.schema.json
           jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.disposition.enum == ["conforming_to_declared_envelope","deviation_observed","indeterminate"] and (.required | index("event_ledger_sha256") != null)' tools/shipyard-lift-reconciliation/schemas/reconciliation-report-v0.1.schema.json
