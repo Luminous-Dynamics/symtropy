@@ -110,7 +110,7 @@ jobs:
         cargo run --quiet --manifest-path tools/lunar-granular-flow-similarity/Cargo.toml -- \
           tools/lunar-granular-flow-similarity/examples/synthetic-similarity-input.json \
           > /tmp/lunar-granular-flow-similarity-report.json
-        jq -e '.overall_status == "within_declared_similarity_envelope" and (.coordinates | length) == 12' \
+        jq -e '.overall_status == "within_declared_similarity_envelope" and (.coordinates | length) == 17' \
           /tmp/lunar-granular-flow-similarity-report.json >/dev/null
         cargo run --quiet --manifest-path tools/lunar-regolith-feeder-supervisor/Cargo.toml -- \
           tools/lunar-regolith-feeder-supervisor/examples/synthetic-supervisor-input.json \
