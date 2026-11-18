@@ -411,9 +411,7 @@
         "fill_fraction",
         "wall_pull_off_force_n",
         "wall_surface_energy_j_m2",
-        "wall_contact_angle_deg",
-        "hopper_outlet_diameter_m",
-        "hopper_column_height_m"
+        "wall_contact_angle_deg"
       ],
       "properties": {
         "apparatus_type": {
