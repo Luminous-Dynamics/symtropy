@@ -32,6 +32,8 @@ pub mod autodiff;
 pub mod connection;
 /// Convention-explicit Riemann, Ricci, and Einstein curvature tensors.
 pub mod curvature;
+/// Independent full-component static-spherical Bach tensor reference.
+pub mod bach_static;
 /// Schwarzschild timelike/null geodesics with Christoffel and Hamiltonian formulations.
 pub mod geodesic;
 /// Kerr equatorial circular-null-orbit and light-ring observables.
