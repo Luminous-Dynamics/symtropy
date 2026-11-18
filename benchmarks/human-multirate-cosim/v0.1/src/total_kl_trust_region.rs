@@ -88,18 +88,34 @@ impl fmt::Display for TotalKlTrustRegionError {
             Self::TrustRegion(error) => write!(f, "total-KL trust-region solve failed: {error}"),
             Self::InvalidModelPair => write!(f, "two distinct model IDs are required"),
             Self::UnknownModelId(id) => write!(f, "model ID {id} is not registered"),
-            Self::InvalidControlPartition => write!(f, "control boundaries must partition [0, horizon]"),
-            Self::TooManyControlSegments => write!(f, "control partition exceeds the segment limit"),
+            Self::InvalidControlPartition => {
+                write!(f, "control boundaries must partition [0, horizon]")
+            }
+            Self::TooManyControlSegments => {
+                write!(f, "control partition exceeds the segment limit")
+            }
             Self::EmptyActuatorSet => write!(f, "at least one actuator node is required"),
             Self::DuplicateActuatorNode(node) => write!(f, "actuator node {node} is repeated"),
-            Self::UnknownActuatorNode(node) => write!(f, "actuator node {node} is outside the graph"),
-            Self::ExcessiveControlBasis => write!(f, "actuator/time basis exceeds the exact dimension limit"),
-            Self::InvalidProbeAmplitude => write!(f, "could not construct a feasible positive basis probe"),
+            Self::UnknownActuatorNode(node) => {
+                write!(f, "actuator node {node} is outside the graph")
+            }
+            Self::ExcessiveControlBasis => {
+                write!(f, "actuator/time basis exceeds the exact dimension limit")
+            }
+            Self::InvalidProbeAmplitude => {
+                write!(f, "could not construct a feasible positive basis probe")
+            }
             Self::NonFiniteOffset => write!(f, "passive Gaussian KL offset is non-finite"),
             Self::NonFiniteCrossTerm => write!(f, "total-KL linear cross term is non-finite"),
-            Self::NonFiniteReplay => write!(f, "replayed total Gaussian KL is missing or non-finite"),
-            Self::MissingModelPrediction(id) => write!(f, "model ID {id} is missing from an observation prediction"),
-            Self::InvalidPredictionShape => write!(f, "model prediction does not match the observation dimensions"),
+            Self::NonFiniteReplay => {
+                write!(f, "replayed total Gaussian KL is missing or non-finite")
+            }
+            Self::MissingModelPrediction(id) => {
+                write!(f, "model ID {id} is missing from an observation prediction")
+            }
+            Self::InvalidPredictionShape => {
+                write!(f, "model prediction does not match the observation dimensions")
+            }
         }
     }
 }
@@ -753,7 +769,10 @@ mod tests {
 
         assert!(report.achieved_total_gaussian_kl + 1.0e-9 >= dense_scalar_best);
         assert!((report.passive_baseline_gaussian_kl - passive_kl).abs() < 1.0e-9);
-        assert!((report.achieved_integrated_squared_input - fixture.input_energy_budget).abs() < 1.0e-8);
+        assert!(
+            (report.achieved_integrated_squared_input - fixture.input_energy_budget).abs()
+                < 1.0e-8
+        );
         assert!(report.trust_region_stationarity_residual < 1.0e-7);
         assert!(report.replay_total_kl_abs_error < 1.0e-8);
         assert_eq!(
@@ -824,7 +843,10 @@ mod tests {
             &[0.0, 2.0],
         )
         .unwrap();
-        assert_eq!(report.optimality_disposition, TotalKlOptimalityDisposition::PeakConstraintActive);
+        assert_eq!(
+            report.optimality_disposition,
+            TotalKlOptimalityDisposition::PeakConstraintActive
+        );
         assert!(report.peak_constraint_active);
         assert!(report.achieved_peak_amplitude <= 0.05 + TOTAL_KL_TOLERANCE);
         assert!(report.achieved_integrated_squared_input <= report.energy_budget + 1.0e-9);

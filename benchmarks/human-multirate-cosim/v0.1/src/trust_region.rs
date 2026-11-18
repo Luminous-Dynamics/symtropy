@@ -55,15 +55,27 @@ impl fmt::Display for TrustRegionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyMatrix => write!(f, "trust-region matrix must be non-empty"),
-            Self::DimensionMismatch => write!(f, "trust-region matrix and linear term dimensions differ"),
+            Self::DimensionMismatch => {
+                write!(f, "trust-region matrix and linear term dimensions differ")
+            }
             Self::NonSquareMatrix => write!(f, "trust-region matrix must be square"),
             Self::NonFiniteInput => write!(f, "trust-region input contains a non-finite value"),
-            Self::AsymmetricMatrix => write!(f, "trust-region matrix is not symmetric within tolerance"),
-            Self::IndefiniteMatrix => write!(f, "trust-region matrix is not positive semidefinite"),
-            Self::InvalidRadius => write!(f, "trust-region radius must be finite and non-negative"),
+            Self::AsymmetricMatrix => {
+                write!(f, "trust-region matrix is not symmetric within tolerance")
+            }
+            Self::IndefiniteMatrix => {
+                write!(f, "trust-region matrix is not positive semidefinite")
+            }
+            Self::InvalidRadius => {
+                write!(f, "trust-region radius must be finite and positive")
+            }
             Self::EigensolverFailure => write!(f, "trust-region eigendecomposition failed"),
-            Self::RootBracketFailure => write!(f, "could not bracket the trust-region secular root"),
-            Self::KktResidualTooLarge => write!(f, "trust-region solution failed its KKT residual checks"),
+            Self::RootBracketFailure => {
+                write!(f, "could not bracket the trust-region secular root")
+            }
+            Self::KktResidualTooLarge => {
+                write!(f, "trust-region solution failed its KKT residual checks")
+            }
         }
     }
 }
@@ -411,6 +423,14 @@ mod tests {
         assert_eq!(solution.point, vec![0.0, 0.0]);
         assert_eq!(solution.objective_without_constant, 0.0);
         assert_eq!(solution.point_norm, 0.0);
+    }
+
+    #[test]
+    fn zero_radius_rejects_degenerate_trust_region() {
+        assert_eq!(
+            maximize_psd_quadratic_on_ball(&[vec![1.0]], &[0.0], 0.0),
+            Err(TrustRegionError::InvalidRadius)
+        );
     }
 
     #[test]
