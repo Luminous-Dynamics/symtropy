@@ -14,7 +14,8 @@
     "campaign",
     "source",
     "variants",
-    "assumptions"
+    "assumptions",
+    "rotation_sensitivity"
   ],
   "properties": {
     "schema_version": {
@@ -423,7 +424,49 @@
         "type": "string"
       },
       "uniqueItems": true
+    },
+    "rotation_sensitivity": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "on_station_days",
+          "recovery_to_ready_days",
+          "launch_to_service_days",
+          "required_service_platforms",
+          "expected_minimum_fleet_size"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "on_station_days": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "recovery_to_ready_days": {
+            "type": "number",
+            "minimum": 0
+          },
+          "launch_to_service_days": {
+            "type": "number",
+            "minimum": 0
+          },
+          "required_service_platforms": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "expected_minimum_fleet_size": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
     }
   },
-  "$comment": "Semantic validation: variant IDs/platform IDs unique; k does not exceed platform count; every maintenance platform exists; all event windows lie within campaign; maintenance/weather availability is unioned per platform/day (a node counts unavailable once even when multiple causes overlap); daily active count equals deployed nodes minus unavailable nodes; service is available iff active count >= required_active_platforms; availability fraction is available days / duration; unavailable offsets and longest outage are recomputed. Common-cause events affect every platform assigned to an affected weather domain. This v1 oracle does not model launching, recovery or return-to-ready logistics; null logistics values remain unknown and must not be inferred."
+  "$comment": "Semantic validation: variant IDs/platform IDs unique; k does not exceed platform count; every maintenance platform exists; all event windows lie within campaign; maintenance/weather availability is unioned per platform/day (a node counts unavailable once even when multiple causes overlap); daily active count equals deployed nodes minus unavailable nodes; service is available iff active count >= required_active_platforms; availability fraction is available days / duration; unavailable offsets and longest outage are recomputed. Common-cause events affect every platform assigned to an affected weather domain. This v1 oracle does not model launching, recovery or return-to-ready logistics; null logistics values remain unknown and must not be inferred. rotation_sensitivity computes the ideal steady-state duty-cycle lower bound ceil(k * (on_station_days + recovery_to_ready_days + launch_to_service_days) / on_station_days). It assumes perfect staggering, identical platforms, immediate handover and no failures or shared resource constraints; it is NOT a guarantee of continuous service and is not included in the daily event-oracle availability."
 }
