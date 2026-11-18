@@ -38,6 +38,14 @@ jobs:
         run: cargo clippy --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --all-targets -- -D warnings
       - name: Tests
         run: cargo test --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --all-targets
+      - name: Evaluate synthetic carrier-UAV co-availability
+        run: |
+          mkdir -p mfb-l1-evidence
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-evaluate-coavailability -- tools/material-flow-benchmark/fixtures/synthetic-carrier-uav-coavailability.json > mfb-l1-evidence/carrier-uav-coavailability.json
+          grep -q '"verdict": "feasible"' mfb-l1-evidence/carrier-uav-coavailability.json
+          grep -q '"dispatch_authorized": false' mfb-l1-evidence/carrier-uav-coavailability.json
+          grep -q '"physical_command_emitted": false' mfb-l1-evidence/carrier-uav-coavailability.json
+          cat mfb-l1-evidence/carrier-uav-coavailability.json
       - name: Validate nominal scenario fixture
         run: cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json
       - name: Validate ten-fault campaign fixture
