@@ -225,15 +225,32 @@ impl std::fmt::Display for TemporalFixtureError {
             Self::InvalidSensorCount => f.write_str("sensor_count must be at least four"),
             Self::InvalidTimeSteps => f.write_str("time_steps must be at least three"),
             Self::InvalidTimeStep => f.write_str("nominal_step_seconds must be positive"),
-            Self::InvalidDelay => f.write_str("delivery and correction delays must be non-negative"),
-            Self::InvalidProbability => f.write_str("missing and correction probabilities must lie in [0, 1]"),
+            Self::InvalidDelay => {
+                f.write_str("delivery and correction delays must be non-negative")
+            }
+            Self::InvalidProbability => {
+                f.write_str("missing and correction probabilities must lie in [0, 1]")
+            }
             Self::DuplicateEventId(id) => write!(f, "duplicate temporal event ID: {id}"),
-            Self::InvalidEventTime(id) => write!(f, "event {id} has recorded time before valid time"),
-            Self::InvalidEventValue(id) => write!(f, "event {id} has a non-finite observation value"),
-            Self::InvalidEventShape(id) => write!(f, "event {id} has inconsistent kind/value/parent fields"),
-            Self::UnknownCorrectionParent(id) => write!(f, "correction {id} references an unknown parent"),
-            Self::CorrectionKeyMismatch(id) => write!(f, "correction {id} changes the identity of its parent sample"),
-            Self::NonIncreasingRevision(id) => write!(f, "correction {id} does not advance its source revision"),
+            Self::InvalidEventTime(id) => {
+                write!(f, "event {id} has recorded time before valid time")
+            }
+            Self::InvalidEventValue(id) => {
+                write!(f, "event {id} has a non-finite observation value")
+            }
+            Self::InvalidEventShape(id) => {
+                write!(f, "event {id} has inconsistent kind/value/parent fields")
+            }
+            Self::UnknownCorrectionParent(id) => {
+                write!(f, "correction {id} references an unknown parent")
+            }
+            Self::CorrectionKeyMismatch(id) => write!(
+                f,
+                "correction {id} changes the identity of its parent sample"
+            ),
+            Self::NonIncreasingRevision(id) => {
+                write!(f, "correction {id} does not advance its source revision")
+            }
         }
     }
 }
@@ -248,7 +265,11 @@ struct DeterministicRng {
 impl DeterministicRng {
     fn new(seed: u64) -> Self {
         Self {
-            state: if seed == 0 { 0x9e37_79b9_7f4a_7c15 } else { seed },
+            state: if seed == 0 {
+                0x9e37_79b9_7f4a_7c15
+            } else {
+                seed
+            },
         }
     }
 
@@ -325,7 +346,7 @@ pub fn synthetic_field_value(channel: SpatialChannel, x: f64, y: f64, time_secon
             let occupied = (0.5 + 0.5 * (day_phase - 1.4).sin()).powi(2);
             (0.4 + 3.1 * occupied * gaussian(x, y, 0.58, 0.52, 0.29)
                 + 1.2 * occupied * gaussian(x, y, 0.19, 0.22, 0.15))
-                .max(0.0)
+            .max(0.0)
         }
     }
 }
@@ -384,17 +405,13 @@ impl TemporalFixture {
                 for step in 0..config.time_steps {
                     let nominal = step as i64 * config.nominal_step_seconds;
                     let jitter_bound = (config.nominal_step_seconds / 10).max(1);
-                    let jitter = (rng.unit_f64() * (2 * jitter_bound + 1) as f64) as i64
-                        - jitter_bound;
+                    let jitter =
+                        (rng.unit_f64() * (2 * jitter_bound + 1) as f64) as i64 - jitter_bound;
                     let valid_seconds = (nominal + jitter).max(previous_valid_at + 1).max(0);
                     previous_valid_at = valid_seconds;
                     let valid_at_micros = valid_seconds.saturating_mul(1_000_000);
-                    let truth = synthetic_field_value(
-                        channel,
-                        sensor.x,
-                        sensor.y,
-                        valid_seconds as f64,
-                    );
+                    let truth =
+                        synthetic_field_value(channel, sensor.x, sensor.y, valid_seconds as f64);
                     evaluator_truth.push(GroundTruthRecord {
                         sensor_id: sensor.sensor_id,
                         channel,
@@ -452,12 +469,15 @@ impl TemporalFixture {
                         let correction_recorded_at = recorded_at_micros.saturating_add(
                             config
                                 .correction_delay_seconds
-                                .saturating_add(rng.range_i64(config.max_delivery_delay_seconds / 2))
+                                .saturating_add(
+                                    rng.range_i64(config.max_delivery_delay_seconds / 2),
+                                )
                                 .saturating_mul(1_000_000),
                         );
                         let correction_id = next_event_id;
                         next_event_id += 1;
-                        let corrected_value = truth + rng.signed_unit() * channel.noise_scale() * 0.2;
+                        let corrected_value =
+                            truth + rng.signed_unit() * channel.noise_scale() * 0.2;
                         events.push(ObservationEvent {
                             event_id: correction_id,
                             sensor_id: sensor.sensor_id,
@@ -479,9 +499,8 @@ impl TemporalFixture {
         }
 
         events.sort_by_key(|event| (event.recorded_at_micros, event.event_id));
-        evaluator_truth.sort_by_key(|record| {
-            (record.valid_at_micros, record.sensor_id, record.channel)
-        });
+        evaluator_truth
+            .sort_by_key(|record| (record.valid_at_micros, record.sensor_id, record.channel));
 
         let fixture = Self {
             manifest: FixtureManifest {
@@ -499,14 +518,18 @@ impl TemporalFixture {
 
         fixture.validate()?;
         let mut fixture = fixture;
-        fixture.manifest.digest_non_security = stable_digest(&fixture.manifest.config, &fixture.events);
+        fixture.manifest.digest_non_security =
+            stable_digest(&fixture.manifest.config, &fixture.events);
         Ok(fixture)
     }
 
     pub fn validate(&self) -> Result<(), TemporalFixtureError> {
         let mut event_ids = HashSet::with_capacity(self.events.len());
-        let by_id: HashMap<u64, &ObservationEvent> =
-            self.events.iter().map(|event| (event.event_id, event)).collect();
+        let by_id: HashMap<u64, &ObservationEvent> = self
+            .events
+            .iter()
+            .map(|event| (event.event_id, event))
+            .collect();
 
         for event in &self.events {
             if !event_ids.insert(event.event_id) {
@@ -524,7 +547,9 @@ impl TemporalFixture {
                 (ObservationKind::Missing, None, None) => {}
                 (ObservationKind::Correction, Some(_), Some(parent_id)) => {
                     let Some(parent) = by_id.get(&parent_id) else {
-                        return Err(TemporalFixtureError::UnknownCorrectionParent(event.event_id));
+                        return Err(TemporalFixtureError::UnknownCorrectionParent(
+                            event.event_id,
+                        ));
                     };
                     if parent.sensor_id != event.sensor_id
                         || parent.channel != event.channel
@@ -563,8 +588,15 @@ impl TemporalFixture {
                 valid_at_micros: event.valid_at_micros,
             };
             let should_replace = latest.get(&key).is_none_or(|current| {
-                (event.source_revision, event.recorded_at_micros, event.event_id)
-                    > (current.source_revision, current.recorded_at_micros, current.event_id)
+                (
+                    event.source_revision,
+                    event.recorded_at_micros,
+                    event.event_id,
+                ) > (
+                    current.source_revision,
+                    current.recorded_at_micros,
+                    current.event_id,
+                )
             });
             if should_replace {
                 latest.insert(key, event);
@@ -671,9 +703,12 @@ mod tests {
         .unwrap();
 
         assert_eq!(fixture.missing_count(), fixture.events.len());
-        assert!(fixture.events.iter().all(|event| {
-            event.kind == ObservationKind::Missing && event.value.is_none()
-        }));
+        assert!(
+            fixture
+                .events
+                .iter()
+                .all(|event| { event.kind == ObservationKind::Missing && event.value.is_none() })
+        );
     }
 
     #[test]
@@ -731,8 +766,14 @@ mod tests {
     fn evaluator_truth_is_not_embedded_in_observation_snapshots() {
         let fixture = TemporalFixture::generate(FixtureConfig::default()).unwrap();
         let snapshot = fixture.snapshot_as_of(i64::MAX);
-        assert_eq!(fixture.evaluator_truth.len(), fixture.manifest.truth_record_count);
-        assert_eq!(snapshot.observations.len(), fixture.events.len() - fixture.correction_count());
+        assert_eq!(
+            fixture.evaluator_truth.len(),
+            fixture.manifest.truth_record_count
+        );
+        assert_eq!(
+            snapshot.observations.len(),
+            fixture.events.len() - fixture.correction_count()
+        );
         assert!(snapshot.validate_cutoff());
     }
 
