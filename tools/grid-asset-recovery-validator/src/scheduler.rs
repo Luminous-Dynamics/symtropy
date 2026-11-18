@@ -258,6 +258,172 @@ pub fn schedule(
     Ok(scheduled_by_key.into_values().collect())
 }
 
+fn exact_search(
+    task_by_key: &BTreeMap<String, &TaskSpec>,
+    unscheduled: &mut BTreeSet<String>,
+    scheduled: &mut BTreeMap<String, ScheduledTask>,
+    resource_allocations: &mut BTreeMap<String, Vec<ResourceInterval>>,
+    capacities: &BTreeMap<String, u32>,
+    best: &mut Option<(f64, Vec<ScheduledTask>)>,
+) {
+    if unscheduled.is_empty() {
+        let makespan = scheduled
+            .values()
+            .map(|task| task.end_hour)
+            .fold(0.0, f64::max);
+        if best
+            .as_ref()
+            .is_none_or(|(best_makespan, _)| makespan < *best_makespan)
+        {
+            *best = Some((makespan, scheduled.values().cloned().collect()));
+        }
+        return;
+    }
+
+    let partial_makespan = scheduled
+        .values()
+        .map(|task| task.end_hour)
+        .fold(0.0, f64::max);
+    if best
+        .as_ref()
+        .is_some_and(|(best_makespan, _)| partial_makespan >= *best_makespan)
+    {
+        return;
+    }
+
+    let mut candidates: Vec<(f64, String)> = Vec::new();
+    for task_key in unscheduled.iter() {
+        let task = task_by_key[task_key];
+        let mut ready_hour = task.release_hour;
+        let mut ready = true;
+        for dependency in &task.depends_on {
+            let dependency_key = key(&task.event_id, dependency);
+            if let Some(predecessor) = scheduled.get(&dependency_key) {
+                ready_hour = ready_hour.max(predecessor.end_hour);
+            } else {
+                ready = false;
+                break;
+            }
+        }
+        if !ready {
+            continue;
+        }
+
+        let start_hour = match &task.resource_id {
+            Some(resource_id) => match earliest_resource_slot(
+                ready_hour,
+                task.duration_hours,
+                resource_id,
+                task.resource_units,
+                capacities,
+                resource_allocations,
+            ) {
+                Ok(start) => start,
+                Err(_) => continue,
+            },
+            None => ready_hour,
+        };
+        candidates.push((start_hour, task_key.clone()));
+    }
+
+    candidates.sort_by(|left, right| {
+        left.0
+            .total_cmp(&right.0)
+            .then_with(|| left.1.cmp(&right.1))
+    });
+
+    for (start_hour, selected_key) in candidates {
+        let task = task_by_key[&selected_key];
+        let end_hour = start_hour + task.duration_hours;
+        scheduled.insert(
+            selected_key.clone(),
+            ScheduledTask {
+                event_id: task.event_id.clone(),
+                task_id: task.task_id.clone(),
+                start_hour,
+                end_hour,
+            },
+        );
+        if let Some(resource_id) = &task.resource_id {
+            resource_allocations
+                .entry(resource_id.clone())
+                .or_default()
+                .push(ResourceInterval {
+                    start: start_hour,
+                    end: end_hour,
+                    units: task.resource_units,
+                });
+        }
+        unscheduled.remove(&selected_key);
+
+        exact_search(
+            task_by_key,
+            unscheduled,
+            scheduled,
+            resource_allocations,
+            capacities,
+            best,
+        );
+
+        unscheduled.insert(selected_key.clone());
+        scheduled.remove(&selected_key);
+        if let Some(resource_id) = &task.resource_id {
+            let remove_resource = if let Some(intervals) = resource_allocations.get_mut(resource_id) {
+                intervals.pop();
+                intervals.is_empty()
+            } else {
+                false
+            };
+            if remove_resource {
+                resource_allocations.remove(resource_id);
+            }
+        }
+    }
+}
+
+/// Exhaustively enumerates precedence-feasible serial schedules for tiny cases.
+///
+/// This bounded oracle is intended for differential tests and small exact
+/// references. It refuses cases above ten tasks; use CP-SAT/MILP or a validated
+/// specialised solver for larger instances.
+pub fn exact_small_schedule(
+    tasks: &[TaskSpec],
+    capacities: &BTreeMap<String, u32>,
+) -> Result<Vec<ScheduledTask>, Vec<String>> {
+    const MAX_EXACT_TASKS: usize = 10;
+    if tasks.is_empty() || tasks.len() > MAX_EXACT_TASKS {
+        return Err(vec![format!(
+            "exact small scheduler requires 1..={MAX_EXACT_TASKS} tasks"
+        )]);
+    }
+
+    let greedy = schedule(tasks, capacities)?;
+    let greedy_makespan = greedy
+        .iter()
+        .map(|task| task.end_hour)
+        .fold(0.0, f64::max);
+    let task_by_key: BTreeMap<String, &TaskSpec> = tasks
+        .iter()
+        .map(|task| (key(&task.event_id, &task.task_id), task))
+        .collect();
+    let mut unscheduled: BTreeSet<String> = task_by_key.keys().cloned().collect();
+    let mut scheduled = BTreeMap::new();
+    let mut resource_allocations = BTreeMap::new();
+    let mut best = Some((greedy_makespan, greedy));
+
+    exact_search(
+        &task_by_key,
+        &mut unscheduled,
+        &mut scheduled,
+        &mut resource_allocations,
+        capacities,
+        &mut best,
+    );
+
+    best.map(|(_, tasks)| tasks)
+        .ok_or_else(|| vec!["no feasible exact schedule found".to_string()])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -280,6 +446,41 @@ mod tests {
             resource_id: resource_id.map(str::to_string),
             resource_units,
         }
+    }
+
+
+    #[test]
+    fn exact_small_oracle_improves_over_greedy_task_order() {
+        let tasks = vec![
+            spec("A", "a1", &[], 0.0, 10.0, Some("r1"), 1),
+            spec("A", "a2", &["a1"], 0.0, 10.0, Some("r2"), 1),
+            spec("B", "b1", &[], 0.0, 1.0, Some("r1"), 1),
+            spec("B", "b2", &["b1"], 0.0, 100.0, Some("r2"), 1),
+        ];
+        let capacities = BTreeMap::from([
+            ("r1".to_string(), 1),
+            ("r2".to_string(), 1),
+        ]);
+        let greedy = schedule(&tasks, &capacities).expect("greedy schedule");
+        let exact = exact_small_schedule(&tasks, &capacities).expect("exact schedule");
+        let greedy_makespan = greedy.iter().map(|x| x.end_hour).fold(0.0, f64::max);
+        let exact_makespan = exact.iter().map(|x| x.end_hour).fold(0.0, f64::max);
+        assert_eq!(greedy_makespan, 120.0);
+        assert_eq!(exact_makespan, 111.0);
+        assert!(exact_makespan < greedy_makespan);
+    }
+
+    #[test]
+    fn exact_small_oracle_rejects_oversized_cases() {
+        let tasks = (0..11)
+            .map(|index| {
+                let id = format!("t{index}");
+                spec("E", &id, &[], 0.0, 1.0, None, 0)
+            })
+            .collect::<Vec<_>>();
+        assert!(exact_small_schedule(&tasks, &BTreeMap::new())
+            .unwrap_err()[0]
+            .contains("requires 1..=10 tasks"));
     }
 
     #[test]
