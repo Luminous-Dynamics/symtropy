@@ -68,7 +68,7 @@ For each case:
 9. Run the frozen negative control after every positive case.
 10. Return Verified, Rejected or Inconclusive; never reinterpret Inconclusive as evidence of nonexistence or correctness.
 
-For the Rust static Bach API, component values depend on fourth derivatives. The current API also computes a numerical radial covariant-divergence diagnostic by differentiating a component; the full call therefore requires fifth-order metric data. An order-four jet must be rejected by that API.
+For the Rust static Bach API, component values depend on fourth derivatives. Its radial-divergence diagnostic differentiates B_rr, which depends only through B''' in this static specialization; therefore the full call requires Taylor order four. An order-three jet must be rejected. The general arbitrary-metric contracted-divergence evaluator still requires fifth-order metric data.
 
 ## 5. Reproduction of external comparators
 
