@@ -55,6 +55,12 @@ cargo test --manifest-path crates/domains/symtropy-biomotility/Cargo.toml
 
 The model uses only the Rust standard library. The seeded generator is for deterministic research fixtures only; it is not cryptographic.
 
+## Duration-as-mechanism diagnostic
+
+`duration_mechanism_diagnostic` calculates the sensitivity, specificity, positive predictive value, negative predictive value and balanced accuracy of treating SHORT as an active-motor proxy and LONG as a passive-trap proxy. It admits only DIRECTLY_OBSERVED and MODEL_LATENT events with known active/passive mechanisms. ALGORITHM_INFERRED, UNRESOLVED and EXACT_BOUNDARY_EXCLUDED events are reported as exclusions, not silently relabelled.
+
+This diagnostic does not assign a mechanism. It quantifies whether a duration rule is supported by independent evidence in a particular dataset or known-truth simulation. A missing denominator returns `None`, not zero.
+
 ## Event semantics and evidence status
 
 Every simulated event records:
@@ -68,7 +74,7 @@ A real observation must not receive an active/passive mechanism label just becau
 
 `summarize_orientations` calculates up/down/cross fractions and the first circular Fourier harmonic of realized run-displacement headings relative to the gradient. The Fourier coefficient magnitude and phase preserve angular information that a binary up-gradient fraction discards.
 
-`cluster_bootstrap_orientations` resamples whole independent recording clusters (e.g. plate/day/recording), preserving every run within a selected cluster. Its percentile intervals target recording-level uncertainty. It is not a substitute for a source-specific hierarchical bootstrap if the data contain multiple nested levels (day -> plate -> recording -> trajectory). The caller must supply independent clusters, not tracks or frames mislabeled as independent replicates.
+`cluster_bootstrap_orientations` resamples whole independent recording clusters (e.g. plate/day/recording), preserving every run within a selected cluster. It requires at least two independent clusters. Its point estimate is pooled over runs, so larger clusters contribute proportionally more runs; the bootstrap resamples the same number of clusters while retaining all runs inside each selected cluster. Its percentile intervals target recording-cluster uncertainty. It is not a substitute for a source-specific hierarchical bootstrap if the data have multiple nested levels (day -> plate -> recording -> trajectory). The caller must supply genuinely independent clusters, not tracks or frames mislabeled as independent replicates.
 
 ## Mechanistic ablations
 
