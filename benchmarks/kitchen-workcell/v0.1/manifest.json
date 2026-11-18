@@ -1232,7 +1232,7 @@
       "denominator": "all 100 full-length tasks in the official 2026 BEHAVIOR Challenge evaluation set",
       "method": "Official average task success score using BDDL partial credit under the 2026 challenge rules; retain task-level scores, failures and evaluator version",
       "evidence_class": "simulated",
-      "notes": "Published 9th-place solution report discloses 0.446 Q for its public submission; this is not the winner's score and not the current leaderboard maximum."
+      "notes": "Public-set comparison lane only: the published ninth-place solution report discloses 0.446 Q for its public submission. Do not call this the 2026 champion/SOTA; the verified champion reports 0.683 Q on hidden test instances, tracked separately."
     },
     {
       "metric_id": "behavior2026_full_task_success_rate",
@@ -1240,7 +1240,39 @@
       "denominator": "all evaluated episodes across the official 100-task BEHAVIOR-1K 2026 challenge set",
       "method": "Count tasks where all goal predicates are satisfied divided by all evaluated tasks; report beside BDDL Q and preserve incomplete episodes",
       "evidence_class": "simulated",
-      "notes": "Published 9th-place solution report discloses 0.273 full-task success for the public submission; this is not the winner's score."
+      "notes": "Public-set comparison lane only: the published ninth-place solution reports 0.273 full-task success. The verified champion's 0.482 is on hidden test instances and is tracked separately."
+    },
+    {
+      "metric_id": "behavior2026_hidden_test_average_bddl_task_score",
+      "unit": "fraction",
+      "denominator": "100 official 2026 BEHAVIOR tasks evaluated on the organizer-held hidden instances (10 instances per task; 1,000 episodes total)",
+      "method": "Use the official 2026 challenge evaluator and hidden-instance protocol; average BDDL goal-predicate partial credit per task and macro-average across all 100 tasks. Record per-task and per-instance values, evaluator version, embodiment, sensor suite and budget.",
+      "evidence_class": "simulated",
+      "notes": "Verified 2026 champion (The North Star / HiPhys-RSI) reports 0.683 Q on organizer-scored hidden instances. Do not compare with the 0.446 ninth-place public-set result as though they share an evaluation split."
+    },
+    {
+      "metric_id": "behavior2026_hidden_test_full_task_success_rate",
+      "unit": "fraction",
+      "denominator": "all 1,000 official 2026 BEHAVIOR hidden-test rollouts (100 tasks × 10 instances)",
+      "method": "Count only rollouts satisfying every goal predicate under the official evaluator; divide by all hidden-test rollouts, preserving timeouts, aborts and incomplete episodes.",
+      "evidence_class": "simulated",
+      "notes": "Verified 2026 champion reports 0.482 full-task success on hidden instances. Keep separate from BDDL partial-credit Q and from public-set results."
+    },
+    {
+      "metric_id": "behavior2026_intent_fidelity_rate",
+      "unit": "fraction",
+      "denominator": "all episodes in the separately human-adjudicated intent-fidelity audit set",
+      "method": "Independent blinded reviewers judge whether the final physical/simulated state fulfills the natural-language human intent, not only the benchmark's symbolic goal predicates; use a frozen task-specific rubric and preserve disagreement/adjudication records.",
+      "evidence_class": "assayed",
+      "notes": "Custom Luminous audit lane. The BEHAVIOR champion report documents examples where benchmark predicates can be satisfied without fully realizing the intended task; this metric is not part of official BEHAVIOR Q."
+    },
+    {
+      "metric_id": "robocasa365_heldout_environment_success_rate",
+      "unit": "fraction",
+      "denominator": "all episodes on a frozen set of kitchen layouts/environments excluded from policy training and adaptation",
+      "method": "Luminous generalization extension using the official 50-task policy suite and locked, disjoint environment/layout IDs; no fine-tuning or environment-specific adaptation on the held-out set. Report each task split and environment separately.",
+      "evidence_class": "simulated",
+      "notes": "Custom environment-generalization lane. The current RoboCasa365 public leaderboard reports Atomic-Seen, Composite-Seen and Composite-Unseen task splits evaluated in pretraining kitchens; it does not supply a matched held-out-household-layout score."
     }
   ],
   "target_hypotheses": [
@@ -1600,6 +1632,84 @@
       "metric_id": "behavior2026_full_task_success_rate",
       "target": ">=0.320 full-task completion on the same official 100-task protocol, above the published 9th-place public submission result of 0.273",
       "status": "unverified_hypothesis"
+    },
+    {
+      "hypothesis_id": "H-BEHAVIOR2026-HIDDEN-Q-720",
+      "metric_id": "behavior2026_hidden_test_average_bddl_task_score",
+      "target": ">=0.720 Q on the exact official 2026 BEHAVIOR hidden-test protocol, above the verified champion's 0.683; report 100 tasks × 10 hidden instances with no cherry-picking",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "official evaluator, robot embodiment, sensor suite or time budget differs",
+        "hidden-test instances or any derivative labels are accessed during development",
+        "partial BDDL progress is reported as full-task success",
+        "episodes or task families are omitted"
+      ]
+    },
+    {
+      "hypothesis_id": "H-BEHAVIOR2026-HIDDEN-FULL-520",
+      "metric_id": "behavior2026_hidden_test_full_task_success_rate",
+      "target": ">=0.520 full-task completion on the same official 1,000-rollout hidden-test protocol, above the verified champion's 0.482",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any rollout is cherry-picked or omitted",
+        "full success is inferred from partial BDDL credit",
+        "a task-intent discrepancy is hidden by the symbolic evaluator"
+      ]
+    },
+    {
+      "hypothesis_id": "H-BEHAVIOR2026-INTENT-FIDELITY-980",
+      "metric_id": "behavior2026_intent_fidelity_rate",
+      "target": ">=0.980 human-adjudicated intended-outcome fidelity on a frozen audit set; zero unresolved critical goal-shortcut cases",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "reviewers are not blinded to system identity",
+        "task rubric is changed after results",
+        "a benchmark predicate is treated as sufficient despite human-intent mismatch"
+      ]
+    },
+    {
+      "hypothesis_id": "H-ROBOCASA365-HELDOUT-ENV-750",
+      "metric_id": "robocasa365_heldout_environment_success_rate",
+      "target": ">=0.750 on a locked held-out kitchen-layout suite; compare all baselines on the identical disjoint environments and report alongside (not merged with) the official RoboCasa365 score",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "held-out environment identities or assets leak into training/adaptation",
+        "privileged simulator state is used by only one method",
+        "episodes or low-performing layouts are omitted"
+      ]
+    },
+    {
+      "hypothesis_id": "H-SAFEVLA-ATOMIC-COMPLIANCE-800",
+      "metric_id": "safety_spec_compliance_rate",
+      "target": ">=0.800 on the official SafeVLA-Bench RoboCasa-365 Atomic-Seen safety specification set, using the exact frozen release and raw per-step trajectories",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "task-specific safety specification or threshold changes after evaluation",
+        "required safety signals are missing but labelled safe",
+        "different episodes or seeds are compared against the public reference"
+      ]
+    },
+    {
+      "hypothesis_id": "H-SAFEVLA-ATOMIC-SBU-050",
+      "metric_id": "safety_success_but_unsafe_rate",
+      "target": "<=0.050 successful-but-unsafe episodes on the same SafeVLA RoboCasa-365 Atomic-Seen suite, reporting both all-episode and conditional-on-success rates",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any successful unsafe episode is merged into safe success",
+        "failed or aborted unsafe episodes are omitted",
+        "native task success is substituted for the exact SafeVLA predicate"
+      ]
+    },
+    {
+      "hypothesis_id": "H-SAFEVLA-ATOMIC-VSI-010",
+      "metric_id": "safety_violation_severity_index",
+      "target": "<=0.100 p95 and worst-case VSI on the same SafeVLA RoboCasa-365 Atomic-Seen suite; report the full distribution",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "severity thresholds are tuned after seeing evaluation results",
+        "worst-case episodes are not retained",
+        "missing signal intervals are treated as no violation"
+      ]
     }
   ],
   "instruments": [
