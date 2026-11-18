@@ -44,6 +44,7 @@ pub struct FleetCase {
     pub campaign: Campaign,
     pub source: Source,
     pub variants: Vec<Variant>,
+    pub rotation_sensitivity: Vec<RotationBoundCase>,
     pub assumptions: Vec<String>,
 }
 
@@ -66,6 +67,17 @@ pub struct Source {
     pub source_digest: Option<String>,
     pub rights_or_license_ref: Option<String>,
     pub available_at_decision_time: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RotationBoundCase {
+    pub case_id: String,
+    pub on_station_days: f64,
+    pub recovery_to_ready_days: f64,
+    pub launch_to_service_days: f64,
+    pub required_service_platforms: usize,
+    pub expected_minimum_fleet_size: usize,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -156,6 +168,17 @@ pub struct VariantReport {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct RotationBoundReport {
+    pub case_id: String,
+    pub on_station_days: f64,
+    pub recovery_to_ready_days: f64,
+    pub launch_to_service_days: f64,
+    pub required_service_platforms: usize,
+    pub duty_fraction: f64,
+    pub theoretical_minimum_fleet_size: usize,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct FleetReport {
     pub case_id: String,
     pub evidence_class: String,
@@ -163,6 +186,7 @@ pub struct FleetReport {
     pub campaign_duration_days: usize,
     pub service_boundary: String,
     pub variants: Vec<VariantReport>,
+    pub rotation_sensitivity: Vec<RotationBoundReport>,
 }
 
 pub fn parse_case_json(bytes: &[u8]) -> Result<FleetCase, FleetError> {
@@ -185,6 +209,12 @@ pub fn evaluate_case(case: &FleetCase) -> Result<FleetReport, FleetError> {
         reports.push(report);
     }
 
+    let rotation_sensitivity = case
+        .rotation_sensitivity
+        .iter()
+        .map(evaluate_rotation_bound)
+        .collect::<Result<Vec<_>, _>>()?;
+
     Ok(FleetReport {
         case_id: case.case_id.clone(),
         evidence_class: case.evidence_class.clone(),
@@ -192,6 +222,7 @@ pub fn evaluate_case(case: &FleetCase) -> Result<FleetReport, FleetError> {
         campaign_duration_days: case.campaign.duration_days,
         service_boundary: case.campaign.service_boundary.clone(),
         variants: reports,
+        rotation_sensitivity,
     })
 }
 
@@ -232,10 +263,29 @@ fn validate_case(case: &FleetCase) -> Result<(), FleetError> {
                 .to_owned(),
         ));
     }
-    if case.variants.is_empty() {
+    if case.variants.is_empty() || case.rotation_sensitivity.is_empty() {
         return Err(FleetError::InvalidCase(
-            "at least one fleet variant is required".to_owned(),
+            "at least one fleet variant and rotation sensitivity case are required".to_owned(),
         ));
+    }
+    let mut rotation_case_ids = HashSet::new();
+    for rotation in &case.rotation_sensitivity {
+        if rotation.case_id.trim().is_empty()
+            || !rotation_case_ids.insert(rotation.case_id.as_str())
+            || !rotation.on_station_days.is_finite()
+            || rotation.on_station_days <= 0.0
+            || !rotation.recovery_to_ready_days.is_finite()
+            || rotation.recovery_to_ready_days < 0.0
+            || !rotation.launch_to_service_days.is_finite()
+            || rotation.launch_to_service_days < 0.0
+            || rotation.required_service_platforms == 0
+            || rotation.expected_minimum_fleet_size == 0
+        {
+            return Err(FleetError::InvalidCase(format!(
+                "invalid or duplicate rotation sensitivity case: {}",
+                rotation.case_id
+            )));
+        }
     }
 
     let mut variant_ids = HashSet::new();
@@ -451,6 +501,38 @@ fn evaluate_variant(
     })
 }
 
+
+fn evaluate_rotation_bound(case: &RotationBoundCase) -> Result<RotationBoundReport, FleetError> {
+    let cycle_days = case.on_station_days
+        + case.recovery_to_ready_days
+        + case.launch_to_service_days;
+    let duty_fraction = case.on_station_days / cycle_days;
+    let ideal_platform_count =
+        case.required_service_platforms as f64 / duty_fraction;
+    if !ideal_platform_count.is_finite() || ideal_platform_count > usize::MAX as f64 {
+        return Err(FleetError::InvalidCase(format!(
+            "rotation sensitivity {} exceeds supported fleet-size range",
+            case.case_id
+        )));
+    }
+    let theoretical_minimum_fleet_size = (ideal_platform_count - FRACTION_TOLERANCE).ceil() as usize;
+    if theoretical_minimum_fleet_size != case.expected_minimum_fleet_size {
+        return Err(FleetError::OracleMismatch(format!(
+            "rotation lower-bound oracle mismatch for {}: expected {}, got {}",
+            case.case_id, case.expected_minimum_fleet_size, theoretical_minimum_fleet_size
+        )));
+    }
+    Ok(RotationBoundReport {
+        case_id: case.case_id.clone(),
+        on_station_days: case.on_station_days,
+        recovery_to_ready_days: case.recovery_to_ready_days,
+        launch_to_service_days: case.launch_to_service_days,
+        required_service_platforms: case.required_service_platforms,
+        duty_fraction,
+        theoretical_minimum_fleet_size,
+    })
+}
+
 fn verify_oracle(variant: &Variant, actual: &VariantReport) -> Result<(), FleetError> {
     let expected = &variant.expected_oracle;
     let matches = expected.oracle_status == "independently_calculated"
@@ -574,6 +656,29 @@ mod tests {
         assert!(matches!(
             validate_case(&case),
             Err(FleetError::Unsupported(_))
+        ));
+    }
+
+    #[test]
+    fn rotation_lower_bound_shows_reconditioning_dominates_fleet_size() {
+        let report = evaluate_case(&fixture()).expect("rotation cases match");
+        let counts = report
+            .rotation_sensitivity
+            .iter()
+            .map(|row| row.theoretical_minimum_fleet_size)
+            .collect::<Vec<_>>();
+        assert_eq!(counts, vec![5, 6, 9, 10, 4]);
+        assert_eq!(report.rotation_sensitivity[2].duty_fraction, 1.0 / 3.0);
+        assert_eq!(report.rotation_sensitivity[4].duty_fraction, 0.75);
+    }
+
+    #[test]
+    fn zero_or_negative_rotation_duration_is_rejected() {
+        let mut case = fixture();
+        case.rotation_sensitivity[0].on_station_days = 0.0;
+        assert!(matches!(
+            validate_case(&case),
+            Err(FleetError::InvalidCase(_))
         ));
     }
 
