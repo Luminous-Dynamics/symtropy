@@ -139,6 +139,7 @@ pub struct ServiceAvailabilityResult {
     pub unserved_service_equivalent_h: f64,
     pub strict_outage_h: f64,
     pub maximum_contiguous_outage_h: f64,
+    pub reserve_strategy_energy_wh: f64,
     pub outage_intervals: Vec<ServiceOutageInterval>,
 }
 
