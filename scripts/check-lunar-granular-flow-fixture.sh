@@ -9,6 +9,7 @@ cd "$root"
 schema="tools/lunar-granular-flow-benchmark/granular-flow-run.schema.json"
 manifest_schema="tools/lunar-granular-flow-benchmark/dataset-manifest.schema.json"
 doe="tools/lunar-granular-flow-benchmark/design-of-experiments.json"
+advanced_doe="tools/lunar-granular-flow-benchmark/advanced-doe-v0.json"
 examples="tools/lunar-granular-flow-benchmark/examples"
 manifest="$examples/synthetic-dataset-manifest.json"
 cal="$examples/synthetic-calibration-run.json"
@@ -46,6 +47,22 @@ jq -e '
   and ([.batch_transfer_screen.cells[].batch_role] | unique | sort)
       == ["blind_test_batch", "calibration_batch", "validation_batch"]
 ' "$doe" >/dev/null || fail "DOE cell counts, unique IDs or planned-only claim ceiling invalid"
+
+jq -e '
+  .evidence_class == "planned_experimental_design_only"
+  and .vibration_assisted_feeder_source_reconstruction.source_design_reconstruction.planned_records == 480
+  and (.vibration_assisted_feeder_source_reconstruction.source_design_reconstruction.records | length) == 480
+  and ([.vibration_assisted_feeder_source_reconstruction.source_design_reconstruction.records[].source_record_id] | length == (unique | length))
+  and all(.vibration_assisted_feeder_source_reconstruction.source_design_reconstruction.records[]; .execution_status == "source_reconstruction_pending")
+  and .vibration_assisted_feeder_source_reconstruction.proposed_gamma_threshold_screen.unique_cells == 800
+  and (.vibration_assisted_feeder_source_reconstruction.proposed_gamma_threshold_screen.cells | length) == 800
+  and all(.vibration_assisted_feeder_source_reconstruction.proposed_gamma_threshold_screen.cells[]; .execution_status == "planned_not_run")
+  and .vibration_assisted_feeder_source_reconstruction.proposed_segregation_shear_cell.unique_cells == 90
+  and (.vibration_assisted_feeder_source_reconstruction.proposed_segregation_shear_cell.cells | length) == 90
+  and all(.vibration_assisted_feeder_source_reconstruction.proposed_segregation_shear_cell.cells[]; .execution_status == "planned_not_run")
+  and ([.vibration_assisted_feeder_source_reconstruction.proposed_gamma_threshold_screen.cells[].target_gamma] | unique | min) == 0
+  and ([.vibration_assisted_feeder_source_reconstruction.proposed_gamma_threshold_screen.cells[].target_gamma] | unique | max) == 23.8
+' "$advanced_doe" >/dev/null || fail "advanced feeder/segregation DOE counts or claim ceiling invalid"
 
 jq -e '
   .schema_version == "0.1.0"
