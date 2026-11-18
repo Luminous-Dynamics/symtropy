@@ -434,13 +434,13 @@ pub fn evaluate_coavailability(
                             } else {
                                 known_infeasible = true;
                                 findings.push(
-                                    "INFEASIBLE: no launch time can meet both carrier stop windows and sortie recovery window".into(),
+                                    "INFEASIBLE: no launch time satisfies carrier, launch and recovery windows".into(),
                                 );
                             }
                         } else {
                             known_infeasible = true;
                             findings.push(
-                                "INFEASIBLE: recovery window closes before the proposed flight can return"
+                                "INFEASIBLE: recovery window closes before flight return and service"
                                     .into(),
                             );
                         }
@@ -494,7 +494,7 @@ pub fn evaluate_coavailability(
 
     if findings.is_empty() {
         findings.push(
-            "FEASIBLE: declared capability, permission and timing envelopes admit this sortie".into(),
+            "FEASIBLE: supplied capability, permission and timing envelopes admit sortie".into(),
         );
     }
     let verdict = if known_infeasible {
@@ -517,10 +517,10 @@ pub fn evaluate_coavailability(
         peak_power_margin_w: peak_margin,
         continuous_power_margin_w: continuous_margin,
         findings,
-        energy_boundary: "UAV battery-terminal sortie energy plus protected reserve; excludes carrier traction, charger input and upstream site losses".into(),
+        energy_boundary: "UAV battery-terminal mission energy + reserve; excludes truck traction and charging losses".into(),
         dispatch_authorized: false,
         physical_command_emitted: false,
-        claim_ceiling: "Deterministic contract-level feasibility against supplied envelopes and time windows only; not flight authorization, airworthiness, physical safety or measured performance".into(),
+        claim_ceiling: "Contract-level feasibility only; not flight authorization, airworthiness, safety or performance evidence".into(),
     })
 }
 
