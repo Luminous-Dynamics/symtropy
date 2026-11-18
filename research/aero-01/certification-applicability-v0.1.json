@@ -1,0 +1,215 @@
+{
+  "schema_version": "aero-certification-applicability/0.1.0",
+  "as_of_date": "2026-11-07",
+  "primary_jurisdiction": "South Africa / SACAA",
+  "claim_ceiling": "Source-discovery and applicability research only; no SACAA certification basis, accepted means of compliance, design approval or flight permission is established.",
+  "records": [
+    {
+      "record_id": "SACAA-AIRWORTHINESS-TGM-LIST-2026-11",
+      "authority": "South African Civil Aviation Authority",
+      "jurisdiction": "South Africa",
+      "document_title": "Airworthiness — Technical Guidance Material and Type Acceptance information",
+      "document_date": null,
+      "revision_or_issue": null,
+      "topic": "Authority pathway / airworthiness",
+      "status": "official_guidance_listing",
+      "verified_statement": "The official SACAA Airworthiness page lists Engineering Unit TGM for Design Organisation Approval, Type Certification, Type Acceptance, Aircraft Flight Manual, Experimental Certificate of Airworthiness and Amateur-Built Aircraft, as well as Airworthiness guidance including Mass and Balance. The page states Type Acceptance is the authority's acceptance of a foreign type certificate with any additional limitations or conditions.",
+      "aer01_relevance": [
+        "Applicant and product approval route",
+        "Design organisation",
+        "Type certification",
+        "Experimental aircraft permissions",
+        "Mass and balance",
+        "Aircraft flight manual",
+        "Continued airworthiness"
+      ],
+      "applicability": "Primary authority source-discovery lead for AER-01. The applicable aircraft category, applicant route and certification basis remain pending direct SACAA Engineering confirmation.",
+      "source": {
+        "url": "https://www.caa.co.za/industry-information/airworthiness/",
+        "retrieved_on": "2026-11-07",
+        "representation": "Official SACAA webpage; individual TGM files not yet downloaded and byte-pinned."
+      },
+      "sha256": null,
+      "open_questions": [
+        "Which SACAR category and certification basis apply to a new Wren 2 and Wayfarer 4 type design?",
+        "What applicant/design-organisation approvals are required before compliance credit is sought?",
+        "Which experimental certificate/proving-flight path is appropriate for prototype testing?",
+        "What evidence and accepted process does SACAA require for mass-and-balance, electric/hybrid propulsion and continued airworthiness?",
+        "Is any proposed amateur-built or experimental path incompatible with the future commercial type-certification objective?"
+      ],
+      "claim_ceiling": "Official guidance inventory only; no specific AER-01 pathway or approval has been confirmed."
+    },
+    {
+      "record_id": "EASA-CS23-AMD6-AMC5-ED2026-003R",
+      "authority": "European Union Aviation Safety Agency",
+      "jurisdiction": "European Union / EASA comparator",
+      "document_title": "CS-23 Amendment 6 and AMC & GM to CS-23 Issue 5 (ED Decision 2026/003/R)",
+      "document_date": "2026-04-15",
+      "revision_or_issue": "CS-23 Amendment 6; AMC/GM Issue 5",
+      "topic": "Normal-category aircraft certification basis",
+      "status": "current_comparator_baseline",
+      "verified_statement": "EASA published CS-23 Amendment 6 and AMC/GM Issue 5 on 15 April 2026. EASA guidance states that the AMC/GM issue current on the application date is used as reflected in the certification programme, while prior or later issues may be agreed subject to the specific remarks and programme.",
+      "aer01_relevance": [
+        "Certification-basis version control",
+        "Requirements traceability",
+        "Engineering and compliance evidence register"
+      ],
+      "applicability": "Comparator for a potential normal-category development pathway only. It is not a South African certification basis and cannot be treated as binding on SACAA without authority determination.",
+      "source": {
+        "url": "https://www.easa.europa.eu/en/document-library/certification-specifications/cs-23-amendment-6-and-amc-gm-cs-23-issue-5",
+        "retrieved_on": "2026-11-07",
+        "representation": "Official EASA publication listing and Easy Access Rules webpage; source document bytes not yet pinned."
+      },
+      "sha256": null,
+      "open_questions": [
+        "Would CS-23 be the appropriate class/basis for either aircraft family?",
+        "Which amendment/AMC issue will be current or agreed at application?",
+        "Which special conditions, equivalent-safety findings or additional means are required for the selected electric/hybrid/DEP architecture?"
+      ],
+      "claim_ceiling": "EASA comparator baseline only; no certification-basis selection."
+    },
+    {
+      "record_id": "EASA-ASTM-F3264-24-2026",
+      "authority": "European Union Aviation Safety Agency",
+      "jurisdiction": "European Union / EASA comparator",
+      "document_title": "ASTM F3264-24 — Standard Specification for Normal Category Aeroplanes Certification",
+      "document_date": "2026-04-15",
+      "revision_or_issue": "F3264-24 as referenced in EASA ED Decision 2026/003/R",
+      "topic": "Accepted consensus-standard framework",
+      "status": "listed_consensus_standard",
+      "verified_statement": "EASA's current CS-23 Easy Access Rules state that it has assessed and accepted ASTM F3264-24 as the latest available revision for AMC1 to CS-23, and that some individual consensus-standard references in AMC1 may use newer revisions where available and suitable.",
+      "aer01_relevance": [
+        "Requirements baseline/version pinning",
+        "Design and construction",
+        "System, powerplant and flight-control evidence mapping"
+      ],
+      "applicability": "Use only as an EASA comparator and after confirming the applicable certification programme. This does not imply SACAA acceptance.",
+      "source": {
+        "url": "https://www.easa.europa.eu/en/document-library/easy-access-rules/online-publications/easy-access-rules-normal-category-CS-6-AMC-GM-5",
+        "retrieved_on": "2026-11-07",
+        "representation": "Official EASA Easy Access Rules webpage; ASTM full standard is licensed and not copied into repository."
+      },
+      "sha256": null,
+      "open_questions": [
+        "Which line-item ASTM revisions and EASA remarks apply to the eventual aircraft category and certification basis?",
+        "Which standards may be proposed to SACAA, and what authority acceptance is required?"
+      ],
+      "claim_ceiling": "EASA AMC comparator only; no automatic adoption or compliance finding."
+    },
+    {
+      "record_id": "EASA-F3061-24A-AND-F3232-25",
+      "authority": "European Union Aviation Safety Agency",
+      "jurisdiction": "European Union / EASA comparator",
+      "document_title": "ASTM F3061/F3061M-24a (Systems and Equipment in Small Aircraft) and ASTM F3232/F3232M-25 (Flight Controls in Small Aircraft)",
+      "document_date": "2026-05-19",
+      "revision_or_issue": "Revisions listed in CS-23 Amendment 6 / AMC/GM Issue 5",
+      "topic": "Systems and flight controls",
+      "status": "listed_consensus_standard",
+      "verified_statement": "EASA's Easy Access Rules for CS-23 Amendment 6 / AMC/GM Issue 5 list F3061/F3061M-24a for systems/equipment and F3232/F3232M-25 for flight controls in the relevant AMC material.",
+      "aer01_relevance": [
+        "Electrical and energy system integration",
+        "Distributed propulsion controls",
+        "Flight control architecture",
+        "System/structure and failure interaction"
+      ],
+      "applicability": "Comparator only, subject to the exact CS-23 paragraph, EASA remarks, aircraft certification programme and authority agreement.",
+      "source": {
+        "url": "https://www.easa.europa.eu/en/document-library/easy-access-rules/online-publications/easy-access-rules-normal-category-CS-6-AMC-GM-5",
+        "retrieved_on": "2026-11-07",
+        "representation": "Official EASA Easy Access Rules page; detailed ASTM documents not copied."
+      },
+      "sha256": null,
+      "open_questions": [
+        "Which system/equipment and flight-control clauses apply to the final architecture?",
+        "How are distributed propulsion, degraded thrust, common-mode power loss and independent control authority treated?"
+      ],
+      "claim_ceiling": "Current EASA comparator references only; not a statement of SACAA acceptance or AER-01 compliance."
+    },
+    {
+      "record_id": "EASA-F3239-22A-NOT-ACCEPTED",
+      "authority": "European Union Aviation Safety Agency",
+      "jurisdiction": "European Union / EASA comparator",
+      "document_title": "ASTM F3239-22a — Electric Propulsion Units",
+      "document_date": "2026-05-19",
+      "revision_or_issue": "F3239-22a",
+      "topic": "Electric propulsion unit certification means",
+      "status": "not_accepted_as_amc",
+      "verified_statement": "EASA's current Easy Access Rules state that it has not yet accepted ASTM F3239-22a as an AMC for CS-23 electric propulsion units. EASA says it would consider an applicant using the standard as a basis for proposed means of compliance subject to agreement.",
+      "aer01_relevance": [
+        "Motor/drive evidence",
+        "Electric propulsion unit qualification",
+        "Powerplant installation and controls"
+      ],
+      "applicability": "Do not label F3239-22a as an EASA-accepted AMC. It may be considered as a proposed basis only after authority agreement. SACAA position is unknown.",
+      "source": {
+        "url": "https://www.easa.europa.eu/en/document-library/easy-access-rules/online-publications/easy-access-rules-normal-category-CS-6-AMC-GM-5",
+        "retrieved_on": "2026-11-07",
+        "representation": "Official EASA Easy Access Rules webpage, CS 23.2400/23.2405 remarks."
+      },
+      "sha256": null,
+      "open_questions": [
+        "What means of compliance has EASA accepted or will agree for the chosen electric motor/propulsion unit?",
+        "What is SACAA's current position and what equivalent evidence is required?"
+      ],
+      "claim_ceiling": "Specific EASA non-acceptance statement verified; no conclusion about other authorities."
+    },
+    {
+      "record_id": "EASA-F3316-19-NOT-ACCEPTED",
+      "authority": "European Union Aviation Safety Agency",
+      "jurisdiction": "European Union / EASA comparator",
+      "document_title": "ASTM F3316-19 — Electrical Systems for Aircraft with Electric or Hybrid-Electric Propulsion",
+      "document_date": "2026-05-19",
+      "revision_or_issue": "F3316-19",
+      "topic": "Electric/hybrid electrical system compliance",
+      "status": "not_accepted_as_amc",
+      "verified_statement": "EASA's Easy Access Rules include a remark that EASA has not yet accepted ASTM F3316-19 for electrical systems installed on aeroplanes with electric or hybrid-electric propulsion, while indicating that an applicant's proposed use may be considered subject to agreement.",
+      "aer01_relevance": [
+        "Bus architecture and electrical distribution",
+        "Generator/storage integration",
+        "Power-source independence",
+        "Electrical failure cases and protection"
+      ],
+      "applicability": "Do not treat F3316-19 as an accepted EASA AMC. Treat as candidate material only if an authority agrees to the proposed means. SACAA position unknown.",
+      "source": {
+        "url": "https://www.easa.europa.eu/en/document-library/easy-access-rules/online-publications/easy-access-rules-normal-category-CS-6-AMC-GM-5",
+        "retrieved_on": "2026-11-07",
+        "representation": "Official EASA Easy Access Rules webpage; current status of any subsequent revisions not separately established."
+      },
+      "sha256": null,
+      "open_questions": [
+        "Has a later revision or alternate EASA means been accepted since this issue?",
+        "What would SACAA accept for the whole electric/hybrid electrical system and its failure conditions?"
+      ],
+      "claim_ceiling": "Specific EASA remark recorded as of the retrieved Issue 5 page; must be rechecked at programme baseline."
+    },
+    {
+      "record_id": "ASTM-F2490-20-SCOPE-LIMIT",
+      "authority": "ASTM International (standard publisher); EASA references F2490-20 in AMC material",
+      "jurisdiction": "International / US industry comparator; EASA comparator",
+      "document_title": "ASTM F2490-20 — Standard Guide for Aircraft Electrical Load and Power Source Capacity Analysis",
+      "document_date": "2020-01-01",
+      "revision_or_issue": "F2490-20",
+      "topic": "Aircraft electrical load analysis",
+      "status": "scope_limited",
+      "verified_statement": "ASTM describes F2490-20 as an aircraft-level electrical load analysis guide covering source/converter/bus capacity and average/maximum demands under probable load combinations and durations. Its published scope explicitly states that electric propulsive-power load analysis was not considered in its development.",
+      "aer01_relevance": [
+        "Auxiliary/thermal electrical loads",
+        "Bus capacity accounting",
+        "Normal/abnormal/emergency load analysis",
+        "Maintenance of electrical load analysis after aircraft changes"
+      ],
+      "applicability": "Useful for the non-propulsive aircraft electrical load-analysis discipline; not sufficient by itself for traction motor, inverter, battery, generator and propulsion bus sizing for a hybrid-electric aircraft.",
+      "source": {
+        "url": "https://store.astm.org/f2490-20.html",
+        "retrieved_on": "2026-11-07",
+        "representation": "Official ASTM standard catalogue/scope page; full standard is licensed."
+      },
+      "sha256": null,
+      "open_questions": [
+        "What additional electric-propulsion load-analysis method and accepted means should cover propulsion power and source transients?",
+        "How will load-analysis evidence be maintained after configuration, equipment and software changes?"
+      ],
+      "claim_ceiling": "Scope limitation verified; no claim that F2490-20 is an electric-propulsion compliance method."
+    }
+  ]
+}

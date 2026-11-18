@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aero-certification-applicability-0.1.json",
+  "title": "AER-01 certification applicability register v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "as_of_date",
+    "primary_jurisdiction",
+    "claim_ceiling",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "aero-certification-applicability/0.1.0"
+    },
+    "as_of_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "primary_jurisdiction": {
+      "const": "South Africa / SACAA"
+    },
+    "claim_ceiling": {
+      "type": "string"
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/record"
+      }
+    }
+  },
+  "$defs": {
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_id",
+        "authority",
+        "jurisdiction",
+        "document_title",
+        "document_date",
+        "revision_or_issue",
+        "topic",
+        "status",
+        "verified_statement",
+        "aer01_relevance",
+        "applicability",
+        "source",
+        "sha256",
+        "open_questions",
+        "claim_ceiling"
+      ],
+      "properties": {
+        "record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority": {
+          "type": "string",
+          "minLength": 1
+        },
+        "jurisdiction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "document_title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "document_date": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revision_or_issue": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "topic": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "official_guidance_listing",
+            "current_comparator_baseline",
+            "listed_consensus_standard",
+            "not_accepted_as_amc",
+            "case_specific_agreement_needed",
+            "scope_limited",
+            "pending_authority_confirmation",
+            "unknown"
+          ]
+        },
+        "verified_statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "aer01_relevance": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "applicability": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "url",
+            "retrieved_on",
+            "representation"
+          ],
+          "properties": {
+            "url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "retrieved_on": {
+              "type": "string",
+              "format": "date"
+            },
+            "representation": {
+              "type": "string"
+            }
+          }
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([0-9a-fA-F]{64})?$"
+        },
+        "open_questions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "claim_ceiling": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
