@@ -1151,6 +1151,7 @@ mod tests {
         let protocol_sha256 = digest(&protocol);
         let mut instrumental_observations = Vec::new();
         let mut consumer_responses = Vec::new();
+        let mut presentation_assignments = Vec::new();
         for sample_ref in ["sample:control", "sample:workcell"] {
             instrumental_observations.push(InstrumentalQualityObservationV1 {
                 observation_id: format!("obs:{sample_ref}:moisture"),
@@ -1169,26 +1170,39 @@ mod tests {
                 observed_at_epoch_ms: 1_750_000_000_000,
                 raw_observation_sha256: "a".repeat(64),
             });
-            for index in 0..3 {
+        }
+        for index in 0..3 {
+            let ordered_sample_refs = if index % 2 == 0 {
+                vec!["sample:control".to_owned(), "sample:workcell".to_owned()]
+            } else {
+                vec!["sample:workcell".to_owned(), "sample:control".to_owned()]
+            };
+            let assignment = SensoryPresentationAssignmentV1 {
+                assignment_ref: format!("assignment:session:{index}"),
+                respondent_token_ref: format!("token:{index}"),
+                ordered_sample_refs: ordered_sample_refs.clone(),
+                randomization_protocol_ref: "randomization:balanced-order-v1".to_owned(),
+                assignment_sha256: String::new(),
+            };
+            let assignment = SensoryPresentationAssignmentV1 {
+                assignment_sha256: presentation_assignment_digest(&assignment).unwrap(),
+                ..assignment
+            };
+            presentation_assignments.push(assignment.clone());
+            for (order, sample_ref) in ordered_sample_refs.iter().enumerate() {
                 consumer_responses.push(ConsumerResponseV1 {
                     response_id: format!("response:{sample_ref}:{index}"),
                     run_ref: "run:rice-comparison-01".to_owned(),
-                    sample_ref: sample_ref.to_owned(),
+                    sample_ref: sample_ref.clone(),
                     respondent_token_ref: format!("token:{index}"),
-                    response_value: if sample_ref == "sample:workcell" {
-                        7
-                    } else {
-                        6
-                    },
-                    presentation_order: if sample_ref == "sample:workcell" {
-                        2
-                    } else {
-                        1
-                    },
+                    response_value: if sample_ref == "sample:workcell" { 7 } else { 6 },
+                    presentation_order: u32::try_from(order + 1).unwrap(),
+                    presentation_assignment_ref: assignment.assignment_ref.clone(),
                     consent_receipt_ref: format!("consent:session:{index}"),
                     raw_response_sha256: format!("{:064x}", index + 1),
                 });
             }
+        }
         }
         FoodQualityAssessmentRequestV1 {
             schema_version: 1,
@@ -1198,6 +1212,7 @@ mod tests {
             protocol_sha256,
             protocol,
             instrumental_observations,
+            presentation_assignments,
             consumer_responses,
             external_safety_gate: ExternalSafetyGateEvidenceV1 {
                 state: ExternalSafetyGateStateV1::Unknown,
