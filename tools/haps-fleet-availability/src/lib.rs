@@ -190,8 +190,8 @@ pub struct FleetReport {
 }
 
 pub fn parse_case_json(bytes: &[u8]) -> Result<FleetCase, FleetError> {
-    let case: FleetCase = serde_json::from_slice(bytes)
-        .map_err(|error| FleetError::Json(error.to_string()))?;
+    let case: FleetCase =
+        serde_json::from_slice(bytes).map_err(|error| FleetError::Json(error.to_string()))?;
     validate_case(&case)?;
     Ok(case)
 }
@@ -356,7 +356,8 @@ fn validate_variant(variant: &Variant, duration_days: usize) -> Result<(), Fleet
     }
 
     for event in &variant.common_cause_events {
-        if event.event_class != "regional_weather_standdown" || event.impact != "platform_standdown" {
+        if event.event_class != "regional_weather_standdown" || event.impact != "platform_standdown"
+        {
             return Err(FleetError::Unsupported(format!(
                 "unsupported common-cause event {}: only regional_weather_standdown/platform_standdown is implemented",
                 event.event_id
@@ -392,7 +393,9 @@ fn validate_window(
 ) -> Result<(), FleetError> {
     if duration_days == 0
         || start_day >= campaign_days
-        || start_day.checked_add(duration_days).is_none_or(|end| end > campaign_days)
+        || start_day
+            .checked_add(duration_days)
+            .is_none_or(|end| end > campaign_days)
     {
         return Err(FleetError::InvalidCase(format!(
             "event {event_id} lies outside campaign or has zero duration"
@@ -401,10 +404,7 @@ fn validate_window(
     Ok(())
 }
 
-fn evaluate_variant(
-    variant: &Variant,
-    duration_days: usize,
-) -> Result<VariantReport, FleetError> {
+fn evaluate_variant(variant: &Variant, duration_days: usize) -> Result<VariantReport, FleetError> {
     let platform_count = variant.platforms.len();
     let mut maintenance = vec![vec![false; duration_days]; platform_count];
     let mut weather = vec![vec![false; duration_days]; platform_count];
@@ -439,10 +439,14 @@ fn evaluate_variant(
     let mut unavailable_day_offsets = Vec::new();
     daily_active_platforms
         .try_reserve_exact(duration_days)
-        .map_err(|_| FleetError::InvalidCase("could not allocate daily platform counts".to_owned()))?;
+        .map_err(|_| {
+            FleetError::InvalidCase("could not allocate daily platform counts".to_owned())
+        })?;
     daily_service_available
         .try_reserve_exact(duration_days)
-        .map_err(|_| FleetError::InvalidCase("could not allocate daily service flags".to_owned()))?;
+        .map_err(|_| {
+            FleetError::InvalidCase("could not allocate daily service flags".to_owned())
+        })?;
 
     let mut maintenance_platform_days = 0;
     let mut weather_platform_days = 0;
@@ -481,7 +485,10 @@ fn evaluate_variant(
         }
     }
 
-    let service_available_days = daily_service_available.iter().filter(|available| **available).count();
+    let service_available_days = daily_service_available
+        .iter()
+        .filter(|available| **available)
+        .count();
     let service_unavailable_days = duration_days - service_available_days;
     let availability_fraction = service_available_days as f64 / duration_days as f64;
 
@@ -501,21 +508,19 @@ fn evaluate_variant(
     })
 }
 
-
 fn evaluate_rotation_bound(case: &RotationBoundCase) -> Result<RotationBoundReport, FleetError> {
-    let cycle_days = case.on_station_days
-        + case.recovery_to_ready_days
-        + case.launch_to_service_days;
+    let cycle_days =
+        case.on_station_days + case.recovery_to_ready_days + case.launch_to_service_days;
     let duty_fraction = case.on_station_days / cycle_days;
-    let ideal_platform_count =
-        case.required_service_platforms as f64 / duty_fraction;
+    let ideal_platform_count = case.required_service_platforms as f64 / duty_fraction;
     if !ideal_platform_count.is_finite() || ideal_platform_count > usize::MAX as f64 {
         return Err(FleetError::InvalidCase(format!(
             "rotation sensitivity {} exceeds supported fleet-size range",
             case.case_id
         )));
     }
-    let theoretical_minimum_fleet_size = (ideal_platform_count - FRACTION_TOLERANCE).ceil() as usize;
+    let theoretical_minimum_fleet_size =
+        (ideal_platform_count - FRACTION_TOLERANCE).ceil() as usize;
     if theoretical_minimum_fleet_size != case.expected_minimum_fleet_size {
         return Err(FleetError::OracleMismatch(format!(
             "rotation lower-bound oracle mismatch for {}: expected {}, got {}",
@@ -541,7 +546,8 @@ fn verify_oracle(variant: &Variant, actual: &VariantReport) -> Result<(), FleetE
         && expected.unavailable_day_offsets == actual.unavailable_day_offsets
         && expected.service_available_days == actual.service_available_days
         && expected.service_unavailable_days == actual.service_unavailable_days
-        && (expected.availability_fraction - actual.availability_fraction).abs() <= FRACTION_TOLERANCE
+        && (expected.availability_fraction - actual.availability_fraction).abs()
+            <= FRACTION_TOLERANCE
         && expected.longest_continuous_outage_days == actual.longest_continuous_outage_days
         && expected.maintenance_unavailable_platform_days
             == actual.maintenance_unavailable_platform_days
@@ -586,8 +592,14 @@ mod tests {
     fn common_cause_weather_is_applied_to_every_platform_in_the_domain() {
         let case = fixture();
         let report = evaluate_case(&case).expect("oracle matches");
-        assert_eq!(report.variants[1].maximum_simultaneous_unavailable_platforms, 2);
-        assert_eq!(report.variants[2].maximum_simultaneous_unavailable_platforms, 1);
+        assert_eq!(
+            report.variants[1].maximum_simultaneous_unavailable_platforms,
+            2
+        );
+        assert_eq!(
+            report.variants[2].maximum_simultaneous_unavailable_platforms,
+            1
+        );
         assert_eq!(report.variants[1].unavailable_day_offsets, vec![26, 27]);
         assert!(report.variants[2].unavailable_day_offsets.is_empty());
     }
@@ -631,11 +643,12 @@ mod tests {
     #[test]
     fn logistics_unknowns_are_not_silently_used_in_availability() {
         let case = fixture();
-        assert!(case
-            .variants
-            .iter()
-            .all(|variant| !variant.logistics.included_in_availability_oracle
-                && variant.logistics.recovery_to_ready_days.is_none()));
+        assert!(
+            case.variants
+                .iter()
+                .all(|variant| !variant.logistics.included_in_availability_oracle
+                    && variant.logistics.recovery_to_ready_days.is_none())
+        );
         assert!(evaluate_case(&case).is_ok());
     }
 
