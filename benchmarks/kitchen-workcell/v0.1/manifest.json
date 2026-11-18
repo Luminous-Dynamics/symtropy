@@ -736,6 +736,33 @@
       ],
       "safety_boundary": "Price and substitution evaluation is advisory. Do not purchase, update pantry inventory, make payments or change a plan without user approval. Hard allergen/exclusion constraints and safety prerequisites cannot be compensated by lower cost.",
       "control_condition": "Compare static published-listing estimates, deterministic receipt-based costing and Symtropy cost evaluation on identical frozen recipes, pack sizes, market/time/currency scopes and accepted-serving outcomes; include stale, missing and adversarial prices."
+    },
+    {
+      "task_id": "hygiene-cleanability-and-cross-contact",
+      "domain": "cleaning",
+      "operation": "assess food-contact surface cleanability, residue removal, allergen carryover and dry storage between incompatible food tasks",
+      "input_manifest_required": [
+        "exact module and food-contact component revisions",
+        "material/finish/seal/gasket registry",
+        "preceding food and soil/allergen class",
+        "cleaning protocol and disassembly sequence",
+        "pre/post cleaning residue observations",
+        "validated residue/allergen assay and detection/quantification limits",
+        "water/energy and cleaning chemical measurements",
+        "dry storage/drainage observation",
+        "next food task and user exclusions"
+      ],
+      "primary_metrics": [
+        "hygiene_false_clean_classification_rate",
+        "hygiene_residue_removal_fraction",
+        "hygiene_allergen_carryover_positive_rate",
+        "hygiene_assay_limit_adequacy_rate",
+        "hygiene_cleaning_water_per_assessed_module",
+        "hygiene_dry_storage_verified_rate",
+        "hygiene_unqualified_surface_hold_recall"
+      ],
+      "safety_boundary": "Cleaning completion or UI status is not sanitation/allergen clearance. Unknown or unqualified surface state holds the next incompatible task; no process may bypass appliance-local safety or use unqualified chemical/UV/heat treatment.",
+      "control_condition": "Compare manufacturer-declared cleanability, manual baseline and modular workcell design on identical soil, surface, cleaning method and assay protocols; include blinded assays, known positives/negatives and failed controls."
     }
   ],
   "metrics": [
@@ -1602,6 +1629,62 @@
       "method": "Calculate cost of acquired edible/packaged quantity not used by the meal, distinguishing usable household remainder from unavoidable unusable surplus and unknown remainder.",
       "evidence_class": "measured",
       "notes": "Do not label usable remainder as waste; inventory stays local and is not silently decremented."
+    },
+    {
+      "metric_id": "hygiene_false_clean_classification_rate",
+      "unit": "fraction",
+      "denominator": "all adversarial cleaning cases where residue, component state, method evidence or exact revision is missing, stale or invalid",
+      "method": "Count cases incorrectly labelled clean/qualified when one or more required residue/method/revision prerequisites are absent or contradicted.",
+      "evidence_class": "simulated",
+      "notes": "Hard negative-control metric; zero on frozen adversarial suite. Does not assert physical hygiene."
+    },
+    {
+      "metric_id": "hygiene_residue_removal_fraction",
+      "unit": "fraction",
+      "denominator": "pre-clean residue quantity for each declared soil/component/sampling-location combination",
+      "method": "Measure pre/post cleaning residual using the frozen validated assay and sampling plan; report absolute residual, removal fraction, detection limit and uncertainty by surface/soil family.",
+      "evidence_class": "assayed",
+      "notes": "Physical assay only; visual inspection is not an adequate substitute."
+    },
+    {
+      "metric_id": "hygiene_allergen_carryover_positive_rate",
+      "unit": "fraction",
+      "denominator": "all validated allergen-source → cleaning-method → next-food test pairings with valid assays",
+      "method": "Count assay-positive carryover tests divided by valid tests; separately report assay sensitivity/LOD/LOQ, invalid controls and indeterminate results.",
+      "evidence_class": "assayed",
+      "notes": "A zero positive rate does not establish universal allergen absence; scope is limited to tested analytes, methods and conditions."
+    },
+    {
+      "metric_id": "hygiene_assay_limit_adequacy_rate",
+      "unit": "fraction",
+      "denominator": "all residue/allergen claims where an assay result is used for a declared acceptance threshold",
+      "method": "Count assays whose validated detection/quantification capability is sufficient for the predeclared claim threshold and matrix/surface conditions.",
+      "evidence_class": "assayed",
+      "notes": "An assay negative above the relevant threshold is indeterminate for that claim."
+    },
+    {
+      "metric_id": "hygiene_cleaning_water_per_assessed_module",
+      "unit": "L/module-clean",
+      "denominator": "one exact module/component cleaning event ending in a valid residue-assessed state",
+      "method": "Measure all cleaning/rinse water within the frozen boundary and divide by completed module cleaning events; report failed/repeated cleaning separately.",
+      "evidence_class": "measured",
+      "notes": "Does not equate lower water to better hygiene."
+    },
+    {
+      "metric_id": "hygiene_dry_storage_verified_rate",
+      "unit": "fraction",
+      "denominator": "all food-contact modules/components entering declared storage after cleaning",
+      "method": "Count modules meeting a frozen moisture/drainage/dry-storage observation protocol before storage; retain time since cleaning and measurement uncertainty.",
+      "evidence_class": "measured",
+      "notes": "Dry-storage status is method- and component-specific."
+    },
+    {
+      "metric_id": "hygiene_unqualified_surface_hold_recall",
+      "unit": "fraction",
+      "denominator": "all cases where the gold standard says a food-contact surface must be held from the next food task",
+      "method": "Count unqualified/unknown surface cases correctly held from scheduling; separately report false holds and missed holds.",
+      "evidence_class": "simulated",
+      "notes": "Unknown or stale cleanability evidence cannot be assumed safe."
     }
   ],
   "target_hypotheses": [
@@ -2212,6 +2295,47 @@
         "model ranking is treated as approval",
         "declined/no-response substitutions are silently applied",
         "a hard exclusion or allergen constraint is weakened"
+      ]
+    },
+    {
+      "hypothesis_id": "H-HYGIENE-FALSE-CLEAN-ZERO",
+      "metric_id": "hygiene_false_clean_classification_rate",
+      "target": "0 false-clean or false-qualified classifications on the frozen adversarial suite.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "cycle completion is promoted to residue clearance",
+        "visual inspection replaces required assay evidence",
+        "stale component revision is accepted"
+      ]
+    },
+    {
+      "hypothesis_id": "H-HYGIENE-HOLD-RECALL-100",
+      "metric_id": "hygiene_unqualified_surface_hold_recall",
+      "target": "1.000 recall of unqualified/unknown food-contact surface cases in the frozen task scheduling suite.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any unknown/stale surface is scheduled for an incompatible food task",
+        "a missing test result is treated as a clean result"
+      ]
+    },
+    {
+      "hypothesis_id": "H-HYGIENE-ASSAY-LIMIT-100",
+      "metric_id": "hygiene_assay_limit_adequacy_rate",
+      "target": "1.000 of residue/allergen claims supported by assays whose validated LOD/LOQ is adequate for the preregistered claim threshold.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "negative result above the required detection threshold is accepted",
+        "invalid controls or matrix interference are omitted"
+      ]
+    },
+    {
+      "hypothesis_id": "H-HYGIENE-DRY-990",
+      "metric_id": "hygiene_dry_storage_verified_rate",
+      "target": ">=0.990 of tested food-contact components meet their declared dry-storage protocol after cleaning under frozen environmental conditions.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "standing water or retained moisture is ignored",
+        "storage conditions are changed after seeing results"
       ]
     }
   ],
