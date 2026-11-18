@@ -60,7 +60,7 @@ Across scenarios:
 - weighted regret by objective;
 - maximum regret over every scenario/objective.
 
-The **robust frontier** is calculated from the candidate worst-case objective vectors, but only among candidates that are hard-feasible in every scenario. A candidate with a good average but one hard-feasibility failure is never classified as guaranteed-feasible or placed on this robust frontier.
+The **robust frontier** is calculated from the candidate worst-case objective vectors, but only among candidates that are hard-feasible in every scenario. A candidate with a good average but one hard-feasibility failure is never classified as guaranteed-feasible or placed on this robust frontier. If every individual scenario has feasible candidates but no candidate is feasible in all scenarios, the robust frontier is correctly empty; this is a valid “no robust candidate” result, not a reason to weaken the hard constraints or select a nominal winner.
 
 Weighted feasibility coverage is a weighted summary under the declared scenario weights. Under AnalyticalDecisionWeights it is not a probability or guarantee. Guaranteed-feasible means only that all scenarios in the declared finite set pass their hard constraints.
 
