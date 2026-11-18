@@ -8,19 +8,16 @@ const RANDOM_SEEDS: [u64; 10] = [11, 23, 37, 41, 53, 67, 79, 89, 101, 113];
 
 fn print_outcome(outcome: &PolicyOutcome) {
     println!(
-        "{},{},{},{:.8},{:.8},{:.8},{:.8},{:.8},{}",
-        outcome.policy.as_str(),
-        outcome.seed,
-        outcome
-            .selected_experiment_id
-            .as_deref()
-            .unwrap_or("none"),
-        outcome.mutual_information_bits,
-        outcome.experiment_cost,
-        outcome.expected_value_after_observation,
-        outcome.net_expected_decision_value,
-        outcome.expected_decision_regret,
-        outcome.decision_without_measurement
+        "{policy},{seed},{selected},{mutual_information:.8},{cost:.8},{expected_value:.8},{net_value:.8},{regret:.8},{decision}",
+        policy = outcome.policy.as_str(),
+        seed = outcome.seed,
+        selected = outcome.selected_experiment_id.as_deref().unwrap_or("none"),
+        mutual_information = outcome.mutual_information_bits,
+        cost = outcome.experiment_cost,
+        expected_value = outcome.expected_value_after_observation,
+        net_value = outcome.net_expected_decision_value,
+        regret = outcome.expected_decision_regret,
+        decision = outcome.decision_without_measurement
     );
 }
 
