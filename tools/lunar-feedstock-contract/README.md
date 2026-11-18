@@ -158,11 +158,13 @@ For each mineral phase it reports:
 
 [
 \Delta x = x_{to}-x_{from},\qquad
-u_{\Delta x}=\sqrt{u_{to}^{2}+u_{from}^{2}}
+u_{\Delta x}^{worst}=u_{to}+u_{from}
 ]
+
+The linear bound is deliberate: it is the conservative upper bound for the uncertainty of a difference when covariance/correlation between the two assays is not known. A root-sum-square would assume independent errors and can overstate confidence if the assays share calibration standards or systematic effects. A future covariance-aware run may use a documented covariance artifact; absent that, use the linear bound.
 
 A change is labelled resolved increase/decrease only when the one-standard-uncertainty interval excludes zero. Otherwise it is indeterminate. Unknown measurements remain unknown, and values are never subtracted across different or missing units. This is a descriptive paired-assay comparison, not a causal test that transfer or segregation caused the change.
 
 PSD bins are compared only when the source and destination assays use matching bin edges. Different partitions return `incompatible_bin_partitions`; the program does not interpolate or pretend that unmatched bins are equivalent. The report separately compares the process target-size fraction and preserves each bin's own interval.
 
-Linux CI runs formatting, unit tests, Clippy and the synthetic separator-to-reactor example. The expected synthetic result resolves the illustrative plagioclase increase while leaving the unchanged target-size fraction indeterminate because its difference interval overlaps zero. This is only a regression fixture, not a physical process finding.
+Linux CI runs formatting, unit tests, Clippy and the synthetic separator-to-reactor example. The synthetic pair's plagioclase shift and unchanged target-size fraction are both indeterminate under the conservative linear bound; no correlation structure is assumed. This is only a regression fixture, not a physical process finding.
