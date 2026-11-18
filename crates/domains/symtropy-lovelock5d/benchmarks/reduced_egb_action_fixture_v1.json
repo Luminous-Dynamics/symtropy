@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "independent_symbolic_5d_equal_spin_egb_reduced_action_fixture",
+  "status": "sympy_1_14_symbolic_checks_executed_in_development_session",
+  "source": "Brihaye, Kleihaus, Kunz and Radu, JHEP 11 (2010) 089, arXiv:1010.0860, Eqs. (2.8)-(2.12)",
+  "conventions": {
+    "dimension": 5,
+    "signature": "(-++++)",
+    "coordinate_ansatz": "ds^2=-b*dt^2+dr^2/f+g*dtheta^2+h*sin(theta)^2*(dphi_1-w*dt)^2+h*cos(theta)^2*(dphi_2-w*dt)^2+(g-h)*sin(theta)^2*cos(theta)^2*(dphi_1-dphi_2)^2",
+    "left_invariant_ansatz": "ds^2=-b*dt^2+dr^2/f+g/4*(sigma_1^2+sigma_2^2)+h/4*(sigma_3+2*w*dt)^2",
+    "action": "I=(16*pi*G)^-1 integral sqrt(-g)*(R+alpha*L_GB/4)",
+    "action_gauge": "unfixed during variation",
+    "post_variation_gauge": "g(r)=r^2"
+  },
+  "reduced_action": {
+    "L_E": "sqrt(f*h/b)*(b'*g'+g*b'*h'/(2*h)+b*g'^2/(2*g)+b*g'*h'/g+g*h*w'^2/2+2*b/f*(4-h/g))",
+    "L_GB": "sqrt(f*h/b)/g*(4*h*b'*g'/g+2*(4*g-3*h)*(b'*h'/h+h*w'^2)-f*b'*h'*g'^2/(2*h)-f*h*g'^2*w'^2/2)",
+    "L_eff": "L_E+alpha*L_GB/4"
+  },
+  "variational_structure": {
+    "equations": [
+      "E_b",
+      "E_f",
+      "E_g",
+      "E_h",
+      "E_w"
+    ],
+    "f_is_nondynamical": true,
+    "f_has_no_radial_momentum": true,
+    "maximum_radial_derivative_order": 2,
+    "second_derivative_inventory": {
+      "E_b": [
+        "g''",
+        "h''"
+      ],
+      "E_f": [],
+      "E_g": [
+        "b''",
+        "g''",
+        "h''",
+        "w''"
+      ],
+      "E_h": [
+        "b''",
+        "g''"
+      ],
+      "E_w": [
+        "g''",
+        "w''"
+      ]
+    },
+    "gauge_order_rule": "derive all five Euler-Lagrange equations from unfixed L_eff, then substitute g=r^2, g'=2r, g''=2; retain E_g as a radial constraint/consistency equation"
+  },
+  "noether": {
+    "canonical_momentum": "dL_eff/dw'",
+    "exact_identity": "dL_eff/dw'=w'*h*sqrt(f*h/b)*(g-alpha/4*(f*g'^2/g-16+12*h/g))",
+    "gauge_fixed": "P_w=w'*h*sqrt(f*h/b)*(r^2-alpha*(f-4+3*h/r^2))",
+    "euler_lagrange": "E_w=-dP_w/dr",
+    "canonical_momentum_identity_passed": true,
+    "w_euler_lagrange_identity_passed": true
+  },
+  "symbolic_replay": {
+    "sympy_version": "1.14.0",
+    "equation_digests_before_gauge": {
+      "b": "76b5b999ed9635cf52ca2b82ca883b3989b8829d2776b0a30e79ca2ff1ef3a97",
+      "f": "cac441977ab0ec4f07ce6a04ff468df6b68f60d931cec3a7eaa3159481280835",
+      "g": "9fb906e5a75ef5353c9afcae9b1f3faa66ea5856dfe0e50e4a14230c137abe06",
+      "h": "b4372755c72b6237607556188dd5b34f6a6817c96b1092806afe1ee84d5bccde",
+      "w": "e3e80eb5dc62a1a6fa5057e04384406a07dd1780d6a73d101621b4ec69adf792"
+    },
+    "equation_sizes_before_gauge": {
+      "b": 831,
+      "f": 366,
+      "g": 903,
+      "h": 639,
+      "w": 585
+    },
+    "equation_digests_after_gauge": {
+      "b": "5db52327a19ce2a60743a91229219ad368ec8630cc1a71798b51f76db2c105f8",
+      "f": "9b82fc11847cd20c424ec9518b0fdb82a69757843e86a4fb0244c112603a497a",
+      "g": "d3f275053030ff64d7b8e60e215521882314a61f27e277993fcb24d8d4f8fad7",
+      "h": "9a55b27d52f1347dab6afb8c64139357e9a92f7f116a48b2e8e3d65ead31acc7",
+      "w": "6e13794777295368b1d2fd88dc183b1fe42fedfcc73be4c7628de41887312a54"
+    },
+    "equation_sizes_after_gauge": {
+      "b": 634,
+      "f": 335,
+      "g": 717,
+      "h": 498,
+      "w": 488
+    },
+    "checks": {
+      "canonical_w_momentum_equals_published_noether_flux": true,
+      "w_euler_lagrange_equals_minus_flux_derivative": true,
+      "f_has_no_radial_derivative": true,
+      "no_eom_contains_f_second_derivative": true,
+      "no_equation_exceeds_second_radial_order": true,
+      "all_five_equations_retained_after_gauge_slice": true,
+      "gauge_fixed_angular_flux_matches_eq_2_12": true
+    },
+    "execution_boundary": "SymPy algebra executed in the development session. The committed derivation script has not yet been run from a clean checkout; Rust EGB equations remain unimplemented."
+  },
+  "outputs": {
+    "derivation_script": "crates/domains/symtropy-lovelock5d/benchmarks/derive_reduced_egb_system.py",
+    "equation_fixture": "crates/domains/symtropy-lovelock5d/benchmarks/reduced_egb_action_fixture_v1.json"
+  },
+  "claim_ceiling": "This is an independent symbolic reduction of the published cohomogeneity-one radial action, not a generic five-dimensional tensor implementation, rotating nonzero-alpha solution, interval enclosure, or existence/stability theorem."
+}
