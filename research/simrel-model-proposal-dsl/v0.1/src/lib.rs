@@ -219,7 +219,7 @@ impl Expr {
         match self {
             Self::Constant { value, dimension } => {
                 if !value.is_finite() {
-                    return Err(ModelError::NonFiniteConstant);
+                    return Err(ModelError::NonFiniteInitialState(declaration.id));
                 }
                 Ok(*dimension)
             }
@@ -371,6 +371,7 @@ pub struct Assignment {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ModelProgramV0 {
+    pub schema_version: u16,
     pub model_id: String,
     pub variables: Vec<VariableDecl>,
     pub class: ProposalClass,
@@ -389,10 +390,12 @@ pub enum ModelError {
     DuplicateVariableName,
     InvalidVariableName,
     InvalidValueRange,
+    MissingVariableRange(VariableId),
     MissingInitialValue(VariableId),
     UnexpectedInitialValue(VariableId),
     InitialValueOutsideRange(VariableId),
     MissingStateTransitions,
+    AlgebraicModelHasTransitions,
     TransitionForNonState(VariableId),
     DuplicateAssignment(VariableId),
     MissingAssignment(VariableId),
@@ -409,6 +412,7 @@ pub enum ModelError {
     NoiseOutsideStochasticModel,
     StochasticModelWithoutNoise,
     NonFiniteConstant,
+    NonFiniteInitialState(VariableId),
     NonFiniteBinding(VariableId),
     MissingBinding(VariableId),
     DuplicateBinding(VariableId),
@@ -436,10 +440,12 @@ impl fmt::Display for ModelError {
             Self::DuplicateVariableName => write!(f, "duplicate variable name"),
             Self::InvalidVariableName => write!(f, "variable names must be lowercase ASCII identifiers"),
             Self::InvalidValueRange => write!(f, "value range must have finite ordered endpoints"),
+            Self::MissingVariableRange(id) => write!(f, "input, parameter and dynamic-state variable {} requires an explicit admissible range", id.0),
             Self::MissingInitialValue(id) => write!(f, "state variable {} has no initial value", id.0),
             Self::UnexpectedInitialValue(id) => write!(f, "non-state variable {} declares an initial value", id.0),
             Self::InitialValueOutsideRange(id) => write!(f, "initial state {} is outside its admitted range", id.0),
             Self::MissingStateTransitions => write!(f, "every state/latent variable needs exactly one transition"),
+            Self::AlgebraicModelHasTransitions => write!(f, "algebraic proposal cannot declare state transitions"),
             Self::TransitionForNonState(id) => write!(f, "transition target {} is not a state/latent variable", id.0),
             Self::DuplicateAssignment(id) => write!(f, "duplicate assignment for variable {}", id.0),
             Self::MissingAssignment(id) => write!(f, "missing required assignment for variable {}", id.0),
@@ -456,6 +462,7 @@ impl fmt::Display for ModelError {
             Self::NoiseOutsideStochasticModel => write!(f, "random innovations are admitted only in stochastic-state proposals"),
             Self::StochasticModelWithoutNoise => write!(f, "stochastic-state proposal must contain at least one noise node"),
             Self::NonFiniteConstant => write!(f, "expression constant must be finite"),
+            Self::NonFiniteInitialState(id) => write!(f, "initial state {} must be finite", id.0),
             Self::NonFiniteBinding(id) => write!(f, "binding for variable {} must be finite", id.0),
             Self::MissingBinding(id) => write!(f, "external binding missing for variable {}", id.0),
             Self::DuplicateBinding(id) => write!(f, "duplicate external binding for variable {}", id.0),
@@ -514,8 +521,12 @@ pub struct StepOutput {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ModelRunV0 {
     pub model_id: String,
-    pub fingerprint64: u64,
+    pub model_fingerprint64: u64,
+    pub run_fingerprint64: u64,
     pub fingerprint_algorithm: &'static str,
+    pub seed: u64,
+    pub requested_steps: u32,
+    pub budget: EvaluationBudget,
     pub samples: Vec<StepOutput>,
     pub final_state: Vec<StateValue>,
     pub expressions_evaluated: u64,
@@ -693,10 +704,21 @@ impl ValidatedModelProgramV0 {
         }
         final_state.sort_by_key(|value| value.variable);
 
+        let run_fingerprint64 = run_fingerprint(
+            self.fingerprint64,
+            bindings,
+            steps,
+            seed,
+            budget,
+        );
         Ok(ModelRunV0 {
             model_id: self.program.model_id.clone(),
-            fingerprint64: self.fingerprint64,
+            model_fingerprint64: self.fingerprint64,
+            run_fingerprint64,
             fingerprint_algorithm: "FNV-1a-64 (reproducibility only; not cryptographic)",
+            seed,
+            requested_steps: steps,
+            budget,
             samples,
             final_state,
             expressions_evaluated,
@@ -705,6 +727,9 @@ impl ValidatedModelProgramV0 {
 }
 
 fn validate_program(program: &ModelProgramV0) -> Result<(), ModelError> {
+    if program.schema_version != SCHEMA_VERSION_V0 {
+        return Err(ModelError::WrongSchemaVersion);
+    }
     if program.model_id.trim().is_empty() {
         return Err(ModelError::EmptyModelId);
     }
@@ -739,6 +764,8 @@ fn validate_program(program: &ModelProgramV0) -> Result<(), ModelError> {
         }
         if let Some(range) = declaration.admissible_range {
             range.validate()?;
+        } else if declaration.role.is_dynamic_state() || declaration.role.requires_external_binding() {
+            return Err(ModelError::MissingVariableRange(declaration.id));
         }
         if declaration.role.is_dynamic_state() {
             let initial = declaration
@@ -798,7 +825,7 @@ fn validate_program(program: &ModelProgramV0) -> Result<(), ModelError> {
     match program.class {
         ProposalClass::Algebraic => {
             if !program.transitions.is_empty() {
-                return Err(ModelError::MissingStateTransitions);
+                return Err(ModelError::AlgebraicModelHasTransitions);
             }
         }
         ProposalClass::DiscreteState | ProposalClass::StochasticState => {
@@ -961,7 +988,7 @@ fn canonical_serialization(program: &ModelProgramV0) -> String {
     let _ = writeln!(
         output,
         "simrel-model-program-v{}|{}|{}|{}",
-        SCHEMA_VERSION_V0,
+        program.schema_version,
         program.model_id,
         program.class.as_str(),
         program.maximum_horizon_steps
@@ -1010,6 +1037,31 @@ fn canonical_serialization(program: &ModelProgramV0) -> String {
         output.push('\n');
     }
     output
+}
+
+fn run_fingerprint(
+    model_fingerprint: u64,
+    bindings: &[ExternalBinding],
+    steps: u32,
+    seed: u64,
+    budget: EvaluationBudget,
+) -> u64 {
+    let mut ordered = bindings.to_vec();
+    ordered.sort_by_key(|binding| binding.variable);
+    let mut canonical = format!(
+        "model:{model_fingerprint:016x}|steps:{steps}|seed:{seed:016x}|max_steps:{}|fuel:{}|",
+        budget.maximum_steps,
+        budget.expression_fuel
+    );
+    for binding in ordered {
+        let _ = write!(
+            canonical,
+            "binding:{}:{:016x}|",
+            binding.variable.0,
+            binding.value.to_bits()
+        );
+    }
+    fnv1a64(canonical.as_bytes())
 }
 
 fn dimension_text(dimension: Dimension) -> String {
@@ -1078,6 +1130,7 @@ mod tests {
 
     fn algebraic_program() -> ModelProgramV0 {
         ModelProgramV0 {
+            schema_version: SCHEMA_VERSION_V0,
             model_id: "affine_sensor_map".to_owned(),
             variables: vec![
                 declaration(
@@ -1131,6 +1184,7 @@ mod tests {
 
     fn discrete_program() -> ModelProgramV0 {
         ModelProgramV0 {
+            schema_version: SCHEMA_VERSION_V0,
             model_id: "first_order_dynamics".to_owned(),
             variables: vec![
                 declaration(
@@ -1187,6 +1241,7 @@ mod tests {
 
     fn stochastic_program() -> ModelProgramV0 {
         ModelProgramV0 {
+            schema_version: SCHEMA_VERSION_V0,
             model_id: "random_walk".to_owned(),
             variables: vec![
                 declaration(
@@ -1234,6 +1289,16 @@ mod tests {
     }
 
     #[test]
+    fn unsupported_schema_version_is_rejected() {
+        let mut program = algebraic_program();
+        program.schema_version = SCHEMA_VERSION_V0 + 1;
+        assert_eq!(
+            ValidatedModelProgramV0::new(program),
+            Err(ModelError::WrongSchemaVersion)
+        );
+    }
+
+    #[test]
     fn algebraic_proposal_executes_with_typed_bindings() {
         let validated = ValidatedModelProgramV0::new(algebraic_program()).unwrap();
         let run = validated
@@ -1241,6 +1306,10 @@ mod tests {
             .unwrap();
         assert_eq!(run.samples.len(), 1);
         assert_eq!(run.samples[0].values[0].value, 7.0);
+        let reordered = validated
+            .simulate(&[bound(3, 1.0), bound(1, 3.0), bound(2, 2.0)], 1, 1, budget())
+            .unwrap();
+        assert_eq!(run.run_fingerprint64, reordered.run_fingerprint64);
     }
 
     #[test]
@@ -1357,6 +1426,7 @@ mod tests {
             VariableRole::Latent,
             Dimension::DIMENSIONLESS,
             None,
+            Some(ValueRange { minimum: -1.0, maximum: 1.0 }),
             Some(0.0),
         ));
         assert_eq!(
