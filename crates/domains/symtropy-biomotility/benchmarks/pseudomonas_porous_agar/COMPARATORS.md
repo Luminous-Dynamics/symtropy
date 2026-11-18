@@ -45,6 +45,31 @@ Marianne Grognot and Katja M. Taute, "A multiscale 3D chemotaxis assay reveals b
 
 This is a measurement-design and generalization comparator. It prevents transfer of a P. putida model to every bacterium.
 
+### 4. Stoll et al. (2026): chemotactic foraging in heterogeneous pore-scale flow
+
+Maximilian F. Stoll, Marco Dentz, Roman Stocker and Joaquin Jimenez-Martinez, "Porous medium heterogeneity favors chemotaxis to nutrient hotspots in flow", *Proceedings of the National Academy of Sciences* 123(38), e2616336123 (published 22 September 2026; online 15 September 2026).
+
+- DOI: https://doi.org/10.1073/pnas.2616336123
+- PubMed: https://pubmed.ncbi.nlm.nih.gov/42743290/
+- The study directly tracks *Azospirillum brasilense* in a microfluidic porous medium with localized, steady nutrient hotspots.
+- It varies hydrodynamic heterogeneity, flow magnitude and bacterial traits, and compares chemotactic swimmers with nonmotile cells passively advected by flow.
+- The authors define an advantage index for nutrient exposure relative to nonmotile cells. They report chemotactic nutrient-exposure gain increasing by 1.5-fold with greater hydrodynamic heterogeneity, with swimming bacteria preferentially occupying low-velocity regions and swimming against flow to climb nutrient gradients.
+- Dataset record: ETH Research Collection DOI https://doi.org/10.3929/ethz-c-000804612. The record lists multiple multi-hundred-megabyte / gigabyte trajectory archives.
+- **Rights gate:** the ETH record reports "In Copyright — Non-Commercial Use Permitted"; do not ingest, redistribute, adapt or use those files in commercial work without a documented rights review and, where needed, permission. The paper's own licence is also not a substitute for the dataset's separate rights record.
+
+This is a distinct cross-species / cross-physics comparator, not a replacement for the P. putida agar benchmark. It tests the coupled effects of active swimming, chemical gradients, spatially heterogeneous flow and nutrient exposure. Do not transfer P. putida turn-angle or run-time parameters to *A. brasilense* without independent evidence.
+
+Suggested matched scenario arms:
+1. nonmotile passive-advection baseline;
+2. motile swimmer without chemotactic response;
+3. chemotactic swimmer in homogeneous flow;
+4. chemotactic swimmer in heterogeneous pore-scale flow;
+5. matched nutrient-hotspot and flow-rate factorials.
+
+Primary metrics: cumulative nutrient exposure, nutrient-hotspot encounter and residence, advantage index relative to the matched passive baseline, retention/escape, pore-scale velocity occupancy, and predictive calibration across held-out flow/heterogeneity conditions.
+
+The first integration may use only source-reported summaries as literature targets. Raw trajectory admission is blocked on exact file metadata, licence scope, schema, checksums, geometry/flow fields and experimental-unit mapping.
+
 ## Dataset admission
 
 - Analyzed P. putida trajectories: https://doi.org/10.5281/zenodo.17592316
