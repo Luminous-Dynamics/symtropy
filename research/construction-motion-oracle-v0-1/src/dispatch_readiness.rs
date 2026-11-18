@@ -337,7 +337,7 @@ mod tests {
         ledger
     }
 
-    fn request(ledger: &SiteStateLedger) -> DispatchReadinessRequest {
+    fn make_request(ledger: &SiteStateLedger) -> DispatchReadinessRequest {
         let package_sha256 = ledger.active_package_sha256().unwrap().to_owned();
         DispatchReadinessRequest {
             envelope: DispatchEnvelopeBinding {
@@ -389,7 +389,7 @@ mod tests {
     #[test]
     fn exact_fresh_conflict_free_snapshot_produces_readiness_only() {
         let ledger = site_ledger();
-        let request = request(&ledger);
+        let request = make_request(&ledger);
         let receipt = check_dispatch_readiness(&ledger, &request).unwrap();
         assert_eq!(receipt.package_sha256, request.envelope.package_sha256);
         assert_eq!(receipt.envelope_sha256, request.envelope.envelope_sha256);
@@ -401,7 +401,7 @@ mod tests {
     #[test]
     fn any_ledger_change_invalidates_the_previous_occupancy_snapshot() {
         let mut ledger = site_ledger();
-        let mut request = request(&ledger);
+        let mut request = make_request(&ledger);
         let package_sha256 = request.envelope.package_sha256.clone();
         ledger
             .apply(SiteEventEnvelope {
@@ -426,7 +426,7 @@ mod tests {
         );
 
         // A new occupancy receipt must be created for the changed ledger head.
-        let fresh_request = request(&ledger);
+        let fresh_request = make_request(&ledger);
         assert_eq!(
             check_dispatch_readiness(&ledger, &fresh_request)
                 .unwrap()
@@ -438,7 +438,7 @@ mod tests {
     #[test]
     fn conflicts_unresolved_pairs_and_incomplete_coverage_all_block_readiness() {
         let ledger = site_ledger();
-        let mut request = request(&ledger);
+        let mut request = make_request(&ledger);
         request.occupancy.conflict_count = 1;
         assert!(matches!(
             check_dispatch_readiness(&ledger, &request),
@@ -464,7 +464,7 @@ mod tests {
     #[test]
     fn configuration_or_transform_mismatch_blocks_readiness() {
         let ledger = site_ledger();
-        let mut request = request(&ledger);
+        let mut request = make_request(&ledger);
         request.envelope.transform_sha256 = digest('0');
         assert_eq!(
             check_dispatch_readiness(&ledger, &request),
@@ -481,7 +481,7 @@ mod tests {
     #[test]
     fn expired_or_cross_clock_assessment_is_not_reused() {
         let ledger = site_ledger();
-        let mut request = request(&ledger);
+        let mut request = make_request(&ledger);
         request.now_tick = 550;
         assert_eq!(
             check_dispatch_readiness(&ledger, &request),
@@ -498,7 +498,7 @@ mod tests {
     #[test]
     fn occupancy_assessment_must_postdate_the_bound_motion_envelope() {
         let ledger = site_ledger();
-        let mut request = request(&ledger);
+        let mut request = make_request(&ledger);
         request.occupancy.checked_at_tick = 99;
         assert_eq!(
             check_dispatch_readiness(&ledger, &request),
@@ -544,7 +544,7 @@ mod tests {
             })
             .unwrap();
 
-        let mut request = request(&ledger);
+        let mut request = make_request(&ledger);
         request.occupancy.site_ledger_sequence = ledger.last_sequence();
         request.occupancy.site_ledger_event_sha256 =
             ledger.last_event_sha256().unwrap().to_owned();
@@ -558,7 +558,7 @@ mod tests {
     #[test]
     fn stale_actor_invalid_bounds_and_unmodelled_occupants_are_not_clear() {
         let ledger = site_ledger();
-        let mut request = request(&ledger);
+        let mut request = make_request(&ledger);
         request.occupancy.stale_actor_count = 1;
         assert!(matches!(
             check_dispatch_readiness(&ledger, &request),
@@ -590,7 +590,7 @@ mod tests {
     #[test]
     fn narrowphase_coverage_must_be_complete_even_when_candidate_count_is_zero() {
         let ledger = site_ledger();
-        let mut request = request(&ledger);
+        let mut request = make_request(&ledger);
         request.occupancy.narrowphase_coverage_complete = false;
         assert_eq!(
             check_dispatch_readiness(&ledger, &request),
