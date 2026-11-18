@@ -674,11 +674,13 @@ mod tests {
                         action_id: "measure-a".to_owned(),
                         description: "Measure the declared signal.".to_owned(),
                         target: "signal".to_owned(),
+                        cost_units: 1,
                     },
                     PublicActionDescription {
                         action_id: "measure-b".to_owned(),
                         description: "Repeat the declared signal measurement.".to_owned(),
                         target: "signal".to_owned(),
+                        cost_units: 1,
                     },
                 ],
                 observations: vec![
