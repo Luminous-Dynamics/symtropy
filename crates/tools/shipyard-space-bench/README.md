@@ -8,6 +8,7 @@ V0 independently checks a proposed synthetic plan for:
 - occupancy of explicitly required access corridors;
 - declared shared-resource capacity using half-open time intervals;
 - operation precedence;
+- unique reservation identities, even when duplicate reservations remain below declared resource capacity;
 - invalid intervals/footprints;
 - explicit unknowns for missing footprints and resource capability/capacity.
 
