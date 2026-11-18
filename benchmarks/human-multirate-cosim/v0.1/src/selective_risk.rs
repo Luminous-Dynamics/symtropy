@@ -5,16 +5,13 @@
 //! truth label used to stratify the risk estimate. Wilson intervals are
 //! per-model fixed-sample intervals; they are not sequentially valid bounds.
 
-use crate::experiment_design::{
-    evaluate_input_profile, ExperimentDesignScenario, ModelCandidate,
-};
+use crate::experiment_design::{evaluate_input_profile, ExperimentDesignScenario};
 use crate::noise_robustness::SplitMix64;
 use crate::sequential_evidence::{
     decide_sequential_stop, validate_action_catalogue, ActionObservationV1,
     ModelPriorV1, SequentialActionV1, SequentialDecisionV1,
     SequentialEvidenceError, SequentialPolicyConfigV1,
 };
-use std::collections::HashMap;
 use std::fmt;
 
 const WILSON_Z_95: f64 = 1.959_963_984_540_054;
@@ -60,6 +57,20 @@ pub struct ActionSelectiveRiskEstimateV1 {
     pub expected_log_loss: f64,
     pub wrong_family_commit_standard_error: f64,
     pub per_model: Vec<ModelSelectiveRiskV1>,
+    pub assumptions: Vec<&'static str>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct HeldOutModelSelectiveRiskV1 {
+    pub action_id: u32,
+    pub held_out_model_id: u32,
+    pub seed: u64,
+    pub replicates: usize,
+    /// Commit to any registered model or family when truth is unregistered.
+    pub false_candidate_acceptance: WilsonRateV1,
+    pub correct_out_of_model_abstention: WilsonRateV1,
+    pub other_abstention: WilsonRateV1,
+    pub mean_max_candidate_posterior: f64,
     pub assumptions: Vec<&'static str>,
 }
 
@@ -164,7 +175,7 @@ pub fn estimate_action_selective_risk_evaluator_only(
         let mut brier_sum = 0.0;
         let mut log_loss_sum = 0.0;
 
-        for replicate in 0..replicates_per_model {
+        for _replicate in 0..replicates_per_model {
             let noise = action
                 .covariance()
                 .covariance()
@@ -218,7 +229,6 @@ pub fn estimate_action_selective_risk_evaluator_only(
             }
             brier_sum += squared_error;
             log_loss_sum += -true_probability.ln();
-            let _ = replicate;
         }
 
         per_model.push(ModelSelectiveRiskV1 {
@@ -291,6 +301,187 @@ pub fn estimate_action_selective_risk_evaluator_only(
             "decision thresholds are fixed during this one-step evaluator and are not sequentially calibrated",
             "Wilson intervals are fixed-sample per-model intervals",
             "risk results are conditional on the declared candidate set and evaluator distribution",
+        ],
+    })
+}
+
+/// Estimate false acceptance of a registered model family when the
+/// evaluator's generating graph is held out of the candidate set.
+///
+/// The evaluator scenario must contain the exact candidate models plus one
+/// held-out model, with the same state basis, sensors, schedule and budgets.
+/// Only the candidate scenario, action and sampled observation are supplied to
+/// the sequential policy. The held-out model ID remains evaluator-local.
+pub fn estimate_held_out_model_false_acceptance_evaluator_only(
+    candidate_scenario: &ExperimentDesignScenario,
+    evaluator_scenario: &ExperimentDesignScenario,
+    actions: &[SequentialActionV1],
+    prior: &[ModelPriorV1],
+    history: &[ActionObservationV1],
+    action_id: u32,
+    held_out_model_id: u32,
+    config: SequentialPolicyConfigV1,
+    replicates: usize,
+    seed: u64,
+) -> Result<HeldOutModelSelectiveRiskV1, SelectiveRiskError> {
+    validate_action_catalogue(candidate_scenario, actions, prior)
+        .map_err(SelectiveRiskError::Sequential)?;
+    validate_risk_config(config)?;
+    if replicates == 0 {
+        return Err(SelectiveRiskError::InvalidReplicateCount);
+    }
+    if replicates > MAX_RISK_REPLICATES_PER_MODEL {
+        return Err(SelectiveRiskError::ExcessiveReplicateCount);
+    }
+    if candidate_scenario
+        .models
+        .iter()
+        .any(|model| model.id == held_out_model_id)
+    {
+        return Err(SelectiveRiskError::HeldOutModelIsRegistered(held_out_model_id));
+    }
+    evaluator_scenario
+        .validate()
+        .map_err(|_| SelectiveRiskError::InvalidEvaluatorScenario)?;
+    if evaluator_scenario.models.len() != candidate_scenario.models.len() + 1
+        || evaluator_scenario.sensors != candidate_scenario.sensors
+        || evaluator_scenario.noise_covariance != candidate_scenario.noise_covariance
+        || evaluator_scenario.observation_times != candidate_scenario.observation_times
+        || evaluator_scenario.sensor_budget != candidate_scenario.sensor_budget
+        || evaluator_scenario.max_abs_forcing != candidate_scenario.max_abs_forcing
+        || evaluator_scenario.input_energy_budget != candidate_scenario.input_energy_budget
+    {
+        return Err(SelectiveRiskError::InvalidEvaluatorScenario);
+    }
+    for candidate in &candidate_scenario.models {
+        let evaluator_copy = evaluator_scenario
+            .models
+            .iter()
+            .find(|model| model.id == candidate.id)
+            .ok_or(SelectiveRiskError::InvalidEvaluatorScenario)?;
+        if evaluator_copy != candidate {
+            return Err(SelectiveRiskError::InvalidEvaluatorScenario);
+        }
+    }
+    let held_out = evaluator_scenario
+        .models
+        .iter()
+        .find(|model| model.id == held_out_model_id)
+        .ok_or(SelectiveRiskError::HeldOutModelMissing(held_out_model_id))?;
+
+    let action = actions
+        .iter()
+        .find(|action| action.action_id() == action_id)
+        .ok_or(SelectiveRiskError::UnknownAction(action_id))?;
+    if history.iter().any(|entry| entry.action_id == action_id) {
+        return Err(SelectiveRiskError::ActionAlreadyObserved);
+    }
+    let spent_cost = campaign_cost(actions, history)?;
+    if spent_cost + action.cost() > config.maximum_total_cost + 1.0e-10 {
+        return Err(SelectiveRiskError::Sequential(
+            SequentialEvidenceError::InvalidCampaignCost,
+        ));
+    }
+
+    // Generate predictions only inside the evaluator scenario. The candidate
+    // scenario and all policy calls below remain free of the held-out model.
+    let evaluator_score = evaluate_input_profile(
+        evaluator_scenario,
+        action.profile(),
+        action.selected_sensor_ids(),
+    )
+    .map_err(|_| SelectiveRiskError::InvalidEvaluatorScenario)?;
+    let held_out_means = evaluator_score
+        .model_observation_means
+        .iter()
+        .find(|means| means.model_id == held_out.id)
+        .ok_or(SelectiveRiskError::MissingPrediction(held_out_model_id))?;
+    if held_out_means.observations.len() != candidate_scenario.observation_times.len()
+        || held_out_means
+            .observations
+            .iter()
+            .any(|row| row.len() != action.selected_sensor_ids().len())
+    {
+        return Err(SelectiveRiskError::InvalidPredictionShape);
+    }
+    let flattened_means: Vec<f64> =
+        held_out_means.observations.iter().flatten().copied().collect();
+    let mut rng = SplitMix64::new(seed_for(seed, action_id, held_out_model_id));
+    let mut false_accepts = 0_usize;
+    let mut correct_ood_abstentions = 0_usize;
+    let mut other_abstentions = 0_usize;
+    let mut maximum_posterior_sum = 0.0;
+
+    for _ in 0..replicates {
+        let noise = action
+            .covariance()
+            .covariance()
+            .sample_gaussian(&mut rng)
+            .map_err(|error| {
+                SelectiveRiskError::Sequential(
+                    SequentialEvidenceError::Covariance(error),
+                )
+            })?;
+        let values = add_noise(&flattened_means, &noise)?;
+        let observation = ActionObservationV1 {
+            action_id,
+            sensor_ids: action.selected_sensor_ids().to_vec(),
+            times: candidate_scenario.observation_times.clone(),
+            values: unflatten(
+                &values,
+                candidate_scenario.observation_times.len(),
+                action.selected_sensor_ids().len(),
+            )?,
+        };
+        let mut next_history = history.to_vec();
+        next_history.push(observation);
+        let mut terminal_config = config;
+        terminal_config.maximum_experiments = next_history.len();
+        terminal_config.maximum_total_cost = spent_cost + action.cost();
+        let report = decide_sequential_stop(
+            candidate_scenario,
+            actions,
+            prior,
+            &next_history,
+            terminal_config,
+        )
+        .map_err(SelectiveRiskError::Sequential)?;
+        maximum_posterior_sum += report
+            .posterior
+            .weights
+            .iter()
+            .map(|weight| weight.probability)
+            .fold(0.0_f64, f64::max);
+        match report.decision {
+            SequentialDecisionV1::CommitModel { .. }
+            | SequentialDecisionV1::CommitFamilyParameterNotIdentified { .. } => {
+                false_accepts += 1;
+            }
+            SequentialDecisionV1::AbstainOutOfModelSet => {
+                correct_ood_abstentions += 1;
+            }
+            _ => {
+                other_abstentions += 1;
+            }
+        }
+    }
+
+    Ok(HeldOutModelSelectiveRiskV1 {
+        action_id,
+        held_out_model_id,
+        seed,
+        replicates,
+        false_candidate_acceptance: wilson(false_accepts, replicates),
+        correct_out_of_model_abstention: wilson(correct_ood_abstentions, replicates),
+        other_abstention: wilson(other_abstentions, replicates),
+        mean_max_candidate_posterior: maximum_posterior_sum / replicates as f64,
+        assumptions: vec![
+            "held-out model is evaluator-only and absent from candidate prior and policy",
+            "candidate models are copied unchanged into evaluator scenario",
+            "held-out and in-family observations use the action's identity-bound covariance",
+            "action noises are conditionally independent of earlier campaign actions",
+            "false candidate acceptance includes model and family commits",
+            "Monte Carlo/Wilson rates are fixed-sample, not sequentially valid",
         ],
     })
 }
@@ -593,6 +784,70 @@ mod tests {
             assert!(model.mean_brier_score.is_finite());
             assert!(model.mean_log_loss.is_finite());
         }
+    }
+
+    #[test]
+    fn held_out_duplicate_model_can_be_false_accepted_as_registered_family() {
+        let candidate = scenario();
+        let action = action(&candidate);
+        let mut evaluator = candidate.clone();
+        evaluator.models.push(crate::experiment_design::ModelCandidate {
+            id: 99,
+            label: "held-out-duplicate-of-chain",
+            network: candidate.models[0].network.clone(),
+        });
+        let same_family_prior = vec![
+            ModelPriorV1 { model_id: 1, family_id: 100, probability: 0.5 },
+            ModelPriorV1 { model_id: 2, family_id: 100, probability: 0.5 },
+        ];
+        let mut policy = config();
+        policy.posterior_commit_threshold = 0.5;
+        policy.maximum_campaign_residual = 1.0e6;
+        let estimate = estimate_held_out_model_false_acceptance_evaluator_only(
+            &candidate,
+            &evaluator,
+            &[action],
+            &same_family_prior,
+            &[],
+            1,
+            99,
+            policy,
+            64,
+            123,
+        )
+        .unwrap();
+        assert_eq!(estimate.false_candidate_acceptance.trials, 64);
+        assert!(estimate.false_candidate_acceptance.estimate > 0.0);
+        assert!(estimate.mean_max_candidate_posterior.is_finite());
+    }
+
+    #[test]
+    fn held_out_model_is_rejected_when_candidate_set_leaks_its_id() {
+        let candidate = scenario();
+        let action = action(&candidate);
+        let mut evaluator = candidate.clone();
+        evaluator.models.push(crate::experiment_design::ModelCandidate {
+            id: 99,
+            label: "held-out-variant",
+            network: candidate.models[0].network.clone(),
+        });
+        let mut leaking_candidate = candidate.clone();
+        leaking_candidate.models.push(evaluator.models[2].clone());
+        assert_eq!(
+            estimate_held_out_model_false_acceptance_evaluator_only(
+                &leaking_candidate,
+                &evaluator,
+                &[action],
+                &prior(),
+                &[],
+                1,
+                99,
+                config(),
+                8,
+                9,
+            ),
+            Err(SelectiveRiskError::HeldOutModelIsRegistered(99))
+        );
     }
 
     #[test]
