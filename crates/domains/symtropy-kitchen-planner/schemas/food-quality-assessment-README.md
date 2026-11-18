@@ -25,6 +25,7 @@ A high liking score cannot cancel a failed physical quality limit. Neither can c
 - The whole measurement uncertainty interval must fit inside a limit to count as meeting it. An interval overlapping a limit remains indeterminate.
 - Every response and measurement links to a raw evidence digest.
 - Protocol digest binds the report to the exact typed protocol revision.
+- A complete-block assignment digest binds each participant's exact sample order. The assessor requires one response per declared sample and contiguous presentation positions; it rejects a response that does not match the recorded randomized sequence. This validates assignment/response consistency, not the honesty of the randomizer or actual participant compliance.
 - Respondent tokens are intended to be one-time and study-scoped, not global identities.
 
 ## Standards references
@@ -37,7 +38,7 @@ For household dishwashers, IEC 60436:2025 including its corrected 2026-04 versio
 
 - Zero false-complete results on the adversarial suite and at least 10,000 generated malformed/contradictory cases.
 - 100% decision-affecting protocol, sample, method, calibration and raw-evidence reference coverage.
-- 100% exact digest/revision binding.
+- 100% exact digest/revision binding, including participant-level randomized presentation assignments.
 - 100% deterministic replay from identical typed inputs and assessor version.
 - Zero missingness imputation and zero serving-permit grants.
 - Report sample-level distributions and subgroup uncertainty; do not rank on mean liking alone.
