@@ -149,6 +149,13 @@ Use IFC 4.3 as the first exchange contract and IDS to express machine-checkable 
 
 IFC is an exchange and information model, not the sole internal solver representation. Exact geometry, topology, units and constraints must survive round-trip tests within declared tolerances.
 
+## External qualification and industry comparison
+
+- [External benchmark and industry map v0](EXTERNAL_BENCHMARK_MAP_V0.md)
+- [External qualification suite issue #6007](https://github.com/Luminous-Dynamics/symtropy/issues/6007)
+
+This map distinguishes the capabilities already offered by Autodesk Forma and nTop from the research hypotheses HoloFrac still needs to test. It maps each HoloFrac claim to the appropriate external anchor: IDS for IFC information requirements, ASHRAE 140 for applicable first-principles simulation, BOPTEST for matched control comparisons, ISO 20887 for DfD/A principles, BCEF for circular-design indicators, and exact source/solver receipt oracles for evidence currentness. Passing one layer does not qualify the others.
+
 ## HDC/VSA experiment design
 
 The current executable research slices are intentionally separated:
