@@ -8,6 +8,7 @@
     "schemaVersion",
     "caseId",
     "caseMaturity",
+    "snapshotDate",
     "jurisdiction",
     "route",
     "stakeholders",
@@ -569,6 +570,10 @@
           }
         }
       }
+    },
+    "snapshotDate": {
+      "type": "string",
+      "format": "date"
     }
   }
 }
