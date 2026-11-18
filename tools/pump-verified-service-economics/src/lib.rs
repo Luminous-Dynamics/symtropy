@@ -437,6 +437,9 @@ fn eval_one(case: &Case, areas: &[ServiceArea]) -> Evaluation {
     if case.evidence_state != "COMPLETE" {
         finish!(Disposition::EvidenceIncomplete, "case-level evidence is missing or stale");
     }
+    if case.study_start > case.study_end || case.cost_period_start > case.cost_period_end {
+        finish!(Disposition::Invalid, "study or cost period start is after its end");
+    }
     if case.study_start != case.cost_period_start || case.study_end != case.cost_period_end {
         finish!(Disposition::EvidenceIncomplete, "cost allocation period does not match the service study horizon");
     }
@@ -449,8 +452,11 @@ fn eval_one(case: &Case, areas: &[ServiceArea]) -> Evaluation {
     if case.currency.len() != 3 || !valid_money_unit(&case.currency, &case.amount_unit) {
         finish!(Disposition::ProfileIncomplete, "cost currency and amount unit do not match");
     }
-    for r in [&case.cost_bundle_ref, &case.cost_allocation_ref, &case.cost_evidence_ref] {
-        if !valid_ref(r) { finish!(Disposition::EvidenceIncomplete, "cost bundle/allocation/evidence reference is missing"); }
+    if !valid_ref(&case.cost_allocation_ref) {
+        finish!(Disposition::ProfileIncomplete, "cost allocation policy reference is missing");
+    }
+    if !valid_ref(&case.cost_bundle_ref) || !valid_ref(&case.cost_evidence_ref) {
+        finish!(Disposition::EvidenceIncomplete, "cost bundle or source evidence reference is missing");
     }
     for r in [&case.energy_evidence_ref, &case.energy_meter_ref, &case.energy_calibration_ref, &case.energy_boundary_ref] {
         if !valid_ref(r) { finish!(Disposition::EvidenceIncomplete, "energy evidence, meter, calibration or boundary reference is missing"); }
@@ -485,6 +491,9 @@ fn eval_one(case: &Case, areas: &[ServiceArea]) -> Evaluation {
         }
         if area.service_boundary_ref != case.service_boundary_ref {
             finish!(Disposition::ProfileIncomplete, "service-area measurement uses a different delivery boundary");
+        }
+        if area.window_start > area.window_end {
+            finish!(Disposition::Invalid, "service-area window start is after its end");
         }
         if area.window_start != case.study_start || area.window_end != case.study_end {
             finish!(Disposition::EvidenceIncomplete, "service-area window does not match the study horizon");
