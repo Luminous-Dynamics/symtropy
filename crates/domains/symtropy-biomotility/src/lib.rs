@@ -380,6 +380,49 @@ pub struct BehaviorSummary {
     pub projected_drift_um_s: Option<f64>,
 }
 
+/// Per-lag, time-origin-averaged ensemble MSD estimate.
+///
+/// Each trajectory contributes one time-origin average, so frames and time
+/// origins are not treated as independent biological replicates.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MsdEstimate {
+    pub lag_time_s: f64,
+    pub mean_squared_displacement_um2: f64,
+    pub trajectory_count: usize,
+    /// Sample standard deviation across trajectory-level MSD estimates.
+    pub between_trajectory_sd_um2: Option<f64>,
+}
+
+const MAX_MSD_TIME_ORIGINS_PER_TRAJECTORY: usize = 1_000_000;
+
+/// Errors returned by the trajectory-level MSD evaluator.
+#[derive(Debug, Clone, PartialEq)]
+pub enum MsdError {
+    EmptyEnsemble,
+    InvalidLagTime,
+    InvalidTimeOriginStep,
+    InvalidTrace,
+    TooManyTimeOrigins,
+    NoTrajectorySupportsLag(f64),
+    NonFiniteStatistic,
+}
+
+impl fmt::Display for MsdError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EmptyEnsemble => write!(formatter, "MSD requires at least one trajectory"),
+            Self::InvalidLagTime => write!(formatter, "MSD lag times must be finite and non-negative"),
+            Self::InvalidTimeOriginStep => write!(formatter, "MSD time-origin step must be finite and positive"),
+            Self::InvalidTrace => write!(formatter, "trajectory trace must be finite and strictly time-ordered"),
+            Self::TooManyTimeOrigins => write!(formatter, "MSD time-origin count exceeds the configured limit"),
+            Self::NoTrajectorySupportsLag(lag) => write!(formatter, "no trajectory supports lag time {lag} seconds"),
+            Self::NonFiniteStatistic => write!(formatter, "MSD calculation produced a non-finite statistic"),
+        }
+    }
+}
+
+impl Error for MsdError {}
+
 /// Errors returned before or during simulation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SimulationError {
@@ -708,6 +751,165 @@ pub fn summarize(result: &SimulationResult) -> BehaviorSummary {
         mean_run_duration_s: Some(total_run_duration / result.events.len() as f64),
         projected_drift_um_s: (elapsed > 0.0).then_some(projected_displacement / elapsed),
     }
+}
+
+/// Compute time-origin-averaged MSD for an ensemble of independently
+/// simulated trajectories.
+///
+/// A trajectory-level time-origin average is computed first; the reported
+/// mean and sample standard deviation are then calculated across trajectories.
+/// This avoids treating correlated frames from one trajectory as independent
+/// biological replicates. The trace is linearly interpolated at requested
+/// origin and lag times.
+///
+/// This evaluator does not bootstrap biological plates/days. The ensemble
+/// supplied by the caller must already represent the intended independent
+/// simulation or experimental units.
+pub fn mean_squared_displacement(
+    trajectories: &[SimulationResult],
+    lag_times_s: &[f64],
+    time_origin_step_s: f64,
+) -> Result<Vec<MsdEstimate>, MsdError> {
+    if trajectories.is_empty() {
+        return Err(MsdError::EmptyEnsemble);
+    }
+    if !time_origin_step_s.is_finite() || time_origin_step_s <= 0.0 {
+        return Err(MsdError::InvalidTimeOriginStep);
+    }
+    if lag_times_s
+        .iter()
+        .any(|lag| !lag.is_finite() || *lag < 0.0)
+    {
+        return Err(MsdError::InvalidLagTime);
+    }
+
+    for trajectory in trajectories {
+        validate_trace(&trajectory.trace)?;
+    }
+
+    let mut estimates = Vec::with_capacity(lag_times_s.len());
+    for &lag_time_s in lag_times_s {
+        let mut trajectory_means = Vec::with_capacity(trajectories.len());
+
+        for trajectory in trajectories {
+            let first = trajectory.trace[0].time_s;
+            let last = trajectory.trace[trajectory.trace.len() - 1].time_s;
+            let latest_origin = last - lag_time_s;
+            if latest_origin < first {
+                continue;
+            }
+
+            let origin_count_f64 =
+                ((latest_origin - first) / time_origin_step_s).floor() + 1.0;
+            if !origin_count_f64.is_finite()
+                || origin_count_f64 > MAX_MSD_TIME_ORIGINS_PER_TRAJECTORY as f64
+            {
+                return Err(MsdError::TooManyTimeOrigins);
+            }
+            let origin_count = origin_count_f64 as usize;
+            if origin_count == 0 {
+                continue;
+            }
+
+            let mut squared_displacement_sum = 0.0;
+            for origin_index in 0..origin_count {
+                let origin_time =
+                    first + origin_index as f64 * time_origin_step_s;
+                let Some((x0, y0)) = interpolate_position(&trajectory.trace, origin_time)
+                else {
+                    return Err(MsdError::InvalidTrace);
+                };
+                let Some((x1, y1)) =
+                    interpolate_position(&trajectory.trace, origin_time + lag_time_s)
+                else {
+                    return Err(MsdError::InvalidTrace);
+                };
+                let dx = x1 - x0;
+                let dy = y1 - y0;
+                squared_displacement_sum += dx * dx + dy * dy;
+            }
+
+            let track_mean = squared_displacement_sum / origin_count as f64;
+            if !track_mean.is_finite() {
+                return Err(MsdError::NonFiniteStatistic);
+            }
+            trajectory_means.push(track_mean);
+        }
+
+        if trajectory_means.is_empty() {
+            return Err(MsdError::NoTrajectorySupportsLag(lag_time_s));
+        }
+
+        let trajectory_count = trajectory_means.len();
+        let mean = trajectory_means.iter().sum::<f64>() / trajectory_count as f64;
+        if !mean.is_finite() {
+            return Err(MsdError::NonFiniteStatistic);
+        }
+        let between_trajectory_sd_um2 = if trajectory_count > 1 {
+            let squared_deviations = trajectory_means
+                .iter()
+                .map(|value| (value - mean).powi(2))
+                .sum::<f64>();
+            Some((squared_deviations / (trajectory_count - 1) as f64).sqrt())
+        } else {
+            None
+        };
+
+        estimates.push(MsdEstimate {
+            lag_time_s,
+            mean_squared_displacement_um2: mean,
+            trajectory_count,
+            between_trajectory_sd_um2,
+        });
+    }
+
+    Ok(estimates)
+}
+
+fn validate_trace(trace: &[TrajectoryPoint]) -> Result<(), MsdError> {
+    if trace.is_empty()
+        || trace.iter().any(|point| {
+            !point.time_s.is_finite() || !point.x_um.is_finite() || !point.y_um.is_finite()
+        })
+        || trace.windows(2).any(|pair| pair[1].time_s <= pair[0].time_s)
+    {
+        return Err(MsdError::InvalidTrace);
+    }
+    Ok(())
+}
+
+fn interpolate_position(
+    trace: &[TrajectoryPoint],
+    time_s: f64,
+) -> Option<(f64, f64)> {
+    let first = *trace.first()?;
+    let last = *trace.last()?;
+    if time_s < first.time_s || time_s > last.time_s {
+        return None;
+    }
+    if time_s == first.time_s {
+        return Some((first.x_um, first.y_um));
+    }
+    if time_s == last.time_s {
+        return Some((last.x_um, last.y_um));
+    }
+
+    for pair in trace.windows(2) {
+        let left = pair[0];
+        let right = pair[1];
+        if time_s <= right.time_s {
+            let span = right.time_s - left.time_s;
+            if span <= 0.0 {
+                return None;
+            }
+            let fraction = (time_s - left.time_s) / span;
+            return Some((
+                left.x_um + fraction * (right.x_um - left.x_um),
+                left.y_um + fraction * (right.y_um - left.y_um),
+            ));
+        }
+    }
+    None
 }
 
 fn wrap_angle(angle: f64) -> f64 {
