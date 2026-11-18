@@ -142,7 +142,9 @@ Each task now has:
 - a stable `taskId`;
 - a `dependsOn` list of predecessor task IDs within the same outage event;
 - duration;
-- optional renewable resource ID and required units.
+- zero or more simultaneous renewable resource requirements, each identifying a resource class and required units.
+
+A task can reserve multiple resource classes for the same interval—for example a qualified high-voltage crew, a heavy-lift crane and a test rig. The scheduler only starts it when **all** required resources have enough available capacity for the complete non-preemptive task interval. The fixture now includes shared crew, crane, high-voltage test equipment and heavy-haul vehicle resources.
 
 The scheduler performs non-preemptive, deterministic list scheduling across **all events in the case**, subject to precedence and resource capacity. Independent activities can overlap. When a crew or tool is unavailable, the next task is moved to the earliest feasible time slot. The reported event restoration time is the last scheduled task completion minus the event start; it is not the sum of all task durations.
 
@@ -152,7 +154,7 @@ The CLI emits a machine-readable JSON schedule report with task intervals, event
 
 1. Find tasks whose predecessors have completed.
 2. Calculate each task's earliest precedence-ready time.
-3. Find the earliest interval where its required resource capacity is available.
+3. Find the earliest interval where every required resource class has its requested capacity available for the whole task.
 4. Select the candidate with the earliest feasible start, with stable event/task-ID tie-breaking.
 5. Repeat until all tasks are scheduled or a dependency cycle / invalid resource is found.
 
@@ -218,7 +220,7 @@ Primary references:
 
 ### Bounded exact reference oracle
 
-A second scheduler path now exhaustively enumerates precedence-feasible serial schedules for cases of at most ten tasks. The CLI exposes it as `--exact-small`. It is an exact reference only for this bounded model: fixed non-preemptive durations, finish-to-start dependencies, fixed renewable resource capacities and release times. It is not a large-instance optimiser, and cases above ten tasks are rejected. The current task model assigns at most one renewable resource class to a task and assumes constant resource capacity; it does not yet cover calendars, shifts, alternate execution modes, setup times or stochastic duration. Invoke it with `cargo run --manifest-path tools/grid-asset-recovery-validator/Cargo.toml -- --exact-small <case.json>`.
+A second scheduler path now exhaustively enumerates precedence-feasible serial schedules for cases of at most ten tasks. The CLI exposes it as `--exact-small`. It is an exact reference only for this bounded model: fixed non-preemptive durations, finish-to-start dependencies, fixed renewable resource capacities and release times. It is not a large-instance optimiser, and cases above ten tasks are rejected. The current task model supports multiple simultaneous renewable resource classes per task, but assumes constant resource capacity and fixed non-preemptive durations; it does not yet cover calendars, shifts, alternate execution modes, setup times or stochastic duration. Invoke it with `cargo run --manifest-path tools/grid-asset-recovery-validator/Cargo.toml -- --exact-small <case.json>`.
 
 A deliberately small counterexample is included in the Rust tests:
 - the deterministic earliest-feasible-start / stable-ID order has makespan **120 h**;
