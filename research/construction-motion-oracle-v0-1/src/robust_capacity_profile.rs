@@ -42,8 +42,9 @@ pub struct CapacityAvailabilityWindow {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RobustCumulativeCapacityScenario {
     pub base: CumulativeCapacityScenario,
-    /// Non-overlapping windows override the static definition's exact capacity.
-    /// Outside these windows, the static capacity is treated as exact.
+    /// Non-overlapping windows provide the qualified available capacity.
+    /// Every interval with active demand must be explicitly covered; absence
+    /// of a window is not interpreted as full installed capacity.
     pub availability_windows: Vec<CapacityAvailabilityWindow>,
 }
 
@@ -130,6 +131,11 @@ pub enum RobustCapacityError {
     InvalidCapacityBounds(String),
     CapacityWindowExceedsDeclaredMaximum(String),
     OverlappingCapacityWindows(String),
+    UnqualifiedCapacityInterval {
+        resource_id: String,
+        start_tick: u64,
+        end_tick: u64,
+    },
     ArithmeticOverflow,
 }
 
@@ -237,6 +243,40 @@ pub fn evaluate_robust_cumulative_resource_capacity(
             }
         }
     }
+
+    // Never infer full installed capacity from absence of a derating window.
+    // Every interval carrying demand must be covered by an explicit owner-
+    // attested capacity window, including a normal-capacity window where
+    // lower == nominal == upper == installed capacity.
+    for reservation in &scenario.base.reservations {
+        for claim in &reservation.claims {
+            let windows = windows_by_resource
+                .get(&claim.resource_id)
+                .map(Vec::as_slice)
+                .unwrap_or(&[]);
+            let mut cursor = claim.start_tick;
+            for window in windows {
+                if window.end_tick <= cursor {
+                    continue;
+                }
+                if window.start_tick > cursor {
+                    break;
+                }
+                cursor = cursor.max(window.start_tick).max(cursor).min(window.end_tick);
+                if cursor >= claim.end_tick {
+                    break;
+                }
+            }
+            if cursor < claim.end_tick {
+                errors.push(RobustCapacityError::UnqualifiedCapacityInterval {
+                    resource_id: claim.resource_id.clone(),
+                    start_tick: cursor,
+                    end_tick: claim.end_tick,
+                });
+            }
+        }
+    }
+
     if !errors.is_empty() {
         return Err(errors);
     }
@@ -372,19 +412,23 @@ pub fn evaluate_robust_cumulative_resource_capacity(
             let active_window = windows.get(window_index).copied().filter(|window| {
                 window.start_tick <= tick && tick < window.end_tick
             });
-            let (lower_capacity, nominal_capacity, upper_capacity) = active_window
-                .map(|window| {
-                    (
-                        window.lower_capacity_units,
-                        window.nominal_capacity_units,
-                        window.upper_capacity_units,
-                    )
-                })
-                .unwrap_or((
-                    sweep.definition_capacity,
-                    sweep.definition_capacity,
-                    sweep.definition_capacity,
-                ));
+            let Some(active_window) = active_window else {
+                // Capacity evidence is required only while there is active
+                // demand. No-load intervals cannot create an admission.
+                if current_load == 0 {
+                    continue;
+                }
+                return Err(vec![RobustCapacityError::UnqualifiedCapacityInterval {
+                    resource_id: resource_id.clone(),
+                    start_tick: tick,
+                    end_tick: next_tick,
+                }]);
+            };
+            let (lower_capacity, nominal_capacity, upper_capacity) = (
+                active_window.lower_capacity_units,
+                active_window.nominal_capacity_units,
+                active_window.upper_capacity_units,
+            );
             minimum_lower = minimum_lower.min(lower_capacity);
             minimum_nominal = minimum_nominal.min(nominal_capacity);
             minimum_upper = minimum_upper.min(upper_capacity);
@@ -539,7 +583,11 @@ mod tests {
         let report = evaluate_robust_cumulative_resource_capacity(
             &RobustCumulativeCapacityScenario {
                 base: base(),
-                availability_windows: vec![window(10, 20, 2, 2, 2)],
+                availability_windows: vec![
+                    window(0, 10, 4, 4, 4),
+                    window(10, 20, 2, 2, 2),
+                    window(20, 30, 4, 4, 4),
+                ],
             },
         )
         .unwrap();
@@ -559,7 +607,11 @@ mod tests {
         let report = evaluate_robust_cumulative_resource_capacity(
             &RobustCumulativeCapacityScenario {
                 base: base(),
-                availability_windows: vec![window(10, 20, 2, 3, 4)],
+                availability_windows: vec![
+                    window(0, 10, 4, 4, 4),
+                    window(10, 20, 2, 3, 4),
+                    window(20, 30, 4, 4, 4),
+                ],
             },
         )
         .unwrap();
@@ -576,7 +628,11 @@ mod tests {
     fn demand_at_lower_bound_is_robustly_feasible() {
         let mut scenario = base();
         scenario.base.reservations[0].claims[0].demand_units = 2;
-        scenario.availability_windows = vec![window(10, 20, 2, 3, 4)];
+        scenario.availability_windows = vec![
+            window(0, 10, 4, 4, 4),
+            window(10, 20, 2, 3, 4),
+            window(20, 30, 4, 4, 4),
+        ];
         let report = evaluate_robust_cumulative_resource_capacity(&scenario).unwrap();
         assert!(report.is_robustly_feasible);
         assert!(report.non_robust_segments.is_empty());
@@ -587,7 +643,11 @@ mod tests {
         let report = evaluate_robust_cumulative_resource_capacity(
             &RobustCumulativeCapacityScenario {
                 base: base(),
-                availability_windows: vec![window(10, 20, 0, 0, 0)],
+                availability_windows: vec![
+                    window(0, 10, 4, 4, 4),
+                    window(10, 20, 0, 0, 0),
+                    window(20, 30, 4, 4, 4),
+                ],
             },
         )
         .unwrap();
@@ -661,7 +721,9 @@ mod tests {
         forward.base.resources.push(definition("power", 10));
         forward.base.reservations.push(reservation("power-draw", "power", 0, 30, 4));
         forward.availability_windows = vec![
+            window(0, 10, 4, 4, 4),
             window(10, 20, 2, 3, 4),
+            window(20, 30, 4, 4, 4),
             CapacityAvailabilityWindow {
                 resource_id: "power".into(),
                 resource_definition_sha256: digest('a'),
@@ -747,7 +809,9 @@ mod tests {
             }
             let snapshot = digest('d');
             let windows = vec![
+                window(0, 10, 10, 10, 10),
                 window(10, 30, 3, 5, 7),
+                window(30, 60, 10, 10, 10),
                 CapacityAvailabilityWindow {
                     resource_id: "temporary-power".into(),
                     resource_definition_sha256: digest('f'),
@@ -762,6 +826,33 @@ mod tests {
                     upper_capacity_units: 8,
                 },
             ];
+            let mut windows = windows;
+            windows.push(CapacityAvailabilityWindow {
+                resource_id: "temporary-power".into(),
+                resource_definition_sha256: digest('f'),
+                site_snapshot_sha256: snapshot.clone(),
+                site_clock_domain_id: "site-clock-1".into(),
+                capacity_owner_id: "temporary-power-owner".into(),
+                evidence_receipt_sha256: digest('c'),
+                start_tick: 0,
+                end_tick: 15,
+                lower_capacity_units: 10,
+                nominal_capacity_units: 10,
+                upper_capacity_units: 10,
+            });
+            windows.push(CapacityAvailabilityWindow {
+                resource_id: "temporary-power".into(),
+                resource_definition_sha256: digest('f'),
+                site_snapshot_sha256: snapshot.clone(),
+                site_clock_domain_id: "site-clock-1".into(),
+                capacity_owner_id: "temporary-power-owner".into(),
+                evidence_receipt_sha256: digest('d'),
+                start_tick: 35,
+                end_tick: 60,
+                lower_capacity_units: 10,
+                nominal_capacity_units: 10,
+                upper_capacity_units: 10,
+            });
             let scenario = RobustCumulativeCapacityScenario {
                 base: CumulativeCapacityScenario {
                     scenario_id: format!("generated-robust-{initial_seed}"),
@@ -853,7 +944,10 @@ mod tests {
         let report = evaluate_robust_cumulative_resource_capacity(
             &RobustCumulativeCapacityScenario {
                 base,
-                availability_windows: vec![window(10, 25, 2, 3, 4)],
+                availability_windows: vec![
+                    window(10, 25, 2, 3, 4),
+                    window(25, 40, 4, 4, 4),
+                ],
             },
         )
         .unwrap();
@@ -946,6 +1040,26 @@ mod tests {
             )
             .unwrap_err()
             .contains(&RobustCapacityError::CapacityOwnerMismatch("hoist".into()))
+        );
+    }
+
+
+    #[test]
+    fn uncovered_active_demand_is_an_error_not_implicit_static_capacity() {
+        let result = evaluate_robust_cumulative_resource_capacity(
+            &RobustCumulativeCapacityScenario {
+                base: base(),
+                availability_windows: vec![window(10, 20, 4, 4, 4)],
+            },
+        );
+        assert!(
+            result.unwrap_err().contains(
+                &RobustCapacityError::UnqualifiedCapacityInterval {
+                    resource_id: "hoist".into(),
+                    start_tick: 0,
+                    end_tick: 10,
+                }
+            )
         );
     }
 
