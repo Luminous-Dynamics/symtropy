@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:symtropy:lunar-subsurface-survey-evsi:0.1.0",
+  "title": "Lunar Subsurface Survey EVSI Scenario",
+  "description": "A source-scoped decision model for evaluating the expected value of a candidate subsurface survey. The schema validates structure; probability normalization and cross-reference checks are performed by the calculator.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scenario_id",
+    "source_class",
+    "decision_context",
+    "utility_unit",
+    "prior_hypotheses",
+    "decisions",
+    "survey_options",
+    "assumptions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "scenario_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_class": {
+      "enum": [
+        "synthetic_fixture",
+        "published_evidence_model",
+        "physical_analogue_model"
+      ]
+    },
+    "decision_context": {
+      "type": "string",
+      "minLength": 1
+    },
+    "utility_unit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "prior_hypotheses": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "hypothesis_id",
+          "description",
+          "prior_probability",
+          "evidence_status",
+          "source_refs"
+        ],
+        "properties": {
+          "hypothesis_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prior_probability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "evidence_status": {
+            "enum": [
+              "synthetic_assumption",
+              "published",
+              "measured",
+              "expert_elicited"
+            ]
+          },
+          "source_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "decision_id",
+          "description",
+          "utility_by_hypothesis",
+          "utility_status",
+          "utility_refs"
+        ],
+        "properties": {
+          "decision_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "utility_by_hypothesis": {
+            "type": "object",
+            "minProperties": 2,
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "utility_status": {
+            "enum": [
+              "synthetic_assumption",
+              "published",
+              "measured",
+              "engineering_model"
+            ]
+          },
+          "utility_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "survey_options": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "survey_id",
+          "modality",
+          "description",
+          "cost_utility",
+          "resources",
+          "likelihood_status",
+          "likelihood_refs",
+          "outcomes"
+        ],
+        "properties": {
+          "survey_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "modality": {
+            "enum": [
+              "passive_seismic",
+              "active_seismic",
+              "radar_sounding",
+              "gravimetry",
+              "thermal",
+              "optical_stereo",
+              "lidar_photogrammetry",
+              "borehole_probe",
+              "multimodal",
+              "other"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cost_utility": {
+            "type": "number",
+            "minimum": 0
+          },
+          "resources": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "instrument_mass_kg",
+              "energy_wh",
+              "duration_h"
+            ],
+            "properties": {
+              "instrument_mass_kg": {
+                "type": "number",
+                "minimum": 0
+              },
+              "energy_wh": {
+                "type": "number",
+                "minimum": 0
+              },
+              "duration_h": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          },
+          "likelihood_status": {
+            "enum": [
+              "synthetic_assumption",
+              "published",
+              "measured"
+            ]
+          },
+          "likelihood_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "outcomes": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "outcome_id",
+                "description",
+                "likelihood_by_hypothesis"
+              ],
+              "properties": {
+                "outcome_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "likelihood_by_hypothesis": {
+                  "type": "object",
+                  "minProperties": 2,
+                  "additionalProperties": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
