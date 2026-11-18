@@ -1,0 +1,660 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "lunar-process-aware-feedstock-v0",
+  "run_id": "SYN-FEEDSTOCK-CHAIN-001",
+  "recorded_at": "2026-11-18T16:30:00+02:00",
+  "evidence_class": "synthetic_fixture",
+  "acceptance_profile": {
+    "profile_id": "SYN-ANORTHITE-70-20-200",
+    "version": "0.1.0",
+    "downstream_process": "other",
+    "process_boundary": "reactor_inlet",
+    "phase_constraints": [
+      {
+        "phase_id": "plagioclase",
+        "minimum_mass_fraction": 0.7,
+        "maximum_mass_fraction": null,
+        "rationale": "Synthetic validation profile anchored to a single published separator demonstration target; not a universal process specification.",
+        "source_scope": "Coffman et al., Acta Astronautica 2026, DOI 10.1016/j.actaastro.2026.09.032; one L2W60-g814 result"
+      }
+    ],
+    "minimum_target_size_mass_fraction": {
+      "value": 0.9,
+      "standard_uncertainty": 0,
+      "unit": "kg/kg",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "target_size_min_um": {
+      "value": 20,
+      "standard_uncertainty": 0,
+      "unit": "um",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "target_size_max_um": {
+      "value": 200,
+      "standard_uncertainty": 0,
+      "unit": "um",
+      "status": "synthetic",
+      "source_artifact_id": null,
+      "calibration_record_id": null
+    },
+    "required_properties": [],
+    "source_scope": "Synthetic contract fixture only. The cited 20–200 um and >70 wt% target are study-specific and do not qualify HPS, MWS, SLM, electrolysis, or any universal lunar reactor."
+  },
+  "stage_events": [
+    {
+      "event_id": "EV-FEED-001",
+      "stage_type": "feed_preparation",
+      "equipment_profile_id": "SYN-FEED-PREP-A",
+      "started_at": "2026-11-18T16:00:00+02:00",
+      "completed_at": "2026-11-18T16:01:00+02:00",
+      "input_stream_ids": [],
+      "output_stream_ids": [
+        "S0-RAW"
+      ],
+      "energy_j": {
+        "value": 0,
+        "standard_uncertainty": 0,
+        "unit": "J",
+        "status": "synthetic",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      },
+      "mass_closure_tolerance_fraction": 0.01,
+      "mass_closure_residual_kg": {
+        "value": null,
+        "standard_uncertainty": null,
+        "unit": "kg",
+        "status": "unknown",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      },
+      "mass_closure_status": "unknown",
+      "settings_artifact_id": "stage-settings-fixture",
+      "notes": "Initial imported stock stream; no upstream physical weighing campaign is represented."
+    },
+    {
+      "event_id": "EV-MAG-001",
+      "stage_type": "magnetic_separation",
+      "equipment_profile_id": "SYN-MAGNETIC-SEPARATOR-A",
+      "started_at": "2026-11-18T16:01:00+02:00",
+      "completed_at": "2026-11-18T16:03:00+02:00",
+      "input_stream_ids": [
+        "S0-RAW"
+      ],
+      "output_stream_ids": [
+        "S1-MAG-OUTPUT",
+        "S2-IRON-REJECT"
+      ],
+      "energy_j": {
+        "value": 10000,
+        "standard_uncertainty": 100,
+        "unit": "J",
+        "status": "synthetic",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      },
+      "mass_closure_tolerance_fraction": 0.01,
+      "mass_closure_residual_kg": {
+        "value": 0,
+        "standard_uncertainty": 0.1,
+        "unit": "kg",
+        "status": "synthetic",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      },
+      "mass_closure_status": "within_declared_tolerance",
+      "settings_artifact_id": "stage-settings-fixture"
+    },
+    {
+      "event_id": "EV-ELECTRO-001",
+      "stage_type": "electrostatic_separation",
+      "equipment_profile_id": "SYN-ELECTROSTATIC-SIEVE-A",
+      "started_at": "2026-11-18T16:03:00+02:00",
+      "completed_at": "2026-11-18T16:05:00+02:00",
+      "input_stream_ids": [
+        "S1-MAG-OUTPUT"
+      ],
+      "output_stream_ids": [
+        "S3-ANORTHITE-PRODUCT",
+        "S4-BASALT-REJECT"
+      ],
+      "energy_j": {
+        "value": 8000,
+        "standard_uncertainty": 100,
+        "unit": "J",
+        "status": "synthetic",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      },
+      "mass_closure_tolerance_fraction": 0.01,
+      "mass_closure_residual_kg": {
+        "value": 0,
+        "standard_uncertainty": 0.1,
+        "unit": "kg",
+        "status": "synthetic",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      },
+      "mass_closure_status": "within_declared_tolerance",
+      "settings_artifact_id": "stage-settings-fixture"
+    },
+    {
+      "event_id": "EV-TRANSFER-001",
+      "stage_type": "transfer",
+      "equipment_profile_id": "SYN-TRANSFER-A",
+      "started_at": "2026-11-18T16:05:00+02:00",
+      "completed_at": "2026-11-18T16:06:00+02:00",
+      "input_stream_ids": [
+        "S3-ANORTHITE-PRODUCT"
+      ],
+      "output_stream_ids": [
+        "S5-REACTOR-INLET",
+        "S6-TRANSFER-LOSS"
+      ],
+      "energy_j": {
+        "value": 1000,
+        "standard_uncertainty": 20,
+        "unit": "J",
+        "status": "synthetic",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      },
+      "mass_closure_tolerance_fraction": 0.01,
+      "mass_closure_residual_kg": {
+        "value": 0,
+        "standard_uncertainty": 0.1,
+        "unit": "kg",
+        "status": "synthetic",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      },
+      "mass_closure_status": "within_declared_tolerance",
+      "settings_artifact_id": "stage-settings-fixture"
+    }
+  ],
+  "material_streams": [
+    {
+      "stream_id": "S0-RAW",
+      "created_by_event_id": "EV-FEED-001",
+      "parent_stream_ids": [],
+      "measured_mass_kg": {
+        "value": 100,
+        "standard_uncertainty": 0.2,
+        "unit": "kg",
+        "status": "synthetic",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      },
+      "physical_state": "bulk_regolith",
+      "disposition": "candidate_product",
+      "composition_artifact_id": "quality-assays-fixture",
+      "psd_artifact_id": "quality-assays-fixture"
+    },
+    {
+      "stream_id": "S1-MAG-OUTPUT",
+      "created_by_event_id": "EV-MAG-001",
+      "parent_stream_ids": [
+        "S0-RAW"
+      ],
+      "measured_mass_kg": {
+        "value": 80,
+        "standard_uncertainty": 0.2,
+        "unit": "kg",
+        "status": "synthetic",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      },
+      "physical_state": "bulk_regolith",
+      "disposition": "candidate_product",
+      "composition_artifact_id": null,
+      "psd_artifact_id": null
+    },
+    {
+      "stream_id": "S2-IRON-REJECT",
+      "created_by_event_id": "EV-MAG-001",
+      "parent_stream_ids": [
+        "S0-RAW"
+      ],
+      "measured_mass_kg": {
+        "value": 20,
+        "standard_uncertainty": 0.1,
+        "unit": "kg",
+        "status": "synthetic",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      },
+      "physical_state": "magnetic_fraction",
+      "disposition": "reject",
+      "composition_artifact_id": null,
+      "psd_artifact_id": null
+    },
+    {
+      "stream_id": "S3-ANORTHITE-PRODUCT",
+      "created_by_event_id": "EV-ELECTRO-001",
+      "parent_stream_ids": [
+        "S1-MAG-OUTPUT"
+      ],
+      "measured_mass_kg": {
+        "value": 60,
+        "standard_uncertainty": 0.2,
+        "unit": "kg",
+        "status": "synthetic",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      },
+      "physical_state": "sized_product",
+      "disposition": "candidate_product",
+      "composition_artifact_id": "quality-assays-fixture",
+      "psd_artifact_id": "quality-assays-fixture"
+    },
+    {
+      "stream_id": "S4-BASALT-REJECT",
+      "created_by_event_id": "EV-ELECTRO-001",
+      "parent_stream_ids": [
+        "S1-MAG-OUTPUT"
+      ],
+      "measured_mass_kg": {
+        "value": 20,
+        "standard_uncertainty": 0.1,
+        "unit": "kg",
+        "status": "synthetic",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      },
+      "physical_state": "reject",
+      "disposition": "reject",
+      "composition_artifact_id": null,
+      "psd_artifact_id": null
+    },
+    {
+      "stream_id": "S5-REACTOR-INLET",
+      "created_by_event_id": "EV-TRANSFER-001",
+      "parent_stream_ids": [
+        "S3-ANORTHITE-PRODUCT"
+      ],
+      "measured_mass_kg": {
+        "value": 59,
+        "standard_uncertainty": 0.2,
+        "unit": "kg",
+        "status": "synthetic",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      },
+      "physical_state": "metered_feedstock",
+      "disposition": "reactor_feed",
+      "composition_artifact_id": "quality-assays-fixture",
+      "psd_artifact_id": "quality-assays-fixture"
+    },
+    {
+      "stream_id": "S6-TRANSFER-LOSS",
+      "created_by_event_id": "EV-TRANSFER-001",
+      "parent_stream_ids": [
+        "S3-ANORTHITE-PRODUCT"
+      ],
+      "measured_mass_kg": {
+        "value": 1,
+        "standard_uncertainty": 0.1,
+        "unit": "kg",
+        "status": "synthetic",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      },
+      "physical_state": "dust_or_fines",
+      "disposition": "loss",
+      "composition_artifact_id": null,
+      "psd_artifact_id": null
+    }
+  ],
+  "quality_samples": [
+    {
+      "sample_id": "Q-SEP-001",
+      "stream_id": "S3-ANORTHITE-PRODUCT",
+      "sample_point": "separator_outlet",
+      "sampled_at": "2026-11-18T16:04:50+02:00",
+      "sampling_window_s": {
+        "value": 10,
+        "standard_uncertainty": 0.2,
+        "unit": "s",
+        "status": "synthetic",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      },
+      "assay_method_id": "SYNTHETIC-XRD-PSD-FIXTURE",
+      "phase_fractions": [
+        {
+          "phase_id": "plagioclase",
+          "mass_fraction": {
+            "value": 0.706,
+            "standard_uncertainty": 0.005,
+            "unit": "kg/kg",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          }
+        },
+        {
+          "phase_id": "pyroxene",
+          "mass_fraction": {
+            "value": 0.15,
+            "standard_uncertainty": 0.01,
+            "unit": "kg/kg",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          }
+        },
+        {
+          "phase_id": "olivine",
+          "mass_fraction": {
+            "value": 0.1,
+            "standard_uncertainty": 0.01,
+            "unit": "kg/kg",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          }
+        },
+        {
+          "phase_id": "iron_bearing_other",
+          "mass_fraction": {
+            "value": 0.04400000000000004,
+            "standard_uncertainty": 0.01,
+            "unit": "kg/kg",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          }
+        }
+      ],
+      "size_bins": [
+        {
+          "d_min_um": {
+            "value": 20,
+            "standard_uncertainty": 0.2,
+            "unit": "um",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          },
+          "d_max_um": {
+            "value": 200,
+            "standard_uncertainty": 0.5,
+            "unit": "um",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          },
+          "mass_fraction": {
+            "value": 0.95,
+            "standard_uncertainty": 0.005,
+            "unit": "kg/kg",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          }
+        },
+        {
+          "d_min_um": {
+            "value": 3,
+            "standard_uncertainty": 0.2,
+            "unit": "um",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          },
+          "d_max_um": {
+            "value": 20,
+            "standard_uncertainty": 0.5,
+            "unit": "um",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          },
+          "mass_fraction": {
+            "value": 0.03,
+            "standard_uncertainty": 0.005,
+            "unit": "kg/kg",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          }
+        },
+        {
+          "d_min_um": {
+            "value": 200,
+            "standard_uncertainty": 0.2,
+            "unit": "um",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          },
+          "d_max_um": {
+            "value": 500,
+            "standard_uncertainty": 0.5,
+            "unit": "um",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          },
+          "mass_fraction": {
+            "value": 0.02,
+            "standard_uncertainty": 0.005,
+            "unit": "kg/kg",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          }
+        }
+      ],
+      "target_size_mass_fraction": {
+        "value": 0.95,
+        "standard_uncertainty": 0.01,
+        "unit": "kg/kg",
+        "status": "synthetic",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      },
+      "assay_artifact_ids": [
+        "quality-assays-fixture"
+      ],
+      "thermal_properties_artifact_id": null,
+      "charge_profile_artifact_id": null,
+      "shape_profile_artifact_id": null,
+      "uncertainty_budget_artifact_id": "stream-mass-fixture"
+    },
+    {
+      "sample_id": "Q-REACTOR-001",
+      "stream_id": "S5-REACTOR-INLET",
+      "sample_point": "reactor_inlet",
+      "sampled_at": "2026-11-18T16:05:55+02:00",
+      "sampling_window_s": {
+        "value": 10,
+        "standard_uncertainty": 0.2,
+        "unit": "s",
+        "status": "synthetic",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      },
+      "assay_method_id": "SYNTHETIC-XRD-PSD-FIXTURE",
+      "phase_fractions": [
+        {
+          "phase_id": "plagioclase",
+          "mass_fraction": {
+            "value": 0.72,
+            "standard_uncertainty": 0.01,
+            "unit": "kg/kg",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          }
+        },
+        {
+          "phase_id": "pyroxene",
+          "mass_fraction": {
+            "value": 0.15,
+            "standard_uncertainty": 0.01,
+            "unit": "kg/kg",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          }
+        },
+        {
+          "phase_id": "olivine",
+          "mass_fraction": {
+            "value": 0.1,
+            "standard_uncertainty": 0.01,
+            "unit": "kg/kg",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          }
+        },
+        {
+          "phase_id": "iron_bearing_other",
+          "mass_fraction": {
+            "value": 0.030000000000000027,
+            "standard_uncertainty": 0.01,
+            "unit": "kg/kg",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          }
+        }
+      ],
+      "size_bins": [
+        {
+          "d_min_um": {
+            "value": 20,
+            "standard_uncertainty": 0.2,
+            "unit": "um",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          },
+          "d_max_um": {
+            "value": 200,
+            "standard_uncertainty": 0.5,
+            "unit": "um",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          },
+          "mass_fraction": {
+            "value": 0.95,
+            "standard_uncertainty": 0.005,
+            "unit": "kg/kg",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          }
+        },
+        {
+          "d_min_um": {
+            "value": 3,
+            "standard_uncertainty": 0.2,
+            "unit": "um",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          },
+          "d_max_um": {
+            "value": 20,
+            "standard_uncertainty": 0.5,
+            "unit": "um",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          },
+          "mass_fraction": {
+            "value": 0.03,
+            "standard_uncertainty": 0.005,
+            "unit": "kg/kg",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          }
+        },
+        {
+          "d_min_um": {
+            "value": 200,
+            "standard_uncertainty": 0.2,
+            "unit": "um",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          },
+          "d_max_um": {
+            "value": 500,
+            "standard_uncertainty": 0.5,
+            "unit": "um",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          },
+          "mass_fraction": {
+            "value": 0.02,
+            "standard_uncertainty": 0.005,
+            "unit": "kg/kg",
+            "status": "synthetic",
+            "source_artifact_id": null,
+            "calibration_record_id": null
+          }
+        }
+      ],
+      "target_size_mass_fraction": {
+        "value": 0.95,
+        "standard_uncertainty": 0.01,
+        "unit": "kg/kg",
+        "status": "synthetic",
+        "source_artifact_id": null,
+        "calibration_record_id": null
+      },
+      "assay_artifact_ids": [
+        "quality-assays-fixture"
+      ],
+      "thermal_properties_artifact_id": null,
+      "charge_profile_artifact_id": null,
+      "shape_profile_artifact_id": null,
+      "uncertainty_budget_artifact_id": "stream-mass-fixture"
+    }
+  ],
+  "artifacts": [
+    {
+      "artifact_id": "stage-settings-fixture",
+      "role": "stage_settings",
+      "path": "synthetic-stage-settings.json",
+      "sha256": "f6862796696ede185ee95960afc32d605b95f26eb9b283a9d0f0a11cd701f968"
+    },
+    {
+      "artifact_id": "quality-assays-fixture",
+      "role": "mineral_assay",
+      "path": "synthetic-quality-assays.json",
+      "sha256": "784643e583c8f440a52dc989434f0a149bf427ddd0c7d2504f946be11b2d2eea"
+    },
+    {
+      "artifact_id": "stream-mass-fixture",
+      "role": "mass_balance",
+      "path": "synthetic-stream-masses.json",
+      "sha256": "7fefd62c054e4e2a6128331cd3d9c31db13674353922efdd910498ca5d38b70e"
+    }
+  ],
+  "final_acceptance": {
+    "final_stream_id": "S5-REACTOR-INLET",
+    "acceptance_sample_id": "Q-REACTOR-001",
+    "decision": "qualified_in_spec",
+    "evaluated_specification_ids": [
+      "min-plagioclase-fraction",
+      "min-target-size-fraction"
+    ],
+    "required_dimensions_complete": true,
+    "mass_closure_complete": true,
+    "claim_ceiling": "Synthetic fixture only. The decision demonstrates the contract mechanics; it is not a physical assay, separator result, process acceptance, or lunar qualification."
+  },
+  "notes": "All values in this file are arithmetic fixtures only; no actual L2W60-g814 material, XRD, particle-size instrument, magnetic separator, electrostatic sieve or transfer system was operated."
+}
