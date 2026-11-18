@@ -1,0 +1,632 @@
+{
+  "schema_version": "haps-network-allocation-case/v1",
+  "case_id": "synthetic.haps.holdout15.oracle2beam.001",
+  "revision": 1,
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_allocation_oracle",
+  "demand_source": {
+    "source_kind": "synthetic_generator",
+    "trace_ref": "examples/synthetic_haps_disaster_traffic_trace_v1.json",
+    "source_digest": "2aae7e5a2037c025492d7911e0315ef30fe14f5d",
+    "rights_or_license_ref": null,
+    "initialization_time_utc": null,
+    "available_at_decision_time": false,
+    "reanalysis_not_used_as_live_forecast": true,
+    "time_basis": "valid_time"
+  },
+  "evaluation": {
+    "region_ref": "synthetic.region.disaster-network.001",
+    "horizon_s": 1296000,
+    "interval_duration_s": 86400,
+    "critical_excess_definition": "max(offered_load_mbps - terrestrial_available_mbps, 0)"
+  },
+  "radio_resource_budget": {
+    "beam_budget": 2,
+    "optimization_objective": "priority_weighted_critical_excess_served_mbps",
+    "per_beam_capacity_mbps": 10,
+    "allocation_policy": "oracle_optimal",
+    "tie_break_policy": "cell_id_ascending",
+    "beam_reallocation_interval_s": 86400
+  },
+  "cells": [
+    {
+      "cell_id": "cell-north",
+      "latitude_deg": -21.99,
+      "longitude_deg": 23,
+      "priority_weight": 1.2,
+      "service_class": "public_broadband"
+    },
+    {
+      "cell_id": "cell-east",
+      "latitude_deg": -22.01,
+      "longitude_deg": 23.01,
+      "priority_weight": 1,
+      "service_class": "emergency"
+    },
+    {
+      "cell_id": "cell-south",
+      "latitude_deg": -22.01,
+      "longitude_deg": 23,
+      "priority_weight": 1.3,
+      "service_class": "health"
+    },
+    {
+      "cell_id": "cell-west",
+      "latitude_deg": -22,
+      "longitude_deg": 22.99,
+      "priority_weight": 1.1,
+      "service_class": "critical_infrastructure"
+    }
+  ],
+  "intervals": [
+    {
+      "offset_s": 0,
+      "source_offset_s": 1296000,
+      "cell_loads": [
+        {
+          "cell_id": "cell-north",
+          "offered_load_mbps": 15,
+          "terrestrial_available_mbps": 8
+        },
+        {
+          "cell_id": "cell-east",
+          "offered_load_mbps": 15,
+          "terrestrial_available_mbps": 9
+        },
+        {
+          "cell_id": "cell-south",
+          "offered_load_mbps": 13,
+          "terrestrial_available_mbps": 8
+        },
+        {
+          "cell_id": "cell-west",
+          "offered_load_mbps": 19,
+          "terrestrial_available_mbps": 6
+        }
+      ]
+    },
+    {
+      "offset_s": 86400,
+      "source_offset_s": 1382400,
+      "cell_loads": [
+        {
+          "cell_id": "cell-north",
+          "offered_load_mbps": 22,
+          "terrestrial_available_mbps": 10
+        },
+        {
+          "cell_id": "cell-east",
+          "offered_load_mbps": 20,
+          "terrestrial_available_mbps": 7
+        },
+        {
+          "cell_id": "cell-south",
+          "offered_load_mbps": 6,
+          "terrestrial_available_mbps": 5
+        },
+        {
+          "cell_id": "cell-west",
+          "offered_load_mbps": 8,
+          "terrestrial_available_mbps": 8
+        }
+      ]
+    },
+    {
+      "offset_s": 172800,
+      "source_offset_s": 1468800,
+      "cell_loads": [
+        {
+          "cell_id": "cell-north",
+          "offered_load_mbps": 29,
+          "terrestrial_available_mbps": 12
+        },
+        {
+          "cell_id": "cell-east",
+          "offered_load_mbps": 25,
+          "terrestrial_available_mbps": 9
+        },
+        {
+          "cell_id": "cell-south",
+          "offered_load_mbps": 15,
+          "terrestrial_available_mbps": 6
+        },
+        {
+          "cell_id": "cell-west",
+          "offered_load_mbps": 19,
+          "terrestrial_available_mbps": 10
+        }
+      ]
+    },
+    {
+      "offset_s": 259200,
+      "source_offset_s": 1555200,
+      "cell_loads": [
+        {
+          "cell_id": "cell-north",
+          "offered_load_mbps": 16,
+          "terrestrial_available_mbps": 8
+        },
+        {
+          "cell_id": "cell-east",
+          "offered_load_mbps": 12,
+          "terrestrial_available_mbps": 7
+        },
+        {
+          "cell_id": "cell-south",
+          "offered_load_mbps": 8,
+          "terrestrial_available_mbps": 7
+        },
+        {
+          "cell_id": "cell-west",
+          "offered_load_mbps": 8,
+          "terrestrial_available_mbps": 6
+        }
+      ]
+    },
+    {
+      "offset_s": 345600,
+      "source_offset_s": 1641600,
+      "cell_loads": [
+        {
+          "cell_id": "cell-north",
+          "offered_load_mbps": 23,
+          "terrestrial_available_mbps": 10
+        },
+        {
+          "cell_id": "cell-east",
+          "offered_load_mbps": 17,
+          "terrestrial_available_mbps": 9
+        },
+        {
+          "cell_id": "cell-south",
+          "offered_load_mbps": 17,
+          "terrestrial_available_mbps": 8
+        },
+        {
+          "cell_id": "cell-west",
+          "offered_load_mbps": 19,
+          "terrestrial_available_mbps": 8
+        }
+      ]
+    },
+    {
+      "offset_s": 432000,
+      "source_offset_s": 1728000,
+      "cell_loads": [
+        {
+          "cell_id": "cell-north",
+          "offered_load_mbps": 10,
+          "terrestrial_available_mbps": 12
+        },
+        {
+          "cell_id": "cell-east",
+          "offered_load_mbps": 22,
+          "terrestrial_available_mbps": 7
+        },
+        {
+          "cell_id": "cell-south",
+          "offered_load_mbps": 10,
+          "terrestrial_available_mbps": 5
+        },
+        {
+          "cell_id": "cell-west",
+          "offered_load_mbps": 8,
+          "terrestrial_available_mbps": 10
+        }
+      ]
+    },
+    {
+      "offset_s": 518400,
+      "source_offset_s": 1814400,
+      "cell_loads": [
+        {
+          "cell_id": "cell-north",
+          "offered_load_mbps": 17,
+          "terrestrial_available_mbps": 8
+        },
+        {
+          "cell_id": "cell-east",
+          "offered_load_mbps": 27,
+          "terrestrial_available_mbps": 9
+        },
+        {
+          "cell_id": "cell-south",
+          "offered_load_mbps": 19,
+          "terrestrial_available_mbps": 6
+        },
+        {
+          "cell_id": "cell-west",
+          "offered_load_mbps": 19,
+          "terrestrial_available_mbps": 6
+        }
+      ]
+    },
+    {
+      "offset_s": 604800,
+      "source_offset_s": 1900800,
+      "cell_loads": [
+        {
+          "cell_id": "cell-north",
+          "offered_load_mbps": 24,
+          "terrestrial_available_mbps": 10
+        },
+        {
+          "cell_id": "cell-east",
+          "offered_load_mbps": 14,
+          "terrestrial_available_mbps": 7
+        },
+        {
+          "cell_id": "cell-south",
+          "offered_load_mbps": 12,
+          "terrestrial_available_mbps": 7
+        },
+        {
+          "cell_id": "cell-west",
+          "offered_load_mbps": 8,
+          "terrestrial_available_mbps": 8
+        }
+      ]
+    },
+    {
+      "offset_s": 691200,
+      "source_offset_s": 1987200,
+      "cell_loads": [
+        {
+          "cell_id": "cell-north",
+          "offered_load_mbps": 11,
+          "terrestrial_available_mbps": 12
+        },
+        {
+          "cell_id": "cell-east",
+          "offered_load_mbps": 19,
+          "terrestrial_available_mbps": 9
+        },
+        {
+          "cell_id": "cell-south",
+          "offered_load_mbps": 21,
+          "terrestrial_available_mbps": 8
+        },
+        {
+          "cell_id": "cell-west",
+          "offered_load_mbps": 19,
+          "terrestrial_available_mbps": 10
+        }
+      ]
+    },
+    {
+      "offset_s": 777600,
+      "source_offset_s": 2073600,
+      "cell_loads": [
+        {
+          "cell_id": "cell-north",
+          "offered_load_mbps": 18,
+          "terrestrial_available_mbps": 8
+        },
+        {
+          "cell_id": "cell-east",
+          "offered_load_mbps": 24,
+          "terrestrial_available_mbps": 7
+        },
+        {
+          "cell_id": "cell-south",
+          "offered_load_mbps": 14,
+          "terrestrial_available_mbps": 5
+        },
+        {
+          "cell_id": "cell-west",
+          "offered_load_mbps": 8,
+          "terrestrial_available_mbps": 6
+        }
+      ]
+    },
+    {
+      "offset_s": 864000,
+      "source_offset_s": 2160000,
+      "cell_loads": [
+        {
+          "cell_id": "cell-north",
+          "offered_load_mbps": 25,
+          "terrestrial_available_mbps": 10
+        },
+        {
+          "cell_id": "cell-east",
+          "offered_load_mbps": 29,
+          "terrestrial_available_mbps": 9
+        },
+        {
+          "cell_id": "cell-south",
+          "offered_load_mbps": 7,
+          "terrestrial_available_mbps": 6
+        },
+        {
+          "cell_id": "cell-west",
+          "offered_load_mbps": 19,
+          "terrestrial_available_mbps": 8
+        }
+      ]
+    },
+    {
+      "offset_s": 950400,
+      "source_offset_s": 2246400,
+      "cell_loads": [
+        {
+          "cell_id": "cell-north",
+          "offered_load_mbps": 12,
+          "terrestrial_available_mbps": 12
+        },
+        {
+          "cell_id": "cell-east",
+          "offered_load_mbps": 16,
+          "terrestrial_available_mbps": 7
+        },
+        {
+          "cell_id": "cell-south",
+          "offered_load_mbps": 16,
+          "terrestrial_available_mbps": 7
+        },
+        {
+          "cell_id": "cell-west",
+          "offered_load_mbps": 8,
+          "terrestrial_available_mbps": 10
+        }
+      ]
+    },
+    {
+      "offset_s": 1036800,
+      "source_offset_s": 2332800,
+      "cell_loads": [
+        {
+          "cell_id": "cell-north",
+          "offered_load_mbps": 19,
+          "terrestrial_available_mbps": 8
+        },
+        {
+          "cell_id": "cell-east",
+          "offered_load_mbps": 21,
+          "terrestrial_available_mbps": 9
+        },
+        {
+          "cell_id": "cell-south",
+          "offered_load_mbps": 9,
+          "terrestrial_available_mbps": 8
+        },
+        {
+          "cell_id": "cell-west",
+          "offered_load_mbps": 19,
+          "terrestrial_available_mbps": 6
+        }
+      ]
+    },
+    {
+      "offset_s": 1123200,
+      "source_offset_s": 2419200,
+      "cell_loads": [
+        {
+          "cell_id": "cell-north",
+          "offered_load_mbps": 26,
+          "terrestrial_available_mbps": 10
+        },
+        {
+          "cell_id": "cell-east",
+          "offered_load_mbps": 26,
+          "terrestrial_available_mbps": 7
+        },
+        {
+          "cell_id": "cell-south",
+          "offered_load_mbps": 18,
+          "terrestrial_available_mbps": 5
+        },
+        {
+          "cell_id": "cell-west",
+          "offered_load_mbps": 8,
+          "terrestrial_available_mbps": 8
+        }
+      ]
+    },
+    {
+      "offset_s": 1209600,
+      "source_offset_s": 2505600,
+      "cell_loads": [
+        {
+          "cell_id": "cell-north",
+          "offered_load_mbps": 13,
+          "terrestrial_available_mbps": 12
+        },
+        {
+          "cell_id": "cell-east",
+          "offered_load_mbps": 13,
+          "terrestrial_available_mbps": 9
+        },
+        {
+          "cell_id": "cell-south",
+          "offered_load_mbps": 11,
+          "terrestrial_available_mbps": 6
+        },
+        {
+          "cell_id": "cell-west",
+          "offered_load_mbps": 19,
+          "terrestrial_available_mbps": 10
+        }
+      ]
+    }
+  ],
+  "expected_oracle": {
+    "oracle_status": "independently_calculated",
+    "intervals": [
+      {
+        "offset_s": 0,
+        "selected_cell_ids": [
+          "cell-north",
+          "cell-west"
+        ],
+        "critical_excess_offered_mbps": 31,
+        "critical_excess_served_mbps": 17,
+        "critical_excess_unserved_mbps": 14
+      },
+      {
+        "offset_s": 86400,
+        "selected_cell_ids": [
+          "cell-east",
+          "cell-north"
+        ],
+        "critical_excess_offered_mbps": 26,
+        "critical_excess_served_mbps": 20,
+        "critical_excess_unserved_mbps": 6
+      },
+      {
+        "offset_s": 172800,
+        "selected_cell_ids": [
+          "cell-north",
+          "cell-south"
+        ],
+        "critical_excess_offered_mbps": 51,
+        "critical_excess_served_mbps": 19,
+        "critical_excess_unserved_mbps": 32
+      },
+      {
+        "offset_s": 259200,
+        "selected_cell_ids": [
+          "cell-east",
+          "cell-north"
+        ],
+        "critical_excess_offered_mbps": 16,
+        "critical_excess_served_mbps": 13,
+        "critical_excess_unserved_mbps": 3
+      },
+      {
+        "offset_s": 345600,
+        "selected_cell_ids": [
+          "cell-north",
+          "cell-south"
+        ],
+        "critical_excess_offered_mbps": 41,
+        "critical_excess_served_mbps": 19,
+        "critical_excess_unserved_mbps": 22
+      },
+      {
+        "offset_s": 432000,
+        "selected_cell_ids": [
+          "cell-east",
+          "cell-south"
+        ],
+        "critical_excess_offered_mbps": 20,
+        "critical_excess_served_mbps": 15,
+        "critical_excess_unserved_mbps": 5
+      },
+      {
+        "offset_s": 518400,
+        "selected_cell_ids": [
+          "cell-south",
+          "cell-west"
+        ],
+        "critical_excess_offered_mbps": 53,
+        "critical_excess_served_mbps": 20,
+        "critical_excess_unserved_mbps": 33
+      },
+      {
+        "offset_s": 604800,
+        "selected_cell_ids": [
+          "cell-east",
+          "cell-north"
+        ],
+        "critical_excess_offered_mbps": 26,
+        "critical_excess_served_mbps": 17,
+        "critical_excess_unserved_mbps": 9
+      },
+      {
+        "offset_s": 691200,
+        "selected_cell_ids": [
+          "cell-east",
+          "cell-south"
+        ],
+        "critical_excess_offered_mbps": 32,
+        "critical_excess_served_mbps": 20,
+        "critical_excess_unserved_mbps": 12
+      },
+      {
+        "offset_s": 777600,
+        "selected_cell_ids": [
+          "cell-north",
+          "cell-south"
+        ],
+        "critical_excess_offered_mbps": 38,
+        "critical_excess_served_mbps": 19,
+        "critical_excess_unserved_mbps": 19
+      },
+      {
+        "offset_s": 864000,
+        "selected_cell_ids": [
+          "cell-north",
+          "cell-west"
+        ],
+        "critical_excess_offered_mbps": 47,
+        "critical_excess_served_mbps": 20,
+        "critical_excess_unserved_mbps": 27
+      },
+      {
+        "offset_s": 950400,
+        "selected_cell_ids": [
+          "cell-east",
+          "cell-south"
+        ],
+        "critical_excess_offered_mbps": 18,
+        "critical_excess_served_mbps": 18,
+        "critical_excess_unserved_mbps": 0
+      },
+      {
+        "offset_s": 1036800,
+        "selected_cell_ids": [
+          "cell-north",
+          "cell-west"
+        ],
+        "critical_excess_offered_mbps": 37,
+        "critical_excess_served_mbps": 20,
+        "critical_excess_unserved_mbps": 17
+      },
+      {
+        "offset_s": 1123200,
+        "selected_cell_ids": [
+          "cell-north",
+          "cell-south"
+        ],
+        "critical_excess_offered_mbps": 48,
+        "critical_excess_served_mbps": 20,
+        "critical_excess_unserved_mbps": 28
+      },
+      {
+        "offset_s": 1209600,
+        "selected_cell_ids": [
+          "cell-south",
+          "cell-west"
+        ],
+        "critical_excess_offered_mbps": 19,
+        "critical_excess_served_mbps": 14,
+        "critical_excess_unserved_mbps": 5
+      }
+    ],
+    "total_critical_excess_offered_mbps_intervals": 503,
+    "total_critical_excess_served_mbps_intervals": 271,
+    "total_critical_excess_unserved_mbps_intervals": 232,
+    "critical_excess_offload_fraction": 0.5387673956262425,
+    "beam_utilization_fraction": 0.9033333333333333,
+    "deterministic_allocation": true,
+    "total_priority_weighted_critical_excess_offered_mbps_intervals": 568.5,
+    "total_priority_weighted_critical_excess_served_mbps_intervals": 317.69999999999993,
+    "total_priority_weighted_critical_excess_unserved_mbps_intervals": 250.80000000000007,
+    "priority_weighted_offload_fraction": 0.558839050131926
+  },
+  "source_evidence_refs": [
+    "https://doi.org/10.1016/j.comnet.2026.112795"
+  ],
+  "assumptions": [
+    "This is the exact combinatorial upper-bound case for the same 15-day synthetic holdout used by the dynamic and static comparators; it is not operator traffic.",
+    "Days 0–14 of the source 30-day synthetic trace form the training window, and days 15–29 form the holdout. No holdout sample is used to choose a fixed assignment.",
+    "At each held-out interval the oracle enumerates every feasible pair of two cells and maximizes sum(priority_weight × min(cell critical excess, 10 Mbps)).",
+    "The 10 Mbps per-beam cap and 2-beam budget are identical to the static and dynamic comparators.",
+    "Ties in objective value are resolved by the lexicographically ascending sorted cell-ID pair.",
+    "Raw critical-excess throughput and priority-weighted critical-excess service are both reported because optimizing one can reduce the other; do not collapse the Pareto trade into one unqualified leaderboard score.",
+    "This exact oracle is an allocation upper bound, not a deployable online policy: it consumes the current interval's offered-load row to determine the best allocation and assumes no forecast error or decision latency.",
+    "No radio propagation, SINR, interference, positioning, wind, backhaul, edge compute, energy, flight or network reliability model is included.",
+    "This is a synthetic oracle baseline, not a reproduction or beating of the Mbarek et al. 2026 real-operator-trace result."
+  ]
+}

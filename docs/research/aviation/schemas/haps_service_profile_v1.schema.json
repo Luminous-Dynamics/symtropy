@@ -1,0 +1,795 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminousdynamics:aero:haps-service-profile:v1",
+  "title": "HAPS service profile v1",
+  "description": "A platform-independent coverage, network and fleet service contract for matched HAPS architecture comparisons. Aircraft performance is supplied by separately identified candidate and domain models.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "revision",
+    "data_origin",
+    "claim_ceiling",
+    "service",
+    "network_contract",
+    "coverage",
+    "operating_envelope",
+    "platform_portfolio",
+    "fleet_policy",
+    "energy_and_reserve",
+    "comparators",
+    "evidence_requirements",
+    "assumptions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "haps-service-profile/v1"
+    },
+    "profile_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,95}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "data_origin": {
+      "enum": [
+        "synthetic",
+        "measured",
+        "manufacturer",
+        "public_dataset",
+        "mixed"
+      ]
+    },
+    "claim_ceiling": {
+      "enum": [
+        "synthetic_architecture_screening",
+        "analytic_bounded_fixture",
+        "model_based_research",
+        "sil_research",
+        "hil_research",
+        "component_bench_research",
+        "flight_test_research",
+        "externally_accepted"
+      ]
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service_class",
+        "description",
+        "target_devices",
+        "aggregate_throughput_mbps",
+        "max_one_way_latency_ms",
+        "availability_fraction",
+        "service_window_s"
+      ],
+      "properties": {
+        "service_class": {
+          "enum": [
+            "connectivity",
+            "disaster_resilience_connectivity",
+            "earth_observation",
+            "environmental_monitoring",
+            "communications_relay",
+            "hybrid",
+            "other"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_devices": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "aggregate_throughput_mbps": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max_one_way_latency_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "availability_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Minimum fraction of scheduled service time in which the declared service-level requirements must be met."
+        },
+        "service_window_s": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximum_unserved_interval_s": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "region_ref",
+        "target_area_km2",
+        "minimum_coverage_fraction",
+        "maximum_coverage_gap_s",
+        "handover_max_gap_s",
+        "demand_profile_ref"
+      ],
+      "properties": {
+        "region_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_area_km2": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "minimum_coverage_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "maximum_coverage_gap_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "handover_max_gap_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "demand_profile_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "population_density_profile_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "operating_envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "altitude_m",
+        "latitude_deg",
+        "temperature_k",
+        "wind_profile_ref",
+        "solar_weather_profile_ref",
+        "seasonal_holdout_refs"
+      ],
+      "properties": {
+        "altitude_m": {
+          "$ref": "#/$defs/range"
+        },
+        "latitude_deg": {
+          "$ref": "#/$defs/latitudeRange"
+        },
+        "temperature_k": {
+          "$ref": "#/$defs/positiveRange"
+        },
+        "wind_profile_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "solar_weather_profile_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seasonal_holdout_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "weather_campaign_holdout_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "platform_portfolio": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_families",
+        "candidate_refs",
+        "minimum_simultaneous_nodes",
+        "candidate_selection_policy"
+      ],
+      "properties": {
+        "candidate_families": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "solar_haps",
+              "buoyant_haps"
+            ]
+          }
+        },
+        "candidate_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "minimum_simultaneous_nodes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "candidate_selection_policy": {
+          "enum": [
+            "fixed_portfolio",
+            "matched_service_optimization",
+            "robust_feasible_set",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "fleet_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_fleet_availability_fraction",
+        "maximum_concurrent_node_losses",
+        "minimum_spare_ratio",
+        "maximum_maintenance_downtime_fraction",
+        "single_node_failure_must_be_tolerated",
+        "handover_policy"
+      ],
+      "properties": {
+        "minimum_fleet_availability_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Minimum fraction of the declared service window in which the platform fleet is capable of serving the required coverage; this should be at least the service availability target unless a separately modelled alternate layer provides continuity."
+        },
+        "maximum_concurrent_node_losses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimum_spare_ratio": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_maintenance_downtime_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Maximum planned maintenance downtime fraction per individual node, not the total fleet outage fraction."
+        },
+        "single_node_failure_must_be_tolerated": {
+          "type": "boolean"
+        },
+        "handover_policy": {
+          "enum": [
+            "continuous_overlap",
+            "store_and_forward",
+            "best_effort",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "energy_and_reserve": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "energy_case_refs",
+        "own_platform_load_priority",
+        "minimum_reserve_fraction",
+        "export_allowed"
+      ],
+      "properties": {
+        "energy_case_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "own_platform_load_priority": {
+          "const": true
+        },
+        "minimum_reserve_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "export_allowed": {
+          "type": "boolean"
+        },
+        "export_profile_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "energy_export_admission_policy": {
+          "enum": [
+            "none",
+            "surplus_only_after_platform_reserve",
+            "unknown"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "export_allowed": {
+                "const": true
+              }
+            },
+            "required": [
+              "export_allowed"
+            ]
+          },
+          "then": {
+            "required": [
+              "export_profile_ref",
+              "energy_export_admission_policy"
+            ],
+            "properties": {
+              "export_profile_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "energy_export_admission_policy": {
+                "const": "surplus_only_after_platform_reserve"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "comparators": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "terrestrial_network",
+          "leo_satellite",
+          "geo_satellite",
+          "solar_fixed_wing_haps",
+          "buoyant_haps",
+          "low_altitude_uav_mesh",
+          "hybrid_multilayer_network"
+        ]
+      }
+    },
+    "evidence_requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "independent_weather_holdouts",
+        "independent_service_measurement",
+        "source_to_service_traceability",
+        "claim_boundary_notes"
+      ],
+      "properties": {
+        "independent_weather_holdouts": {
+          "type": "boolean"
+        },
+        "independent_service_measurement": {
+          "type": "boolean"
+        },
+        "source_to_service_traceability": {
+          "type": "boolean"
+        },
+        "claim_boundary_notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "uniqueItems": true
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "network_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "access_modes",
+        "candidate_backhaul_modes",
+        "edge_compute_required",
+        "drone_data_relay_required",
+        "platform_crosslink_required",
+        "terrestrial_gateway_required",
+        "demand_management",
+        "radio_resource_budget",
+        "backhaul_capacity",
+        "edge_placement_policy",
+        "edge_workloads"
+      ],
+      "properties": {
+        "access_modes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "direct_to_device",
+              "fixed_user_terminal",
+              "drone_terminal",
+              "sensor_terminal"
+            ]
+          }
+        },
+        "candidate_backhaul_modes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "terrestrial_gateway",
+              "microwave",
+              "free_space_optical",
+              "satellite",
+              "unknown"
+            ]
+          }
+        },
+        "edge_compute_required": {
+          "type": "boolean"
+        },
+        "drone_data_relay_required": {
+          "type": "boolean"
+        },
+        "platform_crosslink_required": {
+          "type": "boolean"
+        },
+        "terrestrial_gateway_required": {
+          "type": "boolean"
+        },
+        "demand_management": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "traffic_demand_profile_ref",
+            "network_allocation_case_refs",
+            "traffic_data_available_at_decision_time",
+            "reanalysis_not_used_as_live_forecast",
+            "priority_policy",
+            "forecast_horizon_s"
+          ],
+          "properties": {
+            "traffic_demand_profile_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "network_allocation_case_refs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "traffic_data_available_at_decision_time": {
+              "type": "boolean"
+            },
+            "reanalysis_not_used_as_live_forecast": {
+              "const": true
+            },
+            "priority_policy": {
+              "enum": [
+                "critical_excess_first",
+                "emergency_first",
+                "weighted_fair",
+                "static_fixed_assignment"
+              ]
+            },
+            "forecast_horizon_s": {
+              "type": "number",
+              "minimum": 0
+            },
+            "traffic_forecast_model_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "radio_resource_budget": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "beam_budget",
+            "per_beam_capacity_mbps",
+            "max_cells_served_simultaneously",
+            "beam_reallocation_interval_s",
+            "allocation_policy"
+          ],
+          "properties": {
+            "beam_budget": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "per_beam_capacity_mbps": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "max_cells_served_simultaneously": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "beam_reallocation_interval_s": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "allocation_policy": {
+              "enum": [
+                "critical_excess_weighted_greedy",
+                "rolling_horizon_optimization",
+                "lyapunov_control",
+                "robust_mpc",
+                "unknown"
+              ]
+            }
+          }
+        },
+        "backhaul_capacity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "terrestrial_gateway_capacity_mbps",
+            "satellite_backhaul_capacity_mbps",
+            "fso_backhaul_capacity_mbps",
+            "edge_compute_capacity_tops",
+            "platform_crosslink_capacity_mbps"
+          ],
+          "properties": {
+            "terrestrial_gateway_capacity_mbps": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "satellite_backhaul_capacity_mbps": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "fso_backhaul_capacity_mbps": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "edge_compute_capacity_tops": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "platform_crosslink_capacity_mbps": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        },
+        "edge_placement_policy": {
+          "type": "string",
+          "enum": [
+            "none",
+            "static_platform_edge",
+            "static_terrestrial_edge",
+            "lowest_latency_with_reserve_guard",
+            "minimum_total_system_cost",
+            "robust_multiobjective"
+          ],
+          "description": "Placement policy; latency, compute power, heat, backhaul, reserve and outage constraints must be measured on the same service boundary."
+        },
+        "edge_workloads": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "workload_id",
+              "workload_class",
+              "placement_candidates",
+              "input_data_rate_mbps",
+              "compute_demand_tops",
+              "compute_power_w",
+              "waste_heat_fraction",
+              "max_response_ms",
+              "response_metric_basis",
+              "criticality",
+              "fallback_policy",
+              "stateful"
+            ],
+            "properties": {
+              "workload_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "workload_class": {
+                "enum": [
+                  "emergency_alert_fusion",
+                  "drone_telemetry_control",
+                  "wildfire_video_analytics",
+                  "remote_sensing_preprocessing",
+                  "ran_core_processing",
+                  "environmental_event_detection",
+                  "other"
+                ]
+              },
+              "placement_candidates": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "platform_edge",
+                    "drone_edge",
+                    "terrestrial_gateway_edge",
+                    "satellite_edge",
+                    "remote_cloud"
+                  ]
+                }
+              },
+              "input_data_rate_mbps": {
+                "type": "number",
+                "minimum": 0
+              },
+              "compute_demand_tops": {
+                "type": "number",
+                "minimum": 0
+              },
+              "compute_power_w": {
+                "type": "number",
+                "minimum": 0
+              },
+              "waste_heat_fraction": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "max_response_ms": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "response_metric_basis": {
+                "enum": [
+                  "processing_only",
+                  "application_round_trip",
+                  "one_way_network",
+                  "control_loop_round_trip"
+                ]
+              },
+              "criticality": {
+                "enum": [
+                  "safety_critical",
+                  "emergency_critical",
+                  "mission_critical",
+                  "best_effort"
+                ]
+              },
+              "fallback_policy": {
+                "enum": [
+                  "drone_local_safe_mode",
+                  "route_to_terrestrial_gateway",
+                  "store_and_forward",
+                  "degrade_service",
+                  "drop_noncritical",
+                  "unknown"
+                ]
+              },
+              "stateful": {
+                "type": "boolean"
+              },
+              "workload_profile_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "properties": {
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        }
+      }
+    },
+    "latitudeRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "properties": {
+        "minimum": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "maximum": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        }
+      }
+    },
+    "positiveRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "properties": {
+        "minimum": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximum": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    }
+  },
+  "$comment": "Semantic constraints beyond this schema: ranges must be ordered; geographic and weather profiles need source/rights/time provenance; service availability denominator and planned exclusions must be explicit; nodes must be independently identified; fleet service cannot be inferred from one airframe endurance; export is unavailable unless the independent per-platform energy profile admits it."
+}

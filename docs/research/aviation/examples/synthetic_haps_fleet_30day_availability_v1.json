@@ -1,0 +1,406 @@
+{
+  "schema_version": "haps-fleet-service-availability/v1",
+  "case_id": "synthetic.haps.fleet.30day.reserve-weather-maintenance.001",
+  "revision": 1,
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_fleet_availability_oracle",
+  "evaluation_window_h": 720,
+  "service_contract": {
+    "required_service_capacity_units": 3,
+    "service_interval_h": 1,
+    "strict_availability_rule": "effective_capacity_units >= required_service_capacity_units",
+    "capacity_adequacy_rule": "sum(min(effective_capacity / demand, 1) * interval_hours) / evaluation_window_hours"
+  },
+  "fleet_policy": {
+    "policy_id": "three_required_units_plus_one_ground_ready_spare",
+    "primary_platform_ids": [
+      "HAPS-A",
+      "HAPS-B",
+      "HAPS-C"
+    ],
+    "reserve_platform_ids": [
+      "HAPS-D"
+    ],
+    "reserve_activation_lead_time_h": 12,
+    "maintenance_rotation_policy": "staggered_one_at_a_time",
+    "reserve_ready_state": "ground_ready"
+  },
+  "platforms": [
+    {
+      "platform_id": "HAPS-A",
+      "platform_family": "solar_fixed_wing_haps",
+      "role": "primary",
+      "service_capacity_units": 1,
+      "segments": [
+        {
+          "start_h": 0,
+          "end_h": 240,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 240,
+          "end_h": 264,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "scheduled_inspection"
+        },
+        {
+          "start_h": 264,
+          "end_h": 720,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        }
+      ]
+    },
+    {
+      "platform_id": "HAPS-B",
+      "platform_family": "solar_fixed_wing_haps",
+      "role": "primary",
+      "service_capacity_units": 1,
+      "segments": [
+        {
+          "start_h": 0,
+          "end_h": 480,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 480,
+          "end_h": 504,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "scheduled_inspection"
+        },
+        {
+          "start_h": 504,
+          "end_h": 720,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        }
+      ]
+    },
+    {
+      "platform_id": "HAPS-C",
+      "platform_family": "solar_fixed_wing_haps",
+      "role": "primary",
+      "service_capacity_units": 1,
+      "segments": [
+        {
+          "start_h": 0,
+          "end_h": 360,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 360,
+          "end_h": 384,
+          "state": "unscheduled_repair",
+          "capacity_fraction": 0,
+          "cause": "propulsion_fault"
+        },
+        {
+          "start_h": 384,
+          "end_h": 720,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        }
+      ]
+    },
+    {
+      "platform_id": "HAPS-D",
+      "platform_family": "solar_fixed_wing_haps",
+      "role": "reserve",
+      "service_capacity_units": 1,
+      "segments": [
+        {
+          "start_h": 0,
+          "end_h": 228,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": null
+        },
+        {
+          "start_h": 228,
+          "end_h": 240,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "reserve_activation"
+        },
+        {
+          "start_h": 240,
+          "end_h": 264,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": "cover_HAPS_A_maintenance"
+        },
+        {
+          "start_h": 264,
+          "end_h": 276,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_return"
+        },
+        {
+          "start_h": 276,
+          "end_h": 360,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": null
+        },
+        {
+          "start_h": 360,
+          "end_h": 372,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "replace_HAPS_C_fault"
+        },
+        {
+          "start_h": 372,
+          "end_h": 396,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": "cover_HAPS_C_repair_and_buffer"
+        },
+        {
+          "start_h": 396,
+          "end_h": 408,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_return"
+        },
+        {
+          "start_h": 408,
+          "end_h": 468,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": null
+        },
+        {
+          "start_h": 468,
+          "end_h": 480,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "reserve_activation"
+        },
+        {
+          "start_h": 480,
+          "end_h": 504,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": "cover_HAPS_B_maintenance"
+        },
+        {
+          "start_h": 504,
+          "end_h": 516,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_return"
+        },
+        {
+          "start_h": 516,
+          "end_h": 720,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": null
+        }
+      ]
+    }
+  ],
+  "common_cause_events": [
+    {
+      "event_id": "weather-regime-common-cause-001",
+      "start_h": 600,
+      "end_h": 624,
+      "event_class": "stratospheric_weather",
+      "affected_platform_ids": [
+        "HAPS-A",
+        "HAPS-B",
+        "HAPS-C",
+        "HAPS-D"
+      ],
+      "service_capacity_multiplier": 0.7,
+      "launch_site_open": false,
+      "recovery_site_open": false
+    }
+  ],
+  "launch_recovery_events": [
+    {
+      "event_id": "launch-A-maintenance-cover",
+      "platform_id": "HAPS-D",
+      "operation": "launch",
+      "start_h": 228,
+      "end_h": 240,
+      "purpose": "Position reserve before HAPS-A scheduled maintenance",
+      "site_available": true
+    },
+    {
+      "event_id": "recovery-A-maintenance-cover",
+      "platform_id": "HAPS-D",
+      "operation": "recovery",
+      "start_h": 264,
+      "end_h": 276,
+      "purpose": "Return reserve after HAPS-A maintenance release",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-C-fault-cover",
+      "platform_id": "HAPS-D",
+      "operation": "launch",
+      "start_h": 360,
+      "end_h": 372,
+      "purpose": "Activate reserve after unplanned HAPS-C outage",
+      "site_available": true
+    },
+    {
+      "event_id": "recovery-C-fault-cover",
+      "platform_id": "HAPS-D",
+      "operation": "recovery",
+      "start_h": 396,
+      "end_h": 408,
+      "purpose": "Return reserve after HAPS-C repair and 12-hour buffer",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-B-maintenance-cover",
+      "platform_id": "HAPS-D",
+      "operation": "launch",
+      "start_h": 468,
+      "end_h": 480,
+      "purpose": "Position reserve before HAPS-B scheduled maintenance",
+      "site_available": true
+    },
+    {
+      "event_id": "recovery-B-maintenance-cover",
+      "platform_id": "HAPS-D",
+      "operation": "recovery",
+      "start_h": 504,
+      "end_h": 516,
+      "purpose": "Return reserve after HAPS-B maintenance release",
+      "site_available": true
+    }
+  ],
+  "logistics_limits": {
+    "simultaneous_launch_capacity": 1,
+    "simultaneous_recovery_capacity": 1,
+    "maintenance_bays": 1,
+    "ground_ready_spares": 1,
+    "launch_lead_time_h": 12,
+    "recovery_duration_h": 12,
+    "reposition_duration_h": 2,
+    "airborne_holding_slots": 0,
+    "simultaneous_reposition_capacity": 1
+  },
+  "expected_oracle": {
+    "oracle_status": "independently_calculated",
+    "spare_rotation": {
+      "strict_service_available_h": 684,
+      "strict_availability_fraction": 0.95,
+      "capacity_adequate_h": 708.8,
+      "capacity_adequacy_fraction": 0.9844444444444445,
+      "unserved_service_equivalent_h": 11.2,
+      "strict_outage_h": 36,
+      "maximum_contiguous_outage_h": 24,
+      "outage_intervals": [
+        {
+          "start_h": 360,
+          "end_h": 372,
+          "duration_h": 12,
+          "minimum_effective_capacity_units": 2
+        },
+        {
+          "start_h": 600,
+          "end_h": 624,
+          "duration_h": 24,
+          "minimum_effective_capacity_units": 2.1
+        }
+      ],
+      "reserve_strategy_energy_wh": 141840
+    },
+    "three_platform_no_spare_baseline": {
+      "strict_service_available_h": 624,
+      "strict_availability_fraction": 0.8666666666666667,
+      "capacity_adequate_h": 688.8,
+      "capacity_adequacy_fraction": 0.9566666666666667,
+      "unserved_service_equivalent_h": 31.2,
+      "strict_outage_h": 96,
+      "maximum_contiguous_outage_h": 24,
+      "outage_intervals": [
+        {
+          "start_h": 240,
+          "end_h": 264,
+          "duration_h": 24,
+          "minimum_effective_capacity_units": 2
+        },
+        {
+          "start_h": 360,
+          "end_h": 384,
+          "duration_h": 24,
+          "minimum_effective_capacity_units": 2
+        },
+        {
+          "start_h": 480,
+          "end_h": 504,
+          "duration_h": 24,
+          "minimum_effective_capacity_units": 2
+        },
+        {
+          "start_h": 600,
+          "end_h": 624,
+          "duration_h": 24,
+          "minimum_effective_capacity_units": 2.1
+        }
+      ],
+      "reserve_strategy_energy_wh": 0
+    },
+    "comparison": {
+      "strict_availability_gain_percentage_points": 8.333333333333329,
+      "capacity_adequacy_gain_percentage_points": 2.77777777777778,
+      "spare_activation_events": 3,
+      "launch_operations": 3,
+      "recovery_operations": 3,
+      "maintenance_overlap_violations": 0,
+      "reserve_strategy_energy_wh": 141840,
+      "reposition_operations": 0
+    }
+  },
+  "source_evidence_refs": [
+    "https://doi.org/10.1016/j.ress.2025.111450",
+    "https://doi.org/10.1016/j.ress.2024.110419",
+    "https://doi.org/10.3390/a19100879",
+    "https://doi.org/10.1016/j.ress.2026.112775"
+  ],
+  "assumptions": [
+    "This is a fully synthetic deterministic 720-hour service schedule; it is not a measured fleet, weather history, reliability estimate or field availability claim.",
+    "Three equivalent active HAPS service-capacity units are required throughout the 30-day illustrative service window.",
+    "HAPS-A, HAPS-B and HAPS-C are the three primary units. HAPS-D is one ground-ready spare that contributes zero service while in ground_ready, launching, recovering or undergoing maintenance.",
+    "HAPS-A has one planned 24-hour maintenance window at hours 240–264; HAPS-B has one planned 24-hour maintenance window at hours 480–504; the windows do not overlap.",
+    "HAPS-C has one 24-hour synthetic unscheduled repair from hours 360–384.",
+    "Reserve launch lead time is 12 hours. The scheduled maintenance replacements are launched in advance; after the HAPS-C fault, the first 12 hours are unserved before HAPS-D reaches station.",
+    "The reserve remains on station for 24 hours for each maintenance/fault replacement cycle, then undergoes a declared 12-hour recovery and becomes ground-ready again.",
+    "One common-cause weather event occurs from hours 600–624. Its 0.7 multiplier applies to every platform's service contribution, and launch/recovery sites are closed for this interval. The multiplier is a synthetic service derating, not a particular wind speed or validated flight limit.",
+    "Capacity adequacy is capped at the full service requirement: extra HAPS capacity above three units does not earn extra availability credit.",
+    "The no-spare baseline uses only HAPS-A, HAPS-B and HAPS-C with identical maintenance, repair and common-cause event timelines; the reserve HAPS-D contributes nothing because it is not in that fleet comparator.",
+    "The exact oracle partitions the 720-hour window at every platform-state and common-cause event boundary and integrates effective service capacity; no stochastic or Monte Carlo estimates are used.",
+    "This fixture does not model launch vehicle operations, weather forecasting, specific airworthiness procedures, human staffing levels, component supply chain, battery ageing, thermal coupling, radio capacity or legal permission.",
+    "Aerial platform endurance, fleet availability, service capacity adequacy and common-cause resilience are distinct metrics and must not be interchanged."
+  ],
+  "reserve_state_power_w": {
+    "ground_ready_power_w": 15,
+    "airborne_holding_power_w": 500,
+    "launching_power_w": 1500,
+    "repositioning_power_w": 1000,
+    "on_station_power_w": 500,
+    "recovering_power_w": 1200,
+    "planned_maintenance_power_w": 200,
+    "unscheduled_repair_power_w": 200,
+    "grounded_weather_power_w": 0,
+    "inactive_power_w": 0
+  }
+}

@@ -1,0 +1,2133 @@
+{
+  "schema_version": "haps-fleet-service-availability/v1",
+  "case_id": "synthetic.haps.fleet.220day.cyclic.rotation.common-weather.001",
+  "revision": 1,
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_fleet_availability_oracle",
+  "evaluation_window_h": 5280,
+  "service_contract": {
+    "required_service_capacity_units": 3,
+    "service_interval_h": 1,
+    "strict_availability_rule": "effective_capacity_units >= required_service_capacity_units",
+    "capacity_adequacy_rule": "sum(min(effective_capacity / demand, 1) * interval_hours) / evaluation_window_hours"
+  },
+  "fleet_policy": {
+    "policy_id": "five-platform-perfectly-staggered-30on-14turn",
+    "primary_platform_ids": [
+      "HAPS-A",
+      "HAPS-B",
+      "HAPS-C"
+    ],
+    "reserve_platform_ids": [
+      "HAPS-D",
+      "HAPS-E"
+    ],
+    "reserve_activation_lead_time_h": 24,
+    "maintenance_rotation_policy": "staggered_one_at_a_time",
+    "reserve_ready_state": "ground_ready"
+  },
+  "platforms": [
+    {
+      "platform_id": "HAPS-A",
+      "platform_family": "solar_fixed_wing_haps",
+      "role": "primary",
+      "service_capacity_units": 1,
+      "segments": [
+        {
+          "start_h": 0,
+          "end_h": 720,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 720,
+          "end_h": 744,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 744,
+          "end_h": 768,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 768,
+          "end_h": 888,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 888,
+          "end_h": 936,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 936,
+          "end_h": 960,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 960,
+          "end_h": 1056,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 1056,
+          "end_h": 1776,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 1776,
+          "end_h": 1800,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 1800,
+          "end_h": 1824,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 1824,
+          "end_h": 1944,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 1944,
+          "end_h": 1992,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 1992,
+          "end_h": 2016,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 2016,
+          "end_h": 2112,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 2112,
+          "end_h": 2832,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 2832,
+          "end_h": 2856,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 2856,
+          "end_h": 2880,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 2880,
+          "end_h": 3000,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 3000,
+          "end_h": 3048,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 3048,
+          "end_h": 3072,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 3072,
+          "end_h": 3168,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 3168,
+          "end_h": 3888,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 3888,
+          "end_h": 3912,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 3912,
+          "end_h": 3936,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 3936,
+          "end_h": 4056,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 4056,
+          "end_h": 4104,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 4104,
+          "end_h": 4128,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 4128,
+          "end_h": 4224,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 4224,
+          "end_h": 4944,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 4944,
+          "end_h": 4968,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 4968,
+          "end_h": 4992,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 4992,
+          "end_h": 5112,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 5112,
+          "end_h": 5160,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 5160,
+          "end_h": 5184,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 5184,
+          "end_h": 5280,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        }
+      ]
+    },
+    {
+      "platform_id": "HAPS-B",
+      "platform_family": "solar_fixed_wing_haps",
+      "role": "primary",
+      "service_capacity_units": 1,
+      "segments": [
+        {
+          "start_h": 0,
+          "end_h": 43.19999999999993,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 43.19999999999993,
+          "end_h": 91.19999999999993,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 91.19999999999993,
+          "end_h": 115.19999999999993,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 115.19999999999993,
+          "end_h": 211.19999999999993,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 211.20000000000002,
+          "end_h": 931.1999999999999,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 931.1999999999999,
+          "end_h": 955.1999999999999,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 955.1999999999999,
+          "end_h": 979.1999999999999,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 979.1999999999999,
+          "end_h": 1099.1999999999998,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 1099.1999999999998,
+          "end_h": 1147.1999999999998,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 1147.1999999999998,
+          "end_h": 1171.1999999999998,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 1171.1999999999998,
+          "end_h": 1267.1999999999998,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 1267.1999999999998,
+          "end_h": 1987.1999999999998,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 1987.1999999999998,
+          "end_h": 2011.1999999999998,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 2011.1999999999998,
+          "end_h": 2035.1999999999998,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 2035.1999999999998,
+          "end_h": 2155.2,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 2155.2,
+          "end_h": 2203.2,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 2203.2,
+          "end_h": 2227.2,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 2227.2,
+          "end_h": 2323.2,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 2323.2,
+          "end_h": 3043.2,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 3043.2,
+          "end_h": 3067.2,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 3067.2,
+          "end_h": 3091.2000000000003,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 3091.2000000000003,
+          "end_h": 3211.2000000000003,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 3211.2000000000003,
+          "end_h": 3259.2000000000003,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 3259.2000000000003,
+          "end_h": 3283.2000000000003,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 3283.2000000000003,
+          "end_h": 3379.2000000000003,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 3379.2000000000003,
+          "end_h": 4099.200000000001,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 4099.200000000001,
+          "end_h": 4123.200000000001,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 4123.200000000001,
+          "end_h": 4147.200000000001,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 4147.200000000001,
+          "end_h": 4267.200000000001,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 4267.200000000001,
+          "end_h": 4315.200000000001,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 4315.200000000001,
+          "end_h": 4339.200000000001,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 4339.200000000001,
+          "end_h": 4435.200000000001,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 4435.200000000001,
+          "end_h": 5155.200000000001,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 5155.200000000001,
+          "end_h": 5179.200000000001,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 5179.200000000001,
+          "end_h": 5203.200000000001,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 5203.200000000001,
+          "end_h": 5280,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        }
+      ]
+    },
+    {
+      "platform_id": "HAPS-C",
+      "platform_family": "solar_fixed_wing_haps",
+      "role": "primary",
+      "service_capacity_units": 1,
+      "segments": [
+        {
+          "start_h": 0,
+          "end_h": 86.40000000000003,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 86.40000000000003,
+          "end_h": 110.40000000000003,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 110.40000000000003,
+          "end_h": 134.40000000000003,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 134.40000000000003,
+          "end_h": 254.40000000000003,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 254.40000000000003,
+          "end_h": 302.40000000000003,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 302.40000000000003,
+          "end_h": 326.40000000000003,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 326.40000000000003,
+          "end_h": 422.40000000000003,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 422.40000000000003,
+          "end_h": 1142.4,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 1142.4,
+          "end_h": 1166.4,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 1166.4,
+          "end_h": 1190.4,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 1190.4,
+          "end_h": 1310.4,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 1310.4,
+          "end_h": 1358.4,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 1358.4,
+          "end_h": 1382.4,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 1382.4,
+          "end_h": 1478.4,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 1478.4,
+          "end_h": 2198.3999999999996,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 2198.3999999999996,
+          "end_h": 2222.3999999999996,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 2222.3999999999996,
+          "end_h": 2246.3999999999996,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 2246.3999999999996,
+          "end_h": 2366.3999999999996,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 2366.3999999999996,
+          "end_h": 2414.3999999999996,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 2414.3999999999996,
+          "end_h": 2438.3999999999996,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 2438.3999999999996,
+          "end_h": 2534.3999999999996,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 2534.3999999999996,
+          "end_h": 3254.3999999999996,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 3254.3999999999996,
+          "end_h": 3278.3999999999996,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 3278.3999999999996,
+          "end_h": 3302.3999999999996,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 3302.3999999999996,
+          "end_h": 3422.3999999999996,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 3422.3999999999996,
+          "end_h": 3470.3999999999996,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 3470.3999999999996,
+          "end_h": 3494.3999999999996,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 3494.3999999999996,
+          "end_h": 3590.3999999999996,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 3590.3999999999996,
+          "end_h": 4310.4,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 4310.4,
+          "end_h": 4334.4,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 4334.4,
+          "end_h": 4358.4,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 4358.4,
+          "end_h": 4478.4,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 4478.4,
+          "end_h": 4526.4,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 4526.4,
+          "end_h": 4550.4,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 4550.4,
+          "end_h": 4646.4,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 4646.4,
+          "end_h": 5280,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        }
+      ]
+    },
+    {
+      "platform_id": "HAPS-D",
+      "platform_family": "solar_fixed_wing_haps",
+      "role": "reserve",
+      "service_capacity_units": 1,
+      "segments": [
+        {
+          "start_h": 0,
+          "end_h": 297.59999999999997,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 297.59999999999997,
+          "end_h": 321.59999999999997,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 321.59999999999997,
+          "end_h": 345.59999999999997,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 345.59999999999997,
+          "end_h": 465.59999999999997,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 465.59999999999997,
+          "end_h": 513.5999999999999,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 513.5999999999999,
+          "end_h": 537.5999999999999,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 537.5999999999999,
+          "end_h": 633.5999999999999,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 633.5999999999999,
+          "end_h": 1353.6,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 1353.6,
+          "end_h": 1377.6,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 1377.6,
+          "end_h": 1401.6,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 1401.6,
+          "end_h": 1521.6,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 1521.6,
+          "end_h": 1569.6000000000001,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 1569.6000000000001,
+          "end_h": 1593.6000000000001,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 1593.6000000000001,
+          "end_h": 1689.6000000000001,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 1689.6000000000001,
+          "end_h": 2409.6000000000004,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 2409.6000000000004,
+          "end_h": 2433.6000000000004,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 2433.6000000000004,
+          "end_h": 2457.6000000000004,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 2457.6000000000004,
+          "end_h": 2577.6000000000004,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 2577.6000000000004,
+          "end_h": 2625.6000000000004,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 2625.6000000000004,
+          "end_h": 2649.6000000000004,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 2649.6000000000004,
+          "end_h": 2745.6000000000004,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 2745.6000000000004,
+          "end_h": 3465.6000000000004,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 3465.6000000000004,
+          "end_h": 3489.6000000000004,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 3489.6000000000004,
+          "end_h": 3513.6000000000004,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 3513.6000000000004,
+          "end_h": 3633.6000000000004,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 3633.6000000000004,
+          "end_h": 3681.6000000000004,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 3681.6000000000004,
+          "end_h": 3705.6000000000004,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 3705.6000000000004,
+          "end_h": 3801.6000000000004,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 3801.6000000000004,
+          "end_h": 4521.6,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 4521.6,
+          "end_h": 4545.6,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 4545.6,
+          "end_h": 4569.6,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 4569.6,
+          "end_h": 4689.6,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 4689.6,
+          "end_h": 4737.6,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 4737.6,
+          "end_h": 4761.6,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 4761.6,
+          "end_h": 4857.6,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 4857.6,
+          "end_h": 5280,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        }
+      ]
+    },
+    {
+      "platform_id": "HAPS-E",
+      "platform_family": "solar_fixed_wing_haps",
+      "role": "reserve",
+      "service_capacity_units": 1,
+      "segments": [
+        {
+          "start_h": 0,
+          "end_h": 508.80000000000007,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 508.80000000000007,
+          "end_h": 532.8000000000001,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 532.8000000000001,
+          "end_h": 556.8000000000001,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 556.8000000000001,
+          "end_h": 676.8000000000001,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 676.8000000000001,
+          "end_h": 724.8000000000001,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 724.8000000000001,
+          "end_h": 748.8000000000001,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 748.8000000000001,
+          "end_h": 844.8000000000001,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 844.8000000000001,
+          "end_h": 1564.8000000000002,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 1564.8000000000002,
+          "end_h": 1588.8000000000002,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 1588.8000000000002,
+          "end_h": 1612.8000000000002,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 1612.8000000000002,
+          "end_h": 1732.8000000000002,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 1732.8000000000002,
+          "end_h": 1780.8000000000002,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 1780.8000000000002,
+          "end_h": 1804.8000000000002,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 1804.8000000000002,
+          "end_h": 1900.8000000000002,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 1900.8000000000002,
+          "end_h": 2620.8,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 2620.8,
+          "end_h": 2644.8,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 2644.8,
+          "end_h": 2668.8,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 2668.8,
+          "end_h": 2788.8,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 2788.8,
+          "end_h": 2836.8,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 2836.8,
+          "end_h": 2860.8,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 2860.8,
+          "end_h": 2956.8,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 2956.8,
+          "end_h": 3676.7999999999997,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 3676.7999999999997,
+          "end_h": 3700.7999999999997,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 3700.7999999999997,
+          "end_h": 3724.7999999999997,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 3724.7999999999997,
+          "end_h": 3844.7999999999997,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 3844.7999999999997,
+          "end_h": 3892.7999999999997,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 3892.7999999999997,
+          "end_h": 3916.7999999999997,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 3916.7999999999997,
+          "end_h": 4012.7999999999997,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 4012.7999999999997,
+          "end_h": 4732.799999999999,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        },
+        {
+          "start_h": 4732.799999999999,
+          "end_h": 4756.799999999999,
+          "state": "recovering",
+          "capacity_fraction": 0,
+          "cause": "planned_recovery"
+        },
+        {
+          "start_h": 4756.799999999999,
+          "end_h": 4780.799999999999,
+          "state": "inactive",
+          "capacity_fraction": 0,
+          "cause": "transport_to_depot"
+        },
+        {
+          "start_h": 4780.799999999999,
+          "end_h": 4900.799999999999,
+          "state": "planned_maintenance",
+          "capacity_fraction": 0,
+          "cause": "inspection_and_refurbishment"
+        },
+        {
+          "start_h": 4900.799999999999,
+          "end_h": 4948.799999999999,
+          "state": "ground_ready",
+          "capacity_fraction": 0,
+          "cause": "replenishment_and_launch_preparation"
+        },
+        {
+          "start_h": 4948.799999999999,
+          "end_h": 4972.799999999999,
+          "state": "launching",
+          "capacity_fraction": 0,
+          "cause": "cyclic_launch"
+        },
+        {
+          "start_h": 4972.799999999999,
+          "end_h": 5068.799999999999,
+          "state": "repositioning",
+          "capacity_fraction": 0,
+          "cause": "transit_to_service_area"
+        },
+        {
+          "start_h": 5068.799999999999,
+          "end_h": 5280,
+          "state": "on_station",
+          "capacity_fraction": 1,
+          "cause": null
+        }
+      ]
+    }
+  ],
+  "common_cause_events": [
+    {
+      "event_id": "common-stratospheric-weather-day-001",
+      "start_h": 24,
+      "end_h": 48,
+      "event_class": "stratospheric_weather",
+      "affected_platform_ids": [
+        "HAPS-A",
+        "HAPS-B",
+        "HAPS-C",
+        "HAPS-D",
+        "HAPS-E"
+      ],
+      "service_capacity_multiplier": 0.7,
+      "launch_site_open": false,
+      "recovery_site_open": false
+    }
+  ],
+  "launch_recovery_events": [
+    {
+      "event_id": "recover-HAPS-A-2",
+      "platform_id": "HAPS-A",
+      "operation": "recovery",
+      "start_h": 720,
+      "end_h": 744,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-A-2",
+      "platform_id": "HAPS-A",
+      "operation": "launch",
+      "start_h": 936,
+      "end_h": 960,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-A-2",
+      "platform_id": "HAPS-A",
+      "operation": "reposition",
+      "start_h": 960,
+      "end_h": 1056,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-A-3",
+      "platform_id": "HAPS-A",
+      "operation": "recovery",
+      "start_h": 1776,
+      "end_h": 1800,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-A-3",
+      "platform_id": "HAPS-A",
+      "operation": "launch",
+      "start_h": 1992,
+      "end_h": 2016,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-A-3",
+      "platform_id": "HAPS-A",
+      "operation": "reposition",
+      "start_h": 2016,
+      "end_h": 2112,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-A-4",
+      "platform_id": "HAPS-A",
+      "operation": "recovery",
+      "start_h": 2832,
+      "end_h": 2856,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-A-4",
+      "platform_id": "HAPS-A",
+      "operation": "launch",
+      "start_h": 3048,
+      "end_h": 3072,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-A-4",
+      "platform_id": "HAPS-A",
+      "operation": "reposition",
+      "start_h": 3072,
+      "end_h": 3168,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-A-5",
+      "platform_id": "HAPS-A",
+      "operation": "recovery",
+      "start_h": 3888,
+      "end_h": 3912,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-A-5",
+      "platform_id": "HAPS-A",
+      "operation": "launch",
+      "start_h": 4104,
+      "end_h": 4128,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-A-5",
+      "platform_id": "HAPS-A",
+      "operation": "reposition",
+      "start_h": 4128,
+      "end_h": 4224,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-A-6",
+      "platform_id": "HAPS-A",
+      "operation": "recovery",
+      "start_h": 4944,
+      "end_h": 4968,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-A-6",
+      "platform_id": "HAPS-A",
+      "operation": "launch",
+      "start_h": 5160,
+      "end_h": 5184,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-A-6",
+      "platform_id": "HAPS-A",
+      "operation": "reposition",
+      "start_h": 5184,
+      "end_h": 5280,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-B-1",
+      "platform_id": "HAPS-B",
+      "operation": "launch",
+      "start_h": 91.19999999999993,
+      "end_h": 115.19999999999993,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-B-1",
+      "platform_id": "HAPS-B",
+      "operation": "reposition",
+      "start_h": 115.19999999999993,
+      "end_h": 211.19999999999993,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-B-2",
+      "platform_id": "HAPS-B",
+      "operation": "recovery",
+      "start_h": 931.1999999999999,
+      "end_h": 955.1999999999999,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-B-2",
+      "platform_id": "HAPS-B",
+      "operation": "launch",
+      "start_h": 1147.1999999999998,
+      "end_h": 1171.1999999999998,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-B-2",
+      "platform_id": "HAPS-B",
+      "operation": "reposition",
+      "start_h": 1171.1999999999998,
+      "end_h": 1267.1999999999998,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-B-3",
+      "platform_id": "HAPS-B",
+      "operation": "recovery",
+      "start_h": 1987.1999999999998,
+      "end_h": 2011.1999999999998,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-B-3",
+      "platform_id": "HAPS-B",
+      "operation": "launch",
+      "start_h": 2203.2,
+      "end_h": 2227.2,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-B-3",
+      "platform_id": "HAPS-B",
+      "operation": "reposition",
+      "start_h": 2227.2,
+      "end_h": 2323.2,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-B-4",
+      "platform_id": "HAPS-B",
+      "operation": "recovery",
+      "start_h": 3043.2,
+      "end_h": 3067.2,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-B-4",
+      "platform_id": "HAPS-B",
+      "operation": "launch",
+      "start_h": 3259.2000000000003,
+      "end_h": 3283.2000000000003,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-B-4",
+      "platform_id": "HAPS-B",
+      "operation": "reposition",
+      "start_h": 3283.2000000000003,
+      "end_h": 3379.2000000000003,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-B-5",
+      "platform_id": "HAPS-B",
+      "operation": "recovery",
+      "start_h": 4099.200000000001,
+      "end_h": 4123.200000000001,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-B-5",
+      "platform_id": "HAPS-B",
+      "operation": "launch",
+      "start_h": 4315.200000000001,
+      "end_h": 4339.200000000001,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-B-5",
+      "platform_id": "HAPS-B",
+      "operation": "reposition",
+      "start_h": 4339.200000000001,
+      "end_h": 4435.200000000001,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-B-6",
+      "platform_id": "HAPS-B",
+      "operation": "recovery",
+      "start_h": 5155.200000000001,
+      "end_h": 5179.200000000001,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-C-1",
+      "platform_id": "HAPS-C",
+      "operation": "recovery",
+      "start_h": 86.40000000000003,
+      "end_h": 110.40000000000003,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-C-1",
+      "platform_id": "HAPS-C",
+      "operation": "launch",
+      "start_h": 302.40000000000003,
+      "end_h": 326.40000000000003,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-C-1",
+      "platform_id": "HAPS-C",
+      "operation": "reposition",
+      "start_h": 326.40000000000003,
+      "end_h": 422.40000000000003,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-C-2",
+      "platform_id": "HAPS-C",
+      "operation": "recovery",
+      "start_h": 1142.4,
+      "end_h": 1166.4,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-C-2",
+      "platform_id": "HAPS-C",
+      "operation": "launch",
+      "start_h": 1358.4,
+      "end_h": 1382.4,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-C-2",
+      "platform_id": "HAPS-C",
+      "operation": "reposition",
+      "start_h": 1382.4,
+      "end_h": 1478.4,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-C-3",
+      "platform_id": "HAPS-C",
+      "operation": "recovery",
+      "start_h": 2198.3999999999996,
+      "end_h": 2222.3999999999996,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-C-3",
+      "platform_id": "HAPS-C",
+      "operation": "launch",
+      "start_h": 2414.3999999999996,
+      "end_h": 2438.3999999999996,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-C-3",
+      "platform_id": "HAPS-C",
+      "operation": "reposition",
+      "start_h": 2438.3999999999996,
+      "end_h": 2534.3999999999996,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-C-4",
+      "platform_id": "HAPS-C",
+      "operation": "recovery",
+      "start_h": 3254.3999999999996,
+      "end_h": 3278.3999999999996,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-C-4",
+      "platform_id": "HAPS-C",
+      "operation": "launch",
+      "start_h": 3470.3999999999996,
+      "end_h": 3494.3999999999996,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-C-4",
+      "platform_id": "HAPS-C",
+      "operation": "reposition",
+      "start_h": 3494.3999999999996,
+      "end_h": 3590.3999999999996,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-C-5",
+      "platform_id": "HAPS-C",
+      "operation": "recovery",
+      "start_h": 4310.4,
+      "end_h": 4334.4,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-C-5",
+      "platform_id": "HAPS-C",
+      "operation": "launch",
+      "start_h": 4526.4,
+      "end_h": 4550.4,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-C-5",
+      "platform_id": "HAPS-C",
+      "operation": "reposition",
+      "start_h": 4550.4,
+      "end_h": 4646.4,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-D-1",
+      "platform_id": "HAPS-D",
+      "operation": "recovery",
+      "start_h": 297.59999999999997,
+      "end_h": 321.59999999999997,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-D-1",
+      "platform_id": "HAPS-D",
+      "operation": "launch",
+      "start_h": 513.5999999999999,
+      "end_h": 537.5999999999999,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-D-1",
+      "platform_id": "HAPS-D",
+      "operation": "reposition",
+      "start_h": 537.5999999999999,
+      "end_h": 633.5999999999999,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-D-2",
+      "platform_id": "HAPS-D",
+      "operation": "recovery",
+      "start_h": 1353.6,
+      "end_h": 1377.6,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-D-2",
+      "platform_id": "HAPS-D",
+      "operation": "launch",
+      "start_h": 1569.6000000000001,
+      "end_h": 1593.6000000000001,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-D-2",
+      "platform_id": "HAPS-D",
+      "operation": "reposition",
+      "start_h": 1593.6000000000001,
+      "end_h": 1689.6000000000001,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-D-3",
+      "platform_id": "HAPS-D",
+      "operation": "recovery",
+      "start_h": 2409.6000000000004,
+      "end_h": 2433.6000000000004,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-D-3",
+      "platform_id": "HAPS-D",
+      "operation": "launch",
+      "start_h": 2625.6000000000004,
+      "end_h": 2649.6000000000004,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-D-3",
+      "platform_id": "HAPS-D",
+      "operation": "reposition",
+      "start_h": 2649.6000000000004,
+      "end_h": 2745.6000000000004,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-D-4",
+      "platform_id": "HAPS-D",
+      "operation": "recovery",
+      "start_h": 3465.6000000000004,
+      "end_h": 3489.6000000000004,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-D-4",
+      "platform_id": "HAPS-D",
+      "operation": "launch",
+      "start_h": 3681.6000000000004,
+      "end_h": 3705.6000000000004,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-D-4",
+      "platform_id": "HAPS-D",
+      "operation": "reposition",
+      "start_h": 3705.6000000000004,
+      "end_h": 3801.6000000000004,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-D-5",
+      "platform_id": "HAPS-D",
+      "operation": "recovery",
+      "start_h": 4521.6,
+      "end_h": 4545.6,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-D-5",
+      "platform_id": "HAPS-D",
+      "operation": "launch",
+      "start_h": 4737.6,
+      "end_h": 4761.6,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-D-5",
+      "platform_id": "HAPS-D",
+      "operation": "reposition",
+      "start_h": 4761.6,
+      "end_h": 4857.6,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-E-1",
+      "platform_id": "HAPS-E",
+      "operation": "recovery",
+      "start_h": 508.80000000000007,
+      "end_h": 532.8000000000001,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-E-1",
+      "platform_id": "HAPS-E",
+      "operation": "launch",
+      "start_h": 724.8000000000001,
+      "end_h": 748.8000000000001,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-E-1",
+      "platform_id": "HAPS-E",
+      "operation": "reposition",
+      "start_h": 748.8000000000001,
+      "end_h": 844.8000000000001,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-E-2",
+      "platform_id": "HAPS-E",
+      "operation": "recovery",
+      "start_h": 1564.8000000000002,
+      "end_h": 1588.8000000000002,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-E-2",
+      "platform_id": "HAPS-E",
+      "operation": "launch",
+      "start_h": 1780.8000000000002,
+      "end_h": 1804.8000000000002,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-E-2",
+      "platform_id": "HAPS-E",
+      "operation": "reposition",
+      "start_h": 1804.8000000000002,
+      "end_h": 1900.8000000000002,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-E-3",
+      "platform_id": "HAPS-E",
+      "operation": "recovery",
+      "start_h": 2620.8,
+      "end_h": 2644.8,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-E-3",
+      "platform_id": "HAPS-E",
+      "operation": "launch",
+      "start_h": 2836.8,
+      "end_h": 2860.8,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-E-3",
+      "platform_id": "HAPS-E",
+      "operation": "reposition",
+      "start_h": 2860.8,
+      "end_h": 2956.8,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-E-4",
+      "platform_id": "HAPS-E",
+      "operation": "recovery",
+      "start_h": 3676.7999999999997,
+      "end_h": 3700.7999999999997,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-E-4",
+      "platform_id": "HAPS-E",
+      "operation": "launch",
+      "start_h": 3892.7999999999997,
+      "end_h": 3916.7999999999997,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-E-4",
+      "platform_id": "HAPS-E",
+      "operation": "reposition",
+      "start_h": 3916.7999999999997,
+      "end_h": 4012.7999999999997,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    },
+    {
+      "event_id": "recover-HAPS-E-5",
+      "platform_id": "HAPS-E",
+      "operation": "recovery",
+      "start_h": 4732.799999999999,
+      "end_h": 4756.799999999999,
+      "purpose": "cyclic return for refurbishment",
+      "site_available": true
+    },
+    {
+      "event_id": "launch-HAPS-E-5",
+      "platform_id": "HAPS-E",
+      "operation": "launch",
+      "start_h": 4948.799999999999,
+      "end_h": 4972.799999999999,
+      "purpose": "cyclic return to service rotation",
+      "site_available": true
+    },
+    {
+      "event_id": "reposition-HAPS-E-5",
+      "platform_id": "HAPS-E",
+      "operation": "reposition",
+      "start_h": 4972.799999999999,
+      "end_h": 5068.799999999999,
+      "purpose": "transit to assigned service region",
+      "site_available": true
+    }
+  ],
+  "logistics_limits": {
+    "simultaneous_launch_capacity": 1,
+    "simultaneous_recovery_capacity": 1,
+    "maintenance_bays": 1,
+    "ground_ready_spares": 2,
+    "launch_lead_time_h": 24,
+    "recovery_duration_h": 24,
+    "airborne_holding_slots": 0,
+    "reposition_duration_h": 96,
+    "simultaneous_reposition_capacity": 1
+  },
+  "reserve_state_power_w": {
+    "ground_ready_power_w": 100,
+    "airborne_holding_power_w": 300,
+    "launching_power_w": 1800,
+    "repositioning_power_w": 1200,
+    "on_station_power_w": 2000,
+    "recovering_power_w": 1000,
+    "planned_maintenance_power_w": 500,
+    "unscheduled_repair_power_w": 700,
+    "grounded_weather_power_w": 200,
+    "inactive_power_w": 100
+  },
+  "expected_oracle": {
+    "oracle_status": "independently_calculated",
+    "spare_rotation": {
+      "strict_service_available_h": 5256,
+      "strict_availability_fraction": 0.9954545454545455,
+      "capacity_adequate_h": 5278.4,
+      "capacity_adequacy_fraction": 0.9996969696969696,
+      "unserved_service_equivalent_h": 1.6000000000003638,
+      "strict_outage_h": 24,
+      "maximum_contiguous_outage_h": 24,
+      "outage_intervals": [
+        {
+          "start_h": 24,
+          "end_h": 48,
+          "duration_h": 24,
+          "minimum_effective_capacity_units": 2.8
+        }
+      ],
+      "reserve_strategy_energy_wh": 16896000
+    },
+    "three_platform_no_spare_baseline": {
+      "strict_service_available_h": 1488.000000000001,
+      "strict_availability_fraction": 0.28181818181818197,
+      "capacity_adequate_h": 3595.200000000001,
+      "capacity_adequacy_fraction": 0.6809090909090911,
+      "unserved_service_equivalent_h": 1684.7999999999988,
+      "strict_outage_h": 3791.999999999999,
+      "maximum_contiguous_outage_h": 758.4000000000001,
+      "outage_intervals": [
+        {
+          "start_h": 0,
+          "end_h": 422.40000000000003,
+          "duration_h": 422.40000000000003,
+          "minimum_effective_capacity_units": 1
+        },
+        {
+          "start_h": 720,
+          "end_h": 1478.4,
+          "duration_h": 758.4000000000001,
+          "minimum_effective_capacity_units": 1
+        },
+        {
+          "start_h": 1776,
+          "end_h": 2534.3999999999996,
+          "duration_h": 758.3999999999996,
+          "minimum_effective_capacity_units": 1
+        },
+        {
+          "start_h": 2832,
+          "end_h": 3590.3999999999996,
+          "duration_h": 758.3999999999996,
+          "minimum_effective_capacity_units": 1
+        },
+        {
+          "start_h": 3888,
+          "end_h": 4646.4,
+          "duration_h": 758.3999999999996,
+          "minimum_effective_capacity_units": 1
+        },
+        {
+          "start_h": 4944,
+          "end_h": 5280,
+          "duration_h": 336,
+          "minimum_effective_capacity_units": 1
+        }
+      ],
+      "reserve_strategy_energy_wh": 16896000
+    },
+    "comparison": {
+      "strict_availability_gain_percentage_points": 71.36363636363635,
+      "capacity_adequacy_gain_percentage_points": 31.87878787878785,
+      "spare_activation_events": 10,
+      "launch_operations": 25,
+      "recovery_operations": 25,
+      "maintenance_overlap_violations": 0,
+      "reserve_strategy_energy_wh": 16896000,
+      "reposition_operations": 25
+    }
+  },
+  "assumptions": [
+    "This is a synthetic deterministic cyclic-schedule feasibility fixture, not an operator schedule or observed HAPS service campaign.",
+    "Five identical HAPS each follow a perfectly periodic 44-day lifecycle: 30 days on station and 14 sequential days in recovery, transport, inspection/refurbishment, ground-ready replenishment/preparation, launch and repositioning.",
+    "Start phases are 0, 8.8, 17.6, 26.4 and 35.2 days; the 5-platform rotation is perfectly staggered to target at least three simultaneous service units.",
+    "A 220-day evaluation window equals five 44-day cycles; the schedule is a finite repeated idealization.",
+    "There are three required service units; each on-station platform contributes one unit and off-station states contribute zero.",
+    "Only one maintenance bay, one launch slot, one recovery slot and one reposition slot are available; the 7-day planned maintenance segment is separated by at least 8.8 days between platforms.",
+    "The primary-only comparator uses HAPS-A/B/C under the same cyclic state timelines; the spare-rotation comparator uses all five platforms.",
+    "All power rates are synthetic. The reserve energy report includes only HAPS-D/E state power, not primary platform energy, payload, thermal, propulsion or network loads.",
+    "No common-cause weather event, independent failure, random repair duration, parts inventory constraint, service handover, backhaul failure or safety authorization is modeled.",
+    "This schedule is designed to test a feasible idealized staggered lower-bound case. It does not prove that such a rotation can be maintained in operational weather or real depot logistics."
+  ]
+}
