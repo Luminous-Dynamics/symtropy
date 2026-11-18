@@ -1,0 +1,7 @@
+{
+  "solver_family": "force_balance",
+  "model_name": "synthetic-granular-flow-fixture",
+  "model_version": "0.0.0-fixture",
+  "random_seed": 17,
+  "notes": "No physical solver executed; synthetic fixture only."
+}
