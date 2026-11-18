@@ -711,12 +711,44 @@ mod tests {
 
     #[test]
     fn stale_context_fails_before_any_target_admission() {
-        let mut case = fixture();
-        case.scenarios[0].failure_point = "stale_context".to_owned();
-        case.scenarios[0].duplicate_completion_ack_delivery = false;
-        let result = evaluate_scenario(&case, &case.scenarios[0]).unwrap();
+        let case = fixture();
+        let result = report();
+        let stale = &result.scenarios[8].result;
+        assert_eq!(stale.total_admitted_ues, 0);
+        assert_eq!(stale.total_rejected_ues, 152);
+        assert_eq!(stale.total_completed_ues, 0);
+        assert_eq!(stale.cohorts[0].handover_latency_ms, 50.0);
+        // The fixture's explicit stale-context scenario is the ninth case.
+        assert_eq!(case.scenarios[8].failure_point, "stale_context");
+    }
+
+    #[test]
+    fn initiation_and_preparation_failures_never_admit_users() {
+        let result = report();
+        for index in [6usize, 7usize] {
+            let scenario = &result.scenarios[index].result;
+            assert_eq!(scenario.total_admitted_ues, 0);
+            assert_eq!(scenario.total_completed_ues, 0);
+            assert_eq!(scenario.total_rejected_ues, 152);
+            assert_eq!(scenario.total_committed_ues, 0);
+        }
+        assert_eq!(result.scenarios[6].result.cohorts[0].handover_latency_ms, 20.0);
+        assert_eq!(result.scenarios[7].result.cohorts[0].handover_latency_ms, 50.0);
+    }
+
+    #[test]
+    fn unavailable_target_rejects_before_admission() {
+        let result = &report().scenarios[5].result;
         assert_eq!(result.total_admitted_ues, 0);
         assert_eq!(result.total_rejected_ues, 152);
         assert_eq!(result.total_completed_ues, 0);
+        assert_eq!(result.total_local_safe_mode_ues, 12);
+    }
+
+    #[test]
+    fn self_handover_is_rejected() {
+        let mut case = fixture();
+        case.target.target_node_id = case.source_node_id.clone();
+        assert!(validate_case(&case).is_err());
     }
 }
