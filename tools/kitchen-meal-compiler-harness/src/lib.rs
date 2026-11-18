@@ -9,7 +9,7 @@ pub use symtropy_kitchen_planner::meal_compiler;
 
 #[cfg(test)]
 mod tests {
-    use meal_compiler::*;
+    use crate::meal_compiler::*;
     use sha2::{Digest, Sha256};
     use symtropy_kitchen_planner::action_ontology::rule_based_action_binding;
     use symtropy_kitchen_planner::recipe_graph::{
