@@ -3,12 +3,13 @@
 
 //! CPU-first reference models for biological motility research.
 //!
-//! This crate provides CPU-first reference models for bacterial movement in
-//! porous media. Physical event mechanism, observed event-duration bin, and
-//! evidence status are distinct model dimensions. It includes explicit
-//! renewal waiting-time laws, right-censor-aware survival estimation, and
-//! finite-window model comparison. It is not a validated flagellar motor,
-//! pore-resolved hydrodynamics, or biological prediction system.
+//! This crate provides CPU-first, source-bounded reference analyses for
+//! microbial movement and selected cross-taxon kinematic benchmarks.
+//! Physical event mechanism, observed duration bin, and evidence status are
+//! distinct dimensions. It includes renewal waiting-time laws, censor-aware
+//! survival estimation, effective free-path termination, contact-response
+//! statistics, and separate diatom/green-algal kinematic references. It is
+//! not a general molecular, hydrodynamic, or biological prediction system.
 //!
 //! The one-second boundary is an observational analysis convention. It never
 //! assigns a physical mechanism; duration alone cannot prove a motor event or
@@ -20,9 +21,18 @@ use std::error::Error;
 use std::f64::consts::{PI, TAU};
 use std::fmt;
 
+mod algal;
 mod collective;
 mod geometry;
 mod renewal;
+pub use algal::{
+    AlgalKinematicsError, ChlamydomonasClassificationPolicy, ChlamydomonasKinematicClass,
+    ChlamydomonasPopulationSummary, ChlamydomonasTrack, ChlamydomonasTrackClassification,
+    PhototaxisAlignment, RapheContactMode, RapheCurvatureCalibration,
+    RapheCurvatureMetrics, RapheCurvatureObservation, RapheCurvatureScore,
+    RapheModeCalibration, classify_chlamydomonas_track, fit_raphe_curvature_model,
+    score_raphe_curvature_model, summarize_chlamydomonas_tracks,
+};
 pub use collective::{
     CollisionContact, CollisionResponseError, CollisionResponseObservation,
     CollisionResponseSummary, CollisionReversalLaw, ConstitutiveReversalLaw,
