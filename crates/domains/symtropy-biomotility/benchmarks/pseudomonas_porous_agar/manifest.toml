@@ -32,6 +32,16 @@ turn_angle_only_fraction_of_combined_drift = 0.72
 run_time_only_fraction_of_combined_drift = 0.25
 evidence_class = "SOURCE_REPORTED_AGENT_BASED_SIMULATION_NOT_REPRODUCED_HERE"
 
+[secondary_comparator_stoll_2026]
+organism = "Azospirillum brasilense"
+study_doi = "10.1073/pnas.2616336123"
+dataset_doi = "10.3929/ethz-c-000804612"
+dataset_rights = "IN_COPYRIGHT_NONCOMMERCIAL_USE_PERMITTED"
+dataset_ingestion_status = "NOT_ADMITTED_PENDING_RIGHTS_SCHEMA_CHECKSUM_REVIEW"
+evidence_class = "PUBLISHED_EXPERIMENTAL_REFERENCE_AND_RESTRICTED_DATASET"
+reported_heterogeneity_gain_fold = 1.5
+use_for_commercial_work = false
+
 [limitations]
 not_raw_data = true
 not_empirical_model_calibration = true
