@@ -1058,6 +1058,61 @@ mod tests {
             binding.validate_trace(&shifted),
             Err(CovarianceError::TraceTimeScheduleMismatch)
         );
+
+        let changed_process = ObservationProcessTraceV1 {
+            observation_process_id: "other-process".to_owned(),
+            ..matching.clone()
+        };
+        assert_eq!(
+            binding.validate_trace(&changed_process),
+            Err(CovarianceError::TraceProcessIdentityMismatch)
+        );
+        let changed_sampling = ObservationProcessTraceV1 {
+            sampling_policy_id: "other-sampling".to_owned(),
+            ..matching.clone()
+        };
+        assert_eq!(
+            binding.validate_trace(&changed_sampling),
+            Err(CovarianceError::TraceSamplingPolicyMismatch)
+        );
+        let changed_operator = ObservationProcessTraceV1 {
+            observation_operator_id: "other-operator".to_owned(),
+            ..matching.clone()
+        };
+        assert_eq!(
+            binding.validate_trace(&changed_operator),
+            Err(CovarianceError::TraceOperatorMismatch)
+        );
+        let changed_cutoff = ObservationProcessTraceV1 {
+            availability_cutoff_id: "other-cutoff".to_owned(),
+            ..matching
+        };
+        assert_eq!(
+            binding.validate_trace(&changed_cutoff),
+            Err(CovarianceError::TraceAvailabilityCutoffMismatch)
+        );
+    }
+
+    #[test]
+    fn masked_nan_is_ignored_but_observed_nan_is_rejected() {
+        let covariance = DenseSpdCovariance::new(vec![
+            vec![1.0, 0.1, 0.2],
+            vec![0.1, 1.0, 0.3],
+            vec![0.2, 0.3, 1.0],
+        ])
+        .unwrap();
+        let (selected, _) =
+            select_observed_subspace(&[4.0, f64::NAN, 6.0], &[true, false, true], &covariance)
+                .unwrap();
+        assert_eq!(selected, vec![4.0, 6.0]);
+        assert!(matches!(
+            select_observed_subspace(
+                &[4.0, f64::NAN, 6.0],
+                &[true, true, false],
+                &covariance
+            ),
+            Err(CovarianceError::NonFiniteObservedValue { index: 1 })
+        ));
     }
 
     #[test]
