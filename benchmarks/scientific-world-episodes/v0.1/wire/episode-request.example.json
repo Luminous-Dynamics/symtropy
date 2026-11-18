@@ -5,7 +5,7 @@
     "manifest": {
       "contract_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "world_model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      "model_profile_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "model_profile_sha256": "47c1f7f44e83a22bebebe43f92bec4fdf72f425205783ea93f08ae28e953d280",
       "world_recipe_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "clock_profile_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "time_origin_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
