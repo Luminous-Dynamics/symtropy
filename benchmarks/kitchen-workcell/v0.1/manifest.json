@@ -631,6 +631,32 @@
       ],
       "safety_boundary": "Simulation-only long-horizon mobile manipulation. The benchmark is household-wide rather than kitchen-appliance-only. No appliance safety, food sanitation, pressure control or physical transfer is established.",
       "control_condition": "Use the official 2026 100-task, seven-scene release and official RGB+depth+proprioception track. Match robot embodiment, time budgets, goal predicates and seeds. Report whole-set results and any kitchen-adjacent subset separately; never present a subset score as an official challenge score."
+    },
+    {
+      "task_id": "workflow-interruption-recovery",
+      "domain": "workflow",
+      "operation": "recover or safely hand off a multi-dish meal after power, water, module, sensor or local-service interruption",
+      "input_manifest_required": [
+        "original meal intent and proposal digest",
+        "exact recipe/task/material-flow graph and module revisions",
+        "disturbance event sequence and clock domain",
+        "last independently observed appliance/task/material states",
+        "current household power/water envelope",
+        "manual operation and human availability constraints",
+        "frozen recovery policy and safety-state prerequisites"
+      ],
+      "primary_metrics": [
+        "interruption_task_state_false_known_rate",
+        "interruption_unsafe_auto_resume_count",
+        "interruption_unknown_state_detection_latency_ms",
+        "interruption_manual_handoff_latency_ms",
+        "interruption_feasible_recovery_rate",
+        "interruption_accepted_food_retention_fraction",
+        "interruption_manual_operability_rate",
+        "interruption_meal_intent_traceability_rate"
+      ],
+      "safety_boundary": "Advisory planning only. Never restart pressure, heat, blade or other safety-relevant operations. Unknown or stale physical state blocks continuation and requires local-controller evidence or manual/qualified review.",
+      "control_condition": "Compare manual baseline, deterministic fixed-rule recovery, abort/no-replan baseline and Symtropy resilience planner on identical frozen feasible and infeasible disturbances. Include unknown-state, stale-revision, network restoration and partial-progress negative controls."
     }
   ],
   "metrics": [
@@ -1273,6 +1299,70 @@
       "method": "Luminous generalization extension using the official 50-task policy suite and locked, disjoint environment/layout IDs; no fine-tuning or environment-specific adaptation on the held-out set. Report each task split and environment separately.",
       "evidence_class": "simulated",
       "notes": "Custom environment-generalization lane. The current RoboCasa365 public leaderboard reports Atomic-Seen, Composite-Seen and Composite-Unseen task splits evaluated in pretraining kitchens; it does not supply a matched held-out-household-layout score."
+    },
+    {
+      "metric_id": "interruption_task_state_false_known_rate",
+      "unit": "fraction",
+      "denominator": "all task states classified during the frozen disturbance suite",
+      "method": "Count states labelled known when required independent observation/interlock evidence is missing, stale, contradictory or outside the declared freshness bound; report per disturbance family and worst case.",
+      "evidence_class": "simulated",
+      "notes": "False-known state is a critical failure, not an average-accuracy tradeoff."
+    },
+    {
+      "metric_id": "interruption_unsafe_auto_resume_count",
+      "unit": "episodes",
+      "denominator": "all episodes in the frozen power/utility interruption and restoration suite",
+      "method": "Count any automatic continuation or restart of pressure, thermal, blade or other safety-relevant operation without independently verified local-controller state and manufacturer-approved resume conditions.",
+      "evidence_class": "simulated",
+      "notes": "Hard negative-control metric; no automatic restart permission is introduced by this planner."
+    },
+    {
+      "metric_id": "interruption_unknown_state_detection_latency_ms",
+      "unit": "ms",
+      "denominator": "all injected events that make a previously known task state stale or unknown",
+      "method": "Elapsed monotonic time from disturbance evidence arrival to the planner marking dependent task/material state unknown and blocking automatic continuation.",
+      "evidence_class": "simulated",
+      "notes": "Only a software detection-latency metric; not a physical sensor or safety reaction-time claim."
+    },
+    {
+      "metric_id": "interruption_manual_handoff_latency_ms",
+      "unit": "ms",
+      "denominator": "all injected events requiring manual handoff",
+      "method": "Elapsed monotonic time from the planner's receipt of an unresolved disturbance to producing a human-readable manual handoff report.",
+      "evidence_class": "simulated",
+      "notes": "Does not measure human response time or prove accessibility."
+    },
+    {
+      "metric_id": "interruption_feasible_recovery_rate",
+      "unit": "fraction",
+      "denominator": "all frozen simulated disturbance cases independently adjudicated feasible before evaluation",
+      "method": "Count cases where the planner proposes a valid schedule/partial-meal alternative satisfying frozen constraints and preserving the original meal intent; compare with no-replan and fixed-rule baselines.",
+      "evidence_class": "simulated",
+      "notes": "Report infeasible cases separately; no post-hoc reclassification."
+    },
+    {
+      "metric_id": "interruption_accepted_food_retention_fraction",
+      "unit": "fraction",
+      "denominator": "accepted edible output mass/servings achievable without the disturbance under the same initial inputs",
+      "method": "Compare accepted output after disturbance against matched undisturbed reference using identical recipe, initial state and acceptance criteria; preserve quality and safety gates.",
+      "evidence_class": "simulated",
+      "notes": "Simulation estimates are not physical edible-yield results."
+    },
+    {
+      "metric_id": "interruption_manual_operability_rate",
+      "unit": "fraction",
+      "denominator": "all preregistered eligible non-hazardous workflows tested with WAN and planning service unavailable",
+      "method": "Count workflows that remain locally and manually operable without cloud, household network or planner service; do not bypass appliance protections.",
+      "evidence_class": "simulated",
+      "notes": "Manual operability must be tested physically before any product claim."
+    },
+    {
+      "metric_id": "interruption_meal_intent_traceability_rate",
+      "unit": "fraction",
+      "denominator": "all replanned tasks and meal outputs after an injected disturbance",
+      "method": "Count output/task records retaining a complete provenance link to original human intent, affected proposal/task revision, disturbance record and explicit human-approved partial/substitute decision.",
+      "evidence_class": "simulated",
+      "notes": "A replan must not silently redefine success."
     }
   ],
   "target_hypotheses": [
@@ -1709,6 +1799,61 @@
         "severity thresholds are tuned after seeing evaluation results",
         "worst-case episodes are not retained",
         "missing signal intervals are treated as no violation"
+      ]
+    },
+    {
+      "hypothesis_id": "H-INTERRUPT-AUTO-RESUME-ZERO",
+      "metric_id": "interruption_unsafe_auto_resume_count",
+      "target": "0 automatic restart/continuation events for pressure, thermal, blade or other safety-relevant tasks in the frozen interruption suite when state or interlock evidence is unknown, stale or contradictory.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any automatic restart occurs without the exact independently verified local-state prerequisites",
+        "a missing controller state is treated as safe",
+        "a network reconnection is treated as evidence that a physical operation can resume"
+      ]
+    },
+    {
+      "hypothesis_id": "H-INTERRUPT-FALSE-KNOWN-ZERO",
+      "metric_id": "interruption_task_state_false_known_rate",
+      "target": "0 false-known classifications on the frozen adversarial state suite.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any task/material state is labelled known without valid, fresh evidence",
+        "an event ordering conflict is silently resolved",
+        "unknown food condition is promoted to safe/servable"
+      ]
+    },
+    {
+      "hypothesis_id": "H-INTERRUPT-RECOVERY-950",
+      "metric_id": "interruption_feasible_recovery_rate",
+      "target": ">=0.950 valid candidate recovery proposals on independently adjudicated feasible simulated disturbances; report infeasible cases separately.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "feasibility is adjudicated after system outputs",
+        "manual takeover or partial completion is counted as full meal completion",
+        "any safety or food-quality gate is compensated by speed/resource score"
+      ]
+    },
+    {
+      "hypothesis_id": "H-INTERRUPT-MANUAL-990",
+      "metric_id": "interruption_manual_operability_rate",
+      "target": ">=0.990 eligible non-hazardous workflows remain locally manually operable with WAN and planning service unavailable.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "a cloud login or planner service is required for manual operation",
+        "a safety interlock is bypassed",
+        "failed or excluded offline trials are omitted"
+      ]
+    },
+    {
+      "hypothesis_id": "H-INTERRUPT-TRACE-100",
+      "metric_id": "interruption_meal_intent_traceability_rate",
+      "target": "1.000 of post-disturbance replanned outputs retain lineage to the original human intent, disturbance and approved decision.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "a replan silently changes the requested meal or serving count",
+        "a substitute is not explicitly approved",
+        "the old compilation is overwritten rather than invalidated and superseded"
       ]
     }
   ],
