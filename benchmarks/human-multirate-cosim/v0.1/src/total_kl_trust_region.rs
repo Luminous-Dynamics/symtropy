@@ -1184,6 +1184,17 @@ mod tests {
             ),
             Err(TotalKlTrustRegionError::CovarianceIdentityMismatch)
         );
+        let correct_binding = ObservationCovarianceV1::new(
+            "covariance:correct-order".to_owned(),
+            "process:independent-time".to_owned(),
+            "sampling:scenario".to_owned(),
+            "operator:sensors".to_owned(),
+            "cutoff:finalized".to_owned(),
+            vec![10, 11],
+            fixture.observation_times.clone(),
+            DenseSpdCovariance::new(fixture.noise_covariance.clone()).unwrap(),
+        )
+        .unwrap();
         assert_eq!(
             optimize_pairwise_total_kl_trust_region_with_covariance(
                 &fixture,
@@ -1192,9 +1203,9 @@ mod tests {
                 &[10, 11],
                 &[0],
                 &[0.0, 2.0],
-                &wrong_order,
+                &correct_binding,
                 &identity(
-                    "covariance:wrong-order",
+                    "covariance:correct-order",
                     "process:stale-identity",
                     "sampling:scenario",
                     "operator:sensors",
@@ -1202,6 +1213,25 @@ mod tests {
                 ),
             ),
             Err(TotalKlTrustRegionError::CovarianceIdentityMismatch)
+        );
+        assert_eq!(
+            optimize_pairwise_total_kl_trust_region_with_covariance(
+                &fixture,
+                1,
+                2,
+                &[10, 11],
+                &[0],
+                &[0.0, 2.0],
+                &correct_binding,
+                &identity(
+                    "",
+                    "process:independent-time",
+                    "sampling:scenario",
+                    "operator:sensors",
+                    "cutoff:finalized",
+                ),
+            ),
+            Err(TotalKlTrustRegionError::MissingCovarianceIdentity)
         );
 
     }
