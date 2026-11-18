@@ -540,6 +540,9 @@ mod tests {
     const CROSS_LAYER_CASE: &str = include_str!(
         "../../../docs/research/aviation/examples/synthetic_haps_fleet_cross_layer_common_mode_reliability_v1.json"
     );
+    const CROSS_LAYER_DISASTER_CASE: &str = include_str!(
+        "../../../docs/research/aviation/examples/synthetic_haps_fleet_regional_cross_layer_common_cause_v1.json"
+    );
 
     fn parse_fixture(value: &str) -> FleetReliabilityCase {
         parse_case_json(value.as_bytes()).expect("fixture parses and validates")
@@ -598,6 +601,36 @@ mod tests {
             0.00030156258411973,
         );
         assert_eq!(report.fleet_meets_target, Some(false));
+    }
+
+    #[test]
+    fn one_regional_common_cause_can_disable_all_provider_layers() {
+        let case = parse_fixture(CROSS_LAYER_DISASTER_CASE);
+        let report = evaluate_case(&case).unwrap();
+        assert_eq!(report.enumerated_scenario_count, 256);
+        close(report.probability_mass, 1.0);
+        close(report.single_node_service_availability, 0.945847);
+        close(report.fleet_k_of_n_service_availability, 0.9946999448308008);
+        close(report.naive_independent_k_of_n_service_availability, 0.9999999996);
+        close(
+            report.absolute_service_availability_gain_vs_single_node,
+            0.0488529448308008,
+        );
+        close(
+            report.common_cause_overstatement_probability_points,
+            0.0053000547691992,
+        );
+        assert_eq!(report.fleet_meets_target, Some(false));
+    }
+
+    #[test]
+    fn cross_layer_disaster_reduces_the_paired_two_cause_case_by_event_survival() {
+        let paired = evaluate_case(&parse_fixture(CROSS_LAYER_CASE)).unwrap();
+        let stressed = evaluate_case(&parse_fixture(CROSS_LAYER_DISASTER_CASE)).unwrap();
+        close(
+            stressed.fleet_k_of_n_service_availability,
+            paired.fleet_k_of_n_service_availability * 0.995,
+        );
     }
 
     #[test]
