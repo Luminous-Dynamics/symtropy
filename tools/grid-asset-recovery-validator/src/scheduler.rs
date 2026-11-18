@@ -11,7 +11,8 @@ pub struct TaskSpec {
     pub resource_units: u32,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScheduledTask {
     pub event_id: String,
     pub task_id: String,
