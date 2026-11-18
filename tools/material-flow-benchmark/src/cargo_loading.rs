@@ -638,7 +638,7 @@ mod tests {
                     allowed_orientations: vec![BoxOrientation::LengthWidthHeight],
                     placement: CargoPlacementMm {
                         x_mm: 700,
-                        y_mm: 0,
+                        y_mm: 600,
                         z_mm: 0,
                         orientation: BoxOrientation::LengthWidthHeight,
                     },
@@ -657,7 +657,7 @@ mod tests {
                     allowed_orientations: vec![BoxOrientation::LengthWidthHeight],
                     placement: CargoPlacementMm {
                         x_mm: 1_300,
-                        y_mm: 0,
+                        y_mm: 1_200,
                         z_mm: 0,
                         orientation: BoxOrientation::LengthWidthHeight,
                     },
@@ -684,6 +684,7 @@ mod tests {
     fn rejects_overlapping_packages() {
         let mut test = input();
         test.packages[1].placement.x_mm = 500;
+        test.packages[1].placement.y_mm = 400;
         let report = evaluate_cargo_loading(&test).expect("well-formed input");
         assert_eq!(report.verdict, CargoFeasibilityVerdict::Infeasible);
         assert!(report.findings.iter().any(|f| f.contains("overlap")));
@@ -709,6 +710,7 @@ mod tests {
     fn rejects_package_blocked_from_required_access_face() {
         let mut test = input();
         test.packages[0].access_face = AccessFace::XMax;
+        test.packages[1].placement.y_mm = 0;
         let report = evaluate_cargo_loading(&test).expect("well-formed input");
         assert_eq!(report.verdict, CargoFeasibilityVerdict::Infeasible);
         assert!(report.findings.iter().any(|f| f.contains("is blocked")));
@@ -748,11 +750,11 @@ mod tests {
     }
 
     #[test]
-    fn missing_restraint_evidence_is_not_feasible() {
+    fn missing_restraint_evidence_is_infeasible() {
         let mut test = input();
-        test.packages[0].restraint_evidence = CargoEvidenceStatus::Unknown;
+        test.packages[0].restraint_evidence = CargoEvidenceStatus::Missing;
         let report = evaluate_cargo_loading(&test).expect("well-formed input");
-        assert_eq!(report.verdict, CargoFeasibilityVerdict::Indeterminate);
+        assert_eq!(report.verdict, CargoFeasibilityVerdict::Infeasible);
     }
 
     #[test]
@@ -766,7 +768,17 @@ mod tests {
         let first_report = evaluate_cargo_loading(&first).expect("first input");
         let second_report = evaluate_cargo_loading(&second).expect("permuted input");
         assert_eq!(first_report.input_digest_sha256, second_report.input_digest_sha256);
-        assert_eq!(first_report.verdict, second_report.verdict);
+        assert_eq!(first_report, second_report);
+    }
+
+    #[test]
+    fn supports_tare_centre_of_gravity_below_the_cargo_floor() {
+        let mut test = input();
+        test.bay.vehicle_tare_cg_mm[2] = -100;
+        test.bay.combined_cg_bounds_mm.z_min_mm = -200;
+        let report = evaluate_cargo_loading(&test).expect("signed vehicle CG");
+        assert_eq!(report.verdict, CargoFeasibilityVerdict::Feasible);
+        assert!(report.combined_cg_mm.expect("CG")[2] < 0);
     }
 
     #[test]
