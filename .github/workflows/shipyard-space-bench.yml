@@ -1,0 +1,46 @@
+name: Shipyard space-time verifier
+
+on:
+  push:
+    paths:
+      - "crates/tools/shipyard-space-bench/**"
+      - ".github/workflows/shipyard-space-bench.yml"
+  pull_request:
+    paths:
+      - "crates/tools/shipyard-space-bench/**"
+      - ".github/workflows/shipyard-space-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shipyard-space-bench-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact event revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/tools/shipyard-space-bench/Cargo.toml -- --check
+
+      - name: Run locked offline verifier and oracle tests
+        run: cargo test --locked --offline --manifest-path crates/tools/shipyard-space-bench/Cargo.toml
+
+      - name: Compile all targets
+        run: cargo check --locked --offline --manifest-path crates/tools/shipyard-space-bench/Cargo.toml --all-targets
+
+      - name: Lint all targets with warnings denied
+        run: cargo clippy --locked --offline --manifest-path crates/tools/shipyard-space-bench/Cargo.toml --all-targets -- -D warnings
