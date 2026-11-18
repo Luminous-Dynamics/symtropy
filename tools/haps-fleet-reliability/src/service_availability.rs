@@ -854,6 +854,9 @@ mod tests {
     const CYCLIC_CASE: &str = include_str!(
         "../../../docs/research/aviation/examples/synthetic_haps_fleet_220day_cyclic_rotation_v1.json"
     );
+    const CYCLIC_WEATHER_CASE: &str = include_str!(
+        "../../../docs/research/aviation/examples/synthetic_haps_fleet_220day_cyclic_rotation_weather_v1.json"
+    );
 
     fn parse() -> FleetServiceAvailabilityCase {
         parse_service_availability_case_json(CASE.as_bytes())
@@ -933,6 +936,43 @@ mod tests {
             report.primary_only_baseline.capacity_adequacy_fraction,
             0.6818181818181821,
         );
+    }
+
+    #[test]
+    fn cyclic_rotation_reports_shared_weather_capacity_outage() {
+        let case =
+            parse_service_availability_case_json(CYCLIC_WEATHER_CASE.as_bytes()).unwrap();
+        let report = evaluate_service_availability(&case).unwrap();
+
+        close(
+            report.spare_rotation.strict_availability_fraction,
+            5256.0 / 5280.0,
+        );
+        close(
+            report.spare_rotation.capacity_adequacy_fraction,
+            5278.4 / 5280.0,
+        );
+        close(report.spare_rotation.strict_outage_h, 24.0);
+        close(report.spare_rotation.maximum_contiguous_outage_h, 24.0);
+        assert_eq!(report.spare_rotation.outage_intervals.len(), 1);
+        close(report.spare_rotation.outage_intervals[0].start_h, 24.0);
+        close(report.spare_rotation.outage_intervals[0].end_h, 48.0);
+        close(
+            report.spare_rotation.outage_intervals[0].minimum_effective_capacity_units,
+            2.8,
+        );
+        assert_eq!(report.launch_operations, 25);
+        assert_eq!(report.recovery_operations, 25);
+        assert_eq!(report.reposition_operations, 25);
+    }
+
+    #[test]
+    fn weather_site_closure_rejects_overlapping_launch() {
+        let mut case =
+            parse_service_availability_case_json(CYCLIC_WEATHER_CASE.as_bytes()).unwrap();
+        case.common_cause_events[0].start_h = 39.0 * 24.0;
+        case.common_cause_events[0].end_h = 40.0 * 24.0;
+        assert!(validate_service_availability_case(&case).is_err());
     }
 
     #[test]
