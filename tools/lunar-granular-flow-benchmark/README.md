@@ -244,3 +244,18 @@ This is a 1-g LHS-1 hopper benchmark, distinct from the 0.16-g ICN-LHT-1 hopper-
 The new 63-cell LHS-1 extension in advanced-doe-v0.json is analyst-selected: seven Gamma values × three apparatus-commissioned frequency bands × three hopper charge-mass fractions. It explicitly holds frequency and acceleration as independent controls and includes spatial-flow regime classification, stagnant-zone/rathole area, asymmetry, jam probability, and mass-rate variability. All cells are planned only.
 
 **Why this matters:** a mass-flow average can conceal ratholing or a large stagnant region. Regime classification, occupancy/velocity fields and outlet-rate time series must accompany throughput, energy and composition measurements. The run schema now includes charge mass and hopper geometry fields, an observed regime classification and confidence, and an artifact reference to the spatial flow-regime evidence.
+
+## Cross-gravity, cross-simulant bridge experiment
+
+The two published hopper comparators cannot be collapsed into a single trend: the Lappa et al. paper uses LHS-1 in a 1-g ground rig, while Stepanova et al. use ICN-LHT-1 at 0.16 g in parabolic flight. Their apparatus, material and operating conditions are not matched. The new 80-cell bridge matrix in advanced-doe-v0.json is intended to separate those effects:
+
+- Two separately characterized simulants: LHS-1 and ICN-LHT-1.
+- Two gravity levels: 1 g and 0.16 g.
+- Four vibration levels: off, Gamma 1.5, 3.4 and 6.
+- Three calibrated frequency bands for vibration-on cells, with identical hardware bands in both gravity campaigns.
+- Two hopper charge levels: 0.25 and 1.0 of the test rig's commissioned rated charge.
+- One common hopper/outlet/mount/rotary-pocket-feeder/sensor architecture and a target of three repeats per cell.
+
+This is a proposed matched bridge, not source reproduction. Gamma 3.4 is included because it is a demonstrated sustained-flow level for ICN-LHT-1 in the cited parabolic-flight apparatus; it is not a universal threshold. Frequency bands and charge limits must be commissioned against the actual test rig. Matching Gamma does not match displacement, contact dynamics, particle adhesion or the full gravity/contact regime. Preserve measured frequency, peak acceleration, displacement, packing state, bed height, material batch, wall contact and feeder response.
+
+Analyse material × gravity × Gamma × frequency × charge-mass interactions with a preregistered mixed-effects model. Do not pool LHS-1 and ICN-LHT-1 into one material class, and do not infer lunar gravity equivalence from matched Gamma alone.
