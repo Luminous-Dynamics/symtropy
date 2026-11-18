@@ -12,6 +12,11 @@ pub struct NumericCoordinates {
     pub fill_fraction: Option<f64>,
     pub gravity_m_s2: Option<f64>,
     pub chamber_pressure_pa: Option<f64>,
+    pub inertial_number: Option<f64>,
+    pub electrostatic_number: Option<f64>,
+    pub vibration_gamma: Option<f64>,
+    pub vibration_frequency_gravity_scale: Option<f64>,
+    pub vibration_amplitude_to_particle_size: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -40,6 +45,11 @@ pub struct SimilarityTolerances {
     pub fill_fraction_absolute: f64,
     pub gravity_factor: f64,
     pub pressure_factor: f64,
+    pub inertial_number_factor: f64,
+    pub electrostatic_number_factor: f64,
+    pub vibration_gamma_factor: f64,
+    pub vibration_frequency_factor: f64,
+    pub vibration_amplitude_factor: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -194,6 +204,88 @@ fn positive_ratio_result(
             _ => "symmetric multiplicative deviation exceeds the declared factor".to_owned(),
         },
         status,
+    })
+}
+
+fn signed_ratio_result(
+    coordinate: &str,
+    target: Option<f64>,
+    candidate: Option<f64>,
+    factor_tolerance: f64,
+) -> Result<CoordinateResult, String> {
+    require_factor(factor_tolerance, &format!("{coordinate} tolerance"))?;
+
+    let (Some(target), Some(candidate)) = (target, candidate) else {
+        return Ok(CoordinateResult {
+            coordinate: coordinate.to_owned(),
+            target_value: target,
+            candidate_value: candidate,
+            deviation: None,
+            declared_tolerance: Some(factor_tolerance),
+            status: CoordinateStatus::UnknownMissingValue,
+            interpretation: "required signed coordinate missing; similarity cannot be established".to_owned(),
+        });
+    };
+
+    if !target.is_finite() || !candidate.is_finite() {
+        return Err(format!("{coordinate} values must be finite"));
+    }
+
+    if target == 0.0 || candidate == 0.0 {
+        let both_zero = target == 0.0 && candidate == 0.0;
+        return Ok(CoordinateResult {
+            coordinate: coordinate.to_owned(),
+            target_value: Some(target),
+            candidate_value: Some(candidate),
+            deviation: if both_zero { Some(1.0) } else { None },
+            declared_tolerance: Some(factor_tolerance),
+            status: if both_zero {
+                CoordinateStatus::WithinTolerance
+            } else {
+                CoordinateStatus::OutsideTolerance
+            },
+            interpretation: if both_zero {
+                "both profiles report zero electrostatic drive".to_owned()
+            } else {
+                "one profile reports zero electrostatic drive while the other is non-zero".to_owned()
+            },
+        });
+    }
+
+    if target.is_sign_positive() != candidate.is_sign_positive() {
+        return Ok(CoordinateResult {
+            coordinate: coordinate.to_owned(),
+            target_value: Some(target),
+            candidate_value: Some(candidate),
+            deviation: None,
+            declared_tolerance: Some(factor_tolerance),
+            status: CoordinateStatus::OutsideTolerance,
+            interpretation: "electrostatic coordinate sign differs; force direction is not similar".to_owned(),
+        });
+    }
+
+    let ratio = candidate.abs() / target.abs();
+    if !ratio.is_finite() || ratio <= 0.0 {
+        return Err(format!("{coordinate} magnitude ratio is outside finite numeric range"));
+    }
+    let symmetric_factor = ratio.max(1.0 / ratio);
+    if !symmetric_factor.is_finite() {
+        return Err(format!("{coordinate} symmetric magnitude ratio is outside finite numeric range"));
+    }
+    let status = if symmetric_factor <= factor_tolerance {
+        CoordinateStatus::WithinTolerance
+    } else {
+        CoordinateStatus::OutsideTolerance
+    };
+
+    Ok(CoordinateResult {
+        coordinate: coordinate.to_owned(),
+        target_value: Some(target),
+        candidate_value: Some(candidate),
+        deviation: Some(symmetric_factor),
+        declared_tolerance: Some(factor_tolerance),
+        status,
+        interpretation: "electrostatic drive polarity matches; magnitude compared with a symmetric factor tolerance".to_owned(),
     })
 }
 
@@ -356,6 +448,40 @@ pub fn compare(input: &ComparisonInput) -> Result<SimilarityReport, String> {
             t.pressure_factor,
             false,
         )?,
+        positive_ratio_result(
+            "inertial_number",
+            a.inertial_number,
+            b.inertial_number,
+            t.inertial_number_factor,
+            true,
+        )?,
+        signed_ratio_result(
+            "electrostatic_number",
+            a.electrostatic_number,
+            b.electrostatic_number,
+            t.electrostatic_number_factor,
+        )?,
+        positive_ratio_result(
+            "vibration_gamma",
+            a.vibration_gamma,
+            b.vibration_gamma,
+            t.vibration_gamma_factor,
+            true,
+        )?,
+        positive_ratio_result(
+            "vibration_frequency_gravity_scale",
+            a.vibration_frequency_gravity_scale,
+            b.vibration_frequency_gravity_scale,
+            t.vibration_frequency_factor,
+            true,
+        )?,
+        positive_ratio_result(
+            "vibration_amplitude_to_particle_size",
+            a.vibration_amplitude_to_particle_size,
+            b.vibration_amplitude_to_particle_size,
+            t.vibration_amplitude_factor,
+            true,
+        )?,
         categorical_result("atmosphere", &ca.atmosphere, &cb.atmosphere),
         categorical_result("wall_material", &ca.wall_material, &cb.wall_material),
         categorical_result("wall_grounding", &ca.wall_grounding, &cb.wall_grounding),
@@ -408,6 +534,11 @@ mod tests {
                 fill_fraction: Some(0.25),
                 gravity_m_s2: Some(9.81),
                 chamber_pressure_pa: Some(0.08),
+                inertial_number: Some(0.01),
+                electrostatic_number: Some(-0.5),
+                vibration_gamma: Some(0.816),
+                vibration_frequency_gravity_scale: Some(0.0857),
+                vibration_amplitude_to_particle_size: Some(2.22),
             },
             categorical: CategoricalCoordinates {
                 atmosphere: Some("high_vacuum".to_owned()),
@@ -429,6 +560,11 @@ mod tests {
         candidate.numeric.particle_to_drum_ratio = Some(9.5e-4);
         candidate.numeric.wall_roughness_to_particle_ratio = Some(0.11);
         candidate.numeric.fill_fraction = Some(0.27);
+        candidate.numeric.inertial_number = Some(0.011);
+        candidate.numeric.electrostatic_number = Some(-0.55);
+        candidate.numeric.vibration_gamma = Some(0.84);
+        candidate.numeric.vibration_frequency_gravity_scale = Some(0.088);
+        candidate.numeric.vibration_amplitude_to_particle_size = Some(2.3);
 
         ComparisonInput {
             target,
@@ -442,6 +578,11 @@ mod tests {
                 fill_fraction_absolute: 0.05,
                 gravity_factor: 1.10,
                 pressure_factor: 1.25,
+                inertial_number_factor: 1.25,
+                electrostatic_number_factor: 1.25,
+                vibration_gamma_factor: 1.25,
+                vibration_frequency_factor: 1.25,
+                vibration_amplitude_factor: 1.25,
             },
         }
     }
@@ -453,7 +594,7 @@ mod tests {
             report.overall_status,
             EnvelopeStatus::WithinDeclaredSimilarityEnvelope
         );
-        assert_eq!(report.coordinates.len(), 12);
+        assert_eq!(report.coordinates.len(), 17);
     }
 
     #[test]
@@ -517,6 +658,37 @@ mod tests {
         );
         assert_eq!(
             report.coordinates[1].status,
+            CoordinateStatus::UnknownMissingValue
+        );
+    }
+
+    #[test]
+    fn opposite_electrostatic_polarity_is_outside_even_at_equal_magnitude() {
+        let mut value = input();
+        value.target.numeric.electrostatic_number = Some(0.5);
+        value.candidate.numeric.electrostatic_number = Some(-0.5);
+        let report = compare(&value).expect("signed electrostatic coordinate is valid");
+        assert_eq!(
+            report.overall_status,
+            EnvelopeStatus::OutsideDeclaredSimilarityEnvelope
+        );
+        assert_eq!(
+            report.coordinates[9].status,
+            CoordinateStatus::OutsideTolerance
+        );
+    }
+
+    #[test]
+    fn missing_inertial_number_is_indeterminate() {
+        let mut value = input();
+        value.candidate.numeric.inertial_number = None;
+        let report = compare(&value).expect("missing inertial number is represented as unknown");
+        assert_eq!(
+            report.overall_status,
+            EnvelopeStatus::IndeterminateMissingCoordinate
+        );
+        assert_eq!(
+            report.coordinates[8].status,
             CoordinateStatus::UnknownMissingValue
         );
     }
