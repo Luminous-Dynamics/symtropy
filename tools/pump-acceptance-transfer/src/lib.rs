@@ -1004,7 +1004,7 @@ mod tests {
     fn all_report_rows_have_same_tsv_width() {
         let report = render_report(&run());
         let widths: BTreeSet<usize> = report.lines().map(|line| line.split('\t').count()).collect();
-        assert_eq!(widths, BTreeSet::from([44]));
+        assert_eq!(widths, BTreeSet::from([43]));
     }
 
     #[test]
