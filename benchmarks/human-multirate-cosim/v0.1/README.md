@@ -197,3 +197,49 @@ Registered reference fixture:
 Independent reproduction of this fixed setup yielded 365/384 calibration in-family accepts (95.05%), 358/384 validation accepts (93.23%), 26/384 false OUT_OF_MODEL_SET (6.77%), and 128/128 rejection of the held-out bypass 0.75 (100%). The corresponding validation Wilson 95% intervals were approximately 90.26–95.34% for in-family coverage, 4.66–9.74% for false OUT_OF_MODEL_SET, and 97.09–100% for held-out rejection.
 
 These are deterministic synthetic Monte Carlo results for one declared fixture, not a calibrated real-world OOD detector or a general guarantee. The Gaussian/noise covariance model is assumed correct. The test does not establish robustness to covariance misspecification, non-Gaussian noise, temporal correlation, hidden MNAR missingness or arbitrary omitted model structures.
+
+## Observation-process robustness and full space-time covariance
+
+The noise_robustness module adds a strict dense-covariance reference for
+candidate-visible model-family adequacy. The covariance vector order is
+time-major, then sensor-major. The generalized Gaussian residual is evaluated
+as 0.5 times the squared norm of L^-1 r using a Cholesky factor of the admitted
+covariance; the implementation does not explicitly invert the covariance.
+
+The initial covariance constructors include:
+- arbitrary finite, symmetric, strictly positive-definite dense matrices;
+- AR(1) temporal correlation on equally spaced sample indices;
+- exponential temporal correlation on strictly increasing irregular sample times;
+- separable time-by-sensor covariance through a Kronecker product.
+
+Covariance admission is fail-closed. Asymmetric, singular, indefinite,
+non-finite, dimensionally inconsistent or oversized matrices are rejected.
+There is no silent jitter, symmetrization, diagonal fallback, clipping or
+pseudoinverse. Missing observations are handled by selecting the matching
+principal submatrix; missing values are never replaced with zero.
+
+The full-covariance adequacy evaluator scores the same candidate-visible trace
+against every registered finite-grid model variant using the supplied dense
+space-time covariance. The original independent-time implementation remains
+the explicit iid baseline.
+
+Run the independent AR(1) negative-control lane with:
+
+    cargo run --manifest-path benchmarks/human-multirate-cosim/v0.1/Cargo.toml --release --bin noise_robustness
+
+The frozen fixture uses four unit-marginal-variance observation times,
+AR(1) rho = 0.8, 200,000 synthetic trials, seed 20261118, and the iid
+chi-square(4) 95th-percentile threshold. It reports iid-assumption false
+rejection and full-covariance Mahalanobis false rejection separately, with
+Wilson intervals. The target is to reproduce the qualitative failure of the
+iid negative control and recover approximately nominal rejection under the
+correctly specified full covariance. Exact observed rates are results of the
+Rust executable and are not claimed until that exact branch head is run.
+
+This first slice qualifies only Gaussian covariance handling and one AR(1)
+counterexample. It does not yet implement Student-t or contaminated-Gaussian
+likelihoods, heteroscedastic models, bias/drift state models, common-cause
+dropout processes, MCAR/MAR/MNAR generators, covariance estimation error,
+or a general dependent-data conformal guarantee. Unknown noise-family semantics
+must remain NOT_ASSESSED / ABSTAIN. The benchmark is synthetic-only and does not
+establish any physical sensor or human-subject validity.
