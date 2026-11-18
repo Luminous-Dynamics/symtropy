@@ -161,3 +161,29 @@ The nine-event fixture demonstrates that a reservation is a separate lifecycle f
 Reservation semantics are v0.1 exclusive-capacity-one and half-open: [start_tick, end_tick). The BTree index stores active, non-overlapping intervals per resource; adjacent intervals are allowed. A claim is retained after its lease-valid-until tick until explicit referee clearance. Active reservations block work-package supersession and resource-catalog version changes, so a later design/site update cannot silently invalidate a resource already physically committed. The index is derived from the event stream and must be rebuilt by replay at startup.
 
 The executable benchmark emits two distinct distributions at 100, 1,000 and 10,000 active reservations: successful atomic append latency and rejected overlapping-claim latency. It does not benchmark a distributed database, authenticated event ingestion, cross-process contention or actuator response. A production implementation must use an atomic database transaction or compare-and-append against the ledger head; in-memory &mut serialization is not a distributed lock service.
+
+
+### Interoperability boundary: VDA 5050 v3.0 and ISO 21423:2026
+
+The adapter strategy is to preserve industrial robot/fleet protocol meaning while keeping physical assurance and resource authority outside the transport protocol.
+
+- VDA 5050 v3.0 (March 2026) adds a zone concept for freely navigating mobile robots, planned/intermediate path sharing and revised operating/blocking concepts. Its scope is a communication interface between a fleet control system and mobile robots, not a construction safety case.
+- ISO 21423:2026 (published October 2026) specifies communication requirements among industrial mobile robots, fleet managers, other machinery/equipment and applications in shared industrial environments. It explicitly excludes safety requirements and navigation requirements. Its industrial-environment scope excludes public access and is not automatically applicable to every construction site configuration.
+- A construction adapter should preserve order/task identity, vehicle identity, zone/contour semantics, path-sharing provenance, action state, blocking state, timestamps/clock identity and all vendor extension data that affects execution. Unknown critical semantics must yield a typed unsupported/unresolved disposition, not silent data loss.
+- A zone grant or fleet-controller message does not prove conservative physical occupancy, stopping/recovery reachability, independent site clearance or an owner-authorized construction safety permit. The VDA/ISO message is an input observation in the evidence chain, never the authority that accepts the envelope or authorizes actuator motion.
+
+Proposed adapter conformance corpus:
+1. Golden encode/decode/replay tests for VDA 5050 v3.0 orders, node/edge sequencing, zone definitions, planned and intermediate path sharing, action/blocking states and error reports.
+2. Semantic mutation cases: unknown zone type, changed contour, stale path version, duplicated order/node IDs, lost intermediate path, clock-domain swap, offline/reconnect edits and out-of-order status.
+3. Round-trip preservation: 100% of declared construction-relevant fields are preserved or produce a typed rejection. No critical field may be dropped or guessed.
+4. Proof separation: even a protocol-valid path/zone/order must still be paired with the exact robot/tool/payload motion envelope and independent occupancy assessment; stale site state invalidates readiness and reservations.
+5. Multi-vendor differential: run the same frozen tasks through a VDA 5050 v3.0 reference fleet controller, vendor robot adapter and our construction bridge; compare task meaning, event lineage, conflict handling, re-planning and whole-workflow accepted output rather than transport throughput alone.
+
+Official references:
+- VDA 5050 v3.0 release: https://www.vda.de/en/press/press-releases/2026/260421_PM_VDA_5050_EN
+- VDA 5050 v3.0 release and source: https://github.com/VDA5050/VDA5050/releases
+- ISO 21423:2026: https://www.iso.org/standard/86749.html
+
+This adds a new explicit layer to the evidence architecture:
+
+Protocol intent/status → normalized construction task semantics → independently qualified body/tool/payload envelope → fresh occupancy and exclusive resource reservation → separate safety authority → physical execution → independent referee acceptance.
