@@ -21,6 +21,8 @@ use std::fmt;
 
 pub const EVENT_CLASS_THRESHOLD_S: f64 = 1.0;
 pub const DIRECTION_CONE_HALF_ANGLE_DEG: f64 = 36.0;
+/// Hard guard against non-advancing or unreasonably fine integration loops.
+pub const MAX_INTEGRATION_STEPS_PER_RUN: usize = 1_000_000;
 const DEFAULT_RNG_SEED: u64 = 0x9E37_79B9_7F4A_7C15;
 
 /// Direction of a run relative to the chemoattractant gradient.
@@ -356,6 +358,8 @@ pub enum SimulationError {
     InvalidInitialState,
     InvalidGradientHeading,
     NonFiniteTrajectory,
+    IntegrationStepBudgetExceeded,
+    IntegrationStepDidNotAdvance,
 }
 
 impl fmt::Display for SimulationError {
@@ -365,6 +369,8 @@ impl fmt::Display for SimulationError {
             Self::InvalidInitialState => write!(formatter, "initial agent state must be finite with non-negative elapsed time"),
             Self::InvalidGradientHeading => write!(formatter, "gradient heading must be finite"),
             Self::NonFiniteTrajectory => write!(formatter, "simulation produced a non-finite state; check profile magnitudes"),
+            Self::IntegrationStepBudgetExceeded => write!(formatter, "run exceeded the maximum integration-step budget"),
+            Self::IntegrationStepDidNotAdvance => write!(formatter, "integration step is too small to advance the remaining run time"),
         }
     }
 }
@@ -457,7 +463,10 @@ pub fn simulate_with_bias_mode(
     }
 
     let mut rng = SeededRng::new(seed);
+    let gradient_heading_rad = wrap_angle(gradient_heading_rad);
     let mut state = initial_state;
+    state.heading_rad = wrap_angle(state.heading_rad);
+    let initial_state = state;
     let mut events = Vec::with_capacity(event_count);
 
     for _ in 0..event_count {
@@ -474,8 +483,16 @@ pub fn simulate_with_bias_mode(
             profile.run_duration_unconditional_s.sample(&mut rng)
         };
         let mut remaining_run_s = run_duration;
+        let mut integration_steps = 0;
         while remaining_run_s > 0.0 {
+            if integration_steps >= MAX_INTEGRATION_STEPS_PER_RUN {
+                return Err(SimulationError::IntegrationStepBudgetExceeded);
+            }
             let step_s = remaining_run_s.min(profile.integration_step_s);
+            let next_remaining_run_s = remaining_run_s - step_s;
+            if next_remaining_run_s == remaining_run_s {
+                return Err(SimulationError::IntegrationStepDidNotAdvance);
+            }
             let angular_std = (2.0 * profile.rotational_diffusion_rad2_s * step_s).sqrt();
             let angular_increment = angular_std * rng.next_standard_normal();
             let midpoint_heading = wrap_angle(state.heading_rad + 0.5 * angular_increment);
@@ -487,7 +504,8 @@ pub fn simulate_with_bias_mode(
             if !state.is_valid() {
                 return Err(SimulationError::NonFiniteTrajectory);
             }
-            remaining_run_s -= step_s;
+            remaining_run_s = next_remaining_run_s;
+            integration_steps += 1;
         }
 
         let direction_before_event = classify_direction(
