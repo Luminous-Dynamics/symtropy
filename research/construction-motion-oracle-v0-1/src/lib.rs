@@ -19,6 +19,7 @@ pub use change_impact::{
     DependencyCoverageAudit, DependencyCoverageGap, DependencyDomain, DependencyKey,
     DependencyTransition, VersionedDependency, audit_dependency_coverage,
     compile_change_impact, compile_change_impact_with_contract,
+    minimum_construction_dependency_contracts,
 };
 pub mod dispatch_readiness;
 pub use dispatch_readiness::{
