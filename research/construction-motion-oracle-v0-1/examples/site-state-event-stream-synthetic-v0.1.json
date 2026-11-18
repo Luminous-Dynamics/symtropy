@@ -56,7 +56,7 @@
     }
   },
   {
-    "event_id": "attempt-start-v1",
+    "event_id": "attempt-start-interrupted",
     "sequence": 3,
     "previous_event_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
     "event_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
@@ -71,23 +71,23 @@
     }
   },
   {
-    "event_id": "robot-observation-v1",
+    "event_id": "attempt-interrupted",
     "sequence": 4,
     "previous_event_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
     "event_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
     "actor_id": "robot-01",
     "actor_role": "robot",
     "payload": {
-      "kind": "robot_observation_recorded",
+      "kind": "execution_interrupted",
       "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "entity_id": "ifc:2XQ$n5SLP5MBCLz4P3d4W",
       "attempt_id": "robot-01-attempt-0042",
-      "disposition": "printed",
-      "robot_receipt_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+      "reason": "power loss during partial line marking",
+      "interruption_receipt_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
     }
   },
   {
-    "event_id": "referee-measurement-v1",
+    "event_id": "referee-hold-after-interruption",
     "sequence": 5,
     "previous_event_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
     "event_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
@@ -99,6 +99,56 @@
       "entity_id": "ifc:2XQ$n5SLP5MBCLz4P3d4W",
       "attempt_id": "robot-01-attempt-0042",
       "assessment": {
+        "kind": "unresolved",
+        "receipt_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+        "reason": "partial mark could not be confidently separated from substrate contamination"
+      }
+    }
+  },
+  {
+    "event_id": "attempt-start-rework",
+    "sequence": 6,
+    "previous_event_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "event_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "actor_id": "robot-01",
+    "actor_role": "robot",
+    "payload": {
+      "kind": "execution_started",
+      "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "entity_id": "ifc:2XQ$n5SLP5MBCLz4P3d4W",
+      "attempt_id": "robot-01-attempt-0043",
+      "station_qualification_event_id": "station-qualified-v1"
+    }
+  },
+  {
+    "event_id": "robot-observation-rework",
+    "sequence": 7,
+    "previous_event_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "event_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "actor_id": "robot-01",
+    "actor_role": "robot",
+    "payload": {
+      "kind": "robot_observation_recorded",
+      "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "entity_id": "ifc:2XQ$n5SLP5MBCLz4P3d4W",
+      "attempt_id": "robot-01-attempt-0043",
+      "disposition": "printed",
+      "robot_receipt_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+    }
+  },
+  {
+    "event_id": "referee-measurement-accepted",
+    "sequence": 8,
+    "previous_event_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "event_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "actor_id": "referee-02",
+    "actor_role": "referee",
+    "payload": {
+      "kind": "referee_assessment_recorded",
+      "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "entity_id": "ifc:2XQ$n5SLP5MBCLz4P3d4W",
+      "attempt_id": "robot-01-attempt-0043",
+      "assessment": {
         "kind": "measured",
         "residual_x_mm": 0.2,
         "residual_y_mm": 0.1,
@@ -108,15 +158,15 @@
         "reference_u95_x_mm": 0.1,
         "reference_u95_y_mm": 0.1,
         "reference_u95_z_mm": null,
-        "measurement_receipt_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+        "measurement_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       }
     }
   },
   {
     "event_id": "design-package-v2",
-    "sequence": 6,
-    "previous_event_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
-    "event_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "sequence": 9,
+    "previous_event_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "event_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
     "actor_id": "design-authority",
     "actor_role": "design_authority",
     "payload": {
