@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::hint::black_box;
 use std::time::{Duration, Instant};
 
@@ -99,8 +100,23 @@ fn build_graph(entity_count: usize) -> ConstructionArtifactGraph {
         });
     }
 
+    let mut current_by_key = BTreeMap::<DependencyKey, String>::new();
+    for artifact in &artifacts {
+        for dependency in &artifact.dependencies {
+            current_by_key
+                .entry(dependency.key.clone())
+                .or_insert_with(|| dependency.observed_sha256.clone());
+        }
+    }
     ConstructionArtifactGraph {
         graph_snapshot_sha256: digest('f'),
+        current_dependencies: current_by_key
+            .into_iter()
+            .map(|(key, observed_sha256)| VersionedDependency {
+                key,
+                observed_sha256,
+            })
+            .collect(),
         artifacts,
     }
 }
