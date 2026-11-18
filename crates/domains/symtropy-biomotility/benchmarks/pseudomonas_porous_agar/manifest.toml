@@ -57,7 +57,7 @@ turn_angle_only_fraction_of_combined_drift = 0.72
 run_time_only_fraction_of_combined_drift = 0.25
 evidence_class = "SOURCE_REPORTED_AGENT_BASED_SIMULATION_NOT_REPRODUCED_HERE"
 
-[secondary_comparator_dattta_2025]
+[secondary_comparator_datta_2025]
 study_doi = "10.1038/s41598-025-02741-1"
 wild_type_mean_run_duration_0_25_seconds = 0.35
 wild_type_mean_run_duration_0_30_seconds = 0.23
