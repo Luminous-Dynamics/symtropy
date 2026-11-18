@@ -424,7 +424,8 @@
                     "taskId",
                     "stage",
                     "dependsOn",
-                    "durationHours"
+                    "durationHours",
+                    "resourceRequirements"
                   ],
                   "properties": {
                     "taskId": {
@@ -454,13 +455,26 @@
                       "type": "number",
                       "exclusiveMinimum": 0
                     },
-                    "resourceId": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "resourceUnits": {
-                      "type": "integer",
-                      "minimum": 1
+                    "resourceRequirements": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "resourceId",
+                          "units"
+                        ],
+                        "properties": {
+                          "resourceId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "units": {
+                            "type": "integer",
+                            "minimum": 1
+                          }
+                        }
+                      }
                     }
                   },
                   "allOf": [
