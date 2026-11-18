@@ -136,6 +136,44 @@ for run_path in "${run_paths[@]}"; do
   jq -e '
     def known($m): ($m.status != "unknown" and ($m.value | type) == "number");
     . as $r
+    | if $r.material.adhesion_characterization_status == "unknown" then
+        ($r.material.adhesion_by_size_class | length == 0)
+        and ($r.derived_coordinates.adhesion_bond_by_size_class | length == 0)
+        and ($r.material.adhesion_characterization_method_id == null)
+        and ($r.material.adhesion_distribution_artifact_id == null)
+      else
+        ($r.material.adhesion_by_size_class | length > 0)
+        and ($r.derived_coordinates.adhesion_bond_by_size_class | length == ($r.material.adhesion_by_size_class | length))
+        and ($r.material.adhesion_characterization_method_id | type == "string" and length > 0)
+        and ($r.material.adhesion_distribution_artifact_id
+             | type == "string" and length > 0)
+        and any($r.artifacts[]; .artifact_id == $r.material.adhesion_distribution_artifact_id)
+        and ([ $r.material.adhesion_by_size_class[].size_bin_id ] | length == (unique | length))
+        and all($r.material.adhesion_by_size_class[];
+          known(.d_min_um) and known(.d_max_um)
+          and (.d_min_um.value > 0 and .d_max_um.value > .d_min_um.value)
+          and known(.representative_particle_mass_kg)
+          and (.representative_particle_mass_kg.value > 0)
+          and (.contact_count >= 1)
+          and known(.adhesion_force_p05_n)
+          and known(.adhesion_force_p50_n)
+          and known(.adhesion_force_p95_n)
+          and known(.adhesion_force_p99_n)
+          and (.adhesion_force_p05_n.value >= 0)
+          and (.adhesion_force_p05_n.value <= .adhesion_force_p50_n.value)
+          and (.adhesion_force_p50_n.value <= .adhesion_force_p95_n.value)
+          and (.adhesion_force_p95_n.value <= .adhesion_force_p99_n.value)
+        )
+        and all($r.derived_coordinates.adhesion_bond_by_size_class[];
+          . as $derived
+          | ($r.material.adhesion_by_size_class
+             | any(.[]; .size_bin_id == $derived.size_bin_id)))
+      end
+  ' "$run_path" >/dev/null || fail "size-resolved adhesion distribution or quantile ordering invalid: $run_path"
+
+  jq -e '
+    def known($m): ($m.status != "unknown" and ($m.value | type) == "number");
+    . as $r
     | $r.derived_coordinates as $d
     | $d.formula_set_id == "lunar-granular-dimensionless-groups-v1"
     and ($d.uncertainty_propagation_method == "first_order_gum"
@@ -185,6 +223,16 @@ for run_path in "${run_paths[@]}"; do
     and (if known($r.apparatus.wall_roughness_ra_um) and known($r.material.d50_um)
          then known($d.wall_roughness_to_particle_ratio)
          else $d.wall_roughness_to_particle_ratio.status == "unknown" end)
+    and (if known($r.operation.normal_confining_stress_pa)
+            and known($r.material.bulk_tensile_strength_pa)
+         then known($d.confinement_to_tensile_strength_ratio)
+         else $d.confinement_to_tensile_strength_ratio.status == "unknown" end)
+    and (if known($r.operation.flow_depth_m)
+            and known($r.observations.mean_agglutinate_breakage_rate_s_minus_1)
+            and known($r.observations.reference_segregation_velocity_m_s)
+            and known($r.observations.size_contrast_delta_s)
+         then known($d.breakage_segregation_timescale_ratio)
+         else $d.breakage_segregation_timescale_ratio.status == "unknown" end)
   ' "$run_path" >/dev/null || fail "derived-coordinate dependency/provenance rules failed: $run_path"
 
   jq -e '
@@ -287,6 +335,26 @@ for run_path in "${run_paths[@]}"; do
          ($r.apparatus.wall_roughness_ra_um.value / $r.material.d50_um.value)
        )
        else $d.wall_roughness_to_particle_ratio.status == "unknown" end)
+    and (if known($r.operation.normal_confining_stress_pa)
+           and known($r.material.bulk_tensile_strength_pa)
+       then close(
+         $d.confinement_to_tensile_strength_ratio;
+         ($r.operation.normal_confining_stress_pa.value
+          / $r.material.bulk_tensile_strength_pa.value)
+       )
+       else $d.confinement_to_tensile_strength_ratio.status == "unknown" end)
+    and (if known($r.operation.flow_depth_m)
+           and known($r.observations.mean_agglutinate_breakage_rate_s_minus_1)
+           and known($r.observations.reference_segregation_velocity_m_s)
+           and known($r.observations.size_contrast_delta_s)
+       then close(
+         $d.breakage_segregation_timescale_ratio;
+         ($r.operation.flow_depth_m.value
+          * $r.observations.mean_agglutinate_breakage_rate_s_minus_1.value
+          / ($r.observations.reference_segregation_velocity_m_s.value
+             * $r.observations.size_contrast_delta_s.value))
+       )
+       else $d.breakage_segregation_timescale_ratio.status == "unknown" end)
   ' "$run_path" >/dev/null || fail "derived-coordinate values do not match the formula set: $run_path"
 
   jq -e '
@@ -302,6 +370,7 @@ for run_path in "${run_paths[@]}"; do
     . as $r
     | [
         $r.material.particle_size_distribution_artifact_id,
+        $r.material.adhesion_distribution_artifact_id,
         $r.apparatus.geometry_artifact_id,
         $r.observations.raw_observation_artifact_id,
         $r.observations.flow_regime_observation_artifact_id,
