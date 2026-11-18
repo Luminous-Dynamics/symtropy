@@ -1,6 +1,6 @@
 mod scheduler;
 
-use scheduler::{ScheduledTask, TaskSpec, exact_small_schedule, schedule};
+use scheduler::{ResourceRequirement, ScheduledTask, TaskSpec, exact_small_schedule, schedule};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -145,8 +145,8 @@ struct Task {
     #[serde(default)]
     depends_on: Vec<String>,
     duration_hours: f64,
-    resource_id: Option<String>,
-    resource_units: Option<u32>,
+    #[serde(default)]
+    resource_requirements: Vec<ResourceRequirement>,
 }
 
 fn unique_ids<'a>(ids: impl Iterator<Item = &'a str>, label: &str, errors: &mut Vec<String>) {
@@ -322,13 +322,17 @@ fn validate(case: &Case) -> Vec<String> {
             if !task_ids.insert(task.task_id.clone()) {
                 errors.push(format!("{} has duplicate taskId {}", event.event_id, task.task_id));
             }
-            match (&task.resource_id, task.resource_units) {
-                (Some(_), Some(units)) if units > 0 => {}
-                (None, None) => {}
-                _ => errors.push(format!(
-                    "{} task {} must declare resourceId and positive resourceUnits together",
-                    event.event_id, task.task_id
-                )),
+            let mut resource_ids = BTreeSet::new();
+            for requirement in &task.resource_requirements {
+                if requirement.resource_id.trim().is_empty()
+                    || requirement.units == 0
+                    || !resource_ids.insert(requirement.resource_id.as_str())
+                {
+                    errors.push(format!(
+                        "{} task {} has an empty, zero-unit or duplicate resource requirement",
+                        event.event_id, task.task_id
+                    ));
+                }
             }
 
             schedule_tasks.push(TaskSpec {
@@ -337,8 +341,7 @@ fn validate(case: &Case) -> Vec<String> {
                 depends_on: task.depends_on.clone(),
                 release_hour: event.start_hour,
                 duration_hours: task.duration_hours,
-                resource_id: task.resource_id.clone(),
-                resource_units: task.resource_units.unwrap_or(0),
+                resource_requirements: task.resource_requirements.clone(),
             });
         }
 
@@ -641,8 +644,7 @@ fn task_specs_for_case(case: &Case) -> Vec<TaskSpec> {
                 depends_on: task.depends_on.clone(),
                 release_hour: event.start_hour,
                 duration_hours: task.duration_hours,
-                resource_id: task.resource_id.clone(),
-                resource_units: task.resource_units.unwrap_or(0),
+                resource_requirements: task.resource_requirements.clone(),
             })
         })
         .collect()
