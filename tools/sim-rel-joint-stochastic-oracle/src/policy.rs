@@ -67,6 +67,7 @@ pub fn next_response(
     if view.terminal || view.finish.is_some() || !view.trace_complete {
         return Err(PolicyError::EpisodeClosed);
     }
+    validate_public_view(view)?;
 
     let candidates = public_candidate_ids(view);
     if candidates.is_empty() {
@@ -185,10 +186,211 @@ pub fn next_response(
     Ok(probe_response(selected))
 }
 
+/// Validate public profile identity, model/action/observation agreement,
+/// chronological evidence availability, and attempt/cost denominator integrity.
+fn validate_public_view(view: &crate::episode::EpisodeView) -> Result<(), PolicyError> {
+    let profile = &view.manifest.public_profile;
+    let computed_profile_sha256 = profile
+        .sha256()
+        .map_err(PolicyError::InvalidPublicModel)?;
+    if computed_profile_sha256 != view.manifest.model_profile_sha256 {
+        return Err(PolicyError::InvalidPublicModel(
+            "public profile SHA-256 does not match the manifest".to_owned(),
+        ));
+    }
+    profile
+        .model_catalogue
+        .verify_sha256()
+        .map_err(PolicyError::InvalidPublicModel)?;
+
+    if profile.actions.len() != view.actions.len()
+        || profile
+            .actions
+            .iter()
+            .zip(&view.actions)
+            .any(|(declared, visible)| {
+                declared.action_id != visible.action_id
+                    || declared.description != visible.description
+                    || declared.target != visible.target
+                    || visible.cost_units == 0
+            })
+    {
+        return Err(PolicyError::InvalidPublicModel(
+            "public action semantics or costs do not match the policy action catalogue".to_owned(),
+        ));
+    }
+    let profile_observation_ids: Vec<&str> = profile
+        .observations
+        .iter()
+        .map(|observation| observation.observation_id.as_str())
+        .collect();
+    if profile_observation_ids
+        != profile
+            .model_catalogue
+            .observation_ids
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>()
+    {
+        return Err(PolicyError::InvalidPublicModel(
+            "public observation semantics do not match the predictive model catalogue".to_owned(),
+        ));
+    }
+
+    if view.dropped_attempts != 0
+        || view.attempts.len() != view.attempts.len().min(crate::episode::MAX_ATTEMPT_RECEIPTS)
+        || view.accepted_attempts > view.max_attempts
+        || view.current_step > view.max_world_steps
+        || view.spent_cost_units > view.max_cost_units
+    {
+        return Err(PolicyError::InvalidPublicModel(
+            "public view is incomplete or exceeds its declared budgets".to_owned(),
+        ));
+    }
+
+    let mut accepted = 0_u64;
+    let mut total_cost = 0_u64;
+    let mut applied_observations = Vec::new();
+    let mut previous_request_step = 0_u64;
+    for (ordinal, attempt) in view.attempts.iter().enumerate() {
+        if attempt.ordinal != ordinal as u64
+            || attempt.attempt_id != format!("attempt-{ordinal:08}")
+            || attempt.requested_at_step < previous_request_step
+            || attempt.requested_at_step > view.current_step
+        {
+            return Err(PolicyError::InvalidPublicModel(
+                "attempt IDs, ordinals or request timestamps are inconsistent".to_owned(),
+            ));
+        }
+        previous_request_step = attempt.requested_at_step;
+
+        match &attempt.disposition {
+            AttemptDisposition::Applied { observation_id } => {
+                let action = view
+                    .actions
+                    .iter()
+                    .find(|action| action.action_id == attempt.requested_action_id)
+                    .ok_or_else(|| PolicyError::InvalidPublicModel(
+                        "applied attempt references an undeclared action".to_owned(),
+                    ))?;
+                let expected_execution = attempt
+                    .requested_at_step
+                    .checked_add(1)
+                    .ok_or_else(|| PolicyError::InvalidPublicModel(
+                        "attempt execution step overflow".to_owned(),
+                    ))?;
+                if attempt.requested_cost_units != Some(action.cost_units)
+                    || attempt.charged_cost_units != action.cost_units
+                    || attempt.executed_at_step != Some(expected_execution)
+                {
+                    return Err(PolicyError::InvalidPublicModel(
+                        "applied attempt cost or execution timestamp is inconsistent".to_owned(),
+                    ));
+                }
+                accepted = accepted.checked_add(1).ok_or_else(|| {
+                    PolicyError::InvalidPublicModel("accepted attempt count overflow".to_owned())
+                })?;
+                total_cost = total_cost.checked_add(attempt.charged_cost_units).ok_or_else(|| {
+                    PolicyError::InvalidPublicModel("attempt cost total overflow".to_owned())
+                })?;
+                applied_observations.push((observation_id.as_str(), expected_execution));
+            }
+            AttemptDisposition::HazardTerminal => {
+                let action = view
+                    .actions
+                    .iter()
+                    .find(|action| action.action_id == attempt.requested_action_id)
+                    .ok_or_else(|| PolicyError::InvalidPublicModel(
+                        "hazard attempt references an undeclared action".to_owned(),
+                    ))?;
+                let expected_execution = attempt
+                    .requested_at_step
+                    .checked_add(1)
+                    .ok_or_else(|| PolicyError::InvalidPublicModel(
+                        "hazard execution step overflow".to_owned(),
+                    ))?;
+                if attempt.requested_cost_units != Some(action.cost_units)
+                    || attempt.charged_cost_units != action.cost_units
+                    || attempt.executed_at_step != Some(expected_execution)
+                {
+                    return Err(PolicyError::InvalidPublicModel(
+                        "hazard attempt cost or execution timestamp is inconsistent".to_owned(),
+                    ));
+                }
+                accepted = accepted.checked_add(1).ok_or_else(|| {
+                    PolicyError::InvalidPublicModel("accepted attempt count overflow".to_owned())
+                })?;
+                total_cost = total_cost.checked_add(attempt.charged_cost_units).ok_or_else(|| {
+                    PolicyError::InvalidPublicModel("attempt cost total overflow".to_owned())
+                })?;
+            }
+            _ => {
+                if attempt.charged_cost_units != 0 || attempt.executed_at_step.is_some() {
+                    return Err(PolicyError::InvalidPublicModel(
+                        "rejected request must not charge cost or advance execution time".to_owned(),
+                    ));
+                }
+                if matches!(
+                    &attempt.disposition,
+                    AttemptDisposition::RejectedTerminal
+                        | AttemptDisposition::RejectedAttemptBudget
+                        | AttemptDisposition::RejectedCostBudget
+                        | AttemptDisposition::RejectedStepBudget
+                ) && !view.actions.iter().any(|action| {
+                    action.action_id == attempt.requested_action_id
+                }) {
+                    return Err(PolicyError::InvalidPublicModel(
+                        "known-action rejection references an undeclared action".to_owned(),
+                    ));
+                }
+            }
+        }
+    }
+
+    if accepted != view.accepted_attempts
+        || accepted != view.current_step
+        || total_cost != view.spent_cost_units
+        || applied_observations.len() != view.observations.len()
+    {
+        return Err(PolicyError::InvalidPublicModel(
+            "accepted attempts, world steps, costs and observation counts do not reconcile".to_owned(),
+        ));
+    }
+
+    for ((expected_id, expected_step), observation) in
+        applied_observations.iter().zip(&view.observations)
+    {
+        if observation.observation_id != *expected_id
+            || observation.event_step != *expected_step
+            || observation.acquisition_step != *expected_step
+            || observation.available_at_step != *expected_step
+            || observation.available_at_step > view.current_step
+        {
+            return Err(PolicyError::InvalidPublicModel(
+                "observation identity or synchronous event/acquisition/availability time is inconsistent".to_owned(),
+            ));
+        }
+        let description = profile
+            .observations
+            .iter()
+            .find(|declared| declared.observation_id == observation.observation_id)
+            .ok_or_else(|| PolicyError::InvalidPublicModel(
+                "observation is absent from the public semantic catalogue".to_owned(),
+            ))?;
+        if description.description != observation.description || description.unit != observation.unit {
+            return Err(PolicyError::InvalidPublicModel(
+                "observation meaning/unit does not match the public semantic catalogue".to_owned(),
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// Reconstruct a candidate-only kernel and apply the public evidence prefix.
 pub fn public_kernel_and_belief(
     view: &crate::episode::EpisodeView,
 ) -> Result<(JointKernel, Vec<JointMass>), PolicyError> {
+    validate_public_view(view)?;
     let kernel = view
         .manifest
         .public_profile
