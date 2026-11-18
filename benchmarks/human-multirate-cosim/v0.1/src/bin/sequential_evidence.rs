@@ -260,6 +260,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         posterior_commit_threshold: 0.95,
         maximum_campaign_residual: 16.0,
         maximum_experiments: 2,
+        maximum_total_cost: 2.0,
         eig_replicates_per_model: 256,
         eig_seed: 0x5EED_6127,
     };

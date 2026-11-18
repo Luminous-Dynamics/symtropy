@@ -122,6 +122,7 @@ pub struct SequentialPolicyConfigV1 {
     /// This must be calibrated separately on an independent stream.
     pub maximum_campaign_residual: f64,
     pub maximum_experiments: usize,
+    pub maximum_total_cost: f64,
     pub eig_replicates_per_model: usize,
     pub eig_seed: u64,
 }
@@ -154,6 +155,7 @@ pub enum SequentialEvidenceError {
     DuplicateObservationAction,
     InvalidResidualThreshold,
     InvalidCommitThreshold,
+    InvalidCampaignCost,
     InvalidReplicateCount,
     ExcessiveReplicateCount,
     NoRemainingActions,
@@ -196,6 +198,9 @@ impl fmt::Display for SequentialEvidenceError {
             },
             Self::InvalidCommitThreshold => {
                 write!(f, "posterior commit threshold must lie strictly between zero and one")
+            }
+            Self::InvalidCampaignCost => {
+                write!(f, "maximum campaign cost must be finite and positive")
             },
             Self::InvalidReplicateCount => {
                 write!(f, "at least one EIG replicate per model is required")
@@ -595,7 +600,10 @@ pub fn decide_sequential_stop(
     let used: HashSet<u32> = history.iter().map(|entry| entry.action_id).collect();
     let remaining_action_ids: Vec<u32> = actions
         .iter()
-        .filter(|action| !used.contains(&action.action_id))
+        .filter(|action| {
+            !used.contains(&action.action_id)
+                && total_cost + action.cost <= config.maximum_total_cost + TOLERANCE
+        })
         .map(|action| action.action_id)
         .collect();
     let total_cost: f64 = history
@@ -612,6 +620,12 @@ pub fn decide_sequential_stop(
         .sum();
     if history.len() > config.maximum_experiments {
         return Err(SequentialEvidenceError::InvalidObservationShape);
+    }
+    if !config.maximum_total_cost.is_finite() || config.maximum_total_cost <= 0.0 {
+        return Err(SequentialEvidenceError::InvalidCampaignCost);
+    }
+    if total_cost > config.maximum_total_cost + TOLERANCE {
+        return Err(SequentialEvidenceError::InvalidCampaignCost);
     }
     let family_probabilities: HashMap<u32, f64> =
         posterior.family_probabilities.iter().copied().collect();
@@ -719,6 +733,9 @@ fn validate_policy_config(
     }
     if config.maximum_experiments == 0 {
         return Err(SequentialEvidenceError::InvalidReplicateCount);
+    }
+    if !config.maximum_total_cost.is_finite() || config.maximum_total_cost <= 0.0 {
+        return Err(SequentialEvidenceError::InvalidCampaignCost);
     }
     if config.eig_replicates_per_model == 0 {
         return Err(SequentialEvidenceError::InvalidReplicateCount);
@@ -1048,6 +1065,7 @@ mod tests {
             posterior_commit_threshold: 0.95,
             maximum_campaign_residual: 40.0,
             maximum_experiments: 2,
+            maximum_total_cost: 2.0,
             eig_replicates_per_model: 128,
             eig_seed: 101,
         }
