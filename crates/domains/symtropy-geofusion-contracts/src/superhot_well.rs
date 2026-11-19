@@ -41,6 +41,8 @@ pub struct ReservoirBoundaryState {
     pub temperature_k: f64,
     /// Permeability-thickness product in mD·m, not hydraulic transmissivity m²/s.
     pub permeability_thickness_md_m: f64,
+    /// Digest of the reservoir observation / model artifact supplying this state.
+    pub evidence_artifact_digest: String,
     pub evidence_class: EvidenceClass,
 }
 
@@ -57,6 +59,8 @@ pub struct WellheadBoundaryState {
     pub reference_specific_enthalpy_j_kg: f64,
     pub phase: WellheadPhase,
     pub property_provenance: FluidPropertyProvenance,
+    /// Digest of the wellhead observation / model artifact supplying this state.
+    pub evidence_artifact_digest: String,
     pub evidence_class: EvidenceClass,
 }
 
@@ -122,6 +126,14 @@ impl ReservoirWellheadCase {
         require_id("wellhead well ID", &self.wellhead.well_id)?;
         require_id("reservoir boundary ID", &self.reservoir.boundary_id)?;
         require_id("wellhead boundary ID", &self.wellhead.boundary_id)?;
+        require_id(
+            "reservoir evidence artifact digest",
+            &self.reservoir.evidence_artifact_digest,
+        )?;
+        require_id(
+            "wellhead evidence artifact digest",
+            &self.wellhead.evidence_artifact_digest,
+        )?;
 
         if self.reservoir.well_id != self.wellhead.well_id {
             return Err(WellheadValidationError::WellIdentityMismatch);
@@ -265,6 +277,7 @@ mod tests {
                 pressure_pa: 30.0e6,
                 temperature_k: 748.15,
                 permeability_thickness_md_m: 1000.0,
+                evidence_artifact_digest: "synthetic-reservoir-artifact".into(),
                 evidence_class: EvidenceClass::Synthetic,
             },
             wellhead: WellheadBoundaryState {
@@ -278,6 +291,7 @@ mod tests {
                 specific_enthalpy_j_kg: 2.8e6,
                 reference_specific_enthalpy_j_kg: 0.084e6,
                 phase: WellheadPhase::SinglePhaseVapor,
+                evidence_artifact_digest: "synthetic-wellhead-artifact".into(),
                 property_provenance: FluidPropertyProvenance {
                     fluid_composition_id: "synthetic-water".into(),
                     model_id: "synthetic-properties".into(),
@@ -331,6 +345,27 @@ mod tests {
         assert_eq!(
             value.evaluate(),
             Err(WellheadValidationError::WellIdentityMismatch)
+        );
+    }
+
+    #[test]
+    fn reservoir_and_wellhead_state_artifact_digests_are_required() {
+        let mut value = case();
+        value.reservoir.evidence_artifact_digest.clear();
+        assert_eq!(
+            value.evaluate(),
+            Err(WellheadValidationError::EmptyIdentity(
+                "reservoir evidence artifact digest"
+            ))
+        );
+
+        value = case();
+        value.wellhead.evidence_artifact_digest.clear();
+        assert_eq!(
+            value.evaluate(),
+            Err(WellheadValidationError::EmptyIdentity(
+                "wellhead evidence artifact digest"
+            ))
         );
     }
 
