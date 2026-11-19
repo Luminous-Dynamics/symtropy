@@ -60,9 +60,17 @@ The positive disposition is `ReadyForHumanReview`. It means only that supplied r
 
 There is no `SafeToLift`, `Approved`, `PermitIssued`, `StartHoist` or actuator command state. Responsible engineers, appointed persons, employers and site authorities retain authority.
 
+## Machine-readable contracts
+
+- `schemas/readiness-plan-v0.1.schema.json`: canonical input shape.
+- `schemas/readiness-report-v0.1.schema.json`: report/disposition shape.
+- `schemas/conformance-vectors-v0.1.schema.json` and `fixtures/conformance-vectors-v0.1.json`: 15 frozen synthetic vectors mapped to named Rust tests.
+
+The Rust suite checks that every vector maps to a test; CI checks unique IDs/test names, fixture status and the corresponding schema contract fields. Schema shape validation does not authenticate source records, credentials, inspection reports or physical truth.
+
 ## Tests
 
-The 14 unit tests cover a current baseline, missing/revoked inspections, bypassed/unknown devices, stale duty evidence, missing personnel, briefing revision/acknowledgement controls, exclusion-zone enforcement, preflight receipt invalidation and context binding, duplicate evidence IDs and input-order invariance.
+The 16 unit tests (15 frozen conformance vectors plus one fixture-to-test mapping check) cover a current baseline, missing/revoked inspections, bypassed/unknown devices, stale duty evidence, missing personnel, briefing revision/acknowledgement controls, exclusion-zone enforcement, preflight receipt invalidation and context binding, duplicate evidence IDs and input-order invariance.
 
 Run with pinned Rust 1.96:
 
