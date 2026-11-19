@@ -151,6 +151,8 @@ pub struct SharedFleetOutcome {
     pub expected_total_cost_units: u64,
     pub cvar90_total_cost_units: u64,
     pub worst_case_total_cost_units: u64,
+    pub cvar90_unserved_units: u64,
+    pub worst_case_unserved_units: u64,
     pub expected_road_deliveries: u64,
     pub expected_aerial_deliveries: u64,
     pub expected_unserved_units: u64,
@@ -194,6 +196,9 @@ pub struct SharedFleetReport {
     /// Policy minimizing the maximum scenario cost.
     pub worst_case_optimal_policy: SharedFleetOutcome,
     pub worst_case_optimal_decisions: Vec<SharedFleetDecision>,
+    /// Policy minimizing the maximum unserved units in any supplied scenario.
+    pub service_robust_optimal_policy: SharedFleetOutcome,
+    pub service_robust_optimal_decisions: Vec<SharedFleetDecision>,
     pub truck_only_baseline: SharedFleetOutcome,
     pub fixed_initial_region_baseline: SharedFleetOutcome,
     pub physical_dispatch_authorized: bool,
@@ -593,6 +598,7 @@ fn add_weighted_metrics(
 struct PolicyEvaluation {
     weighted: WeightedMetrics,
     scenario_costs: Vec<(u128, u16)>,
+    scenario_unserved: Vec<(u128, u16)>,
 }
 
 fn evaluate_mask(
@@ -604,14 +610,17 @@ fn evaluate_mask(
 ) -> Result<PolicyEvaluation, String> {
     let mut weighted = WeightedMetrics::default();
     let mut scenario_costs = Vec::with_capacity(input.scenarios.len());
+    let mut scenario_unserved = Vec::with_capacity(input.scenarios.len());
     for scenario in &input.scenarios {
         let metrics = simulate_scenario(input, scenario, indices, mask, aircraft_enabled)?;
         scenario_costs.push((metrics.total_cost, scenario.probability_bps));
+        scenario_unserved.push((metrics.unserved_units, scenario.probability_bps));
         add_weighted_metrics(&mut weighted, metrics, scenario.probability_bps)?;
     }
     Ok(PolicyEvaluation {
         weighted,
         scenario_costs,
+        scenario_unserved,
     })
 }
 
@@ -655,6 +664,8 @@ fn worst_case_cost(scenario_costs: &[(u128, u16)]) -> Result<u128, String> {
 fn outcome(evaluation: PolicyEvaluation) -> Result<SharedFleetOutcome, String> {
     let cvar90 = upper_tail_cvar90(&evaluation.scenario_costs)?;
     let worst_case = worst_case_cost(&evaluation.scenario_costs)?;
+    let cvar90_unserved = upper_tail_cvar90(&evaluation.scenario_unserved)?;
+    let worst_case_unserved = worst_case_cost(&evaluation.scenario_unserved)?;
     let metrics = evaluation.weighted;
     Ok(SharedFleetOutcome {
         expected_total_cost_units: weighted_average(metrics.total_cost, "expected cost")?,
@@ -662,6 +673,10 @@ fn outcome(evaluation: PolicyEvaluation) -> Result<SharedFleetOutcome, String> {
             .map_err(|_| "CVaR90 exceeds report range".to_string())?,
         worst_case_total_cost_units: u64::try_from(worst_case)
             .map_err(|_| "worst-case cost exceeds report range".to_string())?,
+        cvar90_unserved_units: u64::try_from(cvar90_unserved)
+            .map_err(|_| "CVaR90 unserved units exceed report range".to_string())?,
+        worst_case_unserved_units: u64::try_from(worst_case_unserved)
+            .map_err(|_| "worst-case unserved units exceed report range".to_string())?,
         expected_road_deliveries: weighted_average(metrics.road_deliveries, "expected road deliveries")?,
         expected_aerial_deliveries: weighted_average(metrics.aerial_deliveries, "expected aerial deliveries")?,
         expected_unserved_units: weighted_average(metrics.unserved_units, "expected unserved")?,
@@ -715,13 +730,17 @@ pub fn evaluate_shared_fleet(
     let mut best_expected_mask = 0_u64;
     let mut best_cvar90_mask = 0_u64;
     let mut best_worst_case_mask = 0_u64;
+    let mut best_service_robust_mask = 0_u64;
     let mut best_expected = evaluate_mask(&canonical, &nodes, &indices, 0, true)
         .map_err(|error| vec![error])?;
     let mut best_cvar90 = best_expected.clone();
     let mut best_worst_case = best_expected.clone();
+    let mut best_service_robust = best_expected.clone();
     let mut best_cvar90_value = upper_tail_cvar90(&best_cvar90.scenario_costs)
         .map_err(|error| vec![error])?;
     let mut best_worst_case_value = worst_case_cost(&best_worst_case.scenario_costs)
+        .map_err(|error| vec![error])?;
+    let mut best_service_robust_value = worst_case_cost(&best_service_robust.scenario_unserved)
         .map_err(|error| vec![error])?;
 
     for mask in 1..policy_count {
@@ -743,7 +762,17 @@ pub fn evaluate_shared_fleet(
         if worst_case < best_worst_case_value {
             best_worst_case_mask = mask;
             best_worst_case_value = worst_case;
-            best_worst_case = evaluation;
+            best_worst_case = evaluation.clone();
+        }
+        let worst_unserved = worst_case_cost(&evaluation.scenario_unserved)
+            .map_err(|error| vec![error])?;
+        if worst_unserved < best_service_robust_value
+            || (worst_unserved == best_service_robust_value
+                && evaluation.weighted.total_cost < best_service_robust.weighted.total_cost)
+        {
+            best_service_robust_mask = mask;
+            best_service_robust_value = worst_unserved;
+            best_service_robust = evaluation;
         }
     }
 
@@ -786,6 +815,8 @@ pub fn evaluate_shared_fleet(
         cvar90_optimal_decisions: decision_list(&canonical, &nodes, best_cvar90_mask),
         worst_case_optimal_policy: outcome(best_worst_case).map_err(|error| vec![error])?,
         worst_case_optimal_decisions: decision_list(&canonical, &nodes, best_worst_case_mask),
+        service_robust_optimal_policy: outcome(best_service_robust).map_err(|error| vec![error])?,
+        service_robust_optimal_decisions: decision_list(&canonical, &nodes, best_service_robust_mask),
         truck_only_baseline: truck_only,
         fixed_initial_region_baseline: fixed,
         physical_dispatch_authorized: false,
