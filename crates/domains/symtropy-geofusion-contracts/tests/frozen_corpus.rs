@@ -242,7 +242,11 @@ fn every_frozen_case_executes_against_the_public_contracts() {
                     row[3].parse().unwrap(),
                     vec![
                         heat_allocation("direct-heat", "process-plant", row[4].parse().unwrap()),
-                        heat_allocation("power-cycle-heat", "orc-evaporator", row[5].parse().unwrap()),
+                        heat_allocation(
+                            "power-cycle-heat",
+                            "orc-evaporator",
+                            row[5].parse().unwrap(),
+                        ),
                     ],
                     row[6].parse().unwrap(),
                 );
