@@ -99,3 +99,21 @@ The adapter requires the exact source receipt schemas and frozen commits, and jo
 The returned bundle contains SHA-256 digests of the exact composition fixture and all three receipt files, pinned source commits and the joined service record. The bundle command fails closed on schema/commit mismatch, receiver or interface mismatch, rejected status or insufficient accepted mass.
 
 The receipt-bundle unit tests currently use synthetic receipt-shaped values. The adapter is ready to consume the three file outputs, but no cross-repository CI artifact ingestion has yet been claimed. A valid bundle remains synthetic software evidence because all three current source fixtures are synthetic and their upstream resource/orbit/capture/fluid evidence inputs are not hardware-qualified or authenticated.
+
+
+## Industry maturity crosscheck — 19 November 2026
+
+The current physical baseline has several distinct maturity tiers:
+
+- **Operational satellite life extension:** NASA's 2026 ISAM State of Play lists Northrop Grumman's Mission Extension Vehicle as operational. MEV-1 docked with Intelsat IS-901 in February 2020, completed a five-year mission in April 2025 and docked with a second client in May 2025; MEV-2 docked with Intelsat IS-1002 in April 2021. This is a real GEO relocation/life-extension service baseline, not refueling or generic robotic repair. Source: https://assets.science.nasa.gov/content/dam/science/missions/isam/ISAM_State_of_Play_2026.pdf
+- **New robotic servicer hardware in orbit:** Northrop Grumman's Mission Robotic Vehicle hosting DARPA/NRL's RSGS payload launched on 21 July 2026. NASA described it as en route to GEO, where it is intended to inspect and upgrade satellites with robotic arms and mission-extension pods. Count the launch as flight hardware deployment, not a completed client servicing result until the service evidence exists. Source: https://www.nasa.gov/technology/robotic-servicing-mission-launches-with-nasa-support/
+- **Commercial refueling demonstration programmes:** Orbit Fab lists Kamino and Mynock as in-test missions with launch dates in Q2 2027; both target RAFTI/GRIP rendezvous/docking and hydrazine delivery. This is a planned demonstration programme, not current operational refueling service. Source: https://www.orbitfab.com/missions/
+- **Cryogenic fluid management:** NASA's LOXSAT page, last updated 17 November 2026, still describes a planned nine-month LEO demonstration of liquid-oxygen storage, control, pressurization and tank-to-tank transfer. Do not count a planned or integrated payload as an in-space transfer demonstration before flight results. Source: https://www.nasa.gov/space-travel-technology/liquid-oxygen-flight-demonstration/
+- **Autonomous in-space assembly:** DARPA/Caltech NOM4D/ASTRA reported a bounded automated truss assembly demonstration on 5 November 2026. DARPA explicitly states that structures hundreds of metres or kilometres long remain beyond today's demonstrated scale. Source: https://www.darpa.mil/news/2026/nom4d-program-demonstrates-automated-in-space-assembly
+
+### Consequence for our benchmark
+
+The closest industry frontier is not one company or one score. It is a stack: orbital delivery, RPO/capture, servicing and life extension, refueling, structural assembly, inspection and safe end-of-life. We should compare each interface and physical service separately, then test whether they compose into accepted outcomes.
+
+The next ground demonstrator should therefore be an uncrewed **servicing-interface test cell**: calibrated 6/7-DOF capture rig + replaceable interface coupon + inert-fluid transfer loop + source/receiver metrology + leak/pressure/temperature instrumentation + modular truss coupon and independent dimensional/load inspection. The output should be an independently reproducible receipt bundle. Only after each ground subsystem passes its own V&V should environmental testing or orbital demonstration be considered.
+
