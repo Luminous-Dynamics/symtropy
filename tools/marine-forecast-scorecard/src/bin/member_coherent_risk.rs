@@ -124,6 +124,14 @@ fn validate(raw: &[u8], value: &Value) -> Value {
         errors.push("forecast.members must be an array".to_owned());
     }
     let expected_members = member_digests.keys().cloned().collect::<BTreeSet<_>>();
+    let canonical_member_set = member_digests.iter()
+        .map(|(member_id, digest)| format!("{member_id}:{digest}\\n"))
+        .collect::<String>();
+    let computed_member_set_digest = Sha256::digest(canonical_member_set.as_bytes())
+        .iter().map(|byte| format!("{byte:02x}")).collect::<String>();
+    if string_at(forecast, "member_set_sha256") != Some(computed_member_set_digest.as_str()) {
+        errors.push("member_set_sha256 does not match the canonical sorted member identity set".to_owned());
+    }
 
     let routes = value.get("routes").and_then(Value::as_array);
     if routes.is_none_or(Vec::is_empty) || routes.is_some_and(|items| items.len() < 2) {
