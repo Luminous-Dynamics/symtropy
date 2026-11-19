@@ -618,6 +618,113 @@
       "stress_set_digest": "frozen-bounded-stress-set-v1",
       "model_digest": null,
       "prediction_domain_digest": null
+    },
+    {
+      "candidate_id": "calibrated-model-H",
+      "configuration_digest": "config-calibrated-model-H",
+      "system_boundary_digest": "complete-installed-joint-boundary-v1",
+      "operating_condition_digest": "48V-25C-cooling-A",
+      "mission_set_digest": "frozen-mission-set-01",
+      "stress_set_digest": "frozen-bounded-stress-set-01",
+      "model_digest": "synthetic-torque-model-v1",
+      "prediction_domain_digest": "synthetic-torque-speed-domain-v1",
+      "objectives": [
+        {
+          "name": "installed_mass",
+          "value": 0.85,
+          "unit": "kg",
+          "evidence_class": "model_derived",
+          "source_reference": "https://example.invalid/synthetic-calibrated-model-H",
+          "method": "Synthetic grouped-conformal prediction receipt example; no physical result.",
+          "configuration_digest": "config-calibrated-model-H",
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "operating_condition_digest": "48V-25C-cooling-A",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-01",
+          "calibration_receipt": null
+        },
+        {
+          "name": "task_energy",
+          "value": 75,
+          "unit": "J",
+          "evidence_class": "model_derived",
+          "source_reference": "https://example.invalid/synthetic-calibrated-model-H",
+          "method": "Synthetic grouped-conformal prediction receipt example; no physical result.",
+          "configuration_digest": "config-calibrated-model-H",
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "operating_condition_digest": "48V-25C-cooling-A",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-01",
+          "calibration_receipt": null
+        },
+        {
+          "name": "task_coverage",
+          "value": 0.93,
+          "unit": "fraction",
+          "evidence_class": "model_derived",
+          "source_reference": "https://example.invalid/synthetic-calibrated-model-H",
+          "method": "Synthetic grouped-conformal prediction receipt example; no physical result.",
+          "configuration_digest": "config-calibrated-model-H",
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "operating_condition_digest": "48V-25C-cooling-A",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-01",
+          "calibration_receipt": null
+        }
+      ],
+      "hard_constraints": [
+        {
+          "name": "thermal_margin",
+          "minimum_robust_margin": 4,
+          "unit": "degC",
+          "evidence_class": "model_derived",
+          "source_reference": "https://example.invalid/synthetic-calibrated-model-H",
+          "method": "Synthetic grouped-conformal prediction receipt example; no physical result.",
+          "configuration_digest": "config-calibrated-model-H",
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "operating_condition_digest": "48V-25C-cooling-A",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-01",
+          "calibration_receipt": null
+        },
+        {
+          "name": "torque_margin",
+          "minimum_robust_margin": 1.2,
+          "unit": "Nm",
+          "evidence_class": "calibrated_model_prediction",
+          "source_reference": "https://example.invalid/synthetic-calibrated-model-H",
+          "method": "Synthetic grouped-conformal prediction receipt example; no physical result.",
+          "configuration_digest": "config-calibrated-model-H",
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "operating_condition_digest": "48V-25C-cooling-A",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-01",
+          "calibration_receipt": {
+            "report_digest": "synthetic-grouped-calibration-report-v1",
+            "model_digest": "synthetic-torque-model-v1",
+            "training_split_digest": "synthetic-training-split-v1",
+            "calibration_split_digest": "synthetic-calibration-split-v1",
+            "test_split_digest": "synthetic-heldout-test-split-v1",
+            "system_boundary_digest": "complete-installed-joint-boundary-v1",
+            "operating_condition_digest": "48V-25C-cooling-A",
+            "mission_set_digest": "frozen-mission-set-01",
+            "domain_digest": "synthetic-torque-speed-domain-v1",
+            "alpha": 0.25,
+            "calibration_specimen_count": 3,
+            "order_statistic_rank": 3,
+            "correction_q_nm": 1,
+            "test_specimen_count": 3,
+            "in_domain_test_specimen_count": 2,
+            "covered_test_specimen_count": 1,
+            "uncovered_test_specimen_count": 1,
+            "out_of_domain_test_specimen_count": 1,
+            "empirical_group_coverage": 0.5,
+            "wilson_95_lower": 0.09,
+            "wilson_95_upper": 0.91,
+            "measurement_evidence_class": "independent_physical"
+          }
+        }
+      ]
     }
   ],
   "claim_ceiling": "Synthetic Pareto/evidence-lane arithmetic only. Values, margins, sources and methods are fixture placeholders; they are not actuator measurements, robust design predictions or physical qualification."
