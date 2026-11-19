@@ -16,6 +16,7 @@ pub struct ExecutionCase {
     pub resources: Vec<ExecutionResource>,
     pub baseline_commitments: Vec<Commitment>,
     pub proposed_commitments: Vec<Commitment>,
+    pub baseline_events: Vec<ExecutionEvent>,
     pub events: Vec<ExecutionEvent>,
     pub planned_segments: Vec<PlannedSegment>,
     #[serde(default)]
@@ -1068,6 +1069,30 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
     validate_resource_windows(&resources_by_id, &mut errors);
 
     let (events, deduplicated) = validate_event_ledger(case, &mut errors);
+    let current_events_by_id: BTreeMap<&str, &ExecutionEvent> = events
+        .iter()
+        .map(|event| (event.event_id.as_str(), event))
+        .collect();
+    let mut baseline_event_ids = BTreeSet::new();
+    for baseline_event in &case.baseline_events {
+        if baseline_event.event_id.trim().is_empty()
+            || !baseline_event_ids.insert(baseline_event.event_id.as_str())
+        {
+            errors.push("baseline event snapshot has an empty or duplicate event ID".to_string());
+            continue;
+        }
+        match current_events_by_id.get(baseline_event.event_id.as_str()) {
+            Some(current) if *current == baseline_event => {}
+            Some(_) => errors.push(format!(
+                "baseline event {} was mutated in the proposed execution ledger",
+                baseline_event.event_id
+            )),
+            None => errors.push(format!(
+                "baseline event {} is missing from the proposed execution ledger",
+                baseline_event.event_id
+            )),
+        }
+    }
     for event in &events {
         let key = task_key(&event.event_id_ref, &event.task_id);
         if !tasks_by_key.contains_key(&key) {
@@ -1105,15 +1130,15 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
         if !tasks_by_key.contains_key(&key) {
             errors.push(format!("baseline commitment {} references unknown task {key}", commitment.commitment_id));
         }
-        let event_ids_for_task: BTreeSet<_> = events
+        let event_ids_for_task: BTreeSet<_> = case.baseline_events
             .iter()
             .filter(|event| event.event_id_ref == commitment.event_id && event.task_id == commitment.task_id)
             .map(|event| event.event_id.as_str())
             .collect();
         let frozen_ids: BTreeSet<_> = commitment.frozen_event_ids.iter().map(String::as_str).collect();
-        if frozen_ids.len() != commitment.frozen_event_ids.len() || !frozen_ids.is_subset(&event_ids_for_task) {
+        if frozen_ids.len() != commitment.frozen_event_ids.len() || frozen_ids != event_ids_for_task {
             errors.push(format!(
-                "baseline commitment {} references duplicate or unknown frozen execution events",
+                "baseline commitment {} does not bind the exact immutable baseline event ledger",
                 commitment.commitment_id
             ));
         }
@@ -1489,6 +1514,26 @@ mod tests {
                     frozen_event_ids: vec!["seg-1-complete".to_string()],
                     active_segment_id: None,
                     source_evidence_ref: "synthetic://commitment/repair-pump/v1".to_string(),
+                },
+            ],
+            baseline_events: vec![
+                ExecutionEvent {
+                    event_id: "seg-1-complete".to_string(),
+                    idempotency_key: "storm-001-repair-pump-seg-0".to_string(),
+                    event_type: ExecutionEventType::WorkSegmentCompleted,
+                    event_id_ref: "storm-001".to_string(),
+                    task_id: "repair-pump".to_string(),
+                    segment_id: "repair-pump-segment-0".to_string(),
+                    sequence: 0,
+                    start_hour: 0.0,
+                    end_hour: 4.0,
+                    productive_effort_hours: 4.0,
+                    effective_hour: 4.0,
+                    observed_hour: 4.1,
+                    evidence_status: EvidenceStatus::Current,
+                    evidence_class: EvidenceClass::SyntheticFixture,
+                    evidence_ref: "synthetic://segment/repair-pump/0".to_string(),
+                    interruption_cause: Some("crew-shift-end".to_string()),
                 },
             ],
             events: vec![
