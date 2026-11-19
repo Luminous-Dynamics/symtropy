@@ -380,6 +380,374 @@ pub fn audit_pressure_tensor(request: &AuditRequest) -> Result<AuditReport, Stri
     })
 }
 
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PressureGridRequest {
+    pub schema_version: String,
+    pub grid_id: String,
+    pub coordinate_frame_id: String,
+    pub pressure_units: String,
+    pub nx: usize,
+    pub ny: usize,
+    pub dx: f64,
+    pub dy: f64,
+    /// Cell-major row order: index = y * nx + x.
+    pub pressure_tensors: Vec<Matrix3>,
+    pub tolerances: AuditTolerances,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PressureGridDisposition {
+    Admissible,
+    Rejected,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PressureGridFinding {
+    pub cell_index: usize,
+    pub code: String,
+    pub detail: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PressureGridReportBody {
+    pub schema_version: String,
+    pub grid_id: String,
+    pub coordinate_frame_id: String,
+    pub pressure_units: String,
+    pub nx: usize,
+    pub ny: usize,
+    pub dx: f64,
+    pub dy: f64,
+    pub request_sha256: String,
+    pub disposition: PressureGridDisposition,
+    pub maximum_symmetry_relative_residual: f64,
+    pub minimum_normalized_principal_minor: f64,
+    pub all_cells_positive_semidefinite: bool,
+    pub divergence: Vec<[f64; 3]>,
+    pub global_integrated_divergence: [f64; 3],
+    pub maximum_absolute_divergence: f64,
+    pub global_conservation_residual_l2: f64,
+    pub findings: Vec<PressureGridFinding>,
+    pub operator_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PressureGridReport {
+    pub body: PressureGridReportBody,
+    pub receipt_sha256: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PressureDivergenceComponentError {
+    pub mae: f64,
+    pub rmse: f64,
+    pub relative_l2: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PressureDivergenceComparisonBody {
+    pub schema_version: String,
+    pub grid_id: String,
+    pub reference_request_sha256: String,
+    pub predicted_request_sha256: String,
+    pub reference_admissible: bool,
+    pub predicted_admissible: bool,
+    pub component_errors: [PressureDivergenceComponentError; 3],
+    pub both_fields_admissible: bool,
+    pub operator_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PressureDivergenceComparisonReport {
+    pub body: PressureDivergenceComparisonBody,
+    pub receipt_sha256: String,
+}
+
+const PERIODIC_FACE_FLUX_OPERATOR: &str =
+    "periodic_uniform_cell_centered_shared_arithmetic_face_flux_v0.1";
+
+fn pressure_grid_request_sha256(request: &PressureGridRequest) -> Result<String, String> {
+    let bytes = serde_json::to_vec(request)
+        .map_err(|error| format!("pressure grid request serialization failed: {error}"))?;
+    Ok(sha256_hex(&bytes))
+}
+
+/// Compute div(P)_i = d_x P_ix + d_y P_iy on a uniform periodic grid.
+///
+/// Every shared face uses one arithmetic-average flux. The global integral
+/// therefore telescopes up to floating-point summation error. This is a
+/// synthetic reference; solver adapters must bind their actual stencil.
+pub fn audit_periodic_pressure_grid(
+    request: &PressureGridRequest,
+) -> Result<PressureGridReport, String> {
+    if request.schema_version != SCHEMA_VERSION {
+        return Err("unsupported pressure-grid schema version".to_owned());
+    }
+    for (name, value) in [
+        ("grid_id", request.grid_id.as_str()),
+        ("coordinate_frame_id", request.coordinate_frame_id.as_str()),
+        ("pressure_units", request.pressure_units.as_str()),
+    ] {
+        if !non_empty(value) {
+            return Err(format!("{name} must be non-empty"));
+        }
+    }
+    validate_tolerances(&request.tolerances)?;
+    if request.nx < 2 || request.ny < 2 {
+        return Err("periodic pressure grid requires nx >= 2 and ny >= 2".to_owned());
+    }
+    if !request.dx.is_finite()
+        || !request.dy.is_finite()
+        || request.dx <= 0.0
+        || request.dy <= 0.0
+    {
+        return Err("grid spacing must be finite and strictly positive".to_owned());
+    }
+    let expected_cells = request
+        .nx
+        .checked_mul(request.ny)
+        .ok_or_else(|| "pressure-grid cell count overflow".to_owned())?;
+    if request.pressure_tensors.len() != expected_cells {
+        return Err(format!(
+            "pressure tensor count {} does not equal nx*ny ({expected_cells})",
+            request.pressure_tensors.len()
+        ));
+    }
+
+    let request_sha256 = pressure_grid_request_sha256(request)?;
+    let mut symmetric_pressure = Vec::with_capacity(expected_cells);
+    let mut findings = Vec::new();
+    let mut maximum_symmetry_relative_residual = 0.0_f64;
+    let mut minimum_normalized_principal_minor = f64::INFINITY;
+    let mut all_cells_positive_semidefinite = true;
+
+    for (cell_index, pressure) in request.pressure_tensors.iter().enumerate() {
+        if !finite_matrix(pressure) {
+            return Err(format!("pressure tensor at cell {cell_index} is non-finite"));
+        }
+        let (symmetric, metrics) = tensor_metrics(
+            pressure,
+            request.tolerances.symmetry_relative,
+            request.tolerances.psd_relative,
+        )?;
+        maximum_symmetry_relative_residual =
+            maximum_symmetry_relative_residual.max(metrics.symmetry_relative_residual);
+        minimum_normalized_principal_minor = minimum_normalized_principal_minor
+            .min(metrics.normalized_min_diagonal_minor)
+            .min(metrics.normalized_min_two_by_two_principal_minor)
+            .min(metrics.normalized_determinant);
+
+        if metrics.symmetry_relative_residual > request.tolerances.symmetry_relative {
+            findings.push(PressureGridFinding {
+                cell_index,
+                code: "pressure_tensor_not_symmetric".to_owned(),
+                detail: "Cell pressure tensor exceeds the declared relative symmetry tolerance."
+                    .to_owned(),
+            });
+        }
+        if !metrics.positive_semidefinite {
+            all_cells_positive_semidefinite = false;
+            findings.push(PressureGridFinding {
+                cell_index,
+                code: "pressure_tensor_not_positive_semidefinite".to_owned(),
+                detail: "Cell pressure tensor has a normalized principal minor below the PSD tolerance."
+                    .to_owned(),
+            });
+        }
+        symmetric_pressure.push(symmetric);
+    }
+
+    let mut divergence = vec![[0.0; 3]; expected_cells];
+    let mut global_integrated_divergence = [0.0; 3];
+    let cell_area = request.dx * request.dy;
+    if !cell_area.is_finite() || cell_area <= 0.0 {
+        return Err("cell area is non-finite or non-positive".to_owned());
+    }
+    let mut maximum_absolute_divergence = 0.0_f64;
+
+    for y in 0..request.ny {
+        let y_up = (y + 1) % request.ny;
+        let y_down = (y + request.ny - 1) % request.ny;
+        for x in 0..request.nx {
+            let x_right = (x + 1) % request.nx;
+            let x_left = (x + request.nx - 1) % request.nx;
+            let index = y * request.nx + x;
+            let right_index = y * request.nx + x_right;
+            let left_index = y * request.nx + x_left;
+            let up_index = y_up * request.nx + x;
+            let down_index = y_down * request.nx + x;
+
+            for component in 0..3 {
+                let flux_x_right = 0.5
+                    * (symmetric_pressure[index][component][0]
+                        + symmetric_pressure[right_index][component][0]);
+                let flux_x_left = 0.5
+                    * (symmetric_pressure[left_index][component][0]
+                        + symmetric_pressure[index][component][0]);
+                let flux_y_up = 0.5
+                    * (symmetric_pressure[index][component][1]
+                        + symmetric_pressure[up_index][component][1]);
+                let flux_y_down = 0.5
+                    * (symmetric_pressure[down_index][component][1]
+                        + symmetric_pressure[index][component][1]);
+                let value = (flux_x_right - flux_x_left) / request.dx
+                    + (flux_y_up - flux_y_down) / request.dy;
+                if !value.is_finite() {
+                    return Err(format!("non-finite pressure divergence at cell {index}"));
+                }
+                divergence[index][component] = value;
+                maximum_absolute_divergence = maximum_absolute_divergence.max(value.abs());
+                global_integrated_divergence[component] += value * cell_area;
+            }
+        }
+    }
+
+    let global_conservation_residual_l2 = global_integrated_divergence
+        .iter()
+        .map(|value| value * value)
+        .sum::<f64>()
+        .sqrt();
+    if !global_conservation_residual_l2.is_finite() {
+        return Err("global pressure-divergence conservation residual is non-finite".to_owned());
+    }
+
+    let rejected = findings.iter().any(|finding| {
+        finding.code == "pressure_tensor_not_symmetric"
+            || finding.code == "pressure_tensor_not_positive_semidefinite"
+    });
+    let body = PressureGridReportBody {
+        schema_version: SCHEMA_VERSION.to_owned(),
+        grid_id: request.grid_id.clone(),
+        coordinate_frame_id: request.coordinate_frame_id.clone(),
+        pressure_units: request.pressure_units.clone(),
+        nx: request.nx,
+        ny: request.ny,
+        dx: request.dx,
+        dy: request.dy,
+        request_sha256,
+        disposition: if rejected {
+            PressureGridDisposition::Rejected
+        } else {
+            PressureGridDisposition::Admissible
+        },
+        maximum_symmetry_relative_residual,
+        minimum_normalized_principal_minor,
+        all_cells_positive_semidefinite,
+        divergence,
+        global_integrated_divergence,
+        maximum_absolute_divergence,
+        global_conservation_residual_l2,
+        findings,
+        operator_id: PERIODIC_FACE_FLUX_OPERATOR.to_owned(),
+    };
+    let receipt_bytes = serde_json::to_vec(&body)
+        .map_err(|error| format!("pressure grid report serialization failed: {error}"))?;
+    Ok(PressureGridReport {
+        body,
+        receipt_sha256: sha256_hex(&receipt_bytes),
+    })
+}
+
+pub fn compare_periodic_pressure_divergence(
+    reference: &PressureGridRequest,
+    predicted: &PressureGridRequest,
+) -> Result<PressureDivergenceComparisonReport, String> {
+    if reference.grid_id != predicted.grid_id
+        || reference.coordinate_frame_id != predicted.coordinate_frame_id
+        || reference.pressure_units != predicted.pressure_units
+        || reference.nx != predicted.nx
+        || reference.ny != predicted.ny
+        || reference.dx.to_bits() != predicted.dx.to_bits()
+        || reference.dy.to_bits() != predicted.dy.to_bits()
+    {
+        return Err("reference and predicted fields do not share the exact grid/frame/unit contract"
+            .to_owned());
+    }
+
+    let reference_report = audit_periodic_pressure_grid(reference)?;
+    let predicted_report = audit_periodic_pressure_grid(predicted)?;
+    let mut component_errors = Vec::with_capacity(3);
+
+    for component in 0..3 {
+        let mut absolute_error_sum = 0.0;
+        let mut squared_error_sum = 0.0;
+        let mut reference_squared_sum = 0.0;
+        for cell in 0..reference_report.body.divergence.len() {
+            let expected = reference_report.body.divergence[cell][component];
+            let actual = predicted_report.body.divergence[cell][component];
+            let error = actual - expected;
+            absolute_error_sum += error.abs();
+            squared_error_sum += error * error;
+            reference_squared_sum += expected * expected;
+        }
+        let cell_count = reference_report.body.divergence.len() as f64;
+        let mae = absolute_error_sum / cell_count;
+        let rmse = (squared_error_sum / cell_count).sqrt();
+        let relative_l2 = if reference_squared_sum > f64::MIN_POSITIVE {
+            Some((squared_error_sum / reference_squared_sum).sqrt())
+        } else {
+            None
+        };
+        if !mae.is_finite()
+            || !rmse.is_finite()
+            || relative_l2.is_some_and(|value| !value.is_finite())
+        {
+            return Err("non-finite pressure-divergence comparison metric".to_owned());
+        }
+        component_errors.push(PressureDivergenceComponentError {
+            mae,
+            rmse,
+            relative_l2,
+        });
+    }
+
+    let component_errors: [PressureDivergenceComponentError; 3] = component_errors
+        .try_into()
+        .map_err(|_| "internal pressure-divergence component count mismatch".to_owned())?;
+    let reference_admissible =
+        reference_report.body.disposition == PressureGridDisposition::Admissible;
+    let predicted_admissible =
+        predicted_report.body.disposition == PressureGridDisposition::Admissible;
+    let body = PressureDivergenceComparisonBody {
+        schema_version: SCHEMA_VERSION.to_owned(),
+        grid_id: reference.grid_id.clone(),
+        reference_request_sha256: reference_report.body.request_sha256.clone(),
+        predicted_request_sha256: predicted_report.body.request_sha256.clone(),
+        reference_admissible,
+        predicted_admissible,
+        component_errors,
+        both_fields_admissible: reference_admissible && predicted_admissible,
+        operator_id: PERIODIC_FACE_FLUX_OPERATOR.to_owned(),
+    };
+    let receipt_bytes = serde_json::to_vec(&body)
+        .map_err(|error| format!("pressure divergence comparison serialization failed: {error}"))?;
+    Ok(PressureDivergenceComparisonReport {
+        body,
+        receipt_sha256: sha256_hex(&receipt_bytes),
+    })
+}
+
+pub fn verify_pressure_grid_report(
+    request: &PressureGridRequest,
+    report: &PressureGridReport,
+) -> Result<(), String> {
+    let expected = audit_periodic_pressure_grid(request)?;
+    if expected != *report {
+        return Err("replayed pressure-grid report differs from the supplied report".to_owned());
+    }
+    Ok(())
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
