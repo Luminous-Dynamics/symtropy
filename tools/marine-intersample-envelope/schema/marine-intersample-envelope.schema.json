@@ -47,7 +47,8 @@
         "time_grid_sha256",
         "scenario_roster_sha256",
         "model_registry_sha256",
-        "operating_envelope_sha256"
+        "operating_envelope_sha256",
+        "initial_resource_state_sha256"
       ],
       "properties": {
         "mission_id": {
@@ -83,6 +84,10 @@
           "pattern": "^[a-fA-F0-9]{64}$"
         },
         "operating_envelope_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "initial_resource_state_sha256": {
           "type": "string",
           "pattern": "^[a-fA-F0-9]{64}$"
         }
