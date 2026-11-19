@@ -174,8 +174,8 @@
         "logisticsRouteId": "ROUTE-CENTRAL-NORTH",
         "transportMassKg": 90000,
         "alternativeFirmCapacityMw": 40,
-        "claimedRestorationHours": 32,
-        "expectedUnservedEnergyMwh": 2560,
+        "claimedRestorationHours": 46,
+        "expectedUnservedEnergyMwh": 3680,
         "tasks": [
           {
             "stage": "detect_and_isolate",
@@ -275,8 +275,8 @@
           "partId": "SPARE-A"
         },
         "alternativeFirmCapacityMw": 20,
-        "claimedRestorationHours": 1219,
-        "expectedUnservedEnergyMwh": 60950,
+        "claimedRestorationHours": 1222,
+        "expectedUnservedEnergyMwh": 61100,
         "tasks": [
           {
             "stage": "detect_and_isolate",
@@ -365,8 +365,8 @@
         "logisticsRouteId": "ROUTE-EAST-LOCAL",
         "transportMassKg": 18000,
         "alternativeFirmCapacityMw": 10,
-        "claimedRestorationHours": 23,
-        "expectedUnservedEnergyMwh": 575,
+        "claimedRestorationHours": 36,
+        "expectedUnservedEnergyMwh": 900,
         "tasks": [
           {
             "stage": "detect_and_isolate",
