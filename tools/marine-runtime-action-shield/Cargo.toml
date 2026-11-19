@@ -1,0 +1,14 @@
+[workspace]
+
+[package]
+name = "marine-runtime-action-shield"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Read-only one-step marine resource action shield"
+
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = ["std"] }
+serde_json = "1.0"
+sha2 = "0.10"
