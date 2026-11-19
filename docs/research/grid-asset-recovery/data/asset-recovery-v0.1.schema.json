@@ -237,29 +237,7 @@
               }
             }
           }
-        },
-        "allOf": [
-          {
-            "properties": {
-              "calendarPeriodHours": {
-                "exclusiveMinimum": 0
-              }
-            }
-          },
-          {
-            "properties": {
-              "availabilityWindows": {
-                "items": {
-                  "properties": {
-                    "endHour": {
-                      "maximum": 100000
-                    }
-                  }
-                }
-              }
-            }
-          }
-        ]
+        }
       }
     },
     "logisticsRoutes": {
