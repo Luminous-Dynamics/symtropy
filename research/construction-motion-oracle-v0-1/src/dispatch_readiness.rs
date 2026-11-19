@@ -647,6 +647,33 @@ mod tests {
         std::iter::repeat_n(value, 64).collect()
     }
 
+    fn clock_sample(sample_sequence: u64, current_tick: u64) -> QualifiedSiteClockSnapshot {
+        QualifiedSiteClockSnapshot {
+            site_clock_domain_id: "site-clock-01".into(),
+            epoch_sha256: digest('a'),
+            mapping_sha256: digest('b'),
+            authority_id: "clock-authority".into(),
+            source_id: "ptp-grandmaster-01".into(),
+            sample_sequence,
+            current_tick,
+            uncertainty_bound_ticks: 1,
+            valid_until_tick: 700,
+            receipt_sha256: if sample_sequence == 1 {
+                digest('c')
+            } else {
+                digest('d')
+            },
+        }
+    }
+
+    fn policy() -> DispatchReadinessPolicy {
+        DispatchReadinessPolicy {
+            occupancy_engine_build_sha256: digest('e'),
+            clearance_policy_sha256: digest('f'),
+            max_clock_uncertainty_ticks: 2,
+        }
+    }
+
     fn site_ledger() -> SiteStateLedger {
         let mut actors = SiteActorRegistry::new();
         actors
@@ -655,6 +682,9 @@ mod tests {
         actors.grant("surveyor", SiteActorRole::Surveyor).unwrap();
         actors.grant("robot-01", SiteActorRole::Robot).unwrap();
         actors.grant("referee", SiteActorRole::Referee).unwrap();
+        actors
+            .grant("clock-authority", SiteActorRole::ClockAuthority)
+            .unwrap();
         let mut ledger = SiteStateLedger::with_actor_registry(actors);
         let package = SiteWorkPackage {
             package_sha256: digest('a'),
@@ -713,11 +743,12 @@ mod tests {
                 trajectory_sha256: digest('9'),
                 envelope_sha256: digest('a'),
                 site_clock_domain_id: "site-clock-01".into(),
+                site_clock_epoch_sha256: digest('a'),
+                clock_mapping_sha256: digest('b'),
                 generated_at_tick: 100,
+                generated_at_uncertainty_ticks: 1,
                 valid_until_tick: 500,
             },
-            trusted_occupancy_engine_build_sha256: digest('e'),
-            required_clearance_policy_sha256: digest('f'),
             occupancy: OccupancyAssessmentReceipt {
                 assessed_envelope_sha256: digest('a'),
                 primitive_manifest_sha256: digest('8'),
@@ -729,7 +760,10 @@ mod tests {
                 occupancy_engine_build_sha256: digest('e'),
                 clearance_policy_sha256: digest('f'),
                 site_clock_domain_id: "site-clock-01".into(),
+                site_clock_epoch_sha256: digest('a'),
+                clock_mapping_sha256: digest('b'),
                 checked_at_tick: 110,
+                checked_at_uncertainty_ticks: 1,
                 valid_until_tick: 400,
                 primitive_coverage_complete: true,
                 dynamic_actor_coverage_complete: true,
@@ -745,7 +779,7 @@ mod tests {
                 unmodelled_occupant_count: 0,
                 assessment_receipt_sha256: digest('9'),
             },
-            now_tick: 120,
+            qualified_clock: clock_sample(1, 120),
         }
     }
 
@@ -753,12 +787,16 @@ mod tests {
     fn exact_fresh_conflict_free_snapshot_produces_readiness_only() {
         let ledger = site_ledger();
         let request = make_request(&ledger);
-        let receipt = check_dispatch_readiness(&ledger, &request).unwrap();
+        let receipt = check_dispatch_readiness(&ledger, &request, &policy()).unwrap();
         assert_eq!(receipt.package_sha256, request.envelope.package_sha256);
         assert_eq!(receipt.envelope_sha256, request.envelope.envelope_sha256);
         assert_eq!(receipt.site_ledger_sequence, 1);
         assert_eq!(receipt.site_clock_domain_id, "site-clock-01");
-        assert_eq!(receipt.valid_until_tick, 400);
+        assert_eq!(receipt.site_clock_epoch_sha256, digest('a'));
+        assert_eq!(receipt.clock_mapping_sha256, digest('b'));
+        assert_eq!(receipt.clock_sample_sequence, 1);
+        assert_eq!(receipt.checked_at_uncertainty_ticks, 1);
+        assert_eq!(receipt.valid_until_tick, 350);
     }
 
     #[test]
@@ -784,14 +822,14 @@ mod tests {
             })
             .unwrap();
         assert_eq!(
-            check_dispatch_readiness(&ledger, &request),
+            check_dispatch_readiness(&ledger, &request, &policy()),
             Err(DispatchReadinessFailure::SiteSnapshotSequenceMismatch)
         );
 
         // A new occupancy receipt must be created for the changed ledger head.
         let fresh_request = make_request(&ledger);
         assert_eq!(
-            check_dispatch_readiness(&ledger, &fresh_request)
+            check_dispatch_readiness(&ledger, &fresh_request, &policy())
                 .unwrap()
                 .site_ledger_sequence,
             2
@@ -804,13 +842,13 @@ mod tests {
         let mut request = make_request(&ledger);
         request.occupancy.conflict_count = 1;
         assert!(matches!(
-            check_dispatch_readiness(&ledger, &request),
+            check_dispatch_readiness(&ledger, &request, &policy()),
             Err(DispatchReadinessFailure::OccupancyNotClear { conflicts: 1, .. })
         ));
         request.occupancy.conflict_count = 0;
         request.occupancy.unresolved_pair_count = 1;
         assert!(matches!(
-            check_dispatch_readiness(&ledger, &request),
+            check_dispatch_readiness(&ledger, &request, &policy()),
             Err(DispatchReadinessFailure::OccupancyNotClear {
                 unresolved_pairs: 1,
                 ..
@@ -819,7 +857,7 @@ mod tests {
         request.occupancy.unresolved_pair_count = 0;
         request.occupancy.primitive_coverage_complete = false;
         assert_eq!(
-            check_dispatch_readiness(&ledger, &request),
+            check_dispatch_readiness(&ledger, &request, &policy()),
             Err(DispatchReadinessFailure::IncompletePrimitiveCoverage)
         );
     }
@@ -830,13 +868,13 @@ mod tests {
         let mut request = make_request(&ledger);
         request.envelope.transform_sha256 = digest('0');
         assert_eq!(
-            check_dispatch_readiness(&ledger, &request),
+            check_dispatch_readiness(&ledger, &request, &policy()),
             Err(DispatchReadinessFailure::TransformMismatch)
         );
         request.envelope.transform_sha256 = digest('1');
         request.occupancy.assessed_envelope_sha256 = digest('0');
         assert_eq!(
-            check_dispatch_readiness(&ledger, &request),
+            check_dispatch_readiness(&ledger, &request, &policy()),
             Err(DispatchReadinessFailure::OccupancyEnvelopeMismatch)
         );
     }
@@ -845,15 +883,15 @@ mod tests {
     fn expired_or_cross_clock_assessment_is_not_reused() {
         let ledger = site_ledger();
         let mut request = make_request(&ledger);
-        request.now_tick = 550;
+        request.qualified_clock.current_tick = 550;
         assert_eq!(
-            check_dispatch_readiness(&ledger, &request),
+            check_dispatch_readiness(&ledger, &request, &policy()),
             Err(DispatchReadinessFailure::EnvelopeExpired)
         );
         request.now_tick = 120;
         request.occupancy.site_clock_domain_id = "robot-clock".into();
         assert_eq!(
-            check_dispatch_readiness(&ledger, &request),
+            check_dispatch_readiness(&ledger, &request, &policy()),
             Err(DispatchReadinessFailure::OccupancyClockDomainMismatch)
         );
     }
@@ -864,7 +902,7 @@ mod tests {
         let mut request = make_request(&ledger);
         request.occupancy.checked_at_tick = 99;
         assert_eq!(
-            check_dispatch_readiness(&ledger, &request),
+            check_dispatch_readiness(&ledger, &request, &policy()),
             Err(DispatchReadinessFailure::OccupancyAssessmentPredatesEnvelope)
         );
     }
@@ -911,7 +949,7 @@ mod tests {
         request.occupancy.site_ledger_sequence = ledger.last_sequence();
         request.occupancy.site_ledger_event_sha256 = ledger.last_event_sha256().unwrap().to_owned();
         assert_eq!(
-            check_dispatch_readiness(&ledger, &request),
+            check_dispatch_readiness(&ledger, &request, &policy()),
             Err(DispatchReadinessFailure::EntityNotDispatchable)
         );
     }
@@ -922,7 +960,7 @@ mod tests {
         let mut request = make_request(&ledger);
         request.occupancy.stale_actor_count = 1;
         assert!(matches!(
-            check_dispatch_readiness(&ledger, &request),
+            check_dispatch_readiness(&ledger, &request, &policy()),
             Err(DispatchReadinessFailure::OccupancyNotClear {
                 stale_actors: 1,
                 ..
@@ -931,7 +969,7 @@ mod tests {
         request.occupancy.stale_actor_count = 0;
         request.occupancy.invalid_bound_count = 1;
         assert!(matches!(
-            check_dispatch_readiness(&ledger, &request),
+            check_dispatch_readiness(&ledger, &request, &policy()),
             Err(DispatchReadinessFailure::OccupancyNotClear {
                 invalid_bounds: 1,
                 ..
@@ -940,7 +978,7 @@ mod tests {
         request.occupancy.invalid_bound_count = 0;
         request.occupancy.unmodelled_occupant_count = 1;
         assert!(matches!(
-            check_dispatch_readiness(&ledger, &request),
+            check_dispatch_readiness(&ledger, &request, &policy()),
             Err(DispatchReadinessFailure::OccupancyNotClear {
                 unmodelled_occupants: 1,
                 ..
@@ -954,7 +992,7 @@ mod tests {
         let mut request = make_request(&ledger);
         request.occupancy.narrowphase_coverage_complete = false;
         assert_eq!(
-            check_dispatch_readiness(&ledger, &request),
+            check_dispatch_readiness(&ledger, &request, &policy()),
             Err(DispatchReadinessFailure::IncompleteNarrowphaseCoverage)
         );
     }
@@ -963,15 +1001,16 @@ mod tests {
     fn unapproved_occupancy_engine_or_clearance_policy_blocks_readiness() {
         let ledger = site_ledger();
         let mut request = make_request(&ledger);
-        request.trusted_occupancy_engine_build_sha256 = digest('0');
+        let mut untrusted_engine = policy();
+        untrusted_engine.occupancy_engine_build_sha256 = digest('0');
         assert_eq!(
-            check_dispatch_readiness(&ledger, &request),
+            check_dispatch_readiness(&ledger, &request, &untrusted_engine),
             Err(DispatchReadinessFailure::OccupancyEngineBuildMismatch)
         );
-        request.trusted_occupancy_engine_build_sha256 = digest('e');
-        request.required_clearance_policy_sha256 = digest('0');
+        let mut untrusted_policy = policy();
+        untrusted_policy.clearance_policy_sha256 = digest('0');
         assert_eq!(
-            check_dispatch_readiness(&ledger, &request),
+            check_dispatch_readiness(&ledger, &request, &untrusted_policy),
             Err(DispatchReadinessFailure::ClearancePolicyMismatch)
         );
     }
@@ -983,7 +1022,7 @@ mod tests {
         request.occupancy.candidate_pair_count = 3;
         request.occupancy.narrowphase_evaluated_pair_count = 2;
         assert_eq!(
-            check_dispatch_readiness(&ledger, &request),
+            check_dispatch_readiness(&ledger, &request, &policy()),
             Err(DispatchReadinessFailure::IncompleteNarrowphaseCoverage)
         );
     }
@@ -992,14 +1031,13 @@ mod tests {
     fn readiness_receipt_must_be_revalidated_before_consume() {
         let ledger = site_ledger();
         let request = make_request(&ledger);
-        let receipt = check_dispatch_readiness(&ledger, &request).unwrap();
+        let receipt = check_dispatch_readiness(&ledger, &request, &policy()).unwrap();
         assert_eq!(
             verify_dispatch_readiness_receipt_current(
                 &ledger,
                 &receipt,
-                &request.trusted_occupancy_engine_build_sha256,
-                &request.required_clearance_policy_sha256,
-                130,
+                &policy(),
+                &clock_sample(2, 130),
             ),
             Ok(())
         );
@@ -1007,9 +1045,8 @@ mod tests {
             verify_dispatch_readiness_receipt_current(
                 &ledger,
                 &receipt,
-                &request.trusted_occupancy_engine_build_sha256,
-                &request.required_clearance_policy_sha256,
-                400,
+                &policy(),
+                &clock_sample(2, 400),
             ),
             Err(DispatchReadinessFailure::ReadinessReceiptExpired)
         );
@@ -1017,9 +1054,11 @@ mod tests {
             verify_dispatch_readiness_receipt_current(
                 &ledger,
                 &receipt,
-                &digest('0'),
-                &request.required_clearance_policy_sha256,
-                130,
+                &DispatchReadinessPolicy {
+                    occupancy_engine_build_sha256: digest('0'),
+                    ..policy()
+                },
+                &clock_sample(2, 130),
             ),
             Err(DispatchReadinessFailure::OccupancyEngineBuildMismatch)
         );
@@ -1027,9 +1066,11 @@ mod tests {
             verify_dispatch_readiness_receipt_current(
                 &ledger,
                 &receipt,
-                &request.trusted_occupancy_engine_build_sha256,
-                &digest('0'),
-                130,
+                &DispatchReadinessPolicy {
+                    clearance_policy_sha256: digest('0'),
+                    ..policy()
+                },
+                &clock_sample(2, 130),
             ),
             Err(DispatchReadinessFailure::ClearancePolicyMismatch)
         );
@@ -1122,7 +1163,7 @@ mod tests {
         request.occupancy.site_ledger_event_sha256 =
             ledger.last_event_sha256().unwrap().to_owned();
         assert_eq!(
-            check_dispatch_readiness(&ledger, &request),
+            check_dispatch_readiness(&ledger, &request, &policy()),
             Err(DispatchReadinessFailure::EntityNotDispatchable)
         );
     }
@@ -1131,7 +1172,7 @@ mod tests {
     fn readiness_receipt_is_bound_to_the_current_ledger_head_at_consumption() {
         let mut ledger = site_ledger();
         let request = make_request(&ledger);
-        let receipt = check_dispatch_readiness(&ledger, &request).unwrap();
+        let receipt = check_dispatch_readiness(&ledger, &request, &policy()).unwrap();
 
         ledger
             .apply(SiteEventEnvelope {
@@ -1155,9 +1196,8 @@ mod tests {
             verify_dispatch_readiness_receipt_current(
                 &ledger,
                 &receipt,
-                &request.trusted_occupancy_engine_build_sha256,
-                &request.required_clearance_policy_sha256,
-                130,
+                &policy(),
+                &clock_sample(2, 130),
             ),
             Err(DispatchReadinessFailure::SiteSnapshotSequenceMismatch)
         );
@@ -1167,9 +1207,9 @@ mod tests {
     fn wrong_or_unknown_request_schema_version_is_rejected() {
         let ledger = site_ledger();
         let mut request = make_request(&ledger);
-        request.schema_version = "construction-dispatch-readiness-request/0.2".into();
+        request.schema_version = "construction-dispatch-readiness-request/0.1".into();
         assert_eq!(
-            check_dispatch_readiness(&ledger, &request),
+            check_dispatch_readiness(&ledger, &request, &policy()),
             Err(DispatchReadinessFailure::UnsupportedSchemaVersion)
         );
     }
@@ -1180,7 +1220,7 @@ mod tests {
         let mut request = make_request(&ledger);
         request.envelope.robot_id = "unregistered-robot".into();
         assert_eq!(
-            check_dispatch_readiness(&ledger, &request),
+            check_dispatch_readiness(&ledger, &request, &policy()),
             Err(DispatchReadinessFailure::RobotIdentityNotRegistered)
         );
     }
@@ -1189,7 +1229,7 @@ mod tests {
     fn readiness_receipt_preserves_full_execution_and_occupancy_context() {
         let ledger = site_ledger();
         let request = make_request(&ledger);
-        let receipt = check_dispatch_readiness(&ledger, &request).unwrap();
+        let receipt = check_dispatch_readiness(&ledger, &request, &policy()).unwrap();
         assert_eq!(receipt.frame_sha256, request.envelope.frame_sha256);
         assert_eq!(receipt.transform_sha256, request.envelope.transform_sha256);
         assert_eq!(
@@ -1225,7 +1265,7 @@ mod tests {
     fn modified_readiness_context_is_detected_by_the_signed_receipt_comparison_layer() {
         let ledger = site_ledger();
         let request = make_request(&ledger);
-        let receipt = check_dispatch_readiness(&ledger, &request).unwrap();
+        let receipt = check_dispatch_readiness(&ledger, &request, &policy()).unwrap();
         let mut changed = receipt.clone();
         changed.robot_configuration_sha256 = digest('0');
         assert_ne!(changed, receipt);
