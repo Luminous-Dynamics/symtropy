@@ -9,9 +9,9 @@
 use crate::site_state_ledger::{SiteActorRole, SiteEntityState, SiteStateLedger};
 
 pub const DISPATCH_READINESS_REQUEST_SCHEMA_VERSION: &str =
-    "construction-dispatch-readiness-request/0.1";
+    "construction-dispatch-readiness-request/0.2";
 pub const DISPATCH_READINESS_RECEIPT_SCHEMA_VERSION: &str =
-    "construction-dispatch-readiness-receipt/0.1";
+    "construction-dispatch-readiness-receipt/0.2";
 
 /// Caller-authenticated snapshot from the qualified site time authority.
 ///
