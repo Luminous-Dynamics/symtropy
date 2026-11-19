@@ -8,7 +8,7 @@
 
 | Reference | Publicly described capability / current result | Evidence class | What Symtropy should compare |
 |---|---|---|---|
-| Fervo Energy Q3 2026 | Company reports 36 MW operating, 466 MW under construction, and 550 MW ready-to-build; company states a $5,500/kW installed-cost target for Cape Google 400 and a longer-term $3,000/kW target | Company-reported portfolio / targets | Do not compare a software model to portfolio capacity as if it were a validated plant performance curve. Use site/resource and cost inputs only when source scope and definitions match |
+| Fervo Energy Q3 2026 | Company reports one 33 MW GeoBlock commercially operating at Cape Station (36 MW total portfolio operating when its 3 MW pilot is included); GeoBlock 2 was grid-synchronized and exporting test energy but not yet commercial, GeoBlock 3 was mechanically complete / in commissioning; 466 MW under construction and 550 MW ready-to-build. A 15-year 396 MW take-or-pay Google PPA is expected to begin delivery in mid-2028. Phase I three-GeoBlock cost is reported at about $7,000/kW; Cape Google 400 target is $5,500/kW, with a longer-term $3,000/kW target. | Company-reported operation, project status, contractual commitments and targets | Benchmark actual net output, availability, wellfield decline, drilling/casing design, auxiliary loads and full installed cost separately. Do not treat 550 MW ready-to-build, 54.7 GW early pipeline or the 396 MW future PPA as operating capacity; cost targets are not achieved cost data |
 | ARPA-E SUPERHOT | Eight selected projects for up to a combined $30M; target resources above 375 °C and 22 MPa | Program announcement / selection, not completed awards | Superhot well materials, well construction, instrumentation and resource-state cases; record selected-project status separately from demonstrated performance |
 | Scott (2026), *Geothermics* | Calibrated deterministic reservoir–wellbore–power-cycle model: reservoir pressure and transmissivity materially affect deliverable power; near-isenthalpic expansion causes modeled 50–150 °C reservoir-to-wellhead cooling; >30 MWe/well requires very high transmissivity in the examined conditions | Published calibrated model | Reproduce selected published tables/curves from full source inputs, then test held-out parameter cases. Do not treat model output as field proof |
 | NREL SAM / GETEM | Geothermal plant annual/lifetime output and LCOE; supported flash/binary/hydrothermal/EGS assumptions and monthly resource evolution | Established engineering/economic model | Matched plant output, resource-decline, recapitalization and economic subproblems |
@@ -38,6 +38,9 @@
 - ASHRAE Handbook 2018, Chapter 18, Absorption Equipment: https://handbook.ashrae.org/handbooks/R18/SI/R18_Ch18/r18_ch18_si.aspx
 - Zhou et al. (2024), geothermal polygeneration, DOI 10.1016/j.energy.2024.131667: https://doi.org/10.1016/j.energy.2024.131667
 - Wang et al. (9 October 2026), desalination energy efficiency and sustainability, DOI 10.1038/s44359-026-00221-x: https://doi.org/10.1038/s44359-026-00221-x
+- Fervo Q3 2026 SEC 10-Q / portfolio definitions (as of 30 September 2026): https://www.sec.gov/Archives/edgar/data/1853868/000162828026072482/frvo-20260930.htm
+- Fervo Cape Station first GeoBlock commercial operation (1 October 2026): https://www.sec.gov/Archives/edgar/data/1853868/000162828026064103/exhibit991pressrelease10126.htm
+- ASHRAE Handbook, Chapter 18, absorption equipment (single/double-effect operating conditions): https://handbook.ashrae.org/handbooks/R18/SI/R18_Ch18/r18_ch18_si.aspx
 
 ## 2. What is actually novel in our target
 
