@@ -581,9 +581,12 @@ fn build_segment_views(
                 || pair[1].productive_effort_hours + TOLERANCE
                     < pair[0].productive_effort_hours
                 || !approximately_equal(pair[1].start_hour, pair[0].start_hour)
+                || pair[1].event_id_ref != pair[0].event_id_ref
+                || pair[1].task_id != pair[0].task_id
+                || pair[1].sequence != pair[0].sequence
             {
                 errors.push(format!(
-                    "progress snapshots for segment {segment_id} are not monotonic"
+                    "progress snapshots for segment {segment_id} are not monotonic or preserve different segment identities"
                 ));
             }
         }
@@ -595,6 +598,9 @@ fn build_segment_views(
                     || snapshot.productive_effort_hours
                         > done.productive_effort_hours + TOLERANCE
                     || !approximately_equal(snapshot.start_hour, done.start_hour)
+                    || snapshot.event_id_ref != done.event_id_ref
+                    || snapshot.task_id != done.task_id
+                    || snapshot.sequence != done.sequence
                 {
                     errors.push(format!(
                         "completed segment {segment_id} does not reconcile its prior progress snapshots"
@@ -973,6 +979,7 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
         if task.event_id.trim().is_empty()
             || task.task_id.trim().is_empty()
             || !finite_nonnegative(task.release_hour)
+            || task.release_hour > case.horizon_end_hour + TOLERANCE
             || !task.required_effort_hours.is_finite()
             || task.required_effort_hours <= 0.0
             || !task.minimum_segment_effort_hours.is_finite()
