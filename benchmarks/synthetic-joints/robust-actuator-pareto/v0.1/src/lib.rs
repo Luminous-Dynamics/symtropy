@@ -56,16 +56,19 @@ pub struct HardConstraintDefinition {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MetricEvidence {
+    pub name: String,
     pub value: Option<f64>,
     pub unit: String,
     pub evidence_class: EvidenceClass,
     pub source_reference: Option<String>,
     pub method: Option<String>,
     pub configuration_digest: String,
+    pub operating_condition_digest: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ConstraintEvidence {
+    pub name: String,
     /// Worst-case margin over the declared bounded stress set. Positive passes.
     pub minimum_robust_margin: Option<f64>,
     pub unit: String,
@@ -73,6 +76,7 @@ pub struct ConstraintEvidence {
     pub source_reference: Option<String>,
     pub method: Option<String>,
     pub configuration_digest: String,
+    pub operating_condition_digest: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -118,10 +122,15 @@ fn validate_evidence(
     method: &Option<String>,
     configuration_digest: &str,
     expected_configuration_digest: &str,
+    operating_condition_digest: &str,
+    expected_operating_condition_digest: &str,
     label: &str,
 ) -> Result<(), String> {
     if configuration_digest != expected_configuration_digest {
         return Err(format!("{label} belongs to a different candidate configuration"));
+    }
+    if operating_condition_digest != expected_operating_condition_digest {
+        return Err(format!("{label} belongs to different operating conditions"));
     }
     if evidence_class != EvidenceClass::Unknown {
         if source_reference.as_deref().is_none_or(|value| !nonempty(value)) {
@@ -219,6 +228,12 @@ fn assess_candidate(
     let mut violated_constraints = Vec::new();
 
     for (index, (definition, observation)) in objectives.iter().zip(&candidate.objectives).enumerate() {
+        if observation.name != definition.name {
+            return Err(format!(
+                "candidate {:?} objective name {:?} does not match declared name {:?}",
+                candidate.candidate_id, observation.name, definition.name
+            ));
+        }
         if observation.unit != definition.unit {
             return Err(format!(
                 "candidate {:?} objective {} unit {:?} does not match declared unit {:?}",
@@ -231,6 +246,8 @@ fn assess_candidate(
             &observation.method,
             &observation.configuration_digest,
             &candidate.configuration_digest,
+            &observation.operating_condition_digest,
+            &candidate.operating_condition_digest,
             &format!("objective {:?}", definition.name),
         )?;
         if observation.value.is_some_and(|value| !value.is_finite()) {
@@ -243,6 +260,12 @@ fn assess_candidate(
     }
 
     for (index, (definition, observation)) in constraints.iter().zip(&candidate.hard_constraints).enumerate() {
+        if observation.name != definition.name {
+            return Err(format!(
+                "candidate {:?} constraint name {:?} does not match declared name {:?}",
+                candidate.candidate_id, observation.name, definition.name
+            ));
+        }
         if observation.unit != definition.unit {
             return Err(format!(
                 "candidate {:?} constraint {} unit {:?} does not match declared unit {:?}",
@@ -255,13 +278,17 @@ fn assess_candidate(
             &observation.method,
             &observation.configuration_digest,
             &candidate.configuration_digest,
+            &observation.operating_condition_digest,
+            &candidate.operating_condition_digest,
             &format!("constraint {:?}", definition.name),
         )?;
         if observation.minimum_robust_margin.is_some_and(|margin| !margin.is_finite()) {
             return Err(format!("candidate {:?} constraint {} has non-finite margin", candidate.candidate_id, definition.name));
         }
         match observation.minimum_robust_margin {
-            Some(margin) if margin < 0.0 => violated_constraints.push(definition.name.clone()),
+            Some(margin) if margin < 0.0 && observation.evidence_class != EvidenceClass::Unknown => {
+                violated_constraints.push(definition.name.clone())
+            }
             None => unknown_fields.push(format!("constraint[{index}]={}", definition.name)),
             Some(_) => {}
         }
@@ -358,26 +385,28 @@ pub fn robust_pareto_report(
         .map(|(index, candidate)| (candidate.candidate_id.as_str(), index))
         .collect();
 
-    for assessment in &mut assessments {
-        let CandidateDisposition::Feasible(lane) = assessment.disposition else {
+    for index in 0..assessments.len() {
+        let CandidateDisposition::Feasible(lane) = assessments[index].disposition else {
             continue;
         };
-        let right = &candidates[*candidate_index.get(assessment.candidate_id.as_str()).unwrap()];
+        let candidate_id = assessments[index].candidate_id.clone();
+        let right_index = *candidate_index.get(candidate_id.as_str()).unwrap();
+        let right = &candidates[right_index];
+        let mut dominated_by = Vec::new();
+
         for other in candidates {
-            if other.candidate_id == assessment.candidate_id {
+            if other.candidate_id == candidate_id {
                 continue;
             }
-            let other_assessment = assessments
-                .iter()
-                .find(|candidate| candidate.candidate_id == other.candidate_id)
-                .unwrap();
-            if other_assessment.disposition == CandidateDisposition::Feasible(lane)
+            let other_index = *candidate_index.get(other.candidate_id.as_str()).unwrap();
+            if assessments[other_index].disposition == CandidateDisposition::Feasible(lane)
                 && dominates(other, right, objectives)
             {
-                assessment.dominated_by.push(other.candidate_id.clone());
+                dominated_by.push(other.candidate_id.clone());
             }
         }
-        assessment.dominated_by.sort();
+        dominated_by.sort();
+        assessments[index].dominated_by = dominated_by;
     }
 
     let mut fronts = Vec::new();
@@ -444,23 +473,27 @@ mod tests {
 
     fn metric(value: f64, unit: &str, class: EvidenceClass) -> MetricEvidence {
         MetricEvidence {
+            name: String::new(),
             value: Some(value),
             unit: unit.to_owned(),
             evidence_class: class,
             source_reference: Some("https://example.invalid/fixture".to_owned()),
             method: Some("synthetic known-answer fixture".to_owned()),
             configuration_digest: CONFIG.to_owned(),
+            operating_condition_digest: CONDITION.to_owned(),
         }
     }
 
     fn constraint(margin: f64, unit: &str, class: EvidenceClass) -> ConstraintEvidence {
         ConstraintEvidence {
+            name: String::new(),
             minimum_robust_margin: Some(margin),
             unit: unit.to_owned(),
             evidence_class: class,
             source_reference: Some("https://example.invalid/fixture".to_owned()),
             method: Some("synthetic bounded stress-set oracle".to_owned()),
             configuration_digest: CONFIG.to_owned(),
+            operating_condition_digest: CONDITION.to_owned(),
         }
     }
 
@@ -477,13 +510,13 @@ mod tests {
             operating_condition_digest: CONDITION.to_owned(),
             mission_set_digest: MISSIONS.to_owned(),
             objectives: vec![
-                metric(mass, "kg", class),
-                metric(energy, "J", class),
-                metric(coverage, "fraction", class),
+                MetricEvidence { name: "installed_mass".to_owned(), ..metric(mass, "kg", class) },
+                MetricEvidence { name: "task_energy".to_owned(), ..metric(energy, "J", class) },
+                MetricEvidence { name: "task_coverage".to_owned(), ..metric(coverage, "fraction", class) },
             ],
             hard_constraints: vec![
-                constraint(5.0, "degC", class),
-                constraint(2.0, "Nm", class),
+                ConstraintEvidence { name: "thermal_margin".to_owned(), ..constraint(5.0, "degC", class) },
+                ConstraintEvidence { name: "torque_margin".to_owned(), ..constraint(2.0, "Nm", class) },
             ],
         }
     }
