@@ -258,10 +258,11 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
             return;
         }
 
-        // Velocity-only PD controller. Position control for a hinge still
-        // requires a persisted relative angle, which this joint does not keep.
-        let torque = (motor.kp * (motor.target_vel - relative_velocity)
-            - relative_velocity * motor.kd)
+        // Velocity-only controller. This adapter uses the available kd
+        // field as the velocity-error gain; kp/target_pos are not consumed
+        // because this joint does not yet persist a continuous relative angle.
+        // A typed PositionDrive / VelocityDrive API remains a follow-up.
+        let torque = (motor.kd * (motor.target_vel - relative_velocity))
             .clamp(-motor.max_force, motor.max_force);
         let impulse = torque * dt;
         if !impulse.is_finite() {
