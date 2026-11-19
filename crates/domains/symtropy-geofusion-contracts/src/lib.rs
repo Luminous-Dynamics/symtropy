@@ -15,7 +15,7 @@ use std::fmt;
 pub mod provider_units;
 pub mod superhot_well;
 pub use provider_units::{
-    If97AdapterError, If97AdapterRequest, If97ProviderInput, WaterCompositionClass,
+    If97AdapterError, If97AdapterRequest, VleSteamProviderInput, WaterCompositionClass,
     kilopascals_to_pascals_abs, pascals_to_kilopascals_abs,
 };
 pub use superhot_well::{
