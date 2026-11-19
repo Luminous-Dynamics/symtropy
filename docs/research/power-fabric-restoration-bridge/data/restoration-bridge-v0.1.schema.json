@@ -1,0 +1,298 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:power-fabric:restoration-bridge:0.1.0",
+  "title": "Power Fabric Recovery-to-Service Bridge Dataset",
+  "description": "Evidence-separated bridge from recovery work records to independently sourced service functionality traces. A scheduled repair milestone is never itself service availability.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "bridgeId",
+    "scenario",
+    "timeGrid",
+    "sourceArtifacts",
+    "restorationStreams",
+    "serviceStreams",
+    "mappingReceipts"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "0.1.0" },
+    "bridgeId": { "type": "string", "minLength": 1 },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scenarioId", "maturity", "description"],
+      "properties": {
+        "scenarioId": { "type": "string", "minLength": 1 },
+        "maturity": {
+          "type": "string",
+          "enum": ["synthetic", "modelled", "measured", "mixed", "unknown"]
+        },
+        "description": { "type": "string", "minLength": 1 },
+        "jurisdictionProfileId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "timeGrid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end", "timeZone", "stepSeconds", "resamplingPolicy"],
+      "properties": {
+        "start": { "type": "string", "format": "date-time" },
+        "end": { "type": "string", "format": "date-time" },
+        "timeZone": {
+          "type": "string",
+          "description": "IANA zone identifier for jurisdictional interpretation; instants are still encoded with explicit offsets."
+        },
+        "stepSeconds": { "type": "integer", "minimum": 1 },
+        "resamplingPolicy": {
+          "type": "string",
+          "enum": ["interval_mean", "interval_minimum", "interval_maximum", "interval_end", "no_resampling"]
+        },
+        "gapPolicy": {
+          "type": "string",
+          "enum": ["reject", "preserve_unknown", "explicit_imputation"]
+        }
+      }
+    },
+    "sourceArtifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["artifactId", "artifactKind", "sourceRef", "revision", "digest"],
+        "properties": {
+          "artifactId": { "type": "string", "minLength": 1 },
+          "artifactKind": {
+            "type": "string",
+            "enum": [
+              "recovery_report",
+              "observed_work_log",
+              "domain_model",
+              "measurement_dataset",
+              "service_cascade_model",
+              "scenario_manifest",
+              "jurisdiction_profile",
+              "other"
+            ]
+          },
+          "sourceRef": { "type": "string", "minLength": 1 },
+          "revision": { "type": "string", "minLength": 1 },
+          "digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+          "configurationDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+          "datasetDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+        }
+      }
+    },
+    "restorationStreams": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["streamId", "streamKind", "sourceArtifactId", "items"],
+        "properties": {
+          "streamId": { "type": "string", "minLength": 1 },
+          "streamKind": { "type": "string", "enum": ["planned_forecast", "observed_work"] },
+          "sourceArtifactId": { "type": "string", "minLength": 1 },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["eventId", "taskId", "assetId", "milestone", "status"],
+              "properties": {
+                "eventId": { "type": "string", "minLength": 1 },
+                "taskId": { "type": "string", "minLength": 1 },
+                "assetId": { "type": "string", "minLength": 1 },
+                "milestone": {
+                  "type": "string",
+                  "enum": [
+                    "detected",
+                    "isolated",
+                    "diagnosed",
+                    "spare_qualified",
+                    "procured",
+                    "transported",
+                    "mobilised",
+                    "repair_started",
+                    "repair_paused",
+                    "repair_resumed",
+                    "repair_completed",
+                    "commissioning_started",
+                    "commissioning_passed",
+                    "commissioning_failed",
+                    "workfront_released",
+                    "other"
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["planned", "in_progress", "completed", "failed", "unknown", "conflicted"]
+                },
+                "plannedAt": { "type": "string", "format": "date-time" },
+                "observedAt": { "type": "string", "format": "date-time" },
+                "progressFraction": { "type": "number", "minimum": 0, "maximum": 1 },
+                "evidenceRefs": {
+                  "type": "array",
+                  "items": { "type": "string", "minLength": 1 },
+                  "uniqueItems": true
+                },
+                "evidenceClass": {
+                  "type": "string",
+                  "enum": ["simulated", "observed", "unknown"]
+                },
+                "freshness": {
+                  "type": "string",
+                  "enum": ["current", "stale", "conflicted", "unverified", "unknown"]
+                }
+              },
+              "allOf": [
+                {
+                  "if": { "properties": { "status": { "const": "planned" } }, "required": ["status"] },
+                  "then": { "required": ["plannedAt", "evidenceClass"], "properties": { "evidenceClass": { "const": "simulated" } } }
+                },
+                {
+                  "if": { "properties": { "status": { "enum": ["in_progress", "completed", "failed"] } }, "required": ["status"] },
+                  "then": { "required": ["observedAt", "evidenceClass", "evidenceRefs"], "properties": { "evidenceClass": { "enum": ["observed", "unknown"] }, "evidenceRefs": { "minItems": 1 } } }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "serviceStreams": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "streamId",
+          "streamKind",
+          "serviceId",
+          "serviceType",
+          "cascadeNodeId",
+          "sourceArtifactId",
+          "measurementBoundary",
+          "nativeUnit",
+          "normalization",
+          "series"
+        ],
+        "properties": {
+          "streamId": { "type": "string", "minLength": 1 },
+          "streamKind": { "type": "string", "enum": ["modelled_service", "measured_service"] },
+          "serviceId": { "type": "string", "minLength": 1 },
+          "serviceType": {
+            "type": "string",
+            "enum": ["electricity", "water", "sanitation", "telecommunications", "transport", "health", "other"]
+          },
+          "cascadeNodeId": { "type": "string", "minLength": 1 },
+          "sourceArtifactId": { "type": "string", "minLength": 1 },
+          "measurementBoundary": { "type": "string", "minLength": 1 },
+          "nativeUnit": { "type": "string", "minLength": 1 },
+          "nativeMetric": { "type": "string", "minLength": 1 },
+          "normalization": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["methodId", "numeratorDefinition", "denominatorDefinition", "applicabilityRef"],
+            "properties": {
+              "methodId": { "type": "string", "minLength": 1 },
+              "numeratorDefinition": { "type": "string", "minLength": 1 },
+              "denominatorDefinition": { "type": "string", "minLength": 1 },
+              "applicabilityRef": { "type": "string", "minLength": 1 },
+              "clipToUnitInterval": { "type": "boolean" }
+            }
+          },
+          "series": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["start", "end", "status", "evidenceClass", "sourceRef"],
+              "properties": {
+                "start": { "type": "string", "format": "date-time" },
+                "end": { "type": "string", "format": "date-time" },
+                "nativeDelivered": { "type": "number", "minimum": 0 },
+                "nativeDemand": { "type": "number", "exclusiveMinimum": 0 },
+                "functionalAvailability": { "type": "number", "minimum": 0, "maximum": 1 },
+                "status": { "type": "string", "enum": ["valid", "stale", "unknown", "conflicted"] },
+                "evidenceClass": { "type": "string", "enum": ["simulated", "inferred", "observed", "unknown"] },
+                "sourceRef": { "type": "string", "minLength": 1 },
+                "uncertaintyRef": { "type": "string", "minLength": 1 }
+              },
+              "allOf": [
+                {
+                  "if": { "properties": { "status": { "const": "valid" } }, "required": ["status"] },
+                  "then": { "required": ["functionalAvailability"] }
+                },
+                {
+                  "if": { "properties": { "status": { "enum": ["stale", "unknown", "conflicted"] } }, "required": ["status"] },
+                  "then": { "not": { "required": ["functionalAvailability"] } }
+                }
+              ]
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "streamKind": { "const": "measured_service" } }, "required": ["streamKind"] },
+            "then": {
+              "properties": {
+                "series": {
+                  "items": { "properties": { "evidenceClass": { "const": "observed" } } }
+                }
+              }
+            }
+          },
+          {
+            "if": { "properties": { "streamKind": { "const": "modelled_service" } }, "required": ["streamKind"] },
+            "then": {
+              "properties": {
+                "series": {
+                  "items": { "properties": { "evidenceClass": { "enum": ["simulated", "inferred"] } } }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "mappingReceipts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "receiptId",
+          "serviceStreamId",
+          "targetNodeId",
+          "mappingRuleId",
+          "sourceRows",
+          "acceptedRows",
+          "rejectedRows",
+          "unsupportedRows",
+          "unknownRows",
+          "targetTicks",
+          "mappedTicks",
+          "mappingStatus"
+        ],
+        "properties": {
+          "receiptId": { "type": "string", "minLength": 1 },
+          "serviceStreamId": { "type": "string", "minLength": 1 },
+          "targetNodeId": { "type": "string", "minLength": 1 },
+          "mappingRuleId": { "type": "string", "minLength": 1 },
+          "sourceRows": { "type": "integer", "minimum": 0 },
+          "acceptedRows": { "type": "integer", "minimum": 0 },
+          "rejectedRows": { "type": "integer", "minimum": 0 },
+          "unsupportedRows": { "type": "integer", "minimum": 0 },
+          "unknownRows": { "type": "integer", "minimum": 0 },
+          "targetTicks": { "type": "integer", "minimum": 0 },
+          "mappedTicks": { "type": "integer", "minimum": 0 },
+          "mappingStatus": { "type": "string", "enum": ["complete", "partial", "rejected", "not_applicable"] },
+          "targetArtifactDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+        }
+      }
+    }
+  }
+}
