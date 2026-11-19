@@ -80,22 +80,50 @@
     {
       "resourceId": "CREW-HV-TX",
       "resourceType": "qualified_transformer_replacement_crew",
-      "availableUnits": 1
+      "availableUnits": 1,
+      "calendarPeriodHours": 24,
+      "availabilityWindows": [
+        {
+          "startHour": 8,
+          "endHour": 22
+        }
+      ]
     },
     {
       "resourceId": "CRANE-200T",
       "resourceType": "heavy_lift_crane",
-      "availableUnits": 1
+      "availableUnits": 1,
+      "calendarPeriodHours": 24,
+      "availabilityWindows": [
+        {
+          "startHour": 8,
+          "endHour": 22
+        }
+      ]
     },
     {
       "resourceId": "HV-TEST-RIG",
       "resourceType": "high_voltage_test_equipment",
-      "availableUnits": 1
+      "availableUnits": 1,
+      "calendarPeriodHours": 24,
+      "availabilityWindows": [
+        {
+          "startHour": 8,
+          "endHour": 22
+        }
+      ]
     },
     {
       "resourceId": "HEAVY-HAULER",
       "resourceType": "heavy_transport_vehicle",
-      "availableUnits": 1
+      "availableUnits": 1,
+      "calendarPeriodHours": 24,
+      "availabilityWindows": [
+        {
+          "startHour": 8,
+          "endHour": 22
+        }
+      ]
     }
   ],
   "logisticsRoutes": [
