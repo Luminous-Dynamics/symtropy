@@ -1,0 +1,109 @@
+name: Habitat Scheduling Exact-vs-Heuristic Scorecard
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-scheduling-benchmark/**"
+      - "tools/habitat-scheduling-planner/**"
+      - "tools/habitat-scheduling-oracle/**"
+      - "docs/research/fixtures/HABITAT_SCHEDULING_MICRO_ORACLE_V0_1.json"
+      - ".github/workflows/habitat-scheduling-benchmark.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-scheduling-benchmark/**"
+      - "tools/habitat-scheduling-planner/**"
+      - "tools/habitat-scheduling-oracle/**"
+      - "docs/research/fixtures/HABITAT_SCHEDULING_MICRO_ORACLE_V0_1.json"
+      - ".github/workflows/habitat-scheduling-benchmark.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  exact-vs-heuristic:
+    name: Exact-vs-heuristic schedule quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt
+          rustup default 1.96.0
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/habitat-scheduling-benchmark/Cargo.toml -- --check
+
+      - name: Run scorecard tests
+        run: cargo test --locked --manifest-path tools/habitat-scheduling-benchmark/Cargo.toml
+
+      - name: Build and verify the scorecard
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/fixtures/HABITAT_SCHEDULING_MICRO_ORACLE_V0_1.json"
+          report="$RUNNER_TEMP/habitat-scheduling-scorecard.json"
+          cargo run --locked \
+            --manifest-path tools/habitat-scheduling-benchmark/Cargo.toml -- \
+            "$fixture" > "$report"
+
+          jq -e '
+            .schema_version == "luminous.habitat_schedule_benchmark_report.v0.1" and
+            .scored_duration_scenario == "nominal_duration_only" and
+            .total_case_count == 10 and
+            .oracle_feasible_case_count == 6 and
+            .priority_only_candidate_count == 5 and
+            .priority_only_feasible_case_coverage_ppm == 833333 and
+            .priority_only_missed_feasible_candidate_count == 1 and
+            .bounded_fallback_candidate_count == 1 and
+            .bounded_fallback_states_expanded_total == 326 and
+            .heuristic_candidate_count == 6 and
+            .heuristic_feasible_case_coverage_ppm == 1000000 and
+            .heuristic_missed_feasible_candidate_count == 0 and
+            .false_infeasibility_claim_count == 0 and
+            .candidate_oracle_conflict_count == 0 and
+            .independently_validated_candidate_count == 6 and
+            .conditional_mean_relative_gap_ppm == 0 and
+            .conditional_max_relative_gap_ppm == 0 and
+            .gap_metrics_are_conditional_on_candidate_found == true and
+            .all_exact_reference_expectations_match == true and
+            .all_emitted_candidates_pass_independent_validation == true and
+            .no_false_infeasibility_claims == true and
+            .optimality_claim_count == 0 and
+            ((.rows[] | select(.case_id == "priority_rules_miss_feasible_schedule") |
+              .oracle_feasible) == true) and
+            ((.rows[] | select(.case_id == "priority_rules_miss_feasible_schedule") |
+              .oracle_optimal_makespan) == 19) and
+            ((.rows[] | select(.case_id == "priority_rules_miss_feasible_schedule") |
+              .priority_only_missed_feasible_candidate) == true) and
+            ((.rows[] | select(.case_id == "priority_rules_miss_feasible_schedule") |
+              .heuristic_makespan) == 19) and
+            ((.rows[] | select(.case_id == "priority_rules_miss_feasible_schedule") |
+              .heuristic_status) == "BOUNDED_FALLBACK_FEASIBLE_NOT_PROVEN_OPTIMAL") and
+            ((.rows[] | select(.case_id == "priority_rules_miss_feasible_schedule") |
+              .heuristic_missed_feasible_candidate) == false) and
+            ((.rows[] | select(.case_id == "priority_rules_miss_feasible_schedule") |
+              .false_infeasibility_claim) == false)
+          ' "$report" >/dev/null
+
+          {
+            echo "## Synthetic schedule scorecard"
+            echo
+            echo "- Exact reference cases: 10"
+            echo "- Reference-feasible cases: 6"
+            echo "- Five-rule priority-only candidates: 5"
+            echo "- Priority-only feasible-case coverage: 83.3333% (one miss, not called infeasible)"
+            echo "- Bounded fallback candidates recovered: 1 (326 search states)"
+            echo "- Recovered planner candidates: 6/6 feasible cases (100% coverage)"
+            echo "- Conditional mean / max makespan gap among validated candidates: 0 / 0 ppm"
+            echo "- False infeasibility claims: 0"
+            echo "- Global-optimality claims: 0"
+            echo
+            echo "This is a ten-case synthetic functional comparison, not a runtime benchmark or a general RCPSP claim."
+          } >> "$GITHUB_STEP_SUMMARY"

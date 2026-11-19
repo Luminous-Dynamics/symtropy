@@ -1,0 +1,191 @@
+{
+  "manifest_version": "terrain-native-habitat-scenarios-v0.1",
+  "status": "proposed_synthetic_conformance_corpus",
+  "synthetic_only": true,
+  "intended_use": "Contract conformance and future independent verifier fixtures only. Not a real site assessment, geotechnical design, buildability verdict or safety certification.",
+  "scenario_count": 14,
+  "scenarios": [
+    {
+      "id": "TNH-001",
+      "profile": "RAVINE_CANYON",
+      "setup": "Candidate occupies a synthetic canyon floor inside the modeled flash-flood/debris-flow corridor; coverage is complete and hazard evidence is accepted.",
+      "expected": "ineligible_under_hard_constraint",
+      "negative_control": true,
+      "invariants": [
+        "A confirmed critical hazard excludes the candidate under policy.",
+        "No aesthetic or cost preference overrides the hard constraint."
+      ],
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "TNH-002",
+      "profile": "RAVINE_CANYON",
+      "setup": "Candidate lies on a synthetic canyon fan; upstream catchment coverage and debris-flow evidence are incomplete.",
+      "expected": "needs_evidence",
+      "negative_control": true,
+      "invariants": [
+        "Incomplete hazard coverage is not evidence of absence.",
+        "Do not promote site suitability from a disjoint but incomplete map overlay."
+      ],
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "TNH-003",
+      "profile": "CANYON_WALL",
+      "setup": "Concept proposes a building below a cliff, but no qualified rockfall/discontinuity assessment is present.",
+      "expected": "needs_evidence",
+      "negative_control": true,
+      "invariants": [
+        "Cliff geometry does not prove overhead protection.",
+        "Structural or rockfall claims require qualified evidence."
+      ],
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "TNH-004",
+      "profile": "MOUNTAIN_SLOPE",
+      "setup": "Mapped ground-deformation evidence conflicts with the proposed building pad and the source is current and accepted.",
+      "expected": "ineligible_under_hard_constraint",
+      "negative_control": true,
+      "invariants": [
+        "Accepted hard ground-instability constraint gates the candidate.",
+        "Weighted benefit cannot buy through a hard exclusion."
+      ],
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "TNH-005",
+      "profile": "MOUNTAIN_RIDGE",
+      "setup": "An attractive ridge concept has an unverified water supply and a single access road exposed to a declared slope hazard.",
+      "expected": "needs_evidence",
+      "negative_control": true,
+      "invariants": [
+        "A route in a graph is not proof of dependable access.",
+        "Unknown essential service remains unknown."
+      ],
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "TNH-006",
+      "profile": "IMPACT_CRATER",
+      "setup": "A crater-shaped landform has reviewed impact-origin evidence but no qualified ground, water, or slope investigation.",
+      "expected": "needs_evidence",
+      "negative_control": true,
+      "invariants": [
+        "Impact origin is not a site stability certificate.",
+        "Do not infer volcanic hazard solely from crater geometry."
+      ],
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "TNH-007",
+      "profile": "VOLCANIC_CRATER_CALDERA",
+      "setup": "Candidate falls within an accepted site-specific volcanic exclusion or life-safety hazard zone under the declared policy.",
+      "expected": "ineligible_under_hard_constraint",
+      "negative_control": true,
+      "invariants": [
+        "Use the declared hazard source and policy.",
+        "Do not substitute a generic crater model for the relevant hazard assessment."
+      ],
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "TNH-008",
+      "profile": "CRATER_TYPE_UNKNOWN",
+      "setup": "A circular depression is present but origin/type evidence is absent; the model tries to assign volcanic hazards from shape alone.",
+      "expected": "needs_evidence",
+      "negative_control": true,
+      "invariants": [
+        "No crater-shape-only volcanic classification.",
+        "Origin remains unresolved until source evidence is accepted."
+      ],
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "TNH-009",
+      "profile": "KARST_OR_SINKHOLE",
+      "setup": "A candidate lies in a dissolution-prone synthetic terrain with unknown subsurface cavities and groundwater state.",
+      "expected": "needs_evidence",
+      "negative_control": true,
+      "invariants": [
+        "Surface mesh cannot establish subsurface support.",
+        "Unknown cavity and groundwater inputs remain blocking where required."
+      ],
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "TNH-010",
+      "profile": "EMBEDDED_UNDERGROUND",
+      "setup": "A partly embedded residence concept has no qualified inflow/drainage assumptions or reviewed emergency egress, fire and ventilation requirements.",
+      "expected": "needs_qualified_review",
+      "negative_control": true,
+      "invariants": [
+        "Underground placement is not a safety claim.",
+        "Each required discipline remains an explicit review gate."
+      ],
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "TNH-011",
+      "profile": "ACCESS_AND_UTILITIES",
+      "setup": "One synthetic landslide event blocks the only declared access route and interrupts a critical external utility crossing.",
+      "expected": "resilience_requirement_not_met",
+      "negative_control": true,
+      "invariants": [
+        "Expose common-cause failure of shared corridor.",
+        "A route or utility is not redundant merely because multiple services use it."
+      ],
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "TNH-012",
+      "profile": "TEMPORAL_FRESHNESS",
+      "setup": "A prior site assessment predates a declared earthquake, wildfire, exceptional rainfall or material drainage change.",
+      "expected": "stale_needs_reassessment",
+      "negative_control": true,
+      "invariants": [
+        "Relevant event invalidates affected evidence according to freshness policy.",
+        "Do not keep old site eligibility as current without re-evaluation."
+      ],
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "TNH-013",
+      "profile": "NEXT_INVESTIGATION",
+      "setup": "Two site variants are not rankable because a known missing observation could reverse their order; no calibrated probabilities are provided.",
+      "expected": "decision_blocker_and_measurement_dependency_reported",
+      "negative_control": false,
+      "invariants": [
+        "Name the blocking unknown and the affected decisions.",
+        "No uncalibrated probability or expected value is fabricated."
+      ],
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "TNH-014",
+      "profile": "QUALIFIED_VARIANT_COMPARISON",
+      "setup": "A small synthetic set of surface, terraced and embedded variants has complete accepted inputs and scope-qualified model outcomes, with no unresolved hard constraints.",
+      "expected": "deterministic_pareto_comparison_within_scope",
+      "negative_control": false,
+      "invariants": [
+        "Compare only declared outcome fields and model scope.",
+        "No permit, construction release or universal safety claim."
+      ],
+      "evidence_class": "synthetic",
+      "claim_ceiling": "synthetic_conformance_only"
+    }
+  ]
+}

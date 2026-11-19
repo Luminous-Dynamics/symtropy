@@ -1,0 +1,68 @@
+name: Habitat Revalidation Portfolio Benchmark
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-revalidation-portfolio/**"
+      - "docs/research/fixtures/HABITAT_REVALIDATION_PORTFOLIO_V0_1.json"
+      - ".github/workflows/habitat-revalidation-portfolio.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-revalidation-portfolio/**"
+      - "docs/research/fixtures/HABITAT_REVALIDATION_PORTFOLIO_V0_1.json"
+      - ".github/workflows/habitat-revalidation-portfolio.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  joint-target-revalidation:
+    name: Joint-target revalidation portfolio
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt
+          rustup default 1.96.0
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/habitat-revalidation-portfolio/Cargo.toml -- --check
+
+      - name: Run differential and budget tests
+        run: cargo test --locked --manifest-path tools/habitat-revalidation-portfolio/Cargo.toml
+
+      - name: Verify frozen portfolio report
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/fixtures/HABITAT_REVALIDATION_PORTFOLIO_V0_1.json"
+          report="$RUNNER_TEMP/habitat-revalidation-portfolio.json"
+          cargo run --locked --manifest-path tools/habitat-revalidation-portfolio/Cargo.toml -- "$fixture" > "$report"
+          jq -e '
+            .schema_version == "luminous.habitat_revalidation_portfolio_report.v0.1" and
+            .fixture_id == "habitat-joint-commissioning-and-handover-plan-001" and
+            .input_sha256 == "d6c40f80ba89187d180a13b09628455dcf12d597797f9bc5d9fa9cc59a9ed714" and
+            .verification_status == "SYNTHETIC_PORTFOLIO_PLAN_ONLY" and
+            .claim_ceiling == "synthetic_multi_target_revalidation_not_real_world_authority" and
+            .planning_status == "OPTIMAL_EXACT" and .frontier_complete == true and
+            .max_expanded_states == 10000 and .expanded_states <= .max_expanded_states and
+            .artifact_count == 7 and .task_count == 5 and
+            .known_feasible_plan_count == 2 and .pareto_plan_count == 2 and
+            ([.pareto_plans[].cost_units] == [14,17]) and
+            ([.pareto_plans[].duration_units] == [9,6]) and
+            ([.pareto_plans[].task_count] == [4,4]) and
+            ([.pareto_plans[].execution_status] == ["PROPOSED_NOT_EXECUTED","PROPOSED_NOT_EXECUTED"]) and
+            ([.pareto_plans[].target_artifact_ids_to_restore | length] == [2,2]) and
+            (.blocking_reasons | length) == 0
+          ' "$report"

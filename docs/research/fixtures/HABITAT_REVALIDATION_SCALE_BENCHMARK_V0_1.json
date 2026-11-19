@@ -1,0 +1,217 @@
+{
+  "schema_version": "luminous.habitat_revalidation_scale_benchmark.v0.1",
+  "suite_id": "habitat-revalidation-scale-suite-001",
+  "status": "proposed_unmeasured_synthetic_benchmark_contract",
+  "synthetic_only": true,
+  "claim_ceiling": "benchmark_design_not_measured_scalability_or_real_world_authority",
+  "generator_contract": {
+    "version": "0.1",
+    "determinism_key": [
+      "generator_version",
+      "profile_id",
+      "seed",
+      "generator_config"
+    ],
+    "required_materialized_receipts": [
+      "exact_input_sha256",
+      "exact_input_bytes",
+      "generator_source_commit",
+      "profile_id",
+      "seed"
+    ],
+    "stable_id_ordering": "lexicographic_utf8",
+    "randomness_contract": "Use a documented, fixed algorithm and fixed-width arithmetic; never depend on map iteration order or runtime-default randomness."
+  },
+  "measurement_protocol": {
+    "warmup_trials": 5,
+    "measured_trials": 30,
+    "required_percentiles": [
+      50,
+      95
+    ],
+    "required_environment": [
+      "repository_commit_sha",
+      "dirty_tree_state",
+      "rustc_version",
+      "cargo_profile",
+      "os_and_kernel",
+      "cpu_model",
+      "logical_core_count",
+      "memory_limit_bytes",
+      "command_line",
+      "workload_sha256"
+    ],
+    "phase_timings": [
+      "decode",
+      "structural_validation",
+      "reachability_and_reduction",
+      "search",
+      "report_serialization",
+      "end_to_end"
+    ],
+    "raw_trials_required": true,
+    "timing_fields_excluded_from_deterministic_report_digest": true,
+    "conditional_percentile_reporting": {
+      "percentile": 99,
+      "minimum_sample_count": 1000,
+      "when_below_minimum": "mark_p99_unavailable_report_observed_max_and_sample_count"
+    }
+  },
+  "correctness_gates": {
+    "micro_oracle_frontier_agreement_fraction_min": 1,
+    "independent_plan_feasibility_fraction_min": 1,
+    "false_optimality_count_max": 0,
+    "false_impossibility_count_max": 0,
+    "budget_exhaustion_misclassified_count_max": 0,
+    "fixed_seed_canonical_report_mismatch_count_max": 0,
+    "negative_controls_may_be_removed": false
+  },
+  "provisional_performance_targets": {
+    "environment_must_be_disclosed": true,
+    "large_graph_artifact_count": 10000,
+    "large_graph_task_count_max": 64,
+    "validation_p95_ms_max": 1000,
+    "search_state_budget": 100000,
+    "bounded_search_p95_ms_max": 2000,
+    "peak_rss_bytes_max": 536870912,
+    "repeatability_trials": 100,
+    "performance_targets_are_measured_facts": false
+  },
+  "profiles": [
+    {
+      "profile_id": "micro_oracle",
+      "seed": 104729,
+      "artifact_count": 24,
+      "task_count": 8,
+      "reachable_task_count": 8,
+      "target_count": 2,
+      "gate_count": 6,
+      "max_dependency_depth": 6,
+      "unrelated_artifact_fraction_ppm": 0,
+      "shared_task_fraction_ppm": 500000,
+      "tradeoff_alternatives": 8,
+      "max_expanded_states": 1000000,
+      "independent_exhaustive_oracle_required": true,
+      "required_expected_class": "complete_and_oracle_exact",
+      "purpose": "Validate objective frontier and feasibility on a small, independently enumerable space."
+    },
+    {
+      "profile_id": "deep_chain",
+      "seed": 130363,
+      "artifact_count": 100,
+      "task_count": 16,
+      "reachable_task_count": 16,
+      "target_count": 2,
+      "gate_count": 8,
+      "max_dependency_depth": 16,
+      "unrelated_artifact_fraction_ppm": 200000,
+      "shared_task_fraction_ppm": 250000,
+      "tradeoff_alternatives": 4,
+      "max_expanded_states": 100000,
+      "independent_exhaustive_oracle_required": true,
+      "required_expected_class": "sound_result_and_truthful_status",
+      "purpose": "Expose dependency-closure and ordering cost along long chains."
+    },
+    {
+      "profile_id": "shared_portfolio",
+      "seed": 155921,
+      "artifact_count": 1000,
+      "task_count": 32,
+      "reachable_task_count": 32,
+      "target_count": 4,
+      "gate_count": 12,
+      "max_dependency_depth": 16,
+      "unrelated_artifact_fraction_ppm": 500000,
+      "shared_task_fraction_ppm": 700000,
+      "tradeoff_alternatives": 16,
+      "max_expanded_states": 100000,
+      "independent_exhaustive_oracle_required": false,
+      "required_expected_class": "sound_result_and_truthful_status",
+      "purpose": "Measure shared-work reuse and multi-target portfolio growth."
+    },
+    {
+      "profile_id": "wide_fanout",
+      "seed": 196613,
+      "artifact_count": 1000,
+      "task_count": 64,
+      "reachable_task_count": 64,
+      "target_count": 8,
+      "gate_count": 16,
+      "max_dependency_depth": 8,
+      "unrelated_artifact_fraction_ppm": 250000,
+      "shared_task_fraction_ppm": 300000,
+      "tradeoff_alternatives": 32,
+      "max_expanded_states": 100000,
+      "independent_exhaustive_oracle_required": false,
+      "required_expected_class": "sound_result_and_truthful_status",
+      "purpose": "Stress branching factor, gate filtering, duplicate states, and budget stopping."
+    },
+    {
+      "profile_id": "large_mostly_irrelevant",
+      "seed": 224737,
+      "artifact_count": 10000,
+      "task_count": 64,
+      "reachable_task_count": 24,
+      "target_count": 8,
+      "gate_count": 32,
+      "max_dependency_depth": 16,
+      "unrelated_artifact_fraction_ppm": 900000,
+      "shared_task_fraction_ppm": 600000,
+      "tradeoff_alternatives": 16,
+      "max_expanded_states": 100000,
+      "independent_exhaustive_oracle_required": false,
+      "required_expected_class": "sound_result_and_truthful_status",
+      "purpose": "Separate whole-evidence-universe validation/indexing cost from reachable repair search."
+    },
+    {
+      "profile_id": "dominance_stress",
+      "seed": 2750159,
+      "artifact_count": 10000,
+      "task_count": 64,
+      "reachable_task_count": 48,
+      "target_count": 8,
+      "gate_count": 32,
+      "max_dependency_depth": 18,
+      "unrelated_artifact_fraction_ppm": 700000,
+      "shared_task_fraction_ppm": 500000,
+      "tradeoff_alternatives": 64,
+      "max_expanded_states": 100000,
+      "independent_exhaustive_oracle_required": false,
+      "required_expected_class": "sound_result_and_truthful_status",
+      "purpose": "Measure frontier maintenance under many dominated and mutually non-dominated alternatives."
+    },
+    {
+      "profile_id": "budget_exhaustion",
+      "seed": 314159,
+      "artifact_count": 100,
+      "task_count": 16,
+      "reachable_task_count": 16,
+      "target_count": 2,
+      "gate_count": 8,
+      "max_dependency_depth": 8,
+      "unrelated_artifact_fraction_ppm": 100000,
+      "shared_task_fraction_ppm": 250000,
+      "tradeoff_alternatives": 8,
+      "budget_cases": [
+        {
+          "case_id": "stop_before_candidate",
+          "max_expanded_states": 1,
+          "expected_status": "SEARCH_INCOMPLETE",
+          "expected_frontier_complete": false,
+          "expected_known_plan_count_min": 0
+        },
+        {
+          "case_id": "stop_after_first_candidate",
+          "stop_after_first_candidate": true,
+          "expected_status": "SEARCH_INCOMPLETE",
+          "expected_frontier_complete": false,
+          "expected_known_plan_count_min": 1
+        }
+      ],
+      "independent_exhaustive_oracle_required": true,
+      "required_expected_class": "both_budget_cases_truthful",
+      "purpose": "Ensure a found candidate cannot cause a truncated search to be misreported as exact.",
+      "max_expanded_states": 100000
+    }
+  ]
+}

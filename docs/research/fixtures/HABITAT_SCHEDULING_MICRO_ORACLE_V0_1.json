@@ -1,0 +1,613 @@
+{
+  "schema_version": "luminous.habitat_schedule_micro_oracle.v0.1",
+  "suite_id": "habitat-schedule-micro-oracle-001",
+  "status": "proposed_synthetic_reference_cases_not_yet_executed",
+  "synthetic_only": true,
+  "claim_ceiling": "schedule_semantics_and_exact_micro_oracles_not_construction_estimates_or_safety_authority",
+  "conventions": {
+    "time_origin": 0,
+    "time_unit": "abstract integer time units",
+    "intervals": "half_open_start_inclusive_finish_exclusive",
+    "tasks": "nonpreemptive",
+    "precedence": "finish(before) <= start(after)",
+    "objective": "minimize makespan = maximum task finish",
+    "resources": "renewable capacity; a task's demand must not exceed capacity at any occupied time",
+    "uncertainty": "nominal and upper_duration are disclosed scenarios; robust feasibility checks the upper scenario against the same hard constraints",
+    "gates": "required gates are hard feasibility constraints, not soft penalties",
+    "schedule_is_executed_work": false
+  },
+  "cases": [
+    {
+      "case_id": "independent_tasks_distinct_crews",
+      "purpose": "Prove independent tasks overlap when separate resources are available.",
+      "tasks": [
+        {
+          "id": "A",
+          "nominal_duration": 4,
+          "upper_duration": 4,
+          "resource_demands": {
+            "CREW_A": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "B",
+          "nominal_duration": 6,
+          "upper_duration": 6,
+          "resource_demands": {
+            "CREW_B": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        }
+      ],
+      "precedence": [],
+      "resources": [
+        {
+          "id": "CREW_A",
+          "capacity": 1
+        },
+        {
+          "id": "CREW_B",
+          "capacity": 1
+        }
+      ],
+      "declared_gates": [],
+      "available_gates": [],
+      "hard_deadline": null,
+      "expected": {
+        "feasible": true,
+        "nominal_optimal_makespan": 6,
+        "upper_scenario_optimal_makespan": 6,
+        "robust_feasible": true,
+        "canonical_witness": [
+          {
+            "task_id": "A",
+            "start": 0,
+            "finish": 4
+          },
+          {
+            "task_id": "B",
+            "start": 0,
+            "finish": 6
+          }
+        ],
+        "rejection_reason": null
+      }
+    },
+    {
+      "case_id": "independent_tasks_shared_exclusive_crew",
+      "purpose": "Prove exclusive shared-resource capacity serializes otherwise independent work.",
+      "tasks": [
+        {
+          "id": "A",
+          "nominal_duration": 4,
+          "upper_duration": 4,
+          "resource_demands": {
+            "CREW_X": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "B",
+          "nominal_duration": 6,
+          "upper_duration": 6,
+          "resource_demands": {
+            "CREW_X": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        }
+      ],
+      "precedence": [],
+      "resources": [
+        {
+          "id": "CREW_X",
+          "capacity": 1
+        }
+      ],
+      "declared_gates": [],
+      "available_gates": [],
+      "hard_deadline": null,
+      "expected": {
+        "feasible": true,
+        "nominal_optimal_makespan": 10,
+        "upper_scenario_optimal_makespan": 10,
+        "robust_feasible": true,
+        "canonical_witness": [
+          {
+            "task_id": "A",
+            "start": 0,
+            "finish": 4
+          },
+          {
+            "task_id": "B",
+            "start": 4,
+            "finish": 10
+          }
+        ],
+        "rejection_reason": null
+      }
+    },
+    {
+      "case_id": "precedence_chain",
+      "purpose": "Prove dependent tasks cannot overlap and preserve deterministic start-time semantics.",
+      "tasks": [
+        {
+          "id": "A",
+          "nominal_duration": 2,
+          "upper_duration": 2,
+          "resource_demands": {},
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "B",
+          "nominal_duration": 3,
+          "upper_duration": 3,
+          "resource_demands": {},
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "C",
+          "nominal_duration": 5,
+          "upper_duration": 5,
+          "resource_demands": {},
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        }
+      ],
+      "precedence": [
+        {
+          "before": "A",
+          "after": "B"
+        },
+        {
+          "before": "B",
+          "after": "C"
+        }
+      ],
+      "resources": [],
+      "declared_gates": [],
+      "available_gates": [],
+      "hard_deadline": null,
+      "expected": {
+        "feasible": true,
+        "nominal_optimal_makespan": 10,
+        "upper_scenario_optimal_makespan": 10,
+        "robust_feasible": true,
+        "canonical_witness": [
+          {
+            "task_id": "A",
+            "start": 0,
+            "finish": 2
+          },
+          {
+            "task_id": "B",
+            "start": 2,
+            "finish": 5
+          },
+          {
+            "task_id": "C",
+            "start": 5,
+            "finish": 10
+          }
+        ],
+        "rejection_reason": null
+      }
+    },
+    {
+      "case_id": "inspection_window_with_one_period_wait",
+      "purpose": "Prove schedule respects a hard inspection window instead of minimizing elapsed time at any cost.",
+      "tasks": [
+        {
+          "id": "BUILD",
+          "nominal_duration": 4,
+          "upper_duration": 4,
+          "resource_demands": {},
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "INSPECT",
+          "nominal_duration": 1,
+          "upper_duration": 1,
+          "resource_demands": {
+            "INSPECTOR": 1
+          },
+          "required_gates": [],
+          "earliest_start": 5,
+          "latest_start": 5,
+          "latest_finish": 6
+        }
+      ],
+      "precedence": [
+        {
+          "before": "BUILD",
+          "after": "INSPECT"
+        }
+      ],
+      "resources": [
+        {
+          "id": "INSPECTOR",
+          "capacity": 1
+        }
+      ],
+      "declared_gates": [],
+      "available_gates": [],
+      "hard_deadline": null,
+      "expected": {
+        "feasible": true,
+        "nominal_optimal_makespan": 6,
+        "upper_scenario_optimal_makespan": 6,
+        "robust_feasible": true,
+        "canonical_witness": [
+          {
+            "task_id": "BUILD",
+            "start": 0,
+            "finish": 4
+          },
+          {
+            "task_id": "INSPECT",
+            "start": 5,
+            "finish": 6
+          }
+        ],
+        "rejection_reason": null
+      }
+    },
+    {
+      "case_id": "inspection_window_conflicts_with_precedence",
+      "purpose": "Negative control: reject an inspection window that cannot follow its prerequisite.",
+      "tasks": [
+        {
+          "id": "BUILD",
+          "nominal_duration": 4,
+          "upper_duration": 4,
+          "resource_demands": {},
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "INSPECT",
+          "nominal_duration": 1,
+          "upper_duration": 1,
+          "resource_demands": {},
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": 3,
+          "latest_finish": 4
+        }
+      ],
+      "precedence": [
+        {
+          "before": "BUILD",
+          "after": "INSPECT"
+        }
+      ],
+      "resources": [],
+      "declared_gates": [],
+      "available_gates": [],
+      "hard_deadline": null,
+      "expected": {
+        "feasible": false,
+        "nominal_optimal_makespan": null,
+        "upper_scenario_optimal_makespan": null,
+        "robust_feasible": false,
+        "canonical_witness": [],
+        "rejection_reason": "inspection_window_conflicts_with_precedence"
+      }
+    },
+    {
+      "case_id": "missing_hard_approval_gate",
+      "purpose": "Negative control: a schedule requiring an unavailable hard approval gate is infeasible.",
+      "tasks": [
+        {
+          "id": "COMMISSION",
+          "nominal_duration": 1,
+          "upper_duration": 1,
+          "resource_demands": {},
+          "required_gates": [
+            "SIGNED_SAFETY_REVIEW"
+          ],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        }
+      ],
+      "precedence": [],
+      "resources": [],
+      "declared_gates": [
+        "SIGNED_SAFETY_REVIEW"
+      ],
+      "available_gates": [],
+      "hard_deadline": null,
+      "expected": {
+        "feasible": false,
+        "nominal_optimal_makespan": null,
+        "upper_scenario_optimal_makespan": null,
+        "robust_feasible": false,
+        "canonical_witness": [],
+        "rejection_reason": "required_gate_unavailable"
+      }
+    },
+    {
+      "case_id": "resource_demand_exceeds_capacity",
+      "purpose": "Negative control: reject impossible resource demand rather than silently scheduling above capacity.",
+      "tasks": [
+        {
+          "id": "LIFT",
+          "nominal_duration": 2,
+          "upper_duration": 2,
+          "resource_demands": {
+            "CRANE": 2
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        }
+      ],
+      "precedence": [],
+      "resources": [
+        {
+          "id": "CRANE",
+          "capacity": 1
+        }
+      ],
+      "declared_gates": [],
+      "available_gates": [],
+      "hard_deadline": null,
+      "expected": {
+        "feasible": false,
+        "nominal_optimal_makespan": null,
+        "upper_scenario_optimal_makespan": null,
+        "robust_feasible": false,
+        "canonical_witness": [],
+        "rejection_reason": "task_demand_exceeds_resource_capacity"
+      }
+    },
+    {
+      "case_id": "nominally_fast_but_not_upper_scenario_robust",
+      "purpose": "Preserve duration uncertainty; a nominally feasible schedule may fail under the declared upper-duration scenario.",
+      "tasks": [
+        {
+          "id": "THERMAL_WORK",
+          "nominal_duration": 4,
+          "upper_duration": 8,
+          "resource_demands": {
+            "CREW_A": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "ELECTRICAL_WORK",
+          "nominal_duration": 3,
+          "upper_duration": 7,
+          "resource_demands": {
+            "CREW_B": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        }
+      ],
+      "precedence": [],
+      "resources": [
+        {
+          "id": "CREW_A",
+          "capacity": 1
+        },
+        {
+          "id": "CREW_B",
+          "capacity": 1
+        }
+      ],
+      "declared_gates": [],
+      "available_gates": [],
+      "hard_deadline": 6,
+      "expected": {
+        "feasible": true,
+        "nominal_optimal_makespan": 4,
+        "upper_scenario_optimal_makespan": 8,
+        "robust_feasible": false,
+        "canonical_witness": [
+          {
+            "task_id": "THERMAL_WORK",
+            "start": 0,
+            "finish": 4
+          },
+          {
+            "task_id": "ELECTRICAL_WORK",
+            "start": 0,
+            "finish": 3
+          }
+        ],
+        "rejection_reason": null
+      }
+    },
+    {
+      "case_id": "cycle_in_precedence_graph",
+      "purpose": "Negative control: reject cyclic precedence instead of declaring a schedule optimal.",
+      "tasks": [
+        {
+          "id": "A",
+          "nominal_duration": 1,
+          "upper_duration": 1,
+          "resource_demands": {},
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "B",
+          "nominal_duration": 1,
+          "upper_duration": 1,
+          "resource_demands": {},
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        }
+      ],
+      "precedence": [
+        {
+          "before": "A",
+          "after": "B"
+        },
+        {
+          "before": "B",
+          "after": "A"
+        }
+      ],
+      "resources": [],
+      "declared_gates": [],
+      "available_gates": [],
+      "hard_deadline": null,
+      "expected": {
+        "feasible": false,
+        "nominal_optimal_makespan": null,
+        "upper_scenario_optimal_makespan": null,
+        "robust_feasible": false,
+        "canonical_witness": [],
+        "rejection_reason": "precedence_cycle"
+      }
+    },
+    {
+      "case_id": "priority_rules_miss_feasible_schedule",
+      "purpose": "Adversarial counterexample: five deterministic list priorities miss a feasible schedule, while exact enumeration finds it; heuristic failure must not imply infeasibility.",
+      "tasks": [
+        {
+          "id": "A",
+          "nominal_duration": 4,
+          "upper_duration": 4,
+          "resource_demands": {
+            "CREW_X": 1
+          },
+          "required_gates": [],
+          "earliest_start": 1,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "B",
+          "nominal_duration": 4,
+          "upper_duration": 4,
+          "resource_demands": {
+            "CREW_X": 1
+          },
+          "required_gates": [],
+          "earliest_start": 1,
+          "latest_start": 5,
+          "latest_finish": null
+        },
+        {
+          "id": "C",
+          "nominal_duration": 4,
+          "upper_duration": 4,
+          "resource_demands": {
+            "CREW_X": 1
+          },
+          "required_gates": [],
+          "earliest_start": 1,
+          "latest_start": 11,
+          "latest_finish": null
+        },
+        {
+          "id": "D",
+          "nominal_duration": 5,
+          "upper_duration": 5,
+          "resource_demands": {
+            "CREW_X": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": 9,
+          "latest_finish": null
+        },
+        {
+          "id": "E",
+          "nominal_duration": 1,
+          "upper_duration": 1,
+          "resource_demands": {
+            "CREW_X": 1
+          },
+          "required_gates": [],
+          "earliest_start": 1,
+          "latest_start": null,
+          "latest_finish": 3
+        }
+      ],
+      "precedence": [],
+      "resources": [
+        {
+          "id": "CREW_X",
+          "capacity": 1
+        }
+      ],
+      "declared_gates": [],
+      "available_gates": [],
+      "hard_deadline": null,
+      "expected": {
+        "feasible": true,
+        "nominal_optimal_makespan": 19,
+        "upper_scenario_optimal_makespan": 19,
+        "robust_feasible": true,
+        "canonical_witness": [
+          {
+            "task_id": "A",
+            "start": 15,
+            "finish": 19
+          },
+          {
+            "task_id": "B",
+            "start": 2,
+            "finish": 6
+          },
+          {
+            "task_id": "C",
+            "start": 11,
+            "finish": 15
+          },
+          {
+            "task_id": "D",
+            "start": 6,
+            "finish": 11
+          },
+          {
+            "task_id": "E",
+            "start": 1,
+            "finish": 2
+          }
+        ],
+        "rejection_reason": null
+      }
+    }
+  ]
+}

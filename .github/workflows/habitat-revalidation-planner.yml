@@ -1,0 +1,65 @@
+name: Habitat Revalidation Planner Benchmark
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-revalidation-planner/**"
+      - "docs/research/fixtures/HABITAT_REVALIDATION_PLAN_V0_1.json"
+      - ".github/workflows/habitat-revalidation-planner.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-revalidation-planner/**"
+      - "docs/research/fixtures/HABITAT_REVALIDATION_PLAN_V0_1.json"
+      - ".github/workflows/habitat-revalidation-planner.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  dependency-safe-planning:
+    name: Dependency-safe revalidation planner
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt
+          rustup default 1.96.0
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/habitat-revalidation-planner/Cargo.toml -- --check
+
+      - name: Run exhaustive oracle and hard-gate tests
+        run: cargo test --locked --manifest-path tools/habitat-revalidation-planner/Cargo.toml
+
+      - name: Verify frozen Pareto frontier
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/fixtures/HABITAT_REVALIDATION_PLAN_V0_1.json"
+          report="$RUNNER_TEMP/habitat-revalidation-report.json"
+          cargo run --locked --manifest-path tools/habitat-revalidation-planner/Cargo.toml -- "$fixture" > "$report"
+          jq -e '
+            .schema_version == "luminous.habitat_revalidation_report.v0.1" and
+            .fixture_id == "habitat-revalidation-material-substitution-plan-001" and
+            .input_sha256 == "d7f8aa78dc81dac52752916c85955ce697928f374670f9317591c15d84c76758" and
+            .verification_status == "SYNTHETIC_PLAN_CONTRACT_ONLY" and
+            .claim_ceiling == "synthetic_revalidation_planning_not_real_world_authority" and
+            .planning_status == "PLAN_AVAILABLE" and
+            .artifact_count == 10 and .task_count == 4 and
+            .enumerated_feasible_plan_count == 2 and .pareto_plan_count == 2 and
+            ([.pareto_plans[].cost_units] == [12,15]) and
+            ([.pareto_plans[].duration_units] == [8,5]) and
+            ([.pareto_plans[].task_count] == [3,3]) and
+            ([.blocking_reasons | length] | all(. == 0))
+          ' "$report"
