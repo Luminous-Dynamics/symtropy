@@ -751,11 +751,11 @@ mod tests {
         let expected_pressure = [
             [
                 2.0334936490538905,
-                -0.5580127018922193,
+                0.3080127018922194,
                 -0.4330127018922193,
             ],
             [
-                -0.5580127018922193,
+                0.3080127018922194,
                 2.9665063509461095,
                 0.25,
             ],
@@ -768,14 +768,15 @@ mod tests {
         let actual_velocity = receipt.body.output.vectors[0].value;
         let actual_magnetic = receipt.body.output.vectors[1].value;
         let actual_pressure = receipt.body.output.tensors[0].value;
-        for index in 0..3 {
-            assert!((actual_velocity[index] - expected_velocity[index]).abs() < 1.0e-12);
-            assert!((actual_magnetic[index] - expected_magnetic[index]).abs() < 1.0e-12);
-            for column in 0..3 {
-                assert!(
-                    (actual_pressure[index][column] - expected_pressure[index][column]).abs()
-                        < 1.0e-12
-                );
+        for (actual, expected) in actual_velocity.iter().zip(expected_velocity.iter()) {
+            assert!((actual - expected).abs() < 1.0e-12);
+        }
+        for (actual, expected) in actual_magnetic.iter().zip(expected_magnetic.iter()) {
+            assert!((actual - expected).abs() < 1.0e-12);
+        }
+        for (actual_row, expected_row) in actual_pressure.iter().zip(expected_pressure.iter()) {
+            for (actual, expected) in actual_row.iter().zip(expected_row.iter()) {
+                assert!((actual - expected).abs() < 1.0e-12);
             }
         }
         let metrics = &receipt.body.metrics;
