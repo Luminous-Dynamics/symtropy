@@ -154,6 +154,7 @@ def qualify_source(root: Path, reference: dict[str, Any]) -> None:
             "box_box_pair_is_analytically_resolved",
             "step_with_callback",
             "NoOpCallback",
+            "ten_box_stack_settles_without_exploding",
         ],
         "world.rs",
     )
@@ -233,12 +234,10 @@ def qualify_source(root: Path, reference: dict[str, Any]) -> None:
     )
     if "motor.target_pos" in hinge_motor_code:
         fail("hinge target_pos appears in executable solver path; refresh reference")
-    if "self.angle_limits" in texts["crates/core/symtropy-physics/src/joints/hinge.rs"]:
-        # Declaration/build storage is expected; only solver consumption would be
-        # a semantic change. Keep this test conservative and check solve sections.
-        solve_text = texts["crates/core/symtropy-physics/src/joints/hinge.rs"]
-        if "self.angle_limits" in solve_text[hinge_motor_start:]:
-            fail("hinge solver now consumes angle_limits; refresh reference")
+    solve_text = hinge[hinge_motor_start:]
+    solve_code = "\\n".join(line.split("//", 1)[0] for line in solve_text.splitlines())
+    if "self.angle_limits" in solve_code:
+        fail("hinge solver now consumes angle_limits; refresh reference")
 
     contact = texts["crates/core/symtropy-physics/src/contact.rs"]
     manifold = texts["crates/core/symtropy-physics/src/manifold_gen.rs"]
@@ -263,6 +262,12 @@ def qualify_manifest(reference: dict[str, Any]) -> None:
         fail("capability status vocabulary drifted")
     if reference["content_identity"]["algorithm"] != "SHA-256":
         fail("unsupported content identity algorithm")
+    if len(reference.get("feature_profiles", [])) != 2:
+        fail("expected native-float and deterministic-net feature profiles")
+    if not {"solver_iterations", "sleep enabled/threshold/ticks/velocity-zeroing semantics",
+            "compiled Cargo feature set", "callback API policy and caller-supplied callback build identity"}
+            .issubset(set(reference.get("profile_identity_fields", []))):
+        fail("profile identity fields omit claim-relevant configuration")
     actual_digest = canonical_digest(reference)
     if actual_digest != reference["content_identity"]["digest"]:
         fail(
