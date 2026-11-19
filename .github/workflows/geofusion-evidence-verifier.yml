@@ -65,6 +65,16 @@ jobs:
             docs/research/geothermal-fusion/evidence/fixtures/synthetic-grid-electric-source-allocation-receipt.v0.1.json
 
           check-jsonschema \
+            --schemafile docs/research/geothermal-fusion/evidence/schemas/raw-source-interval-v0.1.schema.json \
+            docs/research/geothermal-fusion/evidence/fixtures/synthetic-geothermal-source-interval-002.v0.1.json
+          check-jsonschema \
+            --schemafile docs/research/geothermal-fusion/evidence/schemas/evidence-envelope-v0.1.schema.json \
+            docs/research/geothermal-fusion/evidence/fixtures/synthetic-source-interval-evidence-002.v0.1.json
+          check-jsonschema \
+            --schemafile docs/research/geothermal-fusion/evidence/schemas/source-allocation-receipt-v0.1.schema.json \
+            docs/research/geothermal-fusion/evidence/fixtures/synthetic-source-allocation-receipt-002.v0.1.json
+
+          check-jsonschema \
             --schemafile docs/research/geothermal-fusion/evidence/schemas/evidence-envelope-v0.1.schema.json \
             docs/research/geothermal-fusion/evidence/fixtures/synthetic-source-interval-evidence.v0.1.json
           check-jsonschema \
