@@ -946,10 +946,13 @@
         "radial_line_element_identity": "passed",
         "max_inverse_radius_absolute_error": "1.0129874e-90",
         "max_dxi_differential_relative_defect": "2.4545467e-91",
-        "max_radial_metric_relative_defect": "4.9090935e-91"
+        "max_radial_metric_relative_defect": "4.9090935e-91",
+        "fail_closed_assertions": "passed",
+        "absolute_defect_tolerance": "1e-80 at 90 dps",
+        "max_isotropic_reconstruction_relative_defect": "2.4545467e-91"
       },
       "validation": {
-        "mpmath_script_replay": "executed at 90 decimal working precision; replay fixture JSON-equivalent to stored reference",
+        "mpmath_script_replay": "executed at 90 dps with fail-closed positivity, inverse, derivative, radial-metric, reconstruction and alpha-zero controls; output JSON matches the frozen reference schema",
         "interval_certification": false,
         "independent_isotropic_EGB_residual": false,
         "nonlinear_rotating_two_gauge_solution": false,
