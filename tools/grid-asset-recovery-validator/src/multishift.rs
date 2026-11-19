@@ -173,6 +173,7 @@ pub struct ReconciliationEvent {
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ReconciliationAction {
+    ProgressRecorded,
     PauseConfirmed,
     ResumeAuthorized,
     CompletionConfirmed,
@@ -422,6 +423,7 @@ fn validate_reconciliations(
         let changed = old.version != new.version
             || old.state != new.state
             || old.active_segment_id != new.active_segment_id
+            || old.frozen_event_ids != new.frozen_event_ids
             || old.source_evidence_ref != new.source_evidence_ref;
         let reconciliation = reconciliation_by_commitment.get(commitment_id);
 
@@ -454,6 +456,10 @@ fn validate_reconciliations(
         let action_matches = matches!(
             (old.state, new.state, event.action),
             (
+                CommitmentState::InProgress,
+                CommitmentState::InProgress,
+                ReconciliationAction::ProgressRecorded
+            ) | (
                 CommitmentState::InProgress,
                 CommitmentState::Paused,
                 ReconciliationAction::PauseConfirmed
@@ -1003,14 +1009,28 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
         }
     }
 
-    for commitment in case
-        .baseline_commitments
-        .iter()
-        .chain(case.proposed_commitments.iter())
-    {
+    for commitment in &case.baseline_commitments {
         let key = task_key(&commitment.event_id, &commitment.task_id);
         if !tasks_by_key.contains_key(&key) {
-            errors.push(format!("commitment {} references unknown task {key}", commitment.commitment_id));
+            errors.push(format!("baseline commitment {} references unknown task {key}", commitment.commitment_id));
+        }
+        let event_ids_for_task: BTreeSet<_> = events
+            .iter()
+            .filter(|event| event.event_id_ref == commitment.event_id && event.task_id == commitment.task_id)
+            .map(|event| event.event_id.as_str())
+            .collect();
+        let frozen_ids: BTreeSet<_> = commitment.frozen_event_ids.iter().map(String::as_str).collect();
+        if frozen_ids.len() != commitment.frozen_event_ids.len() || !frozen_ids.is_subset(&event_ids_for_task) {
+            errors.push(format!(
+                "baseline commitment {} references duplicate or unknown frozen execution events",
+                commitment.commitment_id
+            ));
+        }
+    }
+    for commitment in &case.proposed_commitments {
+        let key = task_key(&commitment.event_id, &commitment.task_id);
+        if !tasks_by_key.contains_key(&key) {
+            errors.push(format!("proposed commitment {} references unknown task {key}", commitment.commitment_id));
         }
         let event_ids_for_task: BTreeSet<_> = events
             .iter()
@@ -1020,7 +1040,7 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
         let frozen_ids: BTreeSet<_> = commitment.frozen_event_ids.iter().map(String::as_str).collect();
         if frozen_ids.len() != commitment.frozen_event_ids.len() || frozen_ids != event_ids_for_task {
             errors.push(format!(
-                "commitment {} does not preserve the complete immutable event ledger for its task",
+                "proposed commitment {} does not bind the complete current event ledger",
                 commitment.commitment_id
             ));
         }
@@ -1193,6 +1213,9 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
             {
                 errors.push(format!("paused task {key} stopped at non-checkpoint effort {observed_effort}"));
             }
+        }
+        if interruption_count > task.maximum_interruptions as usize {
+            errors.push(format!("task {key} exceeds its maximum interruption count"));
         }
 
         let state_name = match commitment.map(|item| item.state) {
@@ -1401,6 +1424,7 @@ mod tests {
                     start_hour: 10.0,
                     end_hour: 14.0,
                     productive_effort_hours: 4.0,
+                    interruption_cause: None,
                 },
                 PlannedSegment {
                     segment_id: "test-commission-segment-0".to_string(),
@@ -1410,6 +1434,7 @@ mod tests {
                     start_hour: 14.0,
                     end_hour: 16.0,
                     productive_effort_hours: 2.0,
+                    interruption_cause: None,
                 },
             ],
             reconciliations: vec![],
@@ -1483,6 +1508,7 @@ mod tests {
             start_hour: 16.0,
             end_hour: 17.0,
             productive_effort_hours: 1.0,
+            interruption_cause: None,
         });
         assert!(validate(&case).is_err());
     }
