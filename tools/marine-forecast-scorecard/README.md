@@ -45,3 +45,14 @@ A second executable is provided as `--bin member-coherent-risk`. It checks exact
 ## Forecast information/noise field verification
 
 A third executable is registered as `--bin forecast-information-noise`. It computes debiased, normalized area-weighted SDAF/SDAV, ACC, signed FI, IE, NE and the orthogonal decomposition residual on fixed support. It binds the ordered cell IDs/area weights and cell-wise climatology values to their respective SHA-256 digests. The raw/damped comparison requires identical verification truth, grid support, climatology, forecast cycle and first-availability receipt. See [FORECAST_INFORMATION_NOISE.md](FORECAST_INFORMATION_NOISE.md). The ten authored tests for this tool include a negative control in which damping reduces RMSE while reducing FI and increasing IE.
+
+
+## Weather-blind is a mandatory matched policy arm
+
+Every mission pair binds three distinct policies to one identical craft, loading, occupancy, service contract, forecast information set, compute budget and hard-gate roster:
+
+1. Integrated candidate (forecast-informed).
+2. Weather-informed/resource-blind reference.
+3. Weather-blind reference with `forecast_use=false`.
+
+The weather-blind policy ID must be consistent across the dataset. The scorecard reports candidate paired energy/regret improvements and descriptive CVaR95 against both references, by holdout fold. This catches forecast policies that beat a weak route baseline but do worse than ignoring a failed forecast. It does not select which baseline should be used operationally; it is a benchmark and fallback evidence requirement.
