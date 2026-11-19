@@ -65,6 +65,8 @@ pub struct Event {
     #[serde(default)]
     pub target_orbit_id: Option<String>,
     #[serde(default)]
+    pub receiver_id: Option<String>,
+    #[serde(default)]
     pub interface_id: Option<String>,
     #[serde(default)]
     pub interface_revision: Option<u64>,
@@ -350,6 +352,11 @@ pub fn evaluate_case(case: &Case, pins: &BTreeMap<Component, &SourcePin>) -> Cas
             Some(_) => push_violation(&mut reasons, "fluid_receiver_subject_mismatch"),
             None => push_missing(&mut reasons, "fluid_receiver_identity"),
         }
+        match event.receiver_id.as_deref() {
+            Some(value) if value == profile.subject_id => {}
+            Some(_) => push_violation(&mut reasons, "receiver_id_mismatch"),
+            None => push_missing(&mut reasons, "receiver_id"),
+        }
         match event.interface_id.as_deref() {
             Some(value) if value == profile.interface_id => {}
             Some(_) => push_violation(&mut reasons, "fluid_interface_mismatch"),
@@ -586,6 +593,22 @@ mod tests {
         let data = fixture();
         let case = data.cases.iter().find(|item| item.case_id == "MISSING_FLUID_EVIDENCE").unwrap();
         assert_eq!(evaluate_case(case, &pins(&data)).actual_status, GateStatus::Indeterminate);
+    }
+
+    #[test]
+    fn missing_receiver_identity_is_indeterminate() {
+        let data = fixture();
+        let mut case = data.cases[0].clone();
+        case.events[2].receiver_id = None;
+        assert_eq!(evaluate_case(&case, &pins(&data)).actual_status, GateStatus::Indeterminate);
+    }
+
+    #[test]
+    fn wrong_receiver_identity_is_rejected() {
+        let data = fixture();
+        let mut case = data.cases[0].clone();
+        case.events[2].receiver_id = Some("unrelated-receiver".to_owned());
+        assert_eq!(evaluate_case(&case, &pins(&data)).actual_status, GateStatus::Rejected);
     }
 
     #[test]
