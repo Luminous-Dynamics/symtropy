@@ -14,6 +14,10 @@ use std::fmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VerificationError {
     InvalidJson(&'static str),
+    EmptyBatch,
+    DuplicateSourceInterval,
+    DuplicateEvidenceId,
+    DuplicateAllocationReceiptId,
     MissingField(&'static str),
     InvalidField(&'static str),
     UnsupportedSchemaVersion,
@@ -39,6 +43,10 @@ impl VerificationError {
     pub fn code(&self) -> &'static str {
         match self {
             Self::InvalidJson(_) => "INVALID_JSON",
+            Self::EmptyBatch => "EMPTY_BATCH",
+            Self::DuplicateSourceInterval => "DUPLICATE_SOURCE_INTERVAL",
+            Self::DuplicateEvidenceId => "DUPLICATE_EVIDENCE_ID",
+            Self::DuplicateAllocationReceiptId => "DUPLICATE_ALLOCATION_RECEIPT_ID",
             Self::MissingField(_) => "MISSING_FIELD",
             Self::InvalidField(_) => "INVALID_FIELD",
             Self::UnsupportedSchemaVersion => "UNSUPPORTED_SCHEMA_VERSION",
@@ -88,6 +96,8 @@ pub struct VerificationReport {
     pub source_asset_id: String,
     pub source_boundary_id: String,
     pub source_interval_id: String,
+    pub source_interval_start_utc: String,
+    pub source_interval_duration_ns: u64,
     pub carrier: String,
     pub payload_sha256: String,
     pub payload_byte_length: u64,
@@ -110,6 +120,8 @@ impl VerificationReport {
             "source_asset_id": self.source_asset_id,
             "source_boundary_id": self.source_boundary_id,
             "source_interval_id": self.source_interval_id,
+            "source_interval_start_utc": self.source_interval_start_utc,
+            "source_interval_duration_ns": self.source_interval_duration_ns,
             "carrier": self.carrier,
             "payload_sha256": self.payload_sha256,
             "payload_byte_length": self.payload_byte_length,
@@ -127,6 +139,14 @@ impl VerificationReport {
             )
         })
     }
+}
+
+/// One independently verifiable source interval and its allocation receipt.
+#[derive(Debug, Clone, Copy)]
+pub struct SourceIntervalInput<'a> {
+    pub payload_bytes: &'a [u8],
+    pub evidence: &'a Value,
+    pub allocation: &'a Value,
 }
 
 fn required<'a>(
@@ -577,6 +597,10 @@ pub fn verify_source_interval(
         VerificationError::DeclaredEvaluationMismatch("disposition")
     })?;
 
+    let source_interval_start_utc =
+        string_field(time_window, "start_utc", "time_window")?.to_owned();
+    let source_interval_duration_ns =
+        unsigned_field(time_window, "duration_ns", "time_window")?;
     let receipt_id = string_field(allocation, "receipt_id", "allocation receipt")?;
     Ok(VerificationReport {
         evidence_id: evidence_id.to_owned(),
@@ -584,6 +608,8 @@ pub fn verify_source_interval(
         source_asset_id: asset_id.to_owned(),
         source_boundary_id: boundary_id.to_owned(),
         source_interval_id: interval_id.to_owned(),
+        source_interval_start_utc,
+        source_interval_duration_ns,
         carrier: carrier.to_owned(),
         payload_sha256: actual_digest,
         payload_byte_length: actual_length,
@@ -596,6 +622,55 @@ pub fn verify_source_interval(
         qualified: within_tolerance,
     })
 }
+
+
+/// Verify a batch while enforcing one receipt per physical source interval.
+///
+/// Duplicate detection keys the source asset, meter boundary, carrier, exact
+/// UTC start representation and duration; caller-chosen evidence, interval and
+/// receipt IDs do not establish physical uniqueness. The check is scoped to
+/// this batch, not a persistent cross-campaign registry.
+pub fn verify_source_interval_batch(
+    inputs: &[SourceIntervalInput<'_>],
+) -> Result<Vec<VerificationReport>, VerificationError> {
+    if inputs.is_empty() {
+        return Err(VerificationError::EmptyBatch);
+    }
+
+    let mut source_intervals = BTreeSet::new();
+    let mut evidence_ids = BTreeSet::new();
+    let mut receipt_ids = BTreeSet::new();
+    let mut reports = Vec::with_capacity(inputs.len());
+
+    for input in inputs {
+        let report = verify_source_interval(
+            input.payload_bytes,
+            input.evidence,
+            input.allocation,
+        )?;
+
+        let source_key = (
+            report.source_asset_id.as_str(),
+            report.source_boundary_id.as_str(),
+            report.carrier.as_str(),
+            report.source_interval_start_utc.as_str(),
+            report.source_interval_duration_ns,
+        );
+        if !source_intervals.insert(source_key) {
+            return Err(VerificationError::DuplicateSourceInterval);
+        }
+        if !evidence_ids.insert(report.evidence_id.as_str()) {
+            return Err(VerificationError::DuplicateEvidenceId);
+        }
+        if !receipt_ids.insert(report.allocation_receipt_id.as_str()) {
+            return Err(VerificationError::DuplicateAllocationReceiptId);
+        }
+        reports.push(report);
+    }
+
+    Ok(reports)
+}
+
 
 #[cfg(test)]
 mod tests {
