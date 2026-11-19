@@ -1,0 +1,46 @@
+name: Marine Runtime Action Shield Audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/marine-runtime-action-shield/**"
+      - ".github/workflows/marine-runtime-action-shield.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marine-runtime-action-shield-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  action-shield-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/marine-runtime-action-shield/Cargo.toml -- --check
+
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/marine-runtime-action-shield/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run permit, fallback, expiry and abstention tests
+        run: cargo test --manifest-path tools/marine-runtime-action-shield/Cargo.toml
+
+      - name: Check strict schema and synthetic action arms
+        run: |
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.action_candidates.minItems >= 1 and .properties.scenario_roster.minItems == 5' tools/marine-runtime-action-shield/schema/marine-runtime-action-shield.schema.json
+          jq -e '.record_status == "synthetic" and .claim_ceiling == "one_step_model_output_action_gate_only" and (.action_candidates | length == 2) and ([.action_candidates[].role] | sort) == ["fallback","primary"] and ([.action_candidates[].successors | length] | unique) == [5]' tools/marine-runtime-action-shield/fixtures/synthetic-primary-rejected-fallback-permitted-0001.json
+
+      - name: Primary must be rejected and explicit fallback permitted
+        run: |
+          cargo run --quiet --manifest-path tools/marine-runtime-action-shield/Cargo.toml -- audit-action-set tools/marine-runtime-action-shield/fixtures/synthetic-primary-rejected-fallback-permitted-0001.json > /tmp/runtime-action-shield.json
+          jq -e '.disposition == "SYNTHETIC_ONLY" and .decision == "PERMIT" and .selected_action_id == "preserve-essential-reserves" and .action_reports[0].decision == "REJECT" and .action_reports[1].decision == "PERMIT_CANDIDATE" and .actuation_performed == false' /tmp/runtime-action-shield.json
