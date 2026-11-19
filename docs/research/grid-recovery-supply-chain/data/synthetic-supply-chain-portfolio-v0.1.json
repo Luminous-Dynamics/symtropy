@@ -167,6 +167,26 @@
       "sourceArtifactIds": [
         "synthetic-booking-ledger"
       ]
+    },
+    {
+      "resourceId": "beta-factory-line-1",
+      "supplierId": "supplier-beta",
+      "facilityId": "beta-factory",
+      "resourceType": "factory_line",
+      "unit": "production_slot",
+      "capacityWindows": [
+        {
+          "start": "2031-01-01T00:00:00Z",
+          "end": "2031-01-08T00:00:00Z",
+          "capacityUnits": 1
+        }
+      ],
+      "failureDomainIds": [
+        "beta-factory-region"
+      ],
+      "sourceArtifactIds": [
+        "synthetic-booking-ledger"
+      ]
     }
   ],
   "leadTimeClaims": [
@@ -207,6 +227,14 @@
       "requiredAssetFamily": "transformer-245-420kv",
       "status": "planned",
       "minimumServiceFloorId": "metro-service-floor"
+    },
+    {
+      "projectId": "project-rural-03",
+      "incidentId": "storm-rural-03",
+      "servicePriority": "essential",
+      "requiredAssetFamily": "transformer-245-420kv",
+      "status": "active",
+      "minimumServiceFloorId": "rural-service-floor"
     }
   ],
   "reservations": [
@@ -241,6 +269,17 @@
       "units": 1,
       "state": "confirmed",
       "idempotencyKey": "hospital-alpha-test-2031w02",
+      "sourceArtifactId": "synthetic-booking-ledger"
+    },
+    {
+      "reservationId": "reservation-rural-unqualified-beta-option",
+      "projectId": "project-rural-03",
+      "resourceId": "beta-factory-line-1",
+      "start": "2031-01-01T00:00:00Z",
+      "end": "2031-01-08T00:00:00Z",
+      "units": 1,
+      "state": "proposed",
+      "idempotencyKey": "rural-beta-option-2031w01",
       "sourceArtifactId": "synthetic-booking-ledger"
     }
   ],
