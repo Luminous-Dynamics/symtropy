@@ -1,0 +1,229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/synthetic-joints/bidirectional-hand/v0.1/source_comparison.schema.json",
+  "title": "Bidirectional Hand Source Comparison Record v0.1",
+  "description": "Source-transcribed architecture comparison with explicit evidence and non-comparability; not an experimental qualification record.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "record_version",
+    "record_id",
+    "purpose",
+    "comparators",
+    "comparison_policy",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "record_version": {
+      "const": "0.1.0"
+    },
+    "record_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 1
+    },
+    "comparators": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/comparator"
+      }
+    },
+    "comparison_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "directly_comparable_now",
+        "must_remain_separate",
+        "matched_future_tasks"
+      ],
+      "properties": {
+        "directly_comparable_now": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "must_remain_separate": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "matched_future_tasks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "authors",
+        "date",
+        "url"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authors": {
+          "type": "string",
+          "minLength": 1
+        },
+        "date": {
+          "type": "string",
+          "format": "date"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric",
+        "value",
+        "unit",
+        "type"
+      ],
+      "properties": {
+        "metric": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": [
+            "number",
+            "integer",
+            "string",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "boundary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "condition": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "instrument": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cycles": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "comparison_without_prestretch_mm": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "duration_hours": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "side": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "comparator": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "id",
+        "name",
+        "architecture",
+        "evidence_class",
+        "source",
+        "reported_metrics"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "architecture": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "reported_metrics": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/metric"
+          }
+        },
+        "unknowns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "explicit_source_limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
