@@ -267,7 +267,13 @@
                 "unit",
                 "value",
                 "coverage_fraction",
-                "evidence_sha256"
+                "evidence_sha256",
+                "lower_bound",
+                "upper_bound",
+                "measurement_window_start",
+                "measurement_window_end",
+                "measurement_method",
+                "measurement_class"
               ],
               "properties": {
                 "metric": {
@@ -289,6 +295,32 @@
                 "evidence_sha256": {
                   "type": "string",
                   "pattern": "^[a-fA-F0-9]{64}$"
+                },
+                "lower_bound": {
+                  "type": "number"
+                },
+                "upper_bound": {
+                  "type": "number"
+                },
+                "measurement_window_start": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "measurement_window_end": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "measurement_method": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "measurement_class": {
+                  "enum": [
+                    "measured",
+                    "modeled",
+                    "derived",
+                    "synthetic"
+                  ]
                 }
               }
             }
