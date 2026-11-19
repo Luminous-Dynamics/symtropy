@@ -104,3 +104,22 @@ Report both member-coherent CVaR and marginal summaries as a diagnostic contrast
 - A valid scorecard does not establish statistical power, operational safety, seaworthiness or regulatory compliance.
 - No scalar reward may compensate for failed stability, safety, essential-service or comfort hard gates.
 - Statistical claims require prospective power analysis and paired whole-voyage/weather-event block resampling, not adjacent-timestep bootstrap.
+
+
+## 9. Commercial sailing baseline update (checked 19 November 2026)
+
+Do not position this programme as inventing multi-model weather routing, personalised polars, crew comfort estimates, or route briefings:
+
+- PredictWind's AI Weather Router/Briefing describes reading all eight model routes using the same models and boat polars, then summarizing demanding passage periods, boat motion/comfort and forecast confidence (official product/help pages: https://explore.predictwind.com/features/ai-weather-router and https://help.predictwind.com/en/articles/17593418-ai-weather-routing-briefing-for-sail-boats-how-it-works).
+- PredictWind AI Polars learns a vessel-specific polar from live instrument data and includes wave height, period and direction (https://www.predictwind.com/features/ai-polars).
+- Its Comfort Routing evaluates RMS roll, vertical acceleration and slamming incidence. Its help centre states that when the route cannot be calculated within the requested comfort limits, the router automatically reruns without those limits to return a result (https://help.predictwind.com/en/articles/15546304-power-routing-comfort-routing).
+
+This creates a stronger falsification target than simply checking whether a route engine reports a comfort score:
+
+1. Record the original requested hard/soft status of each comfort limit.
+2. Return explicit **INFEASIBLE / ABSTAIN** when a validated hard constraint cannot be satisfied; do not silently present a route after removing that constraint.
+3. If a user elects an explicitly authorized soft-constraint relaxation, record the exact changed bound, decision authority, rationale, and resulting route as a different policy arm. Never label it compliant with the original bound.
+4. Verify motion-model applicability and uncertainty for the actual craft/load/sea-state operating domain before treating a roll, acceleration, slamming or stability estimate as a hard gate.
+5. Compare against PredictWind using an authorized black-box protocol with fixed departure, boat model/polars, forecast timestamp, route boundaries, comfort settings, and compute/latency budget. Mark unmatched proprietary input sets as a limited comparison, not a reproducible win.
+
+The differentiator to test remains the **evidence-gated whole-liveaboard mission**: arrival windows plus power/water/food/waste/spares/reserves and service continuity, qualified forecast information, hard-gate non-relaxation, and reproducible mission-level paired outcomes. These are research targets, not achieved product advantages.
