@@ -38,6 +38,7 @@ jobs:
           schema = json.loads((root / "grid-resilience-rebuild-case-v0.1.schema.json").read_text())
           fixture = json.loads((root / "fixtures/synthetic-two-horizon-rebuild-v0.1.json").read_text())
           hazard_manifest = json.loads((root / "fixtures/synthetic-hazard-manifest-v0.1.json").read_text())
+          resource_manifest = json.loads((root / "fixtures/synthetic-capital-resource-manifest-v0.1.json").read_text())
           Draft202012Validator.check_schema(schema)
           validator = Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER)
           errors = sorted(validator.iter_errors(fixture), key=lambda error: list(error.path))
@@ -45,6 +46,25 @@ jobs:
 
           payload = json.dumps(hazard_manifest, separators=(",", ":"), sort_keys=True, ensure_ascii=False).encode()
           assert hashlib.sha256(payload).hexdigest() == fixture["hazardScenarioManifest"]["manifestSha256"]
+          resource_payload = json.dumps(resource_manifest, separators=(",", ":"), sort_keys=True, ensure_ascii=False).encode()
+          assert hashlib.sha256(resource_payload).hexdigest() == fixture["resourceState"]["asOfManifestSha256"]
+          assert resource_manifest["manifestId"] in fixture["resourceState"]["asOfManifestRef"]
+          assert resource_manifest["asOfHour"] == fixture["asOfHour"]
+          resource_refs = {item["resourceRef"] for item in resource_manifest["resources"]}
+          emergency_resource_refs = {
+              resource_ref
+              for option in fixture["emergencyHorizon"]["candidateOptions"]
+              for resource_ref in option["requiredResourceRefs"]
+          }
+          capital_portfolio_refs = {
+              option["supplyChainPortfolioRef"]
+              for option in fixture["capitalHorizon"]["capitalOptions"]
+          }
+          assert emergency_resource_refs <= resource_refs
+          assert capital_portfolio_refs <= resource_refs
+          by_ref = {item["resourceRef"]: item for item in resource_manifest["resources"]}
+          assert by_ref["synthetic://portfolio/qualified-hardening-components"]["status"] == "proposed_only"
+          assert by_ref["synthetic://portfolio/cable-switchgear-test-capacity"]["status"] == "unknown"
           scenario_refs = {item["scenarioRef"] for item in hazard_manifest["scenarios"]}
           assert set(fixture["hazardScenarioManifest"]["scenarioRefs"]) == scenario_refs
           assert all(item["probabilityStatus"] == "not_assigned" for item in hazard_manifest["scenarios"])
