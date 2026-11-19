@@ -1,0 +1,611 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:power-fabric:federation-envelope:0.1.0",
+  "title": "Power Fabric Federated Resilience Envelope",
+  "description": "A purpose-scoped coordination and evidence envelope. It is not, by itself, an instruction, dispatch authorisation, proof of physical availability, or grant of legal authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "messageId",
+    "purpose",
+    "issuedAt",
+    "expiresAt",
+    "sender",
+    "subject",
+    "payload",
+    "authority",
+    "evidence",
+    "integrity"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "messageId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Stable idempotency identity for this message."
+    },
+    "purpose": {
+      "type": "string",
+      "enum": [
+        "capacity_offer",
+        "service_request",
+        "reservation",
+        "commitment_update",
+        "status_observation",
+        "service_forecast",
+        "incident_notice",
+        "reconciliation"
+      ]
+    },
+    "issuedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expiresAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Receivers must reject or quarantine an expired message. Application logic must verify expiresAt is later than issuedAt."
+    },
+    "sender": {
+      "$ref": "#/$defs/actor"
+    },
+    "recipient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scopeLevel",
+        "scopeId"
+      ],
+      "properties": {
+        "scopeLevel": {
+          "$ref": "#/$defs/scopeLevel"
+        },
+        "scopeId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actorId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional addressed actor. Omit for a scope-addressed publication."
+        }
+      }
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subjectType",
+        "subjectId"
+      ],
+      "properties": {
+        "subjectType": {
+          "type": "string",
+          "enum": [
+            "asset",
+            "service",
+            "site",
+            "workfront",
+            "resource_pool",
+            "commitment",
+            "incident",
+            "dependency"
+          ]
+        },
+        "subjectId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parentSubjectId": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service",
+        "claim"
+      ],
+      "properties": {
+        "service": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "serviceType",
+            "serviceMetric",
+            "unit"
+          ],
+          "properties": {
+            "serviceType": {
+              "type": "string",
+              "enum": [
+                "electricity",
+                "water",
+                "sanitation",
+                "telecommunications",
+                "transport",
+                "shelter",
+                "health",
+                "food",
+                "fuel_logistics",
+                "other"
+              ]
+            },
+            "serviceMetric": {
+              "type": "string",
+              "minLength": 1,
+              "description": "A typed metric such as active_power, energy, potable_water_volume, data_backhaul, patient_capacity or vehicle_capacity."
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1
+            },
+            "criticalityClass": {
+              "type": "string",
+              "enum": [
+                "life_safety",
+                "essential",
+                "important",
+                "deferrable",
+                "unclassified"
+              ]
+            }
+          }
+        },
+        "claim": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "evidenceClass"
+          ],
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": [
+                "declared",
+                "offered",
+                "reserved",
+                "committed",
+                "observed_available",
+                "locally_dispatchable",
+                "unavailable",
+                "unknown",
+                "reconciled"
+              ]
+            },
+            "evidenceClass": {
+              "type": "string",
+              "enum": [
+                "declared",
+                "observed",
+                "inferred",
+                "simulated",
+                "unknown"
+              ]
+            },
+            "quantity": {
+              "type": "number",
+              "minimum": 0
+            },
+            "quality": {
+              "type": "string",
+              "description": "Optional quality or operating envelope identifier, not a free-form grant of permission."
+            },
+            "constraints": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            "failureDomainIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true,
+              "description": "Known shared failure domains. An empty list does not prove independence."
+            }
+          }
+        },
+        "timeWindow": {
+          "$ref": "#/$defs/timeWindow"
+        },
+        "commitment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "commitmentId",
+            "version",
+            "state",
+            "idempotencyKey"
+          ],
+          "properties": {
+            "commitmentId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "state": {
+              "type": "string",
+              "enum": [
+                "proposed",
+                "accepted",
+                "active",
+                "paused",
+                "fulfilled",
+                "cancelled",
+                "expired",
+                "conflicted",
+                "unknown"
+              ]
+            },
+            "idempotencyKey": {
+              "type": "string",
+              "minLength": 1
+            },
+            "exclusiveReservation": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "observation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "observedAt",
+            "sourceId",
+            "freshness"
+          ],
+          "properties": {
+            "observedAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "sourceId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "freshness": {
+              "type": "string",
+              "enum": [
+                "current",
+                "stale",
+                "conflicted",
+                "unverified",
+                "unknown"
+              ]
+            },
+            "measurementDigest": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            }
+          }
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Namespaced extension claims. Unknown extensions must be preserved or explicitly reported as unsupported; they must not be silently reinterpreted.",
+          "propertyNames": {
+            "pattern": "^[a-z0-9][a-z0-9.-]*:[a-zA-Z0-9._-]+$"
+          },
+          "additionalProperties": true
+        }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authorityRef",
+        "authorityType",
+        "action",
+        "scopeLevel",
+        "scopeId",
+        "basis"
+      ],
+      "properties": {
+        "authorityRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference to an independently verifiable authority record. A string here is not proof that the authority is valid."
+        },
+        "authorityType": {
+          "type": "string",
+          "enum": [
+            "asset_owner",
+            "asset_operator",
+            "licensed_distributor",
+            "regulator",
+            "municipality",
+            "contractual_delegate",
+            "community_mandate",
+            "emergency_authority",
+            "observer",
+            "none"
+          ]
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "publish",
+            "request",
+            "offer",
+            "reserve",
+            "commit",
+            "observe",
+            "dispatch",
+            "curtail",
+            "switch",
+            "disconnect",
+            "restore",
+            "reconcile",
+            "none"
+          ]
+        },
+        "scopeLevel": {
+          "$ref": "#/$defs/scopeLevel"
+        },
+        "scopeId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "basis": {
+          "type": "string",
+          "enum": [
+            "ownership",
+            "operational_mandate",
+            "licence",
+            "regulatory_instrument",
+            "contract",
+            "delegation",
+            "community_decision",
+            "statutory_emergency_power",
+            "observation_only",
+            "none"
+          ]
+        },
+        "delegationRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "jurisdictionProfileId": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "consent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "participationBasis",
+        "purpose",
+        "revocable"
+      ],
+      "properties": {
+        "participationBasis": {
+          "type": "string",
+          "enum": [
+            "opt_in",
+            "contract",
+            "community_mandate",
+            "statutory_basis",
+            "not_applicable",
+            "unknown"
+          ]
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revocable": {
+          "type": "boolean"
+        },
+        "consentRecordRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidenceId",
+          "evidenceClass",
+          "sourceRef",
+          "recordedAt",
+          "status"
+        ],
+        "properties": {
+          "evidenceId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidenceClass": {
+            "type": "string",
+            "enum": [
+              "declared",
+              "observed",
+              "inferred",
+              "simulated",
+              "unknown"
+            ]
+          },
+          "sourceRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "current",
+              "stale",
+              "conflicted",
+              "unverified",
+              "unknown"
+            ]
+          },
+          "digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "applicabilityRef": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonicalization",
+        "payloadDigest",
+        "signatureAlgorithm",
+        "keyId",
+        "signature"
+      ],
+      "properties": {
+        "canonicalization": {
+          "const": "RFC8785"
+        },
+        "payloadDigest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "signatureAlgorithm": {
+          "const": "Ed25519"
+        },
+        "keyId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signature": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "$defs": {
+    "scopeLevel": {
+      "type": "string",
+      "enum": [
+        "household_site",
+        "organization_community",
+        "town_municipality",
+        "city_metropolitan",
+        "regional_peer",
+        "national_peer",
+        "cross_border_peer"
+      ]
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actorId",
+        "actorType",
+        "scopeLevel",
+        "scopeId",
+        "jurisdictionProfileId"
+      ],
+      "properties": {
+        "actorId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actorType": {
+          "type": "string",
+          "enum": [
+            "household",
+            "individual_site",
+            "company",
+            "cooperative",
+            "community_association",
+            "neighbourhood_group",
+            "farm",
+            "campus",
+            "hospital",
+            "school",
+            "shelter",
+            "public_facility",
+            "municipal_department",
+            "licensed_distributor",
+            "utility",
+            "system_operator",
+            "regulator",
+            "emergency_service",
+            "nonprofit",
+            "other"
+          ]
+        },
+        "scopeLevel": {
+          "$ref": "#/$defs/scopeLevel"
+        },
+        "scopeId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "jurisdictionProfileId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "representationRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional reference to a community or collective representation mandate; not applicable to all actor types."
+        }
+      }
+    },
+    "timeWindow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end"
+      ],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "timeZone": {
+          "type": "string",
+          "description": "IANA time-zone identifier for display and jurisdictional calendar interpretation."
+        }
+      }
+    }
+  }
+}
