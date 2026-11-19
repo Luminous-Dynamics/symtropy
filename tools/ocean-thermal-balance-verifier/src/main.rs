@@ -22,6 +22,7 @@ fn case(mode: CoolingMode, direct: f64, evaporator: f64, chiller: f64) -> Coolin
         chiller_evaporator_heat_w: evaporator,
         chiller_electric_input_w: chiller,
         water_pump_electric_input_w: pump,
+        other_cooling_auxiliary_electric_input_w: 0.0,
         pump_heat_fraction_to_seawater: pump_fraction,
         other_heat_to_seawater_w: 0.0,
         seawater_mass_flow_kg_per_s: flow,
