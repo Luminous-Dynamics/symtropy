@@ -1051,6 +1051,9 @@ mod tests {
     ) -> (Vec<u8>, Value, Value) {
         let mut payload: Value = serde_json::from_slice(PAYLOAD).unwrap();
         payload["evidence_class"] = json!("measured");
+        payload["note"] = json!(
+            "Test-only synthetic fixture used to exercise measured-evidence metadata; not a physical meter reading."
+        );
         let bytes = serde_json::to_vec(&payload).unwrap();
         let digest = digest_hex(&bytes);
 
