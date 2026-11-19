@@ -135,6 +135,13 @@ This is a release-sensitive snapshot, not a permanent ranking. Pin the exact ver
 
 Official change records: [MuJoCo 4.0.1 changelog](https://mujoco.readthedocs.io/en/4.0.1/changelog.html), [MuJoCo releases](https://github.com/google-deepmind/mujoco/releases), and [Newton v1.8.0 releases](https://github.com/newton-physics/newton/releases).
 
+### CFD, FSI and continuum references
+
+- **OpenFOAM Foundation v14** was released 14 July 2026; the listed v14 maintenance packs include the 20261008 patch. V14 makes units a standard feature for input parameters, adds named dimensions and dimension checking during geometric-field reads, and updates multiphase/thermal solver paths. Symtropy's typed-port contract should be benchmarked against this dimensional discipline: wrong-unit, inconsistent-dimension and hidden-conversion cases must reject before a coupled run. Do not infer that OpenFOAM's field-unit checking validates a whole system model or its source data.
+- **Project Chrono 10.0.0** (27 March 2026) refactored its FSI module with SPH- and TDPF-based fluid solver support, added a Peridynamics module and expanded checkpointing for Chrono/Vehicle. This makes it a stronger relevant peer for selected FSI, meshless-material and checkpoint/replay cases. Match the exact solver family, interface transfer method, fluid/solid model, timestep, tolerances and hardware before comparing with Symtropy.
+
+Official sources: [OpenFOAM v14 release](https://openfoam.org/release/14/), [OpenFOAM v14 patch releases](https://openfoam.org/news/v14-patch/), [Project Chrono 10.0.0 release notice](https://projectchrono.org/news/).
+
 ### FMI 3.0.2 semantics the benchmark must preserve
 
 FMI is not just a call interface. Version 3.0.2 includes Model Exchange, Co-Simulation and Scheduled Execution, with optional Event Mode, Intermediate Update, clocks and early return. The importer/master algorithm remains part of the integrating tool's behavior and needs its own qualification.
