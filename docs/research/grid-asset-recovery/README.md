@@ -490,3 +490,17 @@ Primary article and archive:
 - https://doi.org/10.1016/j.dib.2026.113256
 - https://doi.org/10.5281/zenodo.20553817
 - https://github.com/aftab-fr/carm-plus-dataset
+
+
+## 17. Weekly calendars and explicit calendar exceptions
+
+Resource calendars now support:
+- a repeating period of any positive number of hours (for example, 24-hour daily or 168-hour weekly);
+- multiple availability windows per period, so lunch breaks, day shifts, evening shifts and weekend work can be represented;
+- named absolute calendar exceptions (`public_holiday`, `site_access_closed`, `planned_maintenance`, `workforce_training`, `other`) with explicit start/end hour, reason and unique identity.
+
+A non-preemptive task must fit wholly inside one available window for every required resource, and it must not overlap an applicable calendar exception. Resource outages remain a separate concept: outages consume declared resource capacity, while a calendar exception blocks the resource's availability for the exception interval.
+
+A synthetic scheduler test uses a weekly 168-hour calendar with five standard workdays, separate morning/afternoon windows around lunch, and a public-holiday exception on the following Monday. A two-hour repair released late on Friday is scheduled on Tuesday after the holiday, not during the weekend or holiday.
+
+**Time representation boundary:** the current model uses a shared elapsed-hour axis. It does not yet implement IANA time zones, daylight-saving transitions, jurisdiction-specific holiday calendars, exceptional overtime, task preemption, travel calendars, multi-location crews or split tasks that span shifts. Real-world data imports must translate authoritative local calendars into an explicit, versioned elapsed-hour calendar and preserve the original time-zone/source metadata separately.
