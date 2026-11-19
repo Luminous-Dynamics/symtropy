@@ -308,9 +308,7 @@
         "STD-IEC-60287-2-3-2024"
       ],
       "data_gaps": [
-        [
-          "National adoption, SANS/NRS, grid-code and utility project requirements need country-by-country verification."
-        ],
+        "National adoption, SANS/NRS, grid-code and utility project requirements need country-by-country verification.",
         "No local route costs, calibrated hazard distributions or utility as-built datasets are embedded in this template."
       ],
       "local_cost_data_status": "unknown"
@@ -348,9 +346,7 @@
         "STD-IEC-60287-2-3-2024"
       ],
       "data_gaps": [
-        [
-          "FERC, NERC applicability, provincial/state rules, NESC/ASCE/IEEE adoptions and local grid codes vary."
-        ],
+        "FERC, NERC applicability, provincial/state rules, NESC/ASCE/IEEE adoptions and local grid codes vary.",
         "No local route costs, calibrated hazard distributions or utility as-built datasets are embedded in this template."
       ],
       "local_cost_data_status": "unknown"
@@ -388,9 +384,7 @@
         "STD-IEC-60287-2-3-2024"
       ],
       "data_gaps": [
-        [
-          "ENTSO-E TYNDP, national TSO plans, EN adoption, national regulator and utility requirements need local profile."
-        ],
+        "ENTSO-E TYNDP, national TSO plans, EN adoption, national regulator and utility requirements need local profile.",
         "No local route costs, calibrated hazard distributions or utility as-built datasets are embedded in this template."
       ],
       "local_cost_data_status": "unknown"
@@ -430,9 +424,7 @@
         "STD-IEC-60287-1-1-2023"
       ],
       "data_gaps": [
-        [
-          "CEA manual applies to India; BIS adoptions, neighbouring national codes and utility requirements need separate verification."
-        ],
+        "CEA manual applies to India; BIS adoptions, neighbouring national codes and utility requirements need separate verification.",
         "No local route costs, calibrated hazard distributions or utility as-built datasets are embedded in this template."
       ],
       "local_cost_data_status": "unknown"
@@ -469,9 +461,7 @@
         "STD-IEC-60287-2-3-2024"
       ],
       "data_gaps": [
-        [
-          "Separate Chinese, Japanese, Korean and Taiwan standards, grid codes and utility practices; none are inferred from IEC membership."
-        ],
+        "Separate Chinese, Japanese, Korean and Taiwan standards, grid codes and utility practices; none are inferred from IEC membership.",
         "No local route costs, calibrated hazard distributions or utility as-built datasets are embedded in this template."
       ],
       "local_cost_data_status": "unknown"
@@ -513,9 +503,7 @@
         "STD-IEC-60287-1-1-2023"
       ],
       "data_gaps": [
-        [
-          "National ANEEL/CNE/OSINERGMIN and other regulator, standards-body, utility and environmental rules require review by country."
-        ],
+        "National ANEEL/CNE/OSINERGMIN and other regulator, standards-body, utility and environmental rules require review by country.",
         "No local route costs, calibrated hazard distributions or utility as-built datasets are embedded in this template."
       ],
       "local_cost_data_status": "unknown"
@@ -559,9 +547,7 @@
         "STD-IEC-60287-1-1-2023"
       ],
       "data_gaps": [
-        [
-          "National utility, GCC/Arab regional and pressure-system code adoptions require country-specific verification."
-        ],
+        "National utility, GCC/Arab regional and pressure-system code adoptions require country-specific verification.",
         "No local route costs, calibrated hazard distributions or utility as-built datasets are embedded in this template."
       ],
       "local_cost_data_status": "unknown"
@@ -598,9 +584,7 @@
         "STD-IEC-60287-1-1-2023"
       ],
       "data_gaps": [
-        [
-          "ECOWAS WAPP, EAPP, CAPP, national utilities and regulator rules; country-by-country adoption and financing remain open."
-        ],
+        "ECOWAS WAPP, EAPP, CAPP, national utilities and regulator rules; country-by-country adoption and financing remain open.",
         "No local route costs, calibrated hazard distributions or utility as-built datasets are embedded in this template."
       ],
       "local_cost_data_status": "unknown"
@@ -638,9 +622,7 @@
         "STD-IEC-60287-1-1-2023"
       ],
       "data_gaps": [
-        [
-          "Australia, New Zealand and island state standards and interconnection codes are separate; local adoption unknown."
-        ],
+        "Australia, New Zealand and island state standards and interconnection codes are separate; local adoption unknown.",
         "No local route costs, calibrated hazard distributions or utility as-built datasets are embedded in this template."
       ],
       "local_cost_data_status": "unknown"
@@ -676,9 +658,7 @@
         "STD-IEC-60287-1-1-2023"
       ],
       "data_gaps": [
-        [
-          "National/local low-temperature, foundation, environmental and grid requirements need regional specialist review."
-        ],
+        "National/local low-temperature, foundation, environmental and grid requirements need regional specialist review.",
         "No local route costs, calibrated hazard distributions or utility as-built datasets are embedded in this template."
       ],
       "local_cost_data_status": "unknown"
