@@ -141,6 +141,8 @@ The benchmark must record, as separate observations:
 - production and injection trajectories over time;
 - net power after pumping, cooling, reinjection and surface parasitics.
 
+Scott's November 2026 model identifies wellhead pressure as an important control: >15 MPa can preserve single-phase production in some modeled conditions and reduce condensation/scaling exposure. Its 9 5/8-inch casing cases cross a 50 m/s erosional-velocity reference above roughly 30 MPa reservoir pressure at 450–550 °C. Those values are tied to the paper's steady-state assumptions and case geometry; they are not general safe limits. The validation plan must therefore include pressure/phase/casing tradeoffs and transient start-up, shut-in, circulation loss, restart and injection cases. Do not promote steady-state model fit into well-lifetime or well-integrity validation.
+
 For pure water/steam property calculations, pin the IAPWS-IF97 release and its validity envelope. Brines with dissolved salts require an appropriate mixture-property model; pure-water IF97 is not a brine equation of state.
 
 Material sources:
