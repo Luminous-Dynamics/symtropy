@@ -193,6 +193,17 @@ fn check_forecast_source(
         Some(_) => add(findings, "INVALID_AVAILABILITY_EVIDENCE", "ERROR",
             &format!("source '{id}' uses an unsupported availability evidence class.")),
     }
+    if string_at(source, &["forecast", "availability_evidence_ref"]).is_none_or(str::is_empty) {
+        add(findings, "AVAILABILITY_EVIDENCE_REFERENCE_MISSING", "INCOMPLETE",
+            &format!("source '{id}' needs a stable reference to the availability evidence artifact."));
+    }
+    match string_at(source, &["forecast", "availability_evidence_sha256"]) {
+        Some(digest) if valid_sha256(digest) => {}
+        Some(_) => add(findings, "AVAILABILITY_EVIDENCE_DIGEST_INVALID", "ERROR",
+            &format!("source '{id}' availability evidence requires a 64-character SHA-256 digest.")),
+        None => add(findings, "AVAILABILITY_EVIDENCE_DIGEST_MISSING", "INCOMPLETE",
+            &format!("source '{id}' availability evidence has no immutable digest.")),
+    }
 
     if string_at(source, &["forecast", "cycle_id"]).is_none_or(str::is_empty)
         || string_at(source, &["forecast", "parameter_set"]).is_none_or(str::is_empty)
@@ -600,6 +611,8 @@ mod tests {
             source["rights"]["review_ref"] = json!("TEST-RESEARCH-RIGHTS-REVIEW");
             if source["information_class"] == "deployable_forecast" {
                 source["forecast"]["availability_evidence"] = json!("operational_distribution_log");
+                source["forecast"]["availability_evidence_ref"] = json!("TEST-OPERATIONAL-DISTRIBUTION-RECEIPT");
+                source["forecast"]["availability_evidence_sha256"] = json!("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd");
             }
             source["evidence_class"] = match source["information_class"].as_str().unwrap() {
                 "deployable_forecast" => json!("published"),
@@ -736,6 +749,15 @@ mod tests {
         assert_eq!(audit(&value)["disposition"], "INVALID");
     }
 
+
+
+    #[test]
+    fn availability_category_without_immutable_receipt_is_incomplete() {
+        let mut value = fixture();
+        set_research_admissible(&mut value);
+        value["sources"][0]["forecast"]["availability_evidence_ref"] = Value::Null;
+        assert_eq!(audit(&value)["disposition"], "INCOMPLETE");
+    }
 
     #[test]
     fn synthetic_availability_marker_cannot_be_promoted() {
