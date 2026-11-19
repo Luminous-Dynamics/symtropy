@@ -7,6 +7,21 @@ pub struct ResourceRequirement {
     pub units: u32,
 }
 
+#[derive(Clone, Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AvailabilityWindow {
+    pub start_hour: f64,
+    pub end_hour: f64,
+}
+
+#[derive(Clone, Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResourceProfile {
+    pub available_units: u32,
+    pub calendar_period_hours: f64,
+    pub availability_windows: Vec<AvailabilityWindow>,
+}
+
 #[derive(Clone, Debug)]
 pub struct TaskSpec {
     pub event_id: String,
@@ -37,11 +52,86 @@ fn key(event_id: &str, task_id: &str) -> String {
     format!("{event_id}::{task_id}")
 }
 
+fn earliest_slot_for_resource(
+    ready_hour: f64,
+    duration_hours: f64,
+    requirement: &ResourceRequirement,
+    profile: &ResourceProfile,
+    allocations: &[ResourceInterval],
+) -> Result<f64, String> {
+    if requirement.units == 0 || requirement.units > profile.available_units {
+        return Err(format!(
+            "resource {} requires {} units but capacity is {}",
+            requirement.resource_id, requirement.units, profile.available_units
+        ));
+    }
+    if !profile.calendar_period_hours.is_finite()
+        || profile.calendar_period_hours <= 0.0
+        || profile.availability_windows.is_empty()
+    {
+        return Err(format!(
+            "resource {} has invalid or empty availability calendar",
+            requirement.resource_id
+        ));
+    }
+
+    let mut period_index = (ready_hour / profile.calendar_period_hours).floor().max(0.0);
+    for _ in 0..100_000 {
+        let period_start = period_index * profile.calendar_period_hours;
+        for window in &profile.availability_windows {
+            let window_start = period_start + window.start_hour;
+            let window_end = period_start + window.end_hour;
+            let mut candidate = ready_hour.max(window_start);
+
+            while candidate + duration_hours <= window_end + 1e-9 {
+                let mut boundaries = vec![candidate];
+                boundaries.extend(
+                    allocations
+                        .iter()
+                        .filter(|item| item.start > candidate && item.start < candidate + duration_hours)
+                        .map(|item| item.start),
+                );
+                boundaries.sort_by(f64::total_cmp);
+                boundaries.dedup_by(|left, right| (*left - *right).abs() <= 1e-9);
+
+                let conflict_time = boundaries.iter().copied().find(|time| {
+                    let used: u32 = allocations
+                        .iter()
+                        .filter(|item| item.start <= *time && item.end > *time)
+                        .map(|item| item.units)
+                        .sum();
+                    used.saturating_add(requirement.units) > profile.available_units
+                });
+
+                let Some(conflict_time) = conflict_time else {
+                    return Ok(candidate);
+                };
+                let next_candidate = allocations
+                    .iter()
+                    .filter(|item| item.start <= conflict_time && item.end > conflict_time)
+                    .map(|item| item.end)
+                    .filter(|end| *end > candidate + 1e-9)
+                    .min_by(f64::total_cmp);
+                let Some(next_candidate) = next_candidate else {
+                    break;
+                };
+                candidate = next_candidate;
+            }
+        }
+        period_index += 1.0;
+    }
+
+    Err(format!(
+        "resource {} has no feasible availability slot within scheduler search horizon",
+        requirement.resource_id
+    ))
+}
+
 fn earliest_resource_slot(
     ready_hour: f64,
     duration_hours: f64,
     requirements: &[ResourceRequirement],
-    capacities: &BTreeMap<String, u32>,
+    profiles: &BTreeMap<String, ResourceProfile>,
     allocations: &BTreeMap<String, Vec<ResourceInterval>>,
 ) -> Result<f64, String> {
     if requirements.is_empty() {
@@ -49,7 +139,6 @@ fn earliest_resource_slot(
     }
 
     let mut seen = BTreeSet::new();
-    let mut candidates = vec![ready_hour];
     for requirement in requirements {
         if !seen.insert(requirement.resource_id.as_str()) {
             return Err(format!(
@@ -57,69 +146,35 @@ fn earliest_resource_slot(
                 requirement.resource_id
             ));
         }
-        let Some(capacity) = capacities.get(&requirement.resource_id).copied() else {
-            return Err(format!("unknown resource {}", requirement.resource_id));
-        };
-        if requirement.units == 0 || requirement.units > capacity {
-            return Err(format!(
-                "resource {} requires {} units but capacity is {}",
-                requirement.resource_id, requirement.units, capacity
-            ));
-        }
-        if let Some(intervals) = allocations.get(&requirement.resource_id) {
-            candidates.extend(
-                intervals
-                    .iter()
-                    .filter(|item| item.end >= ready_hour)
-                    .map(|item| item.end),
-            );
-        }
     }
-    candidates.sort_by(f64::total_cmp);
-    candidates.dedup_by(|a, b| (*a - *b).abs() <= 1e-9);
 
-    for candidate in candidates.iter().copied() {
-        let finish = candidate + duration_hours;
-        let mut all_feasible = true;
-
+    let mut candidate = ready_hour;
+    for _ in 0..100_000 {
+        let mut next_candidate = candidate;
         for requirement in requirements {
-            let intervals = allocations
-                .get(&requirement.resource_id)
-                .cloned()
-                .unwrap_or_default();
-            let mut boundaries = vec![candidate];
-            boundaries.extend(
-                intervals
-                    .iter()
-                    .filter(|item| item.start > candidate && item.start < finish)
-                    .map(|item| item.start),
-            );
-            boundaries.sort_by(f64::total_cmp);
-            boundaries.dedup_by(|a, b| (*a - *b).abs() <= 1e-9);
-
-            let Some(capacity) = capacities.get(&requirement.resource_id).copied() else {
+            let Some(profile) = profiles.get(&requirement.resource_id) else {
                 return Err(format!("unknown resource {}", requirement.resource_id));
             };
-            let feasible = boundaries.iter().all(|time| {
-                let used: u32 = intervals
-                    .iter()
-                    .filter(|item| item.start <= *time && item.end > *time)
-                    .map(|item| item.units)
-                    .sum();
-                used.saturating_add(requirement.units) <= capacity
-            });
-            if !feasible {
-                all_feasible = false;
-                break;
-            }
+            let resource_allocations = allocations
+                .get(&requirement.resource_id)
+                .map(Vec::as_slice)
+                .unwrap_or(&[]);
+            let feasible_start = earliest_slot_for_resource(
+                candidate,
+                duration_hours,
+                requirement,
+                profile,
+                resource_allocations,
+            )?;
+            next_candidate = next_candidate.max(feasible_start);
         }
-
-        if all_feasible {
+        if (next_candidate - candidate).abs() <= 1e-9 {
             return Ok(candidate);
         }
+        candidate = next_candidate;
     }
 
-    Ok(candidates.last().copied().unwrap_or(ready_hour))
+    Err("multi-resource calendar intersection did not converge".to_string())
 }
 
 /// Deterministic non-preemptive list scheduler.
@@ -130,7 +185,7 @@ fn earliest_resource_slot(
 /// should be added before making optimality claims.
 pub fn schedule(
     tasks: &[TaskSpec],
-    capacities: &BTreeMap<String, u32>,
+    profiles: &BTreeMap<String, ResourceProfile>,
 ) -> Result<Vec<ScheduledTask>, Vec<String>> {
     let mut errors = Vec::new();
     let mut task_by_key = BTreeMap::new();
@@ -162,16 +217,16 @@ pub fn schedule(
                     task.event_id, task.task_id, requirement.resource_id
                 ));
             }
-            match capacities.get(&requirement.resource_id) {
+            match profiles.get(&requirement.resource_id) {
                 None => errors.push(format!(
                     "{} task {} references unknown resource {}",
                     task.event_id, task.task_id, requirement.resource_id
                 )),
-                Some(capacity) if requirement.units == 0 || requirement.units > *capacity => {
+                Some(profile) if requirement.units == 0 || requirement.units > profile.available_units => {
                     errors.push(format!(
                         "{} task {} requires {} units of {}, capacity is {}",
                         task.event_id, task.task_id, requirement.units,
-                        requirement.resource_id, capacity
+                        requirement.resource_id, profile.available_units
                     ));
                 }
                 Some(_) => {}
@@ -297,7 +352,7 @@ fn exact_search(
     unscheduled: &mut BTreeSet<String>,
     scheduled: &mut BTreeMap<String, ScheduledTask>,
     resource_allocations: &mut BTreeMap<String, Vec<ResourceInterval>>,
-    capacities: &BTreeMap<String, u32>,
+    profiles: &BTreeMap<String, ResourceProfile>,
     best: &mut Option<(f64, Vec<ScheduledTask>)>,
 ) {
     if unscheduled.is_empty() {
@@ -354,7 +409,7 @@ fn exact_search(
             ready_hour,
             task.duration_hours,
             &task.resource_requirements,
-            capacities,
+            profiles,
             resource_allocations,
         ) {
             Ok(start) => start,
@@ -426,7 +481,7 @@ fn exact_search(
 /// specialised solver for larger instances.
 pub fn exact_small_schedule(
     tasks: &[TaskSpec],
-    capacities: &BTreeMap<String, u32>,
+    profiles: &BTreeMap<String, ResourceProfile>,
 ) -> Result<Vec<ScheduledTask>, Vec<String>> {
     const MAX_EXACT_TASKS: usize = 10;
     if tasks.is_empty() || tasks.len() > MAX_EXACT_TASKS {
@@ -435,7 +490,7 @@ pub fn exact_small_schedule(
         )]);
     }
 
-    let greedy = schedule(tasks, capacities)?;
+    let greedy = schedule(tasks, profiles)?;
     let greedy_makespan = greedy
         .iter()
         .map(|task| task.end_hour)
@@ -465,6 +520,20 @@ pub fn exact_small_schedule(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn profile(capacity: u32, period: f64, windows: &[(f64, f64)]) -> ResourceProfile {
+        ResourceProfile {
+            available_units: capacity,
+            calendar_period_hours: period,
+            availability_windows: windows
+                .iter()
+                .map(|(start_hour, end_hour)| AvailabilityWindow {
+                    start_hour: *start_hour,
+                    end_hour: *end_hour,
+                })
+                .collect(),
+        }
+    }
 
     fn spec(
         event_id: &str,
@@ -501,8 +570,8 @@ mod tests {
             spec("B", "b2", &["b1"], 0.0, 100.0, Some("r2"), 1),
         ];
         let capacities = BTreeMap::from([
-            ("r1".to_string(), 1),
-            ("r2".to_string(), 1),
+            ("r1".to_string(), profile(1, 24.0, &[(0.0, 24.0)])),
+            ("r2".to_string(), profile(1, 24.0, &[(0.0, 24.0)])),
         ]);
         let greedy = schedule(&tasks, &capacities).expect("greedy schedule");
         let exact = exact_small_schedule(&tasks, &capacities).expect("exact schedule");
@@ -535,7 +604,7 @@ mod tests {
             spec("E1", "transport", &["source"], 0.0, 12.0, None, 0),
             spec("E1", "repair", &["crew", "transport"], 0.0, 10.0, Some("crew"), 1),
         ];
-        let capacities = BTreeMap::from([("crew".to_string(), 1)]);
+        let capacities = BTreeMap::from([("crew".to_string(), profile(1, 24.0, &[(0.0, 24.0)]))]);
         let result = schedule(&tasks, &capacities).expect("schedule should be feasible");
         let repair = result.iter().find(|x| x.task_id == "repair").unwrap();
         assert_eq!(repair.start_hour, 15.0);
@@ -548,7 +617,7 @@ mod tests {
             spec("E1", "repair", &[], 0.0, 10.0, Some("crew"), 1),
             spec("E2", "repair", &[], 5.0, 10.0, Some("crew"), 1),
         ];
-        let capacities = BTreeMap::from([("crew".to_string(), 1)]);
+        let capacities = BTreeMap::from([("crew".to_string(), profile(1, 24.0, &[(0.0, 24.0)]))]);
         let result = schedule(&tasks, &capacities).expect("scheduler should place both jobs");
         let second = result.iter().find(|x| x.event_id == "E2").unwrap();
         assert_eq!(second.start_hour, 10.0);
@@ -576,9 +645,9 @@ mod tests {
         ];
         let tasks = vec![crane_block, test_rig_block, repair];
         let capacities = BTreeMap::from([
-            ("crew".to_string(), 1),
-            ("crane".to_string(), 1),
-            ("test_rig".to_string(), 1),
+            ("crew".to_string(), profile(1, 24.0, &[(0.0, 24.0)])),
+            ("crane".to_string(), profile(1, 24.0, &[(0.0, 24.0)])),
+            ("test_rig".to_string(), profile(1, 24.0, &[(0.0, 24.0)])),
         ]);
         let result = schedule(&tasks, &capacities).expect("multi-resource schedule");
         let repair = result.iter().find(|x| x.event_id == "B").unwrap();
@@ -593,7 +662,7 @@ mod tests {
             ResourceRequirement { resource_id: "crew".to_string(), units: 1 },
             ResourceRequirement { resource_id: "crew".to_string(), units: 1 },
         ];
-        let capacities = BTreeMap::from([("crew".to_string(), 1)]);
+        let capacities = BTreeMap::from([("crew".to_string(), profile(1, 24.0, &[(0.0, 24.0)]))]);
         assert!(schedule(&[task], &capacities)
             .unwrap_err()[0]
             .contains("repeats resource requirement"));
@@ -605,7 +674,7 @@ mod tests {
         task.resource_requirements = vec![
             ResourceRequirement { resource_id: "crew".to_string(), units: 2 },
         ];
-        let capacities = BTreeMap::from([("crew".to_string(), 1)]);
+        let capacities = BTreeMap::from([("crew".to_string(), profile(1, 24.0, &[(0.0, 24.0)]))]);
         assert!(schedule(&[task], &capacities)
             .unwrap_err()[0]
             .contains("requires 2 units"));
