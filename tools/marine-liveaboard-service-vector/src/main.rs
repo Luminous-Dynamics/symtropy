@@ -112,6 +112,40 @@ fn snapshot_digest(snapshot: &Value) -> Option<String> {
     Some(sha256_hex(&fields.into_iter().map(|(_, field)| field).collect::<Vec<_>>().join("\n")))
 }
 
+fn constraint_registry_canonical(value: &Value, errors: &mut Vec<String>) -> Option<String> {
+    let hard_gate_ids = value.get("hard_gate_ids").and_then(Value::as_array)?;
+    let soft_constraints = value.get("soft_constraints").and_then(Value::as_array)?;
+    let mut seen_hard = BTreeSet::<String>::new();
+    let mut seen_soft = BTreeSet::<String>::new();
+    let mut rows = Vec::<String>::new();
+    if hard_gate_ids.is_empty() {
+        errors.push("constraint registry requires at least one hard-gate ID".to_owned());
+    }
+    for id in hard_gate_ids.iter().filter_map(Value::as_str) {
+        if id.is_empty() || !seen_hard.insert(id.to_owned()) {
+            errors.push("constraint registry has a missing or duplicated hard-gate ID".to_owned());
+        } else {
+            rows.push(format!("HARD|{id}"));
+        }
+    }
+    for soft in soft_constraints {
+        let id = string_at(soft, "constraint_id").unwrap_or("");
+        let unit = string_at(soft, "unit").unwrap_or("");
+        let limit = number_at(soft, "baseline_limit");
+        let Some(limit) = limit else {
+            errors.push(format!("soft constraint '{id}' has an invalid baseline limit"));
+            continue;
+        };
+        if id.is_empty() || unit.is_empty() || !seen_soft.insert(id.to_owned()) || seen_hard.contains(id) {
+            errors.push(format!("soft constraint '{id}' has a missing/duplicate identity or overlaps a hard gate"));
+            continue;
+        }
+        rows.push(format!("SOFT|{id}|{unit}|{limit:.17}"));
+    }
+    rows.sort();
+    Some(rows.join("\n"))
+}
+
 #[derive(Clone)]
 struct MetricValue {
     value: f64,
@@ -141,6 +175,7 @@ struct PolicyReport {
 fn policy_report(
     policy: &Value,
     contract: &Value,
+    constraint_registry: &Value,
     record_status: &str,
     base_operating_envelope: &str,
     errors: &mut Vec<String>,
@@ -192,13 +227,26 @@ fn policy_report(
         for (index, relaxation) in relaxations.iter().enumerate() {
             let constraint_id = string_at(relaxation, "constraint_id").unwrap_or("");
             let service_floor_relaxation = METRICS.iter().any(|spec| spec.metric == constraint_id);
+            let hard_gate_relaxation = constraint_registry.get("hard_gate_ids")
+                .and_then(Value::as_array)
+                .is_some_and(|ids| ids.iter().any(|id| id.as_str() == Some(constraint_id)));
+            let registered_soft = constraint_registry.get("soft_constraints")
+                .and_then(Value::as_array)
+                .and_then(|items| items.iter().find(|item| string_at(item, "constraint_id") == Some(constraint_id)));
+            let prior_limit = number_at(relaxation, "prior_limit");
+            let registered_limit = registered_soft.and_then(|item| number_at(item, "baseline_limit"));
+            let registered_unit = registered_soft.and_then(|item| string_at(item, "unit"));
             if string_at(relaxation, "constraint_class") != Some("soft")
                 || service_floor_relaxation
+                || hard_gate_relaxation
+                || registered_soft.is_none()
                 || constraint_id.is_empty()
                 || string_at(relaxation, "unit").is_none_or(str::is_empty)
-                || number_at(relaxation, "prior_limit").is_none()
+                || registered_unit != string_at(relaxation, "unit")
+                || prior_limit.is_none()
+                || prior_limit != registered_limit
                 || number_at(relaxation, "new_limit").is_none()
-                || number_at(relaxation, "prior_limit") == number_at(relaxation, "new_limit")
+                || prior_limit == number_at(relaxation, "new_limit")
                 || string_at(relaxation, "authority_receipt_ref").is_none_or(str::is_empty)
                 || !digest_valid(string_at(relaxation, "authority_receipt_sha256"))
                 || !digest_valid(string_at(relaxation, "new_operating_envelope_sha256"))
@@ -390,6 +438,16 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     }
 
     let contract = value.get("service_floor_contract").unwrap_or(&Value::Null);
+    let registry = value.get("constraint_registry").unwrap_or(&Value::Null);
+    let canonical_registry = constraint_registry_canonical(registry, &mut errors);
+    if let Some(canonical) = canonical_registry {
+        let calculated = sha256_hex(&canonical);
+        if string_at(value.get("mission_snapshot").unwrap_or(&Value::Null), "constraint_registry_sha256")
+            != Some(calculated.as_str())
+        {
+            errors.push("constraint_registry_sha256 does not match canonical hard/soft registry".to_owned());
+        }
+    }
     let canonical_contract = contract_canonical(contract, &mut errors);
     if let Some(canonical) = canonical_contract {
         let calculated = sha256_hex(&canonical);
@@ -410,7 +468,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     for field in [
         "craft_configuration_sha256", "occupancy_sha256", "initial_resource_state_sha256",
         "mission_plan_sha256", "forecast_information_set_sha256", "hard_gate_roster_sha256",
-        "operating_envelope_sha256", "service_floor_contract_sha256",
+        "operating_envelope_sha256", "service_floor_contract_sha256", "constraint_registry_sha256",
     ] {
         if !digest_valid(string_at(snapshot, field)) {
             errors.push(format!("mission snapshot has invalid {field}"));
@@ -432,7 +490,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             if string_at(policy, "mission_snapshot_sha256") != string_at(snapshot, "mission_snapshot_sha256") {
                 errors.push(format!("policy '{policy_id}' does not share the exact frozen mission snapshot"));
             }
-            if let Some(report) = policy_report(policy, contract, status, base_envelope, &mut errors, &mut blockers) {
+            if let Some(report) = policy_report(policy, contract, registry, status, base_envelope, &mut errors, &mut blockers) {
                 if policy_reports.insert(report.policy_id.clone(), report).is_some() {
                     errors.push(format!("policy ID '{policy_id}' is duplicated"));
                 }
@@ -798,6 +856,50 @@ mod tests {
         assert_eq!(report["policies"].as_array().unwrap().iter()
             .find(|policy| policy["policy_id"] == "authorized-soft-relaxation-arm").unwrap()["operating_envelope_sha256"],
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    }
+
+    #[test]
+    fn hard_gate_cannot_be_relabelled_as_soft_and_relaxed() {
+        let mut value = fixture();
+        let mut policy = value["policies"][2].clone();
+        policy["policy_id"] = json!("authorized-soft-relaxation-arm");
+        policy["role"] = json!("authorized_soft_relaxation");
+        policy["decision_output_sha256"] = json!("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+        policy["operating_envelope_sha256"] = json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        policy["soft_constraint_relaxations"] = json!([{
+            "constraint_class":"soft",
+            "constraint_id":"intact-stability-envelope",
+            "prior_limit":1.0,
+            "new_limit":2.0,
+            "unit":"index",
+            "authority_receipt_ref":"SYNTHETIC-AUTHORITY-RECEIPT",
+            "authority_receipt_sha256":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "new_operating_envelope_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }]);
+        value["policies"].as_array_mut().unwrap().push(policy);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn soft_relaxation_must_match_registered_baseline_limit_and_unit() {
+        let mut value = fixture();
+        let mut policy = value["policies"][2].clone();
+        policy["policy_id"] = json!("authorized-soft-relaxation-arm");
+        policy["role"] = json!("authorized_soft_relaxation");
+        policy["decision_output_sha256"] = json!("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+        policy["operating_envelope_sha256"] = json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        policy["soft_constraint_relaxations"] = json!([{
+            "constraint_class":"soft",
+            "constraint_id":"optional-comfort-preference",
+            "prior_limit":44.0,
+            "new_limit":60.0,
+            "unit":"min",
+            "authority_receipt_ref":"SYNTHETIC-AUTHORITY-RECEIPT",
+            "authority_receipt_sha256":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "new_operating_envelope_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }]);
+        value["policies"].as_array_mut().unwrap().push(policy);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
     }
 
     #[test]
