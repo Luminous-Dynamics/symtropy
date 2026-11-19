@@ -65,6 +65,25 @@ struct ResourceInterval {
     units: u32,
 }
 
+fn initial_resource_allocations(
+    profiles: &BTreeMap<String, ResourceProfile>,
+) -> BTreeMap<String, Vec<ResourceInterval>> {
+    let mut allocations: BTreeMap<String, Vec<ResourceInterval>> = BTreeMap::new();
+    for (resource_id, profile) in profiles {
+        for outage in &profile.outage_windows {
+            allocations
+                .entry(resource_id.clone())
+                .or_default()
+                .push(ResourceInterval {
+                    start: outage.start_hour,
+                    end: outage.end_hour,
+                    units: outage.units_unavailable,
+                });
+        }
+    }
+    allocations
+}
+
 fn key(event_id: &str, task_id: &str) -> String {
     format!("{event_id}::{task_id}")
 }
@@ -682,7 +701,7 @@ pub fn exact_small_schedule(
         .collect();
     let mut unscheduled: BTreeSet<String> = task_by_key.keys().cloned().collect();
     let mut scheduled = BTreeMap::new();
-    let mut resource_allocations = BTreeMap::new();
+    let mut resource_allocations = initial_resource_allocations(profiles);
     let mut best = Some((greedy_makespan, greedy));
 
     exact_search(
@@ -927,7 +946,7 @@ pub fn exact_small_service_schedule(
         .collect();
     let mut unscheduled: BTreeSet<String> = task_by_key.keys().cloned().collect();
     let mut scheduled = BTreeMap::new();
-    let mut resource_allocations = BTreeMap::new();
+    let mut resource_allocations = initial_resource_allocations(profiles);
     let mut best = Some((greedy_objective, greedy_makespan, greedy));
 
     exact_service_search(
@@ -1112,6 +1131,36 @@ mod tests {
         let result = schedule(&[task], &profiles).expect("one remaining crew unit is available");
         assert_eq!(result[0].start_hour, 8.0);
         assert_eq!(result[0].end_hour, 12.0);
+    }
+
+    #[test]
+    fn exact_makespan_oracle_respects_resource_outages() {
+        let task = spec("E1", "repair", &[], 8.0, 2.0, Some("crew"), 1);
+        let mut crew = profile(1, 24.0, &[(0.0, 24.0)]);
+        crew.outage_windows.push(ResourceOutageWindow {
+            start_hour: 8.0,
+            end_hour: 14.0,
+            units_unavailable: 1,
+        });
+        let profiles = BTreeMap::from([("crew".to_string(), crew)]);
+        let result = exact_small_schedule(&[task], &profiles).expect("exact schedule should respect outage");
+        assert_eq!(result[0].start_hour, 14.0);
+        assert_eq!(result[0].end_hour, 16.0);
+    }
+
+    #[test]
+    fn exact_service_oracle_respects_resource_outages() {
+        let task = spec("E1", "repair", &[], 8.0, 2.0, Some("crew"), 1);
+        let mut crew = profile(1, 24.0, &[(0.0, 24.0)]);
+        crew.outage_windows.push(ResourceOutageWindow {
+            start_hour: 8.0,
+            end_hour: 14.0,
+            units_unavailable: 1,
+        });
+        let profiles = BTreeMap::from([("crew".to_string(), crew)]);
+        let result = exact_small_service_schedule(&[task], &profiles).expect("exact service schedule should respect outage");
+        assert_eq!(result[0].start_hour, 14.0);
+        assert_eq!(result[0].end_hour, 16.0);
     }
 
     #[test]
