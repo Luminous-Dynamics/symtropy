@@ -12,7 +12,7 @@ Bind every geothermal / fusion / storage energy stream to exact raw source bytes
 
 ## Files
 
-- `schemas/evidence-envelope-v0.1.schema.json`: common receipt for source intervals, solver results, derived streams and allocations.
+- `schemas/evidence-envelope-v0.1.schema.json`: common receipt for source intervals, solver results, derived streams and allocations. Source-interval envelopes require an explicit `subject.interval_id`, matching the source-allocation receipt rather than relying on time-window inference.
 - `schemas/source-allocation-receipt-v0.1.schema.json`: evidence-bound, single-source/single-carrier/single-interval allocation report.
 - `fixtures/synthetic-geothermal-source-interval.v0.1.json`: raw synthetic meter-like payload used only for schema/digest tests.
 - `fixtures/synthetic-source-interval-evidence.v0.1.json`: source interval evidence envelope, including SHA-256 and exact byte count.
