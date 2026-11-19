@@ -464,6 +464,28 @@ mod tests {
     }
 
     #[test]
+    fn support_digest_binds_cell_identity_and_area_weights() {
+        let mut value = fixture();
+        value["field_cases"][0]["cells"][0]["weight"] = json!(0.4);
+        value["field_cases"][0]["cells"][1]["weight"] = json!(0.3);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn climatology_digest_binds_cellwise_reference_values() {
+        let mut value = fixture();
+        value["field_cases"][0]["cells"][1]["climatology_value"] = json!(0.1);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn smoothing_comparison_requires_identical_availability_receipt() {
+        let mut value = fixture();
+        value["field_cases"][1]["first_available_at"] = json!("2025-01-01T00:21:00Z");
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
     fn non_normalized_area_weights_are_rejected() {
         let mut value = fixture();
         value["field_cases"][0]["cells"][0]["weight"] = json!(0.5);
