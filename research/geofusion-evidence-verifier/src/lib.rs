@@ -209,7 +209,7 @@ fn same_text(
 }
 
 fn same_number(left: f64, right: f64) -> bool {
-    let scale = left.abs().max(right.abs()).max(1.0);
+    let scale = left.abs().max(right.abs()).max(f64::MIN_POSITIVE);
     (left - right).abs() <= 8.0 * f64::EPSILON * scale
 }
 
