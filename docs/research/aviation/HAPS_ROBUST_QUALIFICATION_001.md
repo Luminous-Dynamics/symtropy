@@ -363,6 +363,10 @@ Lifecycle boundaries must include aircraft production/repair, battery replacemen
 
 Reject or mark INDETERMINATE when the energy ledger fails to close; a sequence breaches reserve; thermal limits or cooling mass break aircraft closure; wind/solar conditions break station-keeping or coverage; receiver mass/drag/heat erases claimed benefit; the transfer link cannot maintain useful receiver power; or the service relies on an unmodelled single node.
 
+## Fleet-level service availability
+
+Individual endurance is not fleet availability. Planned maintenance, corrective repair, reserve readiness, launch/recovery, common-cause weather and fallback capacity are tracked separately in [AERO-HAPS-FLEET-SERVICE-001 #6197](https://github.com/Luminous-Dynamics/symtropy/pull/6197). Its initial deterministic fixture shows that rotating reserves mask individual maintenance/repair, while a correlated weather grounding still requires a genuinely independent alternate layer. The synthetic results are not operational reliability estimates.
+
 ## 10. Ownership and non-duplication
 
 - [Symthaea #7343](https://github.com/Luminous-Dynamics/symthaea/issues/7343): solar HAPS daily energy and persistent-platform owner; [draft PR #12674](https://github.com/Luminous-Dynamics/symthaea/pull/12674) adds a bounded 24-hour surplus-only ledger screen.
