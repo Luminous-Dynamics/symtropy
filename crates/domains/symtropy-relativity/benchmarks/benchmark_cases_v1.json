@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "artifact_kind": "black_hole_solver_benchmark_case_manifest",
-  "status": "frozen_controls_and_external_references_planned_not_executed",
+  "status": "frozen_controls_and_external_references_planned_not_executed_with_static_BD_isotropic_map_reference_executed",
   "frozen_at": "2026-11-18",
   "cases": [
     {
@@ -891,6 +891,69 @@
           "h": "d77f1a8a7c797602830c8e4479066a9f8e53650727c12b4ab1c0fcbd64b1c314"
         },
         "status": "O(a^2) equations derived symbolically; exact MP control passes; committed replay script pending clean checkout; finite-alpha BVP unsolved"
+      }
+    },
+    {
+      "case_id": "BH-5D-EGB-ISOTROPIC-GAUGE-001",
+      "status": "high_precision_static_BD_and_linear_spin_map_reference_executed",
+      "theory_id": "5d_einstein_gauss_bonnet",
+      "spacetime_dimension": 5,
+      "symmetry": "stationary_equal_angular_momenta_cohomogeneity_one",
+      "owner_issues": [
+        "https://github.com/Luminous-Dynamics/symtropy/issues/6181",
+        "https://github.com/Luminous-Dynamics/symtropy/issues/6202"
+      ],
+      "source": "Brihaye et al., JHEP 11 (2010) 089, arXiv:1010.0860, metric ansatz Eq. (2.8) and isotropic-gauge footnote 2",
+      "coordinates": {
+        "areal": "rho=R/r_H",
+        "isotropic": "xi=x/r_H",
+        "coupling": "lambda=alpha/r_H^2",
+        "normalization": "xi/rho -> 1 as rho -> infinity",
+        "map": "xi=rho*exp(-integral_0^(1/rho) ((F(y)^(-1/2)-1)/y) dy)",
+        "stable_BD_lapse": "F(y)=2*(1-y^2)/(1+lambda*y^2+sqrt(1+lambda*(2+lambda)*y^4))",
+        "differential_identity": "d(log xi)/d(rho)=1/(rho*sqrt(F))",
+        "reconstruction": {
+          "bar_f": "b_A",
+          "f_I": "xi^2/rho^2",
+          "m": "b_A*rho^2/xi^2",
+          "n": "b_A*h_A/xi^2",
+          "bar_w": "xi*w_A"
+        },
+        "alpha_zero_exact": "xi=(rho+sqrt(rho^2-1))/2; rho=xi+1/(4*xi)",
+        "horizon_behavior": "xi-xi_H=xi_H*sqrt(2*(1+lambda)*(rho-1))+O(rho-1)",
+        "asymptotic_behavior": "xi=rho-(2+lambda)/(8*rho)+O(rho^-3)"
+      },
+      "parameters": {
+        "dimensionless_coupling_lambda": [
+          "0",
+          "0.7",
+          "3"
+        ],
+        "validation_rho": [
+          "1.1",
+          "2",
+          "10"
+        ],
+        "tabulated_rho": "2",
+        "precision_digits": 90
+      },
+      "fixture": "crates/domains/symtropy-lovelock5d/benchmarks/isotropic_gauge_reference_v1.json",
+      "reproduction_script": "crates/domains/symtropy-lovelock5d/benchmarks/isotropic_gauge_reference.py",
+      "checks": {
+        "alpha_zero_closed_form": "passed",
+        "inverse_map_round_trip": "passed",
+        "differential_map": "passed",
+        "radial_line_element_identity": "passed",
+        "max_inverse_radius_absolute_error": "1.0129874e-90",
+        "max_dxi_differential_relative_defect": "2.4545467e-91",
+        "max_radial_metric_relative_defect": "4.9090935e-91"
+      },
+      "validation": {
+        "mpmath_script_replay": "executed at 90 decimal working precision; replay fixture JSON-equivalent to stored reference",
+        "interval_certification": false,
+        "independent_isotropic_EGB_residual": false,
+        "nonlinear_rotating_two_gauge_solution": false,
+        "claim_ceiling": "High-precision numerical coordinate reference for static BD and linear spin only. Not an interval certificate, independent isotropic action solver, or nonlinear rotating solution."
       }
     }
   ],
