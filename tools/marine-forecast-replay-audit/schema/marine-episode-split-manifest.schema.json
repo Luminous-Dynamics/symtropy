@@ -46,8 +46,7 @@
     },
     "grouping_unit": {
       "enum": [
-        "whole_voyage",
-        "weather_event"
+        "joint_voyage_weather_event"
       ]
     },
     "split_algorithm": {
