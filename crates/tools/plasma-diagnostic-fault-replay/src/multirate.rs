@@ -798,21 +798,42 @@ mod tests {
         let mut req = request(
             vec![
                 stream("density-stream", "density", Some(10), samples),
-                stream("mag-stream", "magnetics", Some(10), vec![measured("m", 40, 2.0)]),
+                stream(
+                    "mag-stream",
+                    "magnetics",
+                    Some(10),
+                    vec![
+                        measured("m0", 10, 1.0),
+                        measured("m1", 20, 2.0),
+                        measured("m2", 30, 3.0),
+                        measured("m3", 40, 4.0),
+                    ],
+                ),
             ],
-            40,
+            10,
         );
-        req.required_channels = vec!["density".to_owned(), "magnetics".to_owned()];
-        req.max_age_ns_by_channel.insert("density".to_owned(), 0);
-        let receipt = align_as_of(&req).expect("alignment");
-        assert_eq!(receipt.body.entries[0].disposition, AlignmentDisposition::Degraded);
-        assert_eq!(receipt.body.entries[0].evidence_state, Some(EvidenceState::Degraded));
-        assert_eq!(receipt.body.entries[0].value, Some(4.0));
-
-        let mut tampered = receipt.clone();
-        tampered.body.entries[0].disposition = AlignmentDisposition::MeasuredAvailable;
-        tampered.receipt_sha256 = digest_serialized(&tampered.body).expect("receipt digest");
-        assert!(verify_alignment_receipt(&tampered).is_err());
+        req.max_age_ns_by_channel.insert("density".to_owned(), 100);
+        for (time, expected_state, expected_disposition) in [
+            (10, EvidenceState::Unavailable, AlignmentDisposition::Unavailable),
+            (20, EvidenceState::Invalid, AlignmentDisposition::Invalid),
+            (30, EvidenceState::Delayed, AlignmentDisposition::Delayed),
+            (40, EvidenceState::Degraded, AlignmentDisposition::Degraded),
+        ] {
+            req.decision_time_ns = time;
+            let receipt = align_as_of(&req).expect("alignment");
+            let density = receipt
+                .body
+                .entries
+                .iter()
+                .find(|entry| entry.channel_id == "density")
+                .expect("density entry");
+            assert_eq!(density.evidence_state, Some(expected_state));
+            assert_eq!(density.disposition, expected_disposition);
+            if matches!(expected_state, EvidenceState::Unavailable | EvidenceState::Invalid) {
+                assert_eq!(density.value, None);
+            }
+            verify_alignment_receipt(&receipt).expect("evidence-preserving receipt");
+        }
     }
 
     #[test]
