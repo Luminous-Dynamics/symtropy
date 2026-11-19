@@ -100,7 +100,8 @@ struct DesignResult {
     site_power_budget_kw: f64,
     simultaneous_vehicles: u32,
     charging_efficiency_fraction: f64,
-    base_peak_site_input_power_kw: f64,
+    /// Conservative upper bound: each declared simultaneous vehicle draws its full effective charger power.
+    base_peak_site_input_power_kw_upper_bound: f64,
     effective_charger_power_kw: f64,
     estimated_recharge_hours: f64,
     available_window_hours: f64,
@@ -396,7 +397,7 @@ fn evaluate_design(design: &Design) -> DesignResult {
         site_power_budget_kw: design.charging.site_power_budget_kw,
         simultaneous_vehicles: design.charging.simultaneous_vehicles,
         charging_efficiency_fraction: design.charging.efficiency_fraction,
-        base_peak_site_input_power_kw: effective_charger_power_kw
+        base_peak_site_input_power_kw_upper_bound: effective_charger_power_kw
             * f64::from(design.charging.simultaneous_vehicles),
         effective_charger_power_kw,
         estimated_recharge_hours,
