@@ -17,6 +17,8 @@ pub enum WaterCompositionClass {
 #[derive(Debug, Clone, PartialEq)]
 pub struct If97AdapterRequest {
     pub fluid_composition_id: String,
+    /// Digest of the source artifact supporting the declared composition class.
+    pub composition_evidence_digest: String,
     pub state_boundary_id: String,
     /// Absolute pressure in Pa at the exact state boundary.
     pub pressure_pa: f64,
@@ -28,6 +30,7 @@ pub struct If97AdapterRequest {
 #[derive(Debug, Clone, PartialEq)]
 pub struct VleSteamProviderInput {
     pub fluid_composition_id: String,
+    pub composition_evidence_digest: String,
     pub state_boundary_id: String,
     /// Absolute pressure in kPa, matching the vle-steam v0.20.1 public API.
     pub pressure_kpa_abs: f64,
@@ -38,6 +41,7 @@ pub struct VleSteamProviderInput {
 #[derive(Debug, Clone, PartialEq)]
 pub struct SeuiF97ProviderInput {
     pub fluid_composition_id: String,
+    pub composition_evidence_digest: String,
     pub state_boundary_id: String,
     /// Absolute pressure in MPa, matching the seuif97 2.3.8 API.
     pub pressure_mpa_abs: f64,
@@ -116,6 +120,10 @@ impl If97AdapterRequest {
     pub fn to_vle_steam_input(&self) -> Result<VleSteamProviderInput, If97AdapterError> {
         for (name, value) in [
             ("fluid composition ID", self.fluid_composition_id.as_str()),
+            (
+                "composition evidence artifact digest",
+                self.composition_evidence_digest.as_str(),
+            ),
             ("state boundary ID", self.state_boundary_id.as_str()),
         ] {
             if value.trim().is_empty() {
@@ -135,6 +143,7 @@ impl If97AdapterRequest {
         let pressure_kpa_abs = pascals_to_kilopascals_abs(self.pressure_pa)?;
         Ok(VleSteamProviderInput {
             fluid_composition_id: self.fluid_composition_id.clone(),
+            composition_evidence_digest: self.composition_evidence_digest.clone(),
             state_boundary_id: self.state_boundary_id.clone(),
             pressure_kpa_abs,
             temperature_k: self.temperature_k,
@@ -182,6 +191,7 @@ mod tests {
     fn pure_water_request() -> If97AdapterRequest {
         If97AdapterRequest {
             fluid_composition_id: "pure-water-v1".into(),
+            composition_evidence_digest: "synthetic-composition-evidence".into(),
             state_boundary_id: "wellhead-01".into(),
             pressure_pa: 10.0e6,
             temperature_k: 648.15,
@@ -207,6 +217,7 @@ mod tests {
         assert_eq!(input.pressure_kpa_abs, 10_000.0);
         assert_eq!(input.temperature_k, 648.15);
         assert_eq!(input.fluid_composition_id, "pure-water-v1");
+        assert_eq!(input.composition_evidence_digest, "synthetic-composition-evidence");
         assert_eq!(input.state_boundary_id, "wellhead-01");
     }
 
@@ -318,6 +329,24 @@ mod tests {
         request.pressure_pa = 101_325.0;
         let input = request.to_vle_steam_input().unwrap();
         assert_eq!(input.pressure_kpa_abs, 101.325);
+    }
+
+    #[test]
+    fn missing_composition_evidence_digest_is_refused_for_both_providers() {
+        let mut request = pure_water_request();
+        request.composition_evidence_digest.clear();
+        assert_eq!(
+            request.to_vle_steam_input(),
+            Err(If97AdapterError::EmptyIdentity(
+                "composition evidence artifact digest"
+            ))
+        );
+        assert_eq!(
+            request.to_seuif97_input(),
+            Err(If97AdapterError::EmptyIdentity(
+                "composition evidence artifact digest"
+            ))
+        );
     }
 
     #[test]
