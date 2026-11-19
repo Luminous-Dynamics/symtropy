@@ -64,7 +64,10 @@ fn normalize3(a: Vector3) -> Option<Vector3> {
         return None;
     }
     let result = scale3(a, 1.0 / norm);
-    result.iter().all(|value| value.is_finite()).then_some(result)
+    result
+        .iter()
+        .all(|value| value.is_finite())
+        .then_some(result)
 }
 
 fn finite_matrix4(matrix: Matrix4) -> bool {
@@ -80,9 +83,10 @@ fn inverse4(matrix: Matrix4) -> Option<Matrix4> {
         return None;
     }
 
-    let scale = matrix.iter().flatten().fold(0.0_f64, |maximum, value| {
-        maximum.max(value.abs())
-    });
+    let scale = matrix
+        .iter()
+        .flatten()
+        .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
     if !scale.is_finite() || scale == 0.0 {
         return None;
     }
@@ -169,9 +173,7 @@ fn normalize_halfspaces(input: &[Halfspace3]) -> Option<Vec<Halfspace3>> {
     let mut normalized: Vec<Halfspace3> = Vec::with_capacity(input.len());
 
     for halfspace in input {
-        if halfspace.normal.iter().any(|value| !value.is_finite())
-            || !halfspace.bound.is_finite()
-        {
+        if halfspace.normal.iter().any(|value| !value.is_finite()) || !halfspace.bound.is_finite() {
             return None;
         }
 
@@ -296,11 +298,9 @@ fn force_set_halfspaces(
     // epsilon would silently erase a physically small but meaningful channel.
     // For p with b_p > 0 and n with b_n < 0:
     // (A_p/b_p - A_n/b_n) f <= c_p/b_p - c_n/b_n.
-    let auxiliary_scale = inequalities
-        .iter()
-        .fold(0.0_f64, |maximum, constraint| {
-            maximum.max(constraint.auxiliary_torque.abs())
-        });
+    let auxiliary_scale = inequalities.iter().fold(0.0_f64, |maximum, constraint| {
+        maximum.max(constraint.auxiliary_torque.abs())
+    });
     if !auxiliary_scale.is_finite() || auxiliary_scale == 0.0 {
         return None;
     }
@@ -341,8 +341,7 @@ fn force_set_halfspaces(
                     scale3(upper.force, 1.0 / upper.auxiliary_torque),
                     scale3(lower.force, 1.0 / lower.auxiliary_torque),
                 ),
-                bound: upper.bound / upper.auxiliary_torque
-                    - lower.bound / lower.auxiliary_torque,
+                bound: upper.bound / upper.auxiliary_torque - lower.bound / lower.auxiliary_torque,
             });
         }
     }
@@ -353,7 +352,10 @@ fn force_set_halfspaces(
 fn halfspace_satisfied(halfspace: Halfspace3, point: Vector3) -> bool {
     let lhs = dot3(halfspace.normal, point);
     let tolerance = FEASIBILITY_TOLERANCE
-        * 1.0_f64.max(lhs.abs()).max(halfspace.bound.abs()).max(norm3(point));
+        * 1.0_f64
+            .max(lhs.abs())
+            .max(halfspace.bound.abs())
+            .max(norm3(point));
     lhs <= halfspace.bound + tolerance
 }
 
@@ -394,9 +396,10 @@ fn is_bounded(halfspaces: &[Halfspace3]) -> bool {
             continue;
         }
         let unit = scale3(direction, 1.0 / norm);
-        if halfspaces.iter().all(|halfspace| {
-            dot3(halfspace.normal, unit) <= FEASIBILITY_TOLERANCE
-        }) {
+        if halfspaces
+            .iter()
+            .all(|halfspace| dot3(halfspace.normal, unit) <= FEASIBILITY_TOLERANCE)
+        {
             return false;
         }
     }
@@ -416,8 +419,7 @@ fn unique_vertices(halfspaces: &[Halfspace3]) -> Vec<Vector3> {
 
                 let cross_bc = cross3(b.normal, c.normal);
                 let determinant = dot3(a.normal, cross_bc);
-                let determinant_scale =
-                    norm3(a.normal) * norm3(b.normal) * norm3(c.normal);
+                let determinant_scale = norm3(a.normal) * norm3(b.normal) * norm3(c.normal);
                 if !determinant.is_finite()
                     || determinant.abs()
                         <= RELATIVE_PIVOT_EPSILON * determinant_scale.max(f64::MIN_POSITIVE)
@@ -446,8 +448,7 @@ fn unique_vertices(halfspaces: &[Halfspace3]) -> Vec<Vector3> {
 
                 let is_duplicate = vertices.iter().any(|existing| {
                     norm3(sub3(*existing, point))
-                        <= VERTEX_TOLERANCE
-                            * 1.0_f64.max(norm3(*existing)).max(norm3(point))
+                        <= VERTEX_TOLERANCE * 1.0_f64.max(norm3(*existing)).max(norm3(point))
                 });
                 if !is_duplicate {
                     vertices.push(point);
@@ -485,7 +486,8 @@ fn polytope_volume(input: &[Halfspace3]) -> Option<f64> {
             .filter(|vertex| {
                 let residual = (dot3(halfspace.normal, *vertex) - halfspace.bound).abs();
                 residual
-                    <= 10.0 * VERTEX_TOLERANCE
+                    <= 10.0
+                        * VERTEX_TOLERANCE
                         * 1.0_f64.max(halfspace.bound.abs()).max(norm3(*vertex))
             })
             .collect();
@@ -540,9 +542,11 @@ fn polytope_volume(input: &[Halfspace3]) -> Option<f64> {
 }
 
 fn required_box_halfspaces(minimum: Vector3, maximum: Vector3) -> Option<Vec<Halfspace3>> {
-    if minimum.iter().zip(maximum.iter()).any(|(low, high)| {
-        !low.is_finite() || !high.is_finite() || *low >= *high
-    }) {
+    if minimum
+        .iter()
+        .zip(maximum.iter())
+        .any(|(low, high)| !low.is_finite() || !high.is_finite() || *low >= *high)
+    {
         return None;
     }
 
@@ -573,17 +577,14 @@ fn force_region_coverage(
         return None;
     }
 
-    let mut intersection = Vec::with_capacity(
-        force_set_halfspaces.len() + required_region_halfspaces.len(),
-    );
+    let mut intersection =
+        Vec::with_capacity(force_set_halfspaces.len() + required_region_halfspaces.len());
     intersection.extend_from_slice(force_set_halfspaces);
     intersection.extend_from_slice(required_region_halfspaces);
 
     let intersection_volume = polytope_volume(&intersection)?;
     let coverage = intersection_volume / required_volume;
-    if !coverage.is_finite() || coverage < -FEASIBILITY_TOLERANCE
-        || coverage > 1.0 + 1.0e-6
-    {
+    if !coverage.is_finite() || coverage < -FEASIBILITY_TOLERANCE || coverage > 1.0 + 1.0e-6 {
         return None;
     }
 
@@ -676,14 +677,7 @@ fn force_poly_004_partial_intersection_has_expected_coverage() {
 #[test]
 fn force_poly_005_rank_deficient_jacobian_fails_closed() {
     let singular = [[1.0, 0.0, 0.0, 0.0]; 3];
-    assert!(force_set_halfspaces(
-        singular,
-        identity4(),
-        [0.0; 4],
-        [1.0; 4],
-        1.0,
-    )
-    .is_none());
+    assert!(force_set_halfspaces(singular, identity4(), [0.0; 4], [1.0; 4], 1.0,).is_none());
 }
 
 #[test]
@@ -757,10 +751,22 @@ fn force_poly_008_minimum_tendon_tension_is_preserved_as_pretension() {
 fn force_poly_009_oblique_tetrahedron_volume_is_one_sixth() {
     // T = {x >= 0, y >= 0, z >= 0, x+y+z <= 1}.
     let tetrahedron = vec![
-        Halfspace3 { normal: [-1.0, 0.0, 0.0], bound: 0.0 },
-        Halfspace3 { normal: [0.0, -1.0, 0.0], bound: 0.0 },
-        Halfspace3 { normal: [0.0, 0.0, -1.0], bound: 0.0 },
-        Halfspace3 { normal: [1.0, 1.0, 1.0], bound: 1.0 },
+        Halfspace3 {
+            normal: [-1.0, 0.0, 0.0],
+            bound: 0.0,
+        },
+        Halfspace3 {
+            normal: [0.0, -1.0, 0.0],
+            bound: 0.0,
+        },
+        Halfspace3 {
+            normal: [0.0, 0.0, -1.0],
+            bound: 0.0,
+        },
+        Halfspace3 {
+            normal: [1.0, 1.0, 1.0],
+            bound: 1.0,
+        },
     ];
     assert_close(
         polytope_volume(&tetrahedron).unwrap(),
@@ -773,12 +779,30 @@ fn force_poly_009_oblique_tetrahedron_volume_is_one_sixth() {
 fn force_poly_010_rotated_cube_volume_and_coverage_are_invariant() {
     // Rotate a [-1,1]^3 cube by an orthonormal 3-4-5 basis in the xy plane.
     let rotated_cube = vec![
-        Halfspace3 { normal: [0.6, 0.8, 0.0], bound: 1.0 },
-        Halfspace3 { normal: [-0.6, -0.8, 0.0], bound: 1.0 },
-        Halfspace3 { normal: [-0.8, 0.6, 0.0], bound: 1.0 },
-        Halfspace3 { normal: [0.8, -0.6, 0.0], bound: 1.0 },
-        Halfspace3 { normal: [0.0, 0.0, 1.0], bound: 1.0 },
-        Halfspace3 { normal: [0.0, 0.0, -1.0], bound: 1.0 },
+        Halfspace3 {
+            normal: [0.6, 0.8, 0.0],
+            bound: 1.0,
+        },
+        Halfspace3 {
+            normal: [-0.6, -0.8, 0.0],
+            bound: 1.0,
+        },
+        Halfspace3 {
+            normal: [-0.8, 0.6, 0.0],
+            bound: 1.0,
+        },
+        Halfspace3 {
+            normal: [0.8, -0.6, 0.0],
+            bound: 1.0,
+        },
+        Halfspace3 {
+            normal: [0.0, 0.0, 1.0],
+            bound: 1.0,
+        },
+        Halfspace3 {
+            normal: [0.0, 0.0, -1.0],
+            bound: 1.0,
+        },
     ];
     let enclosing = required_box_halfspaces([-2.0; 3], [2.0; 3]).unwrap();
     assert_close(
@@ -835,11 +859,22 @@ fn force_poly_013_oblique_lineality_cone_is_rejected_as_unbounded() {
     // which is not a coordinate axis. All four normals are orthogonal to
     // that lineality direction, so the intersection is unbounded.
     let unbounded = vec![
-        Halfspace3 { normal: [1.0, -1.0, 0.0], bound: 1.0 },
-        Halfspace3 { normal: [-1.0, 1.0, 0.0], bound: 1.0 },
-        Halfspace3 { normal: [1.0, 1.0, -2.0], bound: 1.0 },
-        Halfspace3 { normal: [-1.0, -1.0, 2.0], bound: 1.0 },
+        Halfspace3 {
+            normal: [1.0, -1.0, 0.0],
+            bound: 1.0,
+        },
+        Halfspace3 {
+            normal: [-1.0, 1.0, 0.0],
+            bound: 1.0,
+        },
+        Halfspace3 {
+            normal: [1.0, 1.0, -2.0],
+            bound: 1.0,
+        },
+        Halfspace3 {
+            normal: [-1.0, -1.0, 2.0],
+            bound: 1.0,
+        },
     ];
     assert!(polytope_volume(&unbounded).is_none());
 }
-
