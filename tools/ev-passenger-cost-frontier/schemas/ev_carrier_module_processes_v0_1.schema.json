@@ -93,6 +93,7 @@
                 "equipment_capex_usd_per_cell",
                 "footprint_sqm_per_cell",
                 "operators_per_cell_per_shift",
+                "maximum_parallel_cells_available",
                 "energy_kwh_per_attempt",
                 "thermal_energy_kwh_per_attempt"
               ],
@@ -169,6 +170,18 @@
                   "oneOf": [
                     {
                       "type": "number",
+                      "minimum": 0,
+                      "maximum": 1000000
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "maximum_parallel_cells_available": {
+                  "oneOf": [
+                    {
+                      "type": "integer",
                       "minimum": 0,
                       "maximum": 1000000
                     },
