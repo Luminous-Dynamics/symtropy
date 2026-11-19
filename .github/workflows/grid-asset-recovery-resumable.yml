@@ -1,0 +1,96 @@
+name: Grid asset recovery resumable execution
+
+on:
+  pull_request:
+    paths:
+      - "tools/grid-asset-recovery-validator/**"
+      - ".github/workflows/grid-asset-recovery-resumable.yml"
+  push:
+    paths:
+      - "tools/grid-asset-recovery-validator/**"
+      - ".github/workflows/grid-asset-recovery-resumable.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  resumable-execution:
+    name: Compile, test and replay resumable execution ledger
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+
+      - name: Set up Python for schema tests only
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+
+      - name: Validate Draft 2020-12 schema and synthetic execution fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("tools/grid-asset-recovery-validator/fixtures")
+          schema = json.loads((root / "resumable-execution-v0.1.schema.json").read_text())
+          fixture = json.loads((root / "synthetic-resumable-execution-v0.1.json").read_text())
+
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(
+              schema,
+              format_checker=Draft202012Validator.FORMAT_CHECKER,
+          )
+          errors = sorted(validator.iter_errors(fixture), key=lambda error: list(error.path))
+          assert not errors, "\\n".join(
+              f"{list(error.path)}: {error.message}" for error in errors
+          )
+
+          assert fixture["timeOriginUtc"].endswith("Z")
+          assert fixture["asOfHour"] < fixture["horizonEndHour"]
+          assert fixture["baselineCommitments"] == fixture["proposedCommitments"]
+          assert len(fixture["events"]) == 1
+          assert fixture["events"][0]["eventType"] == "work_segment_completed"
+          assert fixture["plannedSegments"][0]["startHour"] > fixture["asOfHour"]
+          assert fixture["plannedSegments"][0]["interruptionCause"] is None
+          assert fixture["tasks"][0]["checkpointEffortHours"] == [4, 6]
+          print("PASS: Draft 2020-12 resumable execution schema and synthetic fixture")
+          PY
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/grid-asset-recovery-validator/Cargo.toml --all -- --check
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/grid-asset-recovery-validator/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run all Rust tests
+        run: cargo test --locked --manifest-path tools/grid-asset-recovery-validator/Cargo.toml --all-targets
+
+      - name: Replay the synthetic multi-shift execution ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --locked --manifest-path tools/grid-asset-recovery-validator/Cargo.toml \
+            --bin multishift-replay -- \
+            tools/grid-asset-recovery-validator/fixtures/synthetic-resumable-execution-v0.1.json \
+            | tee /tmp/resumable-execution-report.json
+          jq -e '
+            .resultStatus == "execution_ledger_and_candidate_schedule_consistent"
+            and (.tasks | length == 2)
+            and ([.tasks[] | select(.taskId == "repair-pump")][0].observedEffortHours == 4.0)
+            and ([.tasks[] | select(.taskId == "repair-pump")][0].plannedEffortHours == 4.0)
+            and ([.tasks[] | select(.taskId == "repair-pump")][0].remainingEffortHours == 0.0)
+          ' /tmp/resumable-execution-report.json
+
