@@ -487,6 +487,24 @@ fn validate_reconciliations(
                 event.event_id
             ));
         }
+        let old_frozen: BTreeSet<&str> = old.frozen_event_ids.iter().map(String::as_str).collect();
+        for appended_id in new.frozen_event_ids.iter().filter(|id| !old_frozen.contains(id.as_str())) {
+            match case.events.iter().find(|candidate| candidate.event_id == *appended_id) {
+                Some(candidate)
+                    if candidate.event_id_ref == new.event_id
+                        && candidate.task_id == new.task_id
+                        && candidate.observed_hour <= event.observed_hour + TOLERANCE
+                        && candidate.effective_hour <= event.observed_hour + TOLERANCE => {}
+                Some(_) => errors.push(format!(
+                    "reconciliation {} predates or mismatches appended execution event {}",
+                    event.event_id, appended_id
+                )),
+                None => errors.push(format!(
+                    "reconciliation {} references missing appended execution event {}",
+                    event.event_id, appended_id
+                )),
+            }
+        }
         if old.state == CommitmentState::Completed {
             errors.push(format!("completed commitment {commitment_id} is immutable"));
         }
@@ -1333,6 +1351,7 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
                 CommitmentState::Completed => {
                     if commitment.active_segment_id.is_some()
                         || !planned.is_empty()
+                        || views.iter().any(|view| !view.completed)
                         || !approximately_equal(observed_effort, task.required_effort_hours)
                     {
                         errors.push(format!("completed commitment {} does not reconcile all required work", commitment.commitment_id));
@@ -1712,6 +1731,95 @@ mod tests {
         assert_eq!(repair.commitment_state, "in_progress");
         assert_eq!(repair.observed_effort_hours, 6.0);
         assert_eq!(repair.remaining_effort_hours, 2.0);
+    }
+
+    #[test]
+    fn completion_cannot_be_reconciled_from_an_open_progress_snapshot() {
+        let mut case = fixture();
+        case.events.push(ExecutionEvent {
+            event_id: "repair-progress".to_string(),
+            idempotency_key: "repair-progress-key".to_string(),
+            event_type: ExecutionEventType::ProgressSnapshot,
+            event_id_ref: "storm-001".to_string(),
+            task_id: "repair-pump".to_string(),
+            segment_id: "repair-pump-active".to_string(),
+            sequence: 1,
+            start_hour: 4.0,
+            end_hour: 8.0,
+            productive_effort_hours: 4.0,
+            effective_hour: 8.0,
+            observed_hour: 8.0,
+            evidence_status: EvidenceStatus::Current,
+            evidence_class: EvidenceClass::SyntheticFixture,
+            evidence_ref: "synthetic://progress/repair-pump/complete".to_string(),
+            interruption_cause: None,
+        });
+        case.baseline_commitments[0].state = CommitmentState::InProgress;
+        case.baseline_commitments[0].version = 1;
+        case.baseline_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
+        case.baseline_commitments[0].frozen_event_ids.push("repair-progress".to_string());
+
+        case.proposed_commitments[0].state = CommitmentState::Completed;
+        case.proposed_commitments[0].version = 2;
+        case.proposed_commitments[0].active_segment_id = None;
+        case.proposed_commitments[0].frozen_event_ids.push("repair-progress".to_string());
+
+        case.planned_segments.clear();
+        case.reconciliations.push(ReconciliationEvent {
+            event_id: "reconcile-completion-001".to_string(),
+            commitment_id: "commit-repair-pump".to_string(),
+            from_version: 1,
+            to_version: 2,
+            action: ReconciliationAction::CompletionConfirmed,
+            observed_hour: 8.0,
+            evidence_status: EvidenceStatus::Current,
+            authority_ref: "synthetic://authority/asset-owner".to_string(),
+            evidence_ref: "synthetic://reconciliation/completion-001".to_string(),
+        });
+
+        assert!(validate(&case).is_err(), "an open progress snapshot is not a completed work segment");
+    }
+
+    #[test]
+    fn reconciliation_cannot_predate_the_observation_it_admits() {
+        let mut case = fixture();
+        case.events.push(ExecutionEvent {
+            event_id: "repair-progress".to_string(),
+            idempotency_key: "repair-progress-key".to_string(),
+            event_type: ExecutionEventType::ProgressSnapshot,
+            event_id_ref: "storm-001".to_string(),
+            task_id: "repair-pump".to_string(),
+            segment_id: "repair-pump-active".to_string(),
+            sequence: 1,
+            start_hour: 4.0,
+            end_hour: 8.0,
+            productive_effort_hours: 3.0,
+            effective_hour: 8.0,
+            observed_hour: 8.0,
+            evidence_status: EvidenceStatus::Current,
+            evidence_class: EvidenceClass::SyntheticFixture,
+            evidence_ref: "synthetic://progress/repair-pump".to_string(),
+            interruption_cause: None,
+        });
+        case.baseline_commitments[0].state = CommitmentState::InProgress;
+        case.baseline_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
+        case.proposed_commitments[0].state = CommitmentState::InProgress;
+        case.proposed_commitments[0].version = 2;
+        case.proposed_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
+        case.proposed_commitments[0].frozen_event_ids.push("repair-progress".to_string());
+        case.planned_segments.clear();
+        case.reconciliations.push(ReconciliationEvent {
+            event_id: "reconcile-progress-early".to_string(),
+            commitment_id: "commit-repair-pump".to_string(),
+            from_version: 1,
+            to_version: 2,
+            action: ReconciliationAction::ProgressRecorded,
+            observed_hour: 7.0,
+            evidence_status: EvidenceStatus::Current,
+            authority_ref: "synthetic://authority/shift-supervisor".to_string(),
+            evidence_ref: "synthetic://reconciliation/progress-early".to_string(),
+        });
+        assert!(validate(&case).is_err());
     }
 
     #[test]
