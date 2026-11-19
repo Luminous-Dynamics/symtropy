@@ -199,7 +199,15 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
             - relative_velocity_before * motor.kd)
             .clamp(-motor.max_force, motor.max_force);
         let generalized_impulse = torque * dt;
-        if !generalized_impulse.is_finite() {
+        let predicted_relative_velocity_after = relative_velocity_before
+            + generalized_impulse * (inverse_inertia_a + inverse_inertia_b);
+        let predicted_work_joules = generalized_impulse
+            * 0.5
+            * (relative_velocity_before + predicted_relative_velocity_after);
+        if !generalized_impulse.is_finite()
+            || !predicted_relative_velocity_after.is_finite()
+            || !predicted_work_joules.is_finite()
+        {
             return;
         }
 
