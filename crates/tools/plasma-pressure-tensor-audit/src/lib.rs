@@ -1082,6 +1082,29 @@ mod tests {
     }
 
     #[test]
+    fn frozen_pressure_grid_fixture_matches_known_answer() {
+        let input = include_str!("../../../../benchmarks/plasma/pressure-grid-audit-v0.json");
+        let request: PressureGridRequest = serde_json::from_str(input).expect("fixture parses");
+        let report = audit_periodic_pressure_grid(&request).expect("grid audit");
+        assert_eq!(report.body.disposition, PressureGridDisposition::Admissible);
+        assert_eq!(
+            report.body.divergence,
+            vec![
+                [0.0, 0.0, 0.0],
+                [2.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0],
+                [-2.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0],
+                [2.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0],
+                [-2.0, 0.0, 0.0],
+            ]
+        );
+        assert_eq!(report.body.global_integrated_divergence, [0.0, 0.0, 0.0]);
+        assert_eq!(report.body.maximum_absolute_divergence, 2.0);
+    }
+
+    #[test]
     fn constant_periodic_pressure_has_zero_divergence() {
         let request = grid_request(&[2.0; 8]);
         let report = audit_periodic_pressure_grid(&request).expect("grid audit");
