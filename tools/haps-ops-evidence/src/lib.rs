@@ -929,7 +929,7 @@ mod tests {
             Value::String("specific_configuration_and_scope".to_owned());
         let bytes = serde_json::to_vec(&value).expect("serialize");
         let error = validate_ledger_json(&bytes).expect_err("authorization without authority receipt must fail");
-        assert!(error.to_string().contains("external authority record"));
+        assert!(error.to_string().contains("non-empty authority reference"));
     }
 
     fn authorized_release_fixture(
