@@ -2651,7 +2651,7 @@ mod actuator_step_semantics_tests {
             world.solver_iterations = iterations;
             let anchor = static_anchor(&mut world, [0.0, 0.0, 0.0]);
             let slider = world.add_sphere(Point::new([10.0, 0.0, 0.0]), 0.25, 1.0);
-            let motor = MotorDrive::new(1.0, 10.0).with_gains(10.0, 0.0);
+            let motor = MotorDrive::new(11.0, 10.0).with_gains(10.0, 0.0);
             world.add_constraint(Box::new(
                 PrismaticJoint::new(anchor, slider, 0).with_motor(motor),
             ));
@@ -2747,7 +2747,7 @@ mod actuator_step_semantics_tests {
         world.solver_iterations = 4;
         let body_a = world.add_sphere(Point::new([0.0, 0.0, 0.0]), 0.25, 1.0);
         let body_b = world.add_sphere(Point::new([10.0, 0.0, 0.0]), 0.25, 2.0);
-        let motor = MotorDrive::new(1.0, 10.0).with_gains(10.0, 0.0);
+        let motor = MotorDrive::new(11.0, 10.0).with_gains(10.0, 0.0);
         world.add_constraint(Box::new(
             PrismaticJoint::new(body_a, body_b, 0).with_motor(motor),
         ));
