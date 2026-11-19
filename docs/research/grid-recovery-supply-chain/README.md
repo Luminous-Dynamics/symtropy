@@ -146,3 +146,24 @@ This is a schema and synthetic contract fixture. No production procurement integ
 Supplier slot capacity and supplier qualification are independent checks. A supplier may expose a free factory window but remain unqualified for the required asset family or interface profile. In v0.1, only a `qualified` record with non-expired validity can support a held/confirmed reservation for that project's asset family. A `conditional`, `expired`, `not_qualified` or `unknown` profile cannot be treated as a compatible confirmed source.
 
 The expanded synthetic fixture includes a second supplier with unknown qualification and a proposed factory option. It is visible for future investigation but is not eligible for a held/confirmed assignment. A negative control promotes it to confirmed and must fail qualification semantics, even though that supplier has an otherwise free capacity window.
+
+
+## Method comparators and qualification layers
+
+The supply-chain portfolio benchmark should not be confused with feeder operation or asset repair sequencing. Adjacent method papers provide complementary comparison dimensions:
+
+- Chen & Liao (31 August 2026) use a two-stage stochastic model for pre-disaster location/quantity of mobile energy storage, repair crews and switching crews, then post-disaster sequential feeder restoration on IEEE 33/123 systems. This is a resource-positioning/co-optimization comparator, not a supplier-capacity dataset. https://www.mdpi.com/1996-1073/19/17/4110
+- Asadi et al. (January 2026) use risk-averse IGDT/MIQCP for robust service restoration with mobile/fixed power resources and repair-crew groups. This informs robust uncertainty-set comparison, not supplier lead-time probabilities. https://doi.org/10.1016/j.epsr.2025.112351
+- Chen & Xie, assigned to the February 2027 issue, use minimum repair sets, bottleneck-first sequencing and nested spares for 220 kV substation seismic restoration. Treat as forthcoming as of 2026-11-19; its reported resilience-index values are specific to its substation scenarios. https://www.sciencedirect.com/science/article/pii/S0951832026013633
+
+These papers should enter a matched benchmark only where the problem boundary and objective genuinely align. None supplies the per-supplier, per-factory, per-port or per-vessel capacity and booking histories needed to calibrate this portfolio model.
+
+Keep these qualification layers independent:
+1. portfolio-resource and supplier-slot integrity;
+2. repair/resource scheduling quality;
+3. physical feeder/substation restoration feasibility;
+4. delivered essential-service trajectory;
+5. controller HIL/commissioning/periodic testing;
+6. field and procurement evidence.
+
+A pass at one layer does not qualify the others.
