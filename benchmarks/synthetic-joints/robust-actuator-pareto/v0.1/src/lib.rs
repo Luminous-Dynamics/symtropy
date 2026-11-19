@@ -771,6 +771,12 @@ mod tests {
         let a = candidate("mission-a", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
         let mut b = candidate("mission-b", 2.0, 110.0, 0.8, EvidenceClass::IndependentPhysical);
         b.mission_set_digest = "different-mission-set".to_owned();
+        for metric in &mut b.objectives {
+            metric.mission_set_digest = b.mission_set_digest.clone();
+        }
+        for constraint in &mut b.hard_constraints {
+            constraint.mission_set_digest = b.mission_set_digest.clone();
+        }
         let report = robust_pareto_report(&[a, b], &objective_defs(), &constraint_defs()).unwrap();
         assert_eq!(report.fronts.len(), 2);
         assert!(report.assessments.iter().all(|assessment| assessment.dominated_by.is_empty()));
@@ -836,6 +842,9 @@ mod tests {
         let a = candidate("stress-a", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
         let mut b = candidate("stress-b", 2.0, 110.0, 0.8, EvidenceClass::IndependentPhysical);
         b.stress_set_digest = "different-stress-envelope".to_owned();
+        for metric in &mut b.objectives {
+            metric.stress_set_digest = b.stress_set_digest.clone();
+        }
         for constraint in &mut b.hard_constraints {
             constraint.stress_set_digest = b.stress_set_digest.clone();
         }
