@@ -1,0 +1,130 @@
+{
+  "id": "campaign-service-001",
+  "cargo_lots": [
+    {
+      "id": "serviced-client-001",
+      "mass_grams": 1000000
+    }
+  ],
+  "nodes": [
+    {
+      "id": "factory",
+      "role": "supplier"
+    },
+    {
+      "id": "integration",
+      "role": "payload_integration"
+    },
+    {
+      "id": "range",
+      "role": "launch_range"
+    },
+    {
+      "id": "orbit",
+      "role": "orbit_destination"
+    }
+  ],
+  "resource_qualifications": [
+    {
+      "id": "rail-qualification",
+      "resource_id": "rail-section-1",
+      "time_profile_id": "unix-epoch-utc-v1",
+      "valid_from_epoch_seconds": 0,
+      "valid_until_epoch_seconds": 100,
+      "status": {
+        "qualified_for_planning": {
+          "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      }
+    },
+    {
+      "id": "road-qualification",
+      "resource_id": "road-1",
+      "time_profile_id": "unix-epoch-utc-v1",
+      "valid_from_epoch_seconds": 0,
+      "valid_until_epoch_seconds": 100,
+      "status": {
+        "qualified_for_planning": {
+          "receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      }
+    },
+    {
+      "id": "launch-qualification",
+      "resource_id": "range-slot-1",
+      "time_profile_id": "unix-epoch-utc-v1",
+      "valid_from_epoch_seconds": 0,
+      "valid_until_epoch_seconds": 100,
+      "status": {
+        "qualified_for_planning": {
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
+      }
+    }
+  ],
+  "transfers": [
+    {
+      "id": "transfer-rail",
+      "cargo_lot_id": "serviced-client-001",
+      "from_node_id": "factory",
+      "to_node_id": "integration",
+      "resource_id": "rail-section-1",
+      "time_profile_id": "unix-epoch-utc-v1",
+      "resource_qualification_id": "rail-qualification",
+      "mass_grams": 1000000,
+      "starts_at_epoch_seconds": 10,
+      "ends_at_epoch_seconds": 20,
+      "dependency_ids": [
+        "rail-power"
+      ]
+    },
+    {
+      "id": "transfer-road",
+      "cargo_lot_id": "serviced-client-001",
+      "from_node_id": "integration",
+      "to_node_id": "range",
+      "resource_id": "road-1",
+      "time_profile_id": "unix-epoch-utc-v1",
+      "resource_qualification_id": "road-qualification",
+      "mass_grams": 1000000,
+      "starts_at_epoch_seconds": 25,
+      "ends_at_epoch_seconds": 35,
+      "dependency_ids": [
+        "access-road"
+      ]
+    },
+    {
+      "id": "transfer-launch",
+      "cargo_lot_id": "serviced-client-001",
+      "from_node_id": "range",
+      "to_node_id": "orbit",
+      "resource_id": "range-slot-1",
+      "time_profile_id": "unix-epoch-utc-v1",
+      "resource_qualification_id": "launch-qualification",
+      "mass_grams": 1000000,
+      "starts_at_epoch_seconds": 40,
+      "ends_at_epoch_seconds": 50,
+      "dependency_ids": [
+        "range-tracking"
+      ]
+    }
+  ],
+  "orbit_service": {
+    "target_orbit_id": "leo-550km",
+    "destination_node_id": "orbit",
+    "compatibility": {
+      "qualified": {
+        "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  },
+  "required_delivery_by_epoch_seconds": 80,
+  "fault_scenarios": [
+    {
+      "id": "rail-power-loss",
+      "failed_dependency_ids": [
+        "rail-power"
+      ]
+    }
+  ]
+}
