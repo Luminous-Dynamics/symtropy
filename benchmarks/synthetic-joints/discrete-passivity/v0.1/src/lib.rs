@@ -136,12 +136,12 @@ impl EnergyTank {
 
         if work_j > 0.0 {
             let available = self.available_injection_energy_j();
-            if work_j > available + 1.0e-12 * available.max(1.0) {
+            if work_j > available {
                 return Err(format!(
                     "requested injection {work_j} J exceeds tank budget {available} J"
                 ));
             }
-            debited = work_j.min(available);
+            debited = work_j;
             self.energy_j -= debited;
         } else if work_j < 0.0 {
             let routed_energy = -work_j * self.capture_efficiency;
