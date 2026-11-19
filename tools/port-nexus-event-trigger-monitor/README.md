@@ -35,6 +35,8 @@ This package is isolated in a nested Cargo workspace and does not change the Sym
 
 This is a read-only trigger monitor. It does not schedule vessels, cranes, compute, energy storage or cooling; it does not mutate a plan or reservation; and it never issues a dispatch or actuator command. It composes with Symtropy #4582, #6211, #2683, #1916, #6209, Symthaea #11572/#11473 and Mycelix #5974.
 
+The current implementation has 21 authored unit tests covering stable conditions, logistics/compute/cooling deviations, hard-boundary bypass, persistent hard events, missing/stale/future evidence, cooldown, hysteresis, baseline changes, ordering and snapshot replay identity. They are authored but not executed in this environment because Cargo/rustc are unavailable.
+
 ## Benchmark
 
 Compare fixed 15-minute and fixed hourly schedules, one-sided energy triggers, bidirectional logistics-plus-energy triggers, and the multi-domain trigger. Report re-plan calls together with missed events, stale-plan age, service completion, grid/thermal margin events, objective regret and plan churn.
