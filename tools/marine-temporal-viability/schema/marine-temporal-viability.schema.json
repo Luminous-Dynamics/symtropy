@@ -1,0 +1,542 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:marine-temporal-viability:0.1.0",
+  "title": "Marine Temporal Mission Viability Replay",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scorecard_id",
+    "record_status",
+    "claim_ceiling",
+    "mission_window",
+    "mission_snapshot",
+    "service_floor_contract",
+    "scenario_members",
+    "policies"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "scorecard_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "record_status": {
+      "enum": [
+        "synthetic",
+        "shadow_replay",
+        "measured_campaign",
+        "published_reproduction"
+      ]
+    },
+    "claim_ceiling": {
+      "const": "trajectory_viability_audit_only"
+    },
+    "mission_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end",
+        "max_sample_gap_hours"
+      ],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "max_sample_gap_hours": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "mission_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mission_id",
+        "mission_snapshot_sha256",
+        "craft_configuration_sha256",
+        "occupancy_sha256",
+        "initial_resource_state_sha256",
+        "mission_plan_sha256",
+        "forecast_information_set_sha256",
+        "hard_gate_roster_sha256",
+        "operating_envelope_sha256",
+        "service_floor_contract_sha256",
+        "scenario_member_set_sha256"
+      ],
+      "properties": {
+        "mission_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mission_snapshot_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "craft_configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "occupancy_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "initial_resource_state_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "mission_plan_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "forecast_information_set_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "hard_gate_roster_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "operating_envelope_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "service_floor_contract_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "scenario_member_set_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "service_floor_contract": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric",
+          "unit",
+          "operator",
+          "floor_value",
+          "minimum_coverage_fraction"
+        ],
+        "properties": {
+          "metric": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "operator": {
+            "enum": [
+              "gte",
+              "lte"
+            ]
+          },
+          "floor_value": {
+            "type": "number"
+          },
+          "minimum_coverage_fraction": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "scenario_members": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_member_id",
+          "source_member_sha256"
+        ],
+        "properties": {
+          "scenario_member_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_member_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        }
+      }
+    },
+    "policies": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "policy_id",
+          "role",
+          "forecast_use",
+          "mission_snapshot_sha256",
+          "paths"
+        ],
+        "properties": {
+          "policy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "enum": [
+              "weather_blind_reference",
+              "weather_informed_resource_blind",
+              "integrated_candidate"
+            ]
+          },
+          "forecast_use": {
+            "type": "boolean"
+          },
+          "mission_snapshot_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "paths": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "scenario_member_id",
+                "source_member_sha256",
+                "path_result_sha256",
+                "events",
+                "timepoints",
+                "segments"
+              ],
+              "properties": {
+                "scenario_member_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_member_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-fA-F0-9]{64}$"
+                },
+                "path_result_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-fA-F0-9]{64}$"
+                },
+                "events": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "event_id",
+                      "event_time",
+                      "event_type",
+                      "resource_metric",
+                      "delta",
+                      "unit",
+                      "evidence_ref",
+                      "evidence_sha256"
+                    ],
+                    "properties": {
+                      "event_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "event_time": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "event_type": {
+                        "enum": [
+                          "energy_recharge",
+                          "energy_generation",
+                          "energy_consumption",
+                          "energy_loss",
+                          "freshwater_replenishment",
+                          "freshwater_consumption",
+                          "freshwater_leakage",
+                          "food_replenishment",
+                          "food_consumption",
+                          "food_spoilage",
+                          "waste_service",
+                          "waste_generation",
+                          "spares_restock",
+                          "spares_consumed",
+                          "repair_recovery"
+                        ]
+                      },
+                      "resource_metric": {
+                        "enum": [
+                          "energy_reserve_hours",
+                          "freshwater_reserve_days",
+                          "food_reserve_days",
+                          "waste_capacity_margin_days",
+                          "critical_spares_coverage_days"
+                        ]
+                      },
+                      "delta": {
+                        "type": "number"
+                      },
+                      "unit": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "evidence_ref": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "evidence_sha256": {
+                        "type": "string",
+                        "pattern": "^[a-fA-F0-9]{64}$"
+                      }
+                    }
+                  }
+                },
+                "timepoints": {
+                  "type": "array",
+                  "minItems": 3,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "at",
+                      "elapsed_hours",
+                      "route_progress_fraction",
+                      "hard_gate_disposition",
+                      "hard_gate_violations",
+                      "hard_gate_evidence_ref",
+                      "hard_gate_evidence_sha256",
+                      "metrics"
+                    ],
+                    "properties": {
+                      "at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "elapsed_hours": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "route_progress_fraction": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      "hard_gate_disposition": {
+                        "enum": [
+                          "pass",
+                          "fail",
+                          "infeasible",
+                          "abstain"
+                        ]
+                      },
+                      "hard_gate_violations": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "hard_gate_evidence_ref": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "hard_gate_evidence_sha256": {
+                        "type": "string",
+                        "pattern": "^[a-fA-F0-9]{64}$"
+                      },
+                      "metrics": {
+                        "type": "array",
+                        "minItems": 10,
+                        "maxItems": 10,
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "metric",
+                            "unit",
+                            "value",
+                            "lower_bound",
+                            "upper_bound",
+                            "coverage_fraction",
+                            "evidence_sha256",
+                            "measurement_class",
+                            "measurement_method",
+                            "measured_at"
+                          ],
+                          "properties": {
+                            "metric": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "unit": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "value": {
+                              "type": "number"
+                            },
+                            "lower_bound": {
+                              "type": "number"
+                            },
+                            "upper_bound": {
+                              "type": "number"
+                            },
+                            "coverage_fraction": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1
+                            },
+                            "evidence_sha256": {
+                              "type": "string",
+                              "pattern": "^[a-fA-F0-9]{64}$"
+                            },
+                            "measurement_class": {
+                              "enum": [
+                                "measured",
+                                "modeled",
+                                "derived",
+                                "synthetic"
+                              ]
+                            },
+                            "measurement_method": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "measured_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "segments": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "from",
+                      "to",
+                      "hard_gate_disposition",
+                      "hard_gate_violations",
+                      "hard_gate_evidence_ref",
+                      "hard_gate_evidence_sha256",
+                      "metrics"
+                    ],
+                    "properties": {
+                      "from": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "to": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "hard_gate_disposition": {
+                        "enum": [
+                          "pass",
+                          "fail",
+                          "infeasible",
+                          "abstain"
+                        ]
+                      },
+                      "hard_gate_violations": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "hard_gate_evidence_ref": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "hard_gate_evidence_sha256": {
+                        "type": "string",
+                        "pattern": "^[a-fA-F0-9]{64}$"
+                      },
+                      "metrics": {
+                        "type": "array",
+                        "minItems": 10,
+                        "maxItems": 10,
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "metric",
+                            "unit",
+                            "lower_bound",
+                            "upper_bound",
+                            "coverage_fraction",
+                            "evidence_sha256",
+                            "measurement_class",
+                            "measurement_method"
+                          ],
+                          "properties": {
+                            "metric": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "unit": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "lower_bound": {
+                              "type": "number"
+                            },
+                            "upper_bound": {
+                              "type": "number"
+                            },
+                            "coverage_fraction": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1
+                            },
+                            "evidence_sha256": {
+                              "type": "string",
+                              "pattern": "^[a-fA-F0-9]{64}$"
+                            },
+                            "measurement_class": {
+                              "enum": [
+                                "measured",
+                                "modeled",
+                                "derived",
+                                "synthetic"
+                              ]
+                            },
+                            "measurement_method": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
