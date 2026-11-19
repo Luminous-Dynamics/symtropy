@@ -1,0 +1,302 @@
+{
+  "schemaVersion": "0.1.0",
+  "portfolioId": "synthetic-grid-recovery-portfolio-001",
+  "snapshotAt": "2030-12-15T12:00:00Z",
+  "maturity": "synthetic",
+  "jurisdictionProfileId": "synthetic-eu-comparator-profile-v0",
+  "sourceArtifacts": [
+    {
+      "artifactId": "entsoe-2026-context",
+      "kind": "industry_survey",
+      "sourceRef": "https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Position%20papers%20and%20reports/2026/entso-e_report_investment_supply_chain_assessment_2026_261030.pdf",
+      "revision": "2026-11-03",
+      "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "evidenceClass": "observed",
+      "status": "current",
+      "geography": "European TSO survey",
+      "retrievedAt": "2026-11-19T10:00:00Z",
+      "licenseStatus": "review_required"
+    },
+    {
+      "artifactId": "synthetic-booking-ledger",
+      "kind": "synthetic_fixture",
+      "sourceRef": "synthetic://portfolio/bookings",
+      "revision": "0.1",
+      "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evidenceClass": "simulated",
+      "status": "current",
+      "geography": "synthetic",
+      "retrievedAt": "2030-12-15T12:00:00Z",
+      "licenseStatus": "not_applicable"
+    },
+    {
+      "artifactId": "synthetic-qualification-register",
+      "kind": "synthetic_fixture",
+      "sourceRef": "synthetic://portfolio/qualifications",
+      "revision": "0.1",
+      "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "evidenceClass": "simulated",
+      "status": "current",
+      "geography": "synthetic",
+      "retrievedAt": "2030-12-15T12:00:00Z",
+      "licenseStatus": "not_applicable"
+    }
+  ],
+  "suppliers": [
+    {
+      "supplierId": "supplier-alpha",
+      "supplierType": "manufacturer",
+      "geography": "synthetic-europe",
+      "qualificationRecords": [
+        {
+          "assetFamily": "transformer-245-420kv",
+          "interfaceProfileId": "interface-profile-a",
+          "status": "qualified",
+          "validUntil": "2032-12-31",
+          "evidenceRefs": [
+            "synthetic-qualification:alpha-transformer-a"
+          ]
+        }
+      ],
+      "sourceArtifactIds": [
+        "synthetic-qualification-register",
+        "entsoe-2026-context"
+      ]
+    },
+    {
+      "supplierId": "supplier-beta",
+      "supplierType": "manufacturer",
+      "geography": "synthetic-region-b",
+      "qualificationRecords": [
+        {
+          "assetFamily": "transformer-245-420kv",
+          "interfaceProfileId": "interface-profile-a",
+          "status": "unknown",
+          "evidenceRefs": [
+            "synthetic-qualification:beta-unknown"
+          ]
+        }
+      ],
+      "sourceArtifactIds": [
+        "synthetic-qualification-register"
+      ]
+    }
+  ],
+  "capacityResources": [
+    {
+      "resourceId": "alpha-factory-line-1",
+      "supplierId": "supplier-alpha",
+      "facilityId": "alpha-factory",
+      "resourceType": "factory_line",
+      "unit": "production_slot",
+      "capacityWindows": [
+        {
+          "start": "2031-01-01T00:00:00Z",
+          "end": "2031-01-08T00:00:00Z",
+          "capacityUnits": 1
+        },
+        {
+          "start": "2031-01-08T00:00:00Z",
+          "end": "2031-01-15T00:00:00Z",
+          "capacityUnits": 1
+        }
+      ],
+      "failureDomainIds": [
+        "alpha-factory-region"
+      ],
+      "sourceArtifactIds": [
+        "synthetic-booking-ledger"
+      ]
+    },
+    {
+      "resourceId": "alpha-factory-test-bay-1",
+      "supplierId": "supplier-alpha",
+      "facilityId": "alpha-factory",
+      "resourceType": "factory_test_bay",
+      "unit": "test_slot",
+      "capacityWindows": [
+        {
+          "start": "2031-01-08T00:00:00Z",
+          "end": "2031-01-15T00:00:00Z",
+          "capacityUnits": 1
+        }
+      ],
+      "failureDomainIds": [
+        "alpha-factory-region"
+      ],
+      "sourceArtifactIds": [
+        "synthetic-booking-ledger"
+      ]
+    },
+    {
+      "resourceId": "port-berth-7",
+      "supplierId": "supplier-alpha",
+      "facilityId": "synthetic-port-7",
+      "resourceType": "port_berth",
+      "unit": "berth_slot",
+      "capacityWindows": [
+        {
+          "start": "2031-01-15T00:00:00Z",
+          "end": "2031-01-22T00:00:00Z",
+          "capacityUnits": 1
+        }
+      ],
+      "failureDomainIds": [
+        "north-port-region"
+      ],
+      "sourceArtifactIds": [
+        "synthetic-booking-ledger"
+      ]
+    },
+    {
+      "resourceId": "cable-vessel-1",
+      "supplierId": "supplier-alpha",
+      "facilityId": "synthetic-port-7",
+      "resourceType": "cable_laying_vessel",
+      "unit": "vessel_slot",
+      "capacityWindows": [
+        {
+          "start": "2031-01-15T00:00:00Z",
+          "end": "2031-01-22T00:00:00Z",
+          "capacityUnits": 1
+        }
+      ],
+      "failureDomainIds": [
+        "north-port-region"
+      ],
+      "sourceArtifactIds": [
+        "synthetic-booking-ledger"
+      ]
+    },
+    {
+      "resourceId": "beta-factory-line-1",
+      "supplierId": "supplier-beta",
+      "facilityId": "beta-factory",
+      "resourceType": "factory_line",
+      "unit": "production_slot",
+      "capacityWindows": [
+        {
+          "start": "2031-01-01T00:00:00Z",
+          "end": "2031-01-08T00:00:00Z",
+          "capacityUnits": 1
+        }
+      ],
+      "failureDomainIds": [
+        "beta-factory-region"
+      ],
+      "sourceArtifactIds": [
+        "synthetic-booking-ledger"
+      ]
+    }
+  ],
+  "leadTimeClaims": [
+    {
+      "claimId": "alpha-transformer-backlog-claim",
+      "supplierId": "supplier-alpha",
+      "assetFamily": "transformer-245-420kv",
+      "basis": "right_censored_backlog",
+      "evidenceClass": "observed",
+      "sourceArtifactId": "entsoe-2026-context",
+      "status": "current",
+      "bookedThrough": "2030-12-31",
+      "censoringDefinition": "Aggregate European TSO industry survey reported leading suppliers booked through 2030; not a supplier-specific quote or delivery promise."
+    },
+    {
+      "claimId": "beta-transformer-leadtime-unknown",
+      "supplierId": "supplier-beta",
+      "assetFamily": "transformer-245-420kv",
+      "basis": "unknown",
+      "evidenceClass": "unknown",
+      "sourceArtifactId": "synthetic-qualification-register",
+      "status": "unknown"
+    }
+  ],
+  "projects": [
+    {
+      "projectId": "project-hospital-01",
+      "incidentId": "storm-north-01",
+      "servicePriority": "life_safety",
+      "requiredAssetFamily": "transformer-245-420kv",
+      "status": "active",
+      "minimumServiceFloorId": "hospital-critical-service-floor"
+    },
+    {
+      "projectId": "project-metro-02",
+      "incidentId": "upgrade-metro-02",
+      "servicePriority": "important",
+      "requiredAssetFamily": "transformer-245-420kv",
+      "status": "planned",
+      "minimumServiceFloorId": "metro-service-floor"
+    },
+    {
+      "projectId": "project-rural-03",
+      "incidentId": "storm-rural-03",
+      "servicePriority": "essential",
+      "requiredAssetFamily": "transformer-245-420kv",
+      "status": "active",
+      "minimumServiceFloorId": "rural-service-floor"
+    }
+  ],
+  "reservations": [
+    {
+      "reservationId": "reservation-hospital-factory-slot",
+      "projectId": "project-hospital-01",
+      "resourceId": "alpha-factory-line-1",
+      "start": "2031-01-01T00:00:00Z",
+      "end": "2031-01-08T00:00:00Z",
+      "units": 1,
+      "state": "confirmed",
+      "idempotencyKey": "hospital-alpha-factory-2031w01",
+      "sourceArtifactId": "synthetic-booking-ledger"
+    },
+    {
+      "reservationId": "reservation-metro-factory-request",
+      "projectId": "project-metro-02",
+      "resourceId": "alpha-factory-line-1",
+      "start": "2031-01-01T00:00:00Z",
+      "end": "2031-01-08T00:00:00Z",
+      "units": 1,
+      "state": "proposed",
+      "idempotencyKey": "metro-alpha-factory-2031w01",
+      "sourceArtifactId": "synthetic-booking-ledger"
+    },
+    {
+      "reservationId": "reservation-hospital-test-bay",
+      "projectId": "project-hospital-01",
+      "resourceId": "alpha-factory-test-bay-1",
+      "start": "2031-01-08T00:00:00Z",
+      "end": "2031-01-15T00:00:00Z",
+      "units": 1,
+      "state": "confirmed",
+      "idempotencyKey": "hospital-alpha-test-2031w02",
+      "sourceArtifactId": "synthetic-booking-ledger"
+    },
+    {
+      "reservationId": "reservation-rural-unqualified-beta-option",
+      "projectId": "project-rural-03",
+      "resourceId": "beta-factory-line-1",
+      "start": "2031-01-01T00:00:00Z",
+      "end": "2031-01-08T00:00:00Z",
+      "units": 1,
+      "state": "proposed",
+      "idempotencyKey": "rural-beta-option-2031w01",
+      "sourceArtifactId": "synthetic-booking-ledger"
+    }
+  ],
+  "disruptions": [
+    {
+      "disruptionId": "compound-north-port-closure",
+      "causeId": "storm-2031-01",
+      "correlationGroupId": "north-port-common-cause",
+      "description": "Synthetic storm disrupts both berth access and cable-vessel mobilization.",
+      "affectedResourceIds": [
+        "port-berth-7",
+        "cable-vessel-1"
+      ],
+      "start": "2031-01-16T00:00:00Z",
+      "end": "2031-01-18T00:00:00Z",
+      "evidenceClass": "simulated",
+      "scenarioId": "synthetic-north-storm"
+    }
+  ]
+}
