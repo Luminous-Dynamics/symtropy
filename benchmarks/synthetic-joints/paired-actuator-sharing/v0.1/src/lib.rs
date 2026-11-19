@@ -340,7 +340,7 @@ fn validate_input(input: &JointEvaluationInput) -> Result<(), String> {
             || !nonempty(&check.source_reference)
             || !nonempty(&check.method)
             || !nonempty(&check.calibration_digest)
-            || check.evidence_class == EvidenceClass::Unknown
+            || check.evidence_class != EvidenceClass::IndependentPhysical
             || !check.reference_instant_s.is_finite()
             || !nonempty(&check.joint_configuration_digest)
         {
@@ -930,7 +930,19 @@ mod tests {
     }
 
     #[test]
-    fn sharing_020_aggregate_temperature_is_not_used_as_unit_temperature() {
+    fn sharing_020_joint_torque_cross_check_requires_independent_physical_evidence() {
+        let mut input = input(vec![
+            unit("A", interval(4.0, 5.0), interval(40.0, 42.0)),
+            unit("B", interval(5.0, 6.0), interval(41.0, 43.0)),
+        ]);
+        let mut check = cross_check(interval(9.0, 11.0));
+        check.evidence_class = EvidenceClass::VendorPhysical;
+        input.joint_torque_cross_check = Some(check);
+        assert!(evaluate_joint(&input).is_err());
+    }
+
+    #[test]
+    fn sharing_021_aggregate_temperature_is_not_used_as_unit_temperature() {
         let report = evaluate_joint(&input(vec![
             unit("A", interval(4.0, 5.0), interval(30.0, 32.0)),
             unit("B", interval(5.0, 6.0), interval(60.0, 65.0)),
