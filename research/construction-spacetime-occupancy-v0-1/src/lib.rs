@@ -440,34 +440,28 @@ impl SpatialOccupancyBook {
         &self,
         bounds: &Bounds3Mm,
         interval: (u64, u64),
-    ) -> (BTreeSet<String>, BTreeSet<String>, BTreeSet<String>) {
+    ) -> BTreeSet<String> {
         let spatial_estimate = self.spatial_candidate_estimate(bounds);
         let temporal_estimate = self.temporal_candidate_estimate(interval);
         if spatial_estimate <= temporal_estimate {
             // Spatially selective: generate that side, then apply exact expanded
             // interval overlap without materializing a possibly huge temporal set.
-            let spatial = self.spatial_candidate_ids(bounds);
-            let temporal: BTreeSet<_> = spatial
-                .iter()
+            self.spatial_candidate_ids(bounds)
+                .into_iter()
                 .filter(|id| {
-                    self.expanded_intervals.get(*id).is_some_and(|(start, end)| {
+                    self.expanded_intervals.get(id).is_some_and(|(start, end)| {
                         interval.0 < *end && *start < interval.1
                     })
                 })
-                .cloned()
-                .collect();
-            (spatial, temporal.clone(), temporal)
+                .collect()
         } else {
             // Temporally selective: generate only active time candidates, then
             // probe the spatial grid per ID. This avoids enumerating every prior
             // occupancy in a repeatedly reused workface cell.
-            let temporal = self.temporal_candidate_ids(interval);
-            let spatial: BTreeSet<_> = temporal
-                .iter()
+            self.temporal_candidate_ids(interval)
+                .into_iter()
                 .filter(|id| self.spatial_candidate_contains(bounds, id))
-                .cloned()
-                .collect();
-            (spatial.clone(), temporal, spatial)
+                .collect()
         }
     }
 
@@ -521,10 +515,9 @@ impl SpatialOccupancyBook {
     ) -> Result<Vec<ConflictRecord>, SpatialError> {
         let mut conflicts = Vec::new();
 
-        for existing_id in self.space_time_candidate_ids(
-            &expanded_candidate,
-            (candidate_start, candidate_end),
-        ).2 {
+        for existing_id in
+            self.space_time_candidate_ids(&expanded_candidate, (candidate_start, candidate_end))
+        {
             let existing = self
                 .occupancies
                 .get(&existing_id)
@@ -627,12 +620,15 @@ impl SpatialOccupancyBook {
             };
         }
         let interval = expanded_time_interval(&occupancy.reservation)?;
-        let (spatial, temporal, combined) =
-            self.space_time_candidate_ids(&expanded_candidate, interval);
+        // Diagnostic path intentionally materializes both original candidate
+        // sets so their raw sizes remain distinct from the adaptive query path.
+        let spatial = self.spatial_candidate_ids(&expanded_candidate);
+        let temporal = self.temporal_candidate_ids(interval);
+        let space_time = spatial.intersection(&temporal).count();
         Ok(CandidateSetCounts {
             spatial: spatial.len(),
             temporal: temporal.len(),
-            space_time: combined.len(),
+            space_time,
         })
     }
 
