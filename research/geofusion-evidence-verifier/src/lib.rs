@@ -15,6 +15,7 @@ use std::fmt;
 pub enum VerificationError {
     InvalidJson(&'static str),
     EmptyBatch,
+    BatchTooLarge,
     DuplicateSourceInterval,
     DuplicateEvidenceId,
     DuplicateAllocationReceiptId,
@@ -47,6 +48,7 @@ impl VerificationError {
         match self {
             Self::InvalidJson(_) => "INVALID_JSON",
             Self::EmptyBatch => "EMPTY_BATCH",
+            Self::BatchTooLarge => "BATCH_TOO_LARGE",
             Self::DuplicateSourceInterval => "DUPLICATE_SOURCE_INTERVAL",
             Self::DuplicateEvidenceId => "DUPLICATE_EVIDENCE_ID",
             Self::DuplicateAllocationReceiptId => "DUPLICATE_ALLOCATION_RECEIPT_ID",
@@ -128,7 +130,7 @@ impl VerificationReport {
             "source_boundary_id": self.source_boundary_id,
             "source_interval_id": self.source_interval_id,
             "source_interval_start_utc": self.source_interval_start_utc,
-            "source_interval_start_unix_ns": self.source_interval_start_unix_ns,
+            "source_interval_start_unix_ns": self.source_interval_start_unix_ns.to_string(),
             "source_interval_duration_ns": self.source_interval_duration_ns,
             "carrier": self.carrier,
             "payload_sha256": self.payload_sha256,
@@ -268,6 +270,9 @@ fn parse_utc_timestamp_ns(value: &str) -> Result<i128, VerificationError> {
         text.parse::<i64>().map_err(|_| invalid())
     };
     let year = parse_digits(0, 4)?;
+    if year == 0 {
+        return Err(invalid());
+    }
     let month = parse_digits(5, 7)?;
     let day = parse_digits(8, 10)?;
     let hour = parse_digits(11, 13)?;
@@ -750,6 +755,9 @@ pub fn verify_source_interval_batch(
     if inputs.is_empty() {
         return Err(VerificationError::EmptyBatch);
     }
+    if inputs.len() > 256 {
+        return Err(VerificationError::BatchTooLarge);
+    }
 
     let mut source_intervals = BTreeSet::new();
     let mut intervals_by_source =
@@ -1078,6 +1086,26 @@ mod tests {
 
         let error = verify_source_interval(&bytes, &e, &a).unwrap_err();
         assert_eq!(error.code(), "TIME_WINDOW_MISMATCH");
+    }
+
+    #[test]
+    fn year_zero_timestamp_is_rejected() {
+        let error = parse_utc_timestamp_ns("0000-01-01T00:00:00Z").unwrap_err();
+        assert_eq!(error.code(), "TIME_WINDOW_MISMATCH");
+    }
+
+    #[test]
+    fn oversized_batch_is_rejected_before_processing() {
+        let inputs = vec![
+            SourceIntervalInput {
+                payload_bytes: PAYLOAD,
+                evidence: &Value::Null,
+                allocation: &Value::Null,
+            };
+            257
+        ];
+        let error = verify_source_interval_batch(&inputs).unwrap_err();
+        assert_eq!(error.code(), "BATCH_TOO_LARGE");
     }
 
     #[test]
