@@ -106,6 +106,7 @@ The same model identifies wellhead pressure and casing velocity as coupled limit
 | Fusion net electric covariance / uncertainty | [FUSION-NET-POWER-UQ #5400](https://github.com/Luminous-Dynamics/symtropy/issues/5400) and [covariance bridge #5333](https://github.com/Luminous-Dynamics/symtropy/issues/5333) |
 | Carrier-neutral energy transport | [POWER-FABRIC #5832](https://github.com/Luminous-Dynamics/symtropy/issues/5832) |
 | Next-generation geothermal access | [Symthaea GEOTHERM-NEXT #6147](https://github.com/Luminous-Dynamics/symthaea/issues/6147) |
+| Water/steam property provider conformance | [GEOTHERMAL-PROPERTY-VV #6172](https://github.com/Luminous-Dynamics/symtropy/issues/6172) |
 | Symbiotic campus profile | [Symthaea ENG-SYMBIOSIS #6146](https://github.com/Luminous-Dynamics/symthaea/issues/6146) |
 | Lattice-confinement fusion anomaly research | [Spark Engine FUSION-E2E #43](https://github.com/Luminous-Dynamics/spark-engine/issues/43) |
 
