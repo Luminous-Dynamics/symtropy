@@ -876,6 +876,96 @@ mod tests {
     }
 
     #[test]
+    fn forced_dense_coordinate_rattle_matches_independent_cartesian_oracle() {
+        let masses = [1.3, 2.1, 0.8];
+        let lengths = [1.0_f64, 1.25_f64.sqrt()];
+        let q0 = initial_position();
+        let v0 = initial_velocity();
+        // A nonzero load acts only on body 0, so the links carry a nonzero
+        // constraint reaction and the force-covector transformation matters.
+        let force_q: Vec9 = [0.4, -0.2, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        let force_cart = [
+            [force_q[0], force_q[1], force_q[2]],
+            [force_q[3], force_q[4], force_q[5]],
+            [force_q[6], force_q[7], force_q[8]],
+        ];
+        let initial = state_from_flat(&q0, &v0);
+        let chain = super::super::CartesianRattleChain::new(masses, lengths).unwrap();
+        let dt = 0.01;
+        let reference = chain
+            .step_with_force(
+                initial,
+                dt,
+                force_cart,
+                super::super::SolverOptions::default(),
+            )
+            .unwrap();
+        assert!(reference.position_multipliers.iter().any(|value| value.abs() > 1.0e-6));
+        assert!(reference.velocity_multipliers.iter().any(|value| value.abs() > 1.0e-6));
+
+        for scale in [1_i64, 2_i64] {
+            let (basis_i, inverse_i) = basis_pair(scale);
+            let basis = to_float(&basis_i);
+            let inverse = to_float(&inverse_i);
+            let (dense_q, dense_v, position_lambda, velocity_lambda, residuals) =
+                dense_coordinate_rattle_step(
+                    &basis,
+                    &inverse,
+                    masses,
+                    lengths,
+                    &q0,
+                    &v0,
+                    &force_q,
+                    dt,
+                );
+            let (reference_q, reference_v) = flatten_state(&reference.after);
+            assert!(
+                vector_max_abs(&dense_q, &reference_q) <= 3.0e-8,
+                "scale={scale}, forced position covariance defect={:e}",
+                vector_max_abs(&dense_q, &reference_q)
+            );
+            assert!(
+                vector_max_abs(&dense_v, &reference_v) <= 3.0e-8,
+                "scale={scale}, forced velocity covariance defect={:e}",
+                vector_max_abs(&dense_v, &reference_v)
+            );
+            for edge in 0..2 {
+                assert!(
+                    (position_lambda[edge] - reference.position_multipliers[edge]).abs()
+                        <= 3.0e-8
+                );
+                assert!(
+                    (velocity_lambda[edge] - reference.velocity_multipliers[edge]).abs()
+                        <= 3.0e-8
+                );
+            }
+            assert!(residuals.iter().all(|value| value.abs() <= 2.0e-12));
+
+            let endpoint_jacobian = constraint_jacobian_at(&dense_q);
+            let endpoint_tangency = jacobian_vec(&endpoint_jacobian, &dense_v);
+            assert!(endpoint_tangency.iter().all(|value| value.abs() <= 3.0e-9));
+
+            let transformed_force = mat_vec(&transpose(&basis), &force_q);
+            let transformed_velocity = mat_vec(&inverse, &v0);
+            let physical_power = dot(&force_q, &v0);
+            let covariant_power = dot(&transformed_force, &transformed_velocity);
+            assert!((physical_power - covariant_power).abs() <= 1.0e-10);
+
+            // Deliberately wrong: generalized force is a covector, not a
+            // contravariant coordinate vector.
+            let wrong_force_as_vector = mat_vec(&inverse, &force_q);
+            let wrong_power = dot(&wrong_force_as_vector, &transformed_velocity);
+            assert!((physical_power - wrong_power).abs() > 1.0e-2);
+            assert!(
+                vector_max_abs(&transformed_force, &wrong_force_as_vector) > 1.0e-2
+            );
+        }
+
+        assert!(reference.external_work.abs() > 1.0e-5);
+        assert!(reference.work_energy_residual.abs() <= 2.0e-6);
+    }
+
+    #[test]
     fn both_dense_integer_basis_changes_have_exact_inverse_witnesses() {
         for scale in [1_i64, 2_i64] {
             let (basis_i, inverse_i) = basis_pair(scale);
