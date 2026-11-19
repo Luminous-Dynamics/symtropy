@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/rural-industrial-electrification-v0-1/tools/rural-industrial-electrification-evaluator/schemas/ev_carrier_configurations_v0_1.schema.json",
+  "title": "EV-CARRIER-REF-01 incremental carrier configuration inputs",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "programme_id",
+    "claim_ceiling",
+    "configurations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "programme_id": {
+      "const": "EV-CARRIER-REF-01"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "configurations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "config_id",
+          "base_design_id",
+          "architecture",
+          "evidence_class",
+          "evidence_reference",
+          "energy_boundary_note",
+          "incremental_installed_mass_kg",
+          "incremental_payload_mass_kg",
+          "incremental_vehicle_battery_draw_kwh",
+          "incremental_vehicle_bus_continuous_power_kw",
+          "incremental_vehicle_bus_peak_power_kw",
+          "incremental_external_site_meter_energy_kwh",
+          "incremental_external_site_peak_power_kw",
+          "incremental_external_site_charging_window_hours",
+          "external_site_peak_coincident_with_vehicle_charging",
+          "notes"
+        ],
+        "properties": {
+          "config_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "base_design_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "architecture": {
+            "enum": [
+              "truck_only",
+              "integrated_enclosed_bay",
+              "detachable_drone_pod",
+              "mobile_drone_station_trailer",
+              "amr_cargo_handoff"
+            ]
+          },
+          "evidence_class": {
+            "enum": [
+              "synthetic",
+              "measured",
+              "manufacturer",
+              "literature",
+              "estimate",
+              "unknown"
+            ]
+          },
+          "evidence_reference": {
+            "type": "string"
+          },
+          "energy_boundary_note": {
+            "type": "string",
+            "minLength": 1
+          },
+          "incremental_installed_mass_kg": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "incremental_payload_mass_kg": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "incremental_vehicle_battery_draw_kwh": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "incremental_vehicle_bus_continuous_power_kw": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "incremental_vehicle_bus_peak_power_kw": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "incremental_external_site_meter_energy_kwh": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "incremental_external_site_peak_power_kw": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "incremental_external_site_charging_window_hours": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "external_site_peak_coincident_with_vehicle_charging": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "notes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}
