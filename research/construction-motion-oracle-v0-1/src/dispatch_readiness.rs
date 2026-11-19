@@ -579,18 +579,26 @@ pub fn verify_dispatch_readiness_receipt_current(
 
     let (now_lower_tick, now_upper_tick) =
         uncertainty_interval(qualified_clock.current_tick, qualified_clock.uncertainty_bound_ticks)?;
-    let (receipt_checked_lower, receipt_checked_upper) =
+    let (_, receipt_checked_upper) =
         uncertainty_interval(receipt.checked_at_tick, receipt.checked_at_uncertainty_ticks)?;
     if now_lower_tick <= receipt_checked_upper {
         return Err(DispatchReadinessFailure::ClockUncertaintyStraddlesBoundary);
     }
-    if now_upper_tick >= qualified_clock.valid_until_tick
-        || now_upper_tick >= receipt.clock_qualification_valid_until_tick
+    if now_lower_tick >= qualified_clock.valid_until_tick
+        || now_lower_tick >= receipt.clock_qualification_valid_until_tick
     {
         return Err(DispatchReadinessFailure::ClockQualificationExpired);
     }
-    if now_upper_tick >= receipt.valid_until_tick {
+    if now_upper_tick >= qualified_clock.valid_until_tick
+        || now_upper_tick >= receipt.clock_qualification_valid_until_tick
+    {
+        return Err(DispatchReadinessFailure::ClockUncertaintyStraddlesBoundary);
+    }
+    if now_lower_tick >= receipt.valid_until_tick {
         return Err(DispatchReadinessFailure::ReadinessReceiptExpired);
+    }
+    if now_upper_tick >= receipt.valid_until_tick {
+        return Err(DispatchReadinessFailure::ClockUncertaintyStraddlesBoundary);
     }
 
     if receipt.occupancy_engine_build_sha256 != policy.occupancy_engine_build_sha256 {
