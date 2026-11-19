@@ -587,9 +587,9 @@ fn validate_split_manifest(raw: &[u8], manifest: &Value) -> Value {
             "Split validation only establishes partition integrity, not statistical power or model quality.");
     }
     let grouping_unit = string_at(manifest, &["grouping_unit"]).unwrap_or("unknown");
-    if !["whole_voyage", "weather_event"].contains(&grouping_unit) {
+    if grouping_unit != "joint_voyage_weather_event" {
         add(&mut findings, "SPLIT_GROUPING_UNIT_INVALID", "ERROR",
-            "grouping_unit must be whole_voyage or weather_event.");
+            "grouping_unit must be joint_voyage_weather_event; both voyage and weather-event identities remain fold-disjoint.");
     }
     if string_at(manifest, &["split_algorithm"]).is_none_or(str::is_empty)
         || string_at(manifest, &["split_seed"]).is_none_or(str::is_empty)
