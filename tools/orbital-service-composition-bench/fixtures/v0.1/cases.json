@@ -5,9 +5,9 @@
   "claim_ceiling": "Synthetic event-contract replay only. Does not validate source receipt bytes, producer authentication, physical launch, capture, fluid transfer, hardware, mission service or flight qualification.",
   "source_pins": [
     {
-      "component": "reusable_launch",
-      "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
-      "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324"
+      "component": "earth_orbit_chain",
+      "receipt_schema": "symtropy.earth-orbit-chain.v1",
+      "source_commit": "4ccac26f3018bb71f4c989ab100cb20f64805912"
     },
     {
       "component": "orbital_capture",
@@ -40,11 +40,11 @@
           "subject_id": "client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
-            "component": "reusable_launch",
-            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
-            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "component": "earth_orbit_chain",
+            "receipt_schema": "symtropy.earth-orbit-chain.v1",
+            "source_commit": "4ccac26f3018bb71f4c989ab100cb20f64805912",
             "reference": "synthetic://reusable_launch/launch-001",
-            "decision": "payload_delivery_accepted",
+            "decision": "ready",
             "evidence_class": "synthetic"
           }
         },
@@ -122,11 +122,11 @@
           "subject_id": "client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
-            "component": "reusable_launch",
-            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
-            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "component": "earth_orbit_chain",
+            "receipt_schema": "symtropy.earth-orbit-chain.v1",
+            "source_commit": "4ccac26f3018bb71f4c989ab100cb20f64805912",
             "reference": "synthetic://reusable_launch/launch-001",
-            "decision": "payload_delivery_accepted",
+            "decision": "ready",
             "evidence_class": "synthetic"
           }
         },
@@ -156,11 +156,11 @@
           "subject_id": "client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
-            "component": "reusable_launch",
-            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
-            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "component": "earth_orbit_chain",
+            "receipt_schema": "symtropy.earth-orbit-chain.v1",
+            "source_commit": "4ccac26f3018bb71f4c989ab100cb20f64805912",
             "reference": "synthetic://reusable_launch/launch-001",
-            "decision": "payload_delivery_accepted",
+            "decision": "ready",
             "evidence_class": "synthetic"
           }
         },
@@ -219,11 +219,11 @@
           "subject_id": "client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
-            "component": "reusable_launch",
-            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
-            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "component": "earth_orbit_chain",
+            "receipt_schema": "symtropy.earth-orbit-chain.v1",
+            "source_commit": "4ccac26f3018bb71f4c989ab100cb20f64805912",
             "reference": "synthetic://reusable_launch/launch-001",
-            "decision": "payload_delivery_accepted",
+            "decision": "ready",
             "evidence_class": "synthetic"
           }
         },
@@ -282,11 +282,11 @@
           "subject_id": "client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
-            "component": "reusable_launch",
-            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
-            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "component": "earth_orbit_chain",
+            "receipt_schema": "symtropy.earth-orbit-chain.v1",
+            "source_commit": "4ccac26f3018bb71f4c989ab100cb20f64805912",
             "reference": "synthetic://reusable_launch/launch-001",
-            "decision": "payload_delivery_accepted",
+            "decision": "ready",
             "evidence_class": "synthetic"
           }
         },
@@ -345,11 +345,11 @@
           "subject_id": "client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
-            "component": "reusable_launch",
-            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
-            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "component": "earth_orbit_chain",
+            "receipt_schema": "symtropy.earth-orbit-chain.v1",
+            "source_commit": "4ccac26f3018bb71f4c989ab100cb20f64805912",
             "reference": "synthetic://reusable_launch/launch-001",
-            "decision": "payload_delivery_accepted",
+            "decision": "ready",
             "evidence_class": "synthetic"
           }
         },
@@ -408,11 +408,11 @@
           "subject_id": "client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
-            "component": "reusable_launch",
-            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
-            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "component": "earth_orbit_chain",
+            "receipt_schema": "symtropy.earth-orbit-chain.v1",
+            "source_commit": "4ccac26f3018bb71f4c989ab100cb20f64805912",
             "reference": "synthetic://reusable_launch/launch-001",
-            "decision": "payload_delivery_accepted",
+            "decision": "ready",
             "evidence_class": "synthetic"
           }
         },
@@ -471,11 +471,11 @@
           "subject_id": "client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
-            "component": "reusable_launch",
-            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
-            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "component": "earth_orbit_chain",
+            "receipt_schema": "symtropy.earth-orbit-chain.v1",
+            "source_commit": "4ccac26f3018bb71f4c989ab100cb20f64805912",
             "reference": "synthetic://reusable_launch/launch-001",
-            "decision": "payload_delivery_accepted",
+            "decision": "ready",
             "evidence_class": "synthetic"
           }
         },
@@ -553,11 +553,11 @@
           "subject_id": "client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
-            "component": "reusable_launch",
-            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
-            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "component": "earth_orbit_chain",
+            "receipt_schema": "symtropy.earth-orbit-chain.v1",
+            "source_commit": "4ccac26f3018bb71f4c989ab100cb20f64805912",
             "reference": "synthetic://reusable_launch/launch-001",
-            "decision": "payload_delivery_accepted",
+            "decision": "ready",
             "evidence_class": "synthetic"
           }
         },
@@ -616,11 +616,11 @@
           "subject_id": "client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
-            "component": "reusable_launch",
-            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
-            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "component": "earth_orbit_chain",
+            "receipt_schema": "symtropy.earth-orbit-chain.v1",
+            "source_commit": "4ccac26f3018bb71f4c989ab100cb20f64805912",
             "reference": "synthetic://reusable_launch/launch-001",
-            "decision": "payload_delivery_accepted",
+            "decision": "ready",
             "evidence_class": "synthetic"
           }
         },
@@ -671,11 +671,11 @@
           "subject_id": "client-001",
           "target_orbit_id": "geo-transfer-orbit",
           "evidence": {
-            "component": "reusable_launch",
-            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
-            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "component": "earth_orbit_chain",
+            "receipt_schema": "symtropy.earth-orbit-chain.v1",
+            "source_commit": "4ccac26f3018bb71f4c989ab100cb20f64805912",
             "reference": "synthetic://reusable_launch/launch-001",
-            "decision": "payload_delivery_accepted",
+            "decision": "ready",
             "evidence_class": "synthetic"
           }
         },
