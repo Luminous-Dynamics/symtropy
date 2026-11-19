@@ -1,0 +1,33 @@
+{
+  "schema": "symtropy.semantic_mapping_receipt/0.1",
+  "scenario": {
+    "id": "sliding-block-friction-001",
+    "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "left_backend": {
+    "engine_id": "symtropy",
+    "version": "0.2.x",
+    "adapter_commit": "0123456789abcdef0123456789abcdef01234567",
+    "profile_id": "symtropy-coulomb-contact",
+    "profile_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "right_backend": {
+    "engine_id": "reference-engine",
+    "version": "1.0.0",
+    "adapter_commit": "abcdef0123456789abcdef0123456789abcdef01",
+    "profile_id": "reference-pyramidal-friction",
+    "profile_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "dimensions": [
+    { "dimension": "identity_geometry", "status": "strictly_equivalent", "rationale": "Same block and plane geometry.", "evidence_refs": ["fixture:geometry-001"] },
+    { "dimension": "mass_properties", "status": "strictly_equivalent", "rationale": "Same mass and center of mass.", "evidence_refs": ["fixture:mass-001"] },
+    { "dimension": "constraints", "status": "not_applicable", "rationale": "No joints.", "evidence_refs": ["scenario:friction-001"] },
+    { "dimension": "contacts", "status": "non_equivalent", "rationale": "One backend uses a circular Coulomb cone and the other uses a finite pyramidal approximation.", "evidence_refs": ["profile:symtropy-contact", "profile:reference-contact"] },
+    { "dimension": "integration", "status": "strictly_equivalent", "rationale": "Same fixed-step integrator profile.", "evidence_refs": ["profile:integrator-001"] },
+    { "dimension": "ccd", "status": "not_applicable", "rationale": "No fast motion/CCD query is exercised.", "evidence_refs": ["scenario:friction-001"] },
+    { "dimension": "actuation", "status": "not_applicable", "rationale": "No actuator.", "evidence_refs": ["scenario:friction-001"] },
+    { "dimension": "observations", "status": "strictly_equivalent", "rationale": "Same declared force and state convention.", "evidence_refs": ["profile:observations-001"] },
+    { "dimension": "numerical_profile", "status": "strictly_equivalent", "rationale": "Numerical settings are otherwise matched.", "evidence_refs": ["profile:solver-001"] }
+  ],
+  "review": { "author_id": "researcher-A", "reviewer_id": "reviewer-B" }
+}
