@@ -1,0 +1,474 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminousdynamics:aero:haps-fleet-service-case:v1",
+  "title": "HAPS fleet service availability case v1",
+  "description": "Deterministic event-trace contract for demand-qualified HAPS fleet availability, rotation, maintenance, repair, correlated weather and independent alternate-layer service. It is not a flight or reliability solver.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "revision",
+    "evidence_class",
+    "claim_ceiling",
+    "service_window",
+    "service_zones",
+    "platform_inventory",
+    "policies",
+    "expected_oracle",
+    "assumptions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "haps-fleet-service-case/v1"
+    },
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,95}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "replayed_operations_trace",
+        "measured_operations"
+      ]
+    },
+    "claim_ceiling": {
+      "enum": [
+        "synthetic_fleet_availability_oracle",
+        "offline_operations_replay",
+        "measured_service_availability"
+      ]
+    },
+    "service_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "duration_s",
+        "interval_partition_required",
+        "service_availability_threshold_fraction",
+        "initial_target_availability_fraction",
+        "stretch_target_availability_fraction",
+        "target_window_s",
+        "time_basis"
+      ],
+      "properties": {
+        "duration_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "interval_partition_required": {
+          "const": true
+        },
+        "service_availability_threshold_fraction": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "initial_target_availability_fraction": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "stretch_target_availability_fraction": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "target_window_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "time_basis": {
+          "enum": [
+            "elapsed_wall_clock",
+            "scheduled_service_time"
+          ]
+        }
+      }
+    },
+    "service_zones": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "zone_id",
+          "required_capacity_units",
+          "demand_weight",
+          "criticality"
+        ],
+        "properties": {
+          "zone_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "required_capacity_units": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "demand_weight": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "criticality": {
+            "enum": [
+              "emergency_critical",
+              "mission_critical",
+              "public_broadband",
+              "best_effort"
+            ]
+          }
+        }
+      }
+    },
+    "platform_inventory": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "platform_id",
+          "lift_class",
+          "service_capacity_units",
+          "evidence_class",
+          "configuration_ref"
+        ],
+        "properties": {
+          "platform_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "lift_class": {
+            "enum": [
+              "solar_fixed_wing",
+              "buoyant_free_balloon",
+              "buoyant_airship",
+              "other_declared"
+            ]
+          },
+          "service_capacity_units": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "evidence_class": {
+            "enum": [
+              "synthetic",
+              "reference_candidate",
+              "measured_platform"
+            ]
+          },
+          "configuration_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "policies": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "policy_id",
+          "policy_class",
+          "fleet_platform_ids",
+          "required_active_capacity_units",
+          "reserve_platform_ids",
+          "intervals",
+          "expected_metrics"
+        ],
+        "properties": {
+          "policy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "policy_class": {
+            "enum": [
+              "no_spare",
+              "static_spares",
+              "rotating_spares",
+              "rotating_spares_plus_independent_fallback",
+              "condition_based_maintenance",
+              "other"
+            ]
+          },
+          "fleet_platform_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "required_active_capacity_units": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "reserve_platform_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "intervals": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "start_s",
+                "duration_s",
+                "event_class",
+                "common_cause_event_id",
+                "platform_states",
+                "alternate_service_by_zone"
+              ],
+              "properties": {
+                "start_s": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "duration_s": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "event_class": {
+                  "enum": [
+                    "normal_operations",
+                    "scheduled_maintenance",
+                    "corrective_repair",
+                    "common_cause_weather",
+                    "launch_recovery",
+                    "other_declared"
+                  ]
+                },
+                "common_cause_event_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "platform_states": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "platform_id",
+                      "state",
+                      "zone_id"
+                    ],
+                    "properties": {
+                      "platform_id": {
+                        "type": "string"
+                      },
+                      "state": {
+                        "enum": [
+                          "active",
+                          "ready_reserve",
+                          "transit",
+                          "scheduled_maintenance",
+                          "corrective_maintenance",
+                          "grounded_weather",
+                          "launch_recovery",
+                          "retired"
+                        ]
+                      },
+                      "zone_id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "alternate_service_by_zone": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "zone_id",
+                      "capacity_units",
+                      "source_layer",
+                      "common_cause_independence"
+                    ],
+                    "properties": {
+                      "zone_id": {
+                        "type": "string"
+                      },
+                      "capacity_units": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "source_layer": {
+                        "enum": [
+                          "terrestrial",
+                          "satellite",
+                          "neighboring_haps",
+                          "qualified_fso",
+                          "other_declared"
+                        ]
+                      },
+                      "common_cause_independence": {
+                        "enum": [
+                          "independent_for_this_event",
+                          "partially_correlated",
+                          "same_common_cause",
+                          "unknown"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "expected_metrics": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "service_availability_fraction",
+              "time_weighted_demand_satisfaction_fraction",
+              "available_hours",
+              "below_threshold_hours",
+              "maximum_contiguous_service_gap_hours",
+              "planned_maintenance_platform_hours",
+              "corrective_repair_platform_hours",
+              "common_cause_grounded_platform_hours",
+              "reserve_platform_hours",
+              "handover_count",
+              "alternate_layer_service_zone_hours"
+            ],
+            "properties": {
+              "service_availability_fraction": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "time_weighted_demand_satisfaction_fraction": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "available_hours": {
+                "type": "number",
+                "minimum": 0
+              },
+              "below_threshold_hours": {
+                "type": "number",
+                "minimum": 0
+              },
+              "maximum_contiguous_service_gap_hours": {
+                "type": "number",
+                "minimum": 0
+              },
+              "planned_maintenance_platform_hours": {
+                "type": "number",
+                "minimum": 0
+              },
+              "corrective_repair_platform_hours": {
+                "type": "number",
+                "minimum": 0
+              },
+              "common_cause_grounded_platform_hours": {
+                "type": "number",
+                "minimum": 0
+              },
+              "reserve_platform_hours": {
+                "type": "number",
+                "minimum": 0
+              },
+              "handover_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "alternate_layer_service_zone_hours": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "expected_oracle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "oracle_status",
+        "policy_rankings",
+        "computed_from_interval_partition"
+      ],
+      "properties": {
+        "oracle_status": {
+          "enum": [
+            "independently_calculated",
+            "not_evaluated"
+          ]
+        },
+        "policy_rankings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "policy_id",
+              "service_availability_fraction",
+              "time_weighted_demand_satisfaction_fraction"
+            ],
+            "properties": {
+              "policy_id": {
+                "type": "string"
+              },
+              "service_availability_fraction": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "time_weighted_demand_satisfaction_fraction": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
+        },
+        "computed_from_interval_partition": {
+          "type": "boolean"
+        }
+      }
+    },
+    "source_evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "uniqueItems": true
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  },
+  "$comment": "Semantic invariants: policy fleet IDs and reserve IDs are subsets of platform inventory; each interval contains exactly one state for each policy fleet platform; active states have a declared zone and non-active states have null zone; intervals begin at zero, are contiguous and sum exactly to service_window.duration_s; event cause IDs are consistent across impacted platforms; all zone IDs are declared; alternate-service capacity is bounded/attributed and only counted where available; delivered capacity per zone is min(required, active HAPS capacity + alternate layer capacity); demand-weighted delivered fraction is sum(zone demand weight × served fraction)/sum(weights); service availability counts intervals where this fraction meets threshold; below-threshold adjacent intervals accumulate into a contiguous service gap; state-hours and handover counts are derived from event receipts, not manually asserted. A 'common_cause_independence' label is a scenario assumption requiring evidence in non-synthetic cases."
+}
