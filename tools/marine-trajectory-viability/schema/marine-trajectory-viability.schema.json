@@ -1,0 +1,510 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:marine-trajectory-viability:0.1.0",
+  "title": "Marine Finite-Horizon Trajectory Viability Audit",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scorecard_id",
+    "record_status",
+    "claim_ceiling",
+    "mission_snapshot",
+    "service_contract",
+    "scenario_roster",
+    "time_grid",
+    "time_grid_sha256",
+    "scenarios"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "scorecard_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "record_status": {
+      "enum": [
+        "synthetic",
+        "shadow_replay",
+        "measured_campaign",
+        "published_reproduction"
+      ]
+    },
+    "claim_ceiling": {
+      "const": "finite_horizon_sampled_trajectory_audit_only"
+    },
+    "mission_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mission_id",
+        "mission_snapshot_sha256",
+        "craft_configuration_sha256",
+        "occupancy_sha256",
+        "initial_resource_state_sha256",
+        "mission_plan_sha256",
+        "service_contract_sha256",
+        "scenario_roster_sha256",
+        "time_grid_sha256",
+        "forecast_information_set_sha256",
+        "hard_gate_roster_sha256",
+        "operating_envelope_sha256"
+      ],
+      "properties": {
+        "mission_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mission_snapshot_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "craft_configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "occupancy_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "initial_resource_state_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "mission_plan_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "service_contract_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "scenario_roster_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "time_grid_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "forecast_information_set_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "hard_gate_roster_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "operating_envelope_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "service_contract": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 11,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric",
+          "unit",
+          "operator",
+          "floor_value",
+          "minimum_coverage_fraction"
+        ],
+        "properties": {
+          "metric": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "operator": {
+            "enum": [
+              "gte",
+              "lte"
+            ]
+          },
+          "floor_value": {
+            "type": "number"
+          },
+          "minimum_coverage_fraction": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "scenario_roster": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "adverse_forecast_error",
+          "common_cause_generation_watermaker_outage",
+          "main_generation_outage",
+          "nominal",
+          "watermaker_outage"
+        ]
+      }
+    },
+    "time_grid": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "string",
+        "format": "date-time"
+      }
+    },
+    "time_grid_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "scenario_class",
+          "scenario_sha256",
+          "disturbance_sha256",
+          "model_sha256",
+          "states",
+          "transitions"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scenario_class": {
+            "enum": [
+              "adverse_forecast_error",
+              "common_cause_generation_watermaker_outage",
+              "main_generation_outage",
+              "nominal",
+              "watermaker_outage"
+            ]
+          },
+          "scenario_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "disturbance_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "model_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "states": {
+            "type": "array",
+            "minItems": 3,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "time_index",
+                "timestamp",
+                "components",
+                "resource_metrics"
+              ],
+              "properties": {
+                "time_index": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "timestamp": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "components": {
+                  "type": "array",
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "component_id",
+                      "availability",
+                      "event_id"
+                    ],
+                    "properties": {
+                      "component_id": {
+                        "enum": [
+                          "main_generator",
+                          "watermaker",
+                          "shore_power",
+                          "battery_inverter"
+                        ]
+                      },
+                      "availability": {
+                        "enum": [
+                          "available",
+                          "unavailable"
+                        ]
+                      },
+                      "event_id": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "resource_metrics": {
+                  "type": "array",
+                  "minItems": 11,
+                  "maxItems": 11,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "metric",
+                      "unit",
+                      "value",
+                      "lower_bound",
+                      "upper_bound",
+                      "coverage_fraction",
+                      "measurement_class",
+                      "measurement_method",
+                      "evidence_sha256"
+                    ],
+                    "properties": {
+                      "metric": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "unit": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "value": {
+                        "type": "number"
+                      },
+                      "lower_bound": {
+                        "type": "number"
+                      },
+                      "upper_bound": {
+                        "type": "number"
+                      },
+                      "coverage_fraction": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      "measurement_class": {
+                        "enum": [
+                          "measured",
+                          "modeled",
+                          "derived",
+                          "synthetic"
+                        ]
+                      },
+                      "measurement_method": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "evidence_sha256": {
+                        "type": "string",
+                        "pattern": "^[a-fA-F0-9]{64}$"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "transitions": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "from_time_index",
+                "to_time_index",
+                "energy",
+                "freshwater",
+                "waste"
+              ],
+              "properties": {
+                "from_time_index": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "to_time_index": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "energy": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "start_kwh",
+                    "generated_kwh",
+                    "shore_charged_kwh",
+                    "house_load_kwh",
+                    "propulsion_load_kwh",
+                    "conversion_loss_kwh",
+                    "end_kwh",
+                    "tolerance_kwh",
+                    "source_sha256"
+                  ],
+                  "properties": {
+                    "start_kwh": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "generated_kwh": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "shore_charged_kwh": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "house_load_kwh": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "propulsion_load_kwh": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "conversion_loss_kwh": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "end_kwh": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "tolerance_kwh": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "source_sha256": {
+                      "type": "string",
+                      "pattern": "^[a-fA-F0-9]{64}$"
+                    }
+                  }
+                },
+                "freshwater": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "start_l",
+                    "produced_l",
+                    "replenished_l",
+                    "consumed_l",
+                    "authorized_discharge_l",
+                    "end_l",
+                    "tolerance_l",
+                    "replenishment_authority_ref",
+                    "replenishment_evidence_sha256"
+                  ],
+                  "properties": {
+                    "start_l": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "produced_l": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "replenished_l": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "consumed_l": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "authorized_discharge_l": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "end_l": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "tolerance_l": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "replenishment_authority_ref": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "replenishment_evidence_sha256": {
+                      "type": "string",
+                      "pattern": "^[a-fA-F0-9]{64}$"
+                    }
+                  }
+                },
+                "waste": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "start_margin_days",
+                    "authorized_emptying_days",
+                    "generated_days",
+                    "end_margin_days",
+                    "tolerance_days",
+                    "service_authority_ref",
+                    "service_evidence_sha256"
+                  ],
+                  "properties": {
+                    "start_margin_days": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "authorized_emptying_days": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "generated_days": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "end_margin_days": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "tolerance_days": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "service_authority_ref": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "service_evidence_sha256": {
+                      "type": "string",
+                      "pattern": "^[a-fA-F0-9]{64}$"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

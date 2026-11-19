@@ -1,0 +1,2754 @@
+{
+  "schema_version": "0.1.0",
+  "scorecard_id": "MARINE-TRAJECTORY-MID-VOYAGE-BREACH-SYNTHETIC-0001",
+  "record_status": "synthetic",
+  "claim_ceiling": "finite_horizon_sampled_trajectory_audit_only",
+  "mission_snapshot": {
+    "mission_id": "SYNTHETIC-TRAJECTORY-MISSION-0001",
+    "mission_snapshot_sha256": "bdfe681cf51c6b779fa670bf9745c2ad612ea1a03ab6a5cca7680ee1655643dc",
+    "craft_configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "occupancy_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "initial_resource_state_sha256": "9219b03ec9eae1805897083177f6b61ae90e6c6e9babce695efc29fb5734b79a",
+    "mission_plan_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "service_contract_sha256": "024061d0f674c26ce2c5f2e754c2692b26ad22dcd371f4fa83045a335bcafe99",
+    "scenario_roster_sha256": "8e7e650c658c1cbfb64ab325f86cbe793f3b8bd06501fa9a78aad07a21dc2cfd",
+    "time_grid_sha256": "b1019f766ebcd3c8cace0d09878fbc12886a0abd76c07355f8d624d0c9810770",
+    "forecast_information_set_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "hard_gate_roster_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "operating_envelope_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+  },
+  "service_contract": [
+    {
+      "metric": "energy_reserve_kwh",
+      "unit": "kWh",
+      "operator": "gte",
+      "floor_value": 4,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "freshwater_usable_l",
+      "unit": "L",
+      "operator": "gte",
+      "floor_value": 80,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "food_reserve_days",
+      "unit": "day",
+      "operator": "gte",
+      "floor_value": 3,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "waste_capacity_margin_days",
+      "unit": "day",
+      "operator": "gte",
+      "floor_value": 1,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "critical_spares_coverage_days",
+      "unit": "day",
+      "operator": "gte",
+      "floor_value": 1,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "power_service_availability",
+      "unit": "fraction",
+      "operator": "gte",
+      "floor_value": 1,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "potable_water_service_availability",
+      "unit": "fraction",
+      "operator": "gte",
+      "floor_value": 1,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "sanitation_service_availability",
+      "unit": "fraction",
+      "operator": "gte",
+      "floor_value": 1,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "refrigeration_service_availability",
+      "unit": "fraction",
+      "operator": "gte",
+      "floor_value": 1,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "crew_workload_hours_rolling_24h",
+      "unit": "h",
+      "operator": "lte",
+      "floor_value": 12,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "comfort_breach_minutes_rolling_24h",
+      "unit": "min",
+      "operator": "lte",
+      "floor_value": 60,
+      "minimum_coverage_fraction": 0.95
+    }
+  ],
+  "scenario_roster": [
+    "adverse_forecast_error",
+    "common_cause_generation_watermaker_outage",
+    "main_generation_outage",
+    "nominal",
+    "watermaker_outage"
+  ],
+  "time_grid": [
+    "2026-03-01T00:00:00Z",
+    "2026-03-01T06:00:00Z",
+    "2026-03-01T12:00:00Z"
+  ],
+  "time_grid_sha256": "b1019f766ebcd3c8cace0d09878fbc12886a0abd76c07355f8d624d0c9810770",
+  "scenarios": [
+    {
+      "scenario_id": "scenario-nominal",
+      "scenario_class": "nominal",
+      "scenario_sha256": "f90293866063faf0180279ea3896633d1d5b314fb29c4e15f7150c518ab3ebd9",
+      "disturbance_sha256": "64324037075d06bc0577a8bbfa508e49a9c5286860f2c19e6e442e2fbb5c2907",
+      "model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "states": [
+        {
+          "time_index": 0,
+          "timestamp": "2026-03-01T00:00:00Z",
+          "components": [
+            {
+              "component_id": "main_generator",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "watermaker",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "shore_power",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "battery_inverter",
+              "availability": "available",
+              "event_id": "none"
+            }
+          ],
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 20,
+              "lower_bound": 19.9,
+              "upper_bound": 20.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 160,
+              "lower_bound": 159.9,
+              "upper_bound": 160.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 10,
+              "lower_bound": 9.9,
+              "upper_bound": 10.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.9,
+              "upper_bound": 4.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 5,
+              "lower_bound": 4.9,
+              "upper_bound": 5.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 8,
+              "lower_bound": 7.9,
+              "upper_bound": 8.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 10,
+              "lower_bound": 9.9,
+              "upper_bound": 10.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+            }
+          ]
+        },
+        {
+          "time_index": 1,
+          "timestamp": "2026-03-01T06:00:00Z",
+          "components": [
+            {
+              "component_id": "main_generator",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "watermaker",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "shore_power",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "battery_inverter",
+              "availability": "available",
+              "event_id": "none"
+            }
+          ],
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 18,
+              "lower_bound": 17.9,
+              "upper_bound": 18.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 185,
+              "lower_bound": 184.9,
+              "upper_bound": 185.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 9.8,
+              "lower_bound": 9.700000000000001,
+              "upper_bound": 9.9,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 3.5,
+              "lower_bound": 3.4,
+              "upper_bound": 3.6,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 5,
+              "lower_bound": 4.9,
+              "upper_bound": 5.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 8,
+              "lower_bound": 7.9,
+              "upper_bound": 8.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 20,
+              "lower_bound": 19.9,
+              "upper_bound": 20.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+            }
+          ]
+        },
+        {
+          "time_index": 2,
+          "timestamp": "2026-03-01T12:00:00Z",
+          "components": [
+            {
+              "component_id": "main_generator",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "watermaker",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "shore_power",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "battery_inverter",
+              "availability": "available",
+              "event_id": "none"
+            }
+          ],
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 16,
+              "lower_bound": 15.9,
+              "upper_bound": 16.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 210,
+              "lower_bound": 209.9,
+              "upper_bound": 210.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 9.6,
+              "lower_bound": 9.5,
+              "upper_bound": 9.7,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 3,
+              "lower_bound": 2.9,
+              "upper_bound": 3.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 5,
+              "lower_bound": 4.9,
+              "upper_bound": 5.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 8,
+              "lower_bound": 7.9,
+              "upper_bound": 8.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 30,
+              "lower_bound": 29.9,
+              "upper_bound": 30.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+            }
+          ]
+        }
+      ],
+      "transitions": [
+        {
+          "from_time_index": 0,
+          "to_time_index": 1,
+          "energy": {
+            "start_kwh": 20,
+            "generated_kwh": 4,
+            "shore_charged_kwh": 0,
+            "house_load_kwh": 2,
+            "propulsion_load_kwh": 3,
+            "conversion_loss_kwh": 1,
+            "end_kwh": 18,
+            "tolerance_kwh": 0.001,
+            "source_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+          },
+          "freshwater": {
+            "start_l": 160,
+            "produced_l": 50,
+            "replenished_l": 0,
+            "consumed_l": 25,
+            "authorized_discharge_l": 0,
+            "end_l": 185,
+            "tolerance_l": 0.001,
+            "replenishment_authority_ref": "NO_REPLENISHMENT",
+            "replenishment_evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+          },
+          "waste": {
+            "start_margin_days": 4,
+            "authorized_emptying_days": 0,
+            "generated_days": 0.5,
+            "end_margin_days": 3.5,
+            "tolerance_days": 0.001,
+            "service_authority_ref": "NO_EMPTYING",
+            "service_evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+          }
+        },
+        {
+          "from_time_index": 1,
+          "to_time_index": 2,
+          "energy": {
+            "start_kwh": 18,
+            "generated_kwh": 4,
+            "shore_charged_kwh": 0,
+            "house_load_kwh": 2,
+            "propulsion_load_kwh": 3,
+            "conversion_loss_kwh": 1,
+            "end_kwh": 16,
+            "tolerance_kwh": 0.001,
+            "source_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+          },
+          "freshwater": {
+            "start_l": 185,
+            "produced_l": 50,
+            "replenished_l": 0,
+            "consumed_l": 25,
+            "authorized_discharge_l": 0,
+            "end_l": 210,
+            "tolerance_l": 0.001,
+            "replenishment_authority_ref": "NO_REPLENISHMENT",
+            "replenishment_evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+          },
+          "waste": {
+            "start_margin_days": 3.5,
+            "authorized_emptying_days": 0,
+            "generated_days": 0.5,
+            "end_margin_days": 3,
+            "tolerance_days": 0.001,
+            "service_authority_ref": "NO_EMPTYING",
+            "service_evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+          }
+        }
+      ]
+    },
+    {
+      "scenario_id": "scenario-adverse-forecast",
+      "scenario_class": "adverse_forecast_error",
+      "scenario_sha256": "1ebe9e3a7ea703d6e4bd47258769cd2a38c8910dc11d46e09ee99b959b6ab493",
+      "disturbance_sha256": "b2fafe7790f0783147bffb866135463a9a1928b3e59a420a93df9aa98e949c76",
+      "model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "states": [
+        {
+          "time_index": 0,
+          "timestamp": "2026-03-01T00:00:00Z",
+          "components": [
+            {
+              "component_id": "main_generator",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "watermaker",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "shore_power",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "battery_inverter",
+              "availability": "available",
+              "event_id": "none"
+            }
+          ],
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 20,
+              "lower_bound": 19.9,
+              "upper_bound": 20.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 160,
+              "lower_bound": 159.9,
+              "upper_bound": 160.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 10,
+              "lower_bound": 9.9,
+              "upper_bound": 10.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.9,
+              "upper_bound": 4.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 5,
+              "lower_bound": 4.9,
+              "upper_bound": 5.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 8,
+              "lower_bound": 7.9,
+              "upper_bound": 8.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 10,
+              "lower_bound": 9.9,
+              "upper_bound": 10.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+            }
+          ]
+        },
+        {
+          "time_index": 1,
+          "timestamp": "2026-03-01T06:00:00Z",
+          "components": [
+            {
+              "component_id": "main_generator",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "watermaker",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "shore_power",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "battery_inverter",
+              "availability": "available",
+              "event_id": "none"
+            }
+          ],
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 14,
+              "lower_bound": 13.9,
+              "upper_bound": 14.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 60,
+              "lower_bound": 59.9,
+              "upper_bound": 60.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 9.6,
+              "lower_bound": 9.5,
+              "upper_bound": 9.7,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 3.5,
+              "lower_bound": 3.4,
+              "upper_bound": 3.6,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 5,
+              "lower_bound": 4.9,
+              "upper_bound": 5.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 11,
+              "lower_bound": 10.9,
+              "upper_bound": 11.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 35,
+              "lower_bound": 34.9,
+              "upper_bound": 35.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+            }
+          ]
+        },
+        {
+          "time_index": 2,
+          "timestamp": "2026-03-01T12:00:00Z",
+          "components": [
+            {
+              "component_id": "main_generator",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "watermaker",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "shore_power",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "battery_inverter",
+              "availability": "available",
+              "event_id": "none"
+            }
+          ],
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 10,
+              "lower_bound": 9.9,
+              "upper_bound": 10.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 105,
+              "lower_bound": 104.9,
+              "upper_bound": 105.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 9.2,
+              "lower_bound": 9.1,
+              "upper_bound": 9.299999999999999,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 3,
+              "lower_bound": 2.9,
+              "upper_bound": 3.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 5,
+              "lower_bound": 4.9,
+              "upper_bound": 5.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 10,
+              "lower_bound": 9.9,
+              "upper_bound": 10.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 55,
+              "lower_bound": 54.9,
+              "upper_bound": 55.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+            }
+          ]
+        }
+      ],
+      "transitions": [
+        {
+          "from_time_index": 0,
+          "to_time_index": 1,
+          "energy": {
+            "start_kwh": 20,
+            "generated_kwh": 4,
+            "shore_charged_kwh": 0,
+            "house_load_kwh": 2,
+            "propulsion_load_kwh": 7,
+            "conversion_loss_kwh": 1,
+            "end_kwh": 14,
+            "tolerance_kwh": 0.001,
+            "source_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+          },
+          "freshwater": {
+            "start_l": 160,
+            "produced_l": 0,
+            "replenished_l": 0,
+            "consumed_l": 100,
+            "authorized_discharge_l": 0,
+            "end_l": 60,
+            "tolerance_l": 0.001,
+            "replenishment_authority_ref": "NO_REPLENISHMENT",
+            "replenishment_evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+          },
+          "waste": {
+            "start_margin_days": 4,
+            "authorized_emptying_days": 0,
+            "generated_days": 0.5,
+            "end_margin_days": 3.5,
+            "tolerance_days": 0.001,
+            "service_authority_ref": "NO_EMPTYING",
+            "service_evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+          }
+        },
+        {
+          "from_time_index": 1,
+          "to_time_index": 2,
+          "energy": {
+            "start_kwh": 14,
+            "generated_kwh": 4,
+            "shore_charged_kwh": 0,
+            "house_load_kwh": 2,
+            "propulsion_load_kwh": 5,
+            "conversion_loss_kwh": 1,
+            "end_kwh": 10,
+            "tolerance_kwh": 0.001,
+            "source_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+          },
+          "freshwater": {
+            "start_l": 60,
+            "produced_l": 0,
+            "replenished_l": 50,
+            "consumed_l": 5,
+            "authorized_discharge_l": 0,
+            "end_l": 105,
+            "tolerance_l": 0.001,
+            "replenishment_authority_ref": "SYNTHETIC-PORT-REPLENISHMENT-001",
+            "replenishment_evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+          },
+          "waste": {
+            "start_margin_days": 3.5,
+            "authorized_emptying_days": 0,
+            "generated_days": 0.5,
+            "end_margin_days": 3,
+            "tolerance_days": 0.001,
+            "service_authority_ref": "NO_EMPTYING",
+            "service_evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+          }
+        }
+      ]
+    },
+    {
+      "scenario_id": "scenario-generation-outage",
+      "scenario_class": "main_generation_outage",
+      "scenario_sha256": "428d83969847caf5a7d3903a0aaa3ee7dba37118eb414eb690556e09b9828a66",
+      "disturbance_sha256": "ac639dcddd176d6f9d441397f8edafbfe4756d5d36301078c0b9fb5427e6bcde",
+      "model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "states": [
+        {
+          "time_index": 0,
+          "timestamp": "2026-03-01T00:00:00Z",
+          "components": [
+            {
+              "component_id": "main_generator",
+              "availability": "unavailable",
+              "event_id": "generator-outage-0001"
+            },
+            {
+              "component_id": "watermaker",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "shore_power",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "battery_inverter",
+              "availability": "available",
+              "event_id": "none"
+            }
+          ],
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 20,
+              "lower_bound": 19.9,
+              "upper_bound": 20.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 160,
+              "lower_bound": 159.9,
+              "upper_bound": 160.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 10,
+              "lower_bound": 9.9,
+              "upper_bound": 10.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.9,
+              "upper_bound": 4.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 5,
+              "lower_bound": 4.9,
+              "upper_bound": 5.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 8,
+              "lower_bound": 7.9,
+              "upper_bound": 8.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 10,
+              "lower_bound": 9.9,
+              "upper_bound": 10.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+            }
+          ]
+        },
+        {
+          "time_index": 1,
+          "timestamp": "2026-03-01T06:00:00Z",
+          "components": [
+            {
+              "component_id": "main_generator",
+              "availability": "unavailable",
+              "event_id": "generator-outage-0001"
+            },
+            {
+              "component_id": "watermaker",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "shore_power",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "battery_inverter",
+              "availability": "available",
+              "event_id": "none"
+            }
+          ],
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 14,
+              "lower_bound": 13.9,
+              "upper_bound": 14.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 185,
+              "lower_bound": 184.9,
+              "upper_bound": 185.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 9.8,
+              "lower_bound": 9.700000000000001,
+              "upper_bound": 9.9,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 3.5,
+              "lower_bound": 3.4,
+              "upper_bound": 3.6,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 5,
+              "lower_bound": 4.9,
+              "upper_bound": 5.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 9,
+              "lower_bound": 8.9,
+              "upper_bound": 9.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 25,
+              "lower_bound": 24.9,
+              "upper_bound": 25.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+            }
+          ]
+        },
+        {
+          "time_index": 2,
+          "timestamp": "2026-03-01T12:00:00Z",
+          "components": [
+            {
+              "component_id": "main_generator",
+              "availability": "unavailable",
+              "event_id": "generator-outage-0001"
+            },
+            {
+              "component_id": "watermaker",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "shore_power",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "battery_inverter",
+              "availability": "available",
+              "event_id": "none"
+            }
+          ],
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 7,
+              "lower_bound": 6.9,
+              "upper_bound": 7.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 210,
+              "lower_bound": 209.9,
+              "upper_bound": 210.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 9.6,
+              "lower_bound": 9.5,
+              "upper_bound": 9.7,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 3,
+              "lower_bound": 2.9,
+              "upper_bound": 3.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 5,
+              "lower_bound": 4.9,
+              "upper_bound": 5.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 9,
+              "lower_bound": 8.9,
+              "upper_bound": 9.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 35,
+              "lower_bound": 34.9,
+              "upper_bound": 35.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+            }
+          ]
+        }
+      ],
+      "transitions": [
+        {
+          "from_time_index": 0,
+          "to_time_index": 1,
+          "energy": {
+            "start_kwh": 20,
+            "generated_kwh": 0,
+            "shore_charged_kwh": 0,
+            "house_load_kwh": 2,
+            "propulsion_load_kwh": 3,
+            "conversion_loss_kwh": 1,
+            "end_kwh": 14,
+            "tolerance_kwh": 0.001,
+            "source_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+          },
+          "freshwater": {
+            "start_l": 160,
+            "produced_l": 50,
+            "replenished_l": 0,
+            "consumed_l": 25,
+            "authorized_discharge_l": 0,
+            "end_l": 185,
+            "tolerance_l": 0.001,
+            "replenishment_authority_ref": "NO_REPLENISHMENT",
+            "replenishment_evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+          },
+          "waste": {
+            "start_margin_days": 4,
+            "authorized_emptying_days": 0,
+            "generated_days": 0.5,
+            "end_margin_days": 3.5,
+            "tolerance_days": 0.001,
+            "service_authority_ref": "NO_EMPTYING",
+            "service_evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+          }
+        },
+        {
+          "from_time_index": 1,
+          "to_time_index": 2,
+          "energy": {
+            "start_kwh": 14,
+            "generated_kwh": 0,
+            "shore_charged_kwh": 0,
+            "house_load_kwh": 2,
+            "propulsion_load_kwh": 4,
+            "conversion_loss_kwh": 1,
+            "end_kwh": 7,
+            "tolerance_kwh": 0.001,
+            "source_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+          },
+          "freshwater": {
+            "start_l": 185,
+            "produced_l": 50,
+            "replenished_l": 0,
+            "consumed_l": 25,
+            "authorized_discharge_l": 0,
+            "end_l": 210,
+            "tolerance_l": 0.001,
+            "replenishment_authority_ref": "NO_REPLENISHMENT",
+            "replenishment_evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+          },
+          "waste": {
+            "start_margin_days": 3.5,
+            "authorized_emptying_days": 0,
+            "generated_days": 0.5,
+            "end_margin_days": 3,
+            "tolerance_days": 0.001,
+            "service_authority_ref": "NO_EMPTYING",
+            "service_evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+          }
+        }
+      ]
+    },
+    {
+      "scenario_id": "scenario-watermaker-outage",
+      "scenario_class": "watermaker_outage",
+      "scenario_sha256": "b67b1d3782aa479952e79655d77155ba3c5927bd9e44894e59aa8392a088ba04",
+      "disturbance_sha256": "980ab0a98d0471462a04fea35941a4e810a4747158e058b2c09f26de0a88344d",
+      "model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "states": [
+        {
+          "time_index": 0,
+          "timestamp": "2026-03-01T00:00:00Z",
+          "components": [
+            {
+              "component_id": "main_generator",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "watermaker",
+              "availability": "unavailable",
+              "event_id": "watermaker-outage-0001"
+            },
+            {
+              "component_id": "shore_power",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "battery_inverter",
+              "availability": "available",
+              "event_id": "none"
+            }
+          ],
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 20,
+              "lower_bound": 19.9,
+              "upper_bound": 20.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 160,
+              "lower_bound": 159.9,
+              "upper_bound": 160.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 10,
+              "lower_bound": 9.9,
+              "upper_bound": 10.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.9,
+              "upper_bound": 4.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 5,
+              "lower_bound": 4.9,
+              "upper_bound": 5.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 8,
+              "lower_bound": 7.9,
+              "upper_bound": 8.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 10,
+              "lower_bound": 9.9,
+              "upper_bound": 10.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+            }
+          ]
+        },
+        {
+          "time_index": 1,
+          "timestamp": "2026-03-01T06:00:00Z",
+          "components": [
+            {
+              "component_id": "main_generator",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "watermaker",
+              "availability": "unavailable",
+              "event_id": "watermaker-outage-0001"
+            },
+            {
+              "component_id": "shore_power",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "battery_inverter",
+              "availability": "available",
+              "event_id": "none"
+            }
+          ],
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 18,
+              "lower_bound": 17.9,
+              "upper_bound": 18.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 135,
+              "lower_bound": 134.9,
+              "upper_bound": 135.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 9.8,
+              "lower_bound": 9.700000000000001,
+              "upper_bound": 9.9,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 3.5,
+              "lower_bound": 3.4,
+              "upper_bound": 3.6,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 5,
+              "lower_bound": 4.9,
+              "upper_bound": 5.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 9,
+              "lower_bound": 8.9,
+              "upper_bound": 9.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 25,
+              "lower_bound": 24.9,
+              "upper_bound": 25.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+            }
+          ]
+        },
+        {
+          "time_index": 2,
+          "timestamp": "2026-03-01T12:00:00Z",
+          "components": [
+            {
+              "component_id": "main_generator",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "watermaker",
+              "availability": "unavailable",
+              "event_id": "watermaker-outage-0001"
+            },
+            {
+              "component_id": "shore_power",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "battery_inverter",
+              "availability": "available",
+              "event_id": "none"
+            }
+          ],
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 16,
+              "lower_bound": 15.9,
+              "upper_bound": 16.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 110,
+              "lower_bound": 109.9,
+              "upper_bound": 110.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 9.6,
+              "lower_bound": 9.5,
+              "upper_bound": 9.7,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 3,
+              "lower_bound": 2.9,
+              "upper_bound": 3.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 5,
+              "lower_bound": 4.9,
+              "upper_bound": 5.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 9,
+              "lower_bound": 8.9,
+              "upper_bound": 9.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 35,
+              "lower_bound": 34.9,
+              "upper_bound": 35.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+            }
+          ]
+        }
+      ],
+      "transitions": [
+        {
+          "from_time_index": 0,
+          "to_time_index": 1,
+          "energy": {
+            "start_kwh": 20,
+            "generated_kwh": 4,
+            "shore_charged_kwh": 0,
+            "house_load_kwh": 2,
+            "propulsion_load_kwh": 3,
+            "conversion_loss_kwh": 1,
+            "end_kwh": 18,
+            "tolerance_kwh": 0.001,
+            "source_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+          },
+          "freshwater": {
+            "start_l": 160,
+            "produced_l": 0,
+            "replenished_l": 0,
+            "consumed_l": 25,
+            "authorized_discharge_l": 0,
+            "end_l": 135,
+            "tolerance_l": 0.001,
+            "replenishment_authority_ref": "NO_REPLENISHMENT",
+            "replenishment_evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+          },
+          "waste": {
+            "start_margin_days": 4,
+            "authorized_emptying_days": 0,
+            "generated_days": 0.5,
+            "end_margin_days": 3.5,
+            "tolerance_days": 0.001,
+            "service_authority_ref": "NO_EMPTYING",
+            "service_evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+          }
+        },
+        {
+          "from_time_index": 1,
+          "to_time_index": 2,
+          "energy": {
+            "start_kwh": 18,
+            "generated_kwh": 4,
+            "shore_charged_kwh": 0,
+            "house_load_kwh": 2,
+            "propulsion_load_kwh": 3,
+            "conversion_loss_kwh": 1,
+            "end_kwh": 16,
+            "tolerance_kwh": 0.001,
+            "source_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+          },
+          "freshwater": {
+            "start_l": 135,
+            "produced_l": 0,
+            "replenished_l": 0,
+            "consumed_l": 25,
+            "authorized_discharge_l": 0,
+            "end_l": 110,
+            "tolerance_l": 0.001,
+            "replenishment_authority_ref": "NO_REPLENISHMENT",
+            "replenishment_evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+          },
+          "waste": {
+            "start_margin_days": 3.5,
+            "authorized_emptying_days": 0,
+            "generated_days": 0.5,
+            "end_margin_days": 3,
+            "tolerance_days": 0.001,
+            "service_authority_ref": "NO_EMPTYING",
+            "service_evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+          }
+        }
+      ]
+    },
+    {
+      "scenario_id": "scenario-common-cause",
+      "scenario_class": "common_cause_generation_watermaker_outage",
+      "scenario_sha256": "f14321b00888fa7763df518a166d8b9049d5338823c49fe1b24f82f370e250f6",
+      "disturbance_sha256": "e1ac111c920bb654f0d9f5f17a8d3834543c4be794fca4362373f50878b30033",
+      "model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "states": [
+        {
+          "time_index": 0,
+          "timestamp": "2026-03-01T00:00:00Z",
+          "components": [
+            {
+              "component_id": "main_generator",
+              "availability": "unavailable",
+              "event_id": "common-cause-storm-0001"
+            },
+            {
+              "component_id": "watermaker",
+              "availability": "unavailable",
+              "event_id": "common-cause-storm-0001"
+            },
+            {
+              "component_id": "shore_power",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "battery_inverter",
+              "availability": "available",
+              "event_id": "none"
+            }
+          ],
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 20,
+              "lower_bound": 19.9,
+              "upper_bound": 20.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 160,
+              "lower_bound": 159.9,
+              "upper_bound": 160.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 10,
+              "lower_bound": 9.9,
+              "upper_bound": 10.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 4,
+              "lower_bound": 3.9,
+              "upper_bound": 4.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 5,
+              "lower_bound": 4.9,
+              "upper_bound": 5.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 8,
+              "lower_bound": 7.9,
+              "upper_bound": 8.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 10,
+              "lower_bound": 9.9,
+              "upper_bound": 10.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+            }
+          ]
+        },
+        {
+          "time_index": 1,
+          "timestamp": "2026-03-01T06:00:00Z",
+          "components": [
+            {
+              "component_id": "main_generator",
+              "availability": "unavailable",
+              "event_id": "common-cause-storm-0001"
+            },
+            {
+              "component_id": "watermaker",
+              "availability": "unavailable",
+              "event_id": "common-cause-storm-0001"
+            },
+            {
+              "component_id": "shore_power",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "battery_inverter",
+              "availability": "available",
+              "event_id": "none"
+            }
+          ],
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 14,
+              "lower_bound": 13.9,
+              "upper_bound": 14.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 135,
+              "lower_bound": 134.9,
+              "upper_bound": 135.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 9.8,
+              "lower_bound": 9.700000000000001,
+              "upper_bound": 9.9,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 3.5,
+              "lower_bound": 3.4,
+              "upper_bound": 3.6,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 5,
+              "lower_bound": 4.9,
+              "upper_bound": 5.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 10,
+              "lower_bound": 9.9,
+              "upper_bound": 10.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 30,
+              "lower_bound": 29.9,
+              "upper_bound": 30.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+            }
+          ]
+        },
+        {
+          "time_index": 2,
+          "timestamp": "2026-03-01T12:00:00Z",
+          "components": [
+            {
+              "component_id": "main_generator",
+              "availability": "unavailable",
+              "event_id": "common-cause-storm-0001"
+            },
+            {
+              "component_id": "watermaker",
+              "availability": "unavailable",
+              "event_id": "common-cause-storm-0001"
+            },
+            {
+              "component_id": "shore_power",
+              "availability": "available",
+              "event_id": "none"
+            },
+            {
+              "component_id": "battery_inverter",
+              "availability": "available",
+              "event_id": "none"
+            }
+          ],
+          "resource_metrics": [
+            {
+              "metric": "energy_reserve_kwh",
+              "unit": "kWh",
+              "value": 7,
+              "lower_bound": 6.9,
+              "upper_bound": 7.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "metric": "freshwater_usable_l",
+              "unit": "L",
+              "value": 110,
+              "lower_bound": 109.9,
+              "upper_bound": 110.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            {
+              "metric": "food_reserve_days",
+              "unit": "day",
+              "value": 9.6,
+              "lower_bound": 9.5,
+              "upper_bound": 9.7,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "metric": "waste_capacity_margin_days",
+              "unit": "day",
+              "value": 3,
+              "lower_bound": 2.9,
+              "upper_bound": 3.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "metric": "critical_spares_coverage_days",
+              "unit": "day",
+              "value": 5,
+              "lower_bound": 4.9,
+              "upper_bound": 5.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            {
+              "metric": "power_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            {
+              "metric": "potable_water_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+            },
+            {
+              "metric": "sanitation_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+            },
+            {
+              "metric": "refrigeration_service_availability",
+              "unit": "fraction",
+              "value": 1,
+              "lower_bound": 1,
+              "upper_bound": 1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+            },
+            {
+              "metric": "crew_workload_hours_rolling_24h",
+              "unit": "h",
+              "value": 10,
+              "lower_bound": 9.9,
+              "upper_bound": 10.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+            },
+            {
+              "metric": "comfort_breach_minutes_rolling_24h",
+              "unit": "min",
+              "value": 45,
+              "lower_bound": 44.9,
+              "upper_bound": 45.1,
+              "coverage_fraction": 1,
+              "measurement_class": "synthetic",
+              "measurement_method": "synthetic-trajectory-projection-v1",
+              "evidence_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+            }
+          ]
+        }
+      ],
+      "transitions": [
+        {
+          "from_time_index": 0,
+          "to_time_index": 1,
+          "energy": {
+            "start_kwh": 20,
+            "generated_kwh": 0,
+            "shore_charged_kwh": 0,
+            "house_load_kwh": 2,
+            "propulsion_load_kwh": 3,
+            "conversion_loss_kwh": 1,
+            "end_kwh": 14,
+            "tolerance_kwh": 0.001,
+            "source_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+          },
+          "freshwater": {
+            "start_l": 160,
+            "produced_l": 0,
+            "replenished_l": 0,
+            "consumed_l": 25,
+            "authorized_discharge_l": 0,
+            "end_l": 135,
+            "tolerance_l": 0.001,
+            "replenishment_authority_ref": "NO_REPLENISHMENT",
+            "replenishment_evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+          },
+          "waste": {
+            "start_margin_days": 4,
+            "authorized_emptying_days": 0,
+            "generated_days": 0.5,
+            "end_margin_days": 3.5,
+            "tolerance_days": 0.001,
+            "service_authority_ref": "NO_EMPTYING",
+            "service_evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+          }
+        },
+        {
+          "from_time_index": 1,
+          "to_time_index": 2,
+          "energy": {
+            "start_kwh": 14,
+            "generated_kwh": 0,
+            "shore_charged_kwh": 0,
+            "house_load_kwh": 2,
+            "propulsion_load_kwh": 4,
+            "conversion_loss_kwh": 1,
+            "end_kwh": 7,
+            "tolerance_kwh": 0.001,
+            "source_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+          },
+          "freshwater": {
+            "start_l": 135,
+            "produced_l": 0,
+            "replenished_l": 0,
+            "consumed_l": 25,
+            "authorized_discharge_l": 0,
+            "end_l": 110,
+            "tolerance_l": 0.001,
+            "replenishment_authority_ref": "NO_REPLENISHMENT",
+            "replenishment_evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+          },
+          "waste": {
+            "start_margin_days": 3.5,
+            "authorized_emptying_days": 0,
+            "generated_days": 0.5,
+            "end_margin_days": 3,
+            "tolerance_days": 0.001,
+            "service_authority_ref": "NO_EMPTYING",
+            "service_evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+          }
+        }
+      ]
+    }
+  ]
+}
