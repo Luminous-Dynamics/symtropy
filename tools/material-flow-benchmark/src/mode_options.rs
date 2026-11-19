@@ -700,6 +700,23 @@ mod tests {
     }
 
     #[test]
+    fn two_region_four_period_fixture_is_valid_and_exact() {
+        let input: ModeOptionsInput = serde_json::from_str(include_str!(
+            "../fixtures/synthetic-two-region-mode-options.json"
+        ))
+        .expect("mode-options fixture must deserialize");
+        let report = evaluate_mode_options(&input).expect("fixture must evaluate");
+        assert_eq!(report.region_count, 2);
+        assert_eq!(report.period_count, 4);
+        assert_eq!(report.scenario_count, 2);
+        assert_eq!(report.nonanticipative_policy_node_count, 11);
+        assert_eq!(report.exact_policy_count_evaluated, 2_048);
+        assert_eq!(report.optimized_policy.unauthorized_aerial_dispatches, 0);
+        assert!(!report.physical_dispatch_authorized);
+        assert!(!report.dispatch_commands_emitted);
+    }
+
+    #[test]
     fn exact_policy_activates_aerial_capacity_when_it_reduces_total_cost() {
         let report = evaluate_mode_options(&simple_input()).expect("valid input");
         assert!(report.optimized_policy.expected_aerial_deliveries > 0);
