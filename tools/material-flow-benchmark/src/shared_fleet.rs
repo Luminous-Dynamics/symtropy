@@ -303,9 +303,12 @@ fn public_outcome(metrics: WeightedMetrics) -> SharedFleetOutcome {
     }
 }
 
-fn canonical_input_digest(input: &SharedFleetInput) -> Result<String, String> {
+fn canonicalized_input(input: &SharedFleetInput) -> SharedFleetInput {
     let mut canonical = input.clone();
-    canonical.scenarios.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
+    canonical.aircraft.sort_by(|left, right| left.aircraft_id.cmp(&right.aircraft_id));
+    canonical
+        .scenarios
+        .sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
     for scenario in &mut canonical.scenarios {
         for period in &mut scenario.periods {
             period
@@ -313,7 +316,11 @@ fn canonical_input_digest(input: &SharedFleetInput) -> Result<String, String> {
                 .sort_by(|left, right| left.region_id.cmp(&right.region_id));
         }
     }
-    let encoded = serde_json::to_vec(&canonical)
+    canonical
+}
+
+fn canonical_input_digest(input: &SharedFleetInput) -> Result<String, String> {
+    let encoded = serde_json::to_vec(&canonicalized_input(input))
         .map_err(|error| format!("cannot serialize shared-fleet input: {error}"))?;
     Ok(format!("{:x}", Sha256::digest(encoded)))
 }
@@ -871,6 +878,8 @@ pub fn evaluate_shared_fleet(
     input: &SharedFleetInput,
 ) -> Result<SharedFleetReport, Vec<String>> {
     validate_input(input)?;
+    let canonical_input = canonicalized_input(input);
+    let input = &canonical_input;
     let input_digest_sha256 = canonical_input_digest(input).map_err(|error| vec![error])?;
 
     let mut root = TreeNode {
@@ -1122,6 +1131,7 @@ mod tests {
         input.scenarios[0].probability_bps = 6_000;
         let first = evaluate_shared_fleet(&input).expect("first result");
         input.scenarios.reverse();
+        input.aircraft.reverse();
         for scenario in &mut input.scenarios {
             for period in &mut scenario.periods {
                 period.observations.reverse();
