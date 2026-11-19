@@ -631,7 +631,25 @@
           "exact Myers-Perry while increasing alpha",
           "static Boulware-Deser while increasing Omega_H"
         ],
-        "matching_requirement": "Recompute common observables/residual norms from matched profiles; paper-reported relative accuracy is not directly the same as a pointwise field-residual norm."
+        "matching_requirement": "Recompute common observables/residual norms from matched profiles; paper-reported relative accuracy is not directly the same as a pointwise field-residual norm.",
+        "cross_gauge_check": "2010 paper reports repeated numerical calculations in two gauges with excellent agreement in physical parameters; add as a mandatory reproduction test."
+      },
+      "additional_methodological_comparator": {
+        "citation": "Lam, Chung and Yunes, Phys. Rev. D 113, 024030 (2026), DOI 10.1103/txxb-z8bx",
+        "method": "stationary-axisymmetric Kerr deformation with radial and polar spectral/pseudospectral expansions; algebraic coefficient solve at fixed spin; coefficient fits versus spin",
+        "reported_accuracy": {
+          "a_le_0_9": "below machine precision",
+          "a_le_0_999": "approximately 1e-8"
+        },
+        "slow_rotation_breakdown": "reported around a~0.2-0.6 depending on approximation order and chosen accuracy",
+        "scope_limit": "4D Kerr-based quadratic EFTs at leading coupling order; methodological comparator only, not a matched 5D pure EGB solution or nonlinear Lovelock benchmark",
+        "source_status": "PRD published 2026-01-15; APS abstract inspected 2026-11-19"
+      },
+      "adaptive_spin_order_target": {
+        "dimensionless_spin": "chi=a/r_H^2",
+        "dimensionless_coupling": "lambda=alpha/r_H^2",
+        "objective": "map maximum admissible chi for each perturbative order, observable and requested error tolerance; hand off to direct nonlinear spectral continuation before the truncation budget is exceeded",
+        "caution": "do not extrapolate slow-rotation series toward extremality without a validated remainder"
       }
     },
     {
@@ -814,6 +832,9 @@
     "For the slow-rotation background F=BD, the angular flux denominator K=r²-alpha(F-1)=r²*s is analytically positive and satisfies K>=r² for alpha>=0; this does not prove K stays nonzero for arbitrary nonlinear candidates.",
     "The 2010 classical comparator is a Newton-Raphson BVP solver with adaptive mesh, typically 100-1000 points and reported typical relative accuracy ~1e-6; compare common observables and recomputed residual norms rather than equating this with Akribeia's residual metric.",
     "The matched solver matrix must include the classical 2010 BVP solver, Akribeia neural-to-Chebyshev refinement, and Symtropy's action/Noether/perturbative continuation pipeline.",
-    "Symtropy is not considered superior until it reproduces 2010 observables and demonstrates a matched work-precision advantage plus independent residual/domain qualification."
+    "Symtropy is not considered superior until it reproduces 2010 observables and demonstrates a matched work-precision advantage plus independent residual/domain qualification.",
+    "Lam-Chung-Yunes 2026 arbitrary-spin spectral metrics are a methodological high-spin comparator only: their 4D leading-coupling EFT equations differ from the 5D pure EGB target.",
+    "Map the accuracy-vs-spin envelope for each perturbative order and observable; do not claim a universal slow-rotation breakdown spin.",
+    "Reproduce the 2010 two-gauge cross-check by comparing invariant physical observables and transformed field residuals."
   ]
 }
