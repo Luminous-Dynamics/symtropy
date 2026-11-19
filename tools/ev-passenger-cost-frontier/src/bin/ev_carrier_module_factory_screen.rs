@@ -40,6 +40,7 @@ struct BaseFactoryScenario {
     site_id: String,
     template_id: String,
     target_good_vehicles_per_year: u64,
+    shifts_per_day: u32,
     productive_minutes_per_cell_year: f64,
     good_vehicle_yield_fraction: f64,
     production_release_ready: bool,
@@ -399,7 +400,7 @@ fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> Sc
         };
         if let Some(value) = station_operators {
             total_operators = total_operators.saturating_add(value);
-            total_positions = total_positions.saturating_add(value);
+            total_positions = total_positions.saturating_add(value * u64::from(base.shifts_per_day));
         }
         let area = match (cells, station.footprint_sqm_per_cell) {
             (Some(cells), Some(area)) => Some(area * cells as f64),
@@ -435,7 +436,12 @@ fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> Sc
         }
     }
 
-    let bottleneck_attempt_capacity = station_capacities.iter().copied().min();
+    let all_station_capacities_known = station_results
+        .iter()
+        .all(|station| station.planned_attempt_capacity_per_year.is_some());
+    let bottleneck_attempt_capacity = all_station_capacities_known
+        .then(|| station_capacities.iter().copied().min())
+        .flatten();
     let bottleneck_good_capacity = bottleneck_attempt_capacity
         .zip(config.good_module_yield_fraction)
         .map(|(capacity, yield_fraction)| (capacity as f64 * yield_fraction).floor() as u64);
@@ -482,14 +488,20 @@ fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> Sc
         .then_some(total_positions);
     let area_total = station_results.iter().all(|station| station.footprint_sqm.is_some()).then_some(total_area);
     let capex_total = station_results.iter().all(|station| station.equipment_capex_usd.is_some()).then_some(total_capex);
-    let energy_per_module = match (attempts, target_good_modules) {
-        (Some(attempts), Some(good_modules)) if good_modules > 0 => {
+    let all_energy_known = station_results
+        .iter()
+        .all(|station| station.energy_kwh_per_attempt.is_some());
+    let all_thermal_known = station_results
+        .iter()
+        .all(|station| station.thermal_energy_kwh_per_attempt.is_some());
+    let energy_per_module = match (attempts, target_good_modules, all_energy_known) {
+        (Some(attempts), Some(good_modules), true) if good_modules > 0 => {
             Some(total_energy_per_attempt * attempts as f64 / good_modules as f64)
         }
         _ => None,
     };
-    let thermal_per_module = match (attempts, target_good_modules) {
-        (Some(attempts), Some(good_modules)) if good_modules > 0 => {
+    let thermal_per_module = match (attempts, target_good_modules, all_thermal_known) {
+        (Some(attempts), Some(good_modules), true) if good_modules > 0 => {
             Some(total_thermal_per_attempt * attempts as f64 / good_modules as f64)
         }
         _ => None,
@@ -503,7 +515,7 @@ fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> Sc
         evidence_class: config.evidence_class,
         target_good_vehicles_per_year: base.target_good_vehicles_per_year,
         modules_per_good_vehicle: config.modules_per_good_vehicle,
-        target_good_module_count_per_year: target_good_modules,
+        target_good_modules_per_year: target_good_modules,
         planned_module_attempts_per_year: attempts,
         module_bottleneck_attempt_capacity_per_year: bottleneck_attempt_capacity,
         module_bottleneck_good_capacity_per_year: bottleneck_good_capacity,
@@ -535,6 +547,7 @@ mod tests {
             site_id: "south-africa-example".into(),
             template_id: "contract-assembly-flex".into(),
             target_good_vehicles_per_year: 1_000,
+            shifts_per_day: 2,
             productive_minutes_per_cell_year: 150_000.0,
             good_vehicle_yield_fraction: 0.93,
             production_release_ready: false,
@@ -580,7 +593,7 @@ mod tests {
     fn synthetic_pod_route_covers_base_vehicle_factory_throughput() {
         let result = evaluate_pair(&base(), &config());
         assert_eq!(result.status, Status::PassesSyntheticScreen);
-        assert_eq!(result.target_good_module_count_per_year, Some(1_000));
+        assert_eq!(result.target_good_modules_per_year, Some(1_000));
         assert_eq!(result.planned_module_attempts_per_year, Some(1_053));
         assert!(result.equivalent_good_vehicle_capacity_per_year.unwrap() >= 1_000);
         assert_eq!(result.module_production_release_ready, false);
@@ -644,7 +657,24 @@ mod tests {
         factory.production_release_ready = true;
         let result = evaluate_pair(&factory, &config());
         assert!(!result.module_production_release_ready);
-        assert!(!result.base_factory_production_release_ready == false);
+        assert!(result.base_factory_production_release_ready);
+    }
+
+    #[test]
+    fn a_missing_station_cycle_time_prevents_bottleneck_capacity_claim() {
+        let mut test = config();
+        test.station_processes[0].cycle_minutes_per_attempt = None;
+        let result = evaluate_pair(&base(), &test);
+        assert_eq!(result.module_bottleneck_attempt_capacity_per_year, None);
+        assert_eq!(result.equivalent_good_vehicle_capacity_per_year, None);
+    }
+
+    #[test]
+    fn missing_station_energy_prevents_partial_energy_total() {
+        let mut test = config();
+        test.station_processes[0].energy_kwh_per_attempt = None;
+        let result = evaluate_pair(&base(), &test);
+        assert_eq!(result.module_energy_kwh_per_good_module, None);
     }
 
     #[test]
