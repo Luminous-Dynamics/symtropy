@@ -1,0 +1,27 @@
+{
+  "headerId": 17,
+  "timestamp": "2026-11-05T10:00:00.000Z",
+  "version": "3.0.0",
+  "manufacturer": "ACME",
+  "serialNumber": "R-01",
+  "orderId": "transport-1",
+  "orderUpdateId": 2,
+  "nodes": [
+    {
+      "nodeId": "n0",
+      "sequenceId": 0,
+      "released": true,
+      "actions": []
+    }
+  ],
+  "edges": [
+    {
+      "edgeId": "e0",
+      "sequenceId": 1,
+      "released": true,
+      "actions": [],
+      "startNodeId": "n0",
+      "endNodeId": "n1"
+    }
+  ]
+}
