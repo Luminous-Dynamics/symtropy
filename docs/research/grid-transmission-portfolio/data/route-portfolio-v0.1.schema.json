@@ -1,0 +1,589 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/grid-transmission-portfolio/data/route-portfolio-v0.1.schema.json",
+  "title": "Grid Transmission Portfolio v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "portfolio_id",
+    "maturity",
+    "service",
+    "route",
+    "evidence"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "portfolio_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "maturity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "scope",
+        "evidence_id"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "design_only",
+            "field_reconciled",
+            "independently_reviewed"
+          ]
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service_id",
+        "kind",
+        "boundary_id",
+        "profile"
+      ],
+      "properties": {
+        "service_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "net_ac",
+            "regulated_dc",
+            "useful_heat",
+            "hydrogen_at_delivery",
+            "ammonia_at_delivery",
+            "propulsion_work",
+            "other"
+          ]
+        },
+        "boundary_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "window_start_unix_s",
+              "window_end_unix_s",
+              "quantity_value",
+              "quantity_unit"
+            ],
+            "properties": {
+              "window_start_unix_s": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "window_end_unix_s": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "quantity_value": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "quantity_unit": {
+                "enum": [
+                  "kWh",
+                  "MWh",
+                  "kWh_th",
+                  "MWh_th",
+                  "kg_H2",
+                  "kg_NH3",
+                  "kWh_mechanical",
+                  "MJ"
+                ]
+              },
+              "quality_requirements": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "continuity_requirement": {
+          "type": "string"
+        },
+        "reserve_requirement": {
+          "type": "string"
+        }
+      }
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route_id",
+        "segments",
+        "designs"
+      ],
+      "properties": {
+        "route_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "segments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "segment_id",
+              "sequence",
+              "length_m",
+              "setting",
+              "candidates"
+            ],
+            "properties": {
+              "segment_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sequence": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "length_m": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "setting": {
+                "enum": [
+                  "rural",
+                  "urban",
+                  "industrial",
+                  "mountainous",
+                  "coastal",
+                  "submarine",
+                  "remote",
+                  "other"
+                ]
+              },
+              "ground_or_environment": {
+                "type": "string"
+              },
+              "constraints": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "candidates": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "candidate_id",
+                    "technology",
+                    "carrier",
+                    "medium",
+                    "evidence_state",
+                    "evidence_ids"
+                  ],
+                  "properties": {
+                    "candidate_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "technology": {
+                      "enum": [
+                        "hvac_overhead",
+                        "hvdc_lcc_overhead",
+                        "hvdc_vsc_mmc_overhead",
+                        "underground_ac_cable",
+                        "underground_hvdc_cable",
+                        "submarine_ac_cable",
+                        "submarine_hvdc_cable",
+                        "gas_insulated_line_ac",
+                        "gas_insulated_line_dc",
+                        "superconducting_ac",
+                        "superconducting_dc",
+                        "dynamic_line_rating",
+                        "dynamic_transformer_rating",
+                        "topology_optimisation",
+                        "advanced_power_flow_control",
+                        "reconductoring_advanced_conductor",
+                        "voltage_uprating",
+                        "storage_as_transmission_asset",
+                        "hydrogen_pipeline",
+                        "ammonia_pipeline",
+                        "liquid_fuel_logistics",
+                        "thermal_network",
+                        "mechanical_shaft",
+                        "hydraulic_or_pneumatic",
+                        "wireless_inductive",
+                        "wireless_capacitive",
+                        "wireless_microwave",
+                        "wireless_laser",
+                        "other"
+                      ]
+                    },
+                    "carrier": {
+                      "enum": [
+                        "electricity_ac",
+                        "electricity_dc",
+                        "hydrogen",
+                        "ammonia",
+                        "methanol",
+                        "synthetic_methane",
+                        "liquid_fuel",
+                        "thermal",
+                        "mechanical",
+                        "rf",
+                        "optical",
+                        "other"
+                      ]
+                    },
+                    "medium": {
+                      "enum": [
+                        "overhead",
+                        "buried",
+                        "duct_bank",
+                        "tunnel",
+                        "submarine",
+                        "pipeline",
+                        "insulated_thermal_pipe",
+                        "shaft",
+                        "near_field",
+                        "far_field",
+                        "operational_upgrade",
+                        "other"
+                      ]
+                    },
+                    "installation_method": {
+                      "type": "string"
+                    },
+                    "evidence_state": {
+                      "enum": [
+                        "unknown",
+                        "analyst_scenario",
+                        "modelled",
+                        "published_literature",
+                        "manufacturer_declared",
+                        "measured",
+                        "independently_verified",
+                        "field_qualified"
+                      ]
+                    },
+                    "evidence_ids": {
+                      "type": "array",
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "applicability_limitations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "declared_constraints": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "designs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source_boundary",
+              "design_id",
+              "role",
+              "segment_choices",
+              "transitions",
+              "evidence_ids"
+            ],
+            "properties": {
+              "design_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "role": {
+                "enum": [
+                  "reference_baseline",
+                  "alternative",
+                  "hybrid_alternative"
+                ]
+              },
+              "segment_choices": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "segment_id",
+                    "candidate_id"
+                  ],
+                  "properties": {
+                    "segment_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "candidate_id": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              },
+              "transitions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "transition_id",
+                    "after_segment_sequence",
+                    "technology",
+                    "input_carrier",
+                    "output_carrier",
+                    "evidence_state",
+                    "evidence_ids"
+                  ],
+                  "properties": {
+                    "transition_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "after_segment_sequence": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "technology": {
+                      "enum": [
+                        "transformer",
+                        "ac_dc_converter",
+                        "dc_ac_converter",
+                        "rectifier",
+                        "inverter",
+                        "electrolyser",
+                        "fuel_cell",
+                        "compression",
+                        "purification",
+                        "hydrogen_storage",
+                        "ammonia_synthesis",
+                        "ammonia_cracker",
+                        "heat_pump",
+                        "heat_exchanger",
+                        "power_beam_receiver",
+                        "other"
+                      ]
+                    },
+                    "input_carrier": {
+                      "enum": [
+                        "electricity_ac",
+                        "electricity_dc",
+                        "hydrogen",
+                        "ammonia",
+                        "methanol",
+                        "synthetic_methane",
+                        "liquid_fuel",
+                        "thermal",
+                        "mechanical",
+                        "rf",
+                        "optical",
+                        "other"
+                      ]
+                    },
+                    "output_carrier": {
+                      "enum": [
+                        "electricity_ac",
+                        "electricity_dc",
+                        "hydrogen",
+                        "ammonia",
+                        "methanol",
+                        "synthetic_methane",
+                        "liquid_fuel",
+                        "thermal",
+                        "mechanical",
+                        "rf",
+                        "optical",
+                        "other"
+                      ]
+                    },
+                    "evidence_state": {
+                      "enum": [
+                        "unknown",
+                        "analyst_scenario",
+                        "modelled",
+                        "published_literature",
+                        "manufacturer_declared",
+                        "measured",
+                        "independently_verified",
+                        "field_qualified"
+                      ]
+                    },
+                    "evidence_ids": {
+                      "type": "array",
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "applicability_limitations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
+              "evidence_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "source_boundary": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "boundary_id",
+                  "carrier",
+                  "evidence_ids"
+                ],
+                "properties": {
+                  "boundary_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "carrier": {
+                    "enum": [
+                      "electricity_ac",
+                      "electricity_dc",
+                      "hydrogen",
+                      "ammonia",
+                      "methanol",
+                      "synthetic_methane",
+                      "liquid_fuel",
+                      "thermal",
+                      "mechanical",
+                      "rf",
+                      "optical",
+                      "other"
+                    ]
+                  },
+                  "evidence_ids": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "notes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidence_id",
+          "classification",
+          "claim_scope",
+          "applicability"
+        ],
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "classification": {
+            "enum": [
+              "analyst_scenario",
+              "modelled",
+              "published_literature",
+              "manufacturer_declared",
+              "measured",
+              "independently_verified",
+              "field_qualified"
+            ]
+          },
+          "source_uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "publisher": {
+            "type": "string"
+          },
+          "published_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "retrieved_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "claim_scope": {
+            "type": "string",
+            "minLength": 1
+          },
+          "applicability": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uncertainty_note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

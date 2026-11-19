@@ -1,0 +1,211 @@
+{
+  "schema_version": "0.1.0",
+  "portfolio_id": "synthetic-route-portfolio-fixture-0001",
+  "maturity": {
+    "state": "design_only",
+    "scope": "Synthetic schema-shape fixture only. No real route, physical rating, cost, design calculation, field evidence or feasibility claim.",
+    "evidence_id": "fixture-assumption-0001"
+  },
+  "service": {
+    "service_id": "toy-net-ac-service",
+    "kind": "net_ac",
+    "boundary_id": "toy-customer-ac-boundary",
+    "profile": [
+      {
+        "window_start_unix_s": 1760000000,
+        "window_end_unix_s": 1760003600,
+        "quantity_value": 1,
+        "quantity_unit": "kWh",
+        "quality_requirements": [
+          "Illustrative only; quality envelope intentionally unresolved"
+        ]
+      }
+    ],
+    "continuity_requirement": "Not specified; schema fixture only.",
+    "reserve_requirement": "Not specified; schema fixture only."
+  },
+  "route": {
+    "route_id": "toy-two-segment-route",
+    "segments": [
+      {
+        "segment_id": "segment-000",
+        "sequence": 0,
+        "length_m": 1000,
+        "setting": "rural",
+        "ground_or_environment": "Synthetic example; no actual geospatial or geotechnical basis.",
+        "constraints": [
+          "No physical route assumptions are asserted."
+        ],
+        "candidates": [
+          {
+            "candidate_id": "seg0-hvac-overhead",
+            "technology": "hvac_overhead",
+            "carrier": "electricity_ac",
+            "medium": "overhead",
+            "installation_method": "Tower/structure installation is not modelled in this fixture.",
+            "evidence_state": "analyst_scenario",
+            "evidence_ids": [
+              "fixture-assumption-0001"
+            ],
+            "applicability_limitations": [
+              "Candidate identity only; no voltage, ampacity, sag, stability, cost or reliability data."
+            ]
+          },
+          {
+            "candidate_id": "seg0-hvdc-vsc-overhead",
+            "technology": "hvdc_vsc_mmc_overhead",
+            "carrier": "electricity_dc",
+            "medium": "overhead",
+            "installation_method": "Tower/structure installation is not modelled in this fixture.",
+            "evidence_state": "analyst_scenario",
+            "evidence_ids": [
+              "fixture-assumption-0001"
+            ],
+            "applicability_limitations": [
+              "Candidate identity only; no converter, voltage, ampacity, fault protection, cost or reliability data."
+            ]
+          }
+        ]
+      },
+      {
+        "segment_id": "segment-001",
+        "sequence": 1,
+        "length_m": 400,
+        "setting": "urban",
+        "ground_or_environment": "Synthetic constrained crossing; no actual street, geology or utilities are represented.",
+        "constraints": [
+          "No trench, tunnel, land, reinstatement or access costs are modelled."
+        ],
+        "candidates": [
+          {
+            "candidate_id": "seg1-underground-ac",
+            "technology": "underground_ac_cable",
+            "carrier": "electricity_ac",
+            "medium": "buried",
+            "installation_method": "Direct-buried method label only; no thermal or geotechnical calculation.",
+            "evidence_state": "analyst_scenario",
+            "evidence_ids": [
+              "fixture-assumption-0001"
+            ],
+            "applicability_limitations": [
+              "No cable type, rating, charging, joint, thermal, fault, repair or cost data."
+            ]
+          },
+          {
+            "candidate_id": "seg1-underground-hvdc",
+            "technology": "underground_hvdc_cable",
+            "carrier": "electricity_dc",
+            "medium": "buried",
+            "installation_method": "Buried cable method label only; no thermal or geotechnical calculation.",
+            "evidence_state": "analyst_scenario",
+            "evidence_ids": [
+              "fixture-assumption-0001"
+            ],
+            "applicability_limitations": [
+              "No cable type, rating, converter, DC protection, joint, fault, repair or cost data."
+            ]
+          },
+          {
+            "candidate_id": "seg1-gil-ac",
+            "technology": "gas_insulated_line_ac",
+            "carrier": "electricity_ac",
+            "medium": "tunnel",
+            "installation_method": "GIL/tunnel method label only; no tunnel or gas-system calculation.",
+            "evidence_state": "analyst_scenario",
+            "evidence_ids": [
+              "fixture-assumption-0001"
+            ],
+            "applicability_limitations": [
+              "No insulation gas, leakage, thermal, tunnel, ventilation, assembly, cost or lifecycle data."
+            ]
+          }
+        ]
+      }
+    ],
+    "designs": [
+      {
+        "design_id": "design-ac-hybrid",
+        "role": "reference_baseline",
+        "segment_choices": [
+          {
+            "segment_id": "segment-000",
+            "candidate_id": "seg0-hvac-overhead"
+          },
+          {
+            "segment_id": "segment-001",
+            "candidate_id": "seg1-underground-ac"
+          }
+        ],
+        "transitions": [],
+        "evidence_ids": [
+          "fixture-assumption-0001"
+        ],
+        "source_boundary": {
+          "boundary_id": "toy-source-ac-boundary",
+          "carrier": "electricity_ac",
+          "evidence_ids": [
+            "fixture-assumption-0001"
+          ],
+          "notes": "Synthetic input boundary only; generation and upstream conversion are outside this route fixture."
+        }
+      },
+      {
+        "design_id": "design-dc-hybrid",
+        "role": "hybrid_alternative",
+        "segment_choices": [
+          {
+            "segment_id": "segment-000",
+            "candidate_id": "seg0-hvdc-vsc-overhead"
+          },
+          {
+            "segment_id": "segment-001",
+            "candidate_id": "seg1-underground-hvdc"
+          }
+        ],
+        "transitions": [
+          {
+            "transition_id": "terminal-dc-ac-conversion",
+            "after_segment_sequence": 1,
+            "technology": "dc_ac_converter",
+            "input_carrier": "electricity_dc",
+            "output_carrier": "electricity_ac",
+            "evidence_state": "analyst_scenario",
+            "evidence_ids": [
+              "fixture-assumption-0001"
+            ],
+            "applicability_limitations": [
+              "Transition is structural only; no converter station, control, fault, loss, cost or grid-study model."
+            ]
+          }
+        ],
+        "evidence_ids": [
+          "fixture-assumption-0001"
+        ],
+        "source_boundary": {
+          "boundary_id": "toy-source-dc-boundary",
+          "carrier": "electricity_dc",
+          "evidence_ids": [
+            "fixture-assumption-0001"
+          ],
+          "notes": "Synthetic input boundary only; source-side generation and any upstream AC/DC conversion are outside this route fixture."
+        }
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "evidence_id": "fixture-assumption-0001",
+      "classification": "analyst_scenario",
+      "publisher": "Luminous Dynamics synthetic test fixture",
+      "claim_scope": "Schema and reference-integrity fixture only.",
+      "applicability": "Must not be used as a route, capacity, cost, loss, reliability, safety or technology-performance benchmark.",
+      "uncertainty_note": "All engineering quantities and physical feasibility are intentionally absent."
+    }
+  ],
+  "notes": [
+    "This fixture tests a route with two ordered segments, multiple candidate media and two route designs.",
+    "The AC reference selects AC media throughout. The DC alternative selects DC media and explicitly declares a terminal DC-to-AC converter.",
+    "A future semantic validator must confirm every segment is selected exactly once, candidate IDs belong to their named segment, sequence order is contiguous, and carrier changes are bridged by declared transitions.",
+    "No physical calculations, costs, performance or real-world feasibility are implied."
+  ]
+}

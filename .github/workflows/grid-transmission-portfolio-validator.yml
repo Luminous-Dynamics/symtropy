@@ -1,0 +1,128 @@
+name: Grid Transmission Portfolio Validator
+
+on:
+  pull_request:
+    paths:
+      - "tools/grid-transmission-portfolio-validator/**"
+      - "docs/research/grid-transmission-portfolio/data/**"
+      - ".github/workflows/grid-transmission-portfolio-validator.yml"
+  push:
+    paths:
+      - "tools/grid-transmission-portfolio-validator/**"
+      - "docs/research/grid-transmission-portfolio/data/**"
+      - ".github/workflows/grid-transmission-portfolio-validator.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  semantic-validator:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Install JSON Schema validator
+        run: python3 -m pip install 'jsonschema==4.26.0'
+
+      - name: Validate JSON syntax and JSON Schema contracts
+        run: |
+          python3 -m json.tool docs/research/grid-transmission-portfolio/data/route-portfolio-v0.1.schema.json >/dev/null
+          python3 -m json.tool docs/research/grid-transmission-portfolio/data/synthetic-route-portfolio-v0.1.json >/dev/null
+          python3 -m json.tool docs/research/grid-transmission-portfolio/data/global-portability-v0.1.schema.json >/dev/null
+          python3 -m json.tool docs/research/grid-transmission-portfolio/data/global-portability-v0.1.json >/dev/null
+          python3 -m json.tool docs/research/grid-transmission-portfolio/data/lifecycle-economics-v0.1.schema.json >/dev/null
+          python3 -m json.tool docs/research/grid-transmission-portfolio/data/synthetic-lifecycle-economics-v0.1.json >/dev/null
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+
+          root = Path("docs/research/grid-transmission-portfolio/data")
+          pairs = [
+              ("route-portfolio-v0.1.schema.json", "synthetic-route-portfolio-v0.1.json"),
+              ("global-portability-v0.1.schema.json", "global-portability-v0.1.json"),
+              ("lifecycle-economics-v0.1.schema.json", "synthetic-lifecycle-economics-v0.1.json"),
+          ]
+          for schema_name, instance_name in pairs:
+              schema = json.loads((root / schema_name).read_text())
+              instance = json.loads((root / instance_name).read_text())
+              Draft202012Validator.check_schema(schema)
+              errors = sorted(
+                  Draft202012Validator(
+                      schema,
+                      format_checker=FormatChecker(),
+                  ).iter_errors(instance),
+                  key=lambda error: list(map(str, error.absolute_path)),
+              )
+              if errors:
+                  for error in errors:
+                      location = ".".join(map(str, error.absolute_path)) or "$"
+                      print(f"{instance_name}:{location}: {error.message}")
+                  raise SystemExit(1)
+              print(f"JSON Schema PASS: {instance_name} conforms to {schema_name}")
+
+          # Cross-file references and economics consistency cannot be expressed
+          # by JSON Schema alone, so keep these checks explicit and fail closed.
+          global_profile = json.loads((root / "global-portability-v0.1.json").read_text())
+          standard_ids = [item["record_id"] for item in global_profile["standards_register"]]
+          if len(standard_ids) != len(set(standard_ids)):
+              raise SystemExit("duplicate global standards record_id")
+          region_ids = [item["profile_id"] for item in global_profile["regional_profiles"]]
+          if len(region_ids) != len(set(region_ids)):
+              raise SystemExit("duplicate global regional profile_id")
+          known_standard_ids = set(standard_ids)
+          for profile in global_profile["regional_profiles"]:
+              for standard_id in profile["standards_references"]:
+                  if standard_id not in known_standard_ids:
+                      raise SystemExit(
+                          f"{profile['profile_id']}: unknown standards reference {standard_id}"
+                      )
+          print(
+              f"GLOBAL PROFILE PASS: {len(region_ids)} region templates reference "
+              f"{len(standard_ids)} unique standards records"
+          )
+
+          economics = json.loads((root / "synthetic-lifecycle-economics-v0.1.json").read_text())
+          currency = economics["valuation"]["currency_code"]
+          horizon = economics["study_horizon_years"]
+          if economics["local_decision_case"]["currency_code"] != currency:
+              raise SystemExit("local decision case currency differs from valuation currency")
+          if economics["discounting"]["rate_basis"] != economics["valuation"]["price_basis"]:
+              raise SystemExit("discount rate basis must match the real/nominal valuation basis")
+          if economics["service_denominator"]["evaluation_period_years"] != horizon:
+              raise SystemExit("service denominator period must match the study horizon")
+          for item in economics["cost_items"]:
+              if item["currency_code"] != currency:
+                  raise SystemExit(f"{item['cost_item_id']}: cost currency differs from valuation currency")
+              if item["period_year"] > horizon:
+                  raise SystemExit(f"{item['cost_item_id']}: cash-flow year exceeds study horizon")
+          if economics["global_normalisation"]["included"]:
+              normalisation = economics["global_normalisation"]
+              if normalisation["comparison_currency"] != currency:
+                  if (
+                      normalisation["fx_basis"] == "not_applicable"
+                      or not normalisation.get("fx_rate_base_per_local")
+                      or not normalisation.get("fx_as_of_date")
+                      or not normalisation.get("fx_source_uri")
+                  ):
+                      raise SystemExit("cross-currency normalisation requires an evidenced FX rate, date and source")
+          print("LIFECYCLE ECONOMICS PASS: currency, horizon, rate basis and FX rules are coherent")
+          PY
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/grid-transmission-portfolio-validator/Cargo.toml -- --check
+
+      - name: Run semantic validator tests
+        run: cargo test --manifest-path tools/grid-transmission-portfolio-validator/Cargo.toml
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --manifest-path tools/grid-transmission-portfolio-validator/Cargo.toml --all-targets -- -D warnings
+
+      - name: Validate checked-in synthetic route
+        run: cargo run --manifest-path tools/grid-transmission-portfolio-validator/Cargo.toml -- docs/research/grid-transmission-portfolio/data/synthetic-route-portfolio-v0.1.json
