@@ -1,0 +1,251 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/synthetic-joints/actuator-calibration/v0.1/actuator_grouped_conformal.schema.json",
+  "title": "Actuator Grouped Split-Conformal Calibration Input v0.1",
+  "description": "Frozen model/split/domain identities and specimen-grouped prediction interval observations. Statistical coverage is marginal at the specimen group under exchangeability, not conditional under distribution shift.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "plan",
+    "calibration",
+    "test",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "plan": {
+      "$ref": "#/$defs/plan"
+    },
+    "calibration": {
+      "$ref": "#/$defs/dataset"
+    },
+    "test": {
+      "$ref": "#/$defs/dataset"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "evidence_class": {
+      "enum": [
+        "independent_physical",
+        "source_author_physical",
+        "vendor_physical",
+        "unknown"
+      ]
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_digest",
+        "training_split_digest",
+        "calibration_split_digest",
+        "test_split_digest",
+        "mission_set_digest",
+        "system_boundary_digest",
+        "operating_condition_digest",
+        "domain_digest",
+        "alpha",
+        "evidence_class",
+        "training_specimen_ids"
+      ],
+      "properties": {
+        "model_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "training_split_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_split_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "test_split_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mission_set_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "system_boundary_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operating_condition_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "domain_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "alpha": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        },
+        "training_specimen_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "split_digest",
+        "model_digest",
+        "mission_set_digest",
+        "system_boundary_digest",
+        "operating_condition_digest",
+        "domain_digest",
+        "specimens"
+      ],
+      "properties": {
+        "split_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mission_set_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "system_boundary_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operating_condition_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "domain_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "specimens": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/specimen"
+          }
+        }
+      }
+    },
+    "specimen": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "specimen_id",
+        "manufacturer_id",
+        "actuator_model_id",
+        "architecture_id",
+        "evidence_class",
+        "evidence_reference",
+        "measurement_method",
+        "calibration_digest",
+        "observations"
+      ],
+      "properties": {
+        "specimen_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manufacturer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actuator_model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "architecture_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        },
+        "evidence_reference": {
+          "type": "string",
+          "format": "uri"
+        },
+        "measurement_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/observation"
+          }
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_id",
+        "sample_index",
+        "predicted_lower_torque_nm",
+        "predicted_upper_torque_nm",
+        "observed_torque_nm",
+        "in_domain"
+      ],
+      "properties": {
+        "sample_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sample_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "predicted_lower_torque_nm": {
+          "type": "number"
+        },
+        "predicted_upper_torque_nm": {
+          "type": "number"
+        },
+        "observed_torque_nm": {
+          "type": "number"
+        },
+        "in_domain": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}
