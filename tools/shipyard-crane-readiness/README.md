@@ -60,17 +60,28 @@ The positive disposition is `ReadyForHumanReview`. It means only that supplied r
 
 There is no `SafeToLift`, `Approved`, `PermitIssued`, `StartHoist` or actuator command state. Responsible engineers, appointed persons, employers and site authorities retain authority.
 
+## Event replay and invalidation
+
+The replay model accepts source-owned event envelopes with a source ID, monotonic per-source sequence and event ID. It:
+- uses the highest event sequence per source independent of input arrival order;
+- treats exact duplicate event IDs/payloads as idempotent;
+- ignores stale superseded events;
+- invalidates only when the latest event changes a dependency pinned in the readiness plan;
+- returns indeterminate for source-identity mismatch or conflicting payloads at the same source sequence.
+
+This is deterministic batch replay over supplied envelopes, not a live event transport or source-authentication system. The source owner must guarantee monotonic sequence semantics; event receipts and source signatures remain external. The frozen vector suite includes changed-state, no-op/unrelated, event-order, same-sequence conflict, duplicate and source-spoof controls.
+
 ## Machine-readable contracts
 
 - `schemas/readiness-plan-v0.1.schema.json`: canonical input shape.
 - `schemas/readiness-report-v0.1.schema.json`: report/disposition shape.
-- `schemas/conformance-vectors-v0.1.schema.json` and `fixtures/conformance-vectors-v0.1.json`: 15 frozen synthetic vectors mapped to named Rust tests.
+- `schemas/conformance-vectors-v0.1.schema.json` and `fixtures/conformance-vectors-v0.1.json`: 22 frozen synthetic vectors mapped to named Rust tests.
 
 The Rust suite checks that every vector maps to a test; CI checks unique IDs/test names, fixture status and the corresponding schema contract fields. Schema shape validation does not authenticate source records, credentials, inspection reports or physical truth.
 
 ## Tests
 
-The 16 unit tests (15 frozen conformance vectors plus one fixture-to-test mapping check) cover a current baseline, missing/revoked inspections, bypassed/unknown devices, stale duty evidence, missing personnel, briefing revision/acknowledgement controls, exclusion-zone enforcement, preflight receipt invalidation and context binding, duplicate evidence IDs and input-order invariance.
+The 23 unit tests (22 frozen conformance vectors plus one fixture-to-test mapping check) cover a current baseline, missing/revoked inspections, bypassed/unknown devices, stale duty evidence, missing personnel, briefing revision/acknowledgement controls, exclusion-zone enforcement, preflight receipt invalidation and context binding, duplicate evidence IDs and input-order invariance.
 
 Run with pinned Rust 1.96:
 
@@ -86,7 +97,7 @@ The local authoring environment has no Rust/Cargo toolchain. These tests are aut
 ## Next qualification gates
 
 1. Add a machine-readable input/report schema and frozen conformance vector map.
-2. Add event-sourced invalidation and event-order convergence for inspection, device, duty, personnel and briefing changes.
+2. Event-sourced invalidation and event-order convergence now have a bounded first implementation in the Rust crate; expand source contracts and independent model checking next.
 3. Add an independent oracle for dependency closure and false-ready negative controls.
 4. Bind source-owned ISO/OEM/site applicability profiles without copying licensed standard text or proprietary inspection/duty data into public fixtures.
 5. Only after rights and engineering review, replay permissioned historical yard evidence in shadow mode.
