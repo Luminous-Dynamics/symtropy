@@ -48,7 +48,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         },
         {
           "name": "task_energy",
@@ -61,7 +62,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         },
         {
           "name": "task_coverage",
@@ -74,7 +76,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         }
       ],
       "hard_constraints": [
@@ -89,7 +92,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "mission_set_digest": "frozen-mission-set-01"
+          "mission_set_digest": "frozen-mission-set-01",
+          "calibration_receipt": null
         },
         {
           "name": "torque_margin",
@@ -102,11 +106,14 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "mission_set_digest": "frozen-mission-set-01"
+          "mission_set_digest": "frozen-mission-set-01",
+          "calibration_receipt": null
         }
       ],
       "system_boundary_digest": "complete-installed-joint-boundary-v1",
-      "stress_set_digest": "frozen-bounded-stress-set-v1"
+      "stress_set_digest": "frozen-bounded-stress-set-v1",
+      "model_digest": null,
+      "prediction_domain_digest": null
     },
     {
       "candidate_id": "independent-B",
@@ -125,7 +132,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         },
         {
           "name": "task_energy",
@@ -138,7 +146,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         },
         {
           "name": "task_coverage",
@@ -151,7 +160,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         }
       ],
       "hard_constraints": [
@@ -166,7 +176,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "mission_set_digest": "frozen-mission-set-01"
+          "mission_set_digest": "frozen-mission-set-01",
+          "calibration_receipt": null
         },
         {
           "name": "torque_margin",
@@ -179,11 +190,14 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "mission_set_digest": "frozen-mission-set-01"
+          "mission_set_digest": "frozen-mission-set-01",
+          "calibration_receipt": null
         }
       ],
       "system_boundary_digest": "complete-installed-joint-boundary-v1",
-      "stress_set_digest": "frozen-bounded-stress-set-v1"
+      "stress_set_digest": "frozen-bounded-stress-set-v1",
+      "model_digest": null,
+      "prediction_domain_digest": null
     },
     {
       "candidate_id": "source-C",
@@ -202,7 +216,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-02",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         },
         {
           "name": "task_energy",
@@ -215,7 +230,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-02",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         },
         {
           "name": "task_coverage",
@@ -228,7 +244,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-02",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         }
       ],
       "hard_constraints": [
@@ -243,7 +260,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "mission_set_digest": "frozen-mission-set-02"
+          "mission_set_digest": "frozen-mission-set-02",
+          "calibration_receipt": null
         },
         {
           "name": "torque_margin",
@@ -256,11 +274,14 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "mission_set_digest": "frozen-mission-set-02"
+          "mission_set_digest": "frozen-mission-set-02",
+          "calibration_receipt": null
         }
       ],
       "system_boundary_digest": "complete-installed-joint-boundary-v1",
-      "stress_set_digest": "frozen-bounded-stress-set-v1"
+      "stress_set_digest": "frozen-bounded-stress-set-v1",
+      "model_digest": null,
+      "prediction_domain_digest": null
     },
     {
       "candidate_id": "vendor-D",
@@ -279,7 +300,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         },
         {
           "name": "task_energy",
@@ -292,7 +314,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         },
         {
           "name": "task_coverage",
@@ -305,7 +328,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         }
       ],
       "hard_constraints": [
@@ -320,7 +344,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "mission_set_digest": "frozen-mission-set-01"
+          "mission_set_digest": "frozen-mission-set-01",
+          "calibration_receipt": null
         },
         {
           "name": "torque_margin",
@@ -333,11 +358,14 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "mission_set_digest": "frozen-mission-set-01"
+          "mission_set_digest": "frozen-mission-set-01",
+          "calibration_receipt": null
         }
       ],
       "system_boundary_digest": "complete-installed-joint-boundary-v1",
-      "stress_set_digest": "frozen-bounded-stress-set-v1"
+      "stress_set_digest": "frozen-bounded-stress-set-v1",
+      "model_digest": null,
+      "prediction_domain_digest": null
     },
     {
       "candidate_id": "model-E",
@@ -356,7 +384,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         },
         {
           "name": "task_energy",
@@ -369,7 +398,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         },
         {
           "name": "task_coverage",
@@ -382,7 +412,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         }
       ],
       "hard_constraints": [
@@ -397,7 +428,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "mission_set_digest": "frozen-mission-set-01"
+          "mission_set_digest": "frozen-mission-set-01",
+          "calibration_receipt": null
         },
         {
           "name": "torque_margin",
@@ -410,11 +442,14 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "mission_set_digest": "frozen-mission-set-01"
+          "mission_set_digest": "frozen-mission-set-01",
+          "calibration_receipt": null
         }
       ],
       "system_boundary_digest": "complete-installed-joint-boundary-v1",
-      "stress_set_digest": "frozen-bounded-stress-set-v1"
+      "stress_set_digest": "frozen-bounded-stress-set-v1",
+      "model_digest": null,
+      "prediction_domain_digest": null
     },
     {
       "candidate_id": "unknown-F",
@@ -433,7 +468,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         },
         {
           "name": "task_energy",
@@ -446,7 +482,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         },
         {
           "name": "task_coverage",
@@ -459,7 +496,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         }
       ],
       "hard_constraints": [
@@ -474,7 +512,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "mission_set_digest": "frozen-mission-set-01"
+          "mission_set_digest": "frozen-mission-set-01",
+          "calibration_receipt": null
         },
         {
           "name": "torque_margin",
@@ -487,11 +526,14 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "mission_set_digest": "frozen-mission-set-01"
+          "mission_set_digest": "frozen-mission-set-01",
+          "calibration_receipt": null
         }
       ],
       "system_boundary_digest": "complete-installed-joint-boundary-v1",
-      "stress_set_digest": "frozen-bounded-stress-set-v1"
+      "stress_set_digest": "frozen-bounded-stress-set-v1",
+      "model_digest": null,
+      "prediction_domain_digest": null
     },
     {
       "candidate_id": "infeasible-G",
@@ -510,7 +552,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         },
         {
           "name": "task_energy",
@@ -523,7 +566,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         },
         {
           "name": "task_coverage",
@@ -536,7 +580,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "mission_set_digest": "frozen-mission-set-01",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "calibration_receipt": null
         }
       ],
       "hard_constraints": [
@@ -551,7 +596,8 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "mission_set_digest": "frozen-mission-set-01"
+          "mission_set_digest": "frozen-mission-set-01",
+          "calibration_receipt": null
         },
         {
           "name": "torque_margin",
@@ -564,11 +610,14 @@
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
           "stress_set_digest": "frozen-bounded-stress-set-v1",
-          "mission_set_digest": "frozen-mission-set-01"
+          "mission_set_digest": "frozen-mission-set-01",
+          "calibration_receipt": null
         }
       ],
       "system_boundary_digest": "complete-installed-joint-boundary-v1",
-      "stress_set_digest": "frozen-bounded-stress-set-v1"
+      "stress_set_digest": "frozen-bounded-stress-set-v1",
+      "model_digest": null,
+      "prediction_domain_digest": null
     }
   ],
   "claim_ceiling": "Synthetic Pareto/evidence-lane arithmetic only. Values, margins, sources and methods are fixture placeholders; they are not actuator measurements, robust design predictions or physical qualification."
