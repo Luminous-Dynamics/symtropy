@@ -140,6 +140,7 @@
         "regime",
         "points",
         "maximum_interpolation_gap_rad_s",
+        "interpolation_error_bound_nm",
         "maximum_contiguous_peak_duration_s",
         "evidence"
       ],
@@ -179,6 +180,14 @@
           "items": {
             "type": "string"
           }
+        },
+        "interpolation_error_bound_nm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Validated upper bound on piecewise-linear interpolation error in N m. Null means off-knot capability is unknown."
         }
       }
     },
