@@ -106,7 +106,7 @@ R_coupling = A - B
 interval(R) = [A.lower - B.upper, A.upper - B.lower]
 ```
 
-Zero containment means the two boundary measurements are consistent with their declared intervals. The two control volumes intentionally have different system-boundary digests, but must share mission-interval, operating-condition and time-alignment digests.
+Zero containment means the two boundary measurements are consistent with their declared intervals. The two control volumes intentionally have different system-boundary digests, but must share mission-interval, exact start/end times, operating-condition and time-alignment digests. Their port-location digests must also match. If a cable or connector loss lies between the sensor locations, the two terms are not the same physical port; represent that loss as its own measured energy term instead of forcing the coupling to close.
 
 A cable, connector or converter loss between two instrument locations must either be included in one defined boundary or represented as its own measured port. It must not be hidden by widening an interval after seeing the residual.
 
@@ -118,6 +118,7 @@ Each input term represents an **already-integrated** signed energy interval and 
 - absolute integration/quadrature error bound in joules and its source/digest;
 - integration method and frozen integration-contract digest;
 - exact start/end time and mission-interval digest;
+- physical-port-location digest identifying the exact interface where the energy was measured;
 - time-alignment, system-boundary and operating-condition digests;
 - calibration status, traceability status and evidence class;
 - source, measurement method, calibration digest and raw-trace digest.
@@ -146,7 +147,7 @@ The file examples/dc-bus-energy-ledger-known-answer.json contains four synthetic
 
 These cases use fabricated identities, sources, calibration and raw-trace digests. They are software known answers, not physical measurements.
 
-The Rust test corpus also constructs a complete three-volume example and checks the two inter-boundary energy couplings. Negative controls change a drive-terminal energy or storage-terminal energy while keeping the local balance(s) closed, demonstrating that an inter-boundary mismatch is still detected.
+The Rust test corpus also constructs a complete three-volume example and checks the two inter-boundary energy couplings. Negative controls change a drive-terminal energy or storage-terminal energy while keeping the local balance(s) closed, change the physical port-location digest, or change exact start/end times. Those controls show that a local balance cannot hide an inter-boundary mismatch.
 
 ## 7. Run
 
@@ -160,7 +161,7 @@ cargo clippy --manifest-path benchmarks/synthetic-joints/dc-bus-energy-ledger/v0
 
 Dedicated workflow: .github/workflows/dc-bus-energy-ledger.yml.
 
-Twenty-seven uniquely numbered Rust test definitions cover motoring/overhauling, shared-bus and storage balances; interval expansion; missing/extra/duplicate ports; units; calibration and traceability; mismatch in mission/time/boundary/conditions; nonnegative dissipation; provenance receipts; residual failure; complete-ledger coupling; and deliberate actuator/bus and bus/storage boundary mismatches.
+Twenty-nine uniquely numbered Rust test definitions cover motoring/overhauling, shared-bus and storage balances; interval expansion; missing/extra/duplicate ports; units; calibration and traceability; mismatch in mission/time/boundary/conditions; nonnegative dissipation; provenance receipts; residual failure; complete-ledger coupling; deliberate actuator/bus and bus/storage boundary mismatches; physical-port digest mismatch; and exact interval-boundary mismatch.
 
 The authoring environment used for this change has no local Cargo/rustc/rustfmt. Exact-head CI is the compilation, formatting and Clippy gate; no local Rust pass is claimed.
 
