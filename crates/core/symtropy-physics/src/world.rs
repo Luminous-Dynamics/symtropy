@@ -2695,7 +2695,7 @@ mod actuator_step_semantics_tests {
             world.solver_iterations = iterations;
             let anchor = static_anchor(&mut world, [0.0, 0.0, 0.0]);
             let rotor = world.add_sphere(Point::new([10.0, 0.0, 0.0]), 0.5, 1.0);
-            let mut motor = MotorDrive::new(0.0, 2.0).with_gains(2.0, 0.0);
+            let mut motor = MotorDrive::new(0.0, 2.0).with_gains(0.0, 2.0);
             motor.target_vel = 1.0;
             let hinge = HingeJoint::with_anchors(
                 anchor,
@@ -2732,6 +2732,39 @@ mod actuator_step_semantics_tests {
 
         assert!(observed_velocities.windows(2).all(|pair| pair[0] == pair[1]));
         assert!(observed_work.windows(2).all(|pair| pair[0] == pair[1]));
+    }
+
+    #[test]
+    fn hinge_velocity_target_is_an_equilibrium_with_nonzero_position_gain_and_velocity_gain() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.solver_iterations = 4;
+        let anchor = static_anchor(&mut world, [0.0, 0.0, 0.0]);
+        let rotor = world.add_sphere(Point::new([10.0, 0.0, 0.0]), 0.5, 1.0);
+        let mut motor = MotorDrive::new(0.0, 2.0).with_gains(3.0, 2.0);
+        motor.target_vel = 1.0;
+        let hinge = HingeJoint::with_anchors(
+            anchor,
+            rotor,
+            SVector::from([10.0, 0.0, 0.0]),
+            SVector::zeros(),
+            0,
+            1,
+        )
+        .with_motor(motor);
+        world.add_constraint(Box::new(hinge));
+        world
+            .body_mut(rotor)
+            .expect("rotor")
+            .angular_velocity
+            .set(0, 1, 1.0);
+
+        let mut callback = WorkRecorder::default();
+        world.step_with_callback(0.01, &mut callback);
+
+        let velocity = world.body(rotor).unwrap().angular_velocity.get(0, 1);
+        assert!((velocity - 1.0).abs() < 1.0e-12);
+        assert_eq!(callback.receipts.len(), 1);
+        assert!(callback.receipts[0].1.abs() < 1.0e-12);
     }
 
     #[test]
