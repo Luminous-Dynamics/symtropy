@@ -1464,6 +1464,11 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
 mod tests {
     use super::*;
 
+    fn refresh_baseline_manifest(case: &mut ExecutionCase) {
+        case.baseline_event_manifest_sha256 =
+            canonical_baseline_event_sha256(&case.baseline_events).expect("baseline manifest serializes");
+    }
+
     fn fixture() -> ExecutionCase {
         ExecutionCase {
             schema_version: "0.1.0".to_string(),
@@ -1719,6 +1724,7 @@ mod tests {
         });
 
         case.baseline_events.push(case.events[1].clone());
+        refresh_baseline_manifest(&mut case);
 
         let baseline = &mut case.baseline_commitments[0];
         baseline.state = CommitmentState::InProgress;
@@ -1826,6 +1832,7 @@ mod tests {
             interruption_cause: None,
         });
         case.baseline_events.push(case.events.last().expect("new baseline snapshot").clone());
+        refresh_baseline_manifest(&mut case);
         case.baseline_commitments[0].state = CommitmentState::InProgress;
         case.baseline_commitments[0].version = 1;
         case.baseline_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
@@ -1948,6 +1955,7 @@ mod tests {
             interruption_cause: None,
         });
         case.baseline_events.push(case.events.last().expect("new baseline snapshot").clone());
+        refresh_baseline_manifest(&mut case);
         case.baseline_commitments[0].state = CommitmentState::InProgress;
         case.proposed_commitments[0].state = CommitmentState::InProgress;
         case.baseline_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
@@ -1987,6 +1995,7 @@ mod tests {
             interruption_cause: None,
         });
         case.baseline_events.push(case.events.last().expect("new baseline snapshot").clone());
+        refresh_baseline_manifest(&mut case);
         case.baseline_commitments[0].state = CommitmentState::InProgress;
         case.proposed_commitments[0].state = CommitmentState::InProgress;
         case.baseline_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
@@ -2107,9 +2116,24 @@ mod tests {
     }
 
     #[test]
+    fn baseline_event_manifest_digest_mismatch_is_rejected() {
+        let mut case = fixture();
+        case.baseline_event_manifest_sha256.replace_range(0..1, "0");
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn baseline_event_manifest_reference_is_required() {
+        let mut case = fixture();
+        case.baseline_event_manifest_ref.clear();
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
     fn baseline_event_manifest_rejects_duplicate_ids() {
         let mut case = fixture();
         case.baseline_events.push(case.baseline_events[0].clone());
+        refresh_baseline_manifest(&mut case);
         assert!(validate(&case).is_err());
     }
 
