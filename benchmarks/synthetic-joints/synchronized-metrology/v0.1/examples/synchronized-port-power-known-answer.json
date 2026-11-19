@@ -1,0 +1,94 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "synthetic-synchronized-mechanical-port-v0.1",
+  "torque_channel": {
+    "kind": "output_torque",
+    "value": {
+      "lower": 9,
+      "upper": 11
+    },
+    "sensor_range": {
+      "lower": -200,
+      "upper": 200
+    },
+    "calibrated_range": {
+      "lower": -100,
+      "upper": 100
+    },
+    "bound_representation": "validated_bound",
+    "calibration_status": "in_date",
+    "traceability_status": "established",
+    "evidence_class": "independent_physical",
+    "sensor_serial": "torque-sensor-01",
+    "calibration_sensor_serial": "torque-sensor-01",
+    "calibration_certificate_reference": "https://example.invalid/calibration/torque-sensor-01",
+    "reference_standard_reference": "https://example.invalid/standards/traceable-reference-01",
+    "calibration_chain_digest": "chain-torque-sensor-01-v1",
+    "calibration_digest": "cal-torque-sensor-01-v1",
+    "system_boundary_digest": "complete-installed-joint-boundary-v1",
+    "operating_condition_digest": "48V-25C-cooling-A-v1",
+    "source_reference": "https://example.invalid/measurement/torque-sensor-01-run-01",
+    "measurement_method": "Synthetic bounded interval and timing known-answer fixture; no hardware measurement.",
+    "reference_clock_id": "mapped-common-clock-domain-01",
+    "clock_mapping_digest": "clock-map-torque-sensor-01-to-common-v1",
+    "reference_instant_s": 12.5,
+    "sample_time_offset_s": 0.05,
+    "clock_offset_uncertainty_s": 0.001,
+    "timestamp_jitter_bound_s": 0.001,
+    "filter_group_delay_s": 0.002,
+    "filter_delay_compensation_s": 0.001,
+    "filter_delay_uncertainty_s": 0.001,
+    "absolute_slew_bound_per_s": 2,
+    "slew_bound_provenance_digest": "slew-proof-torque-sensor-01-v1",
+    "slew_bound_source_reference": "https://example.invalid/slew-bounds/synthetic"
+  },
+  "angular_velocity_channel": {
+    "kind": "angular_velocity",
+    "value": {
+      "lower": 4,
+      "upper": 6
+    },
+    "sensor_range": {
+      "lower": -200,
+      "upper": 200
+    },
+    "calibrated_range": {
+      "lower": -100,
+      "upper": 100
+    },
+    "bound_representation": "validated_bound",
+    "calibration_status": "in_date",
+    "traceability_status": "established",
+    "evidence_class": "independent_physical",
+    "sensor_serial": "encoder-01",
+    "calibration_sensor_serial": "encoder-01",
+    "calibration_certificate_reference": "https://example.invalid/calibration/encoder-01",
+    "reference_standard_reference": "https://example.invalid/standards/traceable-reference-01",
+    "calibration_chain_digest": "chain-encoder-01-v1",
+    "calibration_digest": "cal-encoder-01-v1",
+    "system_boundary_digest": "complete-installed-joint-boundary-v1",
+    "operating_condition_digest": "48V-25C-cooling-A-v1",
+    "source_reference": "https://example.invalid/measurement/encoder-01-run-01",
+    "measurement_method": "Synthetic bounded interval and timing known-answer fixture; no hardware measurement.",
+    "reference_clock_id": "mapped-common-clock-domain-01",
+    "clock_mapping_digest": "clock-map-encoder-01-to-common-v1",
+    "reference_instant_s": 12.5,
+    "sample_time_offset_s": -0.1,
+    "clock_offset_uncertainty_s": 0.0005,
+    "timestamp_jitter_bound_s": 0.0005,
+    "filter_group_delay_s": 0.003,
+    "filter_delay_compensation_s": 0.002,
+    "filter_delay_uncertainty_s": 0.0005,
+    "absolute_slew_bound_per_s": 3,
+    "slew_bound_provenance_digest": "slew-proof-encoder-01-v1",
+    "slew_bound_source_reference": "https://example.invalid/slew-bounds/synthetic"
+  },
+  "claim_ceiling": "Synthetic known-answer input only. It validates interval and timing arithmetic; it is not an actuator measurement, instrument calibration, traceability claim, power/energy test or electrical regeneration result.",
+  "notes": [
+    "Torque and encoder values are synthetic deterministic intervals.",
+    "Clock, jitter and residual filter-delay terms are all bounded synthetic inputs.",
+    "The mechanical port-power result is bounded using the all-four-corners interval product.",
+    "No energy integral is calculated because no independent quadrature/interpolation error bound is included.",
+    "Expected synthetic arithmetic: {\"torque_skew_s\":0.054000000000000006,\"torque_expansion_nm\":0.10800000000000001,\"speed_skew_s\":0.10250000000000001,\"speed_expansion_rad_s\":0.3075,\"pre_power_w\":{\"lower\":36,\"upper\":66},\"aligned_power_w\":{\"lower\":32.833709999999996,\"upper\":70.06371}}."
+  ]
+}
