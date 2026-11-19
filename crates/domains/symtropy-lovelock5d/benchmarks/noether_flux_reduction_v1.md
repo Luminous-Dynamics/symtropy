@@ -239,3 +239,75 @@ The Rust reference crate now includes:
 - a finite-alpha Boulware–Deser source-balance test.
 
 The proposed dual-conserved-flux reduction is withdrawn. The remaining solver architectures are the full four-profile system, the angular-Noether reduced system using the true conserved \(P_w\), and a source-balanced system using the complete Eq. (2.14) identity. The latter remains a benchmark hypothesis and must retain all remaining EGB field equations.
+
+
+## 10. Exact finite-coupling slow-rotation control
+
+Brihaye et al. (2010), Eq. (2.21), supplies a closed-form first-order rotating solution around the Boulware–Deser branch. Define
+\[
+C=2r_H^2+\alpha,\qquad s(r)=\sqrt{1+\frac{\alpha C}{r^4}},
+\]
+\[
+F(r)=1-\frac{C}{r^2(1+s(r))}.
+\]
+Then
+\[
+b=f=F+O(a^2),\quad h=r^2+O(a^2),\quad
+w(r)=\frac{aC}{r^4(1+s(r))}+O(a^3).
+\]
+The derivative is
+\[
+w'=-\frac{2aC}{r^5s}+O(a^3).
+\]
+On this background the full angular Noether bracket factorizes:
+\[
+K(r)=r^2-\alpha(F-1)=r^2s(r).
+\]
+For alpha>=0, \(s\ge1\), hence
+\[
+\boxed{K(r)\ge r^2>0\quad(r>0).}
+\]
+This is an analytic global quadrature-safety result for the static/linear-spin reference family. It is not a positivity theorem for arbitrary nonlinear rotating candidates.
+
+Since \(\sqrt{fh/b}=r\) and \(h=r^2\),
+\[
+P_w=w'r^3K=-2aC=-4\mathcal W,\qquad
+\mathcal W=\frac{aC}{2}.
+\]
+The horizon data are
+\[
+\Omega_H=\frac{a}{r_H^2},\quad
+b_1=f_1=\frac{2r_H}{r_H^2+\alpha},\quad
+w_1=-\frac{2aC}{r_H^3(r_H^2+\alpha)}.
+\]
+The horizon relation Eq. (3.8) independently returns \(\mathcal W=aC/2\).
+
+At alpha=0, this is the linear-spin part of exact Myers–Perry. The exact mismatch begins at cubic order:
+\[
+w_{\mathrm{MP}}-aW_1=
+\frac{a^3}{r_H^4}
+\frac{u^2(1-u^2)}{1-q+qu^2},\qquad
+u=\frac{r_H^2}{r^2},\ q=\frac{a^2}{r_H^2}.
+\]
+The cubic term is the expected truncation error, not a failure of the first-order solution.
+
+The public Rust crate now exposes SlowRotationBoulwareDeser5D, with profile derivatives, horizon angular velocity, asymptotic W and angular flux. The independent symbolic fixture and exact rational control at r_H=1, alpha=0.7, a=0.02, r=2 are:
+- benchmarks/derive_slow_rotation_reference.py;
+- benchmarks/slow_rotation_5d_reference_v1.json.
+
+The Rust test suite includes finite-alpha flux constancy and exact cubic-order comparison with Myers–Perry. An independent Python forward-jet replay at r_H=1, alpha=0.7, r=2 and a=0.01,0.02 found that the even-sector residual norm scales by exactly four (as a^2), while the angular equation is at roundoff. This validates the perturbative order, not the omitted O(a^2) backreaction.
+
+## 11. Next perturbative rung
+
+Issue [#6169](https://github.com/Luminous-Dynamics/symtropy/issues/6169) owns the second-order-in-spin backreaction:
+\[
+b=F+a^2B_2+O(a^4),\quad
+f=F+a^2F_2+O(a^4),\quad
+h=r^2+a^2H_2+O(a^4).
+\]
+At alpha=0, exact Myers–Perry supplies
+\[
+B_2=-u(1-u^2)/r_H^2,\quad
+F_2=-u(1-u)/r_H^2,\quad H_2=u.
+\]
+The finite-alpha second-order system is an inhomogeneous linear radial problem sourced by W_1^2 and its derivatives. Its exact MP limit is a required known-answer control before solving it on a coupling grid. The full four-profile nonlinear system remains the authority outside a demonstrated uniform perturbative regime.
