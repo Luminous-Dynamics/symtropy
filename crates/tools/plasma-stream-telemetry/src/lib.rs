@@ -60,7 +60,9 @@ pub struct ModelIdentity {
     pub revision: String,
     pub artifact_sha256: String,
     pub runtime_id: String,
-    pub verified: bool,
+    /// Digest reference to separately retained model-verification evidence.
+    /// This is not a signature and does not authenticate the evidence itself.
+    pub verification_evidence_sha256: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -374,7 +376,10 @@ fn report_event(
             EventDisposition::TransportRejected
         }
         IngressDisposition::Received => {
-            if !event.model.verified {
+            if event.model.verification_evidence_sha256
+                .as_ref()
+                .is_none_or(|digest| !is_sha256(digest))
+            {
                 findings.push("model artifact identity is not verified".to_owned());
                 EventDisposition::ModelUnqualified
             } else if event.queue_depth > spec.max_queue_depth {
@@ -621,7 +626,7 @@ mod tests {
                 revision: "rev-1".to_owned(),
                 artifact_sha256: DIGEST.to_owned(),
                 runtime_id: "cpu-host".to_owned(),
-                verified: true,
+                verification_evidence_sha256: Some(DIGEST.to_owned()),
             },
             acknowledgement: None,
         }
@@ -746,7 +751,7 @@ mod tests {
     #[test]
     fn unverified_model_cannot_receive_valid_disposition() {
         let mut input = event(1, 900, 1000);
-        input.model.verified = false;
+        input.model.verification_evidence_sha256 = None;
         let report = replay_trace(&request(vec![input])).expect("replay");
         assert_eq!(report.body.reports[0].disposition, EventDisposition::ModelUnqualified);
     }
