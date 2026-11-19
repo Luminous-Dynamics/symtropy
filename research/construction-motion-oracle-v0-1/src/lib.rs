@@ -5,6 +5,12 @@
 //! producer's geometric expansion helpers.
 
 pub mod field_layout_acceptance;
+pub mod dependency_scoped_invalidation;
+pub use dependency_scoped_invalidation::{
+    DependencyGraphError, DependencyInvalidationPlan, EvidenceDependency,
+    EvidenceDependencyGraph, EvidenceNode, EvidenceNodeKind, EvidenceRevisionChange,
+    EvidenceSnapshot, InvalidatedEvidenceNode, NodeVersion, RequalificationAction,
+};
 pub mod ifc_ids_preflight;
 pub use ifc_ids_preflight::{
     GeometryPreflightEvaluation, IfcIdsPreflightError, IfcIdsPreflightReport,
