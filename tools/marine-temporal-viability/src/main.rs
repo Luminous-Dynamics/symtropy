@@ -181,7 +181,7 @@ fn check_gate(
 fn metric_values(
     record: &Value,
     floors: &BTreeMap<String, Floor>,
-    expected_class: &str,
+    record_status: &str,
     context: &str,
     require_estimate: bool,
     errors: &mut Vec<String>,
@@ -206,7 +206,10 @@ fn metric_values(
             errors.push(format!("{context} metric '{metric}' has wrong unit or invalid evidence digest"));
             continue;
         }
-        if string_at(item, "measurement_class") != Some(expected_class)
+        let measurement_class = string_at(item, "measurement_class").unwrap_or("");
+        if !["measured", "modeled", "derived", "synthetic"].contains(&measurement_class)
+            || (record_status == "synthetic" && measurement_class != "synthetic")
+            || (record_status != "synthetic" && measurement_class == "synthetic")
             || string_at(item, "measurement_method").is_none_or(str::is_empty)
         {
             errors.push(format!("{context} metric '{metric}' has an invalid measurement class or method"));
@@ -419,8 +422,7 @@ fn validate_path(
         } else {
             route_progress.push(progress.unwrap());
         }
-        let class = if record_status == "synthetic" { "synthetic" } else { "measured" };
-        let metrics = metric_values(point, floors, class, &point_context, true, errors);
+        let metrics = metric_values(point, floors, record_status, &point_context, true, errors);
         if let Some(items) = point.get("metrics").and_then(Value::as_array) {
             for item in items {
                 if parse_time(string_at(item, "measured_at")) != Some(time) {
@@ -474,8 +476,7 @@ fn validate_path(
         {
             errors.push(format!("{segment_context} does not span its exact adjacent timepoints"));
         }
-        let class = if record_status == "synthetic" { "synthetic" } else { "measured" };
-        let metrics = metric_values(segment, floors, class, &segment_context, false, errors);
+        let metrics = metric_values(segment, floors, record_status, &segment_context, false, errors);
         apply_floors(&metrics, floors, &segment_context, blockers);
         let start_values = point_metric_values.get(index);
         let end_values = point_metric_values.get(index + 1);
@@ -628,7 +629,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                 let arrival_passes = times.last().is_some_and(|point| {
                     let metrics = metric_values(
                         point, &floors,
-                        if status == "synthetic" { "synthetic" } else { "measured" },
+                        status,
                         "arrival-only diagnostic", true, &mut Vec::new(),
                     );
                     floors.iter().all(|(metric, floor)| {
