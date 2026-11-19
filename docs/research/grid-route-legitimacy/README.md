@@ -81,3 +81,21 @@ Proposed internal gates (not achievements):
 ## 7. Claim boundary
 
 This is research and audit-support only. It does not provide legal opinions, determine sufficiency of consultation, adjudicate rights, set compensation, grant permits, establish social licence or authorize access/construction. A validator pass is not a permit, consent, servitude, compensation agreement or approval. Competent authorities, landowners, affected rights holders and qualified professionals retain those roles.
+
+
+## 8. 2026 permitting benchmark reference
+
+ACER's 2026 Monitoring Report on energy infrastructure development identifies permit-granting as the leading cause of delay for electricity transmission projects in its reporting scope. It reports average permitting duration rising from under three years in 2020 to almost 4.5 years in 2026, and states that 20% of electricity transmission Projects of Common Interest had not progressed status for more than six years.
+
+These are EU project-monitoring observations, not a service-level target for every national authority or a basis for shortening lawful procedures. They strengthen the reason to separate:
+- statutory minimum/public participation windows;
+- authority review and decision time;
+- applicant completeness and rework time;
+- land/tenure identification and instrument negotiation;
+- route redesign and environmental/cultural study time;
+- appeals, disputes and unresolved commitments.
+
+A credible improvement target is reducing avoidable applicant rework and route redesign, while preserving the legal process and reporting unresolved rights issues—not reducing the statutory window or the number of affected people who can participate.
+
+Source:
+- ACER 2026 Monitoring Report on energy infrastructure development: https://www.acer.europa.eu/sites/default/files/documents/Publications/ACER-2026-Monitoring-Report-energy-infrastructure-development.pdf
