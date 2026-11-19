@@ -88,7 +88,7 @@
           "alternate_service_by_zone": []
         },
         {
-          "start_s": 8,
+          "start_s": 28800,
           "duration_s": 21600,
           "event_class": "scheduled_maintenance",
           "common_cause_event_id": null,
@@ -107,7 +107,7 @@
           "alternate_service_by_zone": []
         },
         {
-          "start_s": 14,
+          "start_s": 50400,
           "duration_s": 21600,
           "event_class": "normal_operations",
           "common_cause_event_id": null,
@@ -126,7 +126,7 @@
           "alternate_service_by_zone": []
         },
         {
-          "start_s": 20,
+          "start_s": 72000,
           "duration_s": 36000,
           "event_class": "corrective_repair",
           "common_cause_event_id": null,
@@ -145,7 +145,7 @@
           "alternate_service_by_zone": []
         },
         {
-          "start_s": 30,
+          "start_s": 108000,
           "duration_s": 36000,
           "event_class": "normal_operations",
           "common_cause_event_id": null,
@@ -164,7 +164,7 @@
           "alternate_service_by_zone": []
         },
         {
-          "start_s": 40,
+          "start_s": 144000,
           "duration_s": 21600,
           "event_class": "common_cause_weather",
           "common_cause_event_id": "weather-system-001",
@@ -183,7 +183,7 @@
           "alternate_service_by_zone": []
         },
         {
-          "start_s": 46,
+          "start_s": 165600,
           "duration_s": 93600,
           "event_class": "normal_operations",
           "common_cause_event_id": null,
@@ -261,7 +261,7 @@
           "alternate_service_by_zone": []
         },
         {
-          "start_s": 8,
+          "start_s": 28800,
           "duration_s": 21600,
           "event_class": "scheduled_maintenance",
           "common_cause_event_id": null,
@@ -290,7 +290,7 @@
           "alternate_service_by_zone": []
         },
         {
-          "start_s": 14,
+          "start_s": 50400,
           "duration_s": 21600,
           "event_class": "normal_operations",
           "common_cause_event_id": null,
@@ -319,7 +319,7 @@
           "alternate_service_by_zone": []
         },
         {
-          "start_s": 20,
+          "start_s": 72000,
           "duration_s": 36000,
           "event_class": "corrective_repair",
           "common_cause_event_id": null,
@@ -348,7 +348,7 @@
           "alternate_service_by_zone": []
         },
         {
-          "start_s": 30,
+          "start_s": 108000,
           "duration_s": 36000,
           "event_class": "normal_operations",
           "common_cause_event_id": null,
@@ -377,7 +377,7 @@
           "alternate_service_by_zone": []
         },
         {
-          "start_s": 40,
+          "start_s": 144000,
           "duration_s": 21600,
           "event_class": "common_cause_weather",
           "common_cause_event_id": "weather-system-001",
@@ -406,7 +406,7 @@
           "alternate_service_by_zone": []
         },
         {
-          "start_s": 46,
+          "start_s": 165600,
           "duration_s": 93600,
           "event_class": "normal_operations",
           "common_cause_event_id": null,
@@ -494,7 +494,7 @@
           "alternate_service_by_zone": []
         },
         {
-          "start_s": 8,
+          "start_s": 28800,
           "duration_s": 21600,
           "event_class": "scheduled_maintenance",
           "common_cause_event_id": null,
@@ -523,7 +523,7 @@
           "alternate_service_by_zone": []
         },
         {
-          "start_s": 14,
+          "start_s": 50400,
           "duration_s": 21600,
           "event_class": "normal_operations",
           "common_cause_event_id": null,
@@ -552,7 +552,7 @@
           "alternate_service_by_zone": []
         },
         {
-          "start_s": 20,
+          "start_s": 72000,
           "duration_s": 36000,
           "event_class": "corrective_repair",
           "common_cause_event_id": null,
@@ -581,7 +581,7 @@
           "alternate_service_by_zone": []
         },
         {
-          "start_s": 30,
+          "start_s": 108000,
           "duration_s": 36000,
           "event_class": "normal_operations",
           "common_cause_event_id": null,
@@ -610,7 +610,7 @@
           "alternate_service_by_zone": []
         },
         {
-          "start_s": 40,
+          "start_s": 144000,
           "duration_s": 21600,
           "event_class": "common_cause_weather",
           "common_cause_event_id": "weather-system-001",
@@ -652,7 +652,7 @@
           ]
         },
         {
-          "start_s": 46,
+          "start_s": 165600,
           "duration_s": 93600,
           "event_class": "normal_operations",
           "common_cause_event_id": null,
