@@ -48,7 +48,7 @@ An in-progress commitment reserves each required resource through the evaluation
 
 ## Event and commitment semantics
 
-A case carries two event ledgers: `baselineEvents` is the immutable observation snapshot at the planning cut, while `events` is the proposed ledger containing the baseline plus any newly admitted records. Baseline event payloads—not only their identifiers—must match byte-for-byte at the typed-record level; deletion or in-place mutation is rejected. Baseline commitments must bind exactly the baseline event IDs for their task, and proposed commitments must bind the complete current event IDs. This gives the replay an explicit non-anticipative history boundary.
+A case carries two event ledgers: `baselineEvents` is the immutable observation snapshot at the planning cut, while `events` is the proposed ledger containing the baseline plus any newly admitted records. Baseline event payloads—not only their identifiers—must match byte-for-byte at the typed-record level; deletion or in-place mutation is rejected. The baseline manifest has a source reference and a SHA-256 over canonical, event-ID-sorted typed JSON. The validator recomputes that digest before any replan check. This binds artifact identity when the digest/reference are pinned by an upstream trusted record; a digest by itself does not authenticate the source or prove an event true. Baseline commitments must bind exactly the baseline event IDs for their task, and proposed commitments must bind the complete current event IDs. This gives the replay an explicit non-anticipative history boundary.
 
 Execution events bind:
 - event and idempotency identities;
@@ -145,7 +145,7 @@ Do not combine interruption count, restoration time, service loss and resource c
 
 ## Build and dependency reproducibility
 
-The direct Rust dependencies are pinned to Serde 1.0.229 and serde_json 1.0.154. This isolated tool currently has no committed `Cargo.lock`; the CI job generates a lockfile once per workflow run, then uses `--locked` for Clippy, tests and replay. Therefore direct versions are fixed, but the transitive dependency graph is not yet commit-pinned across separate workflow runs. A generated lockfile should be reviewed and committed before a release or benchmark freeze.
+The direct Rust dependencies are pinned to Serde 1.0.229, serde_json 1.0.154 and sha2 0.10.9 (RustCrypto SHA-256 implementation). This isolated tool currently has no committed `Cargo.lock`; the CI job generates a lockfile once per workflow run, then uses `--locked` for Clippy, tests and replay. Therefore direct versions are fixed, but the transitive dependency graph is not yet commit-pinned across separate workflow runs. A generated lockfile should be reviewed and committed before a release or benchmark freeze.
 
 ## Qualification boundary
 
