@@ -1,0 +1,318 @@
+{
+  "schema": "luminous.j1_vertical_guide_task_model",
+  "version": "0.1.0",
+  "created_utc": "2026-11-18",
+  "owner": "https://github.com/Luminous-Dynamics/symtropy/issues/6114",
+  "source": {
+    "title": "Task-Oriented Co-Design and Optimization of Geared Actuators for Robotic Applications",
+    "authors": [
+      "Xuanyu Huang",
+      "Jianqiang Dong",
+      "Hang Zhao"
+    ],
+    "arxiv": "2609.22795v1",
+    "url": "https://arxiv.org/html/2609.22795v1",
+    "date": "2026-09-19",
+    "source_method_status": "transcribed_not_reproduced"
+  },
+  "evidence_class": "synthetic_analytic_reference_only",
+  "units": {
+    "angle": "rad",
+    "angular_velocity": "rad/s",
+    "length": "m",
+    "torque": "N*m",
+    "force": "N",
+    "inertia": "kg*m^2",
+    "time": "s",
+    "power": "W"
+  },
+  "task_boundary": {
+    "simulated_g1_profiles": {
+      "evidence_kind": "MuJoCo simulated task inputs, not physical G1 measurements",
+      "peak_torque_nm": {
+        "fast_walking": 103,
+        "jumping": 139,
+        "stair_ascent": 109
+      },
+      "peak_speed_rad_s": {
+        "fast_walking": 16.6,
+        "jumping": 20.1,
+        "stair_ascent": 14.3
+      }
+    },
+    "physical_bench": {
+      "task": "two-DOF vertical-guide jumping leg",
+      "common_load_kg": 5.5,
+      "dc_bus_voltage_v": 48,
+      "whole_humanoid_validation": false,
+      "excluded_dynamics": [
+        "whole_body_balance",
+        "lateral_dynamics"
+      ]
+    }
+  },
+  "coordinates": {
+    "q": [
+      "q1_absolute_shank_angle",
+      "q2_included_knee_angle"
+    ],
+    "foot_origin": true,
+    "equal_segment_reference_assumption": "l_shank = l_thigh",
+    "equations": {
+      "x_h": "l_s*cos(q1) - l_t*cos(q1-q2)",
+      "y_h": "l_s*sin(q1) - l_t*sin(q1-q2)",
+      "guide": "x_h = 0",
+      "A": [
+        "-l_s*sin(q1) + l_t*sin(q1-q2)",
+        "-l_t*sin(q1-q2)"
+      ],
+      "J_y": [
+        "l_s*cos(q1) - l_t*cos(q1-q2)",
+        "l_t*cos(q1-q2)"
+      ]
+    },
+    "admissible_velocity": "A(q) dot q_dot = 0",
+    "slider_velocity": "y_dot = J_y(q) dot q_dot"
+  },
+  "generalized_torque": {
+    "map": "[-tau_hip, tau_hip + tau_knee]",
+    "power": "q_dot dot (B*tau)",
+    "source_sign": "hip and knee actuator output torques are positive in leg-extension direction"
+  },
+  "control": {
+    "phase": "s = (q2-q2_initial)/(q2_final-q2_initial)",
+    "profile": "alpha_j(s) = sum_i c[j,i]*C(5,i)*(1-s)^(5-i)*s^i",
+    "torque": "tau_j(s)=alpha_j(s)*available_torque_j",
+    "coefficient_count_per_joint": 6,
+    "coefficient_bounds": [
+      0,
+      1
+    ],
+    "policy_variable_count": 12
+  },
+  "contact": {
+    "normal_force_constraint": "F_n >= 0",
+    "friction_cone": "abs(F_t) <= mu*F_n",
+    "feasibility_gate": true
+  },
+  "predictive_braking": {
+    "equation": "d_stop=omega_plus*t_delay + J_effective*omega_plus^2/(2*tau_brake) + position_margin",
+    "includes_reflected_rotor_inertia": true
+  },
+  "fixtures": [
+    {
+      "id": "J1-TASK-ORACLE-001",
+      "name": "equal_segment_vertical_guide_pose_and_jacobians",
+      "inputs": {
+        "l_shank_m": 0.5,
+        "l_thigh_m": 0.5,
+        "q1_rad": 0.25,
+        "q2_rad": 0.5
+      },
+      "equations": {
+        "x_h_m": "l_s*cos(q1)-l_t*cos(q1-q2)",
+        "y_h_m": "l_s*sin(q1)-l_t*sin(q1-q2)",
+        "A": [
+          "-l_s*sin(q1)+l_t*sin(q1-q2)",
+          "-l_t*sin(q1-q2)"
+        ],
+        "J_y": [
+          "l_s*cos(q1)-l_t*cos(q1-q2)",
+          "l_t*cos(q1-q2)"
+        ]
+      },
+      "expected": {
+        "x_h_m": 0,
+        "y_h_m": 0.24740395925452294,
+        "A": [
+          -0.24740395925452294,
+          0.12370197962726147
+        ],
+        "J_y": [
+          0,
+          0.48445621085532237
+        ]
+      },
+      "claim_ceiling": "analytic kinematics oracle for the stated synthetic pose only"
+    },
+    {
+      "id": "J1-TASK-ORACLE-002",
+      "name": "guide_tangent_velocity_and_slider_velocity",
+      "inputs": {
+        "l_shank_m": 0.5,
+        "l_thigh_m": 0.5,
+        "q1_rad": 0.25,
+        "q2_rad": 0.5,
+        "q1_dot_rad_s": 0.1,
+        "q2_dot_rad_s": 0.2
+      },
+      "equations": {
+        "constraint_rate": "A(q) dot q_dot",
+        "slider_velocity": "J_y(q) dot q_dot"
+      },
+      "expected": {
+        "constraint_rate_rad_s": 0,
+        "slider_velocity_m_s": 0.09689124217106448
+      },
+      "claim_ceiling": "kinematic tangent-space check; not a full leg dynamics result"
+    },
+    {
+      "id": "J1-TASK-ORACLE-003",
+      "name": "generalized_torque_mapping_and_virtual_work",
+      "inputs": {
+        "tau_hip_nm": 10,
+        "tau_knee_nm": 5,
+        "q1_dot_rad_s": 0.1,
+        "q2_dot_rad_s": 0.2
+      },
+      "equations": {
+        "generalized_torque": "[-tau_hip,tau_hip+tau_knee]",
+        "power": "q_dot dot generalized_torque"
+      },
+      "expected": {
+        "generalized_torque_nm": [
+          -10,
+          15
+        ],
+        "power_w": 2
+      },
+      "claim_ceiling": "checks source sign/mapping and virtual-work arithmetic only"
+    },
+    {
+      "id": "J1-TASK-ORACLE-004",
+      "name": "bezier_partition_of_unity_and_linear_control_values",
+      "inputs": {
+        "s": 0.5,
+        "coefficients": [
+          0,
+          0.2,
+          0.4,
+          0.6,
+          0.8,
+          1
+        ]
+      },
+      "equations": {
+        "basis": "B_i^5(s)=C(5,i)*(1-s)^(5-i)*s^i",
+        "alpha": "sum_i coefficients[i]*B_i^5(s)"
+      },
+      "expected": {
+        "basis": [
+          0.03125,
+          0.15625,
+          0.3125,
+          0.3125,
+          0.15625,
+          0.03125
+        ],
+        "basis_sum": 1,
+        "alpha": 0.5
+      },
+      "claim_ceiling": "polynomial semantics only; no task policy optimizer"
+    },
+    {
+      "id": "J1-TASK-ORACLE-005",
+      "name": "predictive_braking_distance",
+      "inputs": {
+        "omega_plus_rad_s": 3,
+        "t_delay_s": 0.01,
+        "J_effective_kg_m2": 0.02,
+        "tau_brake_nm": 5,
+        "position_margin_rad": 0.02
+      },
+      "equation": "omega_plus*t_delay + J_effective*omega_plus^2/(2*tau_brake) + position_margin",
+      "expected": {
+        "d_stop_rad": 0.068
+      },
+      "claim_ceiling": "arithmetic oracle; source effective inertia and braking scheduler not reproduced"
+    },
+    {
+      "id": "J1-TASK-ORACLE-006",
+      "name": "contact_cone_positive_and_negative_controls",
+      "inputs": {
+        "normal_force_n": 100,
+        "friction_coefficient": 0.6,
+        "inside_cone_tangential_force_n": 40,
+        "outside_cone_tangential_force_n": 61,
+        "negative_normal_force_n": -1
+      },
+      "equations": {
+        "admissible": "F_n >= 0 && abs(F_t) <= mu*F_n && mu >= 0"
+      },
+      "expected": {
+        "inside_cone": true,
+        "outside_cone": false,
+        "negative_normal": false
+      },
+      "claim_ceiling": "static contact inequality only; no contact solver claim"
+    }
+  ],
+  "source_regression_observations": {
+    "command_sweep": {
+      "levels": [
+        0.75,
+        1,
+        1.5,
+        2
+      ],
+      "dm8009_torque_commands_nm": [
+        15,
+        20,
+        30,
+        40
+      ],
+      "optimized_torque_commands_nm": [
+        19.5,
+        26,
+        39,
+        52
+      ],
+      "dm8009_slider_rise_m": [
+        null,
+        0.49,
+        0.615,
+        0.75
+      ],
+      "optimized_slider_rise_m": [
+        0.49,
+        0.58,
+        0.745,
+        0.84
+      ],
+      "failed_trial": "DM8009 at 0.75x: no jump"
+    },
+    "twice_rated_prediction": {
+      "design_stage_predicted_slider_rise_m": 1.008,
+      "measured_slider_rise_m": 0.84,
+      "push_off_predicted_duration_s": 0.194,
+      "push_off_measured_duration_s": 0.24,
+      "push_off_predicted_rise_m": 0.287,
+      "push_off_measured_rise_m": 0.343,
+      "discrepancy_explained_by_measured_motor_and_mass_percentage_points": 11.3,
+      "residual_transmission_guide_control_percentage_points": 5.3,
+      "total_overprediction_percent": 16.6
+    }
+  },
+  "not_reconstructed": [
+    "configuration-dependent mass matrix M(q)",
+    "velocity-dependent term h(q,q_dot)",
+    "gravity vector G(q)",
+    "exact source segment geometry and inertial parameters",
+    "source initial/final conditions and trajectory",
+    "contact integration and release event handling",
+    "motor electromagnetic surrogate and gearbox sizing",
+    "NSGA-II search and inner L-BFGS-B policy optimization"
+  ],
+  "claim_ceiling": "Analytic synthetic fixtures only; no source paper reproduction, engine validation, physical test or whole-humanoid result.",
+  "runner": {
+    "cargo_manifest": "benchmarks/synthetic-joints/j1-task-model/v0.1/Cargo.toml",
+    "commands": [
+      "cargo fmt --manifest-path benchmarks/synthetic-joints/j1-task-model/v0.1/Cargo.toml -- --check",
+      "cargo test --manifest-path benchmarks/synthetic-joints/j1-task-model/v0.1/Cargo.toml --locked",
+      "cargo clippy --manifest-path benchmarks/synthetic-joints/j1-task-model/v0.1/Cargo.toml --all-targets --locked -- -D warnings"
+    ],
+    "third_party_dependencies": 0,
+    "workspace_isolation": "standalone empty [workspace] in nested Cargo.toml",
+    "execution_status": "not_run_in_current_tool_environment"
+  }
+}
