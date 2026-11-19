@@ -1,0 +1,504 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:grid-asset-recovery:resumable-execution:0.1.0",
+  "title": "Grid Asset Recovery Resumable Execution Case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "caseId",
+    "timeOriginUtc",
+    "asOfHour",
+    "horizonEndHour",
+    "tasks",
+    "resources",
+    "baselineCommitments",
+    "proposedCommitments",
+    "events",
+    "plannedSegments",
+    "reconciliations"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "caseId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timeOriginUtc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "asOfHour": {
+      "type": "number",
+      "minimum": 0
+    },
+    "horizonEndHour": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "tasks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "eventId",
+          "taskId",
+          "releaseHour",
+          "requiredEffortHours",
+          "minimumSegmentEffortHours",
+          "preemptionMode",
+          "maximumInterruptions",
+          "checkpointEffortHours",
+          "pausedResourcePolicy",
+          "dependsOn",
+          "resourceRequirements"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "taskId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "releaseHour": {
+            "type": "number",
+            "minimum": 0
+          },
+          "requiredEffortHours": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "minimumSegmentEffortHours": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "preemptionMode": {
+            "enum": [
+              "non_preemptible",
+              "checkpointed"
+            ]
+          },
+          "maximumInterruptions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "checkpointEffortHours": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          },
+          "pausedResourcePolicy": {
+            "enum": [
+              "release",
+              "retain"
+            ]
+          },
+          "dependsOn": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "resourceRequirements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "resourceId",
+                "units"
+              ],
+              "properties": {
+                "resourceId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "units": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "preemptionMode": {
+                  "const": "non_preemptible"
+                }
+              },
+              "required": [
+                "preemptionMode"
+              ]
+            },
+            "then": {
+              "properties": {
+                "maximumInterruptions": {
+                  "const": 0
+                },
+                "checkpointEffortHours": {
+                  "maxItems": 0
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "preemptionMode": {
+                  "const": "checkpointed"
+                }
+              },
+              "required": [
+                "preemptionMode"
+              ]
+            },
+            "then": {
+              "properties": {
+                "checkpointEffortHours": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "resourceId",
+          "capacityWindows"
+        ],
+        "properties": {
+          "resourceId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "capacityWindows": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "startHour",
+                "endHour",
+                "capacityUnits"
+              ],
+              "properties": {
+                "startHour": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "endHour": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "capacityUnits": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "baselineCommitments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "commitmentId",
+          "eventId",
+          "taskId",
+          "version",
+          "state",
+          "frozenEventIds",
+          "activeSegmentId",
+          "sourceEvidenceRef"
+        ],
+        "properties": {
+          "commitmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "eventId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "taskId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "state": {
+            "enum": [
+              "in_progress",
+              "paused",
+              "completed"
+            ]
+          },
+          "frozenEventIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "activeSegmentId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "sourceEvidenceRef": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "proposedCommitments": {
+      "$ref": "#/properties/baselineCommitments"
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "eventId",
+          "idempotencyKey",
+          "eventType",
+          "eventIdRef",
+          "taskId",
+          "segmentId",
+          "sequence",
+          "startHour",
+          "endHour",
+          "productiveEffortHours",
+          "effectiveHour",
+          "observedHour",
+          "evidenceStatus",
+          "evidenceClass",
+          "evidenceRef",
+          "interruptionCause"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "eventType": {
+            "enum": [
+              "work_segment_completed",
+              "progress_snapshot"
+            ]
+          },
+          "eventIdRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "taskId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "segmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "startHour": {
+            "type": "number",
+            "minimum": 0
+          },
+          "endHour": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "productiveEffortHours": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "effectiveHour": {
+            "type": "number",
+            "minimum": 0
+          },
+          "observedHour": {
+            "type": "number",
+            "minimum": 0
+          },
+          "evidenceStatus": {
+            "enum": [
+              "current",
+              "superseded",
+              "stale",
+              "conflicted",
+              "unknown"
+            ]
+          },
+          "evidenceClass": {
+            "enum": [
+              "observed",
+              "synthetic_fixture"
+            ]
+          },
+          "evidenceRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "interruptionCause": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "plannedSegments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "segmentId",
+          "eventId",
+          "taskId",
+          "sequence",
+          "startHour",
+          "endHour",
+          "productiveEffortHours",
+          "interruptionCause"
+        ],
+        "properties": {
+          "segmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "eventId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "taskId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "startHour": {
+            "type": "number",
+            "minimum": 0
+          },
+          "endHour": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "productiveEffortHours": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "interruptionCause": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "reconciliations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "eventId",
+          "commitmentId",
+          "fromVersion",
+          "toVersion",
+          "action",
+          "observedHour",
+          "evidenceStatus",
+          "authorityRef",
+          "evidenceRef"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "commitmentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fromVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "toVersion": {
+            "type": "integer",
+            "minimum": 2
+          },
+          "action": {
+            "enum": [
+              "pause_confirmed",
+              "resume_authorized",
+              "completion_confirmed"
+            ]
+          },
+          "observedHour": {
+            "type": "number",
+            "minimum": 0
+          },
+          "evidenceStatus": {
+            "const": "current"
+          },
+          "authorityRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidenceRef": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
