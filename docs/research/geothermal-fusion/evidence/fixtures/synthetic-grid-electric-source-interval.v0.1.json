@@ -7,7 +7,7 @@
   "duration_ns": 3600000000000,
   "carrier": "electricity",
   "available_energy_mwh": 10.0,
-  "average_electrical_power_mw": 10.0,
+  "average_electric_power_mw": 10.0,
   "evidence_class": "synthetic",
   "note": "Synthetic electrical arithmetic fixture only; not a real grid connection, meter, calibration, or plant."
 }
