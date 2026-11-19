@@ -158,6 +158,8 @@ struct RecoveryScenarioSet {
     schema_version: String,
     scenario_set_id: String,
     base_case_id: String,
+    probability_basis: String,
+    probability_source: String,
     scenarios: Vec<RecoveryScenario>,
 }
 
@@ -703,6 +705,8 @@ struct ScenarioOutcome {
 #[serde(rename_all = "camelCase")]
 struct ScenarioSetReport {
     scenario_set_id: String,
+    probability_basis: String,
+    probability_source: String,
     scenario_count: usize,
     probability_sum: f64,
     expected_weighted_unserved_energy_mwh: f64,
@@ -869,6 +873,22 @@ fn evaluate_scenario_set(
     if scenario_set.scenario_set_id.trim().is_empty() {
         return Err(vec!["scenarioSetId must not be empty".to_string()]);
     }
+    if !matches!(
+        scenario_set.probability_basis.as_str(),
+        "synthetic_assumption" | "expert_elicitation" | "empirical_fit"
+    ) {
+        return Err(vec!["scenario set has unsupported probabilityBasis".to_string()]);
+    }
+    if scenario_set.probability_source.trim().is_empty() {
+        return Err(vec!["scenario set requires probabilitySource".to_string()]);
+    }
+    if case.case_maturity == "synthetic_fixture"
+        && scenario_set.probability_basis != "synthetic_assumption"
+    {
+        return Err(vec![
+            "synthetic case cannot claim elicited or empirical scenario probabilities".to_string(),
+        ]);
+    }
     if scenario_set.base_case_id != case.case_id {
         return Err(vec![format!(
             "scenario set baseCaseId {} does not match caseId {}",
@@ -898,7 +918,11 @@ fn evaluate_scenario_set(
                 scenario.scenario_id
             )]);
         }
-        if !scenario.probability.is_finite() || scenario.probability < 0.0 {
+        if scenario.description.trim().is_empty()
+            || !scenario.probability.is_finite()
+            || scenario.probability < 0.0
+            || scenario.probability > 1.0
+        {
             return Err(vec![format!(
                 "scenario {} has invalid probability",
                 scenario.scenario_id
@@ -948,7 +972,6 @@ fn evaluate_scenario_set(
         }
 
         let mut profiles = profiles_base.clone();
-        let mut affected_resources = BTreeSet::new();
         let mut cause_groups = BTreeSet::new();
         let mut outage_boundaries: BTreeMap<String, Vec<f64>> = BTreeMap::new();
         for outage in &scenario.resource_outages {
@@ -972,7 +995,6 @@ fn evaluate_scenario_set(
                     scenario.scenario_id, outage.resource_id
                 )]);
             }
-            affected_resources.insert(outage.resource_id.clone());
             cause_groups.insert(outage.correlation_group_id.clone());
             let boundaries = outage_boundaries.entry(outage.resource_id.clone()).or_default();
             boundaries.push(outage.start_hour);
@@ -1052,6 +1074,8 @@ fn evaluate_scenario_set(
 
     Ok(ScenarioSetReport {
         scenario_set_id: scenario_set.scenario_set_id,
+        probability_basis: scenario_set.probability_basis,
+        probability_source: scenario_set.probability_source,
         scenario_count: outcomes.len(),
         probability_sum,
         expected_weighted_unserved_energy_mwh: expected,
@@ -1259,6 +1283,8 @@ mod tests {
         include_str!("../../../docs/research/grid-asset-recovery/data/synthetic-asset-recovery-v0.1.json");
     const CABLE_FIXTURE: &str =
         include_str!("../../../docs/research/grid-asset-recovery/data/synthetic-cable-recovery-v0.1.json");
+    const SCENARIO_FIXTURE: &str =
+        include_str!("../../../docs/research/grid-asset-recovery/data/synthetic-recovery-scenarios-v0.1.json");
 
     fn fixture() -> Value {
         serde_json::from_str(FIXTURE).expect("fixture JSON")
@@ -1267,6 +1293,86 @@ mod tests {
     fn check(value: &Value) -> Vec<String> {
         let case: Case = serde_json::from_value(value.clone()).expect("typed fixture");
         validate(&case, SchedulePolicy::EarliestFeasibleStart)
+    }
+
+
+    #[test]
+    fn replays_probability_weighted_disruption_scenarios() {
+        let (case, _) = run(FIXTURE).expect("base case should validate");
+        let report = evaluate_scenario_set(
+            &case,
+            SCENARIO_FIXTURE,
+            SchedulePolicy::EarliestFeasibleStart,
+        )
+        .expect("scenario set should be coherent");
+        assert_eq!(report.scenario_count, 4);
+        assert!((report.probability_sum - 1.0).abs() < 1e-9);
+        assert!(report.p95_weighted_unserved_energy_mwh >= report.p50_weighted_unserved_energy_mwh);
+        assert_eq!(report.worst_case_scenario_id, "COMPOUND-STORM-SUPPLIER");
+        let compound = report
+            .outcomes
+            .iter()
+            .find(|outcome| outcome.scenario_id == "COMPOUND-STORM-SUPPLIER")
+            .unwrap();
+        assert_eq!(compound.correlated_cause_groups, vec!["REGIONAL-STORM-02".to_string()]);
+    }
+
+    #[test]
+    fn rejects_scenario_probability_sum_not_equal_to_one() {
+        let (case, _) = run(FIXTURE).expect("base case should validate");
+        let mut value: Value = serde_json::from_str(SCENARIO_FIXTURE).unwrap();
+        value["scenarios"][0]["probability"] = Value::from(0.25);
+        let errors = evaluate_scenario_set(
+            &case,
+            &value.to_string(),
+            SchedulePolicy::EarliestFeasibleStart,
+        )
+        .unwrap_err();
+        assert!(errors[0].contains("probabilities sum"));
+    }
+
+    #[test]
+    fn rejects_unknown_resource_in_disruption_scenario() {
+        let (case, _) = run(FIXTURE).expect("base case should validate");
+        let mut value: Value = serde_json::from_str(SCENARIO_FIXTURE).unwrap();
+        value["scenarios"][1]["resourceOutages"][0]["resourceId"] =
+            Value::String("UNKNOWN-CRANE".to_string());
+        let errors = evaluate_scenario_set(
+            &case,
+            &value.to_string(),
+            SchedulePolicy::EarliestFeasibleStart,
+        )
+        .unwrap_err();
+        assert!(errors[0].contains("references unknown resource"));
+    }
+
+    #[test]
+    fn rejects_unknown_task_in_scenario_duration_override() {
+        let (case, _) = run(FIXTURE).expect("base case should validate");
+        let mut value: Value = serde_json::from_str(SCENARIO_FIXTURE).unwrap();
+        value["scenarios"][2]["taskDurationOverrides"][0]["taskId"] =
+            Value::String("unknown-task".to_string());
+        let errors = evaluate_scenario_set(
+            &case,
+            &value.to_string(),
+            SchedulePolicy::EarliestFeasibleStart,
+        )
+        .unwrap_err();
+        assert!(errors[0].contains("invalid or duplicate task-duration override"));
+    }
+
+    #[test]
+    fn rejects_empirical_probability_claim_on_synthetic_case() {
+        let (case, _) = run(FIXTURE).expect("base case should validate");
+        let mut value: Value = serde_json::from_str(SCENARIO_FIXTURE).unwrap();
+        value["probabilityBasis"] = Value::String("empirical_fit".to_string());
+        let errors = evaluate_scenario_set(
+            &case,
+            &value.to_string(),
+            SchedulePolicy::EarliestFeasibleStart,
+        )
+        .unwrap_err();
+        assert!(errors[0].contains("cannot claim elicited or empirical"));
     }
 
     #[test]
@@ -1285,6 +1391,7 @@ mod tests {
         let report = build_report(
             &case,
             scheduled,
+            None,
             None,
             None,
             SchedulePolicy::EarliestFeasibleStart,
