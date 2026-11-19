@@ -493,7 +493,7 @@ fn reservation_load_is_feasible(resource: &Resource, start: f64, end: f64, reque
 }
 
 fn resource_can_cover(resource: &Resource, start: f64, duration: f64, units: u32) -> bool {
-    if resource.status != ResourceStatus::Available
+    if !matches!(resource.status, ResourceStatus::Available | ResourceStatus::Degraded)
         || resource.valid_until_hour + TOLERANCE < start + duration
     {
         return false;
@@ -524,8 +524,8 @@ fn earliest_common_slot(
     for requirement in requirements {
         let resource = resource_by_ref(manifest, &requirement.resource_ref)
             .ok_or_else(|| format!("missing resource {}", requirement.resource_ref))?;
-        if resource.status != ResourceStatus::Available {
-            return Err(format!("resource {} is not confirmed available ({:?})", resource.resource_ref, resource.status));
+        if !matches!(resource.status, ResourceStatus::Available | ResourceStatus::Degraded) {
+            return Err(format!("resource {} is not allocatable ({:?})", resource.resource_ref, resource.status));
         }
         for window in &resource.capacity_windows {
             if window.start_hour >= earliest_start - TOLERANCE {
@@ -823,6 +823,17 @@ mod tests {
             .find(|resource| resource.resource_ref == "synthetic://resource/crane-01").unwrap().status = ResourceStatus::Unknown;
         case.resource_manifest_sha256 = canonical_manifest_sha256(&case.resource_manifest).unwrap();
         assert!(qualify(&case).is_err());
+    }
+
+    #[test]
+    fn degraded_resource_is_usable_only_with_explicit_remaining_capacity() {
+        let mut case = fixture();
+        let crew = case.resource_manifest.resources.iter_mut()
+            .find(|resource| resource.resource_ref == "synthetic://resource/specialist-crew-01").unwrap();
+        crew.status = ResourceStatus::Degraded;
+        crew.capacity_windows[0].capacity_units = 1;
+        case.resource_manifest_sha256 = canonical_manifest_sha256(&case.resource_manifest).unwrap();
+        assert!(qualify(&case).is_ok());
     }
 
     #[test]
