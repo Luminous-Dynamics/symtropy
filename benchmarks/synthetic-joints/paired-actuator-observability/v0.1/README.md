@@ -84,7 +84,38 @@ I independently reprocessed four public maximum-speed CSV logs from the author's
 
 This is an independent computational reconstruction of the same source data. It is **not** an independent physical measurement or replication. The raw trace path, repetition values and Git blob SHA are recorded in the JSON example.
 
-## 4. Schema and example
+
+## 4. Reusable Rust source replay tool
+
+The same directory contains a dependency-free Rust CLI for replaying the source run ledger and maximum-speed raw traces:
+
+- `src/lib.rs` — quoted-CSV parser, run-ledger inclusion/exclusion summary, per-repetition OLS speed reconstruction and JSON output.
+- `src/main.rs` — CLI that accepts a run ledger and any number of raw encoder traces.
+- `Cargo.toml` / `Cargo.lock` — isolated, no-dependency Cargo package.
+- `.github/workflows/paired-actuator-source-replay.yml` — package-scoped format, test and Clippy checks using Rust 1.96.0.
+
+Clone the public source-data repository and replay all four published maximum-speed traces:
+
+```bash
+git clone https://github.com/yjh-mcut/redesign-methodology.git /tmp/redesign-methodology
+
+cargo run --manifest-path benchmarks/synthetic-joints/paired-actuator-observability/v0.1/Cargo.toml -- \
+  --runlog /tmp/redesign-methodology/bench/sheet_B_runlog.csv \
+  --trace empty=/tmp/redesign-methodology/bench/data/exp2b_HEALTH-1_20260927_151621.csv \
+  --trace load-A=/tmp/redesign-methodology/bench/data/exp2b_C-A-1_20260921_203519.csv \
+  --trace load-B=/tmp/redesign-methodology/bench/data/exp2b_C-B-1_20260923_184203.csv \
+  --trace load-C=/tmp/redesign-methodology/bench/data/exp2b_C-C-1_20260925_160329.csv \
+  --q-window-deg 8 \
+  --min-points 15
+```
+
+The output is JSON containing the full attempted/included/excluded/unknown ledger counts by experiment, each repetition's point count and absolute OLS speed, the mean and population standard deviation. The default angle window is 8 degrees and the default minimum is 15 samples per repetition.
+
+The replay is intentionally source-data agnostic. It does not infer current-to-torque conversion, identify per-motor mechanical load share, impute missing runs, or relabel a thermal/overvoltage stop as a task success. Reconstructed speed values should agree with the source report to displayed precision; discrepancies should be investigated rather than silently rounded away.
+
+The source CSVs are not copied into this repository. This avoids duplicating a large dataset and preserves the public source repository as the data authority. Exact raw-file URLs and Git blob SHAs for the selected records remain in the machine-readable example.
+
+## 5. Schema and example
 
 - `paired_actuator_profile.schema.json` is a JSON Schema Draft 2020-12 contract.
 - `examples/yang-mx106-paired-hiproll-source-record.json` stores selected source runs, the 49/26/23 denominator, source and derived metrics, raw-trace references, and an explicit identifiability statement.
