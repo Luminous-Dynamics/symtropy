@@ -50,7 +50,7 @@ Those are runtime verifier / independent arithmetic duties. Do not treat `format
 - Both schema files and all three fixtures were fetched back from the exact branch and parsed as JSON.
 - The raw payload fixture is 523 bytes. SHA-256 was recomputed over the exact fetched payload bytes and matched the evidence envelope and allocation receipt: `0cdcab2b9625b3669918761b7a4da378e9d344321301f2dd0bb48feb67b788c8`.
 - Manually checked required time-window, artifact, uncertainty, lineage and claim-ceiling fields, plus source digest linkage and the 10 MWh allocation total.
-- The Rust runtime verifier now implements exact-byte hashing, source asset/boundary/interval/carrier/time joins, allocation identity checks and source-allocation arithmetic replay. It has 13 authored unit tests and a path-scoped Rust 1.96 CI workflow; these have not yet been executed in this environment. A full Draft 2020-12 JSON Schema validator has not yet been run. The schemas remain v0.1 drafts and must receive validator-backed tests before production use.
+- The Rust runtime verifier now implements exact-byte hashing, source asset/boundary/interval/carrier/time joins, allocation identity checks and source-allocation arithmetic replay. It has 17 authored unit tests and a path-scoped Rust 1.96 CI workflow; these have not yet been executed in this environment. A full Draft 2020-12 JSON Schema validator has not yet been run. The schemas remain v0.1 drafts and must receive validator-backed tests before production use.
 
 A PASS in this fixture means only that the synthetic artifact can be bound to the declared bytes and arithmetic. No source values represent a real geothermal site or fusion plant.
 
