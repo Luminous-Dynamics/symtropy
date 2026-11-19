@@ -4,6 +4,7 @@
 **Status:** v0.1 research architecture and analytic benchmark contract  
 **Owner:** Symtropy system integration; domain physics remains with its specialist owners  
 **Tracking:** [Symtropy #6142](https://github.com/Luminous-Dynamics/symtropy/issues/6142)
+**Industry baseline and matched comparison protocol:** [INDUSTRY_BASELINE_AND_BENCHMARKS.md](INDUSTRY_BASELINE_AND_BENCHMARKS.md)
 
 ## Thesis
 
