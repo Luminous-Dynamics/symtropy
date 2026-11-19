@@ -1,0 +1,416 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/shipyard-crane-readiness-plan-v0.1.schema.json",
+  "title": "Shipyard Crane Readiness Plan V0.1",
+  "description": "Synthetic-first bridge/gantry operational-readiness input. Shape validation is not evidence authentication or safe-lift approval.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "readiness_id",
+    "crane_id",
+    "crane_configuration_revision",
+    "supporting_structure_id",
+    "supporting_structure_revision",
+    "site_epoch_id",
+    "clock_domain_id",
+    "start_tick",
+    "end_tick",
+    "method_statement_id",
+    "method_statement_revision",
+    "exclusion_zone_plan_revision",
+    "lift_preflight",
+    "required_evidence",
+    "evidence_records",
+    "required_devices",
+    "device_evidence",
+    "required_roles",
+    "role_assignments",
+    "briefing_acknowledgements",
+    "exclusion_zone_state"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "shipyard-crane-readiness-v0.1"
+    },
+    "readiness_id": {
+      "$ref": "#/$defs/nonblank"
+    },
+    "crane_id": {
+      "$ref": "#/$defs/nonblank"
+    },
+    "crane_configuration_revision": {
+      "$ref": "#/$defs/nonblank"
+    },
+    "supporting_structure_id": {
+      "$ref": "#/$defs/nonblank"
+    },
+    "supporting_structure_revision": {
+      "$ref": "#/$defs/nonblank"
+    },
+    "site_epoch_id": {
+      "$ref": "#/$defs/nonblank"
+    },
+    "clock_domain_id": {
+      "$ref": "#/$defs/nonblank"
+    },
+    "start_tick": {
+      "$ref": "#/$defs/u64"
+    },
+    "end_tick": {
+      "$ref": "#/$defs/u64"
+    },
+    "method_statement_id": {
+      "$ref": "#/$defs/nonblank"
+    },
+    "method_statement_revision": {
+      "$ref": "#/$defs/nonblank"
+    },
+    "exclusion_zone_plan_revision": {
+      "$ref": "#/$defs/nonblank"
+    },
+    "lift_preflight": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_id",
+        "input_sha256",
+        "report_sha256",
+        "profile_version",
+        "evaluator_revision",
+        "disposition",
+        "invalidated",
+        "crane_id",
+        "crane_configuration_revision",
+        "site_epoch_id",
+        "clock_domain_id",
+        "start_tick",
+        "end_tick",
+        "issued_at_tick",
+        "valid_until_tick"
+      ],
+      "properties": {
+        "receipt_id": {
+          "$ref": "#/$defs/nonblank"
+        },
+        "input_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "report_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "profile_version": {
+          "$ref": "#/$defs/nonblank"
+        },
+        "evaluator_revision": {
+          "$ref": "#/$defs/nonblank"
+        },
+        "disposition": {
+          "enum": [
+            "ready_for_human_review",
+            "rejected",
+            "indeterminate"
+          ]
+        },
+        "invalidated": {
+          "type": "boolean"
+        },
+        "crane_id": {
+          "$ref": "#/$defs/nonblank"
+        },
+        "crane_configuration_revision": {
+          "$ref": "#/$defs/nonblank"
+        },
+        "site_epoch_id": {
+          "$ref": "#/$defs/nonblank"
+        },
+        "clock_domain_id": {
+          "$ref": "#/$defs/nonblank"
+        },
+        "start_tick": {
+          "$ref": "#/$defs/u64"
+        },
+        "end_tick": {
+          "$ref": "#/$defs/u64"
+        },
+        "issued_at_tick": {
+          "$ref": "#/$defs/u64"
+        },
+        "valid_until_tick": {
+          "$ref": "#/$defs/u64"
+        }
+      }
+    },
+    "required_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidence_class",
+          "subject_id",
+          "subject_revision",
+          "personnel_role"
+        ],
+        "properties": {
+          "evidence_class": {
+            "$ref": "#/$defs/evidenceClass"
+          },
+          "subject_id": {
+            "$ref": "#/$defs/nonblank"
+          },
+          "subject_revision": {
+            "$ref": "#/$defs/nonblank"
+          },
+          "personnel_role": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/role"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "evidence_records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidenceRecord"
+      }
+    },
+    "required_devices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "device_id",
+          "device_revision"
+        ],
+        "properties": {
+          "device_id": {
+            "$ref": "#/$defs/nonblank"
+          },
+          "device_revision": {
+            "$ref": "#/$defs/nonblank"
+          }
+        }
+      }
+    },
+    "device_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "device_id",
+          "device_revision",
+          "state",
+          "evidence_record_id"
+        ],
+        "properties": {
+          "device_id": {
+            "$ref": "#/$defs/nonblank"
+          },
+          "device_revision": {
+            "$ref": "#/$defs/nonblank"
+          },
+          "state": {
+            "enum": [
+              "operational",
+              "faulted",
+              "bypassed",
+              "unknown"
+            ]
+          },
+          "evidence_record_id": {
+            "$ref": "#/$defs/nonblank"
+          }
+        }
+      }
+    },
+    "required_roles": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/role"
+      },
+      "uniqueItems": true
+    },
+    "role_assignments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "role",
+          "person_reference",
+          "credential_record_id"
+        ],
+        "properties": {
+          "role": {
+            "$ref": "#/$defs/role"
+          },
+          "person_reference": {
+            "$ref": "#/$defs/nonblank"
+          },
+          "credential_record_id": {
+            "$ref": "#/$defs/nonblank"
+          }
+        }
+      }
+    },
+    "briefing_acknowledgements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "role",
+          "person_reference",
+          "method_statement_id",
+          "method_statement_revision",
+          "acknowledged_at_tick",
+          "evidence_record_id"
+        ],
+        "properties": {
+          "role": {
+            "$ref": "#/$defs/role"
+          },
+          "person_reference": {
+            "$ref": "#/$defs/nonblank"
+          },
+          "method_statement_id": {
+            "$ref": "#/$defs/nonblank"
+          },
+          "method_statement_revision": {
+            "$ref": "#/$defs/nonblank"
+          },
+          "acknowledged_at_tick": {
+            "$ref": "#/$defs/u64"
+          },
+          "evidence_record_id": {
+            "$ref": "#/$defs/nonblank"
+          }
+        }
+      }
+    },
+    "exclusion_zone_state": {
+      "enum": [
+        "enforced",
+        "not_enforced",
+        "unknown"
+      ]
+    }
+  },
+  "$defs": {
+    "u64": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "nonblank": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{64}$"
+    },
+    "role": {
+      "enum": [
+        "operator",
+        "slinger",
+        "signaller",
+        "supervisor",
+        "appointed_person"
+      ]
+    },
+    "evidenceClass": {
+      "enum": [
+        "crane_inspection",
+        "supporting_structure_inspection",
+        "duty_monitoring",
+        "limiter_verification",
+        "personnel_credential",
+        "safe_work_briefing",
+        "briefing_acknowledgement",
+        "exclusion_zone_plan"
+      ]
+    },
+    "evidenceStatus": {
+      "enum": [
+        "current",
+        "restricted",
+        "revoked",
+        "faulted",
+        "overdue",
+        "unknown"
+      ]
+    },
+    "evidenceRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_class",
+        "record_id",
+        "owner_id",
+        "document_revision",
+        "subject_id",
+        "subject_revision",
+        "sha256",
+        "clock_domain_id",
+        "valid_from_tick",
+        "valid_until_tick",
+        "status",
+        "personnel_role"
+      ],
+      "properties": {
+        "evidence_class": {
+          "$ref": "#/$defs/evidenceClass"
+        },
+        "record_id": {
+          "$ref": "#/$defs/nonblank"
+        },
+        "owner_id": {
+          "$ref": "#/$defs/nonblank"
+        },
+        "document_revision": {
+          "$ref": "#/$defs/nonblank"
+        },
+        "subject_id": {
+          "$ref": "#/$defs/nonblank"
+        },
+        "subject_revision": {
+          "$ref": "#/$defs/nonblank"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "clock_domain_id": {
+          "$ref": "#/$defs/nonblank"
+        },
+        "valid_from_tick": {
+          "$ref": "#/$defs/u64"
+        },
+        "valid_until_tick": {
+          "$ref": "#/$defs/u64"
+        },
+        "status": {
+          "$ref": "#/$defs/evidenceStatus"
+        },
+        "personnel_role": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/role"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
