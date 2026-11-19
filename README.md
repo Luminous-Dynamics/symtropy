@@ -60,6 +60,18 @@ symtropy-math                  N-dimensional geometric algebra (const-generic, s
 
 See [ARCHITECTURE.md](docs/tech/ARCHITECTURE.md) for the full crate guide.
 
+## Space Systems and ISAM Research
+
+Symtropy's space programme is organized around **accepted services and evidence-bearing interfaces**, not isolated spacecraft concepts. The [Luminous Space ISAM Composition Map v0.1](docs/tech/SPACE_ISAM_COMPOSITION_MAP_V0_1.md) links launch production, orbital logistics, rendezvous/capture, fluid transfer, orbital assembly, structural acceptance and cislunar industrial supply to their public research owners and claim boundaries.
+
+Key research tracks:
+- [REUSABLE-LAUNCH-PRODUCTION-001 #6149](https://github.com/Luminous-Dynamics/symtropy/issues/6149) — launcher manufacturing, inspection, refurbishment and reflight lifecycle; [draft Rust reference PR #6168](https://github.com/Luminous-Dynamics/symtropy/pull/6168).
+- [ISAM-CAPABILITY-CROSSWALK-001 #6167](https://github.com/Luminous-Dynamics/symtropy/issues/6167) — crosswalk to NASA's 2026 ISAM capability inventory.
+- [ORBITAL-FOUNDRY-001 #2161](https://github.com/Luminous-Dynamics/symtropy/issues/2161) and [ORBITAL-TRUSS-ACCEPTANCE-001 #4263](https://github.com/Luminous-Dynamics/symtropy/issues/4263) — modular orbital construction and independent as-built acceptance.
+- [ORBITAL-FLUID-TRANSFER-001 #6178](https://github.com/Luminous-Dynamics/symtropy/issues/6178) and [CRYO-THERMOFLUID-MODEL-QUAL-001 #6187](https://github.com/Luminous-Dynamics/symtropy/issues/6187) — accepted fluid service and model admission for cryogenic/pressurized systems.
+
+The programme separates synthetic software benchmarks, analytical models, ground hardware, in-space demonstrations and operational services. A benchmark pass is not flight qualification or mission authority.
+
 ## Quick Start: Generic State-Coupling
 
 ```rust
