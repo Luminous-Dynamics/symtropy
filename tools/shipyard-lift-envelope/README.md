@@ -56,7 +56,9 @@ This project does not claim to replace these tools or outperform their rigging c
 
 [ISO 12480-1:2024](https://www.iso.org/standard/83637.html) defines practices for a safe crane system of work, including task planning, crane/equipment selection, erection/dismantling, operation/maintenance, and operator/slinger/signaller competence. Its published scope excludes cranes mounted on water-borne vessels (except land-based cranes temporarily affixed to vessels). This V0 is therefore limited to a declared land-based crane profile. Floating-crane operations, shipboard cranes, and wave-coupled lifting remain unsupported.
 
-[ASME B30.5-2025](https://www.asme.org/codes-standards/find-codes-standards/mobile-and-locomotive-cranes) is specific to mobile and locomotive crane types; it is not a universal standard for all gantry, overhead, floating or vessel-mounted cranes. The applicable standard set must be selected by crane type, jurisdiction, site and operation. No standard conformance is claimed here.
+The applicable safe-use standard matrix must include [ISO 12480-5:2026](https://www.iso.org/standard/90196.html), published in June 2026 specifically for bridge and gantry cranes and intended to be used with [ISO 12480-1:2024](https://www.iso.org/standard/83637.html). This makes Part 5 a more direct safe-use reference for a bridge/gantry shipyard demonstrator than Part 1 alone. Its publication does not make this prototype compliant; responsible owners must still determine the exact crane type, jurisdiction, adopted edition, applicable B30 equipment volumes and site procedures.
+
+ASME applicability depends on the exact bridge/trolley/gantry arrangement and jurisdiction. [ASME B30.2-2022](https://www.asme.org/codes-standards/find-codes-standards/b30-2-overhead-gantry-cranes/2022) is scoped to top-running bridge single/multiple-girder overhead and gantry cranes with top-running trolley hoists. [ASME B30.17-2026](https://www.asme.org/codes-standards/find-codes-standards/b30-17-cranes-monorails) covers overhead cranes and monorails with underhung trolley/bridge arrangements and also lists gantry cranes within its equipment scope. [ASME B30.5-2025](https://www.asme.org/codes-standards/find-codes-standards/mobile-and-locomotive-cranes) applies to mobile and locomotive crane families, not as a blanket gantry-crane standard. This V0.1 input does not yet encode the detailed trolley/bridge subtype needed to resolve that choice; the applicable standard profile must be established by the responsible owner and jurisdiction. No standard conformance is claimed here.
 
 A gust observation and a crane's permitted wind limit are different claims. V0 binds the measured/forecast gust upper bound to its observation source and sensor revision; the maximum permitted gust is bound to a separate operating-limit profile and revision. Both references must be current for the complete lift interval. One cannot substitute for the other.
 
@@ -83,9 +85,17 @@ These remain unsupported, not implicitly passed.
 
 See [BENCHMARK-PROTOCOL.md](BENCHMARK-PROTOCOL.md) for the separate preflight, exact-arithmetic, downstream hoisting/path-planning and commercial-workflow comparison contracts. It includes the 2026 A*HNSA literature anchor, 3D Lift Plan capability matrix, ISO/ASME applicability boundaries, adversarial strata and release gates. Those references are not results produced by this crate.
 
+## Machine-readable contract and conformance corpus
+
+The canonical JSON output shapes are specified in:
+- `schemas/lift-plan-v0.1.schema.json`
+- `schemas/preflight-report-v0.1.schema.json`
+
+The frozen synthetic conformance suite is in `fixtures/conformance-vectors-v0.1.json`, described by `schemas/conformance-vectors-v0.1.schema.json`. It maps 43 named vectors to deterministic Rust tests. The Rust suite checks the fixture-to-test mapping, while CI checks vector uniqueness, expected-outcome metadata and the presence of every mapped test name. The JSON Schemas describe shape; they do not authenticate the evidence references or prove engineering assumptions.
+
 ## Tests
 
-The dependency-free unit suite currently contains 28 tests and covers:
+The dependency-free unit suite currently contains 44 tests (43 frozen conformance vectors plus one fixture-to-test mapping check) and covers:
 
 - nominal arithmetic and human-review-only disposition;
 - crane chart capacity and exact-cell mismatch/no interpolation;
