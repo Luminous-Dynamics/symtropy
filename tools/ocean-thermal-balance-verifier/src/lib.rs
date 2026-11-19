@@ -800,8 +800,8 @@ mod tests {
     fn recovered_heat_loss_to_seawater_is_included_exactly_once() {
         let mut case = heat_recovery_case();
         case.recovery_loss_to_seawater_w = 0.0;
-        case.seawater_discharge_temperature_c =
-            20.0 + 2_162_500.0 / (500.0 * 4180.0);
+        // Keep the original measured seawater pickup: the removed recovery
+        // loss must not vanish from the ocean heat ledger.
         let report = verify_cooling_balance(&case).unwrap();
         assert!(!report.passed);
         assert!(report.violations.iter().any(|v| {
