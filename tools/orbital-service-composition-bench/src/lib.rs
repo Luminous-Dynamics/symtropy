@@ -144,10 +144,6 @@ fn non_empty(value: &str) -> bool {
     !value.trim().is_empty()
 }
 
-fn is_sha256(value: &str) -> bool {
-    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
-}
-
 fn is_source_commit(value: &str) -> bool {
     value.len() == 40 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
@@ -502,10 +498,10 @@ mod tests {
         let data = fixture();
         let report = evaluate(&data).expect("fixture should evaluate");
         assert_eq!(report.result, "pass");
-        assert_eq!(report.summary.case_count, 14);
+        assert_eq!(report.summary.case_count, 19);
         assert_eq!(report.summary.accepted_for_synthetic_composition, 1);
-        assert_eq!(report.summary.rejected, 7);
-        assert_eq!(report.summary.indeterminate, 6);
+        assert_eq!(report.summary.rejected, 9);
+        assert_eq!(report.summary.indeterminate, 9);
         assert_eq!(report.summary.expected_result_mismatches, 0);
         assert_eq!(report.summary.operational_authority_grants, 0);
     }
