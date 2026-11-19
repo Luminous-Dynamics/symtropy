@@ -14,12 +14,12 @@ A syntactically valid manifest may correctly produce BLOCKED_PENDING_EVIDENCE. T
 
 ## Admission semantics
 
-- READY_FOR_LOCAL_EVALUATION requires a human-reviewed license decision that explicitly permits evaluation, all artifact bytes locally observed, internally computed SHA-256 values, and no unresolved digest anomaly.
+- READY_FOR_LOCAL_EVALUATION requires a human-reviewed license decision that explicitly permits evaluation, all artifact bytes locally observed, internally computed SHA-256 values matching source-published SHA-256 values, and no unresolved digest anomaly. MD5-only records remain blocked in v0.1 because the auditor does not compute MD5.
 - READY_FOR_REDISTRIBUTION additionally requires an explicit redistribution permission decision.
 - BLOCKED_PENDING_EVIDENCE covers unknown rights, incomplete acquisition and duplicate source-reported MD5 values across different artifact IDs.
 - REJECTED covers malformed identity, invalid digest syntax, inconsistent local observations, exact size mismatch and source SHA-256 mismatch.
 
-A repeated upstream MD5 is a quarantine signal, not proof that two files are byte-identical. Local SHA-256 identifies staged bytes but does not authenticate them against a source release when the source did not publish SHA-256.
+A repeated upstream MD5 is a quarantine signal, not proof that two files are byte-identical. Local SHA-256 identifies staged bytes but does not authenticate them against a source release when the source did not publish SHA-256. Therefore v0.1 requires a source-published SHA-256 match before admitting data for evaluation; a local-only digest is insufficient.
 
 ## Current frozen fixture
 
