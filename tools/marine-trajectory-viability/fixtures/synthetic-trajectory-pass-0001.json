@@ -5,10 +5,10 @@
   "claim_ceiling": "finite_horizon_sampled_trajectory_audit_only",
   "mission_snapshot": {
     "mission_id": "SYNTHETIC-TRAJECTORY-MISSION-0001",
-    "mission_snapshot_sha256": "3d8c7e2aa354d70ae249b252f44a8ee8ef01a8635353fc6b75bdbdf743237b61",
+    "mission_snapshot_sha256": "bdfe681cf51c6b779fa670bf9745c2ad612ea1a03ab6a5cca7680ee1655643dc",
     "craft_configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
     "occupancy_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
-    "initial_resource_state_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "initial_resource_state_sha256": "9219b03ec9eae1805897083177f6b61ae90e6c6e9babce695efc29fb5734b79a",
     "mission_plan_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
     "service_contract_sha256": "024061d0f674c26ce2c5f2e754c2692b26ad22dcd371f4fa83045a335bcafe99",
     "scenario_roster_sha256": "8e7e650c658c1cbfb64ab325f86cbe793f3b8bd06501fa9a78aad07a21dc2cfd",
