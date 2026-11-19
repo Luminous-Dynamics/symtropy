@@ -56,3 +56,15 @@ A relative-motion terminal state must not be mapped to capture or docking withou
 ## Reproducibility
 
 The JSON contains source metadata and extracted aggregate values, not a copy of the NASA report. When the individual-entry extraction is added, publish its transformation script, source digest, extraction coverage and an explicit list of omissions/ambiguous rows.
+
+
+## Additional source-count discrepancies
+
+The NASA webpage currently reports 61 facility descriptions and 169 developer profiles along with 621 capability-area entries. The PDF text separately reports 171 cataloged ISAM developers (printed p. 54). Preserve both source-reported values and reconcile them against the entry/developer/facility appendices before presenting a single count. Do not silently replace one count with the other.
+
+The crosswalk therefore tracks three separate denominators:
+- functional-area count series (Figure 3);
+- overall capability-area-entry headline (NASA webpage);
+- developer and facility profile counts (webpage and PDF separately).
+
+These are not interchangeable.
