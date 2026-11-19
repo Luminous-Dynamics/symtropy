@@ -138,7 +138,7 @@ Do not claim SOTA on an adapter or synthetic fixture. A valid comparison must fr
 - IEC TS 62898-3-5:2026, published 11 June 2026: HIL, commissioning and periodic testing of microgrid monitoring, control and energy-management systems for grid-connected and isolated microgrids.
 - IEEE P2030.7 (PAR approved 27 March 2025) and P2030.8 (PAR approved 26 March 2026) are active revision projects; their predecessors are IEEE 2030.7-2017 and 2030.8-2018.
 - May 2026 open-access power-system restoration benchmark paper: six detailed scenarios and an EMT/RMS simulation framework; associated Zenodo dataset 10.5281/zenodo.17340051.
-- 2026 rolling-horizon distribution restoration paper: modified IEEE 33-node and 123-node feeder cases; use its reported restoration-time improvement as a reproducibility target under its exact assumptions, not a directly transferable result.
+- Forthcoming February 2027 rolling-horizon distribution restoration paper (DOI year 2026): modified IEEE 33-node and 123-node feeder cases; its abstract reports restoration-time improvements of 23.7% and 15.1% against its own best-performing benchmark. Treat it as forthcoming as of the 2026-11-19 snapshot and reproduce its exact assumptions before any comparison.
 
 These references complement, but do not replace, the CARM-Plus/PSPLIB/MSLIB/MMLIB scheduling comparisons and the existing CivDyn service-cascade benchmark.
 
@@ -156,3 +156,8 @@ The machine-readable external comparator register and its Draft 2020-12 schema a
 The register separates published standards, active standards revision projects, restoration datasets/methods, methodological papers and industry surveys. It records import and licensing status independently. The May 2026 restoration paper is open access, but the associated dataset's reuse terms remain review-required until confirmed. The ENTSO-E supply-chain survey is operational context, not an algorithmic leaderboard.
 
 All entries are metadata-registered only; no external benchmark dataset is claimed to have been imported, frozen or executed by this PR.
+
+
+### Publication-date correction — rolling-horizon restoration paper
+
+The publisher's current record assigns Qiu et al., DOI 10.1016/j.ress.2026.113531, to *Reliability Engineering & System Safety*, Volume 278 Part 2, **February 2027**. The DOI's 2026 suffix is not the journal issue date. The abstract reports 23.7% and 15.1% restoration-time reductions on modified IEEE 33-node and 123-node feeders relative to the paper's own best-performing benchmark. As of the 2026-11-19 benchmark snapshot, this is recorded as a forthcoming issue assignment, not a formally published 2026 issue article. These percentages are not directly comparable to our synthetic recovery fixtures.
