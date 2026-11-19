@@ -6,7 +6,7 @@ use construction_motion_oracle::{
     ExclusiveResourceClaim, FieldAcceptanceProfile, FieldLayoutEntityType,
     OccupancyAssessmentReceipt, SiteActorRole, SiteEventEnvelope, SiteEventPayload,
     SiteResourceDefinition, SiteStateLedger, SiteWorkPackage, SpaceTimeReservation, Vec3,
-    chord_collision, check_dispatch_readiness, endpoints_only_collision,
+    check_dispatch_readiness, chord_collision, endpoints_only_collision,
     verify_dispatch_readiness_receipt_current,
 };
 
@@ -39,12 +39,23 @@ fn measure(label: &str, mut operation: impl FnMut()) {
 
 fn benchmark_site_ledger() -> SiteStateLedger {
     let mut registry = SiteActorRegistry::new();
-    registry.grant("design-authority", SiteActorRole::DesignAuthority).unwrap();
+    registry
+        .grant("design-authority", SiteActorRole::DesignAuthority)
+        .unwrap();
     registry.grant("surveyor", SiteActorRole::Surveyor).unwrap();
     registry.grant("robot-01", SiteActorRole::Robot).unwrap();
-    registry.grant("dispatch-coordinator", SiteActorRole::DispatchCoordinator).unwrap();
-    registry.grant("referee-01", SiteActorRole::Referee).unwrap();
-    registry.grant("site-resource-authority", SiteActorRole::SiteResourceAuthority).unwrap();
+    registry
+        .grant("dispatch-coordinator", SiteActorRole::DispatchCoordinator)
+        .unwrap();
+    registry
+        .grant("referee-01", SiteActorRole::Referee)
+        .unwrap();
+    registry
+        .grant(
+            "site-resource-authority",
+            SiteActorRole::SiteResourceAuthority,
+        )
+        .unwrap();
     SiteStateLedger::with_actor_registry(registry)
 }
 
@@ -139,9 +150,10 @@ fn main() {
     run_exclusive_resource_reservation_index_benchmarks();
 }
 
-
 fn run_site_ledger_append_scaling_benchmarks() {
-    println!("site_ledger_append_scaling,event_count,rounds,total_p50_us,total_p95_us,total_p99_us,ns_per_event_p50,ns_per_event_p95,ns_per_event_p99");
+    println!(
+        "site_ledger_append_scaling,event_count,rounds,total_p50_us,total_p95_us,total_p99_us,ns_per_event_p50,ns_per_event_p95,ns_per_event_p99"
+    );
     for event_count in [100_u64, 1_000, 10_000] {
         let mut round_durations = Vec::with_capacity(31);
         for _round in 0..31 {
@@ -229,7 +241,6 @@ fn run_site_ledger_append_scaling_benchmarks() {
         );
     }
 }
-
 
 fn run_site_dispatch_readiness_benchmarks() {
     let package_sha256 = "a".repeat(64);
@@ -344,7 +355,6 @@ fn run_site_dispatch_readiness_benchmarks() {
         );
     });
 }
-
 
 fn benchmark_digest(value: u64) -> String {
     format!("{value:064x}")
@@ -546,9 +556,9 @@ fn run_exclusive_resource_reservation_index_benchmarks() {
             conflict_durations.push(start.elapsed());
             assert!(matches!(
                 result,
-                Err(construction_motion_oracle::SiteLedgerError::SpaceTimeReservationConflict {
-                    ..
-                })
+                Err(
+                    construction_motion_oracle::SiteLedgerError::SpaceTimeReservationConflict { .. }
+                )
             ));
         }
 
