@@ -2659,6 +2659,48 @@ mod tests {
     }
 
     #[test]
+    fn read_only_capacity_preview_reports_feasibility_without_mutation() {
+        let mut ledger = setup_capacity_ledger();
+        let first_event = capacity_reservation_event(&ledger, "capacity-res-1", 1, 20, 50);
+        let SiteEventPayload::CapacityReservationCommitted { commit: first_commit } =
+            &first_event.payload
+        else {
+            panic!("capacity reservation fixture must contain a commit");
+        };
+        let sequence_before_preview = ledger.last_sequence();
+        let events_before_preview = ledger.event_count();
+        let first_preview = ledger.preview_capacity_reservation(first_commit).unwrap();
+        assert!(first_preview.is_admissible);
+        assert_eq!(first_preview.site_ledger_sequence, sequence_before_preview);
+        assert_eq!(ledger.last_sequence(), sequence_before_preview);
+        assert_eq!(ledger.event_count(), events_before_preview);
+        assert_eq!(ledger.active_capacity_reservation_count(), 0);
+
+        ledger.apply(first_event).unwrap();
+        let second_event = capacity_reservation_event(&ledger, "capacity-res-2", 1, 20, 50);
+        let SiteEventPayload::CapacityReservationCommitted { commit: second_commit } =
+            &second_event.payload
+        else {
+            panic!("capacity reservation fixture must contain a commit");
+        };
+        let second_preview = ledger.preview_capacity_reservation(second_commit).unwrap();
+        assert!(second_preview.is_admissible);
+        ledger.apply(second_event).unwrap();
+
+        let third_event = capacity_reservation_event(&ledger, "capacity-res-3", 1, 20, 50);
+        let SiteEventPayload::CapacityReservationCommitted { commit: third_commit } =
+            &third_event.payload
+        else {
+            panic!("capacity reservation fixture must contain a commit");
+        };
+        let third_preview = ledger.preview_capacity_reservation(third_commit).unwrap();
+        assert!(!third_preview.is_admissible);
+        assert!(third_preview.report.indeterminate_segment_count > 0);
+        assert_eq!(ledger.active_capacity_reservation_count(), 2);
+        assert_eq!(ledger.last_sequence(), 5);
+    }
+
+    #[test]
     fn capacity_admission_binds_current_site_ledger_head_and_snapshot() {
         let mut ledger = setup_capacity_ledger();
         let mut stale = capacity_reservation_event(&ledger, "capacity-res-stale", 1, 20, 50);
