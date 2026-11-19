@@ -1,0 +1,568 @@
+{
+  "schema_version": "0.1.0",
+  "option_set_id": "ev-mission-options-synthetic-tournament-v0.1",
+  "claim_ceiling": "Synthetic predeclared alternative comparison only; not vehicle qualification, measured savings, or operating authority.",
+  "service_contract": {
+    "contract_id": "useful-service-contract-001",
+    "contract_sha256": "31ed295f5d713815ef408ed41758cf6e875cb2ea838f81b024b0a5b66df4eb35",
+    "mission_functional_unit": "tonne-km per shift",
+    "quantity_unit": "tonne-km",
+    "minimum_service_quantity": 1000
+  },
+  "mission_reports": [
+    {
+      "report_ref": "synthetic-mission-report:baseline",
+      "report_sha256": "c29b491a0c6e48aceb3bff63698702d4bf58c46f711d063e7274d7cceccbe38d",
+      "report": {
+        "schema_version": "0.2.0",
+        "catalog_id": "EV-PLATFORM-001",
+        "profile_set_id": "EV-MISSION-PHYSICS-001",
+        "method": "synthetic longitudinal mission physics fixture",
+        "results": [
+          {
+            "scenario_id": "baseline",
+            "design_id": "rural-service-vehicle",
+            "evidence_class": "synthetic",
+            "mission_functional_unit": "tonne-km per shift",
+            "status": "passes_synthetic_screen",
+            "gross_mass_margin_kg": 200,
+            "peak_power_margin_kw": 25,
+            "energy_margin_vs_usable_capacity_kwh": 5,
+            "total_unserved_energy_kwh": 0,
+            "net_battery_energy_demand_kwh": 22,
+            "total_travel_hours": 1.0999999999999999,
+            "total_stationary_segment_hours": 0.05,
+            "nontravel_duration_hours": 0.05,
+            "findings": [
+              "simplified_longitudinal_screen_is_not_vehicle_validation"
+            ]
+          }
+        ],
+        "claim_ceiling": "Synthetic fixture only; not measured vehicle performance or physical validation."
+      }
+    },
+    {
+      "report_ref": "synthetic-mission-report:eco-route",
+      "report_sha256": "010c14888b89ac441096dbd42749b1817656718273e78d2ae4b4400b146cb2fd",
+      "report": {
+        "schema_version": "0.2.0",
+        "catalog_id": "EV-PLATFORM-001",
+        "profile_set_id": "EV-MISSION-PHYSICS-001",
+        "method": "synthetic longitudinal mission physics fixture",
+        "results": [
+          {
+            "scenario_id": "eco-route",
+            "design_id": "rural-service-vehicle",
+            "evidence_class": "synthetic",
+            "mission_functional_unit": "tonne-km per shift",
+            "status": "passes_synthetic_screen",
+            "gross_mass_margin_kg": 200,
+            "peak_power_margin_kw": 25,
+            "energy_margin_vs_usable_capacity_kwh": 5,
+            "total_unserved_energy_kwh": 0,
+            "net_battery_energy_demand_kwh": 20,
+            "total_travel_hours": 1.2,
+            "total_stationary_segment_hours": 0.05,
+            "nontravel_duration_hours": 0.05,
+            "findings": [
+              "simplified_longitudinal_screen_is_not_vehicle_validation"
+            ]
+          }
+        ],
+        "claim_ceiling": "Synthetic fixture only; not measured vehicle performance or physical validation."
+      }
+    },
+    {
+      "report_ref": "synthetic-mission-report:fast-route",
+      "report_sha256": "e6353a006918f55cf7534da66460195f8d717908d91e8ec943d4820109ce1e50",
+      "report": {
+        "schema_version": "0.2.0",
+        "catalog_id": "EV-PLATFORM-001",
+        "profile_set_id": "EV-MISSION-PHYSICS-001",
+        "method": "synthetic longitudinal mission physics fixture",
+        "results": [
+          {
+            "scenario_id": "fast-route",
+            "design_id": "rural-service-vehicle",
+            "evidence_class": "synthetic",
+            "mission_functional_unit": "tonne-km per shift",
+            "status": "passes_synthetic_screen",
+            "gross_mass_margin_kg": 200,
+            "peak_power_margin_kw": 25,
+            "energy_margin_vs_usable_capacity_kwh": 5,
+            "total_unserved_energy_kwh": 0,
+            "net_battery_energy_demand_kwh": 24,
+            "total_travel_hours": 0.9500000000000001,
+            "total_stationary_segment_hours": 0.05,
+            "nontravel_duration_hours": 0.05,
+            "findings": [
+              "simplified_longitudinal_screen_is_not_vehicle_validation"
+            ]
+          }
+        ],
+        "claim_ceiling": "Synthetic fixture only; not measured vehicle performance or physical validation."
+      }
+    },
+    {
+      "report_ref": "synthetic-mission-report:wasteful",
+      "report_sha256": "894fa965cab87d7ed29798f88431846d5705f762c8426e314559fe369afc7613",
+      "report": {
+        "schema_version": "0.2.0",
+        "catalog_id": "EV-PLATFORM-001",
+        "profile_set_id": "EV-MISSION-PHYSICS-001",
+        "method": "synthetic longitudinal mission physics fixture",
+        "results": [
+          {
+            "scenario_id": "wasteful",
+            "design_id": "rural-service-vehicle",
+            "evidence_class": "synthetic",
+            "mission_functional_unit": "tonne-km per shift",
+            "status": "passes_synthetic_screen",
+            "gross_mass_margin_kg": 200,
+            "peak_power_margin_kw": 25,
+            "energy_margin_vs_usable_capacity_kwh": 5,
+            "total_unserved_energy_kwh": 0,
+            "net_battery_energy_demand_kwh": 23.2,
+            "total_travel_hours": 1.21,
+            "total_stationary_segment_hours": 0.05,
+            "nontravel_duration_hours": 0.05,
+            "findings": [
+              "simplified_longitudinal_screen_is_not_vehicle_validation"
+            ]
+          }
+        ],
+        "claim_ceiling": "Synthetic fixture only; not measured vehicle performance or physical validation."
+      }
+    },
+    {
+      "report_ref": "synthetic-mission-report:slow-route",
+      "report_sha256": "55fcdf620dee7207e3893792a63d3eeede9a501d66779c33e503d0b82504ebc9",
+      "report": {
+        "schema_version": "0.2.0",
+        "catalog_id": "EV-PLATFORM-001",
+        "profile_set_id": "EV-MISSION-PHYSICS-001",
+        "method": "synthetic longitudinal mission physics fixture",
+        "results": [
+          {
+            "scenario_id": "slow-route",
+            "design_id": "rural-service-vehicle",
+            "evidence_class": "synthetic",
+            "mission_functional_unit": "tonne-km per shift",
+            "status": "passes_synthetic_screen",
+            "gross_mass_margin_kg": 200,
+            "peak_power_margin_kw": 25,
+            "energy_margin_vs_usable_capacity_kwh": 5,
+            "total_unserved_energy_kwh": 0,
+            "net_battery_energy_demand_kwh": 21,
+            "total_travel_hours": 1.4,
+            "total_stationary_segment_hours": 0.05,
+            "nontravel_duration_hours": 0.05,
+            "findings": [
+              "simplified_longitudinal_screen_is_not_vehicle_validation"
+            ]
+          }
+        ],
+        "claim_ceiling": "Synthetic fixture only; not measured vehicle performance or physical validation."
+      }
+    },
+    {
+      "report_ref": "synthetic-mission-report:load-shed",
+      "report_sha256": "156bd4c45c83ae4a7f6b2bec3bea6e6bcd5a753afc7c644e5339a0ad92e34d5d",
+      "report": {
+        "schema_version": "0.2.0",
+        "catalog_id": "EV-PLATFORM-001",
+        "profile_set_id": "EV-MISSION-PHYSICS-001",
+        "method": "synthetic longitudinal mission physics fixture",
+        "results": [
+          {
+            "scenario_id": "load-shed",
+            "design_id": "rural-service-vehicle",
+            "evidence_class": "synthetic",
+            "mission_functional_unit": "tonne-km per shift",
+            "status": "passes_synthetic_screen",
+            "gross_mass_margin_kg": 200,
+            "peak_power_margin_kw": 25,
+            "energy_margin_vs_usable_capacity_kwh": 5,
+            "total_unserved_energy_kwh": 0,
+            "net_battery_energy_demand_kwh": 14,
+            "total_travel_hours": 1,
+            "total_stationary_segment_hours": 0.05,
+            "nontravel_duration_hours": 0.05,
+            "findings": [
+              "simplified_longitudinal_screen_is_not_vehicle_validation"
+            ]
+          }
+        ],
+        "claim_ceiling": "Synthetic fixture only; not measured vehicle performance or physical validation."
+      }
+    },
+    {
+      "report_ref": "synthetic-mission-report:blocked",
+      "report_sha256": "4da273d97020b5086e43f13db5e2fe25b3a55b9ad1e889bed85ba7407cf956d1",
+      "report": {
+        "schema_version": "0.2.0",
+        "catalog_id": "EV-PLATFORM-001",
+        "profile_set_id": "EV-MISSION-PHYSICS-001",
+        "method": "synthetic longitudinal mission physics fixture",
+        "results": [
+          {
+            "scenario_id": "blocked",
+            "design_id": "rural-service-vehicle",
+            "evidence_class": "synthetic",
+            "mission_functional_unit": "tonne-km per shift",
+            "status": "blocked",
+            "gross_mass_margin_kg": 200,
+            "peak_power_margin_kw": -5,
+            "energy_margin_vs_usable_capacity_kwh": -2,
+            "total_unserved_energy_kwh": 2,
+            "net_battery_energy_demand_kwh": 32,
+            "total_travel_hours": 1.0999999999999999,
+            "total_stationary_segment_hours": 0.05,
+            "nontravel_duration_hours": 0.05,
+            "findings": [
+              "mission_energy_exceeds_available_usable_battery_energy_or_reserve"
+            ]
+          }
+        ],
+        "claim_ceiling": "Synthetic fixture only; not measured vehicle performance or physical validation."
+      }
+    },
+    {
+      "report_ref": "synthetic-mission-report:unknown",
+      "report_sha256": "acc326426cbdc5e10c5d30136bd84a09c81ebdad2e84b62c115092d16f633f82",
+      "report": {
+        "schema_version": "0.2.0",
+        "catalog_id": "EV-PLATFORM-001",
+        "profile_set_id": "EV-MISSION-PHYSICS-001",
+        "method": "synthetic longitudinal mission physics fixture",
+        "results": [
+          {
+            "scenario_id": "unknown",
+            "design_id": "rural-service-vehicle",
+            "evidence_class": "unknown",
+            "mission_functional_unit": "tonne-km per shift",
+            "status": "indeterminate",
+            "gross_mass_margin_kg": 200,
+            "peak_power_margin_kw": 25,
+            "energy_margin_vs_usable_capacity_kwh": 5,
+            "total_unserved_energy_kwh": 0,
+            "net_battery_energy_demand_kwh": 20.1,
+            "total_travel_hours": 1.15,
+            "total_stationary_segment_hours": 0.05,
+            "nontravel_duration_hours": 0.05,
+            "findings": [
+              "simplified_longitudinal_screen_is_not_vehicle_validation"
+            ]
+          }
+        ],
+        "claim_ceiling": "Synthetic fixture only; not measured vehicle performance or physical validation."
+      }
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "baseline",
+      "label": "Baseline route / speed profile",
+      "strategy_class": "baseline",
+      "source_report_ref": "synthetic-mission-report:baseline",
+      "source_report_sha256": "c29b491a0c6e48aceb3bff63698702d4bf58c46f711d063e7274d7cceccbe38d",
+      "scenario_id": "baseline",
+      "source_result_sha256": "8ec1904ed7fbb9fa75a9e36b035a19bf092d38b72ac772adf083d10aefe5e16d",
+      "service_delivery": {
+        "lower": 1190,
+        "upper": 1210,
+        "unit": "tonne-km",
+        "bound_basis": "DECLARED_HARD_BOUND",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic-service-output:baseline",
+        "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "battery_energy": {
+        "lower": 21.8,
+        "upper": 22.2,
+        "unit": "kWh",
+        "boundary": "BATTERY_TERMINAL_NET",
+        "bound_basis": "SCENARIO_ENVELOPE",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic:baseline:battery-energy",
+        "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "elapsed_time": {
+        "lower": 1.18,
+        "upper": 1.22,
+        "unit": "h",
+        "boundary": "VEHICLE_OUT_THE_DOOR_ELAPSED",
+        "bound_basis": "SCENARIO_ENVELOPE",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic:baseline:elapsed-time",
+        "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "candidate_id": "eco-route",
+      "label": "Energy-efficient alternate route",
+      "strategy_class": "route_profile",
+      "source_report_ref": "synthetic-mission-report:eco-route",
+      "source_report_sha256": "010c14888b89ac441096dbd42749b1817656718273e78d2ae4b4400b146cb2fd",
+      "scenario_id": "eco-route",
+      "source_result_sha256": "45875a854a2e213c4e6a105e48e84a6b060880c55402e18d931bf41f929f8eab",
+      "service_delivery": {
+        "lower": 1190,
+        "upper": 1210,
+        "unit": "tonne-km",
+        "bound_basis": "DECLARED_HARD_BOUND",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic-service-output:eco-route",
+        "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "battery_energy": {
+        "lower": 19.8,
+        "upper": 20.2,
+        "unit": "kWh",
+        "boundary": "BATTERY_TERMINAL_NET",
+        "bound_basis": "SCENARIO_ENVELOPE",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic:eco-route:battery-energy",
+        "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "elapsed_time": {
+        "lower": 1.28,
+        "upper": 1.32,
+        "unit": "h",
+        "boundary": "VEHICLE_OUT_THE_DOOR_ELAPSED",
+        "bound_basis": "SCENARIO_ENVELOPE",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic:eco-route:elapsed-time",
+        "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "candidate_id": "fast-route",
+      "label": "Faster route / speed profile",
+      "strategy_class": "speed_profile",
+      "source_report_ref": "synthetic-mission-report:fast-route",
+      "source_report_sha256": "e6353a006918f55cf7534da66460195f8d717908d91e8ec943d4820109ce1e50",
+      "scenario_id": "fast-route",
+      "source_result_sha256": "0ed0ec015c3a1dab5ac38b719f18c031abd6487ffc15f92c8628c963e3bc8e0a",
+      "service_delivery": {
+        "lower": 1190,
+        "upper": 1210,
+        "unit": "tonne-km",
+        "bound_basis": "DECLARED_HARD_BOUND",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic-service-output:fast-route",
+        "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "battery_energy": {
+        "lower": 23.8,
+        "upper": 24.2,
+        "unit": "kWh",
+        "boundary": "BATTERY_TERMINAL_NET",
+        "bound_basis": "SCENARIO_ENVELOPE",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic:fast-route:battery-energy",
+        "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "elapsed_time": {
+        "lower": 1.03,
+        "upper": 1.07,
+        "unit": "h",
+        "boundary": "VEHICLE_OUT_THE_DOOR_ELAPSED",
+        "bound_basis": "SCENARIO_ENVELOPE",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic:fast-route:elapsed-time",
+        "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "candidate_id": "wasteful",
+      "label": "Slower high-energy route",
+      "strategy_class": "route_profile",
+      "source_report_ref": "synthetic-mission-report:wasteful",
+      "source_report_sha256": "894fa965cab87d7ed29798f88431846d5705f762c8426e314559fe369afc7613",
+      "scenario_id": "wasteful",
+      "source_result_sha256": "f786dfb419a6c09857c5991e9ee44efe77dc6b4ff2f8e4751403639a1fc24b0a",
+      "service_delivery": {
+        "lower": 1190,
+        "upper": 1210,
+        "unit": "tonne-km",
+        "bound_basis": "DECLARED_HARD_BOUND",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic-service-output:wasteful",
+        "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "battery_energy": {
+        "lower": 23,
+        "upper": 23.4,
+        "unit": "kWh",
+        "boundary": "BATTERY_TERMINAL_NET",
+        "bound_basis": "SCENARIO_ENVELOPE",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic:wasteful:battery-energy",
+        "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "elapsed_time": {
+        "lower": 1.29,
+        "upper": 1.33,
+        "unit": "h",
+        "boundary": "VEHICLE_OUT_THE_DOOR_ELAPSED",
+        "bound_basis": "SCENARIO_ENVELOPE",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic:wasteful:elapsed-time",
+        "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "candidate_id": "slow-route",
+      "label": "Slow duty profile",
+      "strategy_class": "speed_profile",
+      "source_report_ref": "synthetic-mission-report:slow-route",
+      "source_report_sha256": "55fcdf620dee7207e3893792a63d3eeede9a501d66779c33e503d0b82504ebc9",
+      "scenario_id": "slow-route",
+      "source_result_sha256": "73bcce092261d86bd2259c433242a2dbfad144f513c84815dbc71ee1d7bd892d",
+      "service_delivery": {
+        "lower": 1190,
+        "upper": 1210,
+        "unit": "tonne-km",
+        "bound_basis": "DECLARED_HARD_BOUND",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic-service-output:slow-route",
+        "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "battery_energy": {
+        "lower": 20.8,
+        "upper": 21.2,
+        "unit": "kWh",
+        "boundary": "BATTERY_TERMINAL_NET",
+        "bound_basis": "SCENARIO_ENVELOPE",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic:slow-route:battery-energy",
+        "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "elapsed_time": {
+        "lower": 1.45,
+        "upper": 1.55,
+        "unit": "h",
+        "boundary": "VEHICLE_OUT_THE_DOOR_ELAPSED",
+        "bound_basis": "SCENARIO_ENVELOPE",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic:slow-route:elapsed-time",
+        "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "candidate_id": "load-shed",
+      "label": "Reduced-work profile",
+      "strategy_class": "load_shed",
+      "source_report_ref": "synthetic-mission-report:load-shed",
+      "source_report_sha256": "156bd4c45c83ae4a7f6b2bec3bea6e6bcd5a753afc7c644e5339a0ad92e34d5d",
+      "scenario_id": "load-shed",
+      "source_result_sha256": "61c7124785af5132756be677880f4a945d2ca8097aadf5bc2bb78c43097d29f6",
+      "service_delivery": {
+        "lower": 640,
+        "upper": 660,
+        "unit": "tonne-km",
+        "bound_basis": "DECLARED_HARD_BOUND",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic-service-output:load-shed",
+        "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "battery_energy": {
+        "lower": 13.8,
+        "upper": 14.2,
+        "unit": "kWh",
+        "boundary": "BATTERY_TERMINAL_NET",
+        "bound_basis": "SCENARIO_ENVELOPE",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic:load-shed:battery-energy",
+        "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "elapsed_time": {
+        "lower": 1.08,
+        "upper": 1.12,
+        "unit": "h",
+        "boundary": "VEHICLE_OUT_THE_DOOR_ELAPSED",
+        "bound_basis": "SCENARIO_ENVELOPE",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic:load-shed:elapsed-time",
+        "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "candidate_id": "blocked",
+      "label": "Power/energy infeasible route",
+      "strategy_class": "route_profile",
+      "source_report_ref": "synthetic-mission-report:blocked",
+      "source_report_sha256": "4da273d97020b5086e43f13db5e2fe25b3a55b9ad1e889bed85ba7407cf956d1",
+      "scenario_id": "blocked",
+      "source_result_sha256": "b7c92e0f481413696c6a8a6dd3206b014e5201de0c2bad1772f2a31965875d41",
+      "service_delivery": {
+        "lower": 1190,
+        "upper": 1210,
+        "unit": "tonne-km",
+        "bound_basis": "DECLARED_HARD_BOUND",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic-service-output:blocked",
+        "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "battery_energy": {
+        "lower": 31.5,
+        "upper": 32.5,
+        "unit": "kWh",
+        "boundary": "BATTERY_TERMINAL_NET",
+        "bound_basis": "SCENARIO_ENVELOPE",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic:blocked:battery-energy",
+        "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "elapsed_time": {
+        "lower": 1.18,
+        "upper": 1.22,
+        "unit": "h",
+        "boundary": "VEHICLE_OUT_THE_DOOR_ELAPSED",
+        "bound_basis": "SCENARIO_ENVELOPE",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic:blocked:elapsed-time",
+        "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "candidate_id": "unknown",
+      "label": "Out-of-domain mission estimate",
+      "strategy_class": "route_profile",
+      "source_report_ref": "synthetic-mission-report:unknown",
+      "source_report_sha256": "acc326426cbdc5e10c5d30136bd84a09c81ebdad2e84b62c115092d16f633f82",
+      "scenario_id": "unknown",
+      "source_result_sha256": "1cb7644a18acf1b55f6c5e31aaa93983ad20eb25ec23bd7ba8a1e1a7b2a2031d",
+      "service_delivery": {
+        "lower": 1190,
+        "upper": 1210,
+        "unit": "tonne-km",
+        "bound_basis": "DECLARED_HARD_BOUND",
+        "evidence_class": "synthetic",
+        "evidence_ref": "synthetic-service-output:unknown",
+        "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "battery_energy": {
+        "lower": 19.5,
+        "upper": 20.7,
+        "unit": "kWh",
+        "boundary": "BATTERY_TERMINAL_NET",
+        "bound_basis": "SCENARIO_ENVELOPE",
+        "evidence_class": "unknown",
+        "evidence_ref": "synthetic:unknown:battery-energy",
+        "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "elapsed_time": {
+        "lower": 1.15,
+        "upper": 1.35,
+        "unit": "h",
+        "boundary": "VEHICLE_OUT_THE_DOOR_ELAPSED",
+        "bound_basis": "SCENARIO_ENVELOPE",
+        "evidence_class": "unknown",
+        "evidence_ref": "synthetic:unknown:elapsed-time",
+        "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  ]
+}
