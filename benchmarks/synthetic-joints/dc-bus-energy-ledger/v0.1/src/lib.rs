@@ -40,6 +40,7 @@ pub enum EvidenceClass {
     SourceAuthorPhysical,
     VendorPhysical,
     ModelDerived,
+    SyntheticFixture,
     Unknown,
 }
 
@@ -476,7 +477,7 @@ mod tests {
             operating_condition_digest: CONDITIONS.to_owned(),
             calibration_status: CalibrationStatus::InDate,
             traceability_status: TraceabilityStatus::Established,
-            evidence_class: EvidenceClass::IndependentPhysical,
+            evidence_class: EvidenceClass::SyntheticFixture,
             source_reference: format!("https://example.invalid/source/{port}"),
             measurement_method: "Synthetic known-answer integrated-energy fixture".to_owned(),
             calibration_digest: format!("cal-{port}-v1"),
