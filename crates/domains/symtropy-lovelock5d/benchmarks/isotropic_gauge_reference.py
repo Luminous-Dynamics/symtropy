@@ -71,9 +71,14 @@ def build_fixture(dps: int) -> dict:
     max_derivative_defect = mp.mpf("0")
     max_radial_defect = mp.mpf("0")
     max_mp_error = mp.mpf("0")
+    max_reconstruction_defect = mp.mpf("0")
+    tolerance = mp.power(10, -(dps - 10))
     for lam_s in ("0", "0.7", "3"):
         lam = mp.mpf(lam_s)
+        C = 2 + lam
         xi_h = mp.exp(-horizon_log_normalization(lam))
+        if not (xi_h > 0 and mp.isfinite(xi_h)):
+            raise AssertionError(f"invalid isotropic horizon radius for lambda={lam}")
         rows = []
         for rho_s in ("1.1", "2", "10"):
             rho = mp.mpf(rho_s)
@@ -85,17 +90,54 @@ def build_fixture(dps: int) -> dict:
             derivative_defect = abs(dxi/dxi_rhs - 1)
             f_iso = (xi/rho)**2
             radial_defect = abs((dxi**2/f_iso)/(1/F) - 1)
+            if not (F > 0 and xi > 0 and f_iso > 0 and dxi > 0):
+                raise AssertionError(
+                    f"nonpositive exterior metric/Jacobian at lambda={lam}, rho={rho}"
+                )
+            if derivative_defect > tolerance:
+                raise AssertionError(
+                    f"coordinate ODE defect {derivative_defect} exceeds {tolerance}"
+                )
+            if radial_defect > tolerance:
+                raise AssertionError(
+                    f"radial line-element defect {radial_defect} exceeds {tolerance}"
+                )
             inverse = mp.findroot(
                 lambda R: xi_of_rho(R, lam) - xi,
                 (rho*(1-mp.mpf("1e-8")), rho*(1+mp.mpf("1e-8"))),
             )
             inverse_error = abs(inverse-rho)
+            if inverse_error > tolerance:
+                raise AssertionError(
+                    f"inverse-map error {inverse_error} exceeds {tolerance}"
+                )
+            m_iso = F*rho**2/xi**2
+            n_iso = F*rho**2/xi**2
+            w_areal = C/(rho**4*(1+mp.sqrt(1+lam*C/rho**4)))
+            bar_w = xi*w_areal
+            g_iso = xi**2*m_iso/F
+            h_iso = xi**2*n_iso/F
+            w_iso = bar_w/xi
+            reconstruction_defect = max(
+                abs(g_iso/rho**2 - 1),
+                abs(h_iso/rho**2 - 1),
+                abs(w_iso/w_areal - 1),
+            )
+            if reconstruction_defect > tolerance:
+                raise AssertionError(
+                    f"isotropic reconstruction defect {reconstruction_defect} exceeds {tolerance}"
+                )
+            max_reconstruction_defect = max(max_reconstruction_defect, reconstruction_defect)
             max_derivative_defect = max(max_derivative_defect, derivative_defect)
             max_radial_defect = max(max_radial_defect, radial_defect)
             max_inverse_error = max(max_inverse_error, inverse_error)
             if lam == 0:
                 xi_exact = (rho + mp.sqrt(rho**2 - 1))/2
                 mp_error = abs(xi-xi_exact)
+                if mp_error > tolerance:
+                    raise AssertionError(
+                        f"alpha=0 exact-map error {mp_error} exceeds {tolerance}"
+                    )
                 max_mp_error = max(max_mp_error, mp_error)
             else:
                 mp_error = mp.mpf("0")
@@ -152,8 +194,11 @@ def build_fixture(dps: int) -> dict:
             "derivative_ode_checked_with_mpmath_diff": True,
             "radial_metric_identity_checked": True,
             "alpha_zero_closed_form_checked": True,
+            "fail_closed_assertions_passed": True,
+            "absolute_defect_tolerance": mp.nstr(tolerance, 8),
             "validation_radii": ["1.1", "2", "10"],
             "max_inverse_radius_absolute_error": mp.nstr(max_inverse_error, 8),
+            "max_isotropic_reconstruction_relative_defect": mp.nstr(max_reconstruction_defect, 8),
             "max_derivative_relative_defect": mp.nstr(max_derivative_defect, 8),
             "max_radial_metric_relative_defect": mp.nstr(max_radial_defect, 8),
             "max_alpha_zero_closed_form_absolute_error": mp.nstr(max_mp_error, 8),
