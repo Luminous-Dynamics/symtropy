@@ -54,6 +54,23 @@ Sources:
 - [FMPy supported FMI interfaces](https://github.com/CATIA-Systems/FMPy)
 - [FMI Implementers' Guide — validation recommendations](https://modelica.github.io/fmi-guides/main/fmi-guide/)
 
+## 3A. Adjacent method references (not direct FMI-master competitors)
+
+The direct OMSimulator master comparison is only one layer. Use these established solvers/coupling libraries as *method references* when comparing component integration and interface-coupling choices. Do not add them to the direct FMI-master leaderboard without a common FMU adapter and equivalent scope.
+
+| Method reference | Pinned research snapshot | Role | Correct comparison |
+|---|---|---|---|
+| SUNDIALS ARKODE MRIStep / ExtSTS | SUNDIALS 7.9.0 (released 3 Sep 2026) | Multirate time-integration reference, especially parabolic components | Compare component trajectory/error/CPU envelopes on the same analytic stiff diffusion subproblem; not an FMI master |
+| preCICE implicit coupling | Pin exact preCICE release/commit at run time; docs updated 20 Oct 2026 | Explicit/implicit partitioned multi-physics coupling, convergence measures and IQN-ILS acceleration | Compare interface residual/convergence, rollback/checkpoint cost and coupling iterations using an equivalent two-participant adapter; not an FMI importer |
+| OpenModelica / OMSimulator | Pin exact build; User Guide snapshot reports FMI 3.0.2 as experimental | Actual FMI importer/master path | Direct master leaderboard, with capability flags and unsupported paths listed |
+
+SUNDIALS 7.9.0 adds extended Super Time Stepping through ARKODE MRIStep for multirate parabolic simulations. It is a component integrator, not an FMI co-simulation master. preCICE supports serial/parallel and explicit/implicit schemes; implicit schemes iterate until declared convergence measures are satisfied and can use IQN-ILS acceleration. A method reference is only valid when the same equations, coupling window, tolerance, initial conditions and compute budget are compared.
+
+Sources:
+- [SUNDIALS 7.9.0 release information](https://computing.llnl.gov/projects/sundials/sundials-software)
+- [preCICE coupling scheme configuration](https://precice.org/docs/configuration/basics/coupling/)
+- [OpenModelica current User Guide — FMI support table](https://openmodelica.org/doc/OpenModelicaUsersGuide/OpenModelicaUsersGuide-latest.pdf)
+
 ## 4. Do not conflate the comparison layers
 
 1. **FMU/package correctness:** modelDescription/schema, binaries, variables, units, capabilities, license and platform.
