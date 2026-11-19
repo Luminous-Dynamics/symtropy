@@ -88,7 +88,8 @@
     },
     {
       "id": "Hyperplane",
-      "status": "UnknownUncensusedForWorldCollision"
+      "status": "UnknownUncensused",
+      "note": "Math type exported; no exact world collision path was censused."
     }
   ],
   "contact_paths": [
@@ -331,7 +332,7 @@
         4
       ],
       "hash": "FNV-1a 64 non-cryptographic state hash",
-      "status": "ProofOfConceptCLI"
+      "maturity": "ProofOfConceptCLI"
     },
     "reusable_library": "No generalized reusable SYMTAPE library contract established in this source.",
     "portable_engineering_identity": "Unavailable",
@@ -372,7 +373,7 @@
     },
     {
       "id": "ten_box_stack",
-      "status": "KnownNegativeFinding",
+      "status": "PartiallySupported",
       "detail": "The ten-box stack test is ignored; source comments report it does not settle cleanly after trying 30 solver iterations. The three-box regression is a separate passing scope."
     },
     {
@@ -382,7 +383,7 @@
     },
     {
       "id": "replay_hash_authority",
-      "status": "KnownNegativeFinding",
+      "status": "PartiallySupported",
       "detail": "SYMTAPE FNV-1a 64 is a divergence diagnostic, not a cryptographic evidence commitment."
     }
   ],
@@ -594,6 +595,6 @@
   "content_identity": {
     "algorithm": "SHA-256",
     "canonicalization": "UTF-8 JSON; sort object keys; compact separators; omit content_identity.digest from input",
-    "digest": "1e86cc2275d7e1c416dc3cfc1e8b57bc38a3fc1512963914e110d0a233bd4df3"
+    "digest": "0e93bfecb52fc21c4158eb17bd0a8b1d37ffadd4caee62920dacd53fdd214d54"
   }
 }
