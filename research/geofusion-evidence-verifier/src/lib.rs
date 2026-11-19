@@ -120,7 +120,7 @@ impl VerificationReport {
             "normalized_absolute_residual": self.normalized_absolute_residual,
             "within_tolerance": self.within_tolerance,
             "qualified": self.qualified,
-            "claim_ceiling": "Byte identity, declared source identity and one source-interval allocation arithmetic only; not physical truth or operational authorization."
+            "claim_ceiling": concat!(\n                "Byte identity, declared source identity and one source-interval allocation arithmetic only; ",\n                "not physical truth or operational authorization."\n            )
         })
     }
 }
@@ -714,6 +714,39 @@ mod tests {
         e["artifact"]["integrity_state"] = json!("mismatch");
         let error = verify_source_interval(PAYLOAD, &e, &allocation()).unwrap_err();
         assert_eq!(error.code(), "ARTIFACT_INTEGRITY_STATE_REJECTED");
+    }
+
+    #[test]
+    fn stale_or_unknown_validity_cannot_be_qualified() {
+        let mut e = evidence();
+        e["validity"]["state"] = json!("unknown");
+        e["validity"]["reason"] = json!("calibration/validity evidence absent");
+        let error = verify_source_interval(PAYLOAD, &e, &allocation()).unwrap_err();
+        assert_eq!(error.code(), "EVIDENCE_NOT_CURRENT");
+    }
+
+    #[test]
+    fn bounded_time_window_must_match_the_raw_source_interval() {
+        let mut e = evidence();
+        e["time_window"]["start_utc"] = json!("2026-01-01T01:00:00Z");
+        let error = verify_source_interval(PAYLOAD, &e, &allocation()).unwrap_err();
+        assert_eq!(error.code(), "TIME_WINDOW_MISMATCH");
+    }
+
+    #[test]
+    fn unsupported_digest_algorithm_is_rejected() {
+        let mut e = evidence();
+        e["artifact"]["digest"]["algorithm"] = json!("md5");
+        let error = verify_source_interval(PAYLOAD, &e, &allocation()).unwrap_err();
+        assert_eq!(error.code(), "UNSUPPORTED_DIGEST_ALGORITHM");
+    }
+
+    #[test]
+    fn malformed_digest_is_rejected_before_comparison() {
+        let mut e = evidence();
+        e["artifact"]["digest"]["value"] = json!("z".repeat(64));
+        let error = verify_source_interval(PAYLOAD, &e, &allocation()).unwrap_err();
+        assert_eq!(error.code(), "MALFORMED_DIGEST");
     }
 
     #[test]
