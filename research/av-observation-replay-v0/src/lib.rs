@@ -317,8 +317,10 @@ pub struct TransportEventV1 {
     pub event_id: String,
     /// Source sensor identity.
     pub sensor_id: String,
-    /// Source frame/chunk sequence number.
+    /// Source frame/chunk sequence number within the declared clock generation.
     pub source_sequence: u64,
+    /// Clock identity governing this sequence number, including reset generation.
+    pub clock_domain: ClockDomainV1,
     /// Earliest replay tick at which this transport event becomes visible.
     pub availability_tick: u64,
     /// Globally unique deterministic arrival-order key.
@@ -919,6 +921,11 @@ mod tests {
             event_id: "duplicate-audio-0001".to_owned(),
             sensor_id: "microphone-front".to_owned(),
             source_sequence: 1,
+            clock_domain: ClockDomainV1 {
+                domain_id: "microphone-monotonic".to_owned(),
+                generation: 0,
+                time_scale_id: "microphone-clock-v1".to_owned(),
+            },
             availability_tick: 5,
             arrival_order: 4,
             disposition: TransportDispositionV1::Duplicate,
@@ -937,12 +944,51 @@ mod tests {
             event_id: "reordered-audio-0000".to_owned(),
             sensor_id: "microphone-front".to_owned(),
             source_sequence: 0,
+            clock_domain: ClockDomainV1 {
+                domain_id: "microphone-monotonic".to_owned(),
+                generation: 0,
+                time_scale_id: "microphone-clock-v1".to_owned(),
+            },
             availability_tick: 5,
             arrival_order: 4,
             disposition: TransportDispositionV1::Reordered,
             observation_id: Some("obs-audio-0000".to_owned()),
         });
         validate_bundle_v1(&reordered).unwrap();
+    }
+
+    #[test]
+    fn sequence_numbers_are_scoped_to_clock_generation() {
+        let mut bundle = fixture();
+        let mut reset_frame = bundle.observations[0].clone();
+        if let AgentObservationV1::VideoFrame(frame) = &mut reset_frame {
+            frame.observation_id = "obs-video-after-reset".to_owned();
+            frame.source_sequence = 0;
+            frame.clock_domain.generation = 1;
+        }
+        bundle.observations.push(reset_frame);
+        bundle.transport_events.push(TransportEventV1 {
+            event_id: "arrival-video-after-reset".to_owned(),
+            sensor_id: "camera-front".to_owned(),
+            source_sequence: 0,
+            clock_domain: ClockDomainV1 {
+                domain_id: "camera-monotonic".to_owned(),
+                generation: 1,
+                time_scale_id: "camera-clock-v1".to_owned(),
+            },
+            availability_tick: 5,
+            arrival_order: 4,
+            disposition: TransportDispositionV1::Delivered,
+            observation_id: Some("obs-video-after-reset".to_owned()),
+        });
+        validate_bundle_v1(&bundle).unwrap();
+
+        let mut mismatched = fixture();
+        mismatched.transport_events[0].clock_domain.generation = 1;
+        assert_eq!(
+            validate_bundle_v1(&mismatched),
+            Err(ContractError::ObservationReferenceMismatch)
+        );
     }
 
     #[test]
