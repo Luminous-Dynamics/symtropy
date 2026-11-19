@@ -460,8 +460,13 @@ impl SourceAllocationLedger {
         if !relative_tolerance.is_finite() || !(0.0..1.0).contains(&relative_tolerance) {
             return Err(ValidationError::InvalidTolerance);
         }
-        if !self.available_energy_mwh.is_finite() || self.available_energy_mwh <= 0.0 {
+        if !self.available_energy_mwh.is_finite() {
             return Err(ValidationError::NonFiniteOrNonPositive(
+                "available source energy MWh",
+            ));
+        }
+        if self.available_energy_mwh < 0.0 {
+            return Err(ValidationError::NegativeEnergyTerm(
                 "available source energy MWh",
             ));
         }
@@ -706,6 +711,15 @@ mod tests {
         let result = ledger.evaluate(1e-3).unwrap();
         assert!(!result.within_tolerance);
         assert!((result.residual_energy_mwh - 2.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn zero_output_source_interval_is_a_valid_zero_allocation() {
+        let mut ledger = allocation_ledger(vec![], 0.0);
+        ledger.available_energy_mwh = 0.0;
+        let result = ledger.evaluate(1e-12).unwrap();
+        assert!(result.within_tolerance);
+        assert_eq!(result.residual_energy_mwh, 0.0);
     }
 
     #[test]
