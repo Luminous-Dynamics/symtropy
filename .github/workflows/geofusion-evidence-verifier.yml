@@ -45,7 +45,8 @@ jobs:
           check-jsonschema --check-metaschema \
             docs/research/geothermal-fusion/evidence/schemas/raw-source-interval-v0.1.schema.json \
             docs/research/geothermal-fusion/evidence/schemas/evidence-envelope-v0.1.schema.json \
-            docs/research/geothermal-fusion/evidence/schemas/source-allocation-receipt-v0.1.schema.json
+            docs/research/geothermal-fusion/evidence/schemas/source-allocation-receipt-v0.1.schema.json \
+            docs/research/geothermal-fusion/evidence/schemas/source-interval-batch-manifest-v0.1.schema.json
 
       - name: Validate positive evidence fixtures
         run: |
@@ -58,6 +59,10 @@ jobs:
           check-jsonschema \
             --schemafile docs/research/geothermal-fusion/evidence/schemas/source-allocation-receipt-v0.1.schema.json \
             docs/research/geothermal-fusion/evidence/fixtures/synthetic-source-allocation-receipt.v0.1.json
+
+          check-jsonschema \
+            --schemafile docs/research/geothermal-fusion/evidence/schemas/source-interval-batch-manifest-v0.1.schema.json \
+            docs/research/geothermal-fusion/evidence/fixtures/source-interval-batch-manifest.v0.1.json
 
       - name: Reject invalid source identity negative control
         run: |
@@ -89,3 +94,8 @@ jobs:
             docs/research/geothermal-fusion/evidence/fixtures/synthetic-geothermal-source-interval.v0.1.json \
             docs/research/geothermal-fusion/evidence/fixtures/synthetic-source-interval-evidence.v0.1.json \
             docs/research/geothermal-fusion/evidence/fixtures/synthetic-source-allocation-receipt.v0.1.json
+
+      - name: Exercise adjacent source intervals through batch CLI
+        run: |
+          cargo run --locked --package geofusion-evidence-verifier -- --batch \
+            docs/research/geothermal-fusion/evidence/fixtures/source-interval-batch-manifest.v0.1.json
