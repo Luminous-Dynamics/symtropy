@@ -243,6 +243,7 @@ fn validate_context(plan: &ReadinessPlan, diagnostics: &mut Vec<Diagnostic>) {
         ("clock_domain_id", plan.clock_domain_id.as_str()),
         ("method_statement_id", plan.method_statement_id.as_str()),
         ("method_statement_revision", plan.method_statement_revision.as_str()),
+        ("exclusion_zone_plan_revision", plan.exclusion_zone_plan_revision.as_str()),
     ] {
         if !nonblank(value) {
             push(
