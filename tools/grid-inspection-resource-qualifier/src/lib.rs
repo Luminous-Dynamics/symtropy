@@ -171,6 +171,8 @@ pub struct BranchSchedule {
     pub probability_basis_points: u32,
     pub second_inspection: Option<ActivitySchedule>,
     pub recovery_action: ActivitySchedule,
+    pub branch_resource_hours: Vec<ExpectedResourceHours>,
+    pub service_model_ref: String,
     pub service_trajectory_ref: String,
 }
 
@@ -577,6 +579,12 @@ fn add_expected_resource_hours(
     }
 }
 
+fn resource_hours_from_map(totals: BTreeMap<String, f64>) -> Vec<ExpectedResourceHours> {
+    totals.into_iter()
+        .map(|(resource_ref, expected_unit_hours)| ExpectedResourceHours { resource_ref, expected_unit_hours })
+        .collect()
+}
+
 pub fn qualify(case: &Case) -> Result<QualificationReport, Vec<String>> {
     let validation_errors = validate_case(case);
     if !validation_errors.is_empty() {
@@ -614,12 +622,18 @@ pub fn qualify(case: &Case) -> Result<QualificationReport, Vec<String>> {
                 add_expected_resource_hours(&mut expected_resource_hours, action, path_weight);
                 expected_completion += action_schedule.end_hour * path_weight as f64 / TOTAL_BASIS_POINTS as f64;
                 worst_completion = worst_completion.max(action_schedule.end_hour);
+                let mut branch_resource_totals = BTreeMap::new();
+                add_expected_resource_hours(&mut branch_resource_totals, first_activity, TOTAL_BASIS_POINTS);
+                add_expected_resource_hours(&mut branch_resource_totals, second_activity, TOTAL_BASIS_POINTS);
+                add_expected_resource_hours(&mut branch_resource_totals, action, TOTAL_BASIS_POINTS);
                 branches.push(BranchSchedule {
                     first_outcome: first_branch.outcome,
                     second_outcome: Some(second_leaf.outcome),
                     probability_basis_points: path_weight,
                     second_inspection: Some(second_schedule.clone()),
                     recovery_action: action_schedule,
+                    branch_resource_hours: resource_hours_from_map(branch_resource_totals),
+                    service_model_ref: action.service_model_ref.clone().unwrap_or_default(),
                     service_trajectory_ref: second_leaf.service_trajectory_ref.clone(),
                 });
             }
@@ -632,12 +646,17 @@ pub fn qualify(case: &Case) -> Result<QualificationReport, Vec<String>> {
             add_expected_resource_hours(&mut expected_resource_hours, action, first_branch.probability_basis_points);
             expected_completion += action_schedule.end_hour * first_branch.probability_basis_points as f64 / TOTAL_BASIS_POINTS as f64;
             worst_completion = worst_completion.max(action_schedule.end_hour);
+            let mut branch_resource_totals = BTreeMap::new();
+            add_expected_resource_hours(&mut branch_resource_totals, first_activity, TOTAL_BASIS_POINTS);
+            add_expected_resource_hours(&mut branch_resource_totals, action, TOTAL_BASIS_POINTS);
             branches.push(BranchSchedule {
                 first_outcome: first_branch.outcome,
                 second_outcome: None,
                 probability_basis_points: first_branch.probability_basis_points,
                 second_inspection: None,
                 recovery_action: action_schedule,
+                branch_resource_hours: resource_hours_from_map(branch_resource_totals),
+                service_model_ref: action.service_model_ref.clone().unwrap_or_default(),
                 service_trajectory_ref: service_ref.clone(),
             });
         }
@@ -650,9 +669,7 @@ pub fn qualify(case: &Case) -> Result<QualificationReport, Vec<String>> {
         left.first_outcome.cmp(&right.first_outcome)
             .then_with(|| left.second_outcome.cmp(&right.second_outcome))
     });
-    let expected_resource_hours = expected_resource_hours.into_iter()
-        .map(|(resource_ref, expected_unit_hours)| ExpectedResourceHours { resource_ref, expected_unit_hours })
-        .collect();
+    let expected_resource_hours = resource_hours_from_map(expected_resource_hours);
 
     Ok(QualificationReport {
         case_id: case.case_id.clone(),
@@ -716,6 +733,35 @@ mod tests {
         let replacement = report.branches.iter().find(|branch| branch.recovery_action.activity_id == "replace-transformer").unwrap();
         assert_eq!(replacement.recovery_action.start_hour, 12.0);
         assert_eq!(replacement.recovery_action.end_hour, 18.0);
+    }
+
+    #[test]
+    fn confirmed_reservation_consumes_shared_crew_capacity() {
+        let mut case = fixture();
+        let crew = case.resource_manifest.resources.iter_mut()
+            .find(|resource| resource.resource_ref == "synthetic://resource/specialist-crew-01").unwrap();
+        crew.reservations.push(Reservation {
+            reservation_ref: "confirmed-booking".to_string(),
+            start_hour: 10.5,
+            end_hour: 12.0,
+            units: 1,
+            state: ReservationState::Confirmed,
+        });
+        case.resource_manifest_sha256 = canonical_manifest_sha256(&case.resource_manifest).unwrap();
+        let report = qualify(&case).expect("policy remains feasible after the reservation");
+        let nested = report.branches.iter().find(|branch| branch.second_outcome.is_some()).unwrap();
+        assert_eq!(nested.second_inspection.as_ref().unwrap().start_hour, 12.0);
+        assert_eq!(nested.recovery_action.start_hour, 13.75);
+    }
+
+    #[test]
+    fn branch_resource_hours_are_not_aggregated_across_alternative_worlds() {
+        let report = qualify(&fixture()).expect("fixture qualifies");
+        let repair = report.branches.iter().find(|branch| branch.recovery_action.activity_id == "repair-bushing").unwrap();
+        let crew = repair.branch_resource_hours.iter()
+            .find(|item| item.resource_ref == "synthetic://resource/specialist-crew-01").unwrap();
+        assert!((crew.expected_unit_hours - 9.5).abs() <= TOLERANCE);
+        assert_eq!(repair.service_model_ref, "symtropy://6235/service-model/transformer-17/repair");
     }
 
     #[test]
