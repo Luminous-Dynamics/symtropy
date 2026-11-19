@@ -3,7 +3,7 @@
 **Status:** frozen source reference v1; independent qualification is pending.  
 **Parent:** [#1472 — exact read-only engine capability and model-path census](https://github.com/Luminous-Dynamics/symtropy/issues/1472)  
 **Predecessor:** [#1468](https://github.com/Luminous-Dynamics/symtropy/issues/1468) / source reference [PR #1469](https://github.com/Luminous-Dynamics/symtropy/pull/1469), independently qualified by [PR #1471](https://github.com/Luminous-Dynamics/symtropy/pull/1471).  
-**Fresh source baseline:** `main@0b3b9a6f541b616a2132fee1493515f9bcf3d4c0` (19 November 2026).
+**Fresh source baseline:** `main@540a6097be6bc31b85f0e43e5f31947fa078c6f4` (19 November 2026).
 
 ## Why this reference exists
 
@@ -28,7 +28,7 @@ This is a refreshed source reference, not the production descriptor/API. The pre
 ## Frozen source identity
 
 - Repository: `Luminous-Dynamics/symtropy`
-- Main commit: `0b3b9a6f541b616a2132fee1493515f9bcf3d4c0`
+- Main commit: `540a6097be6bc31b85f0e43e5f31947fa078c6f4`
 - Engine package: `symtropy-physics 0.2.1`, Rust edition 2024
 - Geometry package: `symtropy-math 0.2.1`
 - Source lock: 25 exact Git blob IDs in [the machine-readable reference](../../release/evidence/eng-synth-cred-001b-engine-capability-reference-v1.json)
