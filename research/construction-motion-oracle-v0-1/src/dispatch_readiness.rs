@@ -97,15 +97,20 @@ pub struct OccupancyAssessmentReceipt {
 pub struct DispatchReadinessRequest {
     pub schema_version: String,
     pub envelope: DispatchEnvelopeBinding,
-    /// Owner-approved immutable occupancy engine build and clearance policy.
-    pub trusted_occupancy_engine_build_sha256: String,
-    pub required_clearance_policy_sha256: String,
     pub occupancy: OccupancyAssessmentReceipt,
     /// Authenticated current site-clock sample. Its uncertainty interval must
     /// lie wholly inside the envelope and occupancy validity intervals.
     pub qualified_clock: QualifiedSiteClockSnapshot,
-    /// Owner-approved maximum absolute current clock error in site ticks.
-    pub trusted_max_clock_uncertainty_ticks: u64,
+}
+
+/// Trust-owner policy is supplied out-of-band, not chosen by the request.
+/// This prevents a request from authorizing its own engine, clearance policy
+/// or tolerated clock error.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DispatchReadinessPolicy {
+    pub occupancy_engine_build_sha256: String,
+    pub clearance_policy_sha256: String,
+    pub max_clock_uncertainty_ticks: u64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -201,6 +206,7 @@ pub enum DispatchReadinessFailure {
 pub fn check_dispatch_readiness(
     ledger: &SiteStateLedger,
     request: &DispatchReadinessRequest,
+    policy: &DispatchReadinessPolicy,
 ) -> Result<DispatchReadinessReceipt, DispatchReadinessFailure> {
     if request.schema_version != DISPATCH_READINESS_REQUEST_SCHEMA_VERSION {
         return Err(DispatchReadinessFailure::UnsupportedSchemaVersion);
@@ -233,8 +239,8 @@ pub fn check_dispatch_readiness(
         ("occupancy clock epoch", occupancy.site_clock_epoch_sha256.as_str()),
         ("occupancy clock mapping", occupancy.clock_mapping_sha256.as_str()),
         ("assessment receipt", occupancy.assessment_receipt_sha256.as_str()),
-        ("trusted occupancy engine build", request.trusted_occupancy_engine_build_sha256.as_str()),
-        ("required clearance policy", request.required_clearance_policy_sha256.as_str()),
+        ("trusted occupancy engine build", policy.occupancy_engine_build_sha256.as_str()),
+        ("required clearance policy", policy.clearance_policy_sha256.as_str()),
         ("clock epoch", clock.epoch_sha256.as_str()),
         ("clock mapping", clock.mapping_sha256.as_str()),
         ("clock qualification receipt", clock.receipt_sha256.as_str()),
@@ -264,9 +270,9 @@ pub fn check_dispatch_readiness(
     {
         return Err(DispatchReadinessFailure::ClockAuthorityNotRegistered);
     }
-    if clock.uncertainty_bound_ticks > request.trusted_max_clock_uncertainty_ticks
-        || envelope.generated_at_uncertainty_ticks > request.trusted_max_clock_uncertainty_ticks
-        || occupancy.checked_at_uncertainty_ticks > request.trusted_max_clock_uncertainty_ticks
+    if clock.uncertainty_bound_ticks > policy.max_clock_uncertainty_ticks
+        || envelope.generated_at_uncertainty_ticks > policy.max_clock_uncertainty_ticks
+        || occupancy.checked_at_uncertainty_ticks > policy.max_clock_uncertainty_ticks
     {
         return Err(DispatchReadinessFailure::ClockUncertaintyExceedsPolicy);
     }
@@ -350,10 +356,10 @@ pub fn check_dispatch_readiness(
     if occupancy.primitive_manifest_sha256 != envelope.primitive_manifest_sha256 {
         return Err(DispatchReadinessFailure::OccupancyPrimitiveManifestMismatch);
     }
-    if occupancy.occupancy_engine_build_sha256 != request.trusted_occupancy_engine_build_sha256 {
+    if occupancy.occupancy_engine_build_sha256 != policy.occupancy_engine_build_sha256 {
         return Err(DispatchReadinessFailure::OccupancyEngineBuildMismatch);
     }
-    if occupancy.clearance_policy_sha256 != request.required_clearance_policy_sha256 {
+    if occupancy.clearance_policy_sha256 != policy.clearance_policy_sha256 {
         return Err(DispatchReadinessFailure::ClearancePolicyMismatch);
     }
     if occupancy.site_ledger_sequence != ledger.last_sequence() {
@@ -462,10 +468,8 @@ pub fn check_dispatch_readiness(
 pub fn verify_dispatch_readiness_receipt_current(
     ledger: &SiteStateLedger,
     receipt: &DispatchReadinessReceipt,
-    trusted_occupancy_engine_build_sha256: &str,
-    required_clearance_policy_sha256: &str,
+    policy: &DispatchReadinessPolicy,
     qualified_clock: &QualifiedSiteClockSnapshot,
-    trusted_max_clock_uncertainty_ticks: u64,
 ) -> Result<(), DispatchReadinessFailure> {
     if receipt.schema_version != DISPATCH_READINESS_RECEIPT_SCHEMA_VERSION {
         return Err(DispatchReadinessFailure::UnsupportedSchemaVersion);
@@ -519,10 +523,10 @@ pub fn verify_dispatch_readiness_receipt_current(
     {
         return Err(DispatchReadinessFailure::ClockAuthorityNotRegistered);
     }
-    if !is_sha256(trusted_occupancy_engine_build_sha256) {
+    if !is_sha256(&policy.occupancy_engine_build_sha256) {
         return Err(DispatchReadinessFailure::InvalidDigest("trusted occupancy engine build"));
     }
-    if !is_sha256(required_clearance_policy_sha256) {
+    if !is_sha256(&policy.clearance_policy_sha256) {
         return Err(DispatchReadinessFailure::InvalidDigest("required clearance policy"));
     }
     if !is_sha256(&qualified_clock.epoch_sha256)
@@ -534,7 +538,9 @@ pub fn verify_dispatch_readiness_receipt_current(
     {
         return Err(DispatchReadinessFailure::InvalidClockEvidence);
     }
-    if qualified_clock.uncertainty_bound_ticks > trusted_max_clock_uncertainty_ticks {
+    if receipt.checked_at_uncertainty_ticks > policy.max_clock_uncertainty_ticks
+        || qualified_clock.uncertainty_bound_ticks > policy.max_clock_uncertainty_ticks
+    {
         return Err(DispatchReadinessFailure::ClockUncertaintyExceedsPolicy);
     }
     if qualified_clock.site_clock_domain_id != receipt.site_clock_domain_id {
@@ -548,6 +554,7 @@ pub fn verify_dispatch_readiness_receipt_current(
     }
     if qualified_clock.authority_id != receipt.clock_authority_id
         || qualified_clock.source_id != receipt.clock_source_id
+        || qualified_clock.receipt_sha256 == receipt.clock_receipt_sha256
     {
         return Err(DispatchReadinessFailure::InvalidClockEvidence);
     }
@@ -571,10 +578,10 @@ pub fn verify_dispatch_readiness_receipt_current(
         return Err(DispatchReadinessFailure::ReadinessReceiptExpired);
     }
 
-    if receipt.occupancy_engine_build_sha256 != trusted_occupancy_engine_build_sha256 {
+    if receipt.occupancy_engine_build_sha256 != policy.occupancy_engine_build_sha256 {
         return Err(DispatchReadinessFailure::OccupancyEngineBuildMismatch);
     }
-    if receipt.clearance_policy_sha256 != required_clearance_policy_sha256 {
+    if receipt.clearance_policy_sha256 != policy.clearance_policy_sha256 {
         return Err(DispatchReadinessFailure::ClearancePolicyMismatch);
     }
     if ledger.active_package_sha256() != Some(receipt.package_sha256.as_str())
