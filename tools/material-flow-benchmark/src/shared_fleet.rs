@@ -964,6 +964,10 @@ mod tests {
             report.worst_case_optimal_policy.worst_case_total_cost_units
                 <= report.optimized_policy.worst_case_total_cost_units
         );
+        assert!(
+            report.service_robust_optimal_policy.worst_case_unserved_units
+                <= report.optimized_policy.worst_case_unserved_units
+        );
         assert_eq!(report.optimized_policy.expected_total_cost_units, 1_511);
         assert_eq!(report.fixed_initial_region_baseline.expected_total_cost_units, 1_576);
         assert_eq!(report.truck_only_baseline.expected_total_cost_units, 1_980);
