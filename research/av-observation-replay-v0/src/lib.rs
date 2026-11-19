@@ -544,7 +544,7 @@ pub fn validate_bundle_v1(bundle: &AgentObservationBundleV1) -> Result<(), Contr
         return Err(ContractError::EmptyIdentity);
     }
 
-    let mut observation_by_id: BTreeMap<String, (&str, u64, &ClockDomainV1)> = BTreeMap::new();
+    let mut observation_by_id: BTreeMap<String, (String, u64, ClockDomainV1)> = BTreeMap::new();
     for observation in &bundle.observations {
         validate_observation(observation)?;
         let id = observation.observation_id().to_owned();
@@ -552,9 +552,9 @@ pub fn validate_bundle_v1(bundle: &AgentObservationBundleV1) -> Result<(), Contr
             .insert(
                 id,
                 (
-                    observation.sensor_id(),
+                    observation.sensor_id().to_owned(),
                     observation.source_sequence(),
-                    observation.clock_domain(),
+                    observation.clock_domain().clone(),
                 ),
             )
             .is_some()
@@ -614,9 +614,9 @@ pub fn validate_bundle_v1(bundle: &AgentObservationBundleV1) -> Result<(), Contr
                 let (sensor_id, source_sequence, clock_domain) = observation_by_id
                     .get(id)
                     .ok_or(ContractError::MissingObservationReference)?;
-                if *sensor_id != event.sensor_id.as_str()
+                if sensor_id != &event.sensor_id
                     || *source_sequence != event.source_sequence
-                    || *clock_domain != &event.clock_domain
+                    || clock_domain != &event.clock_domain
                 {
                     return Err(ContractError::ObservationReferenceMismatch);
                 }
