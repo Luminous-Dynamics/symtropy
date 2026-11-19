@@ -63,6 +63,23 @@ fn cvar95(values: &[f64]) -> (f64, usize) {
     (mean(&ordered[..tail_count]), tail_count)
 }
 
+#[derive(Default)]
+struct FoldDecisionMetrics {
+    energy_improvements: Vec<f64>,
+    regret_improvements: Vec<f64>,
+    candidate_regrets: Vec<f64>,
+    baseline_regrets: Vec<f64>,
+    candidate_energy: Vec<f64>,
+    baseline_energy: Vec<f64>,
+    candidate_gate_violations: u64,
+    candidate_service_breaches: u64,
+    baseline_service_breaches: u64,
+    candidate_comfort_breaches: u64,
+    baseline_comfort_breaches: u64,
+    candidate_plan_changes: u64,
+    baseline_plan_changes: u64,
+}
+
 fn validate(raw: &[u8], value: &Value) -> Value {
     let mut errors = Vec::<String>::new();
     let mut blockers = Vec::<String>::new();
@@ -105,8 +122,11 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     let mut case_by_id: HashMap<String, Value> = HashMap::new();
     let mut group_folds: HashMap<String, String> = HashMap::new();
     let mut test_strata = BTreeSet::<String>::new();
-    let mut skill: BTreeMap<String, Vec<(f64, f64, f64)>> = BTreeMap::new();
-    let mut events: BTreeMap<String, Vec<(f64, bool)>> = BTreeMap::new();
+    let mut skill: BTreeMap<(String, String), Vec<(f64, f64, f64)>> = BTreeMap::new();
+    let mut skill_strata: BTreeMap<(String, String), BTreeSet<String>> = BTreeMap::new();
+    let mut events: BTreeMap<(String, String), Vec<(f64, bool)>> = BTreeMap::new();
+    let mut event_strata: BTreeMap<(String, String), BTreeSet<String>> = BTreeMap::new();
+    let mut folds_seen = BTreeSet::<String>::new();
 
     let cases = value.get("forecast_cases").and_then(Value::as_array);
     if cases.is_none_or(Vec::is_empty) {
@@ -123,6 +143,14 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             }
             if !["development", "validation", "test"].contains(&fold.as_str()) {
                 errors.push(format!("forecast case '{case_id}' has an unsupported fold"));
+            } else {
+                folds_seen.insert(fold.clone());
+            }
+            let strata = case.get("environment_strata").and_then(Value::as_array)
+                .map(|items| items.iter().filter_map(Value::as_str).map(str::to_owned).collect::<BTreeSet<_>>())
+                .unwrap_or_default();
+            if strata.is_empty() {
+                errors.push(format!("forecast case '{case_id}' requires at least one environment stratum"));
             }
             for (field, prefix) in [
                 ("episode_id", "episode"),
@@ -221,7 +249,9 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             match (deterministic, observation) {
                 (Some(forecast), Some(observed)) if members.len() >= 2 => {
                     let crps = empirical_crps(&members, observed);
-                    skill.entry(format!("{variable}@+{lead}h")).or_default().push((forecast, observed, crps));
+                    let metric_key = (fold.clone(), format!("{variable}@+{lead}h"));
+                    skill.entry(metric_key.clone()).or_default().push((forecast, observed, crps));
+                    skill_strata.entry(metric_key).or_default().extend(strata.iter().cloned());
                 }
                 _ => errors.push(format!("forecast case '{case_id}' requires finite forecast/observation values and at least two ensemble members")),
             }
@@ -256,7 +286,9 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                             errors.push(format!("forecast case '{case_id}' threshold event '{event_id}' disagrees with observed value"));
                         }
                     }
-                    events.entry(event_id.to_owned()).or_default().push((probability.unwrap(), observed_event.unwrap()));
+                    let event_key = (fold.clone(), event_id.to_owned());
+                    events.entry(event_key.clone()).or_default().push((probability.unwrap(), observed_event.unwrap()));
+                    event_strata.entry(event_key).or_default().extend(strata.iter().cloned());
                 }
             } else {
                 errors.push(format!("forecast case '{case_id}' requires threshold_events"));
@@ -266,22 +298,16 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     if test_strata.len() < 3 {
         errors.push("held-out test fold must include at least three declared environment strata".to_owned());
     }
+    for required_fold in ["development", "validation", "test"] {
+        if !folds_seen.contains(required_fold) {
+            errors.push(format!("forecast cases are missing required fold '{required_fold}'"));
+        }
+    }
 
     let mut seen_pairs = HashSet::<String>::new();
     let mut paired_cases = HashSet::<String>::new();
-    let mut energy_improvements = Vec::<f64>::new();
-    let mut regret_improvements = Vec::<f64>::new();
-    let mut candidate_regrets = Vec::<f64>::new();
-    let mut baseline_regrets = Vec::<f64>::new();
-    let mut candidate_energy = Vec::<f64>::new();
-    let mut baseline_energy = Vec::<f64>::new();
-    let mut candidate_gate_violations = 0_u64;
-    let mut candidate_service_breaches = 0_u64;
-    let mut baseline_service_breaches = 0_u64;
-    let mut candidate_comfort_breaches = 0_u64;
-    let mut baseline_comfort_breaches = 0_u64;
-    let mut candidate_plan_changes = 0_u64;
-    let mut baseline_plan_changes = 0_u64;
+    let mut decision_by_fold = BTreeMap::<String, FoldDecisionMetrics>::new();
+    let mut pair_folds_seen = BTreeSet::<String>::new();
 
     let pairs = value.get("mission_pairs").and_then(Value::as_array);
     if pairs.is_none_or(Vec::is_empty) {
@@ -301,6 +327,9 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             if !paired_cases.insert(case_id.clone()) {
                 errors.push(format!("forecast case '{case_id}' is paired more than once"));
             }
+            let pair_fold = string_at(pair, "fold").unwrap_or("unknown").to_owned();
+            pair_folds_seen.insert(pair_fold.clone());
+            let fold_metrics = decision_by_fold.entry(pair_fold).or_default();
             for field in ["fold", "episode_id", "voyage_id", "weather_event_id"] {
                 if string_at(pair, field) != string_at(case, field) {
                     errors.push(format!("mission pair '{pair_id}' does not match forecast case on {field}"));
@@ -325,7 +354,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                 (Some(candidate_e), Some(baseline_e), Some(candidate_r), Some(baseline_r))
                     if candidate_e > 0.0 && baseline_e > 0.0 && candidate_r >= 0.0 && baseline_r >= 0.0 =>
                 {
-                    energy_improvements.push((baseline_e - candidate_e) / baseline_e * 100.0);
+                    fold_metrics.energy_improvements.push((baseline_e - candidate_e) / baseline_e * 100.0);
                     let regret_improvement = if baseline_r > 0.0 {
                         (baseline_r - candidate_r) / baseline_r * 100.0
                     } else if candidate_r == 0.0 {
@@ -334,11 +363,11 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                         blockers.push(format!("candidate '{pair_id}' has positive regret against a zero-regret baseline"));
                         -100.0
                     };
-                    regret_improvements.push(regret_improvement);
-                    candidate_energy.push(candidate_e);
-                    baseline_energy.push(baseline_e);
-                    candidate_regrets.push(candidate_r);
-                    baseline_regrets.push(baseline_r);
+                    fold_metrics.regret_improvements.push(regret_improvement);
+                    fold_metrics.candidate_energy.push(candidate_e);
+                    fold_metrics.baseline_energy.push(baseline_e);
+                    fold_metrics.candidate_regrets.push(candidate_r);
+                    fold_metrics.baseline_regrets.push(baseline_r);
                 }
                 _ => errors.push(format!("mission pair '{pair_id}' has invalid energy or mission-regret values")),
             }
@@ -352,13 +381,13 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             if let (Some(gates), Some(services), Some(base_services), Some(comfort), Some(base_comfort), Some(changes), Some(base_changes)) =
                 (candidate_gates, candidate_services, baseline_services, candidate_comfort, baseline_comfort, candidate_changes, baseline_changes)
             {
-                candidate_gate_violations += gates;
-                candidate_service_breaches += services;
-                baseline_service_breaches += base_services;
-                candidate_comfort_breaches += comfort;
-                baseline_comfort_breaches += base_comfort;
-                candidate_plan_changes += changes;
-                baseline_plan_changes += base_changes;
+                fold_metrics.candidate_gate_violations += gates;
+                fold_metrics.candidate_service_breaches += services;
+                fold_metrics.baseline_service_breaches += base_services;
+                fold_metrics.candidate_comfort_breaches += comfort;
+                fold_metrics.baseline_comfort_breaches += base_comfort;
+                fold_metrics.candidate_plan_changes += changes;
+                fold_metrics.baseline_plan_changes += base_changes;
                 if gates > 0 {
                     blockers.push(format!("candidate policy '{pair_id}' violates a hard gate"));
                 }
@@ -384,14 +413,22 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     if paired_cases.len() != case_by_id.len() {
         errors.push("every forecast case must have exactly one information-matched mission pair".to_owned());
     }
+    for required_fold in ["development", "validation", "test"] {
+        if !pair_folds_seen.contains(required_fold) {
+            errors.push(format!("mission pairs are missing required fold '{required_fold}'"));
+        }
+    }
 
-    let forecast_metrics = skill.into_iter().map(|(stratum, samples)| {
+    let forecast_metrics = skill.into_iter().map(|((fold, variable_and_lead), samples)| {
         let errors_for_samples = samples.iter().map(|(forecast, observed, _)| *forecast - *observed).collect::<Vec<_>>();
         let absolute = errors_for_samples.iter().map(|error| error.abs()).collect::<Vec<_>>();
         let squared = errors_for_samples.iter().map(|error| error * error).collect::<Vec<_>>();
         let crps = samples.iter().map(|sample| sample.2).collect::<Vec<_>>();
+        let strata = skill_strata.get(&(fold.clone(), variable_and_lead.clone())).cloned().unwrap_or_default();
         json!({
-            "variable_and_lead": stratum,
+            "fold": fold,
+            "variable_and_lead": variable_and_lead,
+            "environment_strata": strata,
             "sample_count": samples.len(),
             "bias": mean(&errors_for_samples),
             "mae": mean(&absolute),
@@ -400,7 +437,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
         })
     }).collect::<Vec<_>>();
 
-    let threshold_metrics = events.into_iter().map(|(event_id, samples)| {
+    let threshold_metrics = events.into_iter().map(|((fold, event_id), samples)| {
         let brier = mean(&samples.iter().map(|(probability, observed)| {
             let outcome = if *observed { 1.0 } else { 0.0 };
             (*probability - outcome).powi(2)
@@ -418,31 +455,41 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                 "observed_frequency": mean(&values.iter().map(|value| if value.1 {1.0} else {0.0}).collect::<Vec<_>>())
             })
         }).collect::<Vec<_>>();
-        json!({"event_id":event_id,"sample_count":samples.len(),"brier_score":brier,"reliability_bins":reliability})
+        let strata = event_strata.get(&(fold.clone(), event_id.clone())).cloned().unwrap_or_default();
+        json!({"fold":fold,"event_id":event_id,"environment_strata":strata,"sample_count":samples.len(),"brier_score":brier,"reliability_bins":reliability})
     }).collect::<Vec<_>>();
 
-    let (candidate_cvar, candidate_tail_count) = cvar95(&candidate_regrets);
-    let (baseline_cvar, baseline_tail_count) = cvar95(&baseline_regrets);
+    let mut decision_by_fold_report = BTreeMap::<String, Value>::new();
+    let mut paired_case_count = 0_usize;
+    for (fold, metrics) in &decision_by_fold {
+        let (candidate_cvar, candidate_tail_count) = cvar95(&metrics.candidate_regrets);
+        let (baseline_cvar, baseline_tail_count) = cvar95(&metrics.baseline_regrets);
+        paired_case_count += metrics.energy_improvements.len();
+        decision_by_fold_report.insert(fold.clone(), json!({
+            "paired_case_count":metrics.energy_improvements.len(),
+            "mean_paired_energy_improvement_pct":if metrics.energy_improvements.is_empty() {Value::Null} else {json!(mean(&metrics.energy_improvements))},
+            "mean_paired_regret_improvement_pct":if metrics.regret_improvements.is_empty() {Value::Null} else {json!(mean(&metrics.regret_improvements))},
+            "candidate_cvar95_regret_kwh_equivalent":candidate_cvar,
+            "candidate_cvar95_tail_sample_count":candidate_tail_count,
+            "baseline_cvar95_regret_kwh_equivalent":baseline_cvar,
+            "baseline_cvar95_tail_sample_count":baseline_tail_count,
+            "candidate_mean_purchased_energy_kwh_per_berth_day":if metrics.candidate_energy.is_empty() {Value::Null} else {json!(mean(&metrics.candidate_energy))},
+            "baseline_mean_purchased_energy_kwh_per_berth_day":if metrics.baseline_energy.is_empty() {Value::Null} else {json!(mean(&metrics.baseline_energy))},
+            "candidate_hard_gate_violations":metrics.candidate_gate_violations,
+            "candidate_service_floor_breaches":metrics.candidate_service_breaches,
+            "baseline_service_floor_breaches":metrics.baseline_service_breaches,
+            "candidate_comfort_breaches":metrics.candidate_comfort_breaches,
+            "baseline_comfort_breaches":metrics.baseline_comfort_breaches,
+            "candidate_plan_changes":metrics.candidate_plan_changes,
+            "baseline_plan_changes":metrics.baseline_plan_changes
+        }));
+    }
     let decision_metrics = json!({
-        "paired_case_count": energy_improvements.len(),
-        "mean_paired_energy_improvement_pct": if energy_improvements.is_empty() {Value::Null} else {json!(mean(&energy_improvements))},
-        "mean_paired_regret_improvement_pct": if regret_improvements.is_empty() {Value::Null} else {json!(mean(&regret_improvements))},
-        "candidate_cvar95_regret_kwh_equivalent": candidate_cvar,
-        "candidate_cvar95_tail_sample_count": candidate_tail_count,
-        "baseline_cvar95_regret_kwh_equivalent": baseline_cvar,
-        "baseline_cvar95_tail_sample_count": baseline_tail_count,
-        "candidate_mean_purchased_energy_kwh_per_berth_day": if candidate_energy.is_empty() {Value::Null} else {json!(mean(&candidate_energy))},
-        "baseline_mean_purchased_energy_kwh_per_berth_day": if baseline_energy.is_empty() {Value::Null} else {json!(mean(&baseline_energy))},
-        "candidate_hard_gate_violations": candidate_gate_violations,
-        "candidate_service_floor_breaches": candidate_service_breaches,
-        "baseline_service_floor_breaches": baseline_service_breaches,
-        "candidate_comfort_breaches": candidate_comfort_breaches,
-        "baseline_comfort_breaches": baseline_comfort_breaches,
-        "candidate_plan_changes": candidate_plan_changes,
-        "baseline_plan_changes": baseline_plan_changes,
-        "statistical_inference": "NOT_PERFORMED",
-        "paired_uncertainty_intervals": "NOT_COMPUTED",
-        "claim_ceiling": "descriptive_paired_outcomes_only"
+        "paired_case_count":paired_case_count,
+        "by_fold":decision_by_fold_report,
+        "statistical_inference":"NOT_PERFORMED",
+        "paired_uncertainty_intervals":"NOT_COMPUTED",
+        "claim_ceiling":"descriptive_paired_outcomes_only"
     });
 
     let disposition = if !errors.is_empty() {
