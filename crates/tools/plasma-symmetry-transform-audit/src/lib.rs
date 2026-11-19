@@ -794,7 +794,7 @@ mod tests {
     fn frozen_benchmark_manifest_matches_all_expected_dispositions() {
         let source = include_str!("../../../../benchmarks/plasma/symmetry-transform-v0.json");
         let report = audit_manifest_json(source).expect("benchmark manifest");
-        assert_eq!(report.case_count, 6);
+        assert_eq!(report.case_count, 7);
         assert_eq!(report.mismatched_expectations, 0, "{report:#?}");
     }
 }
