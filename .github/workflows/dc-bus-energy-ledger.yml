@@ -1,0 +1,41 @@
+name: DC Bus Multi-Boundary Energy Ledger Reference
+
+on:
+  push:
+    paths:
+      - "benchmarks/synthetic-joints/dc-bus-energy-ledger/v0.1/**"
+      - ".github/workflows/dc-bus-energy-ledger.yml"
+  pull_request:
+    paths:
+      - "benchmarks/synthetic-joints/dc-bus-energy-ledger/v0.1/**"
+      - ".github/workflows/dc-bus-energy-ledger.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dc-bus-energy-ledger-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.96.0
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/synthetic-joints/dc-bus-energy-ledger/v0.1/Cargo.toml -- --check
+
+      - name: Run multi-boundary energy ledger tests
+        run: cargo test --manifest-path benchmarks/synthetic-joints/dc-bus-energy-ledger/v0.1/Cargo.toml --locked
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path benchmarks/synthetic-joints/dc-bus-energy-ledger/v0.1/Cargo.toml --all-targets --locked -- -D warnings
