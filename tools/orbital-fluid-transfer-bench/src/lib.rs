@@ -51,6 +51,9 @@ pub struct Scenario {
     pub transfer_event_id: String,
     pub fluid_class: FluidClass,
     pub fluid_id: String,
+    pub receiver_id: String,
+    pub interface_id: String,
+    pub interface_revision: u64,
     pub evidence_state: EvidenceState,
     pub source_initial_g: u64,
     pub source_remaining_g: u64,
@@ -81,6 +84,9 @@ pub struct Fixture {
 pub struct ScenarioReport {
     pub scenario_id: String,
     pub status: ScenarioStatus,
+    pub receiver_id: String,
+    pub interface_id: String,
+    pub interface_revision: u64,
     pub source_initial_g: u64,
     pub source_remaining_g: u64,
     pub gross_transferred_g: u64,
@@ -139,6 +145,11 @@ fn evaluate_scenario(scenario: &Scenario) -> Result<ScenarioReport, String> {
     non_empty(&scenario.scenario_id, "scenario_id")?;
     non_empty(&scenario.transfer_event_id, "transfer_event_id")?;
     non_empty(&scenario.fluid_id, "fluid_id")?;
+    non_empty(&scenario.receiver_id, "receiver_id")?;
+    non_empty(&scenario.interface_id, "interface_id")?;
+    if scenario.interface_revision == 0 {
+        return Err(format!("{}: interface revision must be nonzero", scenario.scenario_id));
+    }
     if scenario.evidence_refs.is_empty() {
         return Err(format!("{}: no evidence references", scenario.scenario_id));
     }
@@ -213,6 +224,9 @@ fn evaluate_scenario(scenario: &Scenario) -> Result<ScenarioReport, String> {
         return Ok(ScenarioReport {
             scenario_id: scenario.scenario_id.clone(),
             status: ScenarioStatus::StorageOnlyNotTransferEvidence,
+            receiver_id: scenario.receiver_id.clone(),
+            interface_id: scenario.interface_id.clone(),
+            interface_revision: scenario.interface_revision,
             source_initial_g: scenario.source_initial_g,
             source_remaining_g: scenario.source_remaining_g,
             gross_transferred_g,
@@ -267,6 +281,9 @@ fn evaluate_scenario(scenario: &Scenario) -> Result<ScenarioReport, String> {
     Ok(ScenarioReport {
         scenario_id: scenario.scenario_id.clone(),
         status: ScenarioStatus::TransferAccepted,
+        receiver_id: scenario.receiver_id.clone(),
+        interface_id: scenario.interface_id.clone(),
+        interface_revision: scenario.interface_revision,
         source_initial_g: scenario.source_initial_g,
         source_remaining_g: scenario.source_remaining_g,
         gross_transferred_g,
@@ -349,6 +366,34 @@ mod tests {
         assert_eq!(report.scenarios[0].receiver_accepted_g, 390_000);
         assert_eq!(report.scenarios[1].status, ScenarioStatus::StorageOnlyNotTransferEvidence);
         assert_eq!(report.scenarios[2].status, ScenarioStatus::TransferAccepted);
+    }
+
+    #[test]
+    fn accepted_transfer_result_carries_receiver_and_prepared_interface_identity() {
+        let report = evaluate(&fixture()).expect("fixture should pass");
+        let transfer = &report.scenarios[0];
+        assert_eq!(transfer.receiver_id, "serviced-client-001");
+        assert_eq!(transfer.interface_id, "COOPERATIVE-CAPTURE-PORT-A");
+        assert_eq!(transfer.interface_revision, 3);
+    }
+
+    #[test]
+    fn storage_only_result_preserves_identity_without_claiming_transfer() {
+        let report = evaluate(&fixture()).expect("fixture should pass");
+        let storage = &report.scenarios[1];
+        assert_eq!(storage.status, ScenarioStatus::StorageOnlyNotTransferEvidence);
+        assert_eq!(storage.receiver_id, "serviced-client-001");
+        assert_eq!(storage.interface_revision, 3);
+    }
+
+    #[test]
+    fn missing_receiver_or_interface_identity_is_rejected() {
+        let mut data = fixture();
+        data.scenarios[0].receiver_id.clear();
+        assert!(evaluate(&data).unwrap_err().contains("receiver_id"));
+        let mut data = fixture();
+        data.scenarios[0].interface_revision = 0;
+        assert!(evaluate(&data).unwrap_err().contains("interface revision"));
     }
 
     #[test]
