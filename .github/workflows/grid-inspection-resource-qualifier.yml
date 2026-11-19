@@ -77,7 +77,9 @@ jobs:
           set -euo pipefail
           cargo run --locked --manifest-path tools/grid-inspection-resource-qualifier/Cargo.toml --bin grid-inspection-resource-qualifier -- tools/grid-inspection-resource-qualifier/fixtures/synthetic-grid-inspection-resource-case-v0.1.json > /tmp/grid-inspection-resource-report.json
           jq -e '
-            .resultStatus == "resource_time_certificate_consistent"
+            .caseMaturity == "synthetic_fixture"
+            and .resultStatus == "resource_time_certificate_consistent"
+            and (.policyCertificateSha256 | length == 64)
             and (.branches | length == 3)
             and (.branches | map(.probabilityBasisPoints) | add == 10000)
             and .firstInspection.startHour == 8.0
