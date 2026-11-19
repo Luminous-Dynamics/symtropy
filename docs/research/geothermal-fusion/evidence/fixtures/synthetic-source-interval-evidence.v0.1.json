@@ -10,7 +10,8 @@
     "boundary_id": "synthetic-wellhead-heat-meter-01",
     "site_id": "not-a-real-site",
     "carrier": "heat",
-    "service_id": "geothermal-source-availability"
+    "service_id": "geothermal-source-availability",
+    "interval_id": "synthetic-hour-0001"
   },
   "time_window": {
     "state": "bounded",
