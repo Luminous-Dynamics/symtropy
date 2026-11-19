@@ -54,6 +54,16 @@ pub struct ActuatorUnit {
     pub operating_condition_digest: String,
     pub output_reference_plane_digest: String,
     pub reference_clock_id: String,
+    /// Common physical instant used for the synchronized per-unit record.
+    pub reference_instant_s: f64,
+
+    /// Optional electrical-current magnitude observation. It is never used
+    /// to infer output torque or torque share.
+    pub current_magnitude_a: Option<Interval>,
+    pub current_evidence_class: EvidenceClass,
+    pub current_source_reference: Option<String>,
+    pub current_method: Option<String>,
+    pub current_calibration_digest: Option<String>,
 
     /// Output-equivalent delivered torque at the common reference plane.
     pub output_torque_nm: Option<Interval>,
@@ -61,6 +71,11 @@ pub struct ActuatorUnit {
     pub torque_source_reference: Option<String>,
     pub torque_method: Option<String>,
     pub torque_calibration_digest: Option<String>,
+
+    pub capability_evidence_class: EvidenceClass,
+    pub capability_source_reference: Option<String>,
+    pub capability_method: Option<String>,
+    pub capability_digest: Option<String>,
 
     /// Conservative lower bounds on per-unit capability.
     pub continuous_torque_capability_lower_nm: Option<f64>,
@@ -105,6 +120,7 @@ pub struct JointEvaluationInput {
     pub operating_condition_digest: String,
     pub output_reference_plane_digest: String,
     pub reference_clock_id: String,
+    pub reference_instant_s: f64,
     pub actuator_units: Vec<ActuatorUnit>,
     /// Optional independently measured joint-output torque transducer.
     pub joint_torque_cross_check: Option<JointTorqueCrossCheck>,
@@ -118,6 +134,8 @@ pub struct ActuatorAssessment {
     /// Not present when the aggregate interval includes zero or torque evidence
     /// is missing. It is never derived from current share.
     pub load_share_fraction: Option<Interval>,
+    /// Electrical current-magnitude share; never a torque-share substitute.
+    pub current_share_fraction: Option<Interval>,
     pub continuous_torque_margin_nm: Option<f64>,
     pub peak_torque_margin_nm: Option<f64>,
     pub speed_margin_rad_s: Option<f64>,
@@ -137,6 +155,7 @@ pub struct JointEvaluation {
     pub output_reference_plane_digest: String,
     pub disposition: JointDisposition,
     pub aggregate_unit_torque_nm: Option<Interval>,
+    pub aggregate_current_magnitude_a: Option<Interval>,
     pub independently_measured_joint_torque_nm: Option<Interval>,
     /// Aggregate unit torque interval minus independent joint torque interval.
     pub torque_sum_residual_nm: Option<Interval>,
@@ -220,6 +239,7 @@ fn validate_input(input: &JointEvaluationInput) -> Result<(), String> {
             || !nonempty(&unit.operating_condition_digest)
             || !nonempty(&unit.output_reference_plane_digest)
             || !nonempty(&unit.reference_clock_id)
+            || !unit.reference_instant_s.is_finite()
         {
             return Err(format!("actuator {} has incomplete configuration/boundary identity", unit.actuator_id));
         }
@@ -227,12 +247,14 @@ fn validate_input(input: &JointEvaluationInput) -> Result<(), String> {
             || unit.operating_condition_digest != input.operating_condition_digest
             || unit.output_reference_plane_digest != input.output_reference_plane_digest
             || unit.reference_clock_id != input.reference_clock_id
+            || (unit.reference_instant_s - input.reference_instant_s).abs() > 1.0e-9
         {
             return Err(format!("actuator {} is not at the common joint boundary/condition/reference plane/clock", unit.actuator_id));
         }
         if unit.output_torque_nm.is_some_and(|v| !valid_interval(v))
             || unit.output_speed_rad_s.is_some_and(|v| !valid_interval(v))
             || unit.temperature_c.is_some_and(|v| !valid_interval(v))
+            || unit.current_magnitude_a.is_some_and(|v| !valid_interval(v) || v.lower < 0.0)
         {
             return Err(format!("actuator {} has an invalid torque, speed or temperature interval", unit.actuator_id));
         }
@@ -278,6 +300,21 @@ fn validate_input(input: &JointEvaluationInput) -> Result<(), String> {
         {
             return Err(format!("actuator {} thermal evidence is incomplete", unit.actuator_id));
         }
+        if unit.capability_evidence_class != EvidenceClass::Unknown
+            && (unit.capability_source_reference.as_deref().is_none_or(|v| !nonempty(v))
+                || unit.capability_method.as_deref().is_none_or(|v| !nonempty(v))
+                || unit.capability_digest.as_deref().is_none_or(|v| !nonempty(v)))
+        {
+            return Err(format!("actuator {} capability evidence is incomplete", unit.actuator_id));
+        }
+        if unit.current_magnitude_a.is_some()
+            && unit.current_evidence_class != EvidenceClass::Unknown
+            && (unit.current_source_reference.as_deref().is_none_or(|v| !nonempty(v))
+                || unit.current_method.as_deref().is_none_or(|v| !nonempty(v))
+                || unit.current_calibration_digest.as_deref().is_none_or(|v| !nonempty(v)))
+        {
+            return Err(format!("actuator {} current evidence is incomplete", unit.actuator_id));
+        }
     }
 
     if let Some(check) = &input.joint_torque_cross_check {
@@ -300,7 +337,11 @@ fn validate_input(input: &JointEvaluationInput) -> Result<(), String> {
     Ok(())
 }
 
-fn assess_unit(unit: &ActuatorUnit, total_torque: Option<Interval>) -> ActuatorAssessment {
+fn assess_unit(
+    unit: &ActuatorUnit,
+    total_torque: Option<Interval>,
+    total_current: Option<Interval>,
+) -> ActuatorAssessment {
     let mut reasons = Vec::new();
     let mut infeasible = false;
     let mut unknown = false;
@@ -385,6 +426,12 @@ fn assess_unit(unit: &ActuatorUnit, total_torque: Option<Interval>) -> ActuatorA
     // it is reported only from per-unit torque intervals and a non-zero total.
     let load_share_fraction = torque.zip(total_torque)
         .and_then(|(individual, total)| interval_divide(individual, total));
+    let current_share_fraction = if unit.current_evidence_class == EvidenceClass::Unknown {
+        None
+    } else {
+        unit.current_magnitude_a.zip(total_current)
+            .and_then(|(individual, total)| interval_divide(individual, total))
+    };
 
     if infeasible {
         unit_disposition = UnitCapabilityDisposition::Infeasible;
@@ -396,6 +443,7 @@ fn assess_unit(unit: &ActuatorUnit, total_torque: Option<Interval>) -> ActuatorA
         actuator_id: unit.actuator_id.clone(),
         delivered_torque_nm: torque,
         load_share_fraction,
+        current_share_fraction,
         continuous_torque_margin_nm: continuous_margin,
         peak_torque_margin_nm: peak_margin,
         speed_margin_rad_s: speed_margin,
@@ -420,9 +468,19 @@ pub fn evaluate_joint(input: &JointEvaluationInput) -> Result<JointEvaluation, S
         };
     }
 
+    let mut aggregate_current: Option<Interval> = Some(Interval { lower: 0.0, upper: 0.0 });
+    for unit in &input.actuator_units {
+        aggregate_current = match (aggregate_current, unit.current_magnitude_a) {
+            (Some(sum), Some(contribution)) if unit.current_evidence_class != EvidenceClass::Unknown => {
+                interval_add(sum, contribution)
+            }
+            _ => None,
+        };
+    }
+
     let unit_assessments: Vec<ActuatorAssessment> = input.actuator_units
         .iter()
-        .map(|unit| assess_unit(unit, aggregate))
+        .map(|unit| assess_unit(unit, aggregate, aggregate_current))
         .collect();
 
     let (joint_measured, residual, consistency) = match (
@@ -431,6 +489,11 @@ pub fn evaluate_joint(input: &JointEvaluationInput) -> Result<JointEvaluation, S
     ) {
         (None, _) => (None, None, TorqueSumConsistency::NotAvailable),
         (Some(check), Some(sum)) => {
+            if (check.reference_instant_s - input.reference_instant_s).abs() > 1.0e-9
+                || check.joint_configuration_digest != input.joint_configuration_digest
+            {
+                return Err("joint torque cross-check instant/configuration does not match joint input".to_owned());
+            }
             let residual = interval_subtract(sum, check.output_torque_nm)
                 .ok_or_else(|| "joint torque residual interval overflowed".to_owned())?;
             let consistency = if residual.lower <= 0.0 && residual.upper >= 0.0 {
@@ -484,6 +547,7 @@ pub fn evaluate_joint(input: &JointEvaluationInput) -> Result<JointEvaluation, S
         output_reference_plane_digest: input.output_reference_plane_digest.clone(),
         disposition,
         aggregate_unit_torque_nm: aggregate,
+        aggregate_current_magnitude_a: aggregate_current,
         independently_measured_joint_torque_nm: joint_measured,
         torque_sum_residual_nm: residual,
         torque_sum_consistency: consistency,
@@ -517,11 +581,21 @@ mod tests {
             operating_condition_digest: CONDITION.to_owned(),
             output_reference_plane_digest: PLANE.to_owned(),
             reference_clock_id: CLOCK.to_owned(),
+            reference_instant_s: 1.0,
+            current_magnitude_a: None,
+            current_evidence_class: EvidenceClass::Unknown,
+            current_source_reference: None,
+            current_method: None,
+            current_calibration_digest: None,
             output_torque_nm: Some(torque),
             torque_evidence_class: EvidenceClass::IndependentPhysical,
             torque_source_reference: Some(format!("https://example.invalid/torque/{id}")),
             torque_method: Some("Synthetic independent output torque fixture".to_owned()),
             torque_calibration_digest: Some(format!("cal-torque-{id}")),
+            capability_evidence_class: EvidenceClass::IndependentPhysical,
+            capability_source_reference: Some(format!("https://example.invalid/capability/{id}")),
+            capability_method: Some("Synthetic conservative envelope fixture".to_owned()),
+            capability_digest: Some(format!("capability-{id}-v1")),
             continuous_torque_capability_lower_nm: Some(10.0),
             peak_torque_capability_lower_nm: Some(15.0),
             maximum_speed_capability_lower_rad_s: Some(10.0),
@@ -545,6 +619,7 @@ mod tests {
             operating_condition_digest: CONDITION.to_owned(),
             output_reference_plane_digest: PLANE.to_owned(),
             reference_clock_id: CLOCK.to_owned(),
+            reference_instant_s: 1.0,
             actuator_units: units,
             joint_torque_cross_check: None,
         }
@@ -561,6 +636,8 @@ mod tests {
             reference_clock_id: CLOCK.to_owned(),
             system_boundary_digest: BOUNDARY.to_owned(),
             operating_condition_digest: CONDITION.to_owned(),
+            reference_instant_s: 1.0,
+            joint_configuration_digest: "paired-knee-config-v1".to_owned(),
         }
     }
 
@@ -736,7 +813,41 @@ mod tests {
     }
 
     #[test]
-    fn sharing_015_duplicate_ids_and_invalid_capability_reject() {
+    fn sharing_015_current_share_is_reported_separately_from_torque_share() {
+        let mut a = unit("A", interval(2.0, 3.0), interval(40.0, 42.0));
+        let mut b = unit("B", interval(7.0, 8.0), interval(41.0, 43.0));
+        a.current_magnitude_a = Some(interval(4.0, 5.0));
+        b.current_magnitude_a = Some(interval(8.0, 9.0));
+        for u in [&mut a, &mut b] {
+            u.current_evidence_class = EvidenceClass::IndependentPhysical;
+            u.current_source_reference = Some("https://example.invalid/current/run".to_owned());
+            u.current_method = Some("Synthetic calibrated current measurement".to_owned());
+            u.current_calibration_digest = Some("current-calibration-v1".to_owned());
+        }
+        let report = evaluate_joint(&input(vec![a, b])).unwrap();
+        assert!(report.unit_assessments[0].current_share_fraction.is_some());
+        assert_ne!(
+            report.unit_assessments[0].current_share_fraction,
+            report.unit_assessments[0].load_share_fraction
+        );
+        // Current share is separately recorded and never used to replace
+        // output torque share or alter the torque-capability decision.
+    }
+
+    #[test]
+    fn sharing_016_joint_cross_check_must_match_instant_and_configuration() {
+        let mut input = input(vec![
+            unit("A", interval(4.0, 5.0), interval(40.0, 42.0)),
+            unit("B", interval(5.0, 6.0), interval(41.0, 43.0)),
+        ]);
+        let mut check = cross_check(interval(9.0, 11.0));
+        check.reference_instant_s = 2.0;
+        input.joint_torque_cross_check = Some(check);
+        assert!(evaluate_joint(&input).is_err());
+    }
+
+    #[test]
+    fn sharing_017_duplicate_ids_and_invalid_capability_reject() {
         let a = unit("same", interval(4.0, 5.0), interval(40.0, 42.0));
         let b = unit("same", interval(5.0, 6.0), interval(41.0, 43.0));
         assert!(evaluate_joint(&input(vec![a, b])).is_err());
