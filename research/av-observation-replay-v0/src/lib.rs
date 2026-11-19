@@ -421,6 +421,7 @@ fn valid_relative_path(value: &str) -> bool {
         || value.starts_with('/')
         || value.contains('\\')
         || value.contains(':')
+        || value.chars().any(char::is_control)
     {
         return false;
     }
@@ -972,6 +973,40 @@ mod tests {
             observation_id: Some("obs-audio-0000".to_owned()),
         });
         validate_bundle_v1(&reordered).unwrap();
+    }
+
+    #[test]
+    fn audio_loss_retains_absolute_source_sample_gap() {
+        let mut bundle = fixture();
+        let mut after_gap = bundle.observations[1].clone();
+        if let AgentObservationV1::AudioChunk(chunk) = &mut after_gap {
+            chunk.observation_id = "obs-audio-after-gap".to_owned();
+            chunk.source_sequence = 3;
+            chunk.source_start_sample = 100;
+            chunk.source_end_sample = 104;
+        }
+        bundle.observations.push(after_gap);
+        bundle.transport_events.push(TransportEventV1 {
+            event_id: "arrival-audio-after-gap".to_owned(),
+            sensor_id: "microphone-front".to_owned(),
+            source_sequence: 3,
+            clock_domain: ClockDomainV1 {
+                domain_id: "microphone-monotonic".to_owned(),
+                generation: 0,
+                time_scale_id: "microphone-clock-v1".to_owned(),
+            },
+            availability_tick: 5,
+            arrival_order: 4,
+            disposition: TransportDispositionV1::Delivered,
+            observation_id: Some("obs-audio-after-gap".to_owned()),
+        });
+
+        validate_bundle_v1(&bundle).unwrap();
+        let AgentObservationV1::AudioChunk(chunk) = &bundle.observations[2] else {
+            panic!("expected an audio chunk");
+        };
+        assert_eq!(chunk.source_start_sample, 100);
+        assert_eq!(chunk.source_end_sample, 104);
     }
 
     #[test]
