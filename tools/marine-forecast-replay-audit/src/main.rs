@@ -173,7 +173,7 @@ fn check_forecast_source(
         if issue > available {
             add(findings, "FORECAST_AVAILABLE_BEFORE_ISSUE", "ERROR",
                 &format!("source '{id}' first availability precedes its issue time."));
-        } else if available > *decision_cutoff {
+        } else if available > decision_cutoff {
             add(findings, "FUTURE_FORECAST_LEAKAGE", "BLOCKER",
                 &format!("source '{id}' was not demonstrably available by the policy decision cutoff."));
         }
