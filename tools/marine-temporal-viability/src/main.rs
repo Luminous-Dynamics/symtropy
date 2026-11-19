@@ -486,8 +486,8 @@ fn validate_path(
             if let (Some((_, start_lower, start_upper)), Some((_, end_lower, end_upper))) =
                 (start_interval, end_interval)
             {
-                if *segment_lower > *start_lower.min(end_lower)
-                    || *segment_upper < *start_upper.max(end_upper)
+                if *segment_lower > (*start_lower).min(*end_lower)
+                    || *segment_upper < (*start_upper).max(*end_upper)
                 {
                     errors.push(format!("{segment_context} envelope for '{metric}' does not contain both endpoint uncertainty intervals"));
                 }
