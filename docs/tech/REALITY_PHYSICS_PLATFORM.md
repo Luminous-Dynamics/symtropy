@@ -44,7 +44,7 @@ The broader repository contains domain-specific research and benchmark work. It 
 - multi-fidelity physics admission and escalation: [#4487](https://github.com/Luminous-Dynamics/symtropy/issues/4487), with implementation/research work in [PR #4492](https://github.com/Luminous-Dynamics/symtropy/pull/4492);
 - deterministic engineering scenario and replay substrate: [#1172](https://github.com/Luminous-Dynamics/symtropy/issues/1172);
 - engineering twin projection and counterfactual boundary: [#1467](https://github.com/Luminous-Dynamics/symtropy/issues/1467);
-- model-path capability census: [#1472](https://github.com/Luminous-Dynamics/symtropy/issues/1472);
+- model-path capability census: [#1472](https://github.com/Luminous-Dynamics/symtropy/issues/1472), with the fresh exact-source reference/qualifier tranche in [PR #6248](https://github.com/Luminous-Dynamics/symtropy/pull/6248);
 - integrator portfolio and numerical qualification: [#3975](https://github.com/Luminous-Dynamics/symtropy/issues/3975);
 - analytic/manufactured numerical oracles and V&V: [#3749](https://github.com/Luminous-Dynamics/symtropy/issues/3749);
 - semantic equivalence for backend comparisons: [#4366](https://github.com/Luminous-Dynamics/symtropy/issues/4366), with executable receipt/schema work in [PR #4369](https://github.com/Luminous-Dynamics/symtropy/pull/4369);
