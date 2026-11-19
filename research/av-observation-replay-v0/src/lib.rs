@@ -537,12 +537,19 @@ pub fn validate_bundle_v1(bundle: &AgentObservationBundleV1) -> Result<(), Contr
         return Err(ContractError::EmptyIdentity);
     }
 
-    let mut observation_by_id: BTreeMap<String, (&str, u64)> = BTreeMap::new();
+    let mut observation_by_id: BTreeMap<String, (&str, u64, &ClockDomainV1)> = BTreeMap::new();
     for observation in &bundle.observations {
         validate_observation(observation)?;
         let id = observation.observation_id().to_owned();
         if observation_by_id
-            .insert(id, (observation.sensor_id(), observation.source_sequence()))
+            .insert(
+                id,
+                (
+                    observation.sensor_id(),
+                    observation.source_sequence(),
+                    observation.clock_domain(),
+                ),
+            )
             .is_some()
         {
             return Err(ContractError::DuplicateObservationId);
@@ -555,6 +562,7 @@ pub fn validate_bundle_v1(bundle: &AgentObservationBundleV1) -> Result<(), Contr
         if !nonempty(&event.event_id) || !nonempty(&event.sensor_id) {
             return Err(ContractError::EmptyIdentity);
         }
+        validate_clock(&event.clock_domain)?;
         if !event_ids.insert(event.event_id.as_str()) {
             return Err(ContractError::DuplicateTransportEventId);
         }
@@ -567,9 +575,9 @@ pub fn validate_bundle_v1(bundle: &AgentObservationBundleV1) -> Result<(), Contr
     ordered_events.sort_by_key(|event| event.arrival_order);
 
     let mut prior_availability = None;
-    let mut high_water: BTreeMap<String, u64> = BTreeMap::new();
+    let mut high_water: BTreeMap<(String, String, u64, String), u64> = BTreeMap::new();
     let mut first_deliveries = BTreeSet::new();
-    let mut delivered_ids: BTreeMap<String, (String, u64)> = BTreeMap::new();
+    let mut delivered_ids = BTreeSet::new();
 
     for event in ordered_events {
         if prior_availability.is_some_and(|tick| event.availability_tick < tick) {
@@ -582,7 +590,13 @@ pub fn validate_bundle_v1(bundle: &AgentObservationBundleV1) -> Result<(), Contr
                 if event.observation_id.is_some() {
                     return Err(ContractError::UnexpectedObservationReference);
                 }
-                let high = high_water.entry(event.sensor_id.clone()).or_default();
+                let key = (
+                    event.sensor_id.clone(),
+                    event.clock_domain.domain_id.clone(),
+                    event.clock_domain.generation,
+                    event.clock_domain.time_scale_id.clone(),
+                );
+                let high = high_water.entry(key).or_default();
                 *high = (*high).max(event.source_sequence);
             }
             TransportDispositionV1::Delivered | TransportDispositionV1::Reordered => {
@@ -590,16 +604,25 @@ pub fn validate_bundle_v1(bundle: &AgentObservationBundleV1) -> Result<(), Contr
                     .observation_id
                     .as_ref()
                     .ok_or(ContractError::MissingObservationReference)?;
-                let (sensor_id, source_sequence) = observation_by_id
+                let (sensor_id, source_sequence, clock_domain) = observation_by_id
                     .get(id)
                     .ok_or(ContractError::MissingObservationReference)?;
-                if *sensor_id != event.sensor_id.as_str() || *source_sequence != event.source_sequence {
+                if *sensor_id != event.sensor_id.as_str()
+                    || *source_sequence != event.source_sequence
+                    || *clock_domain != &event.clock_domain
+                {
                     return Err(ContractError::ObservationReferenceMismatch);
                 }
-                if delivered_ids.contains_key(id) {
+                if delivered_ids.contains(id) {
                     return Err(ContractError::InvalidTransportSemantics);
                 }
-                let high = high_water.get(&event.sensor_id).copied();
+                let clock_key = (
+                    event.sensor_id.clone(),
+                    event.clock_domain.domain_id.clone(),
+                    event.clock_domain.generation,
+                    event.clock_domain.time_scale_id.clone(),
+                );
+                let high = high_water.get(&clock_key).copied();
                 let valid_first_delivery = match event.disposition {
                     TransportDispositionV1::Delivered => {
                         !high.is_some_and(|previous| event.source_sequence <= previous)
@@ -613,21 +636,27 @@ pub fn validate_bundle_v1(bundle: &AgentObservationBundleV1) -> Result<(), Contr
                     return Err(ContractError::InvalidTransportSemantics);
                 }
                 high_water
-                    .entry(event.sensor_id.clone())
+                    .entry(clock_key)
                     .and_modify(|previous| *previous = (*previous).max(event.source_sequence))
                     .or_insert(event.source_sequence);
                 first_deliveries.insert(id.clone());
-                delivered_ids.insert(id.clone(), (event.sensor_id.clone(), event.source_sequence));
+                delivered_ids.insert(id.clone());
             }
             TransportDispositionV1::Duplicate | TransportDispositionV1::StaleReplay => {
                 let id = event
                     .observation_id
                     .as_ref()
                     .ok_or(ContractError::MissingObservationReference)?;
-                let (sensor_id, source_sequence) = delivered_ids
+                if !delivered_ids.contains(id) {
+                    return Err(ContractError::InvalidTransportSemantics);
+                }
+                let (sensor_id, source_sequence, clock_domain) = observation_by_id
                     .get(id)
-                    .ok_or(ContractError::InvalidTransportSemantics)?;
-                if sensor_id != &event.sensor_id || *source_sequence != event.source_sequence {
+                    .ok_or(ContractError::MissingObservationReference)?;
+                if *sensor_id != event.sensor_id.as_str()
+                    || *source_sequence != event.source_sequence
+                    || *clock_domain != &event.clock_domain
+                {
                     return Err(ContractError::ObservationReferenceMismatch);
                 }
             }
