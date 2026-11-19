@@ -833,7 +833,7 @@ fn validate_ledger(ledger: &OpsEvidenceLedger) -> Result<(), LedgerError> {
                     "authorized-release boundary references an unknown asset".to_owned(),
                 )
             })?;
-        if current_configuration != configuration_ref {
+        if current_configuration.as_str() != configuration_ref {
             return Err(LedgerError::AuthorizationBoundary(
                 "authorized configuration is no longer the asset's active configuration"
                     .to_owned(),
@@ -1116,9 +1116,9 @@ mod tests {
                 serde_json::json!({})
             };
             let event = serde_json::json!({
-                "event_id": event_id,
+                "event_id": event_id.clone(),
                 "event_sequence": sequence,
-                "previous_event_id": previous_event_id,
+                "previous_event_id": previous_event_id.clone(),
                 "asset_ref": "haps-01",
                 "configuration_ref": "cfg-haps-01-r3",
                 "event_type": event_type,
