@@ -388,11 +388,10 @@ fn audit_oracle_references(
         if let Some(dependency_truth) =
             oracle_episode.get("actual_dependency_groups").and_then(Value::as_object)
         {
-            let current_evidence = agent_episode
-                .get("current_evidence")
-                .and_then(Value::as_array)
-                .cloned()
-                .unwrap_or_default();
+            let current_evidence = array(
+                required(agent_episode, "current_evidence")?,
+                "agent.current_evidence",
+            )?;
             for (source_id, actual_group) in dependency_truth {
                 let actual_group = string(actual_group, "oracle.dependency_group")?;
                 let declared_group = current_evidence
@@ -596,9 +595,9 @@ pub fn audit_fixtures(
     // Permission and resource limits are hard gates, not utility penalties.
     let budget_episode = &agent_episodes[3];
     let budget = required(budget_episode, "request_budget")?;
-    let max_latency = required(budget, "max_latency_ticks")?.as_f64().unwrap();
-    let max_bytes = required(budget, "max_bytes")?.as_f64().unwrap();
-    let max_energy = required(budget, "max_energy_units")?.as_f64().unwrap();
+    let max_latency = number(required(budget, "max_latency_ticks")?, "max_latency_ticks")?;
+    let max_bytes = number(required(budget, "max_bytes")?, "max_bytes")?;
+    let max_energy = number(required(budget, "max_energy_units")?, "max_energy_units")?;
     let budget_requests = array(required(budget_episode, "candidate_requests")?, "budget.requests")?;
     let mut saw_ineligible_over_budget = false;
     for request in budget_requests {
