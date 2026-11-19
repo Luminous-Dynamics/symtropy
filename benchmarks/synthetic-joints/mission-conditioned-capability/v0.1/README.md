@@ -65,22 +65,24 @@ Every sample is classified as:
 - **Unknown:** missing branch, missing peak duration, out-of-domain speed, excessive interpolation gap, unknown evidence provenance or ambiguous torque direction.
 - **Coast:** zero nominal torque with zero torque uncertainty; no output torque capability is claimed.
 
-Mission result:
-- **Feasible:** every required sample is covered and every torque/peak-duration condition passes.
-- **Infeasible:** at least one known constraint violation.
+Mechanical-envelope result (the Rust type is MechanicalEnvelopeDecision):
+- **Feasible:** every torque-demand sample is covered and every mechanical torque/peak-duration condition passes.
+- **Infeasible:** at least one known mechanical envelope violation.
 - **Unknown:** no known violation, but at least one required sample is unsupported or ambiguous.
 
-A mission can have unknown coverage and a separate known infeasible sample; the per-sample record preserves both counts.
+This is not a whole-robot mission-success or safety disposition. The result preserves candidate/configuration and operating-condition digests, plus source reference, method, calibration reference and evidence class on each assessed sample. A mission can have unknown coverage and a separate known infeasible sample; the per-sample record preserves both counts.
 
 ## 5. Metrics
 
 The current M1 reference reports:
-- peak required torque and peak speed;
+- nominal peak required torque and conservative peak required-torque upper bound;
+- peak speed;
 - time-weighted RMS required torque;
 - positive mechanical work;
 - absolute negative mechanical work (mechanical energy absorbed);
 - minimum uncertainty-adjusted continuous/peak margins;
-- sample coverage, unknown and infeasible counts;
+- torque-envelope coverage over samples requiring a torque branch (coast samples are excluded; a coast-only mission reports coverage as not applicable);
+- torque-demand, evidence-covered, coast, unknown and infeasible sample counts;
 - peak-duration violations and observed contiguous peak duration.
 
 Negative mechanical work is **not** electrical regeneration. Electrical input, DC-bus return, storage acceptance, thermal state, passivity, task-space wrench, reliability and task completion are separate gates and must not be inferred from this M1 result.
@@ -105,7 +107,7 @@ A vendor result can support a vendor-evidence comparison, but is never promoted 
 
 `examples/mission-capability-known-answer.json` contains a synthetic Hold → forward-motoring → forward-regenerating mission with three direction-specific model-derived envelopes. The mass and volume are explicitly unknown. No hardware data are included.
 
-Seventeen Rust test definitions cover:
+Nineteen Rust test definitions cover:
 1. in-domain interpolation and robust continuous margin;
 2. uncertainty-driven peak classification;
 3. peak-duration overrun;
@@ -122,7 +124,9 @@ Seventeen Rust test definitions cover:
 14. invalid knots/timestamps/uncertainty;
 15. unknown evidence cannot create a feasible result;
 16. vendor provenance remains vendor provenance;
-17. duplicate regimes and evidence-configuration mismatch.
+17. coast-only tasks do not claim torque-envelope coverage;
+18. candidate/operating-condition digests and evidence references/methods survive into results;
+19. duplicate regimes and evidence-configuration mismatch.
 
 These are synthetic software tests, not physical actuator experiments.
 
