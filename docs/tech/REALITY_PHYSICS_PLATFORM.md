@@ -201,7 +201,7 @@ Each model/backend/profile should carry a versioned passport containing:
 | Numerical profile | Discretization, mesh/particle resolution, timestep, integrator, tolerances and convergence criteria |
 | Supported envelope | Regime, parameter range, horizon, observables and exclusions |
 | Approximation register | Reduced-order, surrogate, contact, constitutive, interpolation and numerical approximations |
-| Evidence | Analytic anchors, code/solution verification, independent validation and uncertainty receipts |
+| Evidence | Analytic anchors, code/solution verification, independent validation and uncertainty receipts; separate measurement, parameter, numerical, model-form and surrogate uncertainty |
 | Resource profile | Hardware, CPU/GPU, memory, wall time and energy where measured |
 | Failure handling | Non-convergence, invalid states, event loss, stale data, OOD conditions and abstention |
 
@@ -216,7 +216,7 @@ Use categorical model-path statuses rather than one boolean:
 
 “Exact under profile” means exact relative to that declared implemented contract; it does not mean exact physical truth.
 
-The admission policy consumes this passport, the requested observable set, context of use, hard constraints, uncertainty/error limits and resource budget. It must refuse semantic mismatches and unqualified extrapolation.
+The admission policy consumes this passport, the requested observable set, context of use, hard constraints, uncertainty/error limits and resource budget. Evidence effort scales with model influence and decision consequence. It must refuse semantic mismatches and unqualified extrapolation. Follow the risk-based metrology-aligned UQ guidance in [NIST AMS 100-85 (2026)](https://doi.org/10.6028/NIST.AMS.100-85): measurement uncertainty is not parameter uncertainty, numerical error, or model-form discrepancy, and these terms must not be silently collapsed into one confidence score.
 
 ## 6. Typed port and coupling contract
 
@@ -356,6 +356,7 @@ Standards and scientific references are time-sensitive. Pin the exact version an
 - [MOOSE physics modules](https://mooseframework.inl.gov/modules/).
 - [WarpX 26.04 examples](https://warpx.readthedocs.io/en/26.04/usage/examples.html).
 - [OpenGeoSys TH2M benchmark hierarchy](https://www.opengeosys.org/stable/docs/benchmarks/th2m/).
+- [NIST AMS 100-85 (5 Oct 2026): risk-based UQ harmonized with metrology](https://doi.org/10.6028/NIST.AMS.100-85).
 - [NIST AM-Bench](https://www.nist.gov/ambench) and [AM-Bench 2025 measurements/challenges](https://www.nist.gov/ambench/am-bench-2025-measurements-and-challenge-problems).
 
 ## 12. Non-goals
