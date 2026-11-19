@@ -40,7 +40,21 @@
     "reported_capability_area_entry_count_url": "https://www.nasa.gov/isam/",
     "figure_3_functional_area_count_sum": 523,
     "figure_3_functional_area_count_sum_is_not_overall_inventory_total": true,
-    "reconciliation_status": "pending_individual_table2_and_appendix9_extraction"
+    "reconciliation_status": "pending_individual_table2_and_appendix9_extraction",
+    "public_webpage_headline_counts": {
+      "capability_area_entries": 621,
+      "facility_descriptions": 61,
+      "developer_profiles": 169,
+      "source_url": "https://www.nasa.gov/isam/"
+    },
+    "pdf_report_counts": {
+      "figure_3_functional_area_count_sum": 523,
+      "cataloged_developers": 171,
+      "developer_count_printed_page": 54,
+      "figure_3_printed_page": 20
+    },
+    "developer_count_reconciliation": "pending; NASA webpage reports 169 developer profiles while the PDF text reports 171 cataloged developers.",
+    "facility_count_reconciliation": "NASA webpage reports 61 facility descriptions; compare against the PDF facility appendix during extraction."
   },
   "functional_areas": [
     {
