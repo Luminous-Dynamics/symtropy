@@ -155,6 +155,10 @@ impl If97AdapterRequest {
     pub fn to_seuif97_input(&self) -> Result<SeuiF97ProviderInput, If97AdapterError> {
         for (name, value) in [
             ("fluid composition ID", self.fluid_composition_id.as_str()),
+            (
+                "composition evidence artifact digest",
+                self.composition_evidence_digest.as_str(),
+            ),
             ("state boundary ID", self.state_boundary_id.as_str()),
         ] {
             if value.trim().is_empty() {
@@ -177,6 +181,7 @@ impl If97AdapterRequest {
         }
         Ok(SeuiF97ProviderInput {
             fluid_composition_id: self.fluid_composition_id.clone(),
+            composition_evidence_digest: self.composition_evidence_digest.clone(),
             state_boundary_id: self.state_boundary_id.clone(),
             pressure_mpa_abs: pascals_to_megapascals_abs(self.pressure_pa)?,
             temperature_c,
