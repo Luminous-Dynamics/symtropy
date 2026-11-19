@@ -1221,7 +1221,6 @@ mod tests {
         assert!(
             report.best_static_region_baseline.expected_total_cost_units
                 <= report.fixed_initial_region_baseline.expected_total_cost_units
-                || report.best_static_region_id == "urban"
         );
         assert!(matches!(report.best_static_region_id.as_str(), "urban" | "rural"));
     }
