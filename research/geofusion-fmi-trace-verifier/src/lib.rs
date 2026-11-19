@@ -334,12 +334,12 @@ pub fn validate_trace(trace: &RunTrace) -> Result<(), TraceError> {
         match attempt.outcome {
             StepOutcome::Accepted => {
                 // FMI 3.0.2 permits lastSuccessfulTime to differ from the
-                // requested endpoint even when earlyReturn is false. The
-                // actual returned time becomes this trace's commit time.
+                // requested endpoint even when earlyReturn is false. It may
+                // be before or after that endpoint for internal fixed-/variable-
+                // step reasons. The actual returned time becomes this trace's
+                // commit time and anchors the next interval.
                 if attempt.local_returned_end_tick <= attempt.local_start_tick
-                    || attempt.local_returned_end_tick > attempt.local_requested_end_tick
                     || mapped_returned <= mapped_start
-                    || mapped_returned > mapped_requested
                 {
                     return Err(TraceError::StepOutcomeMismatch);
                 }
