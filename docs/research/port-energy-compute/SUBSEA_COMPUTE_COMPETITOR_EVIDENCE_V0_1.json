@@ -13,7 +13,8 @@
     "Seawater cooling does not imply environmental acceptability; intake, thermal discharge, biofouling, chemical treatment, plume and habitat impacts require site-specific evidence.",
     "Compute throughput comparisons require workload, model, precision, accelerator, quality, latency, availability and power boundary.",
     "Reliability comparisons require sample size, confidence interval, operating duration, failure definition, repair strategy and matched control.",
-    "Source conflicts remain CONFLICTED_UNKNOWN; do not average incompatible values or choose the most attractive figure."
+    "Source conflicts remain CONFLICTED_UNKNOWN; do not average incompatible values or choose the most attractive figure.",
+    "Project-launch announcements and planned phase targets are not actual commissioning evidence or metered operating performance."
   ],
   "comparators": [
     {
@@ -23,8 +24,9 @@
       "architecture_class": "subsea_pressure_module_commercial",
       "status": "commercial_operation_reported",
       "timeline": {
-        "first_commercial_operation": "2023-03",
-        "cluster_expansion": "2025-02"
+        "first_commercial_operation": "2022-12",
+        "cluster_expansion": "2025-02",
+        "evidence_class": "official_Xinhua_republication_by_Shanghai_municipal_government"
       },
       "evidence": [
         {
@@ -67,6 +69,30 @@
           "source": "China Media Group as cited by Xinhua",
           "date": "2025-02-19",
           "evidence_class": "reported_claim_without_workload_specification"
+        },
+        {
+          "field": "reported_computing_capacity",
+          "value": 675,
+          "unit": "PFLOPS",
+          "source": "HiCloud manager quoted by Xinhua",
+          "date": "2025-06-11",
+          "evidence_class": "operator_reported_not_independently_benchmarked"
+        },
+        {
+          "field": "reported_server_failures_since_launch",
+          "value": 0,
+          "unit": "failures",
+          "source": "HiCloud manager quoted by Xinhua",
+          "date": "2025-06-11",
+          "evidence_class": "operator_reported_no_public_failure_dataset"
+        },
+        {
+          "field": "reported_module_depth",
+          "value": ">30",
+          "unit": "metres",
+          "source": "Xinhua / Shanghai Municipal Government",
+          "date": "2025-06-11",
+          "evidence_class": "reported_depth_not_primary_as_built_survey"
         }
       ],
       "unknowns": {
@@ -86,7 +112,15 @@
         "lifecycle_cost_and_decommissioning": null,
         "environmental_authorization_and_monitoring": null,
         "cable_route_diversity_and_repair_evidence": null
-      }
+      },
+      "sources": [
+        {
+          "source": "Shanghai Municipal Government / Xinhua",
+          "date": "2025-06-11",
+          "url": "https://english.shanghai.gov.cn/en-Strength-Scitechcenter/20250611/c60460fe62e440d08b62be991cade0c9.html",
+          "evidence_class": "official_municipal_government_republication_of_Xinhua"
+        }
+      ]
     },
     {
       "project_id": "hicloud-shanghai-lingang-udc",
@@ -101,7 +135,11 @@
         "full_commercial_operation_reported": "2026-05",
         "phase_one_demonstrator_capacity_mw": 2.3,
         "reported_total_capacity_mw": 24,
-        "proposed_larger_programme_capacity_mw": 500
+        "proposed_larger_programme_capacity_mw": 500,
+        "official_project_launch": "2025-06-10",
+        "phase_one_expected_operational_date": "2025-09",
+        "phase_one_expected_operational_evidence_class": "project_launch_forecast",
+        "phase_two_planned_capacity_mw": 24
       },
       "sources": [
         {
@@ -115,6 +153,12 @@
           "date": "2026-05-18",
           "url": "https://www.offshorewind.biz/2026/05/18/china-puts-worlds-first-offshore-wind-powered-underwater-data-centre-into-operation/",
           "evidence_class": "industry_trade_report"
+        },
+        {
+          "source": "Shanghai Municipal Government / Xinhua",
+          "date": "2025-06-11",
+          "url": "https://english.shanghai.gov.cn/en-Strength-Scitechcenter/20250611/c60460fe62e440d08b62be991cade0c9.html",
+          "evidence_class": "official_municipal_government_republication_of_Xinhua_project_announcement"
         }
       ],
       "evidence": [
@@ -165,6 +209,53 @@
           "value": "substantial share / directly connected as reported",
           "source": "Data Center Dynamics and Offshore Wind",
           "evidence_class": "qualitative_report_not_hourly_metered_share"
+        },
+        {
+          "field": "official_project_launch",
+          "value": "2025-06-10",
+          "source": "Shanghai Municipal Government / Xinhua",
+          "date": "2025-06-11",
+          "evidence_class": "official_project_launch"
+        },
+        {
+          "field": "first_phase_demonstration_capacity",
+          "value": 2.3,
+          "unit": "MW",
+          "source": "Hicloud general manager quoted by Xinhua",
+          "date": "2025-06-11",
+          "evidence_class": "project_announced_phase"
+        },
+        {
+          "field": "phase_two_target_capacity",
+          "value": 24,
+          "unit": "MW",
+          "source": "Hicloud general manager quoted by Xinhua",
+          "date": "2025-06-11",
+          "evidence_class": "planned_capacity_not_as_built_metered"
+        },
+        {
+          "field": "phase_two_target_pue",
+          "value": 1.15,
+          "unit": "PUE threshold",
+          "source": "Hicloud general manager quoted by Xinhua",
+          "date": "2025-06-11",
+          "evidence_class": "developer_target_not_independently_audited"
+        },
+        {
+          "field": "phase_two_target_offshore_wind_share",
+          "value": 90,
+          "unit": "percent",
+          "source": "Hicloud general manager quoted by Xinhua",
+          "date": "2025-06-11",
+          "evidence_class": "developer_target_not_hourly_metered"
+        },
+        {
+          "field": "reported_cooling_electricity_share_target",
+          "value": 10,
+          "unit": "percent of total power or less",
+          "source": "Hicloud general manager quoted by Xinhua",
+          "date": "2025-06-11",
+          "evidence_class": "developer_target_not_independently_audited"
         }
       ],
       "conflicts": [
@@ -196,7 +287,12 @@
         "maintenance_vessel_and_module_exchange_cost": null,
         "cable_routes_and_redundancy": null,
         "environmental_permit_and_marine_baseline": null,
-        "lifecycle_capex_opex_and_decommissioning": null
+        "lifecycle_capex_opex_and_decommissioning": null,
+        "actual_hourly_offshore_wind_fraction": null,
+        "actual_whole_facility_pue_metered": null,
+        "phase_two_as_built_capacity_and_acceptance": null,
+        "actual_energy_reduction_against_matched_onshore_baseline": null,
+        "primary_as_built_module_depth_and_datum": null
       }
     },
     {
