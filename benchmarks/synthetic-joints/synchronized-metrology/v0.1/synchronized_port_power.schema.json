@@ -127,7 +127,8 @@
         "filter_delay_uncertainty_s",
         "absolute_slew_bound_per_s",
         "slew_bound_provenance_digest",
-        "slew_bound_source_reference"
+        "slew_bound_source_reference",
+        "raw_trace_digest"
       ],
       "properties": {
         "kind": {
@@ -236,6 +237,10 @@
           "minLength": 1
         },
         "slew_bound_source_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_trace_digest": {
           "type": "string",
           "minLength": 1
         }
