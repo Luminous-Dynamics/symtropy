@@ -14,6 +14,7 @@ This isolated Rust package defines a strict, versioned agent-observation bundle 
 
 - typed video-frame and PCM-chunk metadata with exact source intervals;
 - immutable relative artifact references with SHA-256 and byte-length commitments;
+- a root-confined artifact loader that canonicalizes paths, rejects symlink escapes and verifies exact bytes;
 - format/shape validation for raw Gray8/RGB8/RGBA8 frames and S16LE/F32LE PCM;
 - clock-domain identity including reset generation, without guessing cross-clock transforms;
 - a separate availability tick and arrival order for every transport event;
@@ -54,7 +55,7 @@ The intended future layout remains the one defined by #6183:
 - evaluator truth: canonical world/event/source labels, kept outside the agent process;
 - receipts: exact inputs, artifact digests, runner revision, replay output and split disposition.
 
-This library enforces a **schema boundary**, not a security boundary. A real hidden-truth evaluation still needs separate filesystem roots and a process/container boundary that does not mount evaluator truth into the agent runtime. Never claim that strict unknown-field rejection alone provides isolation.
+This library enforces a **schema and fixture-path boundary**, not a security boundary. The loader's canonicalization check assumes an immutable/read-only fixture root and is not a race-free adversarial openat implementation. A real hidden-truth evaluation still needs separate filesystem roots and a process/container boundary that does not mount evaluator truth into the agent runtime. Never claim that strict unknown-field rejection or path validation alone provides isolation.
 
 ## Run locally
 
@@ -71,8 +72,8 @@ The fixture JSON references two tiny raw artifacts under fixtures/media. They ex
 
 Before this can be treated as a usable AV fixture adapter:
 
-1. exact-head Rust format, compile, unit tests and strict Clippy pass;
-2. artifact loader resolves paths only beneath an explicitly supplied fixture root and verifies bytes against each digest;
+1. exact-head Rust format, compile, unit tests and strict Clippy pass with the committed lockfile;
+2. loader negative tests pass on the target platforms, and the fixture root is mounted immutable during evaluation;
 3. Symtropy's existing scenario runner supplies the availability schedule without exposing evaluator truth;
 4. #1594 acoustic outputs and Bevy visual outputs are bound to their actual producer/profile identities;
 5. hidden-truth separation is demonstrated at the process boundary;
