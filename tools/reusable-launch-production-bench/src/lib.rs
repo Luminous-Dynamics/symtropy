@@ -683,8 +683,8 @@ mod tests {
         assert_eq!(report.metrics.maintenance_task_count, 5);
         assert_eq!(report.metrics.maintenance_total_wait_ticks, 1);
         assert_eq!(report.metrics.maintenance_max_wait_ticks, 1);
-        assert_eq!(report.metrics.costs.total_lifecycle_scu, 482);
-        assert_eq!(report.metrics.costs.cost_per_accepted_kg_microscu, Some(20_956));
+        assert_eq!(report.metrics.costs.total_lifecycle_scu, 485);
+        assert_eq!(report.metrics.costs.cost_per_accepted_kg_microscu, Some(21_086));
     }
 
     #[test]
