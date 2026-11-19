@@ -127,3 +127,8 @@ Compose with Symtropy #6211/#4582/#6209/#2721, Sol-Atlas #942/#654, Symthaea #11
 ## Claim ceiling
 
 This contract establishes research comparisons and scenario coverage only. It does not select a subsea site, validate thermal plume or cable mechanics, establish environmental compliance, prove commercial superiority, certify route independence, or authorize construction/operation.
+
+
+### Cross-owner dependency correction
+
+The cable/fibre/power-route inventory and its transitive shared dependencies should compose with Mycelix [ASSURE-PORTFOLIO-CUT-002 #5762](https://github.com/Luminous-Dynamics/mycelix/issues/5762), which owns multi-valued dependency identities and common-cause cut-set semantics. Sol-Atlas supplies the spatially grounded route/landing/duct/substation/geohazard evidence. Symtropy consumes the resulting dependency/failure-domain references to simulate the service consequences and restoration trajectories. This avoids a competing second dependency graph or a false independence score.
