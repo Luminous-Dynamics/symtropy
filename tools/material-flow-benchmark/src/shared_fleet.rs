@@ -1050,6 +1050,16 @@ mod tests {
     }
 
     #[test]
+    fn rejects_missing_weather_permission_or_reposition_evidence_references() {
+        let mut test = input();
+        test.scenarios[0].periods[0].observations[0].weather_evidence_reference.clear();
+        test.reposition_links[0].evidence_reference.clear();
+        let errors = validate_input(&test).expect_err("source references are required");
+        assert!(errors.iter().any(|error| error.contains("weather and permission evidence references")));
+        assert!(errors.iter().any(|error| error.contains("evidence reference is required")));
+    }
+
+    #[test]
     fn rejects_unknown_or_duplicate_region_observation() {
         let mut test = input();
         test.scenarios[0].periods[0].observations[1].region_id = "unknown".into();
