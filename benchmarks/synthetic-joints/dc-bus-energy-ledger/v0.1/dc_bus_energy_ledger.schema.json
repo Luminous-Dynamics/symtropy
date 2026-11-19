@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/synthetic-joints/dc-bus-energy-ledger/v0.1/dc_bus_energy_ledger.schema.json",
+  "title": "DC Bus Multi-Control-Volume Energy Balance v0.1",
+  "description": "Already-integrated signed energy intervals and validated integration error bounds for actuator, shared-bus or storage control volumes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "balance_kind",
+    "terms",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "balance_kind": {
+      "enum": [
+        "actuator_module",
+        "shared_dc_bus",
+        "storage_system"
+      ]
+    },
+    "terms": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/energy_term"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lower",
+        "upper"
+      ],
+      "properties": {
+        "lower": {
+          "type": "number"
+        },
+        "upper": {
+          "type": "number"
+        }
+      }
+    },
+    "bound_representation": {
+      "enum": [
+        "validated_bound",
+        "standard_uncertainty",
+        "expanded_uncertainty",
+        "unknown"
+      ]
+    },
+    "calibration_status": {
+      "enum": [
+        "in_date",
+        "expired",
+        "out_of_tolerance",
+        "unknown",
+        "not_calibrated"
+      ]
+    },
+    "traceability_status": {
+      "enum": [
+        "established",
+        "partial",
+        "not_established",
+        "unknown"
+      ]
+    },
+    "evidence_class": {
+      "enum": [
+        "independent_physical",
+        "source_author_physical",
+        "vendor_physical",
+        "model_derived",
+        "synthetic_fixture",
+        "unknown"
+      ]
+    },
+    "energy_term": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "port_id",
+        "energy_j",
+        "unit",
+        "bound_representation",
+        "integration_error_bound_j",
+        "integration_error_source_reference",
+        "integration_error_digest",
+        "integration_method",
+        "integration_contract_digest",
+        "start_time_s",
+        "end_time_s",
+        "time_alignment_digest",
+        "mission_interval_digest",
+        "system_boundary_digest",
+        "operating_condition_digest",
+        "calibration_status",
+        "traceability_status",
+        "evidence_class",
+        "source_reference",
+        "measurement_method",
+        "calibration_digest",
+        "raw_trace_digest"
+      ],
+      "properties": {
+        "port_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "energy_j": {
+          "$ref": "#/$defs/interval"
+        },
+        "unit": {
+          "const": "J"
+        },
+        "bound_representation": {
+          "$ref": "#/$defs/bound_representation"
+        },
+        "integration_error_bound_j": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "integration_error_source_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "integration_error_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "integration_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "integration_contract_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_time_s": {
+          "type": "number"
+        },
+        "end_time_s": {
+          "type": "number"
+        },
+        "time_alignment_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mission_interval_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "system_boundary_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operating_condition_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_status": {
+          "$ref": "#/$defs/calibration_status"
+        },
+        "traceability_status": {
+          "$ref": "#/$defs/traceability_status"
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        },
+        "source_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_trace_digest": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
