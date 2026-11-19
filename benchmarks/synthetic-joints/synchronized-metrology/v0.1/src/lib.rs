@@ -205,7 +205,6 @@ fn validate_numeric_channel(channel: &ChannelMeasurement) -> Result<(), String> 
     }
     if channel.clock_offset_uncertainty_s < 0.0
         || channel.timestamp_jitter_bound_s < 0.0
-        || channel.filter_group_delay_s < 0.0
         || channel.filter_delay_uncertainty_s < 0.0
         || channel.absolute_slew_bound_per_s < 0.0
     {
@@ -743,7 +742,19 @@ mod tests {
     }
 
     #[test]
-    fn metrology_023_nonfinite_combined_skew_rejects() {
+    fn metrology_023_signed_filter_group_delay_is_supported() {
+        let (mut torque, speed) = pair();
+        torque.filter_group_delay_s = -0.01;
+        torque.filter_delay_compensation_s = -0.01;
+        torque.absolute_slew_bound_per_s = 10.0;
+        let report = evaluate_mechanical_port_power(&torque, &speed).unwrap();
+        assert_eq!(report.disposition, MeasurementDisposition::QualifiedBoundedEstimate);
+        assert_eq!(report.torque_alignment.as_ref().unwrap().maximum_time_skew_s, 0.0);
+        assert_eq!(report.torque_alignment.as_ref().unwrap().aligned_interval, torque.value);
+    }
+
+    #[test]
+    fn metrology_024_nonfinite_combined_skew_rejects() {
         let (mut torque, speed) = pair();
         torque.sample_time_offset_s = f64::MAX;
         torque.clock_offset_uncertainty_s = f64::MAX;
