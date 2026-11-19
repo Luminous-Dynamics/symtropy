@@ -63,7 +63,11 @@ jobs:
           crew = next(item for item in resource_manifest["resources"] if item["resourceRef"] == "synthetic://resource/specialist-crew-01")
           assert crew["capacityUnits"] == 1
           as_of = fixture["asOfHour"]
-          assert all(item["effectiveHour"] <= as_of and item["observedHour"] <= as_of for item in fixture["observableState"]["observations"])
+          assert all(
+              item["effectiveHour"] <= item["observedHour"] <= as_of
+              and (item["validUntilHour"] is None or item["validUntilHour"] >= item["observedHour"])
+              for item in fixture["observableState"]["observations"]
+          )
           assert len({item["inspectionId"] for item in fixture["inspectionCandidates"]}) == len(fixture["inspectionCandidates"])
           assert len({item["actionId"] for item in fixture["recoveryActions"]}) == len(fixture["recoveryActions"])
           shared_groups = {item["independenceGroupRef"] for item in fixture["observableState"]["observations"]}
