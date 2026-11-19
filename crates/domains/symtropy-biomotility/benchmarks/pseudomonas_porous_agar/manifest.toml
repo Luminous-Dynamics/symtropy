@@ -1,0 +1,87 @@
+schema_version = "biomotility-benchmark-manifest-v0.1"
+benchmark_id = "PSEUDOMONAS-POROUS-AGAR-001"
+status = "REFERENCE_TARGETS_ONLY_DATA_RIGHTS_PENDING"
+model_scope = "event-based run-time and turn-angle bias with separate long-trap events"
+benchmark_arms = ["NONE", "RUN_TIME_ONLY", "TURN_ANGLE_ONLY", "COMBINED"]
+directional_observations = ["RUN_START_HEADING", "RUN_DISPLACEMENT_HEADING", "INCOMING_END_TANGENT", "FOLLOWING_RUN_DISPLACEMENT"]
+direction_partition = "SIGN_OF_GRADIENT_PROJECTION"
+direction_alignment_epsilon = 1.0e-12
+run_time_bias_sampling_direction = "RUN_START_HEADING_CAUSAL_APPROXIMATION"
+turn_angle_bias_conditioning_direction = "PRECEDING_RUN_NET_DISPLACEMENT"
+post_event_orientation_metric = "FOLLOWING_RUN_NET_DISPLACEMENT"
+event_class_threshold_seconds = 1.0
+event_threshold_boundary_policy = "SHORT_INCLUSIVE_FOR_2026_FIGURE_3_4_REPRODUCTION"
+event_threshold_sensitivity_policies = ["SHORT_INCLUSIVE", "LONG_INCLUSIVE", "EXCLUDE_EXACT_BOUNDARY"]
+organism = "Pseudomonas putida"
+study_doi = "10.1016/j.bpj.2026.06.002"
+dataset_doi = "10.5281/zenodo.17592316"
+dataset_version = "UNVERIFIED"
+dataset_license = "UNVERIFIED_DO_NOT_REDISTRIBUTE"
+dataset_checksum_status = "NOT_YET_RETRIEVED"
+raw_microscopy_access = "AUTHOR_REQUEST_REQUIRED"
+original_analysis_code_access = "AUTHOR_REQUEST_REQUIRED"
+
+[conditions.wild_type_0_25_percent_agar]
+agar_percent = 0.25
+reported_trajectory_count = 17703
+reported_mean_run_duration_seconds = 0.299
+reported_up_gradient_run_fraction = 0.533
+reported_up_gradient_after_short_event_fraction = 0.567
+reported_up_gradient_after_short_event_count = 38376
+reported_up_gradient_after_long_event_fraction = 0.449
+reported_up_gradient_after_long_event_count = 17582
+reported_mean_run_duration_up_gradient_seconds = 0.304
+reported_mean_run_duration_down_gradient_seconds = 0.293
+reported_run_time_bias_strength = 0.037
+reported_first_fourier_mode_magnitude = 0.054
+
+[conditions.wild_type_0_30_percent_agar]
+agar_percent = 0.30
+reported_trajectory_count = 18714
+reported_mean_run_duration_seconds = 0.232
+reported_up_gradient_run_fraction = 0.519
+reported_up_gradient_after_short_event_fraction = 0.556
+reported_up_gradient_after_short_event_count = 36351
+reported_up_gradient_after_long_event_fraction = 0.468
+reported_up_gradient_after_long_event_count = 25613
+reported_mean_run_duration_up_gradient_seconds = 0.234
+reported_mean_run_duration_down_gradient_seconds = 0.229
+reported_run_time_bias_strength = 0.022
+reported_first_fourier_mode_magnitude = 0.029
+
+[paper_simulation_reference]
+population_size = 5000
+time_steps = 30000
+duration_minutes = 25
+turn_angle_only_fraction_of_combined_drift = 0.72
+run_time_only_fraction_of_combined_drift = 0.25
+evidence_class = "SOURCE_REPORTED_AGENT_BASED_SIMULATION_NOT_REPRODUCED_HERE"
+
+[secondary_comparator_datta_2025]
+study_doi = "10.1038/s41598-025-02741-1"
+wild_type_mean_run_duration_0_25_seconds = 0.35
+wild_type_mean_run_duration_0_30_seconds = 0.23
+wild_type_mean_event_duration_0_25_seconds = 2.07
+wild_type_mean_event_duration_0_30_seconds = 3.63
+event_survival_intermediate_exponent_alpha = 0.79
+event_survival_tail_exponent_beta = 2.63
+msd_crossover_approx_seconds = 0.5
+wild_type_long_time_diffusion_0_25_um2_s = 5.25
+wild_type_long_time_diffusion_0_30_um2_s = 2.56
+evidence_class = "SOURCE_REPORTED_EXPERIMENTAL_AND_ANALYTICAL_TARGETS_NOT_REPRODUCED"
+
+[secondary_comparator_stoll_2026]
+organism = "Azospirillum brasilense"
+study_doi = "10.1073/pnas.2616336123"
+dataset_doi = "10.3929/ethz-c-000804612"
+dataset_rights = "IN_COPYRIGHT_NONCOMMERCIAL_USE_PERMITTED"
+dataset_ingestion_status = "NOT_ADMITTED_PENDING_RIGHTS_SCHEMA_CHECKSUM_REVIEW"
+evidence_class = "PUBLISHED_EXPERIMENTAL_REFERENCE_AND_RESTRICTED_DATASET"
+reported_heterogeneity_gain_fold = 1.5
+use_for_commercial_work = false
+
+[limitations]
+not_raw_data = true
+not_empirical_model_calibration = true
+not_independent_replication = true
+not_a_sota_claim = true
