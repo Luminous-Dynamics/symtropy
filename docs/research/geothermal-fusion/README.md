@@ -50,7 +50,8 @@ The system is a typed graph with five physical layers and one evidence layer.
    - Fusion research / plant auxiliary loads: plasma heating and current drive, magnets, cryogenics, vacuum, tritium systems, cooling, controls and buildings.
    - Industrial process heat by required temperature and delivery schedule.
    - Water services: reverse osmosis powered by qualified electricity; thermal desalination only where source temperature, heat-transfer boundary, product quality and brine handling are qualified.
-   - Cooling services: heat-driven absorption cooling or heat-pump integration where temperature grade and complete parasitics justify it. This is building/process cooling, not a replacement for fusion magnet cryogenics or cryoplant refrigeration.
+   - Cooling services: heat-driven absorption cooling or heat-pump integration where temperature grade and complete parasitics justify it. ASHRAE's handbook gives example single-effect absorption equipment ranges of 115–132 °C for steam-heated units (some waste-heat units lower) and 160–188 °C hot-fluid input for typical double-effect equipment; exact manufacturer maps and boundary conditions must be used. This is building/process cooling, not a replacement for fusion magnet cryogenics or cryoplant refrigeration.
+   - Reverse-osmosis (RO) electrical loads and thermal desalination / multi-effect distillation (MED) only where source temperature, water chemistry, product quality, heat-exchanger approach and brine handling are qualified.
    - District heat and other site-specific services.
    - Grid export/import at an explicitly metered point of common coupling (PCC).
 
@@ -71,6 +72,14 @@ The system is a typed graph with five physical layers and one evidence layer.
 | Fusion → thermal users | Concept-dependent blanket/divertor heat recovery via isolated loops and temperature-grade cascade | All fusion waste heat is high-temperature or interchangeable |
 | Fusion → engineered thermal store | Charge a dedicated mine/borehole/solid-media thermal store with measured charge/recovery losses | Charged storage is new geothermal generation |
 | Shared subsurface capability | Common modelling, monitoring, drilling/materials knowledge where separately qualified | One well design, fluid chemistry or safety case fits both systems |
+
+## Multi-service energy: heat quality, not waste-heat optimism
+
+Geothermal polygeneration is an established research direction, but it must be benchmarked as a complete system. Published studies propose geothermal combinations for electricity, cooling and freshwater. For example, a 2024 *Energy* study reports a simulated configuration combining an organic flash cycle, absorption refrigeration, Kalina cycle and humidification-dehumidification desalination, with reported model outputs of 342.3 kW electric, 301.7 kW cooling and 0.233 kg/s freshwater. These are outputs of a thermoeconomic model under its assumptions, not a demonstrated plant performance result ([DOI 10.1016/j.energy.2024.131667](https://doi.org/10.1016/j.energy.2024.131667)).
+
+The 2026 review of desalination energy performance concludes that modern seawater reverse osmosis is already near the practical thermodynamic minimum; the larger remaining opportunities are system-level loss reduction, high-recovery process configuration, pretreatment/cleaning/post-treatment, energy recovery and brine management—not a membrane-permeability-only contest ([Wang et al., 2026](https://doi.org/10.1038/s44359-026-00221-x)).
+
+Our resulting design principle is a **temperature-grade cascade**: first match each source stream to the highest-value service it can physically satisfy, then reuse the remaining heat at progressively lower grades. Every split is charged once against a source-interval allocation ledger. No heat may be re-used twice in the ledger simply because multiple destinations can claim the same source identifier.
 
 ## Why superhot geothermal is a distinct track
 
