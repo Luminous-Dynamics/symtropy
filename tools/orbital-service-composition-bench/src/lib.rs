@@ -65,6 +65,8 @@ pub struct Event {
     #[serde(default)]
     pub target_orbit_id: Option<String>,
     #[serde(default)]
+    pub destination_node_id: Option<String>,
+    #[serde(default)]
     pub receiver_id: Option<String>,
     #[serde(default)]
     pub interface_id: Option<String>,
@@ -83,6 +85,7 @@ pub struct Event {
 pub struct ServiceProfile {
     pub subject_id: String,
     pub target_orbit_id: String,
+    pub destination_node_id: String,
     pub interface_id: String,
     pub interface_revision: u64,
     pub fluid_id: String,
@@ -256,6 +259,7 @@ pub fn evaluate_case(case: &Case, pins: &BTreeMap<Component, &SourcePin>) -> Cas
     if !non_empty(&case.case_id)
         || !non_empty(&profile.subject_id)
         || !non_empty(&profile.target_orbit_id)
+        || !non_empty(&profile.destination_node_id)
         || !non_empty(&profile.interface_id)
         || !non_empty(&profile.fluid_id)
         || profile.interface_revision == 0
@@ -321,6 +325,11 @@ pub fn evaluate_case(case: &Case, pins: &BTreeMap<Component, &SourcePin>) -> Cas
             Some(value) if value == profile.target_orbit_id => {}
             Some(_) => push_violation(&mut reasons, "target_orbit_mismatch"),
             None => push_missing(&mut reasons, "target_orbit_acceptance"),
+        }
+        match event.destination_node_id.as_deref() {
+            Some(value) if value == profile.destination_node_id => {}
+            Some(_) => push_violation(&mut reasons, "destination_node_mismatch"),
+            None => push_missing(&mut reasons, "destination_node_acceptance"),
         }
     }
 
@@ -605,6 +614,13 @@ mod tests {
         let mut case = data.cases[0].clone();
         case.events[2].receiver_id = Some("unrelated-receiver".to_owned());
         assert_eq!(evaluate_case(&case, &pins(&data)).actual_status, GateStatus::Rejected);
+    }
+
+    #[test]
+    fn wrong_destination_node_is_rejected() {
+        let data = fixture();
+        let case = data.cases.iter().find(|item| item.case_id == "WRONG_DESTINATION_NODE").unwrap();
+        assert_eq!(evaluate_case(case, &pins(&data)).actual_status, GateStatus::Rejected);
     }
 
     #[test]
