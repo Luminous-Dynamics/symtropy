@@ -900,4 +900,67 @@ mod tests {
             Err(FleetError::InvalidEvent(_))
         ));
     }
+
+    #[test]
+    fn subset_event_does_not_remove_capacity_from_an_already_unavailable_platform() {
+        let mut base = parse_case(FIXTURE).expect("fixture parses");
+        base.policy_cases[0]
+            .platform_unavailability_events
+            .push(PlatformUnavailabilityEvent {
+                event_id: "extra-maintenance-a".to_owned(),
+                platform_id: "haps-a".to_owned(),
+                event_class: "planned_maintenance".to_owned(),
+                start_hour: 0.0,
+                duration_hours: 24.0,
+            });
+        let without_subset_event = evaluate(&base).expect("base evaluates");
+
+        let mut with_subset_event = base.clone();
+        with_subset_event.common_cause_events.push(CommonCauseEvent {
+            event_id: "a-only-weather".to_owned(),
+            event_class: "regional_weather_restriction".to_owned(),
+            start_hour: 0.0,
+            duration_hours: 24.0,
+            scope: "declared_platform_subset".to_owned(),
+            affected_platform_ids: Some(vec!["haps-a".to_owned()]),
+            haps_capacity_factor: 0.0,
+            terrestrial_capacity_override_units: None,
+            satellite_capacity_override_units: None,
+            parent_event_id: None,
+        });
+        let with_subset_event = evaluate(&with_subset_event).expect("subset case evaluates");
+
+        let baseline = &without_subset_event.policy_results[0];
+        let affected = &with_subset_event.policy_results[0];
+        assert_eq!(
+            baseline.full_service_availability_fraction,
+            affected.full_service_availability_fraction
+        );
+        assert_eq!(
+            baseline.useful_service_capacity_fraction,
+            affected.useful_service_capacity_fraction
+        );
+    }
+
+    #[test]
+    fn standby_platform_must_have_an_explicit_dispatch_interval() {
+        let mut case = parse_case(FIXTURE).expect("fixture parses");
+        case.policy_cases[2].reserve_dispatch_events.clear();
+
+        assert!(matches!(
+            evaluate(&case),
+            Err(FleetError::InvalidEvent(_))
+        ));
+    }
+
+    #[test]
+    fn event_times_must_align_to_the_declared_time_grid() {
+        let mut case = parse_case(FIXTURE).expect("fixture parses");
+        case.common_cause_events[0].start_hour = 360.5;
+
+        assert!(matches!(
+            evaluate(&case),
+            Err(FleetError::InvalidEvent(_))
+        ));
+    }
 }
