@@ -613,11 +613,24 @@ fn validate_ledger(ledger: &OpsEvidenceLedger) -> Result<(), LedgerError> {
                     event.event_id
                 )));
             }
+            if event.payload.get("release_scope").and_then(Value::as_str)
+                != Some("specific_configuration_and_scope")
+            {
+                return Err(LedgerError::AuthorizationBoundary(format!(
+                    "authorized-release event {} must declare specific configuration scope",
+                    event.event_id
+                )));
+            }
             authorized_release_event = Some((
                 authority_ref,
                 event.asset_ref.as_str(),
                 event.configuration_ref.as_str(),
             ));
+        } else if event.release_authority_ref.is_some() {
+            return Err(LedgerError::AuthorizationBoundary(format!(
+                "event {} carries release_authority_ref outside an authorized-release event",
+                event.event_id
+            )));
         }
         states.insert(event.asset_ref.clone(), event.to_state.clone());
         previous_event = Some(event.event_id.as_str());
@@ -810,6 +823,19 @@ fn validate_ledger(ledger: &OpsEvidenceLedger) -> Result<(), LedgerError> {
         if release_event != (authority_ref, asset_ref, configuration_ref) {
             return Err(LedgerError::AuthorizationBoundary(
                 "release authority, asset and configuration must match the authorized-release event exactly"
+                    .to_owned(),
+            ));
+        }
+        let current_configuration = current_configuration_refs
+            .get(asset_ref)
+            .ok_or_else(|| {
+                LedgerError::AuthorizationBoundary(
+                    "authorized-release boundary references an unknown asset".to_owned(),
+                )
+            })?;
+        if current_configuration != configuration_ref {
+            return Err(LedgerError::AuthorizationBoundary(
+                "authorized configuration is no longer the asset's active configuration"
                     .to_owned(),
             ));
         }
@@ -1062,6 +1088,110 @@ mod tests {
         let error =
             validate_ledger_json(&bytes).expect_err("wrong evidence kind must fail");
         assert!(error.to_string().contains("does not bind its authority reference"));
+    }
+
+    fn append_post_release_configuration_change(value: &mut Value) {
+        let transitions = [
+            ("sortie_launched", "ready_for_dispatch", "launch_recovery", "2026-05-04T00:00:00Z"),
+            ("service_started", "launch_recovery", "in_service", "2026-05-04T01:00:00Z"),
+            ("service_ended", "in_service", "postflight_inspection", "2026-05-04T02:00:00Z"),
+            ("anomaly_detected", "postflight_inspection", "grounded", "2026-05-04T03:00:00Z"),
+            ("work_order_opened", "grounded", "maintenance_queued", "2026-05-04T04:00:00Z"),
+            ("repair_started", "maintenance_queued", "maintenance_in_progress", "2026-05-04T05:00:00Z"),
+            ("repair_completed", "maintenance_in_progress", "verification_hold", "2026-05-04T06:00:00Z"),
+            ("configuration_changed", "verification_hold", "verification_hold", "2026-05-04T07:00:00Z"),
+        ];
+        let mut previous_event_id = "event-13".to_owned();
+        for (index, (event_type, from_state, to_state, timestamp)) in
+            transitions.into_iter().enumerate()
+        {
+            let sequence = index as u64 + 14;
+            let event_id = format!("event-{sequence:02}");
+            let payload = if event_type == "configuration_changed" {
+                serde_json::json!({
+                    "new_configuration_ref": "cfg-haps-01-r4",
+                    "new_configuration_revision": "r4"
+                })
+            } else {
+                serde_json::json!({})
+            };
+            let event = serde_json::json!({
+                "event_id": event_id,
+                "event_sequence": sequence,
+                "previous_event_id": previous_event_id,
+                "asset_ref": "haps-01",
+                "configuration_ref": "cfg-haps-01-r3",
+                "event_type": event_type,
+                "occurred_at_utc": timestamp,
+                "observed_at_utc": timestamp,
+                "recorded_at_utc": timestamp,
+                "clock_uncertainty_s": 1.0,
+                "from_state": from_state,
+                "to_state": to_state,
+                "onset_knowledge": "not_applicable",
+                "onset_known_at_utc": null,
+                "onset_interval_earliest_utc": null,
+                "onset_interval_latest_utc": null,
+                "component_refs": ["component-hinge-synth-01"],
+                "producer": {
+                    "organization_ref": "synthetic.operator",
+                    "role": "synthetic_lifecycle_fixture",
+                    "source_system_ref": "synthetic.maintenance-system.v1"
+                },
+                "source_evidence_refs": [{
+                    "evidence_ref": format!("evidence-{sequence:02}"),
+                    "evidence_kind": "synthetic_fixture",
+                    "content_digest": null,
+                    "source_uri": null,
+                    "rights_ref": "synthetic-only"
+                }],
+                "event_digest": null,
+                "payload": payload
+            });
+            value["events"].as_array_mut().unwrap().push(event);
+            previous_event_id = event_id;
+        }
+    }
+
+    #[test]
+    fn release_for_prior_configuration_does_not_authorize_later_configuration() {
+        let mut value = authorized_release_fixture(
+            "authority-release-001",
+            "authority-release-001",
+            "haps-01",
+            "cfg-haps-01-r3",
+            "release_authority_record",
+        );
+        append_post_release_configuration_change(&mut value);
+        let bytes = serde_json::to_vec(&value).expect("serialize");
+        let error =
+            validate_ledger_json(&bytes).expect_err("prior configuration release must fail");
+        assert!(error.to_string().contains("no longer the asset's active configuration"));
+    }
+
+    #[test]
+    fn release_scope_must_be_explicit_on_the_authorized_event() {
+        let mut value = authorized_release_fixture(
+            "authority-release-001",
+            "authority-release-001",
+            "haps-01",
+            "cfg-haps-01-r3",
+            "release_authority_record",
+        );
+        value["events"][12]["payload"]["release_scope"] = Value::Null;
+        let bytes = serde_json::to_vec(&value).expect("serialize");
+        let error = validate_ledger_json(&bytes).expect_err("missing scope must fail");
+        assert!(error.to_string().contains("must declare specific configuration scope"));
+    }
+
+    #[test]
+    fn release_authority_reference_is_only_allowed_on_release_events() {
+        let mut value = fixture_value();
+        value["events"][0]["release_authority_ref"] =
+            Value::String("authority-release-001".to_owned());
+        let bytes = serde_json::to_vec(&value).expect("serialize");
+        let error = validate_ledger_json(&bytes).expect_err("stray authority reference must fail");
+        assert!(error.to_string().contains("outside an authorized-release event"));
     }
 
     #[test]
