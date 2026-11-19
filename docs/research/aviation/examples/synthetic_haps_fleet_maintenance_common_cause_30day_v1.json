@@ -1,0 +1,544 @@
+{
+  "schema_version": "haps-fleet-availability-case/v1",
+  "case_id": "synthetic.haps.fleet.maintenance.common-cause.30day.001",
+  "revision": 1,
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_event_schedule_oracle",
+  "campaign": {
+    "duration_days": 30,
+    "step_days": 1,
+    "required_active_platforms": 3,
+    "service_boundary": "platform_count_only",
+    "availability_target": 0.995,
+    "service_profile_ref": "examples/synthetic_disaster_resilience_haps_service_v1.json"
+  },
+  "source": {
+    "source_kind": "synthetic_generator",
+    "source_uri": null,
+    "source_digest": null,
+    "rights_or_license_ref": null,
+    "available_at_decision_time": false
+  },
+  "variants": [
+    {
+      "variant_id": "three-node-no-spare",
+      "description": "Three deployed platforms; every platform is required. Staggered scheduled inspection and a two-day weather event affects the shared domain.",
+      "required_active_platforms": 3,
+      "platforms": [
+        {
+          "platform_id": "A",
+          "weather_domain_id": "single-zone",
+          "initial_state": "on_station"
+        },
+        {
+          "platform_id": "B",
+          "weather_domain_id": "single-zone",
+          "initial_state": "on_station"
+        },
+        {
+          "platform_id": "C",
+          "weather_domain_id": "single-zone",
+          "initial_state": "on_station"
+        }
+      ],
+      "maintenance_windows": [
+        {
+          "maintenance_id": "maint-a",
+          "platform_id": "A",
+          "start_day": 4,
+          "duration_days": 3,
+          "maintenance_class": "scheduled_inspection"
+        },
+        {
+          "maintenance_id": "maint-b",
+          "platform_id": "B",
+          "start_day": 10,
+          "duration_days": 3,
+          "maintenance_class": "scheduled_inspection"
+        },
+        {
+          "maintenance_id": "maint-c",
+          "platform_id": "C",
+          "start_day": 16,
+          "duration_days": 3,
+          "maintenance_class": "scheduled_inspection"
+        }
+      ],
+      "common_cause_events": [
+        {
+          "event_id": "weather-shared-26-27",
+          "event_class": "regional_weather_standdown",
+          "start_day": 26,
+          "duration_days": 2,
+          "affected_weather_domain_ids": [
+            "single-zone"
+          ],
+          "impact": "platform_standdown"
+        }
+      ],
+      "logistics": {
+        "ready_ground_spares": 0,
+        "launch_capacity_per_day": null,
+        "launch_to_service_days": null,
+        "recovery_capacity_per_day": null,
+        "recovery_to_ready_days": null,
+        "recovery_turnaround_evidence": "source_attributed_unquantified",
+        "turnaround_source_ref": "https://payloadspace.com/exclusive-sceye-signs-five-year-deal-to-fly-haps-fleet-for-softbank/",
+        "included_in_availability_oracle": false
+      },
+      "expected_oracle": {
+        "oracle_status": "independently_calculated",
+        "daily_active_platforms": [
+          3,
+          3,
+          3,
+          3,
+          2,
+          2,
+          2,
+          3,
+          3,
+          3,
+          2,
+          2,
+          2,
+          3,
+          3,
+          3,
+          2,
+          2,
+          2,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          0,
+          0,
+          3,
+          3
+        ],
+        "daily_service_available": [
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          true,
+          true
+        ],
+        "unavailable_day_offsets": [
+          4,
+          5,
+          6,
+          10,
+          11,
+          12,
+          16,
+          17,
+          18,
+          26,
+          27
+        ],
+        "service_available_days": 19,
+        "service_unavailable_days": 11,
+        "availability_fraction": 0.6333333333333333,
+        "longest_continuous_outage_days": 3,
+        "maintenance_unavailable_platform_days": 9,
+        "weather_unavailable_platform_days": 6,
+        "maximum_simultaneous_unavailable_platforms": 3
+      }
+    },
+    {
+      "variant_id": "four-node-clustered",
+      "description": "Four deployed platforms with one-node redundancy, but pairs share each of two weather domains. A common weather event removes two nodes simultaneously.",
+      "required_active_platforms": 3,
+      "platforms": [
+        {
+          "platform_id": "A",
+          "weather_domain_id": "east",
+          "initial_state": "on_station"
+        },
+        {
+          "platform_id": "B",
+          "weather_domain_id": "east",
+          "initial_state": "on_station"
+        },
+        {
+          "platform_id": "C",
+          "weather_domain_id": "west",
+          "initial_state": "on_station"
+        },
+        {
+          "platform_id": "D",
+          "weather_domain_id": "west",
+          "initial_state": "on_station"
+        }
+      ],
+      "maintenance_windows": [
+        {
+          "maintenance_id": "maint-a",
+          "platform_id": "A",
+          "start_day": 4,
+          "duration_days": 3,
+          "maintenance_class": "scheduled_inspection"
+        },
+        {
+          "maintenance_id": "maint-b",
+          "platform_id": "B",
+          "start_day": 10,
+          "duration_days": 3,
+          "maintenance_class": "scheduled_inspection"
+        },
+        {
+          "maintenance_id": "maint-c",
+          "platform_id": "C",
+          "start_day": 16,
+          "duration_days": 3,
+          "maintenance_class": "scheduled_inspection"
+        },
+        {
+          "maintenance_id": "maint-d",
+          "platform_id": "D",
+          "start_day": 22,
+          "duration_days": 3,
+          "maintenance_class": "scheduled_inspection"
+        }
+      ],
+      "common_cause_events": [
+        {
+          "event_id": "weather-east-26-27",
+          "event_class": "regional_weather_standdown",
+          "start_day": 26,
+          "duration_days": 2,
+          "affected_weather_domain_ids": [
+            "east"
+          ],
+          "impact": "platform_standdown"
+        }
+      ],
+      "logistics": {
+        "ready_ground_spares": 0,
+        "launch_capacity_per_day": null,
+        "launch_to_service_days": null,
+        "recovery_capacity_per_day": null,
+        "recovery_to_ready_days": null,
+        "recovery_turnaround_evidence": "source_attributed_unquantified",
+        "turnaround_source_ref": "https://payloadspace.com/exclusive-sceye-signs-five-year-deal-to-fly-haps-fleet-for-softbank/",
+        "included_in_availability_oracle": false
+      },
+      "expected_oracle": {
+        "oracle_status": "independently_calculated",
+        "daily_active_platforms": [
+          4,
+          4,
+          4,
+          4,
+          3,
+          3,
+          3,
+          4,
+          4,
+          4,
+          3,
+          3,
+          3,
+          4,
+          4,
+          4,
+          3,
+          3,
+          3,
+          4,
+          4,
+          4,
+          3,
+          3,
+          3,
+          4,
+          2,
+          2,
+          4,
+          4
+        ],
+        "daily_service_available": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          true,
+          true
+        ],
+        "unavailable_day_offsets": [
+          26,
+          27
+        ],
+        "service_available_days": 28,
+        "service_unavailable_days": 2,
+        "availability_fraction": 0.9333333333333333,
+        "longest_continuous_outage_days": 2,
+        "maintenance_unavailable_platform_days": 12,
+        "weather_unavailable_platform_days": 4,
+        "maximum_simultaneous_unavailable_platforms": 2
+      }
+    },
+    {
+      "variant_id": "four-node-distributed",
+      "description": "Same four-node fleet, maintenance schedule and k=3 service requirement, but each platform occupies a distinct weather domain. The same regional event removes one platform only.",
+      "required_active_platforms": 3,
+      "platforms": [
+        {
+          "platform_id": "A",
+          "weather_domain_id": "east",
+          "initial_state": "on_station"
+        },
+        {
+          "platform_id": "B",
+          "weather_domain_id": "north",
+          "initial_state": "on_station"
+        },
+        {
+          "platform_id": "C",
+          "weather_domain_id": "south",
+          "initial_state": "on_station"
+        },
+        {
+          "platform_id": "D",
+          "weather_domain_id": "west",
+          "initial_state": "on_station"
+        }
+      ],
+      "maintenance_windows": [
+        {
+          "maintenance_id": "maint-a",
+          "platform_id": "A",
+          "start_day": 4,
+          "duration_days": 3,
+          "maintenance_class": "scheduled_inspection"
+        },
+        {
+          "maintenance_id": "maint-b",
+          "platform_id": "B",
+          "start_day": 10,
+          "duration_days": 3,
+          "maintenance_class": "scheduled_inspection"
+        },
+        {
+          "maintenance_id": "maint-c",
+          "platform_id": "C",
+          "start_day": 16,
+          "duration_days": 3,
+          "maintenance_class": "scheduled_inspection"
+        },
+        {
+          "maintenance_id": "maint-d",
+          "platform_id": "D",
+          "start_day": 22,
+          "duration_days": 3,
+          "maintenance_class": "scheduled_inspection"
+        }
+      ],
+      "common_cause_events": [
+        {
+          "event_id": "weather-east-26-27",
+          "event_class": "regional_weather_standdown",
+          "start_day": 26,
+          "duration_days": 2,
+          "affected_weather_domain_ids": [
+            "east"
+          ],
+          "impact": "platform_standdown"
+        }
+      ],
+      "logistics": {
+        "ready_ground_spares": 0,
+        "launch_capacity_per_day": null,
+        "launch_to_service_days": null,
+        "recovery_capacity_per_day": null,
+        "recovery_to_ready_days": null,
+        "recovery_turnaround_evidence": "source_attributed_unquantified",
+        "turnaround_source_ref": "https://payloadspace.com/exclusive-sceye-signs-five-year-deal-to-fly-haps-fleet-for-softbank/",
+        "included_in_availability_oracle": false
+      },
+      "expected_oracle": {
+        "oracle_status": "independently_calculated",
+        "daily_active_platforms": [
+          4,
+          4,
+          4,
+          4,
+          3,
+          3,
+          3,
+          4,
+          4,
+          4,
+          3,
+          3,
+          3,
+          4,
+          4,
+          4,
+          3,
+          3,
+          3,
+          4,
+          4,
+          4,
+          3,
+          3,
+          3,
+          4,
+          3,
+          3,
+          4,
+          4
+        ],
+        "daily_service_available": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "unavailable_day_offsets": [],
+        "service_available_days": 30,
+        "service_unavailable_days": 0,
+        "availability_fraction": 1,
+        "longest_continuous_outage_days": 0,
+        "maintenance_unavailable_platform_days": 12,
+        "weather_unavailable_platform_days": 2,
+        "maximum_simultaneous_unavailable_platforms": 1
+      }
+    }
+  ],
+  "assumptions": [
+    "All platform IDs, schedules, weather-domain assignments and event durations are synthetic. The case does not represent any operator's actual fleet or maintenance campaign.",
+    "The campaign is a 30-day daily-step deterministic event schedule; it is not a statistical reliability estimate, annual availability forecast or Monte Carlo result.",
+    "Service is available when and only when the number of non-maintenance, non-weather-standdown platforms is at least k=3. Geometry, coverage footprint, RF/backhaul, payload health and energy-qualified service are not evaluated; use service_boundary platform_count_only.",
+    "Scheduled maintenance windows are three-day synthetic inspections and are staggered. They are not a model of full post-flight reconditioning.",
+    "Weather events are common-cause regional stand-downs: every platform assigned to an affected weather domain is unavailable for the full event window. Node availability losses are unioned, not double-counted.",
+    "The three-node baseline uses one weather domain for all three platforms; the four-node clustered case places two platforms in the affected eastern domain; the distributed case places only one platform there.",
+    "The three cases use identical event dates and k=3 service requirement. The two four-node cases use identical fleet size and maintenance schedule; only weather-domain distribution changes.",
+    "The event schedule deliberately demonstrates the difference between independent platform redundancy and common-cause/domain diversification; it is not a claim that four weather domains are sufficient for real stratospheric operations.",
+    "Payload's 3 November 2026 interview reports Sceye post-recovery dismantling/testing turnaround as 'in the months' and an ambition to reduce it to weeks. The exact distribution and measured percentiles are not public in that report. The field is marked source_attributed_unquantified and the unknown turnaround is excluded from this simple availability oracle.",
+    "Recovery capacity, launch capacity, launch-to-service delay, ready ground spares and return-to-ready distributions require operator telemetry and are not inferred from the public interview.",
+    "Availability target 99.5% is an illustrative programme target, not an industry-standard guarantee or achieved result."
+  ],
+  "rotation_sensitivity": [
+    {
+      "case_id": "service30-turnaround14-launch0",
+      "on_station_days": 30,
+      "recovery_to_ready_days": 14,
+      "launch_to_service_days": 0,
+      "required_service_platforms": 3,
+      "expected_minimum_fleet_size": 5
+    },
+    {
+      "case_id": "service30-turnaround30-launch0",
+      "on_station_days": 30,
+      "recovery_to_ready_days": 30,
+      "launch_to_service_days": 0,
+      "required_service_platforms": 3,
+      "expected_minimum_fleet_size": 6
+    },
+    {
+      "case_id": "service30-turnaround60-launch0",
+      "on_station_days": 30,
+      "recovery_to_ready_days": 60,
+      "launch_to_service_days": 0,
+      "required_service_platforms": 3,
+      "expected_minimum_fleet_size": 9
+    },
+    {
+      "case_id": "service30-turnaround60-launch1",
+      "on_station_days": 30,
+      "recovery_to_ready_days": 60,
+      "launch_to_service_days": 1,
+      "required_service_platforms": 3,
+      "expected_minimum_fleet_size": 10
+    },
+    {
+      "case_id": "service180-turnaround60-launch0",
+      "on_station_days": 180,
+      "recovery_to_ready_days": 60,
+      "launch_to_service_days": 0,
+      "required_service_platforms": 3,
+      "expected_minimum_fleet_size": 4
+    }
+  ]
+}
