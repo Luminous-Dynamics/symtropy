@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/grid-recovery-benchmark-corpus-v0.1.schema.json",
+  "title": "Grid Recovery Benchmark Corpus Register v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "snapshotDate",
+    "records"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "snapshotDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "recordId",
+          "title",
+          "category",
+          "reportedScale",
+          "features",
+          "licenseStatus",
+          "importStatus",
+          "primarySource",
+          "relevance",
+          "limitations"
+        ],
+        "properties": {
+          "recordId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "enum": [
+              "calendar_aware_rcpsp",
+              "classic_rcpsp",
+              "multi_skill_rcpsp",
+              "multi_mode_rcpsp",
+              "multi_project_rcpsp",
+              "empirical_project_control",
+              "solver_method_comparison",
+              "solver_documentation"
+            ]
+          },
+          "reportedScale": {
+            "type": "string",
+            "minLength": 1
+          },
+          "features": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "licenseStatus": {
+            "enum": [
+              "explicitly_open",
+              "license_not_verified",
+              "access_conditions_review_required",
+              "documentation_only"
+            ]
+          },
+          "license": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "importStatus": {
+            "enum": [
+              "metadata_registered_not_imported",
+              "metadata_and_reference_verified",
+              "imported_hash_frozen",
+              "not_a_dataset"
+            ]
+          },
+          "primarySource": {
+            "type": "string",
+            "format": "uri"
+          },
+          "secondarySource": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "relevance": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limitations": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
