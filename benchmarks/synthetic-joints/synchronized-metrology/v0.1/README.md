@@ -136,17 +136,15 @@ Malformed/non-finite/inverted numerical intervals, invalid negative timing bound
 
 No energy integral is emitted by this M1 crate. A future energy result must include a separate, validated sampling/interpolation/quadrature error bound and preserve time-varying power intervals.
 
-## 6. Synthetic known-answer fixture
+## 6. Synthetic known-answer fixtures
 
-The examples/synchronized-port-power-known-answer.json fixture contains two wholly synthetic channels. The torque interval is [9, 11] N·m and speed is [4, 6] rad/s. Nonzero clock/sample/filter offsets and slew bounds expand the intervals before multiplication.
+`examples/synchronized-port-known-answer.json` contains three synthetic records:
 
-The fixture records:
-- torque maximum skew 0.054 s and interval expansion 0.108 N·m;
-- speed maximum skew 0.1025 s and interval expansion 0.3075 rad/s;
-- pre-timing power interval [36, 66] W;
-- aligned interval approximately [32.83371, 70.06371] W.
+1. **Nominal:** torque [9, 11] N·m and speed [4, 6] rad/s produce [36, 66] W.
+2. **Time skew:** torque slew 2 N·m/s × 0.05 s expands to [8.9, 11.1] N·m; speed slew 3 (rad/s)/s × 0.1 s expands to [3.7, 6.3] rad/s; the product interval becomes [32.93, 69.93] W.
+3. **Negative control:** expired torque-channel calibration yields Unknown and no numerical power claim.
 
-These values are arithmetic test data, not sensor or actuator measurements.
+The measurement IDs, sensor serials, certificate/reference URIs, raw-trace digests, calibration entries and source records are synthetic placeholders. No traceable physical or actuator performance measurement is represented.
 
 ## 7. Run
 
