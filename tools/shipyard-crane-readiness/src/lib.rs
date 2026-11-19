@@ -47,14 +47,14 @@ pub enum DeviceState {
     Unknown,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ExclusionZoneState {
     Enforced,
     NotEnforced,
     Unknown,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LiftPreflightDisposition {
     ReadyForHumanReview,
     Rejected,
@@ -938,6 +938,333 @@ fn validate_exclusion_zone(
                 "exclusion-zone enforcement state is unknown",
             );
             false
+        }
+    }
+}
+
+
+/// Reasons why previously evaluated readiness evidence must be re-evaluated.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ReadinessInvalidationReason {
+    EvidenceStatusChanged,
+    EvidenceDigestChanged,
+    DeviceStateChanged,
+    SubjectRevisionChanged,
+    ExclusionZoneStateChanged,
+    LiftPreflightChanged,
+    OperationWindowChanged,
+    ClockDomainChanged,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ReadinessInvalidation {
+    pub reason: ReadinessInvalidationReason,
+    pub dependency_id: String,
+    pub previous_value: String,
+    pub current_value: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReadinessReplayDisposition {
+    Current,
+    Invalidated,
+    Indeterminate,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReadinessReplayReport {
+    pub disposition: ReadinessReplayDisposition,
+    pub invalidations: Vec<ReadinessInvalidation>,
+    pub applied_source_count: usize,
+    pub stale_event_count: usize,
+    pub duplicate_event_count: usize,
+    pub conflicted_source_count: usize,
+}
+
+/// Source-owned change event. Sequence is monotonic within the named source_id.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ReadinessEvent {
+    EvidenceStatusChanged {
+        record_id: String,
+        new_status: EvidenceStatus,
+    },
+    EvidenceDigestChanged {
+        record_id: String,
+        new_sha256: String,
+    },
+    DeviceStateChanged {
+        device_id: String,
+        device_revision: String,
+        new_state: DeviceState,
+    },
+    SubjectRevisionChanged {
+        evidence_class: EvidenceClass,
+        subject_id: String,
+        new_revision: String,
+    },
+    ExclusionZoneStateChanged {
+        site_epoch_id: String,
+        new_state: ExclusionZoneState,
+    },
+    LiftPreflightChanged {
+        receipt_id: String,
+        input_sha256: String,
+        report_sha256: String,
+        disposition: LiftPreflightDisposition,
+        invalidated: bool,
+    },
+    OperationWindowChanged {
+        readiness_id: String,
+        new_start_tick: u64,
+        new_end_tick: u64,
+    },
+    ClockDomainChanged {
+        readiness_id: String,
+        new_clock_domain_id: String,
+    },
+}
+
+impl ReadinessEvent {
+    /// Canonical source identity: the event cannot claim a different source from
+    /// the dependency it changes.
+    pub fn expected_source_id(&self) -> String {
+        match self {
+            Self::EvidenceStatusChanged { record_id, .. }
+            | Self::EvidenceDigestChanged { record_id, .. } => record_id.clone(),
+            Self::DeviceStateChanged { device_id, .. } => device_id.clone(),
+            Self::SubjectRevisionChanged { evidence_class, subject_id, .. } => {
+                format!("subject::{evidence_class:?}::{subject_id}")
+            }
+            Self::ExclusionZoneStateChanged { site_epoch_id, .. } => {
+                format!("exclusion-zone::{site_epoch_id}")
+            }
+            Self::LiftPreflightChanged { receipt_id, .. } => receipt_id.clone(),
+            Self::OperationWindowChanged { readiness_id, .. } => {
+                format!("operation-window::{readiness_id}")
+            }
+            Self::ClockDomainChanged { readiness_id, .. } => {
+                format!("clock-domain::{readiness_id}")
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ReadinessEventEnvelope {
+    pub event_id: String,
+    pub source_id: String,
+    pub source_sequence: u64,
+    pub event: ReadinessEvent,
+}
+
+/// Dependency snapshot for deterministic batch replay. Newer source-sequence
+/// events supersede older events from the same source, regardless of arrival
+/// order. Same-sequence conflicting payloads fail closed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReadinessDependencies {
+    plan: ReadinessPlan,
+}
+
+impl ReadinessDependencies {
+    pub fn from_plan(plan: &ReadinessPlan) -> Self {
+        Self { plan: plan.clone() }
+    }
+
+    pub fn invalidation_for(&self, event: &ReadinessEvent) -> Option<ReadinessInvalidation> {
+        let plan = &self.plan;
+        match event {
+            ReadinessEvent::EvidenceStatusChanged { record_id, new_status } => {
+                let record = plan.evidence_records.iter().find(|item| item.record_id == *record_id)?;
+                (record.status != *new_status).then(|| ReadinessInvalidation {
+                    reason: ReadinessInvalidationReason::EvidenceStatusChanged,
+                    dependency_id: record_id.clone(),
+                    previous_value: format!("{:?}", record.status),
+                    current_value: format!("{:?}", new_status),
+                })
+            }
+            ReadinessEvent::EvidenceDigestChanged { record_id, new_sha256 } => {
+                let record = plan.evidence_records.iter().find(|item| item.record_id == *record_id)?;
+                (!record.sha256.eq_ignore_ascii_case(new_sha256)).then(|| ReadinessInvalidation {
+                    reason: ReadinessInvalidationReason::EvidenceDigestChanged,
+                    dependency_id: record_id.clone(),
+                    previous_value: record.sha256.to_ascii_lowercase(),
+                    current_value: new_sha256.to_ascii_lowercase(),
+                })
+            }
+            ReadinessEvent::DeviceStateChanged { device_id, device_revision, new_state } => {
+                let device = plan.device_evidence.iter().find(|item| {
+                    item.device_id == *device_id && item.device_revision == *device_revision
+                })?;
+                (device.state != *new_state).then(|| ReadinessInvalidation {
+                    reason: ReadinessInvalidationReason::DeviceStateChanged,
+                    dependency_id: device_id.clone(),
+                    previous_value: format!("{:?}", device.state),
+                    current_value: format!("{:?}", new_state),
+                })
+            }
+            ReadinessEvent::SubjectRevisionChanged { evidence_class, subject_id, new_revision } => {
+                let previous = plan.evidence_records.iter().find(|item| {
+                    item.evidence_class == *evidence_class && item.subject_id == *subject_id
+                })?.subject_revision.clone();
+                (previous != *new_revision).then(|| ReadinessInvalidation {
+                    reason: ReadinessInvalidationReason::SubjectRevisionChanged,
+                    dependency_id: subject_id.clone(),
+                    previous_value: previous,
+                    current_value: new_revision.clone(),
+                })
+            }
+            ReadinessEvent::ExclusionZoneStateChanged { site_epoch_id, new_state } => {
+                if *site_epoch_id != plan.site_epoch_id || plan.exclusion_zone_state == *new_state {
+                    return None;
+                }
+                Some(ReadinessInvalidation {
+                    reason: ReadinessInvalidationReason::ExclusionZoneStateChanged,
+                    dependency_id: site_epoch_id.clone(),
+                    previous_value: format!("{:?}", plan.exclusion_zone_state),
+                    current_value: format!("{:?}", new_state),
+                })
+            }
+            ReadinessEvent::LiftPreflightChanged {
+                receipt_id,
+                input_sha256,
+                report_sha256,
+                disposition,
+                invalidated,
+            } => {
+                let receipt = &plan.lift_preflight;
+                if receipt.receipt_id != *receipt_id
+                    || (receipt.input_sha256.eq_ignore_ascii_case(input_sha256)
+                        && receipt.report_sha256.eq_ignore_ascii_case(report_sha256)
+                        && receipt.disposition == *disposition
+                        && receipt.invalidated == *invalidated)
+                {
+                    return None;
+                }
+                Some(ReadinessInvalidation {
+                    reason: ReadinessInvalidationReason::LiftPreflightChanged,
+                    dependency_id: receipt_id.clone(),
+                    previous_value: format!(
+                        "{}|{}|{:?}|{}",
+                        receipt.input_sha256,
+                        receipt.report_sha256,
+                        receipt.disposition,
+                        receipt.invalidated
+                    ),
+                    current_value: format!(
+                        "{}|{}|{:?}|{}",
+                        input_sha256,
+                        report_sha256,
+                        disposition,
+                        invalidated
+                    ),
+                })
+            }
+            ReadinessEvent::OperationWindowChanged { readiness_id, new_start_tick, new_end_tick } => {
+                if *readiness_id != plan.readiness_id
+                    || (plan.start_tick == *new_start_tick && plan.end_tick == *new_end_tick)
+                {
+                    return None;
+                }
+                Some(ReadinessInvalidation {
+                    reason: ReadinessInvalidationReason::OperationWindowChanged,
+                    dependency_id: readiness_id.clone(),
+                    previous_value: format!("[{}, {})", plan.start_tick, plan.end_tick),
+                    current_value: format!("[{}, {})", new_start_tick, new_end_tick),
+                })
+            }
+            ReadinessEvent::ClockDomainChanged { readiness_id, new_clock_domain_id } => {
+                if *readiness_id != plan.readiness_id || plan.clock_domain_id == *new_clock_domain_id {
+                    return None;
+                }
+                Some(ReadinessInvalidation {
+                    reason: ReadinessInvalidationReason::ClockDomainChanged,
+                    dependency_id: readiness_id.clone(),
+                    previous_value: plan.clock_domain_id.clone(),
+                    current_value: new_clock_domain_id.clone(),
+                })
+            }
+        }
+    }
+
+    /// Replays a batch independent of arrival order. For each source, the highest
+    /// sequence is authoritative. Exact duplicate events are idempotent. Conflicting
+    /// event IDs or distinct payloads at the same highest sequence are indeterminate.
+    pub fn replay(&self, events: &[ReadinessEventEnvelope]) -> ReadinessReplayReport {
+        let mut event_ids: BTreeMap<&str, &ReadinessEventEnvelope> = BTreeMap::new();
+        let mut source_events: BTreeMap<&str, BTreeMap<u64, BTreeSet<ReadinessEvent>>> =
+            BTreeMap::new();
+        let mut conflicts = BTreeSet::new();
+        let mut duplicate_event_count = 0usize;
+        let mut unique_event_count = 0usize;
+
+        for envelope in events {
+            if !nonblank(&envelope.event_id)
+                || !nonblank(&envelope.source_id)
+                || envelope.source_sequence == 0
+                || envelope.source_id != envelope.event.expected_source_id()
+            {
+                conflicts.insert(envelope.source_id.clone());
+                continue;
+            }
+            if let Some(existing) = event_ids.get(envelope.event_id.as_str()) {
+                if *existing == envelope {
+                    duplicate_event_count += 1;
+                    continue;
+                }
+                conflicts.insert(envelope.source_id.clone());
+                continue;
+            }
+            event_ids.insert(envelope.event_id.as_str(), envelope);
+            source_events
+                .entry(envelope.source_id.as_str())
+                .or_default()
+                .entry(envelope.source_sequence)
+                .or_default()
+                .insert(envelope.event.clone());
+            unique_event_count += 1;
+        }
+
+        let mut invalidations = BTreeSet::new();
+        let mut stale_event_count = 0usize;
+        let mut applied_source_count = 0usize;
+        for (source_id, sequence_map) in &source_events {
+            let Some((latest_sequence, latest_payloads)) = sequence_map.iter().next_back() else {
+                continue;
+            };
+            stale_event_count += sequence_map
+                .iter()
+                .filter(|(sequence, _)| *sequence < latest_sequence)
+                .map(|(_, payloads)| payloads.len())
+                .sum::<usize>();
+            if latest_payloads.len() != 1 {
+                conflicts.insert((*source_id).to_owned());
+                continue;
+            }
+            let Some(event) = latest_payloads.iter().next() else {
+                continue;
+            };
+            applied_source_count += 1;
+            if let Some(invalidation) = self.invalidation_for(event) {
+                invalidations.insert(invalidation);
+            }
+        }
+        let _ = unique_event_count;
+
+        let invalidations: Vec<_> = invalidations.into_iter().collect();
+        let disposition = if !conflicts.is_empty() {
+            ReadinessReplayDisposition::Indeterminate
+        } else if !invalidations.is_empty() {
+            ReadinessReplayDisposition::Invalidated
+        } else {
+            ReadinessReplayDisposition::Current
+        };
+        ReadinessReplayReport {
+            disposition,
+            invalidations,
+            applied_source_count,
+            stale_event_count,
+            duplicate_event_count,
+            conflicted_source_count: conflicts.len(),
         }
     }
 }
