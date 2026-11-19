@@ -137,3 +137,14 @@ The benchmark should separately measure readiness-check p50/p95/p99, stale-snaps
 
 
 The dispatch-readiness receipt is a typed assessment result, not yet a cryptographically signed authorization token. Before handing it to an authorization authority, the consuming application must bind the *entire expanded receipt* to canonical bytes and a digest/signature or authenticated Mycelix attestation, verify that proof, and call verify_dispatch_readiness_receipt_current against the current ledger, registered robot identity, and approved engine/policy identities. The helper checks logical currentness and digest syntax; it does not authenticate the receipt, prove the occupancy engine mathematically correct, or independently derive the site snapshot digest. A rejected physical mark is intentionally not eligible for ordinary dispatch: the ledger must first record a specific remediation disposition or referee-confirmed physical absence. No actuator API is exposed by this crate.
+
+
+## Timebase-qualified dispatch readiness v0.2
+
+The non-actuating dispatch readiness gate now uses a qualified clock snapshot rather than a naked \`now_tick\`. The v0.2 request and receipt contract is in \`schema/dispatch-readiness-v0.2.schema.json\`, with synthetic request/receipt examples in \`examples/dispatch-readiness-request-synthetic-v0.2.json\` and \`examples/dispatch-readiness-receipt-synthetic-v0.2.json\`.
+
+The request binds envelope, occupancy assessment and current clock sample to the same site clock domain, monotonic epoch and clock mapping digest. The current sample includes authority/source identity, a monotonically increasing sample sequence, explicit uncertainty bound and holdover expiry. Readiness uses uncertainty intervals around envelope generation, occupancy assessment, current sample and expiry. Overlapping or overflowing intervals are rejected rather than treated as clear. Receipt consumption requires a newer clock sample in the same epoch/mapping and rechecks the clock-policy digest and trusted bound.
+
+The trust policy is out-of-band: the request cannot choose the accepted occupancy engine, clearance policy or maximum clock error. The clock authority identity is checked against the trusted site actor registry. Canonical event/clock/occupancy receipt verification and signature checking remain the caller's responsibility. This software check does not establish actual clock accuracy, site network asymmetry, PTP holdover performance, braking performance or any safety-rated function.
+
+See \`docs/dispatch-readiness-timebase-v0.2.md\` for the design rationale, interval semantics, test plan, benchmark goals and trust boundary. The new schema CI job uses pinned \`jsonschema==4.26.0\` and validates the Draft 2020-12 v0.2 request and receipt fixtures. These are synthetic known-answer fixtures, not physical evidence.
