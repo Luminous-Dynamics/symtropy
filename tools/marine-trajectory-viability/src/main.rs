@@ -933,9 +933,13 @@ mod tests {
     #[test]
     fn conservative_bound_fails_even_when_point_estimate_passes() {
         let mut value=fixture();
-        value["scenarios"][0]["states"][1]["resource_metrics"][1]["value"]=json!(81.0);
-        value["scenarios"][0]["states"][1]["resource_metrics"][1]["lower_bound"]=json!(79.0);
-        value["scenarios"][0]["states"][1]["resource_metrics"][1]["upper_bound"]=json!(82.0);
+        value["scenarios"][1]["states"][1]["resource_metrics"][1]["value"]=json!(81.0);
+        value["scenarios"][1]["states"][1]["resource_metrics"][1]["lower_bound"]=json!(79.0);
+        value["scenarios"][1]["states"][1]["resource_metrics"][1]["upper_bound"]=json!(82.0);
+        value["scenarios"][1]["transitions"][0]["freshwater"]["consumed_l"]=json!(79.0);
+        value["scenarios"][1]["transitions"][0]["freshwater"]["end_l"]=json!(81.0);
+        value["scenarios"][1]["transitions"][1]["freshwater"]["start_l"]=json!(81.0);
+        value["scenarios"][1]["transitions"][1]["freshwater"]["replenished_l"]=json!(29.0);
         assert_eq!(audit(&value)["disposition"],"BLOCKED");
     }
 
