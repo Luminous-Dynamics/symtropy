@@ -839,8 +839,13 @@
         "properties": {
           "subject": {
             "properties": {
-              "kind": {
-                "const": "physical_asset"
+              "asset_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "interval_id": {
+                "type": "string",
+                "minLength": 1
               }
             },
             "required": [
