@@ -71,8 +71,15 @@ jobs:
           assert planned["plannedSegments"][0]["startHour"] > planned["asOfHour"]
           assert planned["plannedSegments"][0]["interruptionCause"] is None
           assert planned["tasks"][0]["checkpointEffortHours"] == [4, 6]
+          assert len(planned["baselineEvents"]) == len(planned["events"])
+          assert [event["eventId"] for event in planned["baselineEvents"]] == [
+              event["eventId"] for event in planned["events"]
+          ]
 
           progress = parsed["synthetic-progress-reconciliation-v0.1.json"]
+          assert len(progress["baselineEvents"]) == 2
+          assert len(progress["events"]) == 3
+          assert progress["baselineEvents"] == progress["events"][:2]
           assert progress["baselineCommitments"][0]["version"] == 1
           assert progress["proposedCommitments"][0]["version"] == 2
           assert progress["reconciliations"][0]["action"] == "progress_recorded"
