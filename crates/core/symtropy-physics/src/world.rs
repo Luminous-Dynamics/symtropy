@@ -693,7 +693,38 @@ impl<const D: usize> PhysicsWorld<D> {
             }
         }
 
-        // 6b. Velocity-level constraint solve (active islands only)
+        // 6b. Apply each actuator once for this simulated interval. Actuator
+        // effort is elapsed-time integration, not iterative constraint
+        // relaxation; solver_iterations must never multiply its impulse or
+        // work-ledger receipt.
+        for &ci in &active_constraint_indices {
+            if ci >= self.constraints.len() {
+                continue;
+            }
+            let (ha, hb) = self.constraints[ci].bodies();
+            let (idx_a, idx_b) = self.find_body_indices(ha, hb);
+            if let (Some(a), Some(b)) = (idx_a, idx_b) {
+                if a < b {
+                    let (left, right) = self.bodies.split_at_mut(b);
+                    self.constraints[ci].solve_actuator(
+                        &mut left[a],
+                        &mut right[0],
+                        dt,
+                        Some(callback),
+                    );
+                } else {
+                    let (left, right) = self.bodies.split_at_mut(a);
+                    self.constraints[ci].solve_actuator(
+                        &mut right[0],
+                        &mut left[b],
+                        dt,
+                        Some(callback),
+                    );
+                }
+            }
+        }
+
+        // 6c. Iterative velocity-level constraint solve (passive relaxation).
         for _ in 0..self.solver_iterations {
             for &ci in &active_constraint_indices {
                 if ci >= self.constraints.len() {
