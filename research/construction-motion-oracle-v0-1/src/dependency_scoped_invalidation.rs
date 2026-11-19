@@ -74,6 +74,7 @@ pub enum DependencyGraphError {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NodeVersion {
     pub node_id: String,
+    pub kind: EvidenceNodeKind,
     pub version_sha256: String,
 }
 
@@ -83,6 +84,9 @@ pub struct EvidenceSnapshot {
     pub subject_version_sha256: String,
     /// All transitive prerequisite versions, sorted by node ID.
     pub transitive_dependency_versions: Vec<NodeVersion>,
+    /// Exact edge topology among the subject and its transitive prerequisites.
+    /// This detects graph rewiring even when the prerequisite node set is unchanged.
+    pub dependency_edges: Vec<EvidenceDependency>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -247,15 +251,31 @@ impl EvidenceDependencyGraph {
                     .expect("graph edges only reference known nodes");
                 NodeVersion {
                     node_id,
+                    kind: node.kind,
                     version_sha256: node.version_sha256.clone(),
                 }
             })
             .collect();
 
+        let mut dependency_edges = BTreeSet::new();
+        for dependent_id in std::iter::once(subject_node_id).chain(closure.iter().map(String::as_str)) {
+            let direct_dependencies = self
+                .prerequisites
+                .get(dependent_id)
+                .expect("every closure node has a prerequisite set");
+            for prerequisite_id in direct_dependencies {
+                dependency_edges.insert(EvidenceDependency {
+                    dependent_node_id: dependent_id.to_owned(),
+                    prerequisite_node_id: prerequisite_id.clone(),
+                });
+            }
+        }
+
         Ok(EvidenceSnapshot {
             subject_node_id: subject.node_id.clone(),
             subject_version_sha256: subject.version_sha256.clone(),
             transitive_dependency_versions,
+            dependency_edges: dependency_edges.into_iter().collect(),
         })
     }
 
@@ -287,7 +307,8 @@ impl EvidenceDependencyGraph {
                 snapshot.subject_node_id.clone(),
             ));
         }
-        Ok(current.transitive_dependency_versions == snapshot.transitive_dependency_versions)
+        Ok(current.transitive_dependency_versions == snapshot.transitive_dependency_versions
+            && current.dependency_edges == snapshot.dependency_edges)
     }
 
     /// Plan a revision without changing graph state.
@@ -815,6 +836,32 @@ mod tests {
             ),
             Err(DependencyGraphError::InvalidNodeVersionDigest("bad".into()))
         );
+    }
+
+
+    #[test]
+    fn snapshot_detects_dependency_topology_changes_even_when_nodes_are_unchanged() {
+        let graph = site_graph();
+        let snapshot = graph.capture_snapshot("accepted-panel").unwrap();
+        let mut edges: Vec<_> = graph
+            .prerequisites
+            .iter()
+            .flat_map(|(dependent, prerequisites)| {
+                prerequisites.iter().map(|prerequisite| EvidenceDependency {
+                    dependent_node_id: dependent.clone(),
+                    prerequisite_node_id: prerequisite.clone(),
+                })
+            })
+            .collect();
+        // The transitive node set is unchanged, but the accepted output now
+        // directly consumes execution evidence as an additional prerequisite.
+        edges.push(edge("accepted-panel", "execution"));
+        let rewired = EvidenceDependencyGraph::new(
+            graph.nodes.values().cloned().collect(),
+            edges,
+        )
+        .unwrap();
+        assert!(!rewired.snapshot_is_current(&snapshot).unwrap());
     }
 
 }
