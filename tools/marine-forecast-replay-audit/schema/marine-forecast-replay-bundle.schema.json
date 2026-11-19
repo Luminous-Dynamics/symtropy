@@ -135,7 +135,9 @@
               "availability_evidence",
               "lead_hours",
               "valid_time",
-              "parameter_set"
+              "parameter_set",
+              "availability_evidence_ref",
+              "availability_evidence_sha256"
             ],
             "properties": {
               "cycle_id": {
@@ -171,6 +173,14 @@
               "parameter_set": {
                 "type": "string",
                 "minLength": 1
+              },
+              "availability_evidence_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "availability_evidence_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
               }
             }
           },
