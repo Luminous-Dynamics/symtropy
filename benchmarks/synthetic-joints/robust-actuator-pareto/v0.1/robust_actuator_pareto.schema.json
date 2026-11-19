@@ -122,7 +122,9 @@
         "method",
         "configuration_digest",
         "operating_condition_digest",
-        "system_boundary_digest"
+        "system_boundary_digest",
+        "mission_set_digest",
+        "stress_set_digest"
       ],
       "properties": {
         "name": {
@@ -165,6 +167,14 @@
         "system_boundary_digest": {
           "type": "string",
           "minLength": 1
+        },
+        "mission_set_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stress_set_digest": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -181,7 +191,8 @@
         "configuration_digest",
         "operating_condition_digest",
         "system_boundary_digest",
-        "stress_set_digest"
+        "stress_set_digest",
+        "mission_set_digest"
       ],
       "properties": {
         "name": {
@@ -226,6 +237,10 @@
           "minLength": 1
         },
         "stress_set_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mission_set_digest": {
           "type": "string",
           "minLength": 1
         }
