@@ -20,6 +20,7 @@
     "acceptance_profile_sha256",
     "acceptance_profile",
     "entities",
+    "coordinate_context_sha256",
     "coordinate_context"
   ],
   "properties": {
@@ -137,6 +138,9 @@
       }
     },
     "ids_engine_build_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "coordinate_context_sha256": {
       "$ref": "#/$defs/sha256"
     }
   },
