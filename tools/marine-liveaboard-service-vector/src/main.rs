@@ -6,28 +6,24 @@ use std::fs;
 use std::process::ExitCode;
 
 const ENGINE_VERSION: &str = "marine-liveaboard-service-vector/0.1.0";
-const EXPECTED_CONTRACT_SHA256: &str =
-    "2a6506cda1d96b4c6406ec84904fdf07bc2ca4d2b0a9bbfa0360fb7e9700a919";
-
 #[derive(Clone, Copy)]
 struct MetricSpec {
     metric: &'static str,
     unit: &'static str,
     operator: &'static str,
-    floor: f64,
 }
 
 const METRICS: [MetricSpec; 10] = [
-    MetricSpec { metric: "arrival_delay_hours", unit: "h", operator: "lte", floor: 5.0 },
-    MetricSpec { metric: "energy_reserve_hours_at_arrival", unit: "h", operator: "gte", floor: 12.0 },
-    MetricSpec { metric: "freshwater_reserve_days_at_arrival", unit: "day", operator: "gte", floor: 3.0 },
-    MetricSpec { metric: "food_reserve_days_at_arrival", unit: "day", operator: "gte", floor: 7.0 },
-    MetricSpec { metric: "waste_capacity_margin_days", unit: "day", operator: "gte", floor: 1.0 },
-    MetricSpec { metric: "critical_spares_coverage_days", unit: "day", operator: "gte", floor: 3.0 },
-    MetricSpec { metric: "essential_service_outage_minutes", unit: "min", operator: "lte", floor: 30.0 },
-    MetricSpec { metric: "comfort_breach_minutes", unit: "min", operator: "lte", floor: 60.0 },
-    MetricSpec { metric: "crew_workload_hours_per_day", unit: "h/day", operator: "lte", floor: 8.0 },
-    MetricSpec { metric: "purchased_energy_kwh_per_berth_day", unit: "kWh/berth-day", operator: "lte", floor: 6.0 },
+    MetricSpec { metric: "arrival_delay_hours", unit: "h", operator: "lte" },
+    MetricSpec { metric: "energy_reserve_hours_at_arrival", unit: "h", operator: "gte" },
+    MetricSpec { metric: "freshwater_reserve_days_at_arrival", unit: "day", operator: "gte" },
+    MetricSpec { metric: "food_reserve_days_at_arrival", unit: "day", operator: "gte" },
+    MetricSpec { metric: "waste_capacity_margin_days", unit: "day", operator: "gte" },
+    MetricSpec { metric: "critical_spares_coverage_days", unit: "day", operator: "gte" },
+    MetricSpec { metric: "essential_service_outage_minutes", unit: "min", operator: "lte" },
+    MetricSpec { metric: "comfort_breach_minutes", unit: "min", operator: "lte" },
+    MetricSpec { metric: "crew_workload_hours_per_day", unit: "h/day", operator: "lte" },
+    MetricSpec { metric: "purchased_energy_kwh_per_berth_day", unit: "kWh/berth-day", operator: "lte" },
 ];
 
 fn string_at<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
@@ -91,9 +87,9 @@ fn contract_canonical(value: &Value, errors: &mut Vec<String>) -> Option<String>
         };
         if string_at(item, "unit") != Some(spec.unit)
             || string_at(item, "operator") != Some(spec.operator)
-            || number_at(item, "floor_value") != Some(spec.floor)
+            || number_at(item, "floor_value").is_none()
         {
-            errors.push(format!("service floor '{}' must use unit '{}', {} {}, and the canonical definition", spec.metric, spec.unit, spec.operator, spec.floor));
+            errors.push(format!("service floor '{}' must use unit '{}', operator '{}', and a finite contract threshold", spec.metric, spec.unit, spec.operator));
         }
         if number_at(item, "minimum_coverage_fraction").is_none_or(|coverage| !(0.0..=1.0).contains(&coverage)) {
             errors.push(format!("service floor '{}' has invalid coverage fraction", spec.metric));
@@ -397,9 +393,8 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     let canonical_contract = contract_canonical(contract, &mut errors);
     if let Some(canonical) = canonical_contract {
         let calculated = sha256_hex(&canonical);
-        if calculated != EXPECTED_CONTRACT_SHA256
-            || string_at(value.get("mission_snapshot").unwrap_or(&Value::Null), "service_floor_contract_sha256")
-                != Some(calculated.as_str())
+        if string_at(value.get("mission_snapshot").unwrap_or(&Value::Null), "service_floor_contract_sha256")
+            != Some(calculated.as_str())
         {
             errors.push("service_floor_contract_sha256 does not match the canonical service floor contract".to_owned());
         }
@@ -474,6 +469,18 @@ fn validate(raw: &[u8], value: &Value) -> Value {
         incomparable = !candidate_dominates && !baseline_dominates;
         for spec in METRICS {
             if let (Some(base), Some(cand)) = (baseline.metrics.get(spec.metric), candidate.metrics.get(spec.metric)) {
+                if base.measurement_window_start != cand.measurement_window_start
+                    || base.measurement_window_end != cand.measurement_window_end
+                    || base.measurement_method != cand.measurement_method
+                    || base.measurement_class != cand.measurement_class
+                    || (base.coverage_fraction - cand.coverage_fraction).abs() > 1e-9
+                {
+                    errors.push(format!("paired policies have mismatched measurement window, method, class or coverage for '{}'", spec.metric));
+                }
+                let contract_floor = contract.as_array()
+                    .and_then(|items| items.iter().find(|item| string_at(item, "metric") == Some(spec.metric)))
+                    .and_then(|item| number_at(item, "floor_value"))
+                    .unwrap_or(f64::NAN);
                 let delta = cand.value - base.value;
                 let candidate_better = match spec.operator {
                     "gte" => delta > 0.0,
@@ -500,8 +507,8 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                         _ => false
                     },
                     "candidate_conservative_floor_margin":match spec.operator {
-                        "gte" => cand.lower_bound - spec.floor,
-                        "lte" => spec.floor - cand.upper_bound,
+                        "gte" => cand.lower_bound - contract_floor,
+                        "lte" => contract_floor - cand.upper_bound,
                         _ => f64::NAN
                     }
                 }));
@@ -666,6 +673,33 @@ mod tests {
     fn service_floor_contract_is_digest_bound() {
         let mut value = fixture();
         value["service_floor_contract"][0]["floor_value"] = json!(4.0);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn mission_specific_thresholds_are_allowed_when_contract_and_snapshot_are_rehashed() {
+        let mut value = fixture();
+        value["service_floor_contract"][2]["floor_value"] = json!(2.5);
+        let mut contract_errors = Vec::new();
+        let canonical = contract_canonical(&value["service_floor_contract"], &mut contract_errors)
+            .expect("contract canonicalizes");
+        assert!(contract_errors.is_empty());
+        let contract_digest = sha256_hex(&canonical);
+        value["mission_snapshot"]["service_floor_contract_sha256"] = json!(contract_digest);
+        let snapshot_digest_value = snapshot_digest(&value["mission_snapshot"])
+            .expect("snapshot canonicalizes");
+        value["mission_snapshot"]["mission_snapshot_sha256"] = json!(snapshot_digest_value.clone());
+        for policy in value["policies"].as_array_mut().unwrap() {
+            policy["mission_snapshot_sha256"] = json!(snapshot_digest_value);
+        }
+        assert_eq!(audit(&value)["disposition"], "SYNTHETIC_ONLY");
+    }
+
+    #[test]
+    fn paired_policy_measurement_windows_must_match() {
+        let mut value = fixture();
+        value["policies"][2]["resource_metrics"][0]["measurement_window_end"] =
+            json!("2025-03-03T00:00:00Z");
         assert_eq!(audit(&value)["disposition"], "INVALID");
     }
 
