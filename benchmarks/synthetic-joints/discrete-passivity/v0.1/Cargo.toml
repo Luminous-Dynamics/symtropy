@@ -1,0 +1,12 @@
+[package]
+name = "discrete-passivity-energy-budget"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+# Keep this dependency-free analytic reference isolated from the root workspace.
+[workspace]
