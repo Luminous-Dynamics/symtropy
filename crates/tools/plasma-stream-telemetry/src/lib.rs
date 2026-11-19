@@ -51,6 +51,8 @@ pub struct DownstreamAcknowledgement {
     pub acknowledgement_id: String,
     pub state: AcknowledgementState,
     pub timestamp: Option<ClockStamp>,
+    /// Digest reference to independent downstream acknowledgement evidence.
+    pub evidence_sha256: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -586,6 +588,16 @@ fn report_event(
         let mut acknowledgement_qualified = !non_empty(&acknowledgement.acknowledgement_id);
         match acknowledgement.state {
             AcknowledgementState::Acknowledged => {
+                if acknowledgement
+                    .evidence_sha256
+                    .as_ref()
+                    .is_none_or(|digest| !is_sha256(digest))
+                {
+                    acknowledgement_qualified = true;
+                    findings.push(
+                        "acknowledged outcome lacks a valid evidence digest reference".to_owned(),
+                    );
+                }
                 match (
                     event.decision_time.as_ref().map(|stamp| {
                         map_stamp(stamp, calibrations, &spec.reference_clock_domain_id)
@@ -1016,6 +1028,7 @@ mod tests {
             acknowledgement_id: "ack-unknown".to_owned(),
             state: AcknowledgementState::Unknown,
             timestamp: None,
+            evidence_sha256: None,
         });
         let report = replay_trace(&request(vec![input])).expect("replay");
         assert_eq!(report.body.reports[0].disposition, EventDisposition::Degraded);
@@ -1029,10 +1042,24 @@ mod tests {
             acknowledgement_id: "ack-ok".to_owned(),
             state: AcknowledgementState::Acknowledged,
             timestamp: Some(stamp(1060)),
+            evidence_sha256: Some(DIGEST.to_owned()),
         });
         let report = replay_trace(&request(vec![input])).expect("replay");
         assert_eq!(report.body.reports[0].disposition, EventDisposition::OnTimeValid);
         assert_eq!(report.body.reports[0].metrics.downstream_ack_latency_ns, Some(20));
+    }
+
+    #[test]
+    fn acknowledged_state_without_external_evidence_is_degraded() {
+        let mut input = event(1, 900, 1000);
+        input.acknowledgement = Some(DownstreamAcknowledgement {
+            acknowledgement_id: "ack-no-evidence".to_owned(),
+            state: AcknowledgementState::Acknowledged,
+            timestamp: Some(stamp(1060)),
+            evidence_sha256: None,
+        });
+        let report = replay_trace(&request(vec![input])).expect("replay");
+        assert_eq!(report.body.reports[0].disposition, EventDisposition::Degraded);
     }
 
     #[test]
@@ -1042,6 +1069,7 @@ mod tests {
             acknowledgement_id: "ack-rejected".to_owned(),
             state: AcknowledgementState::Rejected,
             timestamp: None,
+            evidence_sha256: Some(DIGEST.to_owned()),
         });
         let report = replay_trace(&request(vec![input])).expect("replay");
         assert_eq!(report.body.reports[0].disposition, EventDisposition::Degraded);
