@@ -2759,6 +2759,89 @@ mod actuator_once_per_step_regression_tests {
         assert_close(receipts[0].1, 0.02, 1.0e-12, "static-base prismatic work");
     }
 
+    fn run_unequal_inertia_hinge() -> (f64, f64, Vec<(BodyHandle, f64)>) {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        world.solver_iterations = 4;
+        let body_a = world.add_body(RigidBody::<2>::dynamic_sphere(
+            BodyHandle(0),
+            Point::origin(),
+            0.5,
+            1.0,
+        ));
+        let body_b = world.add_body(RigidBody::<2>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            1.0,
+            2.0,
+        ));
+        let mut motor = MotorDrive::new(0.0, 1.0).with_gains(1.0, 0.0);
+        motor.target_vel = 1.0;
+        world.add_constraint(Box::new(
+            HingeJoint::new(body_a, body_b, 0, 1).with_motor(motor),
+        ));
+        let mut recorder = WorkRecorder::default();
+        world.step_with_callback(0.1, &mut recorder);
+        (
+            world.body(body_a).unwrap().angular_velocity.get(0, 1),
+            world.body(body_b).unwrap().angular_velocity.get(0, 1),
+            recorder.receipts,
+        )
+    }
+
+    fn run_unequal_mass_prismatic() -> (f64, f64, Vec<(BodyHandle, f64)>) {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.solver_iterations = 4;
+        let body_a = world.add_body(RigidBody::<3>::dynamic_sphere(
+            BodyHandle(0),
+            Point::origin(),
+            0.5,
+            2.0,
+        ));
+        let body_b = world.add_body(RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            0.5,
+            1.0,
+        ));
+        let motor = MotorDrive::new(0.5, 2.0).with_gains(10.0, 0.0);
+        world.add_constraint(Box::new(
+            PrismaticJoint::new(body_a, body_b, 0).with_motor(motor),
+        ));
+        let mut recorder = WorkRecorder::default();
+        world.step_with_callback(0.1, &mut recorder);
+        (
+            world.body(body_a).unwrap().linear_velocity[0],
+            world.body(body_b).unwrap().linear_velocity[0],
+            recorder.receipts,
+        )
+    }
+
+    #[test]
+    fn unequal_inertia_hinge_distributes_impulse_by_inverse_inertia() {
+        let (omega_a, omega_b, receipts) = run_unequal_inertia_hinge();
+        assert_close(omega_a, -1.0, 1.0e-12, "hinge body A angular delta");
+        assert_close(omega_b, 0.125, 1.0e-12, "hinge body B angular delta");
+        assert_close(omega_b - omega_a, 1.125, 1.0e-12, "hinge relative angular delta");
+        assert_eq!(receipts.len(), 1);
+        assert_close(receipts[0].1, 0.05625, 1.0e-12, "unequal-inertia hinge work");
+
+        // I_A=0.1 and I_B=0.8 for the two sphere fixtures.
+        let delta_kinetic = 0.5 * 0.1 * omega_a.powi(2) + 0.5 * 0.8 * omega_b.powi(2);
+        assert_close(receipts[0].1, delta_kinetic, 1.0e-12, "unequal-inertia hinge energy balance");
+    }
+
+    #[test]
+    fn unequal_mass_prismatic_distributes_impulse_by_inverse_mass() {
+        let (velocity_a, velocity_b, receipts) = run_unequal_mass_prismatic();
+        assert_close(velocity_a, -0.1, 1.0e-12, "prismatic body A velocity");
+        assert_close(velocity_b, 0.2, 1.0e-12, "prismatic body B velocity");
+        assert_close(velocity_b - velocity_a, 0.3, 1.0e-12, "prismatic relative velocity");
+        assert_eq!(receipts.len(), 1);
+        assert_close(receipts[0].1, 0.03, 1.0e-12, "unequal-mass prismatic work");
+        let delta_kinetic = 0.5 * 2.0 * velocity_a.powi(2) + 0.5 * velocity_b.powi(2);
+        assert_close(receipts[0].1, delta_kinetic, 1.0e-12, "unequal-mass prismatic energy balance");
+    }
+
     #[test]
     fn actuator_mechanical_work_receipt_matches_kinetic_energy_change() {
         let (hinge_velocity, hinge_receipts) = run_hinge_motor(4);
