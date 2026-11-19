@@ -211,6 +211,20 @@ fn validate_evidence(
     Ok(())
 }
 
+fn wilson_interval_95(successes: usize, trials: usize) -> Option<(f64, f64)> {
+    if trials == 0 || successes > trials {
+        return None;
+    }
+    const Z: f64 = 1.959_963_984_540_054;
+    let n = trials as f64;
+    let p = successes as f64 / n;
+    let z2 = Z * Z;
+    let denominator = 1.0 + z2 / n;
+    let center = (p + z2 / (2.0 * n)) / denominator;
+    let half_width = Z * ((p * (1.0 - p) / n) + (z2 / (4.0 * n * n))).sqrt() / denominator;
+    Some(((center - half_width).max(0.0), (center + half_width).min(1.0)))
+}
+
 fn validate_prediction_calibration(
     evidence_class: EvidenceClass,
     receipt: &Option<PredictionCalibrationReceipt>,
@@ -263,19 +277,33 @@ fn validate_prediction_calibration(
     if !receipt.alpha.is_finite()
         || !(0.0..1.0).contains(&receipt.alpha)
         || receipt.calibration_specimen_count == 0
-        || receipt.order_statistic_rank == 0
-        || receipt.order_statistic_rank > receipt.calibration_specimen_count
         || !receipt.correction_q_nm.is_finite()
         || receipt.correction_q_nm < 0.0
     {
         return Err(format!("{label} calibration receipt has invalid finite-sample rank or correction"));
     }
+    let expected_rank = (((receipt.calibration_specimen_count.saturating_add(1)) as f64)
+        * (1.0 - receipt.alpha))
+        .ceil() as usize;
+    if expected_rank == 0
+        || expected_rank > receipt.calibration_specimen_count
+        || receipt.order_statistic_rank != expected_rank
+    {
+        return Err(format!(
+            "{label} calibration receipt rank {} does not match finite-sample rank {}",
+            receipt.order_statistic_rank, expected_rank
+        ));
+    }
+    let covered_plus_uncovered = receipt
+        .covered_test_specimen_count
+        .checked_add(receipt.uncovered_test_specimen_count);
+    let in_domain_plus_ood = receipt
+        .in_domain_test_specimen_count
+        .checked_add(receipt.out_of_domain_test_specimen_count);
     if receipt.test_specimen_count == 0
         || receipt.in_domain_test_specimen_count == 0
-        || receipt.covered_test_specimen_count + receipt.uncovered_test_specimen_count
-            != receipt.in_domain_test_specimen_count
-        || receipt.in_domain_test_specimen_count + receipt.out_of_domain_test_specimen_count
-            != receipt.test_specimen_count
+        || covered_plus_uncovered != Some(receipt.in_domain_test_specimen_count)
+        || in_domain_plus_ood != Some(receipt.test_specimen_count)
     {
         return Err(format!("{label} calibration receipt has inconsistent or empty held-out test counts"));
     }
@@ -293,6 +321,18 @@ fn validate_prediction_calibration(
         || receipt.wilson_95_lower > receipt.wilson_95_upper
     {
         return Err(format!("{label} calibration receipt has invalid held-out coverage statistics"));
+    }
+    let (required_wilson_lower, required_wilson_upper) = wilson_interval_95(
+        receipt.covered_test_specimen_count,
+        receipt.in_domain_test_specimen_count,
+    )
+    .ok_or_else(|| format!("{label} calibration receipt has invalid Wilson interval denominator"))?;
+    // A rounded/wider interval is acceptable, but the receipt may not narrow
+    // the canonical 95% finite-sample interval and overstate precision.
+    if receipt.wilson_95_lower > required_wilson_lower + 1.0e-9
+        || receipt.wilson_95_upper < required_wilson_upper - 1.0e-9
+    {
+        return Err(format!("{label} calibration receipt understates Wilson 95% uncertainty"));
     }
     if !matches!(
         receipt.measurement_evidence_class,
@@ -1172,12 +1212,24 @@ mod tests {
         receipt.order_statistic_rank = 4;
         assert!(robust_pareto_report(&[insufficient], &objective_defs(), &constraint_defs()).is_err());
 
+        let mut wrong_rank = calibrated_model_candidate("wrong-in-range-rank");
+        // n=3, alpha=0.25 requires k=ceil(4*0.75)=3; rank=2 is in range
+        // but does not implement the split-conformal finite-sample rule.
+        wrong_rank.objectives[0].calibration_receipt.as_mut().unwrap().order_statistic_rank = 2;
+        assert!(robust_pareto_report(&[wrong_rank], &objective_defs(), &constraint_defs()).is_err());
+
         let mut empty_test = calibrated_model_candidate("empty-calibration-test");
         let receipt = empty_test.hard_constraints[0].calibration_receipt.as_mut().unwrap();
         receipt.in_domain_test_specimen_count = 0;
         receipt.covered_test_specimen_count = 0;
         receipt.uncovered_test_specimen_count = 0;
         assert!(robust_pareto_report(&[empty_test], &objective_defs(), &constraint_defs()).is_err());
+
+        let mut narrow_wilson = calibrated_model_candidate("narrow-wilson");
+        let receipt = narrow_wilson.objectives[0].calibration_receipt.as_mut().unwrap();
+        receipt.wilson_95_lower = 0.49;
+        receipt.wilson_95_upper = 0.51;
+        assert!(robust_pareto_report(&[narrow_wilson], &objective_defs(), &constraint_defs()).is_err());
     }
 
     #[test]
