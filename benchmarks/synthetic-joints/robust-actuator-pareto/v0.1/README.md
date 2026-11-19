@@ -123,10 +123,11 @@ The November 2026 snapshot is useful for discovery and provenance categories, bu
 
 ## 7. Synthetic known-answer fixture
 
-`examples/robust-pareto-known-answer.json` contains seven synthetic candidate records:
+`examples/robust-pareto-known-answer.json` contains eight synthetic candidate records:
 - two independent candidates in the same cohort, with one dominating the other;
 - a source-author candidate on a different mission set;
 - vendor and model candidates on separate conditional evidence lanes;
+- a calibrated-model torque-margin candidate with a complete synthetic grouped-conformal receipt (the receipt does not calibrate its mass, energy, coverage or thermal metrics);
 - an unknown-mass candidate;
 - an independently evidenced candidate with a known negative thermal margin.
 
