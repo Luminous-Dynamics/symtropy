@@ -131,6 +131,14 @@ The November 2026 Scott study shows why temperature-only ranking is inadequate. 
 
 The materials review by Meng et al. (Stanford Geothermal Workshop 2026) adds that corrosion need not increase monotonically with temperature; subcritical conditions around 350 °C can be especially challenging for some low-alloy steels, depending on chemistry and phase state.
 
+The paper's reported calibration anchor is specific and should be captured faithfully: IDDP-1 data were used to calibrate an effective reservoir pressure of about 16.1 MPa and permeability-thickness of about 5,300 mD·m, with reservoir temperature estimated near 500 °C; observed warmed wellhead temperatures were 380–440 °C and the model range was approximately 390–450 °C. This is an **in-sample calibration anchor**, not an independent predictive validation case.
+
+Its parameter sweeps cover reservoir pressures of 15–45 MPa, reservoir temperatures of 375–600 °C, permeability-thickness of 100–4,000 mD·m and (in key figures) a 10 MPa wellhead pressure. Under these stated assumptions, the paper reports >30 MWe only above approximately 4,000 mD·m at 20 MPa, 1,000 mD·m at 30 MPa and 500 mD·m at 40 MPa. Those are idealized steady-state model outputs and must not be copied into a commercial resource estimate.
+
+The same study uses a 50 m/s erosional-velocity reference for the modelled 9⅝-inch casing (inner diameter about 0.217 m) and compares a 13⅜-inch casing (inner diameter about 0.315 m). Treat 50 m/s as the paper's screening reference under its assumptions—not a universal erosional velocity, design allowable or safety limit. The study notes that IDDP-1 production ended after master-valve failure, illustrating why mechanical completion, maintainability and lifetime reliability sit outside a purely thermodynamic performance score.
+
+For water/steam properties, pin the exact IAPWS formulation release and validity envelope. IAPWS-IF97 is an industrial water/steam formulation valid from 273.15 K to 1073.15 K at pressures up to 100 MPa (with a higher-temperature region to 2273.15 K up to 50 MPa). It is not a general saline-brine equation of state. If the fluid contains dissolved salts or non-condensable gases, use an appropriate mixture model with its own validated composition and domain; never silently apply pure-water IF97 to brine.
+
 The benchmark must record, as separate observations:
 - reservoir pressure, temperature, chemistry and transmissivity;
 - bottom-hole pressure / enthalpy;
