@@ -1477,6 +1477,184 @@ mod tests {
     }
 
     #[test]
+    fn current_source_status_change_invalidates_readiness() {
+        let plan = baseline();
+        let dependencies = ReadinessDependencies::from_plan(&plan);
+        let event = ReadinessEventEnvelope {
+            event_id: "event-001".to_owned(),
+            source_id: "crane-insp-1".to_owned(),
+            source_sequence: 2,
+            event: ReadinessEvent::EvidenceStatusChanged {
+                record_id: "crane-insp-1".to_owned(),
+                new_status: EvidenceStatus::Revoked,
+            },
+        };
+        let report = dependencies.replay(&[event]);
+        assert_eq!(report.disposition, ReadinessReplayDisposition::Invalidated);
+        assert_eq!(report.invalidations.len(), 1);
+        assert_eq!(
+            report.invalidations[0].reason,
+            ReadinessInvalidationReason::EvidenceStatusChanged
+        );
+    }
+
+    #[test]
+    fn no_op_and_unrelated_events_do_not_invalidate_readiness() {
+        let plan = baseline();
+        let dependencies = ReadinessDependencies::from_plan(&plan);
+        let events = [
+            ReadinessEventEnvelope {
+                event_id: "event-noop".to_owned(),
+                source_id: "crane-insp-1".to_owned(),
+                source_sequence: 2,
+                event: ReadinessEvent::EvidenceStatusChanged {
+                    record_id: "crane-insp-1".to_owned(),
+                    new_status: EvidenceStatus::Current,
+                },
+            },
+            ReadinessEventEnvelope {
+                event_id: "event-unrelated".to_owned(),
+                source_id: "unrelated-record".to_owned(),
+                source_sequence: 9,
+                event: ReadinessEvent::EvidenceStatusChanged {
+                    record_id: "unrelated-record".to_owned(),
+                    new_status: EvidenceStatus::Revoked,
+                },
+            },
+        ];
+        let report = dependencies.replay(&events);
+        assert_eq!(report.disposition, ReadinessReplayDisposition::Current);
+        assert!(report.invalidations.is_empty());
+    }
+
+    #[test]
+    fn newer_source_event_supersedes_stale_event_and_is_arrival_order_independent() {
+        let plan = baseline();
+        let dependencies = ReadinessDependencies::from_plan(&plan);
+        let older = ReadinessEventEnvelope {
+            event_id: "event-older".to_owned(),
+            source_id: "crane-insp-1".to_owned(),
+            source_sequence: 1,
+            event: ReadinessEvent::EvidenceStatusChanged {
+                record_id: "crane-insp-1".to_owned(),
+                new_status: EvidenceStatus::Revoked,
+            },
+        };
+        let newer = ReadinessEventEnvelope {
+            event_id: "event-newer".to_owned(),
+            source_id: "crane-insp-1".to_owned(),
+            source_sequence: 2,
+            event: ReadinessEvent::EvidenceStatusChanged {
+                record_id: "crane-insp-1".to_owned(),
+                new_status: EvidenceStatus::Current,
+            },
+        };
+        let forward = dependencies.replay(&[older.clone(), newer.clone()]);
+        let reverse = dependencies.replay(&[newer, older]);
+        assert_eq!(forward, reverse);
+        assert_eq!(forward.disposition, ReadinessReplayDisposition::Current);
+        assert!(forward.invalidations.is_empty());
+        assert_eq!(forward.stale_event_count, 1);
+    }
+
+    #[test]
+    fn latest_fault_event_invalidates_regardless_of_arrival_order() {
+        let plan = baseline();
+        let dependencies = ReadinessDependencies::from_plan(&plan);
+        let older = ReadinessEventEnvelope {
+            event_id: "device-recovered".to_owned(),
+            source_id: "load-limiter-1".to_owned(),
+            source_sequence: 4,
+            event: ReadinessEvent::DeviceStateChanged {
+                device_id: "load-limiter-1".to_owned(),
+                device_revision: "device-r2".to_owned(),
+                new_state: DeviceState::Operational,
+            },
+        };
+        let newer = ReadinessEventEnvelope {
+            event_id: "device-faulted".to_owned(),
+            source_id: "load-limiter-1".to_owned(),
+            source_sequence: 5,
+            event: ReadinessEvent::DeviceStateChanged {
+                device_id: "load-limiter-1".to_owned(),
+                device_revision: "device-r2".to_owned(),
+                new_state: DeviceState::Faulted,
+            },
+        };
+        let forward = dependencies.replay(&[older.clone(), newer.clone()]);
+        let reverse = dependencies.replay(&[newer, older]);
+        assert_eq!(forward, reverse);
+        assert_eq!(forward.disposition, ReadinessReplayDisposition::Invalidated);
+        assert_eq!(
+            forward.invalidations[0].reason,
+            ReadinessInvalidationReason::DeviceStateChanged
+        );
+    }
+
+    #[test]
+    fn conflicting_payloads_at_the_same_source_sequence_are_indeterminate() {
+        let dependencies = ReadinessDependencies::from_plan(&baseline());
+        let events = [
+            ReadinessEventEnvelope {
+                event_id: "event-a".to_owned(),
+                source_id: "crane-insp-1".to_owned(),
+                source_sequence: 8,
+                event: ReadinessEvent::EvidenceStatusChanged {
+                    record_id: "crane-insp-1".to_owned(),
+                    new_status: EvidenceStatus::Revoked,
+                },
+            },
+            ReadinessEventEnvelope {
+                event_id: "event-b".to_owned(),
+                source_id: "crane-insp-1".to_owned(),
+                source_sequence: 8,
+                event: ReadinessEvent::EvidenceStatusChanged {
+                    record_id: "crane-insp-1".to_owned(),
+                    new_status: EvidenceStatus::Current,
+                },
+            },
+        ];
+        let report = dependencies.replay(&events);
+        assert_eq!(report.disposition, ReadinessReplayDisposition::Indeterminate);
+        assert_eq!(report.conflicted_source_count, 1);
+    }
+
+    #[test]
+    fn exact_duplicate_event_is_idempotent_and_counted_once() {
+        let dependencies = ReadinessDependencies::from_plan(&baseline());
+        let event = ReadinessEventEnvelope {
+            event_id: "event-duplicate".to_owned(),
+            source_id: "crane-insp-1".to_owned(),
+            source_sequence: 2,
+            event: ReadinessEvent::EvidenceStatusChanged {
+                record_id: "crane-insp-1".to_owned(),
+                new_status: EvidenceStatus::Current,
+            },
+        };
+        let report = dependencies.replay(&[event.clone(), event]);
+        assert_eq!(report.disposition, ReadinessReplayDisposition::Current);
+        assert_eq!(report.duplicate_event_count, 1);
+        assert_eq!(report.applied_source_count, 1);
+    }
+
+    #[test]
+    fn event_source_identity_mismatch_is_indeterminate() {
+        let dependencies = ReadinessDependencies::from_plan(&baseline());
+        let event = ReadinessEventEnvelope {
+            event_id: "event-spoofed".to_owned(),
+            source_id: "different-record".to_owned(),
+            source_sequence: 2,
+            event: ReadinessEvent::EvidenceStatusChanged {
+                record_id: "crane-insp-1".to_owned(),
+                new_status: EvidenceStatus::Revoked,
+            },
+        };
+        let report = dependencies.replay(&[event]);
+        assert_eq!(report.disposition, ReadinessReplayDisposition::Indeterminate);
+        assert_eq!(report.conflicted_source_count, 1);
+    }
+
+    #[test]
     fn frozen_conformance_fixture_maps_all_vectors_to_rust_tests() {
         const FIXTURE: &str = include_str!("../fixtures/conformance-vectors-v0.1.json");
         let mappings: [(&str, &str); 15] = [
