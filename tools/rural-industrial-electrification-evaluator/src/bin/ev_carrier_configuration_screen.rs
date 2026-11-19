@@ -735,6 +735,20 @@ mod tests {
     }
 
     #[test]
+    fn unknown_external_site_charge_window_is_indeterminate() {
+        let mut config = known_zero_config();
+        config.incremental_external_site_meter_energy_kwh = Some(20.0);
+        config.incremental_external_site_peak_power_kw = Some(10.0);
+        config.incremental_external_site_charging_window_hours = None;
+        config.external_site_peak_coincident_with_vehicle_charging = Some(false);
+        let result = evaluate_configuration(&config, &base_design("urban-distribution-truck"));
+        assert_eq!(result.status, Status::Indeterminate);
+        assert!(result.missing_fields.iter().any(|field| {
+            field == "incremental_external_site_charging_window_hours"
+        }));
+    }
+
+    #[test]
     fn unknown_site_concurrency_is_indeterminate() {
         let mut config = known_zero_config();
         config.incremental_external_site_peak_power_kw = Some(50.0);
