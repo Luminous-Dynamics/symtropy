@@ -347,10 +347,48 @@ cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bi
   tools/material-flow-benchmark/fixtures/synthetic-two-region-mode-options.json
 ```
 
-The fixture contains two demand/weather paths and 11 derived policy nodes, so the exact evaluator checks 2,048 policies. The report includes the canonical input digest and explicitly sets `physical_dispatch_authorized=false` and `dispatch_commands_emitted=false`.
+The fixture contains two demand/weather paths and 13 derived policy nodes, so the exact evaluator checks 8,192 policies. The report includes the canonical input digest and explicitly sets `physical_dispatch_authorized=false` and `dispatch_commands_emitted=false`.
 
 ### v1 limitations
 
 This is not a calibrated demand forecast or real-options valuation for South Africa. It does not yet model shared aircraft pools across regions, asset relocation, fixed depot hubs, detachable pods, AMR/locker alternatives, depot charging queues, battery degradation, crew constraints or route-level feasibility. It assumes independent per-region aerial capacity and deterministic per-period service capacities/costs. Those are subsequent research increments; do not interpret the synthetic result as operational cost savings or an optimal real fleet configuration.
 
 The broader activation/sharing/repositioning/withdrawal benchmark is tracked by [LOGISTICS-MODE-OPTIONS-001 #6153](https://github.com/Luminous-Dynamics/symtropy/issues/6153). Related SOTA papers include the 2026 stochastic entry/exit model for truck-only versus drone-assisted delivery (https://doi.org/10.1016/j.trc.2026.105807) and the 2026 joint multi-truck/multi-drone fleet-sizing and routing study (https://doi.org/10.3390/drones10090658). Their results and instances must be reproduced under matched assumptions before claiming improvement.
+
+
+## Shared multi-region UAV fleet allocation oracle
+
+The `mfb-evaluate-shared-fleet` binary is the next layer above single-sortie co-availability and regional mode activation. It allocates a small shared fleet of aircraft across multiple carrier regions over a finite scenario tree.
+
+Run the synthetic two-region, two-aircraft fixture:
+
+```bash
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-evaluate-shared-fleet -- \
+  tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-uav-fleet.json
+```
+
+### What it models
+
+- Aircraft have unique identities, initial regions, per-period service capacity and capability-evidence status.
+- Each period, an available aircraft may stay in its current region, reposition to another declared region or remain idle.
+- Cross-region repositioning has a strictly positive, directed duration and declared cost. The aircraft is unavailable throughout the reposition interval and cannot be redirected while in transit.
+- A region's aerial capacity is the sum of the actual service capacity of the aircraft assigned there; heterogeneous aircraft are not approximated by a single fleet-wide maximum.
+- One aircraft may serve only one region in a period. Road service absorbs residual demand; remaining units are counted as unserved.
+- Weather, permission and capability evidence are hard dispatch gates. An enabled/available aircraft is not sufficient unless the period's observation is both `clear_fresh` and `approved_fresh`.
+- Scenario-tree decisions use the complete observed multi-region history through the current period. Scenarios with identical observed prefixes share one decision node; future information is not available to earlier actions.
+- Exact dynamic programming enumerates small aircraft assignment/reposition decisions and reports its state/action counts. The objective includes declared service and reposition costs, not inferred operating cost.
+
+### Baselines / interpretation
+
+The report compares an optimized shared fleet against:
+- `truck_only`: all aircraft stay idle;
+- `fixed_initial_assignment`: each aircraft stays at its initial region for the horizon.
+
+The synthetic fixture has 2 regions, 2 aircraft, 4 periods, 2 demand/weather scenarios and 7 non-root history nodes. It is an exact small-instance benchmark, not a route planner or fleet-scale optimizer. Its per-period aircraft service capacities and reposition-time/cost matrix are supplied assumptions; they must be derived from qualified aircraft, route, carrier rendezvous, payload, battery and ground-handling evidence before they can represent real operations.
+
+### Explicit exclusions
+
+This v0.1 oracle does not calculate flight paths, travel-time distributions, battery energy, charge curves, weather forecasts, crew rosters, airspace permissions, airworthiness, aircraft maintenance dynamics, multiple simultaneous sorties per aircraft within a period, cargo loading/release, rendezvous or physical reservations. Those remain with the EV, route, cargo, co-availability, site, asset and regulatory owners. It emits no dispatch authority and no physical commands.
+
+The broader programme is [LOGISTICS-SHARED-FLEET-001 #6177](https://github.com/Luminous-Dynamics/symtropy/issues/6177). The next benchmark increments are multiple carrier rendezvous per period, different reposition modes, explicit energy state/charging, multi-visit resupply, and a receding-horizon policy compared against this exact oracle on small cases.
+
