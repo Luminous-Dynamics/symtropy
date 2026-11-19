@@ -357,7 +357,7 @@
           "$ref": "#/$defs/interval"
         },
         "evidence_class": {
-          "$ref": "#/$defs/evidence_class"
+          "const": "independent_physical"
         },
         "source_reference": {
           "type": "string",
