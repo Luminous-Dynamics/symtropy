@@ -8,7 +8,8 @@ use reusable_launch_production_bench::{evaluate, is_valid_source_commit, sha256_
 fn run() -> Result<(), String> {
     let mut args = env::args().skip(1);
     let fixture_path = args.next().ok_or_else(|| {
-        "usage: reusable-launch-production-bench <fixture.json> --source-commit <40-hex-sha>".to_owned()
+        "usage: reusable-launch-production-bench <fixture.json> --source-commit <40-hex-sha>"
+            .to_owned()
     })?;
     let flag = args.next().ok_or_else(|| {
         "missing --source-commit argument".to_owned()
