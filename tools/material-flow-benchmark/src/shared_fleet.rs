@@ -1037,6 +1037,25 @@ mod tests {
     }
 
     #[test]
+    fn heterogeneous_aircraft_capacities_are_summed_without_max_capacity_overcount() {
+        let mut input = base_input();
+        input.period_count = 1;
+        input.scenarios[0].periods.truncate(1);
+        input.aircraft[0].maximum_service_units_per_period = 2;
+        input.aircraft.push(SharedAircraftConfig {
+            aircraft_id: "uav-02".into(),
+            initial_region_id: "urban".into(),
+            maximum_service_units_per_period: 1,
+            capability_evidence: SharedEvidenceStatus::FreshInDomain,
+        });
+        input.scenarios[0].periods[0].observations[0].demand_units = 4;
+        input.scenarios[0].periods[0].observations[1].demand_units = 0;
+        let report = evaluate_shared_fleet(&input).expect("valid input");
+        assert_eq!(report.optimized_policy.expected_aerial_deliveries, 3.0);
+        assert_eq!(report.optimized_policy.expected_unserved_units, 1.0);
+    }
+
+    #[test]
     fn weather_and_permission_are_hard_gates_for_shared_aircraft() {
         let mut input = base_input();
         input.scenarios[0].periods[0].observations[0].demand_units = 4;
