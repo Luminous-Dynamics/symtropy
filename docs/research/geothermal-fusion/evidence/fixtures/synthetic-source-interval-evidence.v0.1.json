@@ -21,7 +21,7 @@
   },
   "artifact": {
     "availability": "available",
-    "locator": "fixtures/synthetic-geothermal-source-interval.v0.1.json",
+    "locator": "docs/research/geothermal-fusion/evidence/fixtures/synthetic-geothermal-source-interval.v0.1.json",
     "media_type": "application/json",
     "byte_length": 523,
     "digest": {
