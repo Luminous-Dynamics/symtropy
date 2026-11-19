@@ -207,6 +207,108 @@ fn non_empty(value: &str, label: &str) -> Result<(), String> {
     }
 }
 
+#[derive(Clone, Debug)]
+struct WorkWindow {
+    asset_serial: String,
+    station: String,
+    release_tick: u64,
+    deadline_tick: u64,
+}
+
+fn completed_work_windows(fixture: &Fixture) -> Vec<WorkWindow> {
+    let mut windows = Vec::new();
+    for asset in &fixture.assets {
+        for (index, event) in asset.events.iter().enumerate() {
+            let (station, completion_states): (&str, &[AssetState]) =
+                match (event.from_state, event.to_state) {
+                    (AssetState::Recovered, AssetState::Inspection) => (
+                        "inspection",
+                        &[
+                            AssetState::Refurbishment,
+                            AssetState::Quarantined,
+                            AssetState::Retired,
+                        ],
+                    ),
+                    (AssetState::Inspection, AssetState::Refurbishment) => (
+                        "refurbishment",
+                        &[AssetState::Requalified, AssetState::Quarantined],
+                    ),
+                    _ => continue,
+                };
+
+            if let Some(completion) = asset.events[index + 1..].iter().find(|candidate| {
+                candidate.from_state == event.to_state
+                    && completion_states.contains(&candidate.to_state)
+            }) {
+                windows.push(WorkWindow {
+                    asset_serial: asset.serial.clone(),
+                    station: station.to_owned(),
+                    release_tick: event.tick,
+                    deadline_tick: completion.tick,
+                });
+            }
+        }
+    }
+    windows
+}
+
+fn validate_task_windows(
+    windows: &[WorkWindow],
+    schedule: &[ScheduledTask],
+) -> Result<(), String> {
+    let mut matched = BTreeSet::<(String, String, u64)>::new();
+
+    for task in schedule {
+        let key = (
+            task.asset_serial.clone(),
+            task.station.clone(),
+            task.release_tick,
+        );
+        let matching = windows.iter().find(|window| {
+            window.asset_serial == task.asset_serial
+                && window.station == task.station
+                && window.release_tick == task.release_tick
+        });
+        let Some(window) = matching else {
+            return Err(format!(
+                "task {} is not bound to a completed lifecycle work window",
+                task.task_id
+            ));
+        };
+        if !matched.insert(key) {
+            return Err(format!(
+                "multiple tasks claim the same {} work window for asset {} at tick {}",
+                task.station, task.asset_serial, task.release_tick
+            ));
+        }
+        if task.finish_tick > window.deadline_tick {
+            return Err(format!(
+                "task {} finishes at tick {} after asset {} leaves {} at tick {}",
+                task.task_id,
+                task.finish_tick,
+                task.asset_serial,
+                task.station,
+                window.deadline_tick
+            ));
+        }
+    }
+
+    for window in windows {
+        let key = (
+            window.asset_serial.clone(),
+            window.station.clone(),
+            window.release_tick,
+        );
+        if !matched.contains(&key) {
+            return Err(format!(
+                "missing {} task for asset {} work window starting at tick {}",
+                window.station, window.asset_serial, window.release_tick
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn schedule_tasks(
     fixture: &Fixture,
     asset_ids: &BTreeSet<String>,
@@ -524,6 +626,8 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
     }
 
     let scheduled_tasks = schedule_tasks(fixture, &asset_ids)?;
+    let work_windows = completed_work_windows(fixture);
+    validate_task_windows(&work_windows, &scheduled_tasks)?;
     let inspection_tasks = scheduled_tasks
         .iter()
         .filter(|task| task.station == "inspection")
@@ -753,6 +857,45 @@ mod tests {
         let mut data = fixture();
         data.maintenance_tasks[0].duration_ticks = 0;
         assert!(evaluate(&data).unwrap_err().contains("zero duration"));
+    }
+
+    #[test]
+    fn inspection_task_must_start_at_observed_inspection_event() {
+        let mut data = fixture();
+        data.maintenance_tasks[0].release_tick = 11;
+        assert!(evaluate(&data)
+            .unwrap_err()
+            .contains("not bound to a completed lifecycle work window"));
+    }
+
+    #[test]
+    fn maintenance_task_must_finish_before_state_advances() {
+        let mut data = fixture();
+        data.maintenance_tasks[1].duration_ticks = 5;
+        assert!(evaluate(&data)
+            .unwrap_err()
+            .contains("after asset STAGE-002 leaves inspection"));
+    }
+
+    #[test]
+    fn every_completed_inspection_requires_one_corresponding_task() {
+        let mut data = fixture();
+        data.maintenance_tasks
+            .retain(|task| task.task_id != "inspect-stage-002");
+        assert!(evaluate(&data)
+            .unwrap_err()
+            .contains("missing inspection task for asset STAGE-002"));
+    }
+
+    #[test]
+    fn duplicate_tasks_cannot_claim_one_lifecycle_window() {
+        let mut data = fixture();
+        let mut duplicate = data.maintenance_tasks[0].clone();
+        duplicate.task_id = "inspect-stage-001-duplicate".to_owned();
+        data.maintenance_tasks.push(duplicate);
+        assert!(evaluate(&data)
+            .unwrap_err()
+            .contains("multiple tasks claim the same inspection work window"));
     }
 
     #[test]
