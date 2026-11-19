@@ -43,6 +43,9 @@ pub enum ServiceKind {
     FacilityHeat,
     GridExport,
     ThermalStorageCharge,
+    AbsorptionChillerDriveHeat,
+    ThermalDesalinationHeat,
+    ReverseOsmosisElectricalLoad,
     Other,
 }
 
@@ -219,14 +222,17 @@ impl EnergyStream {
             }
             ServiceKind::FusionElectricalAuxiliary
             | ServiceKind::FacilityElectricalLoad
-            | ServiceKind::GridExport => {
+            | ServiceKind::GridExport
+            | ServiceKind::ReverseOsmosisElectricalLoad => {
                 if self.carrier != EnergyCarrier::Electricity {
                     return Err(ValidationError::ServiceCarrierMismatch);
                 }
             }
             ServiceKind::IndustrialProcessHeat
             | ServiceKind::FacilityHeat
-            | ServiceKind::ThermalStorageCharge => {
+            | ServiceKind::ThermalStorageCharge
+            | ServiceKind::AbsorptionChillerDriveHeat
+            | ServiceKind::ThermalDesalinationHeat => {
                 if self.carrier != EnergyCarrier::Heat {
                     return Err(ValidationError::ServiceCarrierMismatch);
                 }
@@ -481,6 +487,27 @@ impl SourceAllocationLedger {
             if allocation.carrier != self.carrier {
                 return Err(ValidationError::SourceCarrierMismatch);
             }
+            let service_requires_electricity = matches!(
+                allocation.service,
+                ServiceKind::DtPlasmaHeating
+                    | ServiceKind::FusionElectricalAuxiliary
+                    | ServiceKind::FacilityElectricalLoad
+                    | ServiceKind::GridExport
+                    | ServiceKind::ReverseOsmosisElectricalLoad
+            );
+            let service_requires_heat = matches!(
+                allocation.service,
+                ServiceKind::IndustrialProcessHeat
+                    | ServiceKind::FacilityHeat
+                    | ServiceKind::ThermalStorageCharge
+                    | ServiceKind::AbsorptionChillerDriveHeat
+                    | ServiceKind::ThermalDesalinationHeat
+            );
+            if (service_requires_electricity && allocation.carrier != EnergyCarrier::Electricity)
+                || (service_requires_heat && allocation.carrier != EnergyCarrier::Heat)
+            {
+                return Err(ValidationError::ServiceCarrierMismatch);
+            }
             if !allocation.energy_mwh.is_finite() || allocation.energy_mwh <= 0.0 {
                 return Err(ValidationError::NonFiniteOrNonPositive(
                     "allocated source energy MWh",
@@ -671,6 +698,17 @@ mod tests {
     }
 
     #[test]
+    fn source_allocation_rejects_a_destination_service_with_wrong_carrier() {
+        let mut allocation = heat_allocation("bad-edge", "ro-plant", 2.0);
+        allocation.service = ServiceKind::ReverseOsmosisElectricalLoad;
+        let ledger = allocation_ledger(vec![allocation], 8.0);
+        assert_eq!(
+            ledger.evaluate(1e-9),
+            Err(ValidationError::ServiceCarrierMismatch)
+        );
+    }
+
+    #[test]
     fn source_allocation_carrier_mismatch_is_rejected() {
         let mut allocation = heat_allocation("electric-edge", "facility-bus", 2.0);
         allocation.carrier = EnergyCarrier::Electricity;
@@ -724,6 +762,24 @@ mod tests {
         let stream = electric_stream(
             SourceKind::GeothermalGeneratedElectricity,
             ServiceKind::DtPlasmaHeating,
+        );
+        assert_eq!(stream.validate(1e-9), Ok(()));
+    }
+
+    #[test]
+    fn geothermal_heat_can_feed_a_temperature_qualified_absorption_chiller() {
+        let mut stream = geothermal_heat_stream();
+        stream.service = ServiceKind::AbsorptionChillerDriveHeat;
+        stream.thermal_grade.as_mut().unwrap().source_temperature_c = 190.0;
+        stream.thermal_grade.as_mut().unwrap().required_sink_temperature_c = 170.0;
+        assert_eq!(stream.validate(1e-9), Ok(()));
+    }
+
+    #[test]
+    fn geothermal_generated_electricity_can_feed_reverse_osmosis() {
+        let stream = electric_stream(
+            SourceKind::GeothermalGeneratedElectricity,
+            ServiceKind::ReverseOsmosisElectricalLoad,
         );
         assert_eq!(stream.validate(1e-9), Ok(()));
     }
