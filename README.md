@@ -119,9 +119,9 @@ Callback-defined metrics (Phi, health, trust, wealth, etc.) can be connected thr
 
 See [FORMAL_SPECIFICATION.md](docs/tech/FORMAL_SPECIFICATION.md) for the mathematical details (written in terms of Phi).
 
-**Note on channel 1 — two mappings exist, and the NRC one is not what the demos run.**
-`symtropy-consciousness-physics` ships both an NRC-inspired 4-tier ladder
-(`SafetyTier::from_phi` + `motor_gain`, cut points at Phi = 0.6 / 0.3 / 0.1) and a two-level
+**Note on channel 1 — two experimental mappings exist, and the four-tier mapping is not what the demos run.**
+`symtropy-consciousness-physics` ships both a four-tier research ladder
+(`SafetyTier::from_phi` + `motor_gain`, cut points at Phi = 0.6 / 0.3 / 0.1; not an NRC requirement or endorsement) and a two-level
 sprint/floor gate (`sprint_floor_gain`) taking platform-specific thresholds. **Every platform
 demo in this workspace uses the latter.** Measured Phi on these platforms clusters around 0.1
 — AUV and humanoid calibrate at 0.130, flight 0.110, vehicle 0.101, helicopter 0.100 — a band
@@ -206,19 +206,21 @@ cargo run --example curvature_selforg --features consciousness-curvature
 cargo run --example hdc_cooperation --features consciousness-hdc
 ```
 
-## Key Results
+## Reported Research Results
 
-- **81.3% tighter clustering** under thermodynamic enforcement (cooperation emerges as a thermodynamic necessity)
-- **J/Phi converges** to a stable substrate-characteristic value (~10K J/Phi)
-- **Prediction 1 confirmed**: Solo agents collapse within ~4 minutes; cooperative agents sustain indefinitely
+The following are reported outcomes from particular experimental configurations in this repository. They are conditional on the model rules, parameter values, initial conditions, implementation and analysis; they are not independently validated physical laws or universal predictions.
+
+- **81.3% tighter clustering** was reported in a particular comparison under the model's resource/coupling rules. It does not establish that cooperation is a universal thermodynamic necessity.
+- **J/Phi convergence** was reported near ~10K J/Phi for a particular substrate/configuration. This is a model-specific diagnostic statistic, not an established physical or biological constant.
+- **Solo-agent collapse near four minutes** was observed in a particular scenario. It is conditional on the configured source, sink and transfer rules, not a universal survival prediction.
 
 ## Documentation
 
 | Document | What it covers |
 |----------|---------------|
-| [ENGINE.md](docs/tech/ENGINE.md) | Deep technical dive: architecture, unique features, Bevy integration |
+| [ENGINE.md](docs/tech/ENGINE.md) | Native physics scope, research coupling, limitations and Bevy integration |
 | [ARCHITECTURE.md](docs/tech/ARCHITECTURE.md) | Crate dependency graph, key types, extension guide |
-| [FORMAL_SPECIFICATION.md](docs/tech/FORMAL_SPECIFICATION.md) | Mathematical specification of all 5 coupling channels |
+| [FORMAL_SPECIFICATION.md](docs/tech/FORMAL_SPECIFICATION.md) | Experimental metric-coupled agent model and its assumptions |
 | [ROADMAP.md](docs/ops/ROADMAP.md) | Completed features, current priorities, future plans |
 | [REALITY_PHYSICS_PLATFORM.md](docs/tech/REALITY_PHYSICS_PLATFORM.md) | Composable multiphysics architecture, model portfolio and evidence boundaries |
 | [REALITY_BENCHMARK_PORTFOLIO.md](docs/ops/REALITY_BENCHMARK_PORTFOLIO.md) | Industry comparisons, benchmark families, VVUQ and qualification gates |
