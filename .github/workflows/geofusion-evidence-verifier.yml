@@ -44,6 +44,7 @@ jobs:
         run: |
           check-jsonschema --check-metaschema \
             docs/research/geothermal-fusion/evidence/schemas/raw-source-interval-v0.1.schema.json \
+            docs/research/geothermal-fusion/evidence/schemas/raw-electrical-source-interval-v0.1.schema.json \
             docs/research/geothermal-fusion/evidence/schemas/evidence-envelope-v0.1.schema.json \
             docs/research/geothermal-fusion/evidence/schemas/source-allocation-receipt-v0.1.schema.json \
             docs/research/geothermal-fusion/evidence/schemas/source-interval-batch-manifest-v0.1.schema.json
@@ -53,6 +54,16 @@ jobs:
           check-jsonschema \
             --schemafile docs/research/geothermal-fusion/evidence/schemas/raw-source-interval-v0.1.schema.json \
             docs/research/geothermal-fusion/evidence/fixtures/synthetic-geothermal-source-interval.v0.1.json
+          check-jsonschema \
+            --schemafile docs/research/geothermal-fusion/evidence/schemas/raw-electrical-source-interval-v0.1.schema.json \
+            docs/research/geothermal-fusion/evidence/fixtures/synthetic-grid-electric-source-interval.v0.1.json
+          check-jsonschema \
+            --schemafile docs/research/geothermal-fusion/evidence/schemas/evidence-envelope-v0.1.schema.json \
+            docs/research/geothermal-fusion/evidence/fixtures/synthetic-grid-electric-source-interval-evidence.v0.1.json
+          check-jsonschema \
+            --schemafile docs/research/geothermal-fusion/evidence/schemas/source-allocation-receipt-v0.1.schema.json \
+            docs/research/geothermal-fusion/evidence/fixtures/synthetic-grid-electric-source-allocation-receipt.v0.1.json
+
           check-jsonschema \
             --schemafile docs/research/geothermal-fusion/evidence/schemas/evidence-envelope-v0.1.schema.json \
             docs/research/geothermal-fusion/evidence/fixtures/synthetic-source-interval-evidence.v0.1.json
