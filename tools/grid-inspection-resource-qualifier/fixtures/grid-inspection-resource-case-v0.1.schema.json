@@ -7,6 +7,7 @@
   "required": [
     "schemaVersion",
     "caseId",
+    "caseMaturity",
     "asOfHour",
     "resourceManifestRef",
     "resourceManifestSha256",
@@ -299,6 +300,12 @@
     "policyCertificateSha256": {
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
+    },
+    "caseMaturity": {
+      "enum": [
+        "synthetic_fixture",
+        "historical_replay"
+      ]
     }
   },
   "$defs": {
