@@ -183,13 +183,16 @@ impl EnergyStream {
                 {
                     return Err(ValidationError::ThermalGradeInvalid);
                 }
-                let available_delta = grade.source_temperature_c - grade.required_sink_temperature_c;
+                let available_delta =
+                    grade.source_temperature_c - grade.required_sink_temperature_c;
                 if available_delta + relative_tolerance < grade.minimum_approach_k {
                     return Err(ValidationError::InsufficientTemperatureApproach);
                 }
             }
             (EnergyCarrier::Heat, None) => return Err(ValidationError::ThermalGradeMissing),
-            (EnergyCarrier::Electricity, Some(_)) => return Err(ValidationError::UnexpectedThermalGrade),
+            (EnergyCarrier::Electricity, Some(_)) => {
+                return Err(ValidationError::UnexpectedThermalGrade);
+            }
             (EnergyCarrier::Electricity, None) => {}
         }
 
@@ -212,7 +215,9 @@ impl EnergyStream {
                     return Err(ValidationError::ServiceCarrierMismatch);
                 }
             }
-            ServiceKind::IndustrialProcessHeat | ServiceKind::FacilityHeat | ServiceKind::ThermalStorageCharge => {
+            ServiceKind::IndustrialProcessHeat
+            | ServiceKind::FacilityHeat
+            | ServiceKind::ThermalStorageCharge => {
                 if self.carrier != EnergyCarrier::Heat {
                     return Err(ValidationError::ServiceCarrierMismatch);
                 }
