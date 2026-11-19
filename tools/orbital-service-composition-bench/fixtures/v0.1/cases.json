@@ -7,7 +7,7 @@
     {
       "component": "earth_orbit_chain",
       "receipt_schema": "symtropy.earth-orbit-chain.v1",
-      "source_commit": "16feff2f323ccb34c94b07d9ba7254dfc98dd265"
+      "source_commit": "af34a9c6633329e0faf440ea2147850e434db7d9"
     },
     {
       "component": "orbital_capture",
@@ -42,7 +42,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "symtropy.earth-orbit-chain.v1",
-            "source_commit": "16feff2f323ccb34c94b07d9ba7254dfc98dd265",
+            "source_commit": "af34a9c6633329e0faf440ea2147850e434db7d9",
             "reference": "synthetic://reusable_launch/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -139,7 +139,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "symtropy.earth-orbit-chain.v1",
-            "source_commit": "16feff2f323ccb34c94b07d9ba7254dfc98dd265",
+            "source_commit": "af34a9c6633329e0faf440ea2147850e434db7d9",
             "reference": "synthetic://reusable_launch/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -178,7 +178,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "symtropy.earth-orbit-chain.v1",
-            "source_commit": "16feff2f323ccb34c94b07d9ba7254dfc98dd265",
+            "source_commit": "af34a9c6633329e0faf440ea2147850e434db7d9",
             "reference": "synthetic://reusable_launch/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -256,7 +256,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "symtropy.earth-orbit-chain.v1",
-            "source_commit": "16feff2f323ccb34c94b07d9ba7254dfc98dd265",
+            "source_commit": "af34a9c6633329e0faf440ea2147850e434db7d9",
             "reference": "synthetic://reusable_launch/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -334,7 +334,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "symtropy.earth-orbit-chain.v1",
-            "source_commit": "16feff2f323ccb34c94b07d9ba7254dfc98dd265",
+            "source_commit": "af34a9c6633329e0faf440ea2147850e434db7d9",
             "reference": "synthetic://reusable_launch/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -412,7 +412,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "symtropy.earth-orbit-chain.v1",
-            "source_commit": "16feff2f323ccb34c94b07d9ba7254dfc98dd265",
+            "source_commit": "af34a9c6633329e0faf440ea2147850e434db7d9",
             "reference": "synthetic://reusable_launch/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -490,7 +490,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "symtropy.earth-orbit-chain.v1",
-            "source_commit": "16feff2f323ccb34c94b07d9ba7254dfc98dd265",
+            "source_commit": "af34a9c6633329e0faf440ea2147850e434db7d9",
             "reference": "synthetic://reusable_launch/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -568,7 +568,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "symtropy.earth-orbit-chain.v1",
-            "source_commit": "16feff2f323ccb34c94b07d9ba7254dfc98dd265",
+            "source_commit": "af34a9c6633329e0faf440ea2147850e434db7d9",
             "reference": "synthetic://reusable_launch/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -665,7 +665,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "symtropy.earth-orbit-chain.v1",
-            "source_commit": "16feff2f323ccb34c94b07d9ba7254dfc98dd265",
+            "source_commit": "af34a9c6633329e0faf440ea2147850e434db7d9",
             "reference": "synthetic://reusable_launch/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -743,7 +743,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "symtropy.earth-orbit-chain.v1",
-            "source_commit": "16feff2f323ccb34c94b07d9ba7254dfc98dd265",
+            "source_commit": "af34a9c6633329e0faf440ea2147850e434db7d9",
             "reference": "synthetic://reusable_launch/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -808,7 +808,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "symtropy.earth-orbit-chain.v1",
-            "source_commit": "16feff2f323ccb34c94b07d9ba7254dfc98dd265",
+            "source_commit": "af34a9c6633329e0faf440ea2147850e434db7d9",
             "reference": "synthetic://reusable_launch/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -949,7 +949,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "symtropy.earth-orbit-chain.v1",
-            "source_commit": "16feff2f323ccb34c94b07d9ba7254dfc98dd265",
+            "source_commit": "af34a9c6633329e0faf440ea2147850e434db7d9",
             "reference": "synthetic://reusable_launch/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -1027,7 +1027,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "symtropy.earth-orbit-chain.v1",
-            "source_commit": "16feff2f323ccb34c94b07d9ba7254dfc98dd265",
+            "source_commit": "af34a9c6633329e0faf440ea2147850e434db7d9",
             "reference": "synthetic://reusable_launch/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -1105,7 +1105,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "symtropy.earth-orbit-chain.v1",
-            "source_commit": "16feff2f323ccb34c94b07d9ba7254dfc98dd265",
+            "source_commit": "af34a9c6633329e0faf440ea2147850e434db7d9",
             "reference": "synthetic://reusable_launch/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
