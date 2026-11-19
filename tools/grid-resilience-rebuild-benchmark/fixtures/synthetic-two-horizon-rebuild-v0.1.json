@@ -1,0 +1,168 @@
+{
+  "schemaVersion": "0.1.0",
+  "caseId": "grid-rebuild-two-horizon-synthetic-001",
+  "caseMaturity": "synthetic_fixture",
+  "timeOriginUtc": "2030-01-01T00:00:00Z",
+  "asOfHour": 8,
+  "asset": {
+    "assetRef": "synthetic://asset/municipal-feeder-transformer-17",
+    "assetFamily": "distribution-transformer-family-a",
+    "jurisdictionRef": "synthetic://jurisdiction/south-africa-municipal-feeder-profile",
+    "networkModelRef": "synthetic://network-model/municipal-feeder-17/v1",
+    "conditionEvidenceRef": "synthetic://condition/transformer-17/incident-001",
+    "preEventConfigurationRef": "synthetic://asset-configuration/transformer-17/pre-event"
+  },
+  "hazardScenarioManifest": {
+    "manifestRef": "synthetic://hazard-manifest/municipal-feeder-17/v1",
+    "manifestSha256": "fead9994def99a3dd27662f5837ea1e1dd7406248bc4980996333023c7694018",
+    "scenarioRefs": [
+      "synthetic://hazard/flood/medium-2030",
+      "synthetic://hazard/flood/extreme-2030",
+      "synthetic://hazard/heat/compound-2030"
+    ],
+    "probabilityStatus": "not_assigned"
+  },
+  "emergencyHorizon": {
+    "decisionCutoffHour": 8,
+    "minimumServiceFloorRef": "synthetic://service-floor/clinic-water-telecom-critical-loads/v1",
+    "currentOrAcceptedPlanRef": "synthetic://emergency-plan/temporary-bypass-option-001",
+    "candidateOptions": [
+      {
+        "optionId": "emergency-temporary-bypass",
+        "optionType": "temporary_bypass",
+        "executionState": "candidate_only",
+        "targetAssetRef": "synthetic://asset/municipal-feeder-transformer-17",
+        "earliestStartHour": 8,
+        "estimatedEffortHours": 3,
+        "firstServiceHourRef": "synthetic://forecast/temporary-bypass-first-service",
+        "serviceTrajectoryRef": "synthetic://service-trajectory/emergency-bypass",
+        "requiredEvidenceRefs": [
+          "synthetic://evidence/switching-boundary-inspected",
+          "synthetic://evidence/bypass-rating-verified"
+        ],
+        "requiredResourceRefs": [
+          "synthetic://resource/switching-crew-01",
+          "synthetic://resource/mobile-supply-01"
+        ],
+        "authorityRequirementRef": "synthetic://authority/network-operator/temporary-bypass",
+        "independentAcceptanceRef": "synthetic://acceptance/temporary-bypass/independent-check"
+      },
+      {
+        "optionId": "emergency-like-for-like-repair",
+        "optionType": "like_for_like_repair",
+        "executionState": "candidate_only",
+        "targetAssetRef": "synthetic://asset/municipal-feeder-transformer-17",
+        "earliestStartHour": 8,
+        "estimatedEffortHours": 10,
+        "firstServiceHourRef": "synthetic://forecast/like-for-like-first-service",
+        "serviceTrajectoryRef": "synthetic://service-trajectory/emergency-repair",
+        "requiredEvidenceRefs": [
+          "synthetic://evidence/fault-location-confirmed",
+          "synthetic://evidence/repair-scope-accepted"
+        ],
+        "requiredResourceRefs": [
+          "synthetic://resource/specialist-crew-01",
+          "synthetic://resource/test-set-01"
+        ],
+        "authorityRequirementRef": "synthetic://authority/network-operator/repair",
+        "independentAcceptanceRef": "synthetic://acceptance/repair/commissioning-check"
+      }
+    ]
+  },
+  "capitalHorizon": {
+    "lifecycleYears": 30,
+    "priceBaseYear": 2030,
+    "currency": "ZAR",
+    "discountConventionRef": "synthetic://financial-convention/real-zar-discounting-no-rate-assumed",
+    "capitalOptions": [
+      {
+        "optionId": "capital-like-for-like",
+        "strategyType": "like_for_like",
+        "executionState": "candidate_only",
+        "targetAssetRef": "synthetic://asset/municipal-feeder-transformer-17",
+        "dependsOnEmergencyAcceptance": true,
+        "incrementalCostRef": "synthetic://cost/like-for-like-rebuild",
+        "hazardScenarioRefs": [
+          "synthetic://hazard/flood/medium-2030",
+          "synthetic://hazard/flood/extreme-2030"
+        ],
+        "lifecycleServiceTrajectoryRef": "synthetic://lifecycle-trajectory/like-for-like",
+        "engineeringQualificationRef": "synthetic://engineering-review/like-for-like",
+        "rightsReviewRef": "synthetic://rights-review/existing-workfront",
+        "environmentalReviewRef": "synthetic://environment-review/like-for-like",
+        "supplyChainPortfolioRef": "synthetic://portfolio/qualified-transformer-options",
+        "installationWindowRef": "synthetic://window/capital-installation-2031",
+        "authorityRequirementRef": "synthetic://authority/asset-owner/capital-approval"
+      },
+      {
+        "optionId": "capital-flood-hardening",
+        "strategyType": "hardening_retrofit",
+        "executionState": "candidate_only",
+        "targetAssetRef": "synthetic://asset/municipal-feeder-transformer-17",
+        "dependsOnEmergencyAcceptance": true,
+        "incrementalCostRef": "synthetic://cost/flood-hardening-retrofit",
+        "hazardScenarioRefs": [
+          "synthetic://hazard/flood/medium-2030",
+          "synthetic://hazard/flood/extreme-2030",
+          "synthetic://hazard/heat/compound-2030"
+        ],
+        "lifecycleServiceTrajectoryRef": "synthetic://lifecycle-trajectory/flood-hardening",
+        "engineeringQualificationRef": "synthetic://engineering-review/flood-hardening",
+        "rightsReviewRef": "synthetic://rights-review/elevated-foundation-workfront",
+        "environmentalReviewRef": "synthetic://environment-review/flood-hardening",
+        "supplyChainPortfolioRef": "synthetic://portfolio/qualified-hardening-components",
+        "installationWindowRef": "synthetic://window/capital-installation-2031",
+        "authorityRequirementRef": "synthetic://authority/asset-owner/capital-approval"
+      },
+      {
+        "optionId": "capital-redundant-feed",
+        "strategyType": "redundancy",
+        "executionState": "candidate_only",
+        "targetAssetRef": "synthetic://asset/municipal-feeder-transformer-17",
+        "dependsOnEmergencyAcceptance": true,
+        "incrementalCostRef": "synthetic://cost/alternate-feeder-intertie",
+        "hazardScenarioRefs": [
+          "synthetic://hazard/flood/medium-2030",
+          "synthetic://hazard/heat/compound-2030"
+        ],
+        "lifecycleServiceTrajectoryRef": "synthetic://lifecycle-trajectory/redundant-feed",
+        "engineeringQualificationRef": "synthetic://engineering-review/protection-coordination-alternate-feed",
+        "rightsReviewRef": "synthetic://rights-review/alternate-corridor",
+        "environmentalReviewRef": "synthetic://environment-review/alternate-corridor",
+        "supplyChainPortfolioRef": "synthetic://portfolio/cable-switchgear-test-capacity",
+        "installationWindowRef": "synthetic://window/capital-installation-2032",
+        "authorityRequirementRef": "synthetic://authority/asset-owner/capital-approval"
+      }
+    ]
+  },
+  "separationRules": {
+    "emergencyPlanMustNotWaitForCapitalReview": true,
+    "capitalExecutionRequiresEmergencyAcceptance": true,
+    "capitalExecutionRequiresSeparateApproval": true,
+    "serviceFloorIsHardConstraint": true
+  },
+  "resourceState": {
+    "portfolioRef": "synthetic://resource-portfolio/municipal-feeder-17",
+    "asOfManifestRef": "synthetic://resource-manifest/municipal-feeder-17/v1",
+    "asOfManifestSha256": "1ae18e2cd998bc0476b531257e8f98bdb3d2fdabab1eddf29a57a4804c8e9ed5"
+  },
+  "references": {
+    "executionLedgerRef": "symtropy://grid-asset-recovery/6213/execution-case/municipal-feeder-17",
+    "inspectionEvidenceRef": "symtropy://grid-restoration-inspection/6273/episode/municipal-feeder-17",
+    "serviceOutcomeRef": "symtropy://grid-restoration-service/6235/trajectory/municipal-feeder-17",
+    "resourcePortfolioRef": "symtropy://grid-recovery-supply-chain/6237/portfolio/municipal-feeder-17",
+    "authorityPolicyRef": "mycelix://authority-policy/municipal-grid-asset-owner/v1",
+    "communityRightsFrameworkRef": "mycelix://rights-framework/community-access-and-service/v1"
+  },
+  "benchmarkArms": [
+    "like_for_like_baseline",
+    "emergency_only",
+    "hardening_first",
+    "post_event_retrofit",
+    "replacement_redundancy",
+    "relocation",
+    "staged_adaptive",
+    "robust_interval",
+    "bounded_exact_oracle"
+  ]
+}

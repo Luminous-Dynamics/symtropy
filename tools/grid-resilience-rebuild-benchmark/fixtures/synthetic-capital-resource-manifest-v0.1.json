@@ -1,0 +1,159 @@
+{
+  "schemaVersion": "0.1.0",
+  "manifestId": "synthetic-resource-manifest-municipal-feeder-17-v1",
+  "sourceClass": "synthetic_fixture",
+  "timeOriginUtc": "2030-01-01T00:00:00Z",
+  "asOfHour": 8,
+  "resources": [
+    {
+      "resourceRef": "synthetic://resource/switching-crew-01",
+      "resourceType": "switching_crew",
+      "status": "available",
+      "capacityUnits": 1,
+      "availabilityWindows": [
+        {
+          "startHour": 8,
+          "endHour": 16,
+          "capacityUnits": 1
+        }
+      ],
+      "qualificationRefs": [
+        "synthetic://qualification/switching-crew-authorized/v1"
+      ],
+      "sourceRef": "synthetic://resource-state/switching-crew-01/v1"
+    },
+    {
+      "resourceRef": "synthetic://resource/mobile-supply-01",
+      "resourceType": "mobile_supply",
+      "status": "available",
+      "capacityUnits": 1,
+      "availabilityWindows": [
+        {
+          "startHour": 8,
+          "endHour": 24,
+          "capacityUnits": 1
+        }
+      ],
+      "qualificationRefs": [
+        "synthetic://qualification/mobile-supply-interface-a/v1"
+      ],
+      "sourceRef": "synthetic://resource-state/mobile-supply-01/v1"
+    },
+    {
+      "resourceRef": "synthetic://resource/specialist-crew-01",
+      "resourceType": "specialist_repair_crew",
+      "status": "available",
+      "capacityUnits": 1,
+      "availabilityWindows": [
+        {
+          "startHour": 8,
+          "endHour": 18,
+          "capacityUnits": 1
+        }
+      ],
+      "qualificationRefs": [
+        "synthetic://qualification/transformer-family-a-repair/v1"
+      ],
+      "sourceRef": "synthetic://resource-state/specialist-crew-01/v1"
+    },
+    {
+      "resourceRef": "synthetic://resource/test-set-01",
+      "resourceType": "test_equipment",
+      "status": "available",
+      "capacityUnits": 1,
+      "availabilityWindows": [
+        {
+          "startHour": 8,
+          "endHour": 18,
+          "capacityUnits": 1
+        }
+      ],
+      "qualificationRefs": [
+        "synthetic://qualification/transformer-test-set/v1"
+      ],
+      "sourceRef": "synthetic://resource-state/test-set-01/v1"
+    },
+    {
+      "resourceRef": "synthetic://resource/transformer-spare-01",
+      "resourceType": "transformer_spare",
+      "status": "available",
+      "capacityUnits": 1,
+      "availabilityWindows": [
+        {
+          "startHour": 10,
+          "endHour": 24,
+          "capacityUnits": 1
+        }
+      ],
+      "qualificationRefs": [
+        "synthetic://qualification/transformer-interface-a/v1"
+      ],
+      "sourceRef": "synthetic://resource-state/transformer-spare-01/v1"
+    },
+    {
+      "resourceRef": "synthetic://resource/crane-01",
+      "resourceType": "crane",
+      "status": "available",
+      "capacityUnits": 1,
+      "availabilityWindows": [
+        {
+          "startHour": 12,
+          "endHour": 20,
+          "capacityUnits": 1
+        }
+      ],
+      "qualificationRefs": [
+        "synthetic://qualification/heavy-lift-profile-a/v1"
+      ],
+      "sourceRef": "synthetic://resource-state/crane-01/v1"
+    },
+    {
+      "resourceRef": "synthetic://resource/heavy-haul-01",
+      "resourceType": "heavy_haul_vehicle",
+      "status": "available",
+      "capacityUnits": 1,
+      "availabilityWindows": [
+        {
+          "startHour": 12,
+          "endHour": 20,
+          "capacityUnits": 1
+        }
+      ],
+      "qualificationRefs": [
+        "synthetic://qualification/oversize-load-route-a/v1"
+      ],
+      "sourceRef": "synthetic://resource-state/heavy-haul-01/v1"
+    },
+    {
+      "resourceRef": "synthetic://portfolio/qualified-transformer-options",
+      "resourceType": "supplier_capacity_ref",
+      "status": "proposed_only",
+      "capacityUnits": 0,
+      "availabilityWindows": [],
+      "qualificationRefs": [
+        "synthetic://qualification/transformer-interface-a/v1"
+      ],
+      "sourceRef": "synthetic://supplier-capacity/transformer-options/v1"
+    },
+    {
+      "resourceRef": "synthetic://portfolio/qualified-hardening-components",
+      "resourceType": "supplier_capacity_ref",
+      "status": "proposed_only",
+      "capacityUnits": 0,
+      "availabilityWindows": [],
+      "qualificationRefs": [
+        "synthetic://qualification/flood-hardening-components/v1"
+      ],
+      "sourceRef": "synthetic://supplier-capacity/proposed-hardening-package/v1"
+    },
+    {
+      "resourceRef": "synthetic://portfolio/cable-switchgear-test-capacity",
+      "resourceType": "supplier_capacity_ref",
+      "status": "unknown",
+      "capacityUnits": 0,
+      "availabilityWindows": [],
+      "qualificationRefs": [],
+      "sourceRef": "synthetic://supplier-capacity/cable-switchgear-test-bay/unknown"
+    }
+  ]
+}
