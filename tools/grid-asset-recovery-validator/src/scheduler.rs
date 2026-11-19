@@ -1175,6 +1175,42 @@ mod tests {
     }
 
     #[test]
+    fn exact_makespan_oracle_respects_calendar_exceptions() {
+        let task = spec("E1", "repair", &[], 112.0, 2.0, Some("crew"), 1);
+        let mut crew = profile(1, 168.0, &[(8.0, 12.0), (13.0, 17.0)]);
+        crew.calendar_exceptions.push(ResourceCalendarException {
+            exception_id: "HOLIDAY".to_string(),
+            start_hour: 176.0,
+            end_hour: 200.0,
+            exception_type: "public_holiday".to_string(),
+            reason: "weekly calendar test".to_string(),
+        });
+        let profiles = BTreeMap::from([("crew".to_string(), crew)]);
+        let result = exact_small_schedule(&[task], &profiles)
+            .expect("exact makespan reference should respect calendar exception");
+        assert_eq!(result[0].start_hour, 200.0);
+        assert_eq!(result[0].end_hour, 202.0);
+    }
+
+    #[test]
+    fn exact_service_oracle_respects_calendar_exceptions() {
+        let task = spec("E1", "repair", &[], 112.0, 2.0, Some("crew"), 1);
+        let mut crew = profile(1, 168.0, &[(8.0, 12.0), (13.0, 17.0)]);
+        crew.calendar_exceptions.push(ResourceCalendarException {
+            exception_id: "HOLIDAY".to_string(),
+            start_hour: 176.0,
+            end_hour: 200.0,
+            exception_type: "public_holiday".to_string(),
+            reason: "weekly calendar test".to_string(),
+        });
+        let profiles = BTreeMap::from([("crew".to_string(), crew)]);
+        let result = exact_small_service_schedule(&[task], &profiles)
+            .expect("exact service reference should respect calendar exception");
+        assert_eq!(result[0].start_hour, 200.0);
+        assert_eq!(result[0].end_hour, 202.0);
+    }
+
+    #[test]
     fn exact_makespan_oracle_respects_resource_outages() {
         let task = spec("E1", "repair", &[], 8.0, 2.0, Some("crew"), 1);
         let mut crew = profile(1, 24.0, &[(0.0, 24.0)]);
