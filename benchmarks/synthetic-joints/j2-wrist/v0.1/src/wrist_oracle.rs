@@ -21,10 +21,7 @@ fn determinant(matrix: Matrix2) -> f64 {
 }
 
 fn transpose(matrix: Matrix2) -> Matrix2 {
-    [
-        [matrix[0][0], matrix[1][0]],
-        [matrix[0][1], matrix[1][1]],
-    ]
+    [[matrix[0][0], matrix[1][0]], [matrix[0][1], matrix[1][1]]]
 }
 
 fn multiply(left: Matrix2, right: Matrix2) -> Matrix2 {
@@ -48,7 +45,10 @@ fn multiply_vector(matrix: Matrix2, vector: Vector2) -> Option<Vector2> {
         matrix[0][0] * vector[0] + matrix[0][1] * vector[1],
         matrix[1][0] * vector[0] + matrix[1][1] * vector[1],
     ];
-    result.iter().all(|value| value.is_finite()).then_some(result)
+    result
+        .iter()
+        .all(|value| value.is_finite())
+        .then_some(result)
 }
 
 fn jacobian_singular_values(matrix: Matrix2) -> Option<(f64, f64)> {
@@ -57,7 +57,11 @@ fn jacobian_singular_values(matrix: Matrix2) -> Option<(f64, f64)> {
     }
 
     // Eigenvalues of J^T J are obtained from trace and determinant.
-    let trace = matrix.iter().flatten().map(|value| value.powi(2)).sum::<f64>();
+    let trace = matrix
+        .iter()
+        .flatten()
+        .map(|value| value.powi(2))
+        .sum::<f64>();
     let det = determinant(matrix);
     let discriminant_squared = trace.powi(2) - 4.0 * det.powi(2);
     if !trace.is_finite() || !det.is_finite() || !discriminant_squared.is_finite() {
@@ -121,9 +125,7 @@ fn is_symmetric_positive_definite(matrix: Matrix2) -> bool {
     if (matrix[0][1] - matrix[1][0]).abs() > RELATIVE_EPSILON * symmetry_scale {
         return false;
     }
-    matrix[0][0] > 0.0
-        && matrix[1][1] > 0.0
-        && determinant(matrix) > 0.0
+    matrix[0][0] > 0.0 && matrix[1][1] > 0.0 && determinant(matrix) > 0.0
 }
 
 fn task_wrench_to_joint_effort(jacobian: Matrix2, task_wrench: Vector2) -> Option<Vector2> {
@@ -146,9 +148,7 @@ fn task_stiffness_from_joint_stiffness(
 }
 
 fn quadratic_energy_j(x: Vector2, stiffness: Matrix2) -> Option<f64> {
-    if x.iter().any(|value| !value.is_finite())
-        || !is_symmetric_positive_definite(stiffness)
-    {
+    if x.iter().any(|value| !value.is_finite()) || !is_symmetric_positive_definite(stiffness) {
         return None;
     }
     let kx = multiply_vector(stiffness, x)?;
@@ -185,10 +185,10 @@ fn wrist_002_synthetic_coupled_jacobian_conditioning() {
     let jacobian = [[1.0, 0.0], [0.5, 0.8660254037844386]];
     let (sigma_max, sigma_min) =
         jacobian_singular_values(jacobian).expect("synthetic Jacobian must be nonsingular");
-    let condition = jacobian_condition_number(jacobian)
-        .expect("synthetic Jacobian must be well conditioned");
-    let area = jacobian_manipulability_area(jacobian)
-        .expect("synthetic Jacobian must have finite area");
+    let condition =
+        jacobian_condition_number(jacobian).expect("synthetic Jacobian must be well conditioned");
+    let area =
+        jacobian_manipulability_area(jacobian).expect("synthetic Jacobian must have finite area");
 
     assert_close(sigma_max, 1.224744871391589, "synthetic sigma max");
     assert_close(sigma_min, 0.7071067811865475, "synthetic sigma min");
@@ -202,13 +202,12 @@ fn wrist_003_virtual_work_maps_task_wrench_to_joint_effort() {
     let task_wrench = [12.0, -4.0];
     let joint_velocity = [0.2, -0.1];
 
-    let task_velocity = multiply_vector(jacobian, joint_velocity)
-        .expect("finite synthetic velocity must map");
-    let joint_effort = task_wrench_to_joint_effort(jacobian, task_wrench)
-        .expect("finite task wrench must map");
+    let task_velocity =
+        multiply_vector(jacobian, joint_velocity).expect("finite synthetic velocity must map");
+    let joint_effort =
+        task_wrench_to_joint_effort(jacobian, task_wrench).expect("finite task wrench must map");
 
-    let joint_power =
-        joint_effort[0] * joint_velocity[0] + joint_effort[1] * joint_velocity[1];
+    let joint_power = joint_effort[0] * joint_velocity[0] + joint_effort[1] * joint_velocity[1];
     let task_power = task_wrench[0] * task_velocity[0] + task_wrench[1] * task_velocity[1];
 
     assert_close(task_velocity[0], 0.2, "task velocity x");
@@ -226,9 +225,21 @@ fn wrist_004_joint_stiffness_transforms_to_task_space() {
     let task_stiffness = task_stiffness_from_joint_stiffness(jacobian, joint_stiffness)
         .expect("positive-definite stiffness and nonsingular Jacobian must map");
 
-    assert_close(task_stiffness[0][0], 108.45299461620749, "task stiffness xx");
-    assert_close(task_stiffness[0][1], -28.45299461620749, "task stiffness xy");
-    assert_close(task_stiffness[1][0], -28.45299461620749, "task stiffness yx");
+    assert_close(
+        task_stiffness[0][0],
+        108.45299461620749,
+        "task stiffness xx",
+    );
+    assert_close(
+        task_stiffness[0][1],
+        -28.45299461620749,
+        "task stiffness xy",
+    );
+    assert_close(
+        task_stiffness[1][0],
+        -28.45299461620749,
+        "task stiffness yx",
+    );
     assert_close(task_stiffness[1][1], 80.0, "task stiffness yy");
     assert!(is_symmetric_positive_definite(task_stiffness));
 }
@@ -260,16 +271,8 @@ fn wrist_006_singular_and_ill_conditioned_jacobians_are_rejected_for_inversion()
 #[test]
 fn wrist_007_non_spd_or_non_symmetric_stiffness_is_rejected() {
     let jacobian = [[1.0, 0.0], [0.0, 1.0]];
-    assert!(task_stiffness_from_joint_stiffness(
-        jacobian,
-        [[1.0, 0.0], [0.0, -1.0]],
-    )
-    .is_none());
-    assert!(task_stiffness_from_joint_stiffness(
-        jacobian,
-        [[1.0, 0.5], [0.0, 1.0]],
-    )
-    .is_none());
+    assert!(task_stiffness_from_joint_stiffness(jacobian, [[1.0, 0.0], [0.0, -1.0]],).is_none());
+    assert!(task_stiffness_from_joint_stiffness(jacobian, [[1.0, 0.5], [0.0, 1.0]],).is_none());
 }
 
 #[test]
@@ -277,10 +280,6 @@ fn wrist_008_invalid_and_non_finite_inputs_fail_closed() {
     let non_finite = [[1.0, f64::NAN], [0.0, 1.0]];
     assert!(jacobian_singular_values(non_finite).is_none());
     assert!(multiply_vector([[1.0, 0.0], [0.0, 1.0]], [0.0, f64::INFINITY]).is_none());
-    assert!(task_wrench_to_joint_effort(
-        [[1.0, 0.0], [0.0, 1.0]],
-        [1.0, f64::NAN],
-    )
-    .is_none());
+    assert!(task_wrench_to_joint_effort([[1.0, 0.0], [0.0, 1.0]], [1.0, f64::NAN],).is_none());
     assert!(quadratic_energy_j([1.0, f64::NAN], [[1.0, 0.0], [0.0, 1.0]]).is_none());
 }
