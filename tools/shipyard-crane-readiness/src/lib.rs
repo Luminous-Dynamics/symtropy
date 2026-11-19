@@ -1,0 +1,1141 @@
+//! Synthetic-first evidence verifier for bridge/gantry crane operational readiness.
+//!
+//! This crate consumes a lift-preflight receipt and independently checks
+//! inspection, protective-device, crane-duty, personnel, briefing and exclusion
+//! zone evidence. It is not a permit system, crane controller or safety authority.
+
+use std::collections::{BTreeMap, BTreeSet};
+
+pub const CONTRACT_VERSION: &str = "shipyard-crane-readiness-v0.1";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum EvidenceClass {
+    CraneInspection,
+    SupportingStructureInspection,
+    DutyMonitoring,
+    LimiterVerification,
+    PersonnelCredential,
+    SafeWorkBriefing,
+    ExclusionZonePlan,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum EvidenceStatus {
+    Current,
+    Restricted,
+    Revoked,
+    Faulted,
+    Overdue,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum PersonnelRole {
+    Operator,
+    Slinger,
+    Signaller,
+    Supervisor,
+    AppointedPerson,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum DeviceState {
+    Operational,
+    Faulted,
+    Bypassed,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExclusionZoneState {
+    Enforced,
+    NotEnforced,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LiftPreflightDisposition {
+    ReadyForHumanReview,
+    Rejected,
+    Indeterminate,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EvidenceRecord {
+    pub evidence_class: EvidenceClass,
+    pub record_id: String,
+    pub owner_id: String,
+    pub document_revision: String,
+    pub subject_id: String,
+    pub subject_revision: String,
+    pub sha256: String,
+    pub clock_domain_id: String,
+    pub valid_from_tick: u64,
+    pub valid_until_tick: u64,
+    pub status: EvidenceStatus,
+    /// Set only for personnel credentials; the person reference remains pseudonymous.
+    pub personnel_role: Option<PersonnelRole>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RequiredEvidence {
+    pub evidence_class: EvidenceClass,
+    pub subject_id: String,
+    pub subject_revision: String,
+    pub personnel_role: Option<PersonnelRole>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RequiredDevice {
+    pub device_id: String,
+    pub device_revision: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeviceEvidence {
+    pub device_id: String,
+    pub device_revision: String,
+    pub state: DeviceState,
+    pub evidence_record_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RoleAssignment {
+    pub role: PersonnelRole,
+    /// Pseudonymous subject reference; no name/email/identity data is required.
+    pub person_reference: String,
+    pub credential_record_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LiftPreflightReceiptRef {
+    pub receipt_id: String,
+    pub input_sha256: String,
+    pub report_sha256: String,
+    pub profile_version: String,
+    pub evaluator_revision: String,
+    pub disposition: LiftPreflightDisposition,
+    pub invalidated: bool,
+    pub crane_id: String,
+    pub crane_configuration_revision: String,
+    pub site_epoch_id: String,
+    pub clock_domain_id: String,
+    pub start_tick: u64,
+    pub end_tick: u64,
+    pub issued_at_tick: u64,
+    pub valid_until_tick: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReadinessPlan {
+    pub readiness_id: String,
+    pub crane_id: String,
+    pub crane_configuration_revision: String,
+    pub supporting_structure_id: String,
+    pub supporting_structure_revision: String,
+    pub site_epoch_id: String,
+    pub clock_domain_id: String,
+    pub start_tick: u64,
+    pub end_tick: u64,
+    pub method_statement_id: String,
+    pub method_statement_revision: String,
+    pub lift_preflight: LiftPreflightReceiptRef,
+    pub required_evidence: Vec<RequiredEvidence>,
+    pub evidence_records: Vec<EvidenceRecord>,
+    pub required_devices: Vec<RequiredDevice>,
+    pub device_evidence: Vec<DeviceEvidence>,
+    pub required_roles: Vec<PersonnelRole>,
+    pub role_assignments: Vec<RoleAssignment>,
+    pub briefing_acknowledgements: Vec<PersonnelRole>,
+    pub exclusion_zone_state: ExclusionZoneState,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Disposition {
+    /// Supplied readiness evidence is internally consistent; human/site review remains mandatory.
+    ReadyForHumanReview,
+    /// A source-owned disqualifying operating state is explicit.
+    Rejected,
+    /// A required record is missing, stale, ambiguous, or outside the declared profile.
+    Indeterminate,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum DiagnosticSeverity {
+    Rejected,
+    Indeterminate,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Diagnostic {
+    pub code: &'static str,
+    pub severity: DiagnosticSeverity,
+    pub subject_id: Option<String>,
+    pub detail: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReadinessReport {
+    pub contract_version: String,
+    pub disposition: Disposition,
+    pub diagnostics: Vec<Diagnostic>,
+    pub verified_evidence_count: usize,
+    pub required_evidence_count: usize,
+    pub verified_device_count: usize,
+    pub required_device_count: usize,
+    pub verified_role_count: usize,
+    pub required_role_count: usize,
+}
+
+fn nonblank(value: &str) -> bool {
+    !value.trim().is_empty()
+}
+
+fn is_sha256(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+fn push(
+    diagnostics: &mut Vec<Diagnostic>,
+    code: &'static str,
+    severity: DiagnosticSeverity,
+    subject: Option<&str>,
+    detail: impl Into<String>,
+) {
+    diagnostics.push(Diagnostic {
+        code,
+        severity,
+        subject_id: subject.map(str::to_owned),
+        detail: detail.into(),
+    });
+}
+
+fn disposition_for(diagnostics: &[Diagnostic]) -> Disposition {
+    if diagnostics.iter().any(|d| d.severity == DiagnosticSeverity::Indeterminate) {
+        Disposition::Indeterminate
+    } else if diagnostics.iter().any(|d| d.severity == DiagnosticSeverity::Rejected) {
+        Disposition::Rejected
+    } else {
+        Disposition::ReadyForHumanReview
+    }
+}
+
+fn validate_context(plan: &ReadinessPlan, diagnostics: &mut Vec<Diagnostic>) {
+    for (field, value) in [
+        ("readiness_id", plan.readiness_id.as_str()),
+        ("crane_id", plan.crane_id.as_str()),
+        ("crane_configuration_revision", plan.crane_configuration_revision.as_str()),
+        ("supporting_structure_id", plan.supporting_structure_id.as_str()),
+        ("supporting_structure_revision", plan.supporting_structure_revision.as_str()),
+        ("site_epoch_id", plan.site_epoch_id.as_str()),
+        ("clock_domain_id", plan.clock_domain_id.as_str()),
+        ("method_statement_id", plan.method_statement_id.as_str()),
+        ("method_statement_revision", plan.method_statement_revision.as_str()),
+    ] {
+        if !nonblank(value) {
+            push(
+                diagnostics,
+                "READINESS_CONTEXT_FIELD_EMPTY",
+                DiagnosticSeverity::Indeterminate,
+                Some(&plan.readiness_id),
+                format!("{field} must be nonblank"),
+            );
+        }
+    }
+    if plan.end_tick <= plan.start_tick {
+        push(
+            diagnostics,
+            "READINESS_WINDOW_INVALID",
+            DiagnosticSeverity::Indeterminate,
+            Some(&plan.readiness_id),
+            "readiness operation window must be a non-empty half-open interval",
+        );
+    }
+    if plan.required_evidence.is_empty() {
+        push(
+            diagnostics,
+            "REQUIRED_EVIDENCE_SET_EMPTY",
+            DiagnosticSeverity::Indeterminate,
+            Some(&plan.readiness_id),
+            "readiness profile must declare required source evidence",
+        );
+    }
+    if plan.required_devices.is_empty() {
+        push(
+            diagnostics,
+            "REQUIRED_DEVICE_SET_EMPTY",
+            DiagnosticSeverity::Indeterminate,
+            Some(&plan.crane_id),
+            "readiness profile must declare required protective/indicating devices",
+        );
+    }
+    if plan.required_roles.is_empty() {
+        push(
+            diagnostics,
+            "REQUIRED_ROLE_SET_EMPTY",
+            DiagnosticSeverity::Indeterminate,
+            Some(&plan.readiness_id),
+            "readiness profile must declare the roles required for the operation",
+        );
+    }
+}
+
+fn validate_lift_receipt(plan: &ReadinessPlan, diagnostics: &mut Vec<Diagnostic>) {
+    let receipt = &plan.lift_preflight;
+    if !nonblank(&receipt.receipt_id)
+        || !is_sha256(&receipt.input_sha256)
+        || !is_sha256(&receipt.report_sha256)
+        || !nonblank(&receipt.profile_version)
+        || !nonblank(&receipt.evaluator_revision)
+    {
+        push(
+            diagnostics,
+            "LIFT_PREFLIGHT_RECEIPT_INVALID",
+            DiagnosticSeverity::Indeterminate,
+            Some(&receipt.receipt_id),
+            "receipt identity, input/report digests, profile and evaluator revision must be complete",
+        );
+    }
+    if receipt.disposition != LiftPreflightDisposition::ReadyForHumanReview {
+        let (severity, detail) = match receipt.disposition {
+            LiftPreflightDisposition::ReadyForHumanReview => unreachable!(),
+            LiftPreflightDisposition::Rejected => (
+                DiagnosticSeverity::Rejected,
+                "underlying lift preflight is rejected",
+            ),
+            LiftPreflightDisposition::Indeterminate => (
+                DiagnosticSeverity::Indeterminate,
+                "underlying lift preflight is indeterminate",
+            ),
+        };
+        push(
+            diagnostics,
+            "LIFT_PREFLIGHT_NOT_READY",
+            severity,
+            Some(&receipt.receipt_id),
+            detail,
+        );
+    }
+    if receipt.invalidated {
+        push(
+            diagnostics,
+            "LIFT_PREFLIGHT_RECEIPT_INVALIDATED",
+            DiagnosticSeverity::Indeterminate,
+            Some(&receipt.receipt_id),
+            "underlying lift-preflight dependency changed; a new receipt is required",
+        );
+    }
+    if receipt.crane_id != plan.crane_id
+        || receipt.crane_configuration_revision != plan.crane_configuration_revision
+        || receipt.site_epoch_id != plan.site_epoch_id
+        || receipt.clock_domain_id != plan.clock_domain_id
+    {
+        push(
+            diagnostics,
+            "LIFT_PREFLIGHT_CONTEXT_MISMATCH",
+            DiagnosticSeverity::Indeterminate,
+            Some(&receipt.receipt_id),
+            "lift receipt must bind this crane/configuration/site epoch/clock domain",
+        );
+    }
+    if receipt.start_tick != plan.start_tick
+        || receipt.end_tick != plan.end_tick
+        || receipt.issued_at_tick > plan.start_tick
+        || receipt.valid_until_tick < plan.end_tick
+    {
+        push(
+            diagnostics,
+            "LIFT_PREFLIGHT_WINDOW_MISMATCH",
+            DiagnosticSeverity::Indeterminate,
+            Some(&receipt.receipt_id),
+            "lift receipt must be issued before the operation and cover the exact operation window",
+        );
+    }
+}
+
+fn index_evidence<'a>(
+    plan: &'a ReadinessPlan,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> BTreeMap<&'a str, &'a EvidenceRecord> {
+    let mut records = BTreeMap::new();
+    for record in &plan.evidence_records {
+        if !nonblank(&record.record_id) {
+            push(
+                diagnostics,
+                "EVIDENCE_RECORD_ID_EMPTY",
+                DiagnosticSeverity::Indeterminate,
+                None,
+                "evidence record ID must be nonblank",
+            );
+            continue;
+        }
+        if let Some(existing) = records.get(record.record_id.as_str()) {
+            if *existing != record {
+                push(
+                    diagnostics,
+                    "EVIDENCE_RECORD_ID_CONFLICT",
+                    DiagnosticSeverity::Indeterminate,
+                    Some(&record.record_id),
+                    "one evidence record ID was reused with conflicting metadata",
+                );
+            }
+        } else {
+            records.insert(record.record_id.as_str(), record);
+        }
+    }
+    records
+}
+
+fn validate_record(
+    plan: &ReadinessPlan,
+    record: &EvidenceRecord,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> bool {
+    let mut valid = true;
+    if !nonblank(&record.owner_id)
+        || !nonblank(&record.document_revision)
+        || !nonblank(&record.subject_id)
+        || !nonblank(&record.subject_revision)
+        || !is_sha256(&record.sha256)
+    {
+        valid = false;
+        push(
+            diagnostics,
+            "EVIDENCE_RECORD_METADATA_INVALID",
+            DiagnosticSeverity::Indeterminate,
+            Some(&record.record_id),
+            "owner, document revision, subject/revision and SHA-256 lexical shape are required",
+        );
+    }
+    if record.clock_domain_id != plan.clock_domain_id {
+        valid = false;
+        push(
+            diagnostics,
+            "EVIDENCE_CLOCK_DOMAIN_MISMATCH",
+            DiagnosticSeverity::Indeterminate,
+            Some(&record.record_id),
+            "evidence validity ticks must use the readiness plan clock domain",
+        );
+    }
+    if record.valid_from_tick >= record.valid_until_tick
+        || record.valid_from_tick > plan.start_tick
+        || record.valid_until_tick < plan.end_tick
+    {
+        valid = false;
+        push(
+            diagnostics,
+            "EVIDENCE_NOT_VALID_FOR_OPERATION",
+            DiagnosticSeverity::Indeterminate,
+            Some(&record.record_id),
+            "evidence validity must cover the complete half-open operation window",
+        );
+    }
+    match record.status {
+        EvidenceStatus::Current => {}
+        EvidenceStatus::Restricted => {
+            valid = false;
+            push(
+                diagnostics,
+                "EVIDENCE_RESTRICTED",
+                DiagnosticSeverity::Rejected,
+                Some(&record.record_id),
+                "source record carries an operating restriction",
+            );
+        }
+        EvidenceStatus::Revoked => {
+            valid = false;
+            push(
+                diagnostics,
+                "EVIDENCE_REVOKED",
+                DiagnosticSeverity::Rejected,
+                Some(&record.record_id),
+                "source record is revoked",
+            );
+        }
+        EvidenceStatus::Faulted => {
+            valid = false;
+            push(
+                diagnostics,
+                "EVIDENCE_FAULTED",
+                DiagnosticSeverity::Rejected,
+                Some(&record.record_id),
+                "source record reports a fault",
+            );
+        }
+        EvidenceStatus::Overdue => {
+            valid = false;
+            push(
+                diagnostics,
+                "EVIDENCE_OVERDUE",
+                DiagnosticSeverity::Rejected,
+                Some(&record.record_id),
+                "source-owned inspection/qualification state is overdue",
+            );
+        }
+        EvidenceStatus::Unknown => {
+            valid = false;
+            push(
+                diagnostics,
+                "EVIDENCE_STATUS_UNKNOWN",
+                DiagnosticSeverity::Indeterminate,
+                Some(&record.record_id),
+                "source status is unknown",
+            );
+        }
+    }
+    valid
+}
+
+fn find_required_record<'a>(
+    required: &RequiredEvidence,
+    records: &'a BTreeMap<&str, &EvidenceRecord>,
+) -> Option<&'a EvidenceRecord> {
+    records.values().copied().find(|record| {
+        record.evidence_class == required.evidence_class
+            && record.subject_id == required.subject_id
+            && record.subject_revision == required.subject_revision
+            && record.personnel_role == required.personnel_role
+    })
+}
+
+fn validate_required_evidence(
+    plan: &ReadinessPlan,
+    records: &BTreeMap<&str, &EvidenceRecord>,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> usize {
+    let mut verified = 0usize;
+    let mut seen = BTreeSet::new();
+    for required in &plan.required_evidence {
+        if !seen.insert((
+            required.evidence_class,
+            required.subject_id.as_str(),
+            required.subject_revision.as_str(),
+            required.personnel_role,
+        )) {
+            push(
+                diagnostics,
+                "REQUIRED_EVIDENCE_DUPLICATE",
+                DiagnosticSeverity::Indeterminate,
+                Some(&required.subject_id),
+                "required evidence subject/class was declared more than once",
+            );
+            continue;
+        }
+        match find_required_record(required, records) {
+            Some(record) => {
+                if validate_record(plan, record, diagnostics) {
+                    verified += 1;
+                }
+            }
+            None => push(
+                diagnostics,
+                "REQUIRED_EVIDENCE_MISSING",
+                DiagnosticSeverity::Indeterminate,
+                Some(&required.subject_id),
+                format!(
+                    "missing {:?} evidence for exact subject/revision",
+                    required.evidence_class
+                ),
+            ),
+        }
+    }
+    verified
+}
+
+fn validate_devices(
+    plan: &ReadinessPlan,
+    records: &BTreeMap<&str, &EvidenceRecord>,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> usize {
+    let mut verified = 0usize;
+    let mut seen = BTreeSet::new();
+    for required in &plan.required_devices {
+        if !seen.insert((required.device_id.as_str(), required.device_revision.as_str())) {
+            push(
+                diagnostics,
+                "REQUIRED_DEVICE_DUPLICATE",
+                DiagnosticSeverity::Indeterminate,
+                Some(&required.device_id),
+                "required device identity/revision is duplicated",
+            );
+            continue;
+        }
+        let matches: Vec<&DeviceEvidence> = plan
+            .device_evidence
+            .iter()
+            .filter(|item| {
+                item.device_id == required.device_id
+                    && item.device_revision == required.device_revision
+            })
+            .collect();
+        if matches.len() != 1 {
+            push(
+                diagnostics,
+                "REQUIRED_DEVICE_STATE_MISSING_OR_AMBIGUOUS",
+                DiagnosticSeverity::Indeterminate,
+                Some(&required.device_id),
+                "exactly one current status record is required for each protective/indicating device",
+            );
+            continue;
+        }
+        let device = matches[0];
+        let evidence = records.get(device.evidence_record_id.as_str()).copied();
+        let evidence_valid = evidence.is_some_and(|record| {
+            record.evidence_class == EvidenceClass::LimiterVerification
+                && record.subject_id == device.device_id
+                && record.subject_revision == device.device_revision
+                && validate_record(plan, record, diagnostics)
+        });
+        if !evidence_valid {
+            if evidence.is_none() {
+                push(
+                    diagnostics,
+                    "DEVICE_VERIFICATION_EVIDENCE_MISSING",
+                    DiagnosticSeverity::Indeterminate,
+                    Some(&device.device_id),
+                    "device state must bind a current limiter-verification evidence record",
+                );
+            } else if let Some(record) = evidence {
+                if record.evidence_class != EvidenceClass::LimiterVerification
+                    || record.subject_id != device.device_id
+                    || record.subject_revision != device.device_revision
+                {
+                    push(
+                        diagnostics,
+                        "DEVICE_VERIFICATION_SUBJECT_MISMATCH",
+                        DiagnosticSeverity::Indeterminate,
+                        Some(&device.device_id),
+                        "device verification must bind the exact device and revision",
+                    );
+                }
+            }
+        }
+        match device.state {
+            DeviceState::Operational if evidence_valid => verified += 1,
+            DeviceState::Operational => {}
+            DeviceState::Faulted => push(
+                diagnostics,
+                "REQUIRED_DEVICE_FAULTED",
+                DiagnosticSeverity::Rejected,
+                Some(&device.device_id),
+                "required protective/indicating device is faulted",
+            ),
+            DeviceState::Bypassed => push(
+                diagnostics,
+                "REQUIRED_DEVICE_BYPASSED",
+                DiagnosticSeverity::Rejected,
+                Some(&device.device_id),
+                "required protective/indicating device is bypassed",
+            ),
+            DeviceState::Unknown => push(
+                diagnostics,
+                "REQUIRED_DEVICE_STATE_UNKNOWN",
+                DiagnosticSeverity::Indeterminate,
+                Some(&device.device_id),
+                "required protective/indicating device state is unknown",
+            ),
+        }
+    }
+    verified
+}
+
+fn validate_roles(
+    plan: &ReadinessPlan,
+    records: &BTreeMap<&str, &EvidenceRecord>,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> usize {
+    let mut verified = 0usize;
+    let mut required = BTreeSet::new();
+    for role in &plan.required_roles {
+        if !required.insert(*role) {
+            push(
+                diagnostics,
+                "REQUIRED_ROLE_DUPLICATE",
+                DiagnosticSeverity::Indeterminate,
+                Some(&plan.readiness_id),
+                "required role is listed more than once",
+            );
+            continue;
+        }
+        let assignments: Vec<&RoleAssignment> = plan
+            .role_assignments
+            .iter()
+            .filter(|item| item.role == *role)
+            .collect();
+        if assignments.len() != 1 {
+            push(
+                diagnostics,
+                "ROLE_ASSIGNMENT_MISSING_OR_AMBIGUOUS",
+                DiagnosticSeverity::Indeterminate,
+                Some(&plan.readiness_id),
+                format!("exactly one pseudonymous assignment is required for role {role:?}"),
+            );
+            continue;
+        }
+        let assignment = assignments[0];
+        if !nonblank(&assignment.person_reference) {
+            push(
+                diagnostics,
+                "ROLE_PERSON_REFERENCE_EMPTY",
+                DiagnosticSeverity::Indeterminate,
+                Some(&plan.readiness_id),
+                "person reference must be nonblank and pseudonymous",
+            );
+            continue;
+        }
+        match records.get(assignment.credential_record_id.as_str()).copied() {
+            Some(record)
+                if record.evidence_class == EvidenceClass::PersonnelCredential
+                    && record.subject_id == assignment.person_reference
+                    && record.personnel_role == Some(role) =>
+            {
+                if validate_record(plan, record, diagnostics) {
+                    verified += 1;
+                }
+            }
+            Some(_) => push(
+                diagnostics,
+                "ROLE_CREDENTIAL_SUBJECT_OR_SCOPE_MISMATCH",
+                DiagnosticSeverity::Indeterminate,
+                Some(&assignment.person_reference),
+                "credential must bind the pseudonymous person, exact role and operation scope",
+            ),
+            None => push(
+                diagnostics,
+                "ROLE_CREDENTIAL_MISSING",
+                DiagnosticSeverity::Indeterminate,
+                Some(&assignment.person_reference),
+                "required personnel credential record is missing",
+            ),
+        }
+    }
+    verified
+}
+
+fn validate_briefing(
+    plan: &ReadinessPlan,
+    records: &BTreeMap<&str, &EvidenceRecord>,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> bool {
+    let briefing = plan.required_evidence.iter().find(|required| {
+        required.evidence_class == EvidenceClass::SafeWorkBriefing
+            && required.subject_id == plan.method_statement_id
+            && required.subject_revision == plan.method_statement_revision
+    });
+    if briefing.is_none() {
+        push(
+            diagnostics,
+            "SAFE_WORK_BRIEFING_REQUIREMENT_MISSING",
+            DiagnosticSeverity::Indeterminate,
+            Some(&plan.method_statement_id),
+            "exact method-statement revision must be declared as required evidence",
+        );
+    }
+    let mut acknowledgements = BTreeSet::new();
+    for role in &plan.briefing_acknowledgements {
+        if !acknowledgements.insert(*role) {
+            push(
+                diagnostics,
+                "BRIEFING_ACK_DUPLICATE",
+                DiagnosticSeverity::Indeterminate,
+                Some(&plan.method_statement_id),
+                "briefing acknowledgement role is duplicated",
+            );
+        }
+    }
+    let mut complete = true;
+    for role in &plan.required_roles {
+        if !acknowledgements.contains(role) {
+            complete = false;
+            push(
+                diagnostics,
+                "BRIEFING_ACK_MISSING",
+                DiagnosticSeverity::Indeterminate,
+                Some(&plan.method_statement_id),
+                format!("required role {role:?} has not acknowledged the briefing"),
+            );
+        }
+    }
+    let record = records.values().copied().find(|record| {
+        record.evidence_class == EvidenceClass::SafeWorkBriefing
+            && record.subject_id == plan.method_statement_id
+            && record.subject_revision == plan.method_statement_revision
+    });
+    match record {
+        Some(record) if validate_record(plan, record, diagnostics) => complete,
+        Some(_) => false,
+        None => {
+            push(
+                diagnostics,
+                "SAFE_WORK_BRIEFING_RECORD_MISSING",
+                DiagnosticSeverity::Indeterminate,
+                Some(&plan.method_statement_id),
+                "briefing evidence for the exact method statement revision is missing",
+            );
+            false
+        }
+    }
+}
+
+fn validate_exclusion_zone(
+    plan: &ReadinessPlan,
+    records: &BTreeMap<&str, &EvidenceRecord>,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> bool {
+    let record = records.values().copied().find(|record| {
+        record.evidence_class == EvidenceClass::ExclusionZonePlan
+            && record.subject_id == plan.site_epoch_id
+    });
+    let evidence_valid = match record {
+        Some(record) => validate_record(plan, record, diagnostics),
+        None => {
+            push(
+                diagnostics,
+                "EXCLUSION_ZONE_EVIDENCE_MISSING",
+                DiagnosticSeverity::Indeterminate,
+                Some(&plan.site_epoch_id),
+                "site-epoch-bound exclusion-zone evidence is required",
+            );
+            false
+        }
+    };
+    match plan.exclusion_zone_state {
+        ExclusionZoneState::Enforced if evidence_valid => true,
+        ExclusionZoneState::Enforced => false,
+        ExclusionZoneState::NotEnforced => {
+            push(
+                diagnostics,
+                "EXCLUSION_ZONE_NOT_ENFORCED",
+                DiagnosticSeverity::Rejected,
+                Some(&plan.site_epoch_id),
+                "required exclusion-zone controls are declared not enforced",
+            );
+            false
+        }
+        ExclusionZoneState::Unknown => {
+            push(
+                diagnostics,
+                "EXCLUSION_ZONE_STATE_UNKNOWN",
+                DiagnosticSeverity::Indeterminate,
+                Some(&plan.site_epoch_id),
+                "exclusion-zone enforcement state is unknown",
+            );
+            false
+        }
+    }
+}
+
+pub fn evaluate(plan: &ReadinessPlan) -> ReadinessReport {
+    let mut diagnostics = Vec::new();
+    validate_context(plan, &mut diagnostics);
+    validate_lift_receipt(plan, &mut diagnostics);
+    let records = index_evidence(plan, &mut diagnostics);
+
+    let verified_evidence_count =
+        validate_required_evidence(plan, &records, &mut diagnostics);
+    let verified_device_count = validate_devices(plan, &records, &mut diagnostics);
+    let verified_role_count = validate_roles(plan, &records, &mut diagnostics);
+    validate_briefing(plan, &records, &mut diagnostics);
+    validate_exclusion_zone(plan, &records, &mut diagnostics);
+
+    diagnostics.sort();
+    ReadinessReport {
+        contract_version: CONTRACT_VERSION.to_owned(),
+        disposition: disposition_for(&diagnostics),
+        diagnostics,
+        verified_evidence_count,
+        required_evidence_count: plan.required_evidence.len(),
+        verified_device_count,
+        required_device_count: plan.required_devices.len(),
+        verified_role_count,
+        required_role_count: plan.required_roles.len(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn record(
+        class: EvidenceClass,
+        id: &str,
+        subject: &str,
+        revision: &str,
+        role: Option<PersonnelRole>,
+    ) -> EvidenceRecord {
+        EvidenceRecord {
+            evidence_class: class,
+            record_id: id.to_owned(),
+            owner_id: format!("owner::{id}"),
+            document_revision: "doc-r1".to_owned(),
+            subject_id: subject.to_owned(),
+            subject_revision: revision.to_owned(),
+            sha256: "a".repeat(64),
+            clock_domain_id: "yard-clock-01".to_owned(),
+            valid_from_tick: 0,
+            valid_until_tick: 1_000,
+            status: EvidenceStatus::Current,
+            personnel_role: role,
+        }
+    }
+
+    fn baseline() -> ReadinessPlan {
+        let required_roles = vec![
+            PersonnelRole::Operator,
+            PersonnelRole::Slinger,
+            PersonnelRole::Signaller,
+            PersonnelRole::Supervisor,
+            PersonnelRole::AppointedPerson,
+        ];
+        let mut evidence_records = vec![
+            record(EvidenceClass::CraneInspection, "crane-insp-1", "gantry-1", "crane-r4", None),
+            record(EvidenceClass::SupportingStructureInspection, "structure-insp-1", "runway-1", "runway-r2", None),
+            record(EvidenceClass::DutyMonitoring, "duty-1", "gantry-1", "duty-r3", None),
+            record(EvidenceClass::LimiterVerification, "limiter-1", "load-limiter-1", "device-r2", None),
+            record(EvidenceClass::LimiterVerification, "limiter-2", "hoist-limit-1", "device-r1", None),
+            record(EvidenceClass::SafeWorkBriefing, "briefing-1", "method-1", "method-r5", None),
+            record(EvidenceClass::ExclusionZonePlan, "exclusion-1", "yard-epoch-7", "zone-r3", None),
+        ];
+        for (index, role) in required_roles.iter().enumerate() {
+            let id = format!("credential-{index}");
+            let person = format!("person-ref-{index}");
+            evidence_records.push(record(
+                EvidenceClass::PersonnelCredential,
+                &id,
+                &person,
+                "credential-r1",
+                Some(*role),
+            ));
+        }
+        ReadinessPlan {
+            readiness_id: "readiness-001".to_owned(),
+            crane_id: "gantry-1".to_owned(),
+            crane_configuration_revision: "crane-r4".to_owned(),
+            supporting_structure_id: "runway-1".to_owned(),
+            supporting_structure_revision: "runway-r2".to_owned(),
+            site_epoch_id: "yard-epoch-7".to_owned(),
+            clock_domain_id: "yard-clock-01".to_owned(),
+            start_tick: 100,
+            end_tick: 200,
+            method_statement_id: "method-1".to_owned(),
+            method_statement_revision: "method-r5".to_owned(),
+            lift_preflight: LiftPreflightReceiptRef {
+                receipt_id: "lift-receipt-001".to_owned(),
+                input_sha256: "b".repeat(64),
+                report_sha256: "c".repeat(64),
+                profile_version: "shipyard-lift-envelope-v0.1".to_owned(),
+                evaluator_revision: "symtropy-lift-eval-r1".to_owned(),
+                disposition: LiftPreflightDisposition::ReadyForHumanReview,
+                invalidated: false,
+                crane_id: "gantry-1".to_owned(),
+                crane_configuration_revision: "crane-r4".to_owned(),
+                site_epoch_id: "yard-epoch-7".to_owned(),
+                clock_domain_id: "yard-clock-01".to_owned(),
+                start_tick: 100,
+                end_tick: 200,
+                issued_at_tick: 50,
+                valid_until_tick: 200,
+            },
+            required_evidence: vec![
+                RequiredEvidence {
+                    evidence_class: EvidenceClass::CraneInspection,
+                    subject_id: "gantry-1".to_owned(),
+                    subject_revision: "crane-r4".to_owned(),
+                    personnel_role: None,
+                },
+                RequiredEvidence {
+                    evidence_class: EvidenceClass::SupportingStructureInspection,
+                    subject_id: "runway-1".to_owned(),
+                    subject_revision: "runway-r2".to_owned(),
+                    personnel_role: None,
+                },
+                RequiredEvidence {
+                    evidence_class: EvidenceClass::DutyMonitoring,
+                    subject_id: "gantry-1".to_owned(),
+                    subject_revision: "duty-r3".to_owned(),
+                    personnel_role: None,
+                },
+                RequiredEvidence {
+                    evidence_class: EvidenceClass::SafeWorkBriefing,
+                    subject_id: "method-1".to_owned(),
+                    subject_revision: "method-r5".to_owned(),
+                    personnel_role: None,
+                },
+                RequiredEvidence {
+                    evidence_class: EvidenceClass::ExclusionZonePlan,
+                    subject_id: "yard-epoch-7".to_owned(),
+                    subject_revision: "zone-r3".to_owned(),
+                    personnel_role: None,
+                },
+            ],
+            evidence_records: std::mem::take(&mut evidence_records),
+            required_devices: vec![
+                RequiredDevice {
+                    device_id: "load-limiter-1".to_owned(),
+                    device_revision: "device-r2".to_owned(),
+                },
+                RequiredDevice {
+                    device_id: "hoist-limit-1".to_owned(),
+                    device_revision: "device-r1".to_owned(),
+                },
+            ],
+            device_evidence: vec![
+                DeviceEvidence {
+                    device_id: "load-limiter-1".to_owned(),
+                    device_revision: "device-r2".to_owned(),
+                    state: DeviceState::Operational,
+                    evidence_record_id: "limiter-1".to_owned(),
+                },
+                DeviceEvidence {
+                    device_id: "hoist-limit-1".to_owned(),
+                    device_revision: "device-r1".to_owned(),
+                    state: DeviceState::Operational,
+                    evidence_record_id: "limiter-2".to_owned(),
+                },
+            ],
+            required_roles: required_roles.clone(),
+            role_assignments: required_roles
+                .iter()
+                .enumerate()
+                .map(|(index, role)| RoleAssignment {
+                    role: *role,
+                    person_reference: format!("person-ref-{index}"),
+                    credential_record_id: format!("credential-{index}"),
+                })
+                .collect(),
+            briefing_acknowledgements: required_roles,
+            exclusion_zone_state: ExclusionZoneState::Enforced,
+        }
+    }
+
+    fn has_code(report: &ReadinessReport, code: &str) -> bool {
+        report.diagnostics.iter().any(|item| item.code == code)
+    }
+
+    #[test]
+    fn complete_current_evidence_is_ready_for_human_review_only() {
+        let report = evaluate(&baseline());
+        assert_eq!(report.disposition, Disposition::ReadyForHumanReview);
+        assert_eq!(report.verified_device_count, 2);
+        assert_eq!(report.verified_role_count, 5);
+    }
+
+    #[test]
+    fn missing_crane_inspection_is_indeterminate() {
+        let mut plan = baseline();
+        plan.evidence_records.retain(|item| item.record_id != "crane-insp-1");
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "REQUIRED_EVIDENCE_MISSING"));
+    }
+
+    #[test]
+    fn revoked_crane_inspection_is_rejected() {
+        let mut plan = baseline();
+        plan.evidence_records
+            .iter_mut()
+            .find(|item| item.record_id == "crane-insp-1")
+            .unwrap()
+            .status = EvidenceStatus::Revoked;
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Rejected);
+        assert!(has_code(&report, "EVIDENCE_REVOKED"));
+    }
+
+    #[test]
+    fn bypassed_required_limiter_is_rejected() {
+        let mut plan = baseline();
+        plan.device_evidence[0].state = DeviceState::Bypassed;
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Rejected);
+        assert!(has_code(&report, "REQUIRED_DEVICE_BYPASSED"));
+    }
+
+    #[test]
+    fn stale_duty_monitoring_evidence_is_indeterminate() {
+        let mut plan = baseline();
+        plan.evidence_records
+            .iter_mut()
+            .find(|item| item.record_id == "duty-1")
+            .unwrap()
+            .valid_until_tick = 199;
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "EVIDENCE_NOT_VALID_FOR_OPERATION"));
+    }
+
+    #[test]
+    fn missing_required_personnel_role_is_indeterminate() {
+        let mut plan = baseline();
+        plan.role_assignments
+            .retain(|item| item.role != PersonnelRole::Signaller);
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "ROLE_ASSIGNMENT_MISSING_OR_AMBIGUOUS"));
+    }
+
+    #[test]
+    fn briefing_without_all_required_role_acknowledgements_is_indeterminate() {
+        let mut plan = baseline();
+        plan.briefing_acknowledgements
+            .retain(|role| *role != PersonnelRole::Slinger);
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "BRIEFING_ACK_MISSING"));
+    }
+
+    #[test]
+    fn unenforced_exclusion_zone_is_rejected() {
+        let mut plan = baseline();
+        plan.exclusion_zone_state = ExclusionZoneState::NotEnforced;
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Rejected);
+        assert!(has_code(&report, "EXCLUSION_ZONE_NOT_ENFORCED"));
+    }
+
+    #[test]
+    fn invalidated_or_wrong_crane_lift_receipt_is_indeterminate() {
+        let mut plan = baseline();
+        plan.lift_preflight.invalidated = true;
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "LIFT_PREFLIGHT_RECEIPT_INVALIDATED"));
+
+        plan.lift_preflight.invalidated = false;
+        plan.lift_preflight.crane_configuration_revision = "crane-r3".to_owned();
+        let mismatch = evaluate(&plan);
+        assert_eq!(mismatch.disposition, Disposition::Indeterminate);
+        assert!(has_code(&mismatch, "LIFT_PREFLIGHT_CONTEXT_MISMATCH"));
+    }
+
+    #[test]
+    fn evidence_input_permutation_preserves_canonical_report_value() {
+        let first = baseline();
+        let mut second = baseline();
+        second.evidence_records.reverse();
+        second.role_assignments.reverse();
+        second.device_evidence.reverse();
+        second.briefing_acknowledgements.reverse();
+        assert_eq!(evaluate(&first), evaluate(&second));
+    }
+
+    #[test]
+    fn unknown_limiter_state_is_indeterminate_not_a_pass() {
+        let mut plan = baseline();
+        plan.device_evidence[0].state = DeviceState::Unknown;
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "REQUIRED_DEVICE_STATE_UNKNOWN"));
+    }
+
+    #[test]
+    fn evidence_record_id_conflict_is_indeterminate() {
+        let mut plan = baseline();
+        let mut conflicting = plan.evidence_records[0].clone();
+        conflicting.sha256 = "d".repeat(64);
+        plan.evidence_records.push(conflicting);
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "EVIDENCE_RECORD_ID_CONFLICT"));
+    }
+}
