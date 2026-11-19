@@ -70,6 +70,9 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     if string_at(value, "schema_version") != Some("0.1.0") {
         errors.push("schema_version must be 0.1.0".to_owned());
     }
+    if string_at(value, "scorecard_id").is_none_or(str::is_empty) {
+        errors.push("scorecard_id is required".to_owned());
+    }
     if string_at(value, "claim_ceiling") != Some("descriptive_skill_and_paired_outcome_metrics_only") {
         errors.push("claim_ceiling must preserve the descriptive-only boundary".to_owned());
     }
@@ -79,6 +82,9 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     }
 
     let dataset = value.get("dataset").unwrap_or(&Value::Null);
+    if string_at(dataset, "dataset_id").is_none_or(str::is_empty) {
+        errors.push("dataset_id is required".to_owned());
+    }
     for (key, label) in [
         ("dataset_sha256", "dataset"),
         ("split_manifest_sha256", "split manifest"),
@@ -215,6 +221,9 @@ fn validate(raw: &[u8], value: &Value) -> Value {
 
             let mut seen_events = HashSet::new();
             if let Some(thresholds) = case.get("threshold_events").and_then(Value::as_array) {
+                if thresholds.is_empty() {
+                    errors.push(format!("forecast case '{case_id}' requires at least one threshold event"));
+                }
                 for threshold in thresholds {
                     let event_id = string_at(threshold, "event_id").unwrap_or("");
                     let probability = number_at(threshold, "probability");
