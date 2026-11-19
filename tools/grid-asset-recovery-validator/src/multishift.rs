@@ -817,11 +817,22 @@ fn validate_resource_usage(
             }
 
             let mut uses = Vec::new();
-            if task.paused_resource_policy == PausedResourcePolicy::Retain && intervals.len() > 1 {
-                if let (Some(first), Some(last)) = (intervals.first(), intervals.last()) {
+            let commitment_state = case.proposed_commitments
+                .iter()
+                .find(|item| item.event_id == task.event_id && item.task_id == task.task_id)
+                .map(|item| item.state);
+            if task.paused_resource_policy == PausedResourcePolicy::Retain && !intervals.is_empty() {
+                if let Some(first) = intervals.first() {
+                    let retained_end = if intervals.len() > 1 {
+                        intervals.last().map(|item| item.1).unwrap_or(first.1)
+                    } else if commitment_state == Some(CommitmentState::Paused) {
+                        case.horizon_end_hour
+                    } else {
+                        first.1
+                    };
                     uses.push(ResourceUse {
                         start_hour: first.0,
-                        end_hour: last.1,
+                        end_hour: retained_end,
                         units: requirement.units,
                         task_key: key.clone(),
                     });
@@ -1609,6 +1620,17 @@ mod tests {
         case.resources[0].capacity_windows = vec![
             CapacityWindow { start_hour: 0.0, end_hour: 6.0, capacity_units: 1 },
             CapacityWindow { start_hour: 10.0, end_hour: 24.0, capacity_units: 1 },
+        ];
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn paused_retained_resource_remains_reserved_until_reconciliation() {
+        let mut case = fixture();
+        case.tasks[0].paused_resource_policy = PausedResourcePolicy::Retain;
+        case.planned_segments.clear();
+        case.resources[0].capacity_windows = vec![
+            CapacityWindow { start_hour: 0.0, end_hour: 8.0, capacity_units: 1 },
         ];
         assert!(validate(&case).is_err());
     }
