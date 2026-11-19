@@ -46,6 +46,9 @@ The broader repository contains domain-specific research and benchmark work. It 
 - engineering twin projection and counterfactual boundary: [#1467](https://github.com/Luminous-Dynamics/symtropy/issues/1467);
 - model-path capability census: [#1472](https://github.com/Luminous-Dynamics/symtropy/issues/1472), with the fresh exact-source reference/qualifier tranche in [PR #6248](https://github.com/Luminous-Dynamics/symtropy/pull/6248);
 - integrator portfolio and numerical qualification: [#3975](https://github.com/Luminous-Dynamics/symtropy/issues/3975);
+- joint/motor, angle-limit and actuator-step semantics: [#4516](https://github.com/Luminous-Dynamics/symtropy/issues/4516) and [#6144](https://github.com/Luminous-Dynamics/symtropy/issues/6144), with once-per-world-step actuator integration proposed in [PR #6194](https://github.com/Luminous-Dynamics/symtropy/pull/6194);
+- full rotational/spatial inertia, frame covariance and angular impulse semantics: [#4557](https://github.com/Luminous-Dynamics/symtropy/issues/4557), with a production implementation proposal in [PR #4674](https://github.com/Luminous-Dynamics/symtropy/pull/4674);
+- cross-architecture synthetic joint/task benchmark: [#6037](https://github.com/Luminous-Dynamics/symtropy/issues/6037), with an independent analytic fixture/oracle tranche in [PR #6038](https://github.com/Luminous-Dynamics/symtropy/pull/6038).
 - analytic/manufactured numerical oracles and V&V: [#3749](https://github.com/Luminous-Dynamics/symtropy/issues/3749);
 - semantic equivalence for backend comparisons: [#4366](https://github.com/Luminous-Dynamics/symtropy/issues/4366), with executable receipt/schema work in [PR #4369](https://github.com/Luminous-Dynamics/symtropy/pull/4369);
 - differential fuzzing and counterexample minimization: [#4446](https://github.com/Luminous-Dynamics/symtropy/issues/4446);
