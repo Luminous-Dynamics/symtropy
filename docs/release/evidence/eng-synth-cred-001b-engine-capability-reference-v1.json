@@ -348,7 +348,25 @@
     "ccd_speed_threshold": 5,
     "max_contacts_constant": 8,
     "manifold_generator_emission_cap": 4,
-    "note": "Per-manifold contact capacity is not a global world contact-pair capacity. No global maximum body or constraint count was found."
+    "note": "Per-manifold contact capacity is not a global world contact-pair capacity. No global maximum body or constraint count was found.",
+    "identity_fields": [
+      "engine source commit and package version",
+      "compiled Cargo feature set",
+      "spatial dimension and requested subsystem paths",
+      "gravity and initial/boundary condition identity",
+      "solver_iterations",
+      "slop",
+      "baumgarte",
+      "compliance",
+      "sleep enabled/threshold/ticks/velocity-zeroing semantics",
+      "CCD speed threshold and caster/target paths",
+      "callback API policy and caller-supplied callback build identity",
+      "mesh provider API and caller-supplied provider build identity",
+      "determinism profile and field-level quantization coverage",
+      "joint and motor mode",
+      "contact/constraint implementation path",
+      "approximation and unsupported-path declarations"
+    ]
   },
   "approximations_and_negative_findings": [
     {
@@ -369,12 +387,13 @@
     {
       "id": "input_and_state_guards",
       "status": "SupportedNumericalModel",
-      "detail": "Non-finite force/torque accumulators are sanitized; linear/angular speed clamps and post-integration non-finite handling alter the numerical path."
+      "detail": "Non-finite force/torque accumulators are sanitized; linear/angular speed clamps and post-integration non-finite handling alter the numerical path. Input sanitation and clamp activation are not currently exposed as a complete per-run anomaly receipt."
     },
     {
       "id": "ten_box_stack",
       "status": "PartiallySupported",
-      "detail": "The ten-box stack test is ignored; source comments report it does not settle cleanly after trying 30 solver iterations. The three-box regression is a separate passing scope."
+      "detail": "The ten-box stack test is ignored; source comments report it does not settle cleanly after trying 30 solver iterations. The three-box regression is a separate passing scope.",
+      "source_test": "PhysicsWorld::ten_box_stack_settles_without_exploding is retained as an ignored test."
     },
     {
       "id": "hinge_motor_and_limits",
@@ -595,6 +614,40 @@
   "content_identity": {
     "algorithm": "SHA-256",
     "canonicalization": "UTF-8 JSON; sort object keys; compact separators; omit content_identity.digest from input",
-    "digest": "0e93bfecb52fc21c4158eb17bd0a8b1d37ffadd4caee62920dacd53fdd214d54"
-  }
+    "digest": "2e8cd24f51b7a21ada6bba56091d5734f9f1758a6073025713c7f62842dc5150"
+  },
+  "feature_profiles": [
+    {
+      "profile_id": "native-float-default",
+      "cargo_features": [],
+      "determinism_profile": "native_float",
+      "status": "SupportedNumericalModel"
+    },
+    {
+      "profile_id": "deterministic-net-q16-16",
+      "cargo_features": [
+        "deterministic-net"
+      ],
+      "determinism_profile": "deterministic_net_q16_16",
+      "status": "PartiallySupported"
+    }
+  ],
+  "profile_identity_fields": [
+    "engine source commit and package version",
+    "compiled Cargo feature set",
+    "spatial dimension and requested subsystem paths",
+    "gravity and initial/boundary condition identity",
+    "solver_iterations",
+    "slop",
+    "baumgarte",
+    "compliance",
+    "sleep enabled/threshold/ticks/velocity-zeroing semantics",
+    "CCD speed threshold and caster/target paths",
+    "callback API policy and caller-supplied callback build identity",
+    "mesh provider API and caller-supplied provider build identity",
+    "determinism profile and field-level quantization coverage",
+    "joint and motor mode",
+    "contact/constraint implementation path",
+    "approximation and unsupported-path declarations"
+  ]
 }
