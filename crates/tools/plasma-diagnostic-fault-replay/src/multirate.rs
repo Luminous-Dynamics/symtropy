@@ -711,6 +711,21 @@ mod tests {
     }
 
     #[test]
+    fn measured_zero_remains_distinct_from_missing() {
+        let req = request(
+            vec![
+                stream("density-stream", "density", Some(10), vec![measured("d-zero", 20, 0.0)]),
+                stream("mag-stream", "magnetics", Some(10), vec![measured("m-one", 20, 1.0)]),
+            ],
+            20,
+        );
+        let receipt = align_as_of(&req).expect("alignment");
+        assert_eq!(receipt.body.entries[0].disposition, AlignmentDisposition::MeasuredAvailable);
+        assert_eq!(receipt.body.entries[0].value, Some(0.0));
+        assert_eq!(receipt.body.entries[0].evidence_state, Some(EvidenceState::Measured));
+    }
+
+    #[test]
     fn future_only_stream_is_explicitly_unavailable_to_as_of_query() {
         let req = request(
             vec![
