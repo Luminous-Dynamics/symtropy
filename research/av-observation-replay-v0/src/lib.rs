@@ -522,8 +522,8 @@ fn validate_observation(observation: &AgentObservationV1) -> Result<(), Contract
                 .source_end_sample
                 .checked_sub(chunk.source_start_sample)
                 .ok_or(ContractError::InvalidAudioShape)?;
-            let channel_count =
-                u64::try_from(chunk.channels.len()).map_err(|_| ContractError::InvalidAudioShape)?;
+            let channel_count = u64::try_from(chunk.channels.len())
+                .map_err(|_| ContractError::InvalidAudioShape)?;
             let expected_len = sample_count
                 .checked_mul(channel_count)
                 .and_then(|value| value.checked_mul(chunk.sample_format.bytes_per_sample()))
@@ -732,13 +732,12 @@ pub fn read_verified_artifact_under_root_v1(
     if !canonical_artifact.starts_with(&canonical_root) {
         return Err(ContractError::InvalidArtifactPath);
     }
-    let metadata = fs::metadata(&canonical_artifact)
-        .map_err(|_| ContractError::ArtifactUnavailable)?;
+    let metadata =
+        fs::metadata(&canonical_artifact).map_err(|_| ContractError::ArtifactUnavailable)?;
     if !metadata.is_file() {
         return Err(ContractError::ArtifactNotRegularFile);
     }
-    let bytes = fs::read(&canonical_artifact)
-        .map_err(|_| ContractError::ArtifactUnavailable)?;
+    let bytes = fs::read(&canonical_artifact).map_err(|_| ContractError::ArtifactUnavailable)?;
     verify_artifact_bytes_v1(reference, &bytes)?;
     Ok(bytes)
 }
@@ -764,8 +763,7 @@ impl<'a> ReplayCursorV1<'a> {
     /// Validate and create a cursor; no event is exposed until advance_to.
     pub fn new(bundle: &'a AgentObservationBundleV1) -> Result<Self, ContractError> {
         validate_bundle_v1(bundle)?;
-        let mut ordered_event_indices: Vec<usize> =
-            (0..bundle.transport_events.len()).collect();
+        let mut ordered_event_indices: Vec<usize> = (0..bundle.transport_events.len()).collect();
         ordered_event_indices.sort_by_key(|index| {
             let event = &bundle.transport_events[*index];
             (event.availability_tick, event.arrival_order)
@@ -781,10 +779,7 @@ impl<'a> ReplayCursorV1<'a> {
     /// Release all transport events whose availability tick is at most tick.
     ///
     /// Calls must be monotonic. A future event is never returned early.
-    pub fn advance_to(
-        &mut self,
-        tick: u64,
-    ) -> Result<Vec<ReplayDeliveryV1<'a>>, ContractError> {
+    pub fn advance_to(&mut self, tick: u64) -> Result<Vec<ReplayDeliveryV1<'a>>, ContractError> {
         if self.last_tick.is_some_and(|previous| tick < previous) {
             return Err(ContractError::ReplayTimeRegression);
         }
@@ -812,7 +807,9 @@ impl<'a> ReplayCursorV1<'a> {
 
     /// Number of transport events that have not yet become available.
     pub fn pending_event_count(&self) -> usize {
-        self.ordered_event_indices.len().saturating_sub(self.next_event)
+        self.ordered_event_indices
+            .len()
+            .saturating_sub(self.next_event)
     }
 }
 
@@ -1006,7 +1003,10 @@ mod tests {
 
         let at_four = cursor.advance_to(4).unwrap();
         assert_eq!(at_four.len(), 1);
-        assert_eq!(at_four[0].transport.disposition, TransportDispositionV1::Dropped);
+        assert_eq!(
+            at_four[0].transport.disposition,
+            TransportDispositionV1::Dropped
+        );
         assert!(at_four[0].observation.is_none());
         assert_eq!(cursor.pending_event_count(), 0);
 
@@ -1140,7 +1140,9 @@ mod tests {
     #[test]
     fn missing_first_delivery_and_unexpected_drop_payload_are_rejected() {
         let mut missing = fixture();
-        missing.transport_events.retain(|event| event.event_id != "arrival-audio-0001");
+        missing
+            .transport_events
+            .retain(|event| event.event_id != "arrival-audio-0001");
         assert_eq!(
             validate_bundle_v1(&missing),
             Err(ContractError::MissingFirstDelivery)
