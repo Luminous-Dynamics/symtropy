@@ -31,6 +31,8 @@ pub enum TraceError {
     TerminationTraceUnsupported,
     RejectedStepAdvanced,
     RejectedStateChanged,
+    RetryStateMismatch,
+    StateChainMismatch,
     MissingFederateSteps,
     SequenceGap,
     RetryLinkMismatch,
@@ -78,6 +80,8 @@ impl TraceError {
             Self::TerminationTraceUnsupported => "TERMINATION_TRACE_UNSUPPORTED",
             Self::RejectedStepAdvanced => "REJECTED_STEP_ADVANCED",
             Self::RejectedStateChanged => "REJECTED_STATE_CHANGED",
+            Self::RetryStateMismatch => "RETRY_STATE_MISMATCH",
+            Self::StateChainMismatch => "STATE_CHAIN_MISMATCH",
             Self::MissingFederateSteps => "MISSING_FEDERATE_STEPS",
             Self::SequenceGap => "SEQUENCE_GAP",
             Self::RetryLinkMismatch => "RETRY_LINK_MISMATCH",
@@ -147,6 +151,8 @@ pub struct FederateProfile {
     pub model_digest: String,
     pub clock: ClockBinding,
     pub initial_local_tick: i64,
+    /// Opaque digest of the FMU/model state at the initial communication point.
+    pub initial_state_digest: String,
     /// Importer-side opt-in supplied to FMI 3 `fmi3InstantiateCoSimulation`.
     pub early_return_allowed: bool,
     /// Importer/FMU event-mode agreement established at instantiation.
@@ -238,6 +244,7 @@ pub fn validate_trace(trace: &RunTrace) -> Result<(), TraceError> {
             || profile.clock.binding_id.trim().is_empty()
             || profile.clock.model_clock_id.trim().is_empty()
             || profile.clock.mapping_digest.trim().is_empty()
+            || profile.initial_state_digest.trim().is_empty()
         {
             return Err(TraceError::EmptyIdentity("federate_or_clock"));
         }
@@ -412,6 +419,7 @@ pub fn validate_trace(trace: &RunTrace) -> Result<(), TraceError> {
         }
 
         let mut expected_local_start = profile.initial_local_tick;
+        let mut expected_state_digest = profile.initial_state_digest.clone();
         for expected_sequence in 0..barrier_count {
             let sequence = u64::try_from(expected_sequence)
                 .map_err(|_| TraceError::SequenceGap)?;
@@ -439,6 +447,9 @@ pub fn validate_trace(trace: &RunTrace) -> Result<(), TraceError> {
                     if attempt.retry_of.is_some() {
                         return Err(TraceError::RetryLinkMismatch);
                     }
+                    if attempt.state_before_digest != expected_state_digest {
+                        return Err(TraceError::StateChainMismatch);
+                    }
                 } else {
                     let previous = attempts[index - 1];
                     if previous.outcome != StepOutcome::Rejected {
@@ -451,6 +462,9 @@ pub fn validate_trace(trace: &RunTrace) -> Result<(), TraceError> {
                         || attempt.master_start_ns != previous.master_start_ns
                     {
                         return Err(TraceError::RetryStartMismatch);
+                    }
+                    if attempt.state_before_digest != previous.state_before_digest {
+                        return Err(TraceError::RetryStateMismatch);
                     }
                     if attempt.local_requested_end_tick
                         > previous.local_requested_end_tick
@@ -479,6 +493,7 @@ pub fn validate_trace(trace: &RunTrace) -> Result<(), TraceError> {
             }
 
             expected_local_start = terminal.local_returned_end_tick;
+            expected_state_digest = terminal.state_after_digest.clone();
             terminal_attempts.insert(
                 (profile.federate_id.clone(), sequence),
                 terminal,
