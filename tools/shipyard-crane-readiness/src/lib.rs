@@ -1829,7 +1829,7 @@ mod tests {
     #[test]
     fn frozen_conformance_fixture_maps_all_vectors_to_rust_tests() {
         const FIXTURE: &str = include_str!("../fixtures/conformance-vectors-v0.1.json");
-        let mappings: [(&str, &str); 22] = [
+        let mappings: [(&str, &str); 27] = [
             ("CRR-VERSION-001", stringify!(unsupported_readiness_contract_version_is_indeterminate)),
             ("CRR-BASE-001", stringify!(complete_current_evidence_is_ready_for_human_review_only)),
             ("CRR-INSP-001", stringify!(missing_crane_inspection_is_indeterminate)),
@@ -1852,8 +1852,13 @@ mod tests {
             ("CRR-REPLAY-005", stringify!(conflicting_payloads_at_the_same_source_sequence_are_indeterminate)),
             ("CRR-REPLAY-006", stringify!(exact_duplicate_event_is_idempotent_and_counted_once)),
             ("CRR-REPLAY-007", stringify!(event_source_identity_mismatch_is_indeterminate)),
+            ("CRR-REPLAY-008", stringify!(changed_evidence_digest_invalidates_readiness)),
+            ("CRR-REPLAY-009", stringify!(source_subject_revision_change_invalidates_readiness)),
+            ("CRR-REPLAY-010", stringify!(exclusion_zone_state_change_invalidates_readiness)),
+            ("CRR-REPLAY-011", stringify!(changed_lift_preflight_receipt_invalidates_readiness)),
+            ("CRR-REPLAY-012", stringify!(operation_window_and_clock_domain_changes_invalidate_readiness)),
         ];
-        assert_eq!(FIXTURE.matches(r#""id": "CRR-"#).count(), 22);
+        assert_eq!(FIXTURE.matches(r#""id": "CRR-"#).count(), 27);
         for (vector_id, test_name) in mappings {
             assert!(
                 FIXTURE.contains(&format!(r#""id": "{vector_id}""#)),
