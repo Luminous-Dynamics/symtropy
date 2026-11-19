@@ -39,18 +39,23 @@ jobs:
 
           root = Path("docs/research/grid-asset-recovery/data")
           schema = json.loads((root / "asset-recovery-v0.1.schema.json").read_text())
-          fixture = json.loads((root / "synthetic-asset-recovery-v0.1.json").read_text())
+          fixtures = [
+              "synthetic-asset-recovery-v0.1.json",
+              "synthetic-cable-recovery-v0.1.json",
+          ]
           Draft202012Validator.check_schema(schema)
-          errors = sorted(
-              Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(fixture),
-              key=lambda error: list(map(str, error.absolute_path)),
-          )
-          if errors:
-              for error in errors:
-                  location = ".".join(map(str, error.absolute_path)) or "$"
-                  print(f"{location}: {error.message}")
-              raise SystemExit(1)
-          print("JSON Schema PASS: synthetic recovery fixture conforms to Draft 2020-12 contract")
+          for fixture_name in fixtures:
+              fixture = json.loads((root / fixture_name).read_text())
+              errors = sorted(
+                  Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(fixture),
+                  key=lambda error: list(map(str, error.absolute_path)),
+              )
+              if errors:
+                  for error in errors:
+                      location = ".".join(map(str, error.absolute_path)) or "$"
+                      print(f"{fixture_name}:{location}: {error.message}")
+                  raise SystemExit(1)
+              print(f"JSON Schema PASS: {fixture_name} conforms to Draft 2020-12 contract")
           PY
 
       - name: Check Rust formatting
@@ -64,3 +69,6 @@ jobs:
 
       - name: Validate synthetic recovery case
         run: cargo run --manifest-path tools/grid-asset-recovery-validator/Cargo.toml -- docs/research/grid-asset-recovery/data/synthetic-asset-recovery-v0.1.json
+
+      - name: Validate submarine cable recovery case
+        run: cargo run --manifest-path tools/grid-asset-recovery-validator/Cargo.toml -- docs/research/grid-asset-recovery/data/synthetic-cable-recovery-v0.1.json
