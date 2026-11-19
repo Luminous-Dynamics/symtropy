@@ -37,6 +37,35 @@ pub enum RobotExecutionDisposition {
     Unknown,
 }
 
+
+/// Untrusted, source-preserving protocol observation associated with an
+/// existing robot execution attempt. It never carries a construction verdict.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RobotProtocolObservation {
+    pub protocol_id: String,
+    pub protocol_version: String,
+    pub message_kind: String,
+    /// VDA orderId / equivalent transport task identity; not a construction
+    /// design entity, work-package digest or site task authority.
+    pub external_order_id: Option<String>,
+    pub external_order_update_id: Option<u64>,
+    pub source_header_id: Option<u64>,
+    /// VDA-reported route progress and action state. These are executor claims.
+    pub last_node_id: Option<String>,
+    pub last_node_sequence_id: Option<u64>,
+    pub action_id: Option<String>,
+    pub action_status: Option<String>,
+    /// Preserved as source metadata only; never used for ledger ordering.
+    pub source_timestamp: Option<String>,
+    /// Identity claims from the protocol header, not authenticated publisher identity.
+    pub reported_manufacturer: Option<String>,
+    pub reported_serial_number: Option<String>,
+    /// Digests over exact topic bytes / original application payload bytes / adapter build.
+    pub topic_sha256: String,
+    pub raw_payload_sha256: String,
+    pub adapter_build_sha256: String,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum SiteRefereeAssessment {
     Measured(RefereeMeasurement),
@@ -91,6 +120,14 @@ pub enum SiteEventPayload {
         attempt_id: String,
         disposition: RobotExecutionDisposition,
         robot_receipt_sha256: String,
+    },
+    /// Append a protocol observation without mutating execution or acceptance
+    /// state. The raw protocol message remains untrusted telemetry.
+    RobotProtocolObservationRecorded {
+        package_sha256: String,
+        entity_id: String,
+        attempt_id: String,
+        observation: RobotProtocolObservation,
     },
     ExecutionInterrupted {
         package_sha256: String,
@@ -201,6 +238,7 @@ pub enum SiteLedgerError {
     DuplicateAttemptId(String),
     AttemptContextMismatch(String),
     AttemptActorMismatch(String),
+    InvalidProtocolObservation,
     AttemptAlreadyObserved(String),
     AttemptNotObserved(String),
     AttemptAlreadyAssessed(String),
@@ -563,6 +601,38 @@ impl SiteStateLedger {
                     disposition: *disposition,
                 })
             }
+            SiteEventPayload::RobotProtocolObservationRecorded {
+                package_sha256,
+                entity_id,
+                attempt_id,
+                observation,
+            } => {
+                require_role(event.actor_role, SiteActorRole::Robot)?;
+                validate_robot_protocol_observation(observation)?;
+                let attempt = self
+                    .attempts
+                    .get(attempt_id)
+                    .ok_or_else(|| SiteLedgerError::AttemptContextMismatch(attempt_id.clone()))?;
+                validate_attempt_owner(
+                    attempt,
+                    package_sha256,
+                    entity_id,
+                    attempt_id,
+                    &event.actor_id,
+                )?;
+                let package = self
+                    .packages
+                    .get(package_sha256)
+                    .ok_or_else(|| SiteLedgerError::UnknownPackage(package_sha256.clone()))?;
+                if !package.entity_states.contains_key(entity_id) {
+                    return Err(SiteLedgerError::UnknownDesignEntity(entity_id.clone()));
+                }
+                // Protocol telemetry may arrive after a newer work package has
+                // superseded this attempt. Preserve it against the historical
+                // package and append it to the ledger, but do not rewrite the
+                // current projection or the historical acceptance state.
+                Ok(PreparedSiteMutation::RecordProtocolObservation)
+            }
             SiteEventPayload::ExecutionInterrupted {
                 package_sha256,
                 entity_id,
@@ -760,6 +830,11 @@ impl SiteStateLedger {
                         },
                     );
             }
+            PreparedSiteMutation::RecordProtocolObservation => {
+                // Intentionally no state mutation. The protocol evidence is
+                // retained in the immutable event history and changes the
+                // ledger head, invalidating older readiness snapshots.
+            }
             PreparedSiteMutation::RecordRefereeAssessment {
                 package_sha256,
                 entity_id,
@@ -934,6 +1009,8 @@ enum PreparedSiteMutation {
         attempt_id: String,
         disposition: RobotExecutionDisposition,
     },
+    /// Event-history-only mutation: never changes the attempt or entity state.
+    RecordProtocolObservation,
     RecordRefereeAssessment {
         package_sha256: String,
         entity_id: String,
@@ -945,6 +1022,37 @@ enum PreparedSiteMutation {
         entity_id: String,
         new_state: SiteEntityState,
     },
+}
+
+fn validate_robot_protocol_observation(
+    observation: &RobotProtocolObservation,
+) -> Result<(), SiteLedgerError> {
+    if [
+        observation.protocol_id.as_str(),
+        observation.protocol_version.as_str(),
+        observation.message_kind.as_str(),
+    ]
+    .into_iter()
+    .any(|value| value.trim().is_empty())
+        || !is_sha256(&observation.topic_sha256)
+        || !is_sha256(&observation.raw_payload_sha256)
+        || !is_sha256(&observation.adapter_build_sha256)
+        || [
+            observation.external_order_id.as_deref(),
+            observation.last_node_id.as_deref(),
+            observation.action_id.as_deref(),
+            observation.action_status.as_deref(),
+            observation.source_timestamp.as_deref(),
+            observation.reported_manufacturer.as_deref(),
+            observation.reported_serial_number.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
+        .any(|value| value.trim().is_empty())
+    {
+        return Err(SiteLedgerError::InvalidProtocolObservation);
+    }
+    Ok(())
 }
 
 fn validate_attempt_owner(
@@ -1240,6 +1348,158 @@ mod tests {
         );
         ledger.apply(start).unwrap();
         (ledger, package_digest, "attempt-1".into())
+    }
+
+    fn protocol_observation(
+        action_status: Option<&str>,
+    ) -> RobotProtocolObservation {
+        RobotProtocolObservation {
+            protocol_id: "VDA5050".into(),
+            protocol_version: "3.0.0".into(),
+            message_kind: "state".into(),
+            external_order_id: Some("transport-order-17".into()),
+            external_order_update_id: Some(4),
+            source_header_id: Some(91),
+            last_node_id: Some("node-12".into()),
+            last_node_sequence_id: Some(12),
+            action_id: Some("action-place-4".into()),
+            action_status: action_status.map(str::to_owned),
+            source_timestamp: Some("2026-11-19T08:00:00.000Z".into()),
+            reported_manufacturer: Some("ACME".into()),
+            reported_serial_number: Some("R-01".into()),
+            topic_sha256: digest('a'),
+            raw_payload_sha256: digest('b'),
+            adapter_build_sha256: digest('c'),
+        }
+    }
+
+    #[test]
+    fn vda_action_finished_is_preserved_as_telemetry_not_construction_acceptance() {
+        let (mut ledger, package_digest, attempt_id) = setup_started_attempt();
+        let event = event(
+            "event-vda-state",
+            4,
+            ledger.last_event_sha256().map(str::to_owned),
+            '5',
+            "robot-1",
+            SiteActorRole::Robot,
+            SiteEventPayload::RobotProtocolObservationRecorded {
+                package_sha256: package_digest.clone(),
+                entity_id: "line-1".into(),
+                attempt_id,
+                observation: protocol_observation(Some("FINISHED")),
+            },
+        );
+        assert_eq!(ledger.apply(event), Ok(SiteApplyOutcome::Applied));
+        assert!(matches!(
+            ledger.entity_state(&package_digest, "line-1"),
+            Some(SiteEntityState::ExecutionInProgress { .. })
+        ));
+        assert_eq!(ledger.accepted_count(&package_digest), Some(0));
+        assert_eq!(ledger.last_sequence(), 4);
+        assert!(matches!(
+            ledger.event_history().last().map(|item| &item.payload),
+            Some(SiteEventPayload::RobotProtocolObservationRecorded { observation, .. })
+                if observation.protocol_id == "VDA5050"
+                    && observation.protocol_version == "3.0.0"
+                    && observation.action_status.as_deref() == Some("FINISHED")
+        ));
+    }
+
+    #[test]
+    fn protocol_observation_requires_the_robot_that_owns_the_attempt() {
+        let (mut ledger, package_digest, attempt_id) = setup_started_attempt();
+        let event = event(
+            "event-vda-state-wrong-robot",
+            4,
+            ledger.last_event_sha256().map(str::to_owned),
+            '5',
+            "robot-2",
+            SiteActorRole::Robot,
+            SiteEventPayload::RobotProtocolObservationRecorded {
+                package_sha256: package_digest.clone(),
+                entity_id: "line-1".into(),
+                attempt_id,
+                observation: protocol_observation(Some("FINISHED")),
+            },
+        );
+        assert_eq!(
+            ledger.apply(event),
+            Err(SiteLedgerError::AttemptActorMismatch("attempt-1".into()))
+        );
+        assert_eq!(ledger.last_sequence(), 3);
+        assert!(matches!(
+            ledger.entity_state(&package_digest, "line-1"),
+            Some(SiteEntityState::ExecutionInProgress { .. })
+        ));
+    }
+
+    #[test]
+    fn malformed_protocol_observation_digests_and_identity_fail_closed() {
+        let (mut ledger, package_digest, attempt_id) = setup_started_attempt();
+        let mut invalid = protocol_observation(Some("FINISHED"));
+        invalid.raw_payload_sha256 = "not-a-digest".into();
+        let event = event(
+            "event-vda-state-invalid-digest",
+            4,
+            ledger.last_event_sha256().map(str::to_owned),
+            '5',
+            "robot-1",
+            SiteActorRole::Robot,
+            SiteEventPayload::RobotProtocolObservationRecorded {
+                package_sha256: package_digest.clone(),
+                entity_id: "line-1".into(),
+                attempt_id,
+                observation: invalid,
+            },
+        );
+        assert_eq!(ledger.apply(event), Err(SiteLedgerError::InvalidProtocolObservation));
+        assert_eq!(ledger.last_sequence(), 3);
+    }
+
+    #[test]
+    fn protocol_observation_after_new_package_revision_is_historical_only() {
+        let (mut ledger, old_package, attempt_id) = setup_started_attempt();
+        let new_package = package('f', &["line-1", "point-1"]);
+        let new_digest = new_package.package_sha256.clone();
+        let published = event(
+            "event-publish-v2",
+            4,
+            ledger.last_event_sha256().map(str::to_owned),
+            '5',
+            "design-authority",
+            SiteActorRole::DesignAuthority,
+            SiteEventPayload::WorkPackagePublished {
+                package: new_package,
+            },
+        );
+        ledger.apply(published).unwrap();
+
+        let telemetry = event(
+            "event-vda-late-state",
+            5,
+            ledger.last_event_sha256().map(str::to_owned),
+            '6',
+            "robot-1",
+            SiteActorRole::Robot,
+            SiteEventPayload::RobotProtocolObservationRecorded {
+                package_sha256: old_package.clone(),
+                entity_id: "line-1".into(),
+                attempt_id,
+                observation: protocol_observation(Some("FINISHED")),
+            },
+        );
+        ledger.apply(telemetry).unwrap();
+        assert_eq!(ledger.active_package_sha256(), Some(new_digest.as_str()));
+        assert_eq!(
+            ledger.entity_state(&new_digest, "line-1"),
+            Some(&SiteEntityState::NotAttempted)
+        );
+        assert!(matches!(
+            ledger.entity_state(&old_package, "line-1"),
+            Some(SiteEntityState::ExecutionInProgress { .. })
+        ));
+        assert_eq!(ledger.accepted_count(&old_package), Some(0));
     }
 
     #[test]
