@@ -1,0 +1,456 @@
+{
+  "schema_version": "0.1.0",
+  "comparison_id": "synthetic-robust-pareto-cohorts-v0.1",
+  "objective_definitions": [
+    {
+      "name": "installed_mass",
+      "unit": "kg",
+      "direction": "minimize"
+    },
+    {
+      "name": "task_energy",
+      "unit": "J",
+      "direction": "minimize"
+    },
+    {
+      "name": "task_coverage",
+      "unit": "fraction",
+      "direction": "maximize"
+    }
+  ],
+  "hard_constraint_definitions": [
+    {
+      "name": "thermal_margin",
+      "unit": "degC",
+      "interpretation": "Minimum robust margin to the declared thermal limit."
+    },
+    {
+      "name": "torque_margin",
+      "unit": "N m",
+      "interpretation": "Minimum robust output-torque margin over every sample in the frozen mission set."
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "independent-A",
+      "configuration_digest": "config-independent-A",
+      "operating_condition_digest": "48V-25C-cooling-A",
+      "mission_set_digest": "frozen-mission-set-01",
+      "objectives": [
+        {
+          "name": "installed_mass",
+          "value": 1,
+          "unit": "kg",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#independent-A",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-independent-A",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "task_energy",
+          "value": 100,
+          "unit": "J",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#independent-A",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-independent-A",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "task_coverage",
+          "value": 0.9,
+          "unit": "fraction",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#independent-A",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-independent-A",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        }
+      ],
+      "hard_constraints": [
+        {
+          "name": "thermal_margin",
+          "minimum_robust_margin": 5,
+          "unit": "degC",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#independent-A",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-independent-A",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "torque_margin",
+          "minimum_robust_margin": 2,
+          "unit": "N m",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#independent-A",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-independent-A",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        }
+      ]
+    },
+    {
+      "candidate_id": "independent-B",
+      "configuration_digest": "config-independent-B",
+      "operating_condition_digest": "48V-25C-cooling-A",
+      "mission_set_digest": "frozen-mission-set-01",
+      "objectives": [
+        {
+          "name": "installed_mass",
+          "value": 1.4,
+          "unit": "kg",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#independent-B",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-independent-B",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "task_energy",
+          "value": 120,
+          "unit": "J",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#independent-B",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-independent-B",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "task_coverage",
+          "value": 0.8,
+          "unit": "fraction",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#independent-B",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-independent-B",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        }
+      ],
+      "hard_constraints": [
+        {
+          "name": "thermal_margin",
+          "minimum_robust_margin": 5,
+          "unit": "degC",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#independent-B",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-independent-B",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "torque_margin",
+          "minimum_robust_margin": 2,
+          "unit": "N m",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#independent-B",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-independent-B",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        }
+      ]
+    },
+    {
+      "candidate_id": "source-C",
+      "configuration_digest": "config-source-C",
+      "operating_condition_digest": "48V-25C-cooling-A",
+      "mission_set_digest": "frozen-mission-set-02",
+      "objectives": [
+        {
+          "name": "installed_mass",
+          "value": 1.5,
+          "unit": "kg",
+          "evidence_class": "source_author_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#source-C",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-source-C",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "task_energy",
+          "value": 130,
+          "unit": "J",
+          "evidence_class": "source_author_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#source-C",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-source-C",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "task_coverage",
+          "value": 0.75,
+          "unit": "fraction",
+          "evidence_class": "source_author_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#source-C",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-source-C",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        }
+      ],
+      "hard_constraints": [
+        {
+          "name": "thermal_margin",
+          "minimum_robust_margin": 5,
+          "unit": "degC",
+          "evidence_class": "source_author_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#source-C",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-source-C",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "torque_margin",
+          "minimum_robust_margin": 2,
+          "unit": "N m",
+          "evidence_class": "source_author_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#source-C",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-source-C",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        }
+      ]
+    },
+    {
+      "candidate_id": "vendor-D",
+      "configuration_digest": "config-vendor-D",
+      "operating_condition_digest": "48V-25C-cooling-A",
+      "mission_set_digest": "frozen-mission-set-01",
+      "objectives": [
+        {
+          "name": "installed_mass",
+          "value": 0.5,
+          "unit": "kg",
+          "evidence_class": "vendor_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#vendor-D",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-vendor-D",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "task_energy",
+          "value": 40,
+          "unit": "J",
+          "evidence_class": "vendor_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#vendor-D",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-vendor-D",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "task_coverage",
+          "value": 0.99,
+          "unit": "fraction",
+          "evidence_class": "vendor_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#vendor-D",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-vendor-D",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        }
+      ],
+      "hard_constraints": [
+        {
+          "name": "thermal_margin",
+          "minimum_robust_margin": 5,
+          "unit": "degC",
+          "evidence_class": "vendor_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#vendor-D",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-vendor-D",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "torque_margin",
+          "minimum_robust_margin": 2,
+          "unit": "N m",
+          "evidence_class": "vendor_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#vendor-D",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-vendor-D",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        }
+      ]
+    },
+    {
+      "candidate_id": "model-E",
+      "configuration_digest": "config-model-E",
+      "operating_condition_digest": "48V-25C-cooling-A",
+      "mission_set_digest": "frozen-mission-set-01",
+      "objectives": [
+        {
+          "name": "installed_mass",
+          "value": 0.7,
+          "unit": "kg",
+          "evidence_class": "model_derived",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#model-E",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-model-E",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "task_energy",
+          "value": 60,
+          "unit": "J",
+          "evidence_class": "model_derived",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#model-E",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-model-E",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "task_coverage",
+          "value": 0.95,
+          "unit": "fraction",
+          "evidence_class": "model_derived",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#model-E",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-model-E",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        }
+      ],
+      "hard_constraints": [
+        {
+          "name": "thermal_margin",
+          "minimum_robust_margin": 5,
+          "unit": "degC",
+          "evidence_class": "model_derived",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#model-E",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-model-E",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "torque_margin",
+          "minimum_robust_margin": 2,
+          "unit": "N m",
+          "evidence_class": "model_derived",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#model-E",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-model-E",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        }
+      ]
+    },
+    {
+      "candidate_id": "unknown-F",
+      "configuration_digest": "config-unknown-F",
+      "operating_condition_digest": "48V-25C-cooling-A",
+      "mission_set_digest": "frozen-mission-set-01",
+      "objectives": [
+        {
+          "name": "installed_mass",
+          "value": null,
+          "unit": "kg",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#unknown-F",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-unknown-F",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "task_energy",
+          "value": 90,
+          "unit": "J",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#unknown-F",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-unknown-F",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "task_coverage",
+          "value": 0.9,
+          "unit": "fraction",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#unknown-F",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-unknown-F",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        }
+      ],
+      "hard_constraints": [
+        {
+          "name": "thermal_margin",
+          "minimum_robust_margin": 5,
+          "unit": "degC",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#unknown-F",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-unknown-F",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "torque_margin",
+          "minimum_robust_margin": 2,
+          "unit": "N m",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#unknown-F",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-unknown-F",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        }
+      ]
+    },
+    {
+      "candidate_id": "infeasible-G",
+      "configuration_digest": "config-infeasible-G",
+      "operating_condition_digest": "48V-25C-cooling-A",
+      "mission_set_digest": "frozen-mission-set-01",
+      "objectives": [
+        {
+          "name": "installed_mass",
+          "value": 0.9,
+          "unit": "kg",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#infeasible-G",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-infeasible-G",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "task_energy",
+          "value": 80,
+          "unit": "J",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#infeasible-G",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-infeasible-G",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "task_coverage",
+          "value": 0.92,
+          "unit": "fraction",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#infeasible-G",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-infeasible-G",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        }
+      ],
+      "hard_constraints": [
+        {
+          "name": "thermal_margin",
+          "minimum_robust_margin": -0.5,
+          "unit": "degC",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#infeasible-G",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-infeasible-G",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        },
+        {
+          "name": "torque_margin",
+          "minimum_robust_margin": 1,
+          "unit": "N m",
+          "evidence_class": "independent_physical",
+          "source_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/6234#infeasible-G",
+          "method": "Synthetic fixture source/method record; not physical evidence.",
+          "configuration_digest": "config-infeasible-G",
+          "operating_condition_digest": "48V-25C-cooling-A"
+        }
+      ]
+    }
+  ],
+  "claim_ceiling": "Synthetic Pareto/evidence-lane arithmetic only. Values, margins, sources and methods are fixture placeholders; they are not actuator measurements, robust design predictions or physical qualification."
+}
