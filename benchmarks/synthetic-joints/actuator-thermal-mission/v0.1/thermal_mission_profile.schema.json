@@ -1,0 +1,859 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/synthetic-joints/actuator-thermal-mission/v0.1/thermal_mission_profile.schema.json",
+  "title": "Actuator Thermal Mission Profile v0.1",
+  "description": "Versioned record of stateful actuator thermal duty evidence. It records source claims and measurements; it does not certify safety or truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "actuator",
+    "test_conditions",
+    "cooling_boundary",
+    "thermal_limits",
+    "curve_points",
+    "mission_trials",
+    "trace_availability",
+    "evidence",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "actuator": {
+      "$ref": "#/$defs/actuator"
+    },
+    "test_conditions": {
+      "$ref": "#/$defs/test_conditions"
+    },
+    "cooling_boundary": {
+      "$ref": "#/$defs/cooling_boundary"
+    },
+    "thermal_limits": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/thermal_limit"
+      }
+    },
+    "curve_points": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/curve_point"
+      },
+      "minItems": 1
+    },
+    "mission_trials": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/mission_trial"
+      }
+    },
+    "trace_availability": {
+      "$ref": "#/$defs/trace_availability"
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "actuator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "name",
+        "revision_state",
+        "unit_identifier",
+        "controller_state",
+        "configuration_digest",
+        "system_boundary"
+      ],
+      "properties": {
+        "candidate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision_state": {
+          "enum": [
+            "exact",
+            "partially_known",
+            "source_not_disclosed",
+            "unknown"
+          ]
+        },
+        "unit_identifier": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "controller_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "firmware_state": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "configuration_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "system_boundary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "included_components",
+            "excluded_components",
+            "boundary_notes"
+          ],
+          "properties": {
+            "included_components": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "excluded_components": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "boundary_notes": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "test_conditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "test_class",
+        "ambient_temperature_c",
+        "supply_voltage_v",
+        "rotor_or_output_speed",
+        "load_mode",
+        "orientation",
+        "initial_thermal_state",
+        "thermal_state_reset"
+      ],
+      "properties": {
+        "test_class": {
+          "enum": [
+            "no_load",
+            "locked_rotor",
+            "fixed_load",
+            "dynamic_load",
+            "interaction",
+            "mission_cycle",
+            "source_summary_only"
+          ]
+        },
+        "ambient_temperature_c": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "supply_voltage_v": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "supply_current_limit_a": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "rotor_or_output_speed": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "unit",
+            "status"
+          ],
+          "properties": {
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "unit": {
+              "enum": [
+                "rpm",
+                "rad_per_s",
+                "unknown"
+              ]
+            },
+            "status": {
+              "enum": [
+                "measured",
+                "reported",
+                "commanded",
+                "unknown"
+              ]
+            },
+            "reason": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "load_mode": {
+          "type": "string",
+          "minLength": 1
+        },
+        "orientation": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "initial_thermal_state": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/temperature_observation"
+          }
+        },
+        "thermal_state_reset": {
+          "enum": [
+            "documented_cold_start",
+            "documented_hot_start",
+            "controlled_partial_recovery",
+            "not_reset",
+            "not_disclosed",
+            "unknown"
+          ]
+        },
+        "control_mode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sample_rate_hz": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "test_method_notes": {
+          "type": "string"
+        }
+      }
+    },
+    "cooling_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "airflow_status",
+        "airflow_velocity_m_s",
+        "heat_sink_status",
+        "heat_sink_description",
+        "mounting_boundary",
+        "coolant_status",
+        "reason"
+      ],
+      "properties": {
+        "airflow_status": {
+          "enum": [
+            "none",
+            "forced",
+            "natural",
+            "unknown",
+            "not_disclosed"
+          ]
+        },
+        "airflow_velocity_m_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "heat_sink_status": {
+          "enum": [
+            "none",
+            "present",
+            "unknown",
+            "not_disclosed"
+          ]
+        },
+        "heat_sink_description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mounting_boundary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coolant_status": {
+          "enum": [
+            "none",
+            "air",
+            "liquid",
+            "other",
+            "unknown",
+            "not_disclosed"
+          ]
+        },
+        "coolant_description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "temperature_observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "location",
+        "status",
+        "temperature_c",
+        "sensor_position",
+        "uncertainty_c",
+        "calibration_ref",
+        "reason"
+      ],
+      "properties": {
+        "location": {
+          "enum": [
+            "winding",
+            "stator",
+            "case",
+            "gearbox",
+            "driver",
+            "ambient",
+            "other"
+          ]
+        },
+        "status": {
+          "enum": [
+            "measured",
+            "estimated",
+            "reported",
+            "unknown",
+            "not_disclosed"
+          ]
+        },
+        "temperature_c": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "sensor_position": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "uncertainty_c": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "calibration_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "thermal_limit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "location",
+        "status",
+        "limit_temperature_c",
+        "limit_source",
+        "protection_behavior",
+        "reason"
+      ],
+      "properties": {
+        "location": {
+          "enum": [
+            "winding",
+            "stator",
+            "case",
+            "gearbox",
+            "driver",
+            "other",
+            "unknown"
+          ]
+        },
+        "status": {
+          "enum": [
+            "known",
+            "not_disclosed",
+            "unknown"
+          ]
+        },
+        "limit_temperature_c": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "limit_source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "protection_behavior": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "not_disclosed",
+                  "unknown"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "limit_temperature_c": {
+                "type": "null"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "known"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "limit_temperature_c": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "curve_point": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "point_id",
+        "commanded_torque_nm",
+        "measured_output_torque_nm",
+        "output_speed_rpm",
+        "time_to_event",
+        "torque_uncertainty_nm",
+        "observation_class",
+        "note"
+      ],
+      "properties": {
+        "point_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "commanded_torque_nm": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "measured_output_torque_nm": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "output_speed_rpm": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "time_to_event": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "value_s",
+            "relation",
+            "event_type",
+            "exposure_duration_s",
+            "reason"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "reported",
+                "left_censored",
+                "right_censored",
+                "continuous_claim",
+                "not_reached",
+                "unknown"
+              ]
+            },
+            "value_s": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "relation": {
+              "enum": [
+                "equal",
+                "less_than",
+                "greater_than",
+                "not_applicable",
+                "unknown"
+              ]
+            },
+            "event_type": {
+              "enum": [
+                "derating_onset",
+                "protection_cutoff",
+                "declared_thermal_limit",
+                "test_end",
+                "unknown"
+              ]
+            },
+            "exposure_duration_s": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "reason": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "torque_uncertainty_nm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "observation_class": {
+          "enum": [
+            "independently_measured",
+            "vendor_measured",
+            "vendor_reported",
+            "vendor_affiliated",
+            "paper_reported",
+            "digitized",
+            "derived",
+            "unknown"
+          ]
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "mission_trial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trial_id",
+        "mission_id",
+        "outcome",
+        "initial_thermal_state",
+        "cooldown_duration_s",
+        "samples",
+        "stop_event",
+        "failure_or_censor_reason"
+      ],
+      "properties": {
+        "trial_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mission_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome": {
+          "enum": [
+            "completed",
+            "derated",
+            "protection_shutdown",
+            "aborted",
+            "censored",
+            "failed",
+            "indeterminate"
+          ]
+        },
+        "initial_thermal_state": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/temperature_observation"
+          }
+        },
+        "cooldown_duration_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "samples": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/sample"
+          }
+        },
+        "stop_event": {
+          "type": "string",
+          "minLength": 1
+        },
+        "failure_or_censor_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "time_s",
+        "commanded_torque_nm",
+        "output_torque_nm",
+        "output_speed_rpm",
+        "bus_voltage_v",
+        "bus_current_a",
+        "temperatures",
+        "missing_channel_reasons"
+      ],
+      "properties": {
+        "time_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "commanded_torque_nm": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "output_torque_nm": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "output_speed_rpm": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "bus_voltage_v": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "bus_current_a": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "temperatures": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/temperature_observation"
+          }
+        },
+        "missing_channel_reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "trace_availability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "raw_trace_refs",
+        "sampling_clock",
+        "reason"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "available",
+            "partial",
+            "not_available",
+            "not_disclosed"
+          ]
+        },
+        "raw_trace_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sampling_clock": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference",
+        "source_class",
+        "method",
+        "retrieved_or_published_date",
+        "independence"
+      ],
+      "properties": {
+        "reference": {
+          "type": "string",
+          "format": "uri"
+        },
+        "source_class": {
+          "enum": [
+            "manufacturer_claim",
+            "vendor_measurement",
+            "vendor_affiliated_measurement",
+            "independent_lab_measurement",
+            "paper_reported",
+            "benchmark_transcription",
+            "other"
+          ]
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "retrieved_or_published_date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        },
+        "independence": {
+          "enum": [
+            "independent",
+            "vendor",
+            "vendor_affiliated",
+            "not_assessed",
+            "unknown"
+          ]
+        }
+      }
+    }
+  }
+}
