@@ -2102,6 +2102,37 @@ mod tests {
     }
 
     #[test]
+    fn every_baseline_event_field_is_immutable_across_replanning() {
+        let mutations: Vec<Box<dyn Fn(&mut ExecutionEvent)>> = vec![
+            Box::new(|event| event.event_id.push_str("-changed")),
+            Box::new(|event| event.idempotency_key.push_str("-changed")),
+            Box::new(|event| event.event_type = ExecutionEventType::ProgressSnapshot),
+            Box::new(|event| event.event_id_ref.push_str("-changed")),
+            Box::new(|event| event.task_id.push_str("-changed")),
+            Box::new(|event| event.segment_id.push_str("-changed")),
+            Box::new(|event| event.sequence += 1),
+            Box::new(|event| event.start_hour += 0.25),
+            Box::new(|event| event.end_hour += 0.25),
+            Box::new(|event| event.productive_effort_hours += 0.25),
+            Box::new(|event| event.effective_hour += 0.25),
+            Box::new(|event| event.observed_hour += 0.25),
+            Box::new(|event| event.evidence_status = EvidenceStatus::Superseded),
+            Box::new(|event| event.evidence_class = EvidenceClass::Observed),
+            Box::new(|event| event.evidence_ref.push_str("-changed")),
+            Box::new(|event| event.interruption_cause = Some("rewritten".to_string())),
+        ];
+
+        for mutate in mutations {
+            let mut case = fixture();
+            mutate(&mut case.events[0]);
+            assert!(
+                validate(&case).is_err(),
+                "a baseline event payload field changed without replacing the trusted baseline manifest"
+            );
+        }
+    }
+
+    #[test]
     fn baseline_execution_event_cannot_be_rewritten_in_place() {
         let mut case = fixture();
         case.events[0].productive_effort_hours = 3.5;
