@@ -3,9 +3,7 @@
 
 use std::{env, fs, process::ExitCode};
 
-use symtropy_material_flow_benchmark::mode_options::{
-    ModeOptionsInput, evaluate_mode_options,
-};
+use symtropy_material_flow_benchmark::mode_options::{ModeOptionsInput, evaluate_mode_options};
 
 fn main() -> ExitCode {
     let mut args = env::args_os();
