@@ -220,6 +220,105 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
 
 
     }
+
+    fn solve_actuator(
+        &self,
+        body_a: &mut RigidBody<D>,
+        body_b: &mut RigidBody<D>,
+        dt: f64,
+        callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
+    ) {
+        let Some(motor) = self.motor.as_ref() else {
+            return;
+        };
+        if !dt.is_finite()
+            || dt <= 0.0
+            || !motor.target_vel.is_finite()
+            || !motor.kp.is_finite()
+            || !motor.kd.is_finite()
+            || !motor.max_force.is_finite()
+            || motor.max_force < 0.0
+            || D == 0
+        {
+            return;
+        }
+
+        let (pa, pb) = if self.plane_axis_a < self.plane_axis_b {
+            (self.plane_axis_a, self.plane_axis_b)
+        } else {
+            (self.plane_axis_b, self.plane_axis_a)
+        };
+        if pa >= D || pb >= D || pa == pb {
+            return;
+        }
+
+        let relative_velocity =
+            body_b.angular_velocity.get(pa, pb) - body_a.angular_velocity.get(pa, pb);
+        if !relative_velocity.is_finite() {
+            return;
+        }
+
+        // Velocity-only PD controller. Position control for a hinge still
+        // requires a persisted relative angle, which this joint does not keep.
+        let torque = (motor.kp * (motor.target_vel - relative_velocity)
+            - relative_velocity * motor.kd)
+            .clamp(-motor.max_force, motor.max_force);
+        let impulse = torque * dt;
+        if !impulse.is_finite() {
+            return;
+        }
+
+        // Use the same isotropic per-bivector inverse-inertia approximation
+        // as integrator::integrate. A full world-space inertia tensor and
+        // per-plane inertia remain a separate body-model improvement.
+        let inverse_inertia_a = if body_a.is_dynamic() {
+            body_a.inv_inertia.sum() / D as f64
+        } else {
+            0.0
+        };
+        let inverse_inertia_b = if body_b.is_dynamic() {
+            body_b.inv_inertia.sum() / D as f64
+        } else {
+            0.0
+        };
+        let effective_inverse_inertia = inverse_inertia_a + inverse_inertia_b;
+        if !effective_inverse_inertia.is_finite()
+            || effective_inverse_inertia <= 0.0
+            || inverse_inertia_a < 0.0
+            || inverse_inertia_b < 0.0
+        {
+            return;
+        }
+
+        // Apply equal/opposite generalized angular impulse weighted by each
+        // body's inverse inertia. Static/kinematic bodies receive no update.
+        if body_a.is_dynamic() {
+            body_a.angular_velocity.set(
+                pa,
+                pb,
+                body_a.angular_velocity.get(pa, pb) - impulse * inverse_inertia_a,
+            );
+        }
+        if body_b.is_dynamic() {
+            body_b.angular_velocity.set(
+                pa,
+                pb,
+                body_b.angular_velocity.get(pa, pb) + impulse * inverse_inertia_b,
+            );
+        }
+
+        // Midpoint work is the exact kinetic-energy change for this impulse
+        // under the engine's declared scalar effective-inertia approximation.
+        let relative_velocity_after =
+            body_b.angular_velocity.get(pa, pb) - body_a.angular_velocity.get(pa, pb);
+        let work_joules = impulse * 0.5 * (relative_velocity + relative_velocity_after);
+        if let Some(cb) = callback {
+            if work_joules.is_finite() {
+                cb.record_work(self.body_b, work_joules);
+            }
+        }
+    }
+
 }
 
 #[cfg(test)]
@@ -318,103 +417,6 @@ mod tests {
             b.angular_velocity.get(0, 1).abs() > 0.0,
             "2D hinge should allow rotation"
         );
-    }
-    fn solve_actuator(
-        &self,
-        body_a: &mut RigidBody<D>,
-        body_b: &mut RigidBody<D>,
-        dt: f64,
-        callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
-    ) {
-        let Some(motor) = self.motor.as_ref() else {
-            return;
-        };
-        if !dt.is_finite()
-            || dt <= 0.0
-            || !motor.target_vel.is_finite()
-            || !motor.kp.is_finite()
-            || !motor.kd.is_finite()
-            || !motor.max_force.is_finite()
-            || motor.max_force < 0.0
-            || D == 0
-        {
-            return;
-        }
-
-        let (pa, pb) = if self.plane_axis_a < self.plane_axis_b {
-            (self.plane_axis_a, self.plane_axis_b)
-        } else {
-            (self.plane_axis_b, self.plane_axis_a)
-        };
-        if pa >= D || pb >= D || pa == pb {
-            return;
-        }
-
-        let relative_velocity =
-            body_b.angular_velocity.get(pa, pb) - body_a.angular_velocity.get(pa, pb);
-        if !relative_velocity.is_finite() {
-            return;
-        }
-
-        // Velocity-only PD controller. Position control for a hinge still
-        // requires a persisted relative angle, which this joint does not keep.
-        let torque = (motor.kp * (motor.target_vel - relative_velocity)
-            - relative_velocity * motor.kd)
-            .clamp(-motor.max_force, motor.max_force);
-        let impulse = torque * dt;
-        if !impulse.is_finite() {
-            return;
-        }
-
-        // Use the same isotropic per-bivector inverse-inertia approximation
-        // as integrator::integrate. A full world-space inertia tensor and
-        // per-plane inertia remain a separate body-model improvement.
-        let inverse_inertia_a = if body_a.is_dynamic() {
-            body_a.inv_inertia.sum() / D as f64
-        } else {
-            0.0
-        };
-        let inverse_inertia_b = if body_b.is_dynamic() {
-            body_b.inv_inertia.sum() / D as f64
-        } else {
-            0.0
-        };
-        let effective_inverse_inertia = inverse_inertia_a + inverse_inertia_b;
-        if !effective_inverse_inertia.is_finite()
-            || effective_inverse_inertia <= 0.0
-            || inverse_inertia_a < 0.0
-            || inverse_inertia_b < 0.0
-        {
-            return;
-        }
-
-        // Apply equal/opposite generalized angular impulse weighted by each
-        // body's inverse inertia. Static/kinematic bodies receive no update.
-        if body_a.is_dynamic() {
-            body_a.angular_velocity.set(
-                pa,
-                pb,
-                body_a.angular_velocity.get(pa, pb) - impulse * inverse_inertia_a,
-            );
-        }
-        if body_b.is_dynamic() {
-            body_b.angular_velocity.set(
-                pa,
-                pb,
-                body_b.angular_velocity.get(pa, pb) + impulse * inverse_inertia_b,
-            );
-        }
-
-        // Midpoint work is the exact kinetic-energy change for this impulse
-        // under the engine's declared scalar effective-inertia approximation.
-        let relative_velocity_after =
-            body_b.angular_velocity.get(pa, pb) - body_a.angular_velocity.get(pa, pb);
-        let work_joules = impulse * 0.5 * (relative_velocity + relative_velocity_after);
-        if let Some(cb) = callback {
-            if work_joules.is_finite() {
-                cb.record_work(self.body_b, work_joules);
-            }
-        }
     }
 
 }
