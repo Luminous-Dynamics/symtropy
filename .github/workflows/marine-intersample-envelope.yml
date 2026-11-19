@@ -1,0 +1,51 @@
+name: Marine Inter-sample Envelope Audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/marine-intersample-envelope/**"
+      - ".github/workflows/marine-intersample-envelope.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marine-intersample-envelope-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  intersample-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/marine-intersample-envelope/Cargo.toml -- --check
+
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/marine-intersample-envelope/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run semantic and negative-control tests
+        run: cargo test --manifest-path tools/marine-intersample-envelope/Cargo.toml
+
+      - name: Validate schema and fixture rosters
+        run: |
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.service_contract.minItems == 11 and .properties.scenarios.minItems == 5' tools/marine-intersample-envelope/schema/marine-intersample-envelope.schema.json
+          jq -e '.record_status == "synthetic" and (.mission_snapshot.initial_resource_state_sha256 | length == 64) and (.scenarios | length == 5) and ([.scenarios[].scenario_class] | sort) == (.scenario_roster | sort) and all(.service_contract[]; has("max_abs_rate_per_hour") and has("rate_bound_evidence_sha256") and has("rate_bound_method") and .rate_bound_class == "synthetic") and all(.scenarios[]; .event_manifest_complete == true and (.event_manifest_sha256 | length == 64) and (.scenario_sha256 | length == 64) and (.samples | length == 3))' tools/marine-intersample-envelope/fixtures/synthetic-intersample-safe-0001.json
+
+      - name: Safe fixture remains synthetic-only
+        run: |
+          cargo run --quiet --manifest-path tools/marine-intersample-envelope/Cargo.toml -- audit-inter-sample tools/marine-intersample-envelope/fixtures/synthetic-intersample-safe-0001.json > /tmp/intersample-safe.json
+          jq -e '.disposition == "SYNTHETIC_ONLY" and .candidate_disposition == "DECLARED_RATE_BOUNDED_ENVELOPE_FEASIBLE" and .scenario_count == 5 and .inter_sample_envelope_count == 110 and .aggregate_scalar_score == "NOT_COMPUTED"' /tmp/intersample-safe.json
+
+      - name: Hidden inter-sample dip must block despite passing endpoints
+        run: |
+          cargo run --quiet --manifest-path tools/marine-intersample-envelope/Cargo.toml -- audit-inter-sample tools/marine-intersample-envelope/fixtures/synthetic-intersample-hidden-dip-0001.json > /tmp/intersample-hidden-dip.json
+          jq -e '.disposition == "BLOCKED" and .candidate_disposition == "INFEASIBLE/ABSTAIN" and ([.scenario_reports[] | select(.inter_sample_feasible == false) | .scenario_class] == ["adverse_forecast_error"]) and ([.scenario_reports[] | select(.scenario_class == "adverse_forecast_error") | .first_inter_sample_breach.metric] == ["freshwater_usable_l"])' /tmp/intersample-hidden-dip.json

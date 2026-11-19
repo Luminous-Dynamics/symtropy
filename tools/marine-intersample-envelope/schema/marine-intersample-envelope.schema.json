@@ -1,0 +1,358 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:marine-intersample-envelope:0.1.0",
+  "title": "Marine Inter-sample Service and Resource Envelope Audit",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scorecard_id",
+    "record_status",
+    "claim_ceiling",
+    "mission_snapshot",
+    "service_contract",
+    "time_grid",
+    "time_grid_sha256",
+    "scenario_roster",
+    "scenarios"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "scorecard_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "record_status": {
+      "enum": [
+        "synthetic",
+        "shadow_replay",
+        "measured_campaign",
+        "published_reproduction"
+      ]
+    },
+    "claim_ceiling": {
+      "const": "declared_rate_bounded_inter_sample_envelope_audit_only"
+    },
+    "mission_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mission_id",
+        "mission_snapshot_sha256",
+        "craft_configuration_sha256",
+        "occupancy_sha256",
+        "service_contract_sha256",
+        "time_grid_sha256",
+        "scenario_roster_sha256",
+        "model_registry_sha256",
+        "operating_envelope_sha256",
+        "initial_resource_state_sha256"
+      ],
+      "properties": {
+        "mission_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mission_snapshot_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "craft_configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "occupancy_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "service_contract_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "time_grid_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "scenario_roster_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "model_registry_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "operating_envelope_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "initial_resource_state_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "service_contract": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 11,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric",
+          "unit",
+          "operator",
+          "floor_value",
+          "minimum_coverage_fraction",
+          "max_abs_rate_per_hour",
+          "rate_bound_method",
+          "rate_bound_class",
+          "rate_bound_evidence_sha256"
+        ],
+        "properties": {
+          "metric": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "operator": {
+            "enum": [
+              "gte",
+              "lte"
+            ]
+          },
+          "floor_value": {
+            "type": "number"
+          },
+          "minimum_coverage_fraction": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "max_abs_rate_per_hour": {
+            "type": "number",
+            "minimum": 0
+          },
+          "rate_bound_method": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rate_bound_class": {
+            "enum": [
+              "measured",
+              "modeled",
+              "derived",
+              "synthetic"
+            ]
+          },
+          "rate_bound_evidence_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        }
+      }
+    },
+    "time_grid": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "string",
+        "format": "date-time"
+      }
+    },
+    "time_grid_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "scenario_roster": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "adverse_forecast_error",
+          "common_cause_generation_watermaker_outage",
+          "main_generation_outage",
+          "nominal",
+          "watermaker_outage"
+        ]
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "scenario_class",
+          "event_manifest_complete",
+          "events",
+          "event_manifest_sha256",
+          "scenario_sha256",
+          "samples"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scenario_class": {
+            "enum": [
+              "adverse_forecast_error",
+              "common_cause_generation_watermaker_outage",
+              "main_generation_outage",
+              "nominal",
+              "watermaker_outage"
+            ]
+          },
+          "event_manifest_complete": {
+            "const": true
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "event_id",
+                "event_class",
+                "component_id",
+                "timestamp"
+              ],
+              "properties": {
+                "event_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "event_class": {
+                  "enum": [
+                    "outage",
+                    "repair",
+                    "weather_disturbance",
+                    "operator_action",
+                    "shore_service"
+                  ]
+                },
+                "component_id": {
+                  "enum": [
+                    "environment",
+                    "main_generator",
+                    "watermaker",
+                    "shore_power",
+                    "battery_inverter",
+                    "potable_water_system",
+                    "waste_service"
+                  ]
+                },
+                "timestamp": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          "event_manifest_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "scenario_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "samples": {
+            "type": "array",
+            "minItems": 3,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "time_index",
+                "timestamp",
+                "resource_metrics"
+              ],
+              "properties": {
+                "time_index": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "timestamp": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "resource_metrics": {
+                  "type": "array",
+                  "minItems": 11,
+                  "maxItems": 11,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "metric",
+                      "unit",
+                      "value",
+                      "lower_bound",
+                      "upper_bound",
+                      "coverage_fraction",
+                      "measurement_class",
+                      "measurement_method",
+                      "evidence_sha256"
+                    ],
+                    "properties": {
+                      "metric": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "unit": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "value": {
+                        "type": "number"
+                      },
+                      "lower_bound": {
+                        "type": "number"
+                      },
+                      "upper_bound": {
+                        "type": "number"
+                      },
+                      "coverage_fraction": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      "measurement_class": {
+                        "enum": [
+                          "measured",
+                          "modeled",
+                          "derived",
+                          "synthetic"
+                        ]
+                      },
+                      "measurement_method": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "evidence_sha256": {
+                        "type": "string",
+                        "pattern": "^[a-fA-F0-9]{64}$"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
