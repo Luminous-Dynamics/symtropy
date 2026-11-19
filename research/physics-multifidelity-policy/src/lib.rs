@@ -665,7 +665,7 @@ fn validate_input(input: &PolicyInputV3) -> Result<(), PolicyError> {
     validate_nonnegative_finite(
         input.requirement.physical_model_error_limits.max_total_error_upper_bound,
         "max_total_error_upper_bound",
-    )?
+    )?;
     if let Some(boundary) = &input.requirement.decision_boundary {
         if !boundary.threshold.is_finite() {
             return Err(PolicyError::NonFinite("requirement.decision_boundary.threshold"));
