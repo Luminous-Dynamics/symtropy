@@ -16,10 +16,20 @@ pub struct AvailabilityWindow {
 
 #[derive(Clone, Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ResourceOutageWindow {
+    pub start_hour: f64,
+    pub end_hour: f64,
+    pub units_unavailable: u32,
+}
+
+#[derive(Clone, Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ResourceProfile {
     pub available_units: u32,
     pub calendar_period_hours: f64,
     pub availability_windows: Vec<AvailabilityWindow>,
+    #[serde(default)]
+    pub outage_windows: Vec<ResourceOutageWindow>,
 }
 
 #[derive(Clone, Debug)]
@@ -259,6 +269,48 @@ pub fn schedule_with_policy(
             previous_end = window.end_hour;
         }
     }
+    let mut resource_allocations: BTreeMap<String, Vec<ResourceInterval>> = BTreeMap::new();
+    for (resource_id, profile) in profiles {
+        let mut outage_boundaries = Vec::new();
+        for outage in &profile.outage_windows {
+            if !outage.start_hour.is_finite()
+                || !outage.end_hour.is_finite()
+                || outage.start_hour < 0.0
+                || outage.end_hour <= outage.start_hour
+                || outage.units_unavailable == 0
+                || outage.units_unavailable > profile.available_units
+            {
+                errors.push(format!("resource {resource_id} has invalid outage window"));
+                continue;
+            }
+            outage_boundaries.push(outage.start_hour);
+            outage_boundaries.push(outage.end_hour);
+            resource_allocations
+                .entry(resource_id.clone())
+                .or_default()
+                .push(ResourceInterval {
+                    start: outage.start_hour,
+                    end: outage.end_hour,
+                    units: outage.units_unavailable,
+                });
+        }
+        outage_boundaries.sort_by(f64::total_cmp);
+        outage_boundaries.dedup_by(|left, right| (*left - *right).abs() <= 1e-9);
+        for boundary in outage_boundaries {
+            let unavailable: u32 = profile
+                .outage_windows
+                .iter()
+                .filter(|outage| outage.start_hour <= boundary && outage.end_hour > boundary)
+                .map(|outage| outage.units_unavailable)
+                .sum();
+            if unavailable > profile.available_units {
+                errors.push(format!(
+                    "resource {resource_id} has overlapping outages exceeding available capacity"
+                ));
+                break;
+            }
+        }
+    }
     let mut task_by_key = BTreeMap::new();
 
     for task in tasks {
@@ -376,7 +428,6 @@ pub fn schedule_with_policy(
 
     let mut unscheduled: BTreeSet<String> = task_by_key.keys().cloned().collect();
     let mut scheduled_by_key: BTreeMap<String, ScheduledTask> = BTreeMap::new();
-    let mut resource_allocations: BTreeMap<String, Vec<ResourceInterval>> = BTreeMap::new();
 
     while !unscheduled.is_empty() {
         let mut candidates: Vec<(f64, f64, String)> = Vec::new();
@@ -907,6 +958,7 @@ mod tests {
                     end_hour: *end_hour,
                 })
                 .collect(),
+            outage_windows: Vec::new(),
         }
     }
 
@@ -1045,6 +1097,50 @@ mod tests {
         let second = result.iter().find(|x| x.event_id == "E2").unwrap();
         assert_eq!(second.start_hour, 10.0);
         assert_eq!(second.end_hour, 20.0);
+    }
+
+    #[test]
+    fn delays_repair_for_one_off_partial_resource_outage() {
+        let task = spec("E1", "repair", &[], 8.0, 4.0, Some("crew"), 1);
+        let mut crew = profile(2, 24.0, &[(0.0, 24.0)]);
+        crew.outage_windows.push(ResourceOutageWindow {
+            start_hour: 8.0,
+            end_hour: 14.0,
+            units_unavailable: 1,
+        });
+        let profiles = BTreeMap::from([("crew".to_string(), crew)]);
+        let result = schedule(&[task], &profiles).expect("one remaining crew unit is available");
+        assert_eq!(result[0].start_hour, 8.0);
+        assert_eq!(result[0].end_hour, 12.0);
+    }
+
+    #[test]
+    fn blocks_resource_when_all_capacity_is_unavailable() {
+        let task = spec("E1", "repair", &[], 8.0, 4.0, Some("crew"), 1);
+        let mut crew = profile(1, 24.0, &[(0.0, 24.0)]);
+        crew.outage_windows.push(ResourceOutageWindow {
+            start_hour: 8.0,
+            end_hour: 14.0,
+            units_unavailable: 1,
+        });
+        let profiles = BTreeMap::from([("crew".to_string(), crew)]);
+        let result = schedule(&[task], &profiles).expect("resource should recover after outage");
+        assert_eq!(result[0].start_hour, 14.0);
+        assert_eq!(result[0].end_hour, 18.0);
+    }
+
+    #[test]
+    fn rejects_overlapping_outages_above_resource_capacity() {
+        let task = spec("E1", "repair", &[], 8.0, 4.0, Some("crew"), 1);
+        let mut crew = profile(1, 24.0, &[(0.0, 24.0)]);
+        crew.outage_windows = vec![
+            ResourceOutageWindow { start_hour: 8.0, end_hour: 12.0, units_unavailable: 1 },
+            ResourceOutageWindow { start_hour: 10.0, end_hour: 14.0, units_unavailable: 1 },
+        ];
+        let profiles = BTreeMap::from([("crew".to_string(), crew)]);
+        assert!(schedule(&[task], &profiles)
+            .unwrap_err()[0]
+            .contains("overlapping outages exceeding available capacity"));
     }
 
     #[test]
