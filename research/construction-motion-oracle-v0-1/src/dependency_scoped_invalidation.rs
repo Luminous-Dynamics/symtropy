@@ -67,6 +67,7 @@ pub enum DependencyGraphError {
     DuplicateChangedNode(String),
     InvalidChangedVersionDigest(String),
     UnchangedVersion(String),
+    EmptyChangeReason(String),
     InvalidSnapshot(String),
 }
 
@@ -104,6 +105,7 @@ pub enum RequalificationAction {
     ReconcileExecutionEvidence,
     ReinspectPhysicalOutput,
     ReevaluateAcceptance,
+    RequalifyMaterialTraceability,
     RequalifyOther,
 }
 
@@ -399,6 +401,11 @@ impl EvidenceDependencyGraph {
                     change.node_id.clone(),
                 ));
             }
+            if change.reason.trim().is_empty() {
+                return Err(DependencyGraphError::EmptyChangeReason(
+                    change.node_id.clone(),
+                ));
+            }
             if current.version_sha256 == change.new_version_sha256 {
                 return Err(DependencyGraphError::UnchangedVersion(
                     change.node_id.clone(),
@@ -479,9 +486,10 @@ fn action_for_kind(kind: EvidenceNodeKind) -> RequalificationAction {
             RequalificationAction::ReinspectPhysicalOutput
         }
         EvidenceNodeKind::AcceptedOutput => RequalificationAction::ReevaluateAcceptance,
-        EvidenceNodeKind::MaterialBatch | EvidenceNodeKind::Other => {
-            RequalificationAction::RequalifyOther
+        EvidenceNodeKind::MaterialBatch => {
+            RequalificationAction::RequalifyMaterialTraceability
         }
+        EvidenceNodeKind::Other => RequalificationAction::RequalifyOther,
     }
 }
 
@@ -773,4 +781,40 @@ mod tests {
             ))
         );
     }
+
+    #[test]
+    fn revision_requires_a_nonempty_auditable_reason() {
+        let graph = site_graph();
+        assert_eq!(
+            graph.plan_revision(&[EvidenceRevisionChange {
+                node_id: "tool".into(),
+                new_version_sha256: digest('0'),
+                reason: "   ".into(),
+            }]),
+            Err(DependencyGraphError::EmptyChangeReason("tool".into()))
+        );
+    }
+
+    #[test]
+    fn graph_rejects_unknown_edges_and_invalid_node_digests() {
+        assert_eq!(
+            EvidenceDependencyGraph::new(
+                vec![node("known", EvidenceNodeKind::Other, '1')],
+                vec![edge("missing", "known")],
+            ),
+            Err(DependencyGraphError::UnknownDependentNode("missing".into()))
+        );
+        assert_eq!(
+            EvidenceDependencyGraph::new(
+                vec![EvidenceNode {
+                    node_id: "bad".into(),
+                    kind: EvidenceNodeKind::Other,
+                    version_sha256: "not-a-digest".into(),
+                }],
+                Vec::new(),
+            ),
+            Err(DependencyGraphError::InvalidNodeVersionDigest("bad".into()))
+        );
+    }
+
 }
