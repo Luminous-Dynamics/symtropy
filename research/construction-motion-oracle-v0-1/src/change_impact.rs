@@ -1991,7 +1991,8 @@ mod tests {
                         DependencyDomain::DesignRevision,
                     ),
                 };
-                let primary_key = key(domain, format!("scope:{seed}:{index}"));
+                let primary_scope = format!("scope:{seed}:{index}");
+                let primary_key = key(domain, &primary_scope);
                 current_by_key
                     .entry(primary_key.clone())
                     .or_insert_with(|| digest('1'));
