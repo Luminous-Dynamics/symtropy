@@ -47,9 +47,10 @@ The broader repository contains domain-specific research and benchmark work. It 
 - model-path capability census: [#1472](https://github.com/Luminous-Dynamics/symtropy/issues/1472);
 - integrator portfolio and numerical qualification: [#3975](https://github.com/Luminous-Dynamics/symtropy/issues/3975);
 - analytic/manufactured numerical oracles and V&V: [#3749](https://github.com/Luminous-Dynamics/symtropy/issues/3749);
-- semantic equivalence for backend comparisons: [#4366](https://github.com/Luminous-Dynamics/symtropy/issues/4366);
+- semantic equivalence for backend comparisons: [#4366](https://github.com/Luminous-Dynamics/symtropy/issues/4366), with executable receipt/schema work in [PR #4369](https://github.com/Luminous-Dynamics/symtropy/pull/4369);
 - differential fuzzing and counterexample minimization: [#4446](https://github.com/Luminous-Dynamics/symtropy/issues/4446);
 - the shared physics qualification corpus: [#460](https://github.com/Luminous-Dynamics/symtropy/issues/460);
+- campaign-level quality-qualified throughput and failure-denominator preservation: [#4559](https://github.com/Luminous-Dynamics/symtropy/issues/4559), with an evaluator prototype in [PR #4564](https://github.com/Luminous-Dynamics/symtropy/pull/4564);
 - multiscale model coupling: [#5772](https://github.com/Luminous-Dynamics/symtropy/issues/5772);
 - typed subsystem ports, units, time and balance semantics: [#5779](https://github.com/Luminous-Dynamics/symtropy/issues/5779);
 - fluid-structure interaction coupling and rollback: [#4275](https://github.com/Luminous-Dynamics/symtropy/issues/4275);
