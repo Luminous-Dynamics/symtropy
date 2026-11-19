@@ -1,0 +1,91 @@
+{
+  "schemaVersion": "0.1.0",
+  "snapshotDate": "2026-11-19",
+  "records": [
+    {
+      "recordId": "IEC-TS-62898-3-5-2026",
+      "title": "Microgrids — Testing for microgrid monitoring, control, and energy management systems",
+      "category": "published_standard",
+      "publisher": "IEC",
+      "publicationDate": "2026-06-11",
+      "status": "published",
+      "reportedScope": "Hardware-in-the-loop, commissioning and periodic testing for grid-connected and isolated microgrid monitoring, control and energy management systems",
+      "benchmarkRole": "Primary external test-method baseline for microgrid control/EMS test programme design; map only the applicable clauses and test profiles after authorized standards access.",
+      "importStatus": "documentation_registered_not_imported",
+      "licenseStatus": "proprietary_standard_access",
+      "primarySource": "https://webstore.iec.ch/en/publication/84175",
+      "limitations": "A published technical specification is not an open benchmark dataset, controller certification or evidence that a particular system conforms."
+    },
+    {
+      "recordId": "IEEE-P2030.7-REV-PAR-2025",
+      "title": "P2030.7 — Standard for the Specification of Microgrid Controllers",
+      "category": "active_standards_project",
+      "publisher": "IEEE Standards Association",
+      "approvalDate": "2025-03-27",
+      "status": "active_par",
+      "predecessor": "IEEE 2030.7-2017",
+      "benchmarkRole": "Track revision scope and future controller-function requirements; continue to identify predecessor edition explicitly until a replacement is published.",
+      "importStatus": "documentation_registered_not_imported",
+      "licenseStatus": "public_project_metadata",
+      "primarySource": "https://standards.ieee.org/ieee/2030.7/12022/",
+      "limitations": "Active PAR is a project authorization, not a published replacement standard or conformance target by itself."
+    },
+    {
+      "recordId": "IEEE-P2030.8-REV-PAR-2026",
+      "title": "P2030.8 — Standard for the Testing of Microgrid Controllers",
+      "category": "active_standards_project",
+      "publisher": "IEEE Standards Association",
+      "approvalDate": "2026-03-26",
+      "status": "active_par",
+      "predecessor": "IEEE 2030.8-2018",
+      "benchmarkRole": "Track controller test procedure revision; retain the 2018 edition as the published predecessor until a replacement is issued.",
+      "importStatus": "documentation_registered_not_imported",
+      "licenseStatus": "public_project_metadata",
+      "primarySource": "https://standards.ieee.org/ieee/2030.8/12543/",
+      "limitations": "Active PAR is not a published replacement standard or a benchmark dataset."
+    },
+    {
+      "recordId": "POWER-SYSTEM-RESTORATION-BENCHMARK-2026",
+      "title": "A benchmark model for power system restoration studies: Review and application",
+      "category": "restoration_dataset_and_method",
+      "publisher": "Renewable and Sustainable Energy Reviews",
+      "publicationDate": "2026-05",
+      "status": "published_open_access_article",
+      "reportedScope": "Six detailed restoration scenarios and a simulation framework for EMT and RMS studies; associated Zenodo record 10.5281/zenodo.17340051",
+      "benchmarkRole": "High-value physical restoration scenario/data transfer target. Reproduce exact scenario and model versions, then compare qualified electrical solver outputs separately from resource scheduler outputs.",
+      "importStatus": "metadata_registered_not_imported",
+      "licenseStatus": "dataset_license_and_redistribution_review_required",
+      "primarySource": "https://doi.org/10.1016/j.rser.2026.116787",
+      "datasetSource": "https://doi.org/10.5281/zenodo.17340051",
+      "limitations": "Paper is open access, but dataset license, exact downloadable files, model/tool versions and redistribution rights must be checked independently. It is a physical restoration comparator, not a direct RCPSP scheduling leaderboard."
+    },
+    {
+      "recordId": "ROLLING-HORIZON-DN-RESTORATION-2026",
+      "title": "Resilience-oriented restoration of distribution networks under typhoon-induced uncertainties with rolling-horizon co-optimization",
+      "category": "restoration_method_paper",
+      "publisher": "Reliability Engineering & System Safety",
+      "publicationDate": "2026",
+      "status": "published",
+      "reportedScope": "Modified IEEE 33-node and 123-node feeders; rolling-horizon co-optimization with feedback-driven repair and operating actions; paper reports 23.7% and 15.1% restoration-time reductions against its selected baselines.",
+      "benchmarkRole": "Methodological comparator for decision-dependent uncertainty, feedback and rolling-horizon restoration. Reproduce the paper's exact feeder variants, objective, uncertainty, baselines and compute budget before comparative claims.",
+      "importStatus": "not_a_dataset",
+      "licenseStatus": "documentation_only",
+      "primarySource": "https://www.sciencedirect.com/science/article/pii/S0951832026013347",
+      "limitations": "Published performance figures are specific to the paper's test setup and selected baselines; they are not directly comparable to synthetic asset-repair cases or field restoration."
+    },
+    {
+      "recordId": "ENTSOE-TRANSMISSION-SUPPLY-CHAIN-2026",
+      "title": "The Transmission Grid Investment and Supply Chain Assessment Report 2026",
+      "category": "industry_survey",
+      "publisher": "ENTSO-E",
+      "publicationDate": "2026-11-03",
+      "status": "published",
+      "reportedScope": "Survey of 27 European TSOs, seven asset categories and 2026–2035 investment pipeline; includes supply-chain and skilled-workforce constraints.",
+      "benchmarkRole": "Operational context for long-lead equipment, supplier concentration, vessel/port constraints, workforce availability and manufacturing throughput.",
+      "importStatus": "document_registered_not_structured_dataset",
+      "licenseStatus": "document_access_and_reuse_review_required",
+      "primarySource": "https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Position%20papers%20and%20reports/2026/entso-e_report_investment_supply_chain_assessment_2026_261030.pdf",
+      "limitations": "European TSO survey context; should not be generalized as South African or global lead-time distributions. Industry survey is not an algorithmic solver benchmark."
+    }
+  ]
+}
