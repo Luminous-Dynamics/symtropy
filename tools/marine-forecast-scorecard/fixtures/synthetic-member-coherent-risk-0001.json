@@ -21,7 +21,8 @@
         "member_id": "member-02",
         "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       }
-    ]
+    ],
+    "forecast_issue_time": "2025-03-01T00:00:00Z"
   },
   "routes": [
     {
