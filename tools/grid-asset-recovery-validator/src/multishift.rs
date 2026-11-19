@@ -1,0 +1,2184 @@
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet};
+
+const TOLERANCE: f64 = 1e-9;
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutionCase {
+    pub schema_version: String,
+    pub case_id: String,
+    pub time_origin_utc: String,
+    pub case_maturity: String,
+    pub as_of_hour: f64,
+    pub horizon_end_hour: f64,
+    pub tasks: Vec<ExecutionTask>,
+    pub resources: Vec<ExecutionResource>,
+    pub baseline_commitments: Vec<Commitment>,
+    pub proposed_commitments: Vec<Commitment>,
+    pub baseline_event_manifest_ref: String,
+    pub baseline_event_manifest_sha256: String,
+    pub baseline_events: Vec<ExecutionEvent>,
+    pub events: Vec<ExecutionEvent>,
+    pub planned_segments: Vec<PlannedSegment>,
+    #[serde(default)]
+    pub reconciliations: Vec<ReconciliationEvent>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutionTask {
+    pub event_id: String,
+    pub task_id: String,
+    pub release_hour: f64,
+    pub required_effort_hours: f64,
+    pub minimum_segment_effort_hours: f64,
+    pub preemption_mode: PreemptionMode,
+    pub maximum_interruptions: u32,
+    #[serde(default)]
+    pub checkpoint_effort_hours: Vec<f64>,
+    pub paused_resource_policy: PausedResourcePolicy,
+    #[serde(default)]
+    pub depends_on: Vec<String>,
+    #[serde(default)]
+    pub resource_requirements: Vec<ResourceRequirement>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum PreemptionMode {
+    NonPreemptible,
+    Checkpointed,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum PausedResourcePolicy {
+    Release,
+    Retain,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ResourceRequirement {
+    pub resource_id: String,
+    pub units: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutionResource {
+    pub resource_id: String,
+    pub capacity_windows: Vec<CapacityWindow>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CapacityWindow {
+    pub start_hour: f64,
+    pub end_hour: f64,
+    pub capacity_units: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Commitment {
+    pub commitment_id: String,
+    pub event_id: String,
+    pub task_id: String,
+    pub version: u64,
+    pub state: CommitmentState,
+    #[serde(default)]
+    pub frozen_event_ids: Vec<String>,
+    pub active_segment_id: Option<String>,
+    pub source_evidence_ref: String,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum CommitmentState {
+    InProgress,
+    Paused,
+    Completed,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutionEvent {
+    pub event_id: String,
+    pub idempotency_key: String,
+    pub event_type: ExecutionEventType,
+    pub event_id_ref: String,
+    pub task_id: String,
+    pub segment_id: String,
+    pub sequence: u32,
+    pub start_hour: f64,
+    pub end_hour: f64,
+    pub productive_effort_hours: f64,
+    pub effective_hour: f64,
+    pub observed_hour: f64,
+    pub evidence_status: EvidenceStatus,
+    pub evidence_class: EvidenceClass,
+    pub evidence_ref: String,
+    pub interruption_cause: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ExecutionEventType {
+    WorkSegmentCompleted,
+    ProgressSnapshot,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum EvidenceStatus {
+    Current,
+    Superseded,
+    Stale,
+    Conflicted,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum EvidenceClass {
+    Observed,
+    SyntheticFixture,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedSegment {
+    pub segment_id: String,
+    pub event_id: String,
+    pub task_id: String,
+    pub sequence: u32,
+    pub start_hour: f64,
+    pub end_hour: f64,
+    pub productive_effort_hours: f64,
+    pub interruption_cause: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ReconciliationEvent {
+    pub event_id: String,
+    pub commitment_id: String,
+    pub from_version: u64,
+    pub to_version: u64,
+    pub action: ReconciliationAction,
+    pub observed_hour: f64,
+    pub evidence_status: EvidenceStatus,
+    pub authority_ref: String,
+    pub evidence_ref: String,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ReconciliationAction {
+    ProgressRecorded,
+    PauseConfirmed,
+    ResumeAuthorized,
+    CompletionConfirmed,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutionReport {
+    pub case_id: String,
+    pub result_status: String,
+    pub event_deliveries_deduplicated: usize,
+    pub tasks: Vec<TaskReport>,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskReport {
+    pub event_id: String,
+    pub task_id: String,
+    pub commitment_state: String,
+    pub observed_effort_hours: f64,
+    pub planned_effort_hours: f64,
+    pub remaining_effort_hours: f64,
+    pub interruption_count: usize,
+    pub projected_completion_hour: Option<f64>,
+}
+
+#[derive(Clone, Debug)]
+struct SegmentView {
+    segment_id: String,
+    event_id: String,
+    task_id: String,
+    sequence: u32,
+    start_hour: f64,
+    end_hour: f64,
+    effort_hours: f64,
+    completed: bool,
+    interruption_cause: Option<String>,
+}
+
+#[derive(Clone, Debug)]
+struct ResourceUse {
+    start_hour: f64,
+    end_hour: f64,
+    units: u32,
+    task_key: String,
+}
+
+fn task_key(event_id: &str, task_id: &str) -> String {
+    format!("{event_id}::{task_id}")
+}
+
+fn finite_nonnegative(value: f64) -> bool {
+    value.is_finite() && value >= 0.0
+}
+
+fn approximately_equal(left: f64, right: f64) -> bool {
+    (left - right).abs() <= TOLERANCE
+}
+
+fn valid_time_origin(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    if bytes.len() != 20 || bytes[4] != b'-' || bytes[7] != b'-'
+        || bytes[10] != b'T' || bytes[13] != b':' || bytes[16] != b':' || bytes[19] != b'Z'
+    {
+        return false;
+    }
+    let parse = |range: std::ops::Range<usize>| -> Option<u32> {
+        let slice = bytes.get(range)?;
+        if !slice.iter().all(u8::is_ascii_digit) { return None; }
+        std::str::from_utf8(slice).ok()?.parse().ok()
+    };
+    let (Some(year), Some(month), Some(day), Some(hour), Some(minute), Some(second)) =
+        (parse(0..4), parse(5..7), parse(8..10), parse(11..13), parse(14..16), parse(17..19))
+    else { return false; };
+    if year == 0 || !(1..=12).contains(&month) || hour > 23 || minute > 59 || second > 59 {
+        return false;
+    }
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let max_day = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap => 29,
+        2 => 28,
+        _ => return false,
+    };
+    (1..=max_day).contains(&day)
+}
+
+fn canonical_baseline_event_sha256(events: &[ExecutionEvent]) -> Result<String, serde_json::Error> {
+    let mut ordered: Vec<&ExecutionEvent> = events.iter().collect();
+    ordered.sort_by(|left, right| left.event_id.cmp(&right.event_id));
+    let bytes = serde_json::to_vec(&ordered)?;
+    Ok(format!("{:x}", Sha256::digest(bytes)))
+}
+
+fn validate_event_ledger(
+    case: &ExecutionCase,
+    errors: &mut Vec<String>,
+) -> (Vec<ExecutionEvent>, usize) {
+    let mut by_id: BTreeMap<String, ExecutionEvent> = BTreeMap::new();
+    let mut idempotency: BTreeMap<String, String> = BTreeMap::new();
+    let mut deduplicated = 0usize;
+
+    for event in &case.events {
+        if event.event_id.trim().is_empty()
+            || event.idempotency_key.trim().is_empty()
+            || event.event_id_ref.trim().is_empty()
+            || event.task_id.trim().is_empty()
+            || event.segment_id.trim().is_empty()
+            || event.evidence_ref.trim().is_empty()
+        {
+            errors.push("execution event has an empty identity or evidence reference".to_string());
+            continue;
+        }
+
+        if let Some(existing) = by_id.get(&event.event_id) {
+            if existing == event {
+                deduplicated += 1;
+            } else {
+                errors.push(format!(
+                    "event ID {} was replayed with conflicting content",
+                    event.event_id
+                ));
+            }
+            continue;
+        }
+
+        if let Some(existing_id) = idempotency.get(&event.idempotency_key) {
+            if existing_id != &event.event_id {
+                errors.push(format!(
+                    "idempotency key {} is bound to multiple event IDs",
+                    event.idempotency_key
+                ));
+                continue;
+            }
+        } else {
+            idempotency.insert(event.idempotency_key.clone(), event.event_id.clone());
+        }
+
+        if !finite_nonnegative(event.start_hour)
+            || !finite_nonnegative(event.end_hour)
+            || !finite_nonnegative(event.productive_effort_hours)
+            || !finite_nonnegative(event.effective_hour)
+            || !finite_nonnegative(event.observed_hour)
+            || event.end_hour <= event.start_hour
+            || event.productive_effort_hours <= 0.0
+            || event.productive_effort_hours > (event.end_hour - event.start_hour) + TOLERANCE
+            || event.observed_hour + TOLERANCE < event.effective_hour
+            || event.observed_hour > case.as_of_hour + TOLERANCE
+            || event.effective_hour > case.as_of_hour + TOLERANCE
+        {
+            errors.push(format!("event {} has invalid time or effort values", event.event_id));
+        }
+
+        let evidence_class_matches = match case.case_maturity.as_str() {
+            "synthetic_fixture" => event.evidence_class == EvidenceClass::SyntheticFixture,
+            "field_observed" => event.evidence_class == EvidenceClass::Observed,
+            _ => false,
+        };
+        if !evidence_class_matches {
+            errors.push(format!(
+                "event {} evidence class does not match declared case maturity {}",
+                event.event_id, case.case_maturity
+            ));
+        }
+
+        if !matches!(event.evidence_status, EvidenceStatus::Current | EvidenceStatus::Superseded) {
+            errors.push(format!(
+                "event {} has stale, conflicted or unknown evidence; reconciliation is required",
+                event.event_id
+            ));
+        }
+        if event.evidence_status == EvidenceStatus::Superseded
+            && event.event_type != ExecutionEventType::ProgressSnapshot
+        {
+            errors.push(format!(
+                "only progress snapshots may be marked superseded: {}",
+                event.event_id
+            ));
+        }
+
+        match event.event_type {
+            ExecutionEventType::WorkSegmentCompleted => {
+                if !approximately_equal(event.end_hour, event.effective_hour) {
+                    errors.push(format!(
+                        "completed segment event {} must take effect at its end hour",
+                        event.event_id
+                    ));
+                }
+            }
+            ExecutionEventType::ProgressSnapshot => {
+                if event.end_hour > case.as_of_hour + TOLERANCE
+                    || event.effective_hour > case.as_of_hour + TOLERANCE
+                    || event.evidence_status == EvidenceStatus::Current
+                        && (!approximately_equal(event.end_hour, case.as_of_hour)
+                            || !approximately_equal(event.effective_hour, case.as_of_hour))
+                    || event.interruption_cause.is_some()
+                {
+                    errors.push(format!(
+                        "progress snapshot {} must be bounded by the declared as-of time",
+                        event.event_id
+                    ));
+                }
+            }
+        }
+
+        by_id.insert(event.event_id.clone(), event.clone());
+    }
+
+    let mut canonical: Vec<_> = by_id.into_values().collect();
+    canonical.sort_by(|left, right| {
+        left.effective_hour
+            .total_cmp(&right.effective_hour)
+            .then_with(|| left.event_id.cmp(&right.event_id))
+    });
+    (canonical, deduplicated)
+}
+
+fn validate_reconciliations(
+    case: &ExecutionCase,
+    tasks: &BTreeMap<String, &ExecutionTask>,
+    errors: &mut Vec<String>,
+) -> BTreeMap<String, ReconciliationEvent> {
+    let baseline: BTreeMap<String, &Commitment> = case
+        .baseline_commitments
+        .iter()
+        .map(|item| (item.commitment_id.clone(), item))
+        .collect();
+    let proposed: BTreeMap<String, &Commitment> = case
+        .proposed_commitments
+        .iter()
+        .map(|item| (item.commitment_id.clone(), item))
+        .collect();
+
+    if baseline.len() != case.baseline_commitments.len()
+        || proposed.len() != case.proposed_commitments.len()
+    {
+        errors.push("duplicate commitment ID".to_string());
+    }
+    if baseline.keys().collect::<Vec<_>>() != proposed.keys().collect::<Vec<_>>() {
+        errors.push("proposed commitments must preserve every baseline commitment identity".to_string());
+    }
+
+    let mut reconciliation_by_commitment = BTreeMap::new();
+    let mut event_ids = BTreeSet::new();
+    for reconciliation in &case.reconciliations {
+        if reconciliation.event_id.trim().is_empty()
+            || reconciliation.commitment_id.trim().is_empty()
+            || reconciliation.authority_ref.trim().is_empty()
+            || reconciliation.evidence_ref.trim().is_empty()
+            || !finite_nonnegative(reconciliation.observed_hour)
+            || reconciliation.observed_hour > case.as_of_hour + TOLERANCE
+            || reconciliation.evidence_status != EvidenceStatus::Current
+            || reconciliation.from_version.checked_add(1) != Some(reconciliation.to_version)
+            || !event_ids.insert(reconciliation.event_id.as_str())
+        {
+            errors.push(format!(
+                "reconciliation event {} is incomplete, stale or has invalid version/time",
+                reconciliation.event_id
+            ));
+            continue;
+        }
+        if reconciliation_by_commitment
+            .insert(reconciliation.commitment_id.clone(), reconciliation.clone())
+            .is_some()
+        {
+            errors.push(format!(
+                "multiple reconciliation events target commitment {}",
+                reconciliation.commitment_id
+            ));
+        }
+    }
+
+    for (commitment_id, old) in &baseline {
+        let Some(new) = proposed.get(commitment_id) else {
+            continue;
+        };
+        if old.event_id != new.event_id || old.task_id != new.task_id {
+            errors.push(format!("commitment {commitment_id} changed task identity"));
+            continue;
+        }
+        if !old
+            .frozen_event_ids
+            .iter()
+            .all(|id| new.frozen_event_ids.contains(id))
+        {
+            errors.push(format!("commitment {commitment_id} dropped frozen execution events"));
+        }
+
+        let changed = old.version != new.version
+            || old.state != new.state
+            || old.active_segment_id != new.active_segment_id
+            || old.frozen_event_ids != new.frozen_event_ids
+            || old.source_evidence_ref != new.source_evidence_ref;
+        let reconciliation = reconciliation_by_commitment.get(commitment_id);
+
+        if !changed {
+            if let Some(event) = reconciliation {
+                errors.push(format!(
+                    "commitment {commitment_id} has an unnecessary reconciliation {}",
+                    event.event_id
+                ));
+            }
+            continue;
+        }
+
+        let Some(event) = reconciliation else {
+            errors.push(format!(
+                "commitment {commitment_id} changed without an explicit reconciliation event"
+            ));
+            continue;
+        };
+        if event.from_version != old.version || event.to_version != new.version {
+            errors.push(format!(
+                "reconciliation {} does not bind the exact commitment versions",
+                event.event_id
+            ));
+        }
+        let old_frozen: BTreeSet<&str> = old.frozen_event_ids.iter().map(String::as_str).collect();
+        for appended_id in new.frozen_event_ids.iter().filter(|id| !old_frozen.contains(id.as_str())) {
+            match case.events.iter().find(|candidate| candidate.event_id == *appended_id) {
+                Some(candidate)
+                    if candidate.event_id_ref == new.event_id
+                        && candidate.task_id == new.task_id
+                        && candidate.observed_hour <= event.observed_hour + TOLERANCE
+                        && candidate.effective_hour <= event.observed_hour + TOLERANCE => {}
+                Some(_) => errors.push(format!(
+                    "reconciliation {} predates or mismatches appended execution event {}",
+                    event.event_id, appended_id
+                )),
+                None => errors.push(format!(
+                    "reconciliation {} references missing appended execution event {}",
+                    event.event_id, appended_id
+                )),
+            }
+        }
+        if old.state == CommitmentState::Completed {
+            errors.push(format!("completed commitment {commitment_id} is immutable"));
+        }
+
+        let action_matches = matches!(
+            (old.state, new.state, event.action),
+            (
+                CommitmentState::InProgress,
+                CommitmentState::InProgress,
+                ReconciliationAction::ProgressRecorded
+            ) | (
+                CommitmentState::InProgress,
+                CommitmentState::Paused,
+                ReconciliationAction::PauseConfirmed
+            ) | (
+                CommitmentState::Paused,
+                CommitmentState::InProgress,
+                ReconciliationAction::ResumeAuthorized
+            ) | (
+                CommitmentState::InProgress,
+                CommitmentState::Completed,
+                ReconciliationAction::CompletionConfirmed
+            ) | (
+                CommitmentState::Paused,
+                CommitmentState::Completed,
+                ReconciliationAction::CompletionConfirmed
+            )
+        );
+        if !action_matches {
+            errors.push(format!(
+                "reconciliation {} action does not match the commitment state transition",
+                event.event_id
+            ));
+        }
+        if new.frozen_event_ids.len() < old.frozen_event_ids.len() {
+            errors.push(format!("commitment {commitment_id} shortened its frozen event ledger"));
+        }
+        if !tasks.contains_key(&task_key(&new.event_id, &new.task_id)) {
+            errors.push(format!("commitment {commitment_id} references an unknown task"));
+        }
+    }
+
+    for commitment_id in reconciliation_by_commitment.keys() {
+        if !baseline.contains_key(commitment_id) {
+            errors.push(format!(
+                "reconciliation references unknown baseline commitment {commitment_id}"
+            ));
+        }
+    }
+    reconciliation_by_commitment
+}
+
+fn build_segment_views(
+    events: &[ExecutionEvent],
+    errors: &mut Vec<String>,
+) -> BTreeMap<String, Vec<SegmentView>> {
+    let mut completed: BTreeMap<String, &ExecutionEvent> = BTreeMap::new();
+    let mut progress: BTreeMap<String, Vec<&ExecutionEvent>> = BTreeMap::new();
+
+    for event in events {
+        match event.event_type {
+            ExecutionEventType::WorkSegmentCompleted => {
+                if completed.insert(event.segment_id.clone(), event).is_some() {
+                    errors.push(format!(
+                        "multiple completion events reference segment {}",
+                        event.segment_id
+                    ));
+                }
+            }
+            ExecutionEventType::ProgressSnapshot => {
+                progress.entry(event.segment_id.clone()).or_default().push(event);
+            }
+        }
+    }
+
+    let mut segment_ids: BTreeSet<String> = completed.keys().cloned().collect();
+    segment_ids.extend(progress.keys().cloned());
+
+    let mut by_task: BTreeMap<String, Vec<SegmentView>> = BTreeMap::new();
+    for segment_id in segment_ids {
+        let completion = completed.get(&segment_id).copied();
+        let snapshots = progress.get(&segment_id).cloned().unwrap_or_default();
+        let mut ordered_snapshots = snapshots;
+        ordered_snapshots.sort_by(|left, right| {
+            left.effective_hour
+                .total_cmp(&right.effective_hour)
+                .then_with(|| left.event_id.cmp(&right.event_id))
+        });
+
+        for pair in ordered_snapshots.windows(2) {
+            if pair[1].effective_hour <= pair[0].effective_hour + TOLERANCE
+                || pair[1].productive_effort_hours + TOLERANCE
+                    < pair[0].productive_effort_hours
+                || !approximately_equal(pair[1].start_hour, pair[0].start_hour)
+                || pair[1].event_id_ref != pair[0].event_id_ref
+                || pair[1].task_id != pair[0].task_id
+                || pair[1].sequence != pair[0].sequence
+            {
+                errors.push(format!(
+                    "progress snapshots for segment {segment_id} are not monotonic or preserve different segment identities"
+                ));
+            }
+        }
+
+        if let Some(done) = completion {
+            for snapshot in &ordered_snapshots {
+                if snapshot.evidence_status != EvidenceStatus::Superseded
+                    || snapshot.effective_hour > done.effective_hour + TOLERANCE
+                    || snapshot.productive_effort_hours
+                        > done.productive_effort_hours + TOLERANCE
+                    || !approximately_equal(snapshot.start_hour, done.start_hour)
+                    || snapshot.event_id_ref != done.event_id_ref
+                    || snapshot.task_id != done.task_id
+                    || snapshot.sequence != done.sequence
+                {
+                    errors.push(format!(
+                        "completed segment {segment_id} does not reconcile its prior progress snapshots"
+                    ));
+                }
+            }
+            by_task.entry(task_key(&done.event_id_ref, &done.task_id))
+                .or_default()
+                .push(SegmentView {
+                    segment_id: done.segment_id.clone(),
+                    event_id: done.event_id_ref.clone(),
+                    task_id: done.task_id.clone(),
+                    sequence: done.sequence,
+                    start_hour: done.start_hour,
+                    end_hour: done.end_hour,
+                    effort_hours: done.productive_effort_hours,
+                    completed: true,
+                    interruption_cause: done.interruption_cause.clone(),
+                });
+        } else if let Some(latest) = ordered_snapshots.last() {
+            if latest.evidence_status != EvidenceStatus::Current {
+                errors.push(format!(
+                    "open segment {segment_id} has no current progress snapshot"
+                ));
+            }
+            if ordered_snapshots[..ordered_snapshots.len().saturating_sub(1)]
+                .iter()
+                .any(|event| event.evidence_status != EvidenceStatus::Superseded)
+            {
+                errors.push(format!(
+                    "older progress snapshots for segment {segment_id} must be marked superseded"
+                ));
+            }
+            by_task.entry(task_key(&latest.event_id_ref, &latest.task_id))
+                .or_default()
+                .push(SegmentView {
+                    segment_id: latest.segment_id.clone(),
+                    event_id: latest.event_id_ref.clone(),
+                    task_id: latest.task_id.clone(),
+                    sequence: latest.sequence,
+                    start_hour: latest.start_hour,
+                    end_hour: latest.end_hour,
+                    effort_hours: latest.productive_effort_hours,
+                    completed: false,
+                    interruption_cause: None,
+                });
+        }
+    }
+
+    for segments in by_task.values_mut() {
+        segments.sort_by(|left, right| {
+            left.sequence
+                .cmp(&right.sequence)
+                .then_with(|| left.segment_id.cmp(&right.segment_id))
+        });
+        let mut seen = BTreeSet::new();
+        for segment in segments.iter() {
+            if !seen.insert(segment.sequence) {
+                errors.push(format!(
+                    "task {} has duplicate execution segment sequence {}",
+                    segment.task_id, segment.sequence
+                ));
+            }
+        }
+    }
+    by_task
+}
+
+fn validate_resource_windows(
+    resources: &BTreeMap<String, &ExecutionResource>,
+    errors: &mut Vec<String>,
+) {
+    for (resource_id, resource) in resources {
+        if resource.capacity_windows.is_empty() {
+            errors.push(format!("resource {resource_id} has no capacity windows"));
+            continue;
+        }
+        let mut windows = resource.capacity_windows.clone();
+        windows.sort_by(|left, right| left.start_hour.total_cmp(&right.start_hour));
+        let mut previous_end = f64::NEG_INFINITY;
+        for window in windows {
+            if !finite_nonnegative(window.start_hour)
+                || !finite_nonnegative(window.end_hour)
+                || window.end_hour <= window.start_hour
+                || window.start_hour < previous_end - TOLERANCE
+            {
+                errors.push(format!("resource {resource_id} has invalid or overlapping capacity windows"));
+            }
+            previous_end = window.end_hour;
+        }
+    }
+}
+
+fn capacity_at(resource: &ExecutionResource, hour: f64) -> u32 {
+    resource
+        .capacity_windows
+        .iter()
+        .find(|window| window.start_hour <= hour && hour < window.end_hour)
+        .map(|window| window.capacity_units)
+        .unwrap_or(0)
+}
+
+fn validate_task_dependencies(
+    tasks: &BTreeMap<String, &ExecutionTask>,
+    segment_views: &BTreeMap<String, Vec<SegmentView>>,
+    planned_by_task: &BTreeMap<String, Vec<&PlannedSegment>>,
+    errors: &mut Vec<String>,
+) {
+    let mut indegree: BTreeMap<String, usize> =
+        tasks.keys().map(|key| (key.clone(), 0)).collect();
+    let mut successors: BTreeMap<String, Vec<String>> = BTreeMap::new();
+
+    for (key, task) in tasks {
+        for dependency in &task.depends_on {
+            let dependency_key = task_key(&task.event_id, dependency);
+            if !tasks.contains_key(&dependency_key) {
+                errors.push(format!("task {key} references unknown dependency {dependency}"));
+                continue;
+            }
+            successors.entry(dependency_key).or_default().push(key.clone());
+            if let Some(degree) = indegree.get_mut(key) {
+                *degree += 1;
+            }
+        }
+    }
+
+    let mut ready: BTreeSet<String> = indegree
+        .iter()
+        .filter(|(_, degree)| **degree == 0)
+        .map(|(key, _)| key.clone())
+        .collect();
+    let mut visited = 0usize;
+    while let Some(key) = ready.pop_first() {
+        visited += 1;
+        if let Some(next) = successors.get(&key) {
+            for successor in next {
+                if let Some(degree) = indegree.get_mut(successor) {
+                    *degree -= 1;
+                    if *degree == 0 {
+                        ready.insert(successor.clone());
+                    }
+                }
+            }
+        }
+    }
+    if visited != tasks.len() {
+        errors.push("task dependency graph contains a cycle".to_string());
+    }
+
+    for (key, task) in tasks {
+        let starts: Vec<f64> = segment_views
+            .get(key)
+            .into_iter()
+            .flatten()
+            .map(|segment| segment.start_hour)
+            .chain(
+                planned_by_task
+                    .get(key)
+                    .into_iter()
+                    .flatten()
+                    .map(|segment| segment.start_hour),
+            )
+            .collect();
+        let Some(first_start) = starts.into_iter().min_by(f64::total_cmp) else {
+            continue;
+        };
+
+        for dependency in &task.depends_on {
+            let dependency_key = task_key(&task.event_id, dependency);
+            let required_effort = tasks
+                .get(&dependency_key)
+                .map(|dependency_task| dependency_task.required_effort_hours)
+                .unwrap_or(f64::INFINITY);
+            let observed_effort: f64 = segment_views
+                .get(&dependency_key)
+                .into_iter()
+                .flatten()
+                .map(|segment| segment.effort_hours)
+                .sum();
+            let planned_effort: f64 = planned_by_task
+                .get(&dependency_key)
+                .into_iter()
+                .flatten()
+                .map(|segment| segment.productive_effort_hours)
+                .sum();
+            let dependency_end = segment_views
+                .get(&dependency_key)
+                .into_iter()
+                .flatten()
+                .map(|segment| segment.end_hour)
+                .chain(
+                    planned_by_task
+                        .get(&dependency_key)
+                        .into_iter()
+                        .flatten()
+                        .map(|segment| segment.end_hour),
+                )
+                .max_by(f64::total_cmp);
+            match dependency_end {
+                Some(end)
+                    if observed_effort + planned_effort + TOLERANCE >= required_effort
+                        && first_start + TOLERANCE >= end => {}
+                Some(_) if observed_effort + planned_effort + TOLERANCE < required_effort => errors.push(format!(
+                    "task {key} cannot proceed because dependency {dependency} has only {} of {} effort scheduled",
+                    observed_effort + planned_effort,
+                    required_effort
+                )),
+                Some(end) => errors.push(format!(
+                    "task {key} starts at {first_start} before dependency {dependency} ends at {end}"
+                )),
+                None => errors.push(format!(
+                    "task {key} cannot proceed because dependency {dependency} has no execution or planned segment"
+                )),
+            }
+        }
+    }
+}
+
+fn validate_resource_usage(
+    case: &ExecutionCase,
+    tasks: &BTreeMap<String, &ExecutionTask>,
+    resources: &BTreeMap<String, &ExecutionResource>,
+    segment_views: &BTreeMap<String, Vec<SegmentView>>,
+    errors: &mut Vec<String>,
+) {
+    let planned_by_task: BTreeMap<String, Vec<&PlannedSegment>> = {
+        let mut map: BTreeMap<String, Vec<&PlannedSegment>> = BTreeMap::new();
+        for segment in &case.planned_segments {
+            map.entry(task_key(&segment.event_id, &segment.task_id))
+                .or_default()
+                .push(segment);
+        }
+        map
+    };
+
+    let mut allocations: BTreeMap<String, Vec<ResourceUse>> = BTreeMap::new();
+    for (key, task) in tasks {
+        let mut intervals: Vec<(f64, f64)> = Vec::new();
+        if let Some(views) = segment_views.get(key) {
+            intervals.extend(views.iter().map(|s| (s.start_hour, s.end_hour)));
+        }
+        if let Some(planned) = planned_by_task.get(key) {
+            intervals.extend(planned.iter().map(|s| (s.start_hour, s.end_hour)));
+        }
+        intervals.sort_by(|left, right| left.0.total_cmp(&right.0));
+
+        for requirement in &task.resource_requirements {
+            if !resources.contains_key(&requirement.resource_id) {
+                errors.push(format!(
+                    "{} requires unknown resource {}",
+                    key, requirement.resource_id
+                ));
+                continue;
+            }
+            if requirement.units == 0 {
+                errors.push(format!("{} requires zero units of {}", key, requirement.resource_id));
+                continue;
+            }
+
+            let mut uses = Vec::new();
+            let commitment_state = case.proposed_commitments
+                .iter()
+                .find(|item| item.event_id == task.event_id && item.task_id == task.task_id)
+                .map(|item| item.state);
+            if commitment_state == Some(CommitmentState::InProgress) {
+                let retained_start = if task.paused_resource_policy == PausedResourcePolicy::Retain {
+                    intervals.first().map(|item| item.0)
+                } else {
+                    segment_views
+                        .get(key)
+                        .into_iter()
+                        .flatten()
+                        .filter(|segment| !segment.completed)
+                        .map(|segment| segment.start_hour)
+                        .min_by(f64::total_cmp)
+                };
+                if let Some(start_hour) = retained_start {
+                    uses.push(ResourceUse {
+                        start_hour,
+                        end_hour: case.horizon_end_hour,
+                        units: requirement.units,
+                        task_key: key.clone(),
+                    });
+                }
+            } else if task.paused_resource_policy == PausedResourcePolicy::Retain && !intervals.is_empty() {
+                if let Some(first) = intervals.first() {
+                    let retained_end = if intervals.len() > 1 {
+                        intervals.last().map(|item| item.1).unwrap_or(first.1)
+                    } else if commitment_state == Some(CommitmentState::Paused) {
+                        case.horizon_end_hour
+                    } else {
+                        first.1
+                    };
+                    uses.push(ResourceUse {
+                        start_hour: first.0,
+                        end_hour: retained_end,
+                        units: requirement.units,
+                        task_key: key.clone(),
+                    });
+                }
+            } else {
+                for (start_hour, end_hour) in &intervals {
+                    uses.push(ResourceUse {
+                        start_hour: *start_hour,
+                        end_hour: *end_hour,
+                        units: requirement.units,
+                        task_key: key.clone(),
+                    });
+                }
+            }
+            allocations
+                .entry(requirement.resource_id.clone())
+                .or_default()
+                .extend(uses);
+        }
+    }
+
+    for (resource_id, uses) in allocations {
+        let Some(resource) = resources.get(&resource_id) else {
+            continue;
+        };
+        let mut boundaries: Vec<f64> = uses
+            .iter()
+            .flat_map(|item| [item.start_hour, item.end_hour])
+            .collect();
+        boundaries.extend(
+            resource
+                .capacity_windows
+                .iter()
+                .flat_map(|window| [window.start_hour, window.end_hour]),
+        );
+        boundaries.sort_by(f64::total_cmp);
+        boundaries.dedup_by(|left, right| approximately_equal(*left, *right));
+
+        for pair in boundaries.windows(2) {
+            let start = pair[0];
+            let end = pair[1];
+            if end <= start + TOLERANCE {
+                continue;
+            }
+            let midpoint = start + ((end - start) / 2.0);
+            let used = uses
+                .iter()
+                .filter(|item| item.start_hour <= midpoint && midpoint < item.end_hour)
+                .try_fold(0_u64, |sum, item| sum.checked_add(u64::from(item.units)));
+            let Some(used) = used else {
+                errors.push(format!("resource {resource_id} concurrent unit count overflowed"));
+                continue;
+            };
+            let capacity = u64::from(capacity_at(resource, midpoint));
+            if used > capacity {
+                let owners: BTreeSet<_> = uses
+                    .iter()
+                    .filter(|item| item.start_hour <= midpoint && midpoint < item.end_hour)
+                    .map(|item| item.task_key.as_str())
+                    .collect();
+                errors.push(format!(
+                    "resource {resource_id} capacity exceeded during [{start}, {end}) by tasks {:?}: used {used}, capacity {capacity}",
+                    owners
+                ));
+            }
+        }
+    }
+}
+
+pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
+    let mut errors = Vec::new();
+    if case.schema_version != "0.1.0" {
+        errors.push("unsupported execution schemaVersion".to_string());
+    }
+    if case.case_id.trim().is_empty() || !valid_time_origin(&case.time_origin_utc) {
+        errors.push("caseId and canonical UTC timeOriginUtc are required".to_string());
+    }
+    if !matches!(case.case_maturity.as_str(), "synthetic_fixture" | "field_observed") {
+        errors.push("caseMaturity must be synthetic_fixture or field_observed".to_string());
+    }
+    if case.baseline_event_manifest_ref.trim().is_empty()
+        || case.baseline_event_manifest_sha256.len() != 64
+        || !case.baseline_event_manifest_sha256.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        errors.push("baseline event manifest reference or lowercase SHA-256 digest is invalid".to_string());
+    } else {
+        match canonical_baseline_event_sha256(&case.baseline_events) {
+            Ok(actual) if actual == case.baseline_event_manifest_sha256 => {}
+            Ok(_) => errors.push("baseline event manifest SHA-256 does not match the canonical event snapshot".to_string()),
+            Err(error) => errors.push(format!("baseline event manifest serialization failed: {error}")),
+        }
+    }
+    if !finite_nonnegative(case.as_of_hour)
+        || !finite_nonnegative(case.horizon_end_hour)
+        || case.horizon_end_hour <= case.as_of_hour
+    {
+        errors.push("invalid asOfHour or horizonEndHour".to_string());
+    }
+
+    let mut tasks_by_key = BTreeMap::new();
+    for task in &case.tasks {
+        let key = task_key(&task.event_id, &task.task_id);
+        if task.event_id.trim().is_empty()
+            || task.task_id.trim().is_empty()
+            || !finite_nonnegative(task.release_hour)
+            || task.release_hour > case.horizon_end_hour + TOLERANCE
+            || !task.required_effort_hours.is_finite()
+            || task.required_effort_hours <= 0.0
+            || !task.minimum_segment_effort_hours.is_finite()
+            || task.minimum_segment_effort_hours <= 0.0
+            || task.minimum_segment_effort_hours > task.required_effort_hours + TOLERANCE
+        {
+            errors.push(format!("task {key} has invalid identity or effort limits"));
+        }
+        if tasks_by_key.insert(key.clone(), task).is_some() {
+            errors.push(format!("duplicate task identity {key}"));
+        }
+        if task.preemption_mode == PreemptionMode::NonPreemptible
+            && (!task.checkpoint_effort_hours.is_empty() || task.maximum_interruptions != 0)
+        {
+            errors.push(format!("non-preemptible task {key} cannot declare checkpoints or interruptions"));
+        }
+        let mut previous_checkpoint = 0.0;
+        for checkpoint in &task.checkpoint_effort_hours {
+            if !checkpoint.is_finite()
+                || *checkpoint <= previous_checkpoint + TOLERANCE
+                || *checkpoint >= task.required_effort_hours - TOLERANCE
+            {
+                errors.push(format!("task {key} has invalid or unordered checkpoints"));
+            }
+            previous_checkpoint = *checkpoint;
+        }
+        if task.preemption_mode == PreemptionMode::Checkpointed
+            && (task.checkpoint_effort_hours.is_empty() || task.maximum_interruptions == 0)
+        {
+            errors.push(format!("checkpointed task {key} must declare checkpoints and permit an interruption"));
+        }
+        let mut required_resource_ids = BTreeSet::new();
+        for requirement in &task.resource_requirements {
+            if requirement.resource_id.trim().is_empty()
+                || requirement.units == 0
+                || !required_resource_ids.insert(requirement.resource_id.as_str())
+            {
+                errors.push(format!("task {key} has an empty, zero-unit or duplicate resource requirement"));
+            }
+        }
+        let mut dependency_ids = BTreeSet::new();
+        for dependency in &task.depends_on {
+            if !dependency_ids.insert(dependency) {
+                errors.push(format!("task {key} has duplicate dependency {dependency}"));
+            }
+        }
+    }
+
+    let mut resources_by_id = BTreeMap::new();
+    for resource in &case.resources {
+        if resource.resource_id.trim().is_empty()
+            || resources_by_id.insert(resource.resource_id.clone(), resource).is_some()
+        {
+            errors.push("empty or duplicate resource ID".to_string());
+        }
+    }
+    validate_resource_windows(&resources_by_id, &mut errors);
+
+    let (events, deduplicated) = validate_event_ledger(case, &mut errors);
+    let current_events_by_id: BTreeMap<&str, &ExecutionEvent> = events
+        .iter()
+        .map(|event| (event.event_id.as_str(), event))
+        .collect();
+    let mut baseline_event_ids = BTreeSet::new();
+    for baseline_event in &case.baseline_events {
+        if baseline_event.event_id.trim().is_empty()
+            || !baseline_event_ids.insert(baseline_event.event_id.as_str())
+        {
+            errors.push("baseline event snapshot has an empty or duplicate event ID".to_string());
+            continue;
+        }
+        match current_events_by_id.get(baseline_event.event_id.as_str()) {
+            Some(current) if *current == baseline_event => {}
+            Some(_) => errors.push(format!(
+                "baseline event {} was mutated in the proposed execution ledger",
+                baseline_event.event_id
+            )),
+            None => errors.push(format!(
+                "baseline event {} is missing from the proposed execution ledger",
+                baseline_event.event_id
+            )),
+        }
+    }
+    for event in &events {
+        let key = task_key(&event.event_id_ref, &event.task_id);
+        if !tasks_by_key.contains_key(&key) {
+            errors.push(format!("event {} references unknown task {key}", event.event_id));
+        }
+    }
+
+    let mut commitments_baseline = BTreeMap::new();
+    for commitment in &case.baseline_commitments {
+        if commitment.commitment_id.trim().is_empty()
+            || commitment.source_evidence_ref.trim().is_empty()
+            || commitment.version == 0
+            || commitments_baseline
+                .insert(commitment.commitment_id.clone(), commitment)
+                .is_some()
+        {
+            errors.push("baseline commitment has an empty/duplicate identity or invalid version".to_string());
+        }
+    }
+    let mut commitments_proposed = BTreeMap::new();
+    for commitment in &case.proposed_commitments {
+        if commitment.commitment_id.trim().is_empty()
+            || commitment.source_evidence_ref.trim().is_empty()
+            || commitment.version == 0
+            || commitments_proposed
+                .insert(commitment.commitment_id.clone(), commitment)
+                .is_some()
+        {
+            errors.push("proposed commitment has an empty/duplicate identity or invalid version".to_string());
+        }
+    }
+
+    for commitment in &case.baseline_commitments {
+        let key = task_key(&commitment.event_id, &commitment.task_id);
+        if !tasks_by_key.contains_key(&key) {
+            errors.push(format!("baseline commitment {} references unknown task {key}", commitment.commitment_id));
+        }
+        let event_ids_for_task: BTreeSet<_> = case.baseline_events
+            .iter()
+            .filter(|event| event.event_id_ref == commitment.event_id && event.task_id == commitment.task_id)
+            .map(|event| event.event_id.as_str())
+            .collect();
+        let frozen_ids: BTreeSet<_> = commitment.frozen_event_ids.iter().map(String::as_str).collect();
+        if frozen_ids.len() != commitment.frozen_event_ids.len() || frozen_ids != event_ids_for_task {
+            errors.push(format!(
+                "baseline commitment {} does not bind the exact immutable baseline event ledger",
+                commitment.commitment_id
+            ));
+        }
+    }
+    for commitment in &case.proposed_commitments {
+        let key = task_key(&commitment.event_id, &commitment.task_id);
+        if !tasks_by_key.contains_key(&key) {
+            errors.push(format!("proposed commitment {} references unknown task {key}", commitment.commitment_id));
+        }
+        let event_ids_for_task: BTreeSet<_> = events
+            .iter()
+            .filter(|event| event.event_id_ref == commitment.event_id && event.task_id == commitment.task_id)
+            .map(|event| event.event_id.as_str())
+            .collect();
+        let frozen_ids: BTreeSet<_> = commitment.frozen_event_ids.iter().map(String::as_str).collect();
+        if frozen_ids.len() != commitment.frozen_event_ids.len() || frozen_ids != event_ids_for_task {
+            errors.push(format!(
+                "proposed commitment {} does not bind the complete current event ledger",
+                commitment.commitment_id
+            ));
+        }
+    }
+
+    if commitments_baseline.keys().collect::<Vec<_>>() != commitments_proposed.keys().collect::<Vec<_>>() {
+        errors.push("proposed plan must retain all baseline commitment IDs".to_string());
+    }
+    let reconciliation_by_commitment = validate_reconciliations(case, &tasks_by_key, &mut errors);
+    let work_event_ids: BTreeSet<_> = events.iter().map(|event| event.event_id.as_str()).collect();
+    for reconciliation in &case.reconciliations {
+        if work_event_ids.contains(reconciliation.event_id.as_str()) {
+            errors.push(format!("reconciliation event ID {} collides with a work event", reconciliation.event_id));
+        }
+    }
+
+    let segment_views = build_segment_views(&events, &mut errors);
+    let mut planned_by_task: BTreeMap<String, Vec<&PlannedSegment>> = BTreeMap::new();
+    let mut planned_ids = BTreeSet::new();
+    let historical_segment_ids: BTreeSet<String> = segment_views
+        .values()
+        .flat_map(|views| views.iter().map(|view| view.segment_id.clone()))
+        .collect();
+
+    for segment in &case.planned_segments {
+        let key = task_key(&segment.event_id, &segment.task_id);
+        if !tasks_by_key.contains_key(&key) {
+            errors.push(format!("planned segment {} references unknown task {key}", segment.segment_id));
+            continue;
+        }
+        if segment.segment_id.trim().is_empty()
+            || historical_segment_ids.contains(&segment.segment_id)
+            || !planned_ids.insert(segment.segment_id.as_str())
+            || !finite_nonnegative(segment.start_hour)
+            || !finite_nonnegative(segment.end_hour)
+            || !finite_nonnegative(segment.productive_effort_hours)
+            || segment.end_hour <= segment.start_hour
+            || segment.start_hour + TOLERANCE < case.as_of_hour
+            || segment.end_hour > case.horizon_end_hour + TOLERANCE
+            || segment.productive_effort_hours <= 0.0
+            || segment.productive_effort_hours > (segment.end_hour - segment.start_hour) + TOLERANCE
+        {
+            errors.push(format!("planned segment {} has invalid identity, horizon or effort", segment.segment_id));
+        }
+        planned_by_task.entry(key).or_default().push(segment);
+    }
+
+    validate_task_dependencies(
+        &tasks_by_key,
+        &segment_views,
+        &planned_by_task,
+        &mut errors,
+    );
+
+    let mut reports = Vec::new();
+    for (key, task) in &tasks_by_key {
+        let views = segment_views.get(key).cloned().unwrap_or_default();
+        let planned = planned_by_task.get(key).cloned().unwrap_or_default();
+        let mut all_segments: Vec<(u32, f64, f64, f64, bool, bool, Option<String>, String)> = Vec::new();
+
+        for view in &views {
+            all_segments.push((
+                view.sequence,
+                view.start_hour,
+                view.end_hour,
+                view.effort_hours,
+                view.completed,
+                false,
+                view.interruption_cause.clone(),
+                view.segment_id.clone(),
+            ));
+        }
+        for segment in &planned {
+            all_segments.push((
+                segment.sequence,
+                segment.start_hour,
+                segment.end_hour,
+                segment.productive_effort_hours,
+                false,
+                true,
+                segment.interruption_cause.clone(),
+                segment.segment_id.clone(),
+            ));
+        }
+        all_segments.sort_by(|left, right| left.0.cmp(&right.0));
+
+        let mut sequence_ids = BTreeSet::new();
+        let mut prior_end = f64::NEG_INFINITY;
+        let mut observed_effort = 0.0;
+        let mut planned_effort = 0.0;
+        let mut interruption_count = 0usize;
+        let mut checkpoint_effort = 0.0;
+
+        for (index, (sequence, start, end, effort, completed, planned_flag, interruption, segment_id)) in
+            all_segments.iter().enumerate()
+        {
+            if !sequence_ids.insert(*sequence) {
+                errors.push(format!("task {key} has duplicate segment sequence {sequence}"));
+            }
+            if *sequence as usize != index {
+                errors.push(format!("task {key} segment sequences must be contiguous from zero"));
+            }
+            if *start + TOLERANCE < task.release_hour
+                || *start + TOLERANCE < prior_end
+                || *end <= *start
+            {
+                errors.push(format!("task {key} has overlapping, unordered or pre-release segment {segment_id}"));
+            }
+            if *planned_flag && *start + TOLERANCE < case.as_of_hour {
+                errors.push(format!("planned segment {segment_id} starts before the as-of boundary"));
+            }
+            if *planned_flag {
+                planned_effort += *effort;
+            } else {
+                observed_effort += *effort;
+            }
+            prior_end = *end;
+            checkpoint_effort += *effort;
+
+            let is_final = index + 1 == all_segments.len();
+            if !is_final {
+                interruption_count += 1;
+                if interruption.as_deref().is_none_or(str::is_empty) {
+                    errors.push(format!("task {key} has an unrecorded interruption after segment {segment_id}"));
+                }
+                if !*completed && !*planned_flag {
+                    errors.push(format!("active segment {segment_id} cannot be followed by another segment before a pause is observed"));
+                }
+                if task.preemption_mode == PreemptionMode::Checkpointed
+                    && !task.checkpoint_effort_hours.iter().any(|value| approximately_equal(*value, checkpoint_effort))
+                {
+                    errors.push(format!("task {key} paused after {checkpoint_effort} effort hours outside a legal checkpoint"));
+                }
+            }
+            if (*completed || *planned_flag)
+                && *effort + TOLERANCE < task.minimum_segment_effort_hours
+                && !approximately_equal(checkpoint_effort, task.required_effort_hours)
+            {
+                errors.push(format!("segment {segment_id} is shorter than the minimum segment effort"));
+            }
+        }
+
+        if task.preemption_mode == PreemptionMode::NonPreemptible && all_segments.len() > 1 {
+            errors.push(format!("non-preemptible task {key} has more than one execution segment"));
+        }
+        if interruption_count > task.maximum_interruptions as usize {
+            errors.push(format!("task {key} exceeds its maximum interruption count"));
+        }
+        let total = observed_effort + planned_effort;
+        if !total.is_finite() {
+            errors.push(format!("task {key} effort accumulation overflowed"));
+        }
+        if total > task.required_effort_hours + TOLERANCE {
+            errors.push(format!("task {key} over-delivers effort: {total} > {}", task.required_effort_hours));
+        }
+
+        let commitment = commitments_proposed
+            .values()
+            .find(|item| item.event_id == task.event_id && item.task_id == task.task_id);
+
+        if commitment.is_some_and(|item| item.state == CommitmentState::Paused)
+            && planned.is_empty()
+            && !views.is_empty()
+            && observed_effort + TOLERANCE < task.required_effort_hours
+        {
+            interruption_count += 1;
+            let last = views.last().expect("non-empty views checked");
+            if last.interruption_cause.as_deref().is_none_or(str::is_empty) {
+                errors.push(format!("paused task {key} has no final interruption cause"));
+            }
+            if task.preemption_mode == PreemptionMode::Checkpointed
+                && !task.checkpoint_effort_hours.iter().any(|value| approximately_equal(*value, observed_effort))
+            {
+                errors.push(format!("paused task {key} stopped at non-checkpoint effort {observed_effort}"));
+            }
+        }
+        if interruption_count > task.maximum_interruptions as usize {
+            errors.push(format!("task {key} exceeds its maximum interruption count"));
+        }
+
+        let state_name = match commitment.map(|item| item.state) {
+            Some(CommitmentState::InProgress) => "in_progress",
+            Some(CommitmentState::Paused) => "paused",
+            Some(CommitmentState::Completed) => "completed",
+            None => "not_started",
+        };
+
+        if let Some(commitment) = commitment {
+            match commitment.state {
+                CommitmentState::InProgress => {
+                    let active_segments: Vec<_> = views.iter().filter(|view| !view.completed).collect();
+                    let active = active_segments.first().copied();
+                    if active_segments.len() != 1 {
+                        errors.push(format!("in-progress commitment {} must have exactly one active segment", commitment.commitment_id));
+                    }
+                    if active.map(|view| view.segment_id.as_str()) != commitment.active_segment_id.as_deref() {
+                        errors.push(format!("in-progress commitment {} does not bind its active segment", commitment.commitment_id));
+                    }
+                    if !planned.is_empty() {
+                        errors.push(format!("in-progress task {key} cannot be moved or extended by replanning before an observed pause/checkpoint"));
+                    }
+                    if active.is_none() {
+                        errors.push(format!("in-progress commitment {} lacks a current progress snapshot", commitment.commitment_id));
+                    }
+                }
+                CommitmentState::Paused => {
+                    if commitment.active_segment_id.is_some() {
+                        errors.push(format!("paused commitment {} still names an active segment", commitment.commitment_id));
+                    }
+                    if views.iter().any(|view| !view.completed) {
+                        errors.push(format!("paused commitment {} contains a current active segment", commitment.commitment_id));
+                    }
+                    if views.last().is_none_or(|view| view.interruption_cause.as_deref().is_none_or(str::is_empty)) {
+                        errors.push(format!("paused commitment {} lacks an observed pause cause", commitment.commitment_id));
+                    }
+                }
+                CommitmentState::Completed => {
+                    if commitment.active_segment_id.is_some()
+                        || !planned.is_empty()
+                        || views.iter().any(|view| !view.completed)
+                        || !approximately_equal(observed_effort, task.required_effort_hours)
+                    {
+                        errors.push(format!("completed commitment {} does not reconcile all required work", commitment.commitment_id));
+                    }
+                }
+            }
+        } else if !views.is_empty() {
+            errors.push(format!("task {key} has observed work but no commitment record"));
+        }
+
+        if let Some(old) = commitments_baseline.values().find(|item| item.event_id == task.event_id && item.task_id == task.task_id) {
+            if let Some(new) = commitments_proposed.get(&old.commitment_id) {
+                if old.state != new.state || old.version != new.version {
+                    if !reconciliation_by_commitment.contains_key(&old.commitment_id) {
+                        errors.push(format!("commitment {} changed without verified reconciliation", old.commitment_id));
+                    }
+                }
+            }
+        }
+
+        let remaining = (task.required_effort_hours - total).max(0.0);
+        let projected_completion = if remaining <= TOLERANCE {
+            all_segments.last().map(|segment| segment.2)
+        } else {
+            None
+        };
+
+        reports.push(TaskReport {
+            event_id: task.event_id.clone(),
+            task_id: task.task_id.clone(),
+            commitment_state: state_name.to_string(),
+            observed_effort_hours: observed_effort,
+            planned_effort_hours: planned_effort,
+            remaining_effort_hours: remaining,
+            interruption_count,
+            projected_completion_hour: projected_completion,
+        });
+    }
+
+    validate_resource_usage(case, &tasks_by_key, &resources_by_id, &segment_views, &mut errors);
+
+    if !errors.is_empty() {
+        errors.sort();
+        errors.dedup();
+        return Err(errors);
+    }
+
+    reports.sort_by(|left, right| {
+        left.event_id
+            .cmp(&right.event_id)
+            .then_with(|| left.task_id.cmp(&right.task_id))
+    });
+
+    Ok(ExecutionReport {
+        case_id: case.case_id.clone(),
+        result_status: "execution_ledger_and_candidate_schedule_consistent".to_string(),
+        event_deliveries_deduplicated: deduplicated,
+        tasks: reports,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn refresh_baseline_manifest(case: &mut ExecutionCase) {
+        case.baseline_event_manifest_sha256 =
+            canonical_baseline_event_sha256(&case.baseline_events).expect("baseline manifest serializes");
+    }
+
+    fn fixture() -> ExecutionCase {
+        ExecutionCase {
+            schema_version: "0.1.0".to_string(),
+            case_id: "synthetic-multi-shift-recovery-001".to_string(),
+            time_origin_utc: "2030-01-01T00:00:00Z".to_string(),
+            case_maturity: "synthetic_fixture".to_string(),
+            as_of_hour: 8.0,
+            horizon_end_hour: 24.0,
+            tasks: vec![
+                ExecutionTask {
+                    event_id: "storm-001".to_string(),
+                    task_id: "repair-pump".to_string(),
+                    release_hour: 0.0,
+                    required_effort_hours: 8.0,
+                    minimum_segment_effort_hours: 2.0,
+                    preemption_mode: PreemptionMode::Checkpointed,
+                    maximum_interruptions: 2,
+                    checkpoint_effort_hours: vec![4.0, 6.0],
+                    paused_resource_policy: PausedResourcePolicy::Release,
+                    depends_on: vec![],
+                    resource_requirements: vec![ResourceRequirement {
+                        resource_id: "crew-a".to_string(),
+                        units: 1,
+                    }],
+                },
+                ExecutionTask {
+                    event_id: "storm-001".to_string(),
+                    task_id: "test-commission".to_string(),
+                    release_hour: 0.0,
+                    required_effort_hours: 2.0,
+                    minimum_segment_effort_hours: 1.0,
+                    preemption_mode: PreemptionMode::NonPreemptible,
+                    maximum_interruptions: 0,
+                    checkpoint_effort_hours: vec![],
+                    paused_resource_policy: PausedResourcePolicy::Release,
+                    depends_on: vec!["repair-pump".to_string()],
+                    resource_requirements: vec![ResourceRequirement {
+                        resource_id: "crew-a".to_string(),
+                        units: 1,
+                    }],
+                },
+            ],
+            resources: vec![
+                ExecutionResource {
+                    resource_id: "crew-a".to_string(),
+                    capacity_windows: vec![
+                        CapacityWindow { start_hour: 0.0, end_hour: 24.0, capacity_units: 1 },
+                    ],
+                },
+            ],
+            baseline_commitments: vec![
+                Commitment {
+                    commitment_id: "commit-repair-pump".to_string(),
+                    event_id: "storm-001".to_string(),
+                    task_id: "repair-pump".to_string(),
+                    version: 1,
+                    state: CommitmentState::Paused,
+                    frozen_event_ids: vec!["seg-1-complete".to_string()],
+                    active_segment_id: None,
+                    source_evidence_ref: "synthetic://commitment/repair-pump/v1".to_string(),
+                },
+            ],
+            proposed_commitments: vec![
+                Commitment {
+                    commitment_id: "commit-repair-pump".to_string(),
+                    event_id: "storm-001".to_string(),
+                    task_id: "repair-pump".to_string(),
+                    version: 1,
+                    state: CommitmentState::Paused,
+                    frozen_event_ids: vec!["seg-1-complete".to_string()],
+                    active_segment_id: None,
+                    source_evidence_ref: "synthetic://commitment/repair-pump/v1".to_string(),
+                },
+            ],
+            baseline_event_manifest_ref: "synthetic://baseline-event-manifest/multi-shift-recovery-001/v1".to_string(),
+            baseline_event_manifest_sha256: "f179e884fc445b1146d1b096bd9e0835822a330629c3cdcd90361f9aebcef8f3".to_string(),
+            baseline_events: vec![
+                ExecutionEvent {
+                    event_id: "seg-1-complete".to_string(),
+                    idempotency_key: "storm-001-repair-pump-seg-0".to_string(),
+                    event_type: ExecutionEventType::WorkSegmentCompleted,
+                    event_id_ref: "storm-001".to_string(),
+                    task_id: "repair-pump".to_string(),
+                    segment_id: "repair-pump-segment-0".to_string(),
+                    sequence: 0,
+                    start_hour: 0.0,
+                    end_hour: 4.0,
+                    productive_effort_hours: 4.0,
+                    effective_hour: 4.0,
+                    observed_hour: 4.1,
+                    evidence_status: EvidenceStatus::Current,
+                    evidence_class: EvidenceClass::SyntheticFixture,
+                    evidence_ref: "synthetic://segment/repair-pump/0".to_string(),
+                    interruption_cause: Some("crew-shift-end".to_string()),
+                },
+            ],
+            events: vec![
+                ExecutionEvent {
+                    event_id: "seg-1-complete".to_string(),
+                    idempotency_key: "storm-001-repair-pump-seg-0".to_string(),
+                    event_type: ExecutionEventType::WorkSegmentCompleted,
+                    event_id_ref: "storm-001".to_string(),
+                    task_id: "repair-pump".to_string(),
+                    segment_id: "repair-pump-segment-0".to_string(),
+                    sequence: 0,
+                    start_hour: 0.0,
+                    end_hour: 4.0,
+                    productive_effort_hours: 4.0,
+                    effective_hour: 4.0,
+                    observed_hour: 4.1,
+                    evidence_status: EvidenceStatus::Current,
+                    evidence_class: EvidenceClass::SyntheticFixture,
+                    evidence_ref: "synthetic://segment/repair-pump/0".to_string(),
+                    interruption_cause: Some("crew-shift-end".to_string()),
+                },
+            ],
+            planned_segments: vec![
+                PlannedSegment {
+                    segment_id: "repair-pump-segment-1".to_string(),
+                    event_id: "storm-001".to_string(),
+                    task_id: "repair-pump".to_string(),
+                    sequence: 1,
+                    start_hour: 10.0,
+                    end_hour: 14.0,
+                    productive_effort_hours: 4.0,
+                    interruption_cause: None,
+                },
+                PlannedSegment {
+                    segment_id: "test-commission-segment-0".to_string(),
+                    event_id: "storm-001".to_string(),
+                    task_id: "test-commission".to_string(),
+                    sequence: 0,
+                    start_hour: 14.0,
+                    end_hour: 16.0,
+                    productive_effort_hours: 2.0,
+                    interruption_cause: None,
+                },
+            ],
+            reconciliations: vec![],
+        }
+    }
+
+    #[test]
+    fn accepts_checkpoint_pause_and_calendar_safe_resume() {
+        let report = validate(&fixture()).expect("fixture should be consistent");
+        let repair = report.tasks.iter().find(|item| item.task_id == "repair-pump").unwrap();
+        assert_eq!(repair.observed_effort_hours, 4.0);
+        assert_eq!(repair.planned_effort_hours, 4.0);
+        assert_eq!(repair.remaining_effort_hours, 0.0);
+        assert_eq!(repair.interruption_count, 1);
+        assert_eq!(repair.projected_completion_hour, Some(14.0));
+    }
+
+    #[test]
+    fn exact_duplicate_event_delivery_is_deduplicated() {
+        let mut case = fixture();
+        case.events.push(case.events[0].clone());
+        let report = validate(&case).expect("identical event replay is idempotent");
+        assert_eq!(report.event_deliveries_deduplicated, 1);
+    }
+
+    #[test]
+    fn conflicting_duplicate_event_id_is_rejected() {
+        let mut case = fixture();
+        let mut conflict = case.events[0].clone();
+        conflict.productive_effort_hours = 3.0;
+        case.events.push(conflict);
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn stale_event_evidence_blocks_replanning() {
+        let mut case = fixture();
+        case.events[0].evidence_status = EvidenceStatus::Stale;
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn progress_after_snapshot_is_rejected() {
+        let mut case = fixture();
+        case.events[0].observed_hour = 25.0;
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn over_delivery_of_effort_is_rejected() {
+        let mut case = fixture();
+        case.planned_segments[0].productive_effort_hours = 5.0;
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn missing_checkpoint_is_rejected() {
+        let mut case = fixture();
+        case.tasks[0].checkpoint_effort_hours = vec![3.0, 6.0];
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn non_preemptible_task_cannot_be_split() {
+        let mut case = fixture();
+        case.planned_segments.push(PlannedSegment {
+            segment_id: "test-commission-segment-1".to_string(),
+            event_id: "storm-001".to_string(),
+            task_id: "test-commission".to_string(),
+            sequence: 1,
+            start_hour: 16.0,
+            end_hour: 17.0,
+            productive_effort_hours: 1.0,
+            interruption_cause: None,
+        });
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn appended_progress_snapshot_requires_versioned_reconciliation() {
+        let mut case = fixture();
+        case.events.push(ExecutionEvent {
+            event_id: "repair-progress-old".to_string(),
+            idempotency_key: "repair-progress-old-key".to_string(),
+            event_type: ExecutionEventType::ProgressSnapshot,
+            event_id_ref: "storm-001".to_string(),
+            task_id: "repair-pump".to_string(),
+            segment_id: "repair-pump-active".to_string(),
+            sequence: 1,
+            start_hour: 4.0,
+            end_hour: 6.0,
+            productive_effort_hours: 2.0,
+            effective_hour: 6.0,
+            observed_hour: 6.1,
+            evidence_status: EvidenceStatus::Superseded,
+            evidence_class: EvidenceClass::SyntheticFixture,
+            evidence_ref: "synthetic://progress/repair-pump/old".to_string(),
+            interruption_cause: None,
+        });
+        case.events.push(ExecutionEvent {
+            event_id: "repair-progress-new".to_string(),
+            idempotency_key: "repair-progress-new-key".to_string(),
+            event_type: ExecutionEventType::ProgressSnapshot,
+            event_id_ref: "storm-001".to_string(),
+            task_id: "repair-pump".to_string(),
+            segment_id: "repair-pump-active".to_string(),
+            sequence: 1,
+            start_hour: 4.0,
+            end_hour: 8.0,
+            productive_effort_hours: 3.0,
+            effective_hour: 8.0,
+            observed_hour: 8.0,
+            evidence_status: EvidenceStatus::Current,
+            evidence_class: EvidenceClass::SyntheticFixture,
+            evidence_ref: "synthetic://progress/repair-pump/new".to_string(),
+            interruption_cause: None,
+        });
+
+        case.baseline_events.push(case.events[1].clone());
+        refresh_baseline_manifest(&mut case);
+
+        let baseline = &mut case.baseline_commitments[0];
+        baseline.state = CommitmentState::InProgress;
+        baseline.version = 1;
+        baseline.active_segment_id = Some("repair-pump-active".to_string());
+        baseline.frozen_event_ids.push("repair-progress-old".to_string());
+
+        let proposed = &mut case.proposed_commitments[0];
+        proposed.state = CommitmentState::InProgress;
+        proposed.version = 2;
+        proposed.active_segment_id = Some("repair-pump-active".to_string());
+        proposed.frozen_event_ids.push("repair-progress-old".to_string());
+        proposed.frozen_event_ids.push("repair-progress-new".to_string());
+
+        case.planned_segments.clear();
+        case.reconciliations.push(ReconciliationEvent {
+            event_id: "reconcile-progress-001".to_string(),
+            commitment_id: "commit-repair-pump".to_string(),
+            from_version: 1,
+            to_version: 2,
+            action: ReconciliationAction::ProgressRecorded,
+            observed_hour: 8.0,
+            evidence_status: EvidenceStatus::Current,
+            authority_ref: "synthetic://authority/shift-supervisor".to_string(),
+            evidence_ref: "synthetic://reconciliation/progress-001".to_string(),
+        });
+
+        let report = validate(&case).expect("versioned progress update is reconciled");
+        let repair = report.tasks.iter().find(|x| x.task_id == "repair-pump").unwrap();
+        assert_eq!(repair.observed_effort_hours, 7.0);
+        assert_eq!(repair.planned_effort_hours, 0.0);
+        assert_eq!(repair.remaining_effort_hours, 1.0);
+    }
+
+    #[test]
+    fn paused_commitment_resumes_only_with_authorized_versioned_event() {
+        let mut case = fixture();
+        case.as_of_hour = 10.0;
+        case.events.push(ExecutionEvent {
+            event_id: "resume-progress".to_string(),
+            idempotency_key: "resume-progress-key".to_string(),
+            event_type: ExecutionEventType::ProgressSnapshot,
+            event_id_ref: "storm-001".to_string(),
+            task_id: "repair-pump".to_string(),
+            segment_id: "repair-pump-resumed".to_string(),
+            sequence: 1,
+            start_hour: 4.0,
+            end_hour: 10.0,
+            productive_effort_hours: 2.0,
+            effective_hour: 10.0,
+            observed_hour: 10.0,
+            evidence_status: EvidenceStatus::Current,
+            evidence_class: EvidenceClass::SyntheticFixture,
+            evidence_ref: "synthetic://progress/repair-pump/resumed".to_string(),
+            interruption_cause: None,
+        });
+
+        case.baseline_commitments[0].state = CommitmentState::Paused;
+        case.baseline_commitments[0].version = 1;
+        case.baseline_commitments[0].active_segment_id = None;
+        case.proposed_commitments[0].state = CommitmentState::InProgress;
+        case.proposed_commitments[0].version = 2;
+        case.proposed_commitments[0].active_segment_id = Some("repair-pump-resumed".to_string());
+        case.proposed_commitments[0].frozen_event_ids.push("resume-progress".to_string());
+
+        case.planned_segments.clear();
+        case.reconciliations.push(ReconciliationEvent {
+            event_id: "reconcile-resume-001".to_string(),
+            commitment_id: "commit-repair-pump".to_string(),
+            from_version: 1,
+            to_version: 2,
+            action: ReconciliationAction::ResumeAuthorized,
+            observed_hour: 10.0,
+            evidence_status: EvidenceStatus::Current,
+            authority_ref: "synthetic://authority/asset-owner".to_string(),
+            evidence_ref: "synthetic://reconciliation/resume-001".to_string(),
+        });
+
+        let report = validate(&case).expect("authorized resume is reconciled");
+        let repair = report.tasks.iter().find(|x| x.task_id == "repair-pump").unwrap();
+        assert_eq!(repair.commitment_state, "in_progress");
+        assert_eq!(repair.observed_effort_hours, 6.0);
+        assert_eq!(repair.remaining_effort_hours, 2.0);
+    }
+
+    #[test]
+    fn completion_cannot_be_reconciled_from_an_open_progress_snapshot() {
+        let mut case = fixture();
+        case.events.push(ExecutionEvent {
+            event_id: "repair-progress".to_string(),
+            idempotency_key: "repair-progress-key".to_string(),
+            event_type: ExecutionEventType::ProgressSnapshot,
+            event_id_ref: "storm-001".to_string(),
+            task_id: "repair-pump".to_string(),
+            segment_id: "repair-pump-active".to_string(),
+            sequence: 1,
+            start_hour: 4.0,
+            end_hour: 8.0,
+            productive_effort_hours: 4.0,
+            effective_hour: 8.0,
+            observed_hour: 8.0,
+            evidence_status: EvidenceStatus::Current,
+            evidence_class: EvidenceClass::SyntheticFixture,
+            evidence_ref: "synthetic://progress/repair-pump/complete".to_string(),
+            interruption_cause: None,
+        });
+        case.baseline_events.push(case.events.last().expect("new baseline snapshot").clone());
+        refresh_baseline_manifest(&mut case);
+        case.baseline_commitments[0].state = CommitmentState::InProgress;
+        case.baseline_commitments[0].version = 1;
+        case.baseline_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
+        case.baseline_commitments[0].frozen_event_ids.push("repair-progress".to_string());
+
+        case.proposed_commitments[0].state = CommitmentState::Completed;
+        case.proposed_commitments[0].version = 2;
+        case.proposed_commitments[0].active_segment_id = None;
+        case.proposed_commitments[0].frozen_event_ids.push("repair-progress".to_string());
+
+        case.planned_segments.clear();
+        case.reconciliations.push(ReconciliationEvent {
+            event_id: "reconcile-completion-001".to_string(),
+            commitment_id: "commit-repair-pump".to_string(),
+            from_version: 1,
+            to_version: 2,
+            action: ReconciliationAction::CompletionConfirmed,
+            observed_hour: 8.0,
+            evidence_status: EvidenceStatus::Current,
+            authority_ref: "synthetic://authority/asset-owner".to_string(),
+            evidence_ref: "synthetic://reconciliation/completion-001".to_string(),
+        });
+
+        assert!(validate(&case).is_err(), "an open progress snapshot is not a completed work segment");
+    }
+
+    #[test]
+    fn reconciliation_cannot_predate_the_observation_it_admits() {
+        let mut case = fixture();
+        case.events.push(ExecutionEvent {
+            event_id: "repair-progress".to_string(),
+            idempotency_key: "repair-progress-key".to_string(),
+            event_type: ExecutionEventType::ProgressSnapshot,
+            event_id_ref: "storm-001".to_string(),
+            task_id: "repair-pump".to_string(),
+            segment_id: "repair-pump-active".to_string(),
+            sequence: 1,
+            start_hour: 4.0,
+            end_hour: 8.0,
+            productive_effort_hours: 3.0,
+            effective_hour: 8.0,
+            observed_hour: 8.0,
+            evidence_status: EvidenceStatus::Current,
+            evidence_class: EvidenceClass::SyntheticFixture,
+            evidence_ref: "synthetic://progress/repair-pump".to_string(),
+            interruption_cause: None,
+        });
+        case.baseline_commitments[0].state = CommitmentState::InProgress;
+        case.baseline_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
+        case.proposed_commitments[0].state = CommitmentState::InProgress;
+        case.proposed_commitments[0].version = 2;
+        case.proposed_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
+        case.proposed_commitments[0].frozen_event_ids.push("repair-progress".to_string());
+        case.planned_segments.clear();
+        case.reconciliations.push(ReconciliationEvent {
+            event_id: "reconcile-progress-early".to_string(),
+            commitment_id: "commit-repair-pump".to_string(),
+            from_version: 1,
+            to_version: 2,
+            action: ReconciliationAction::ProgressRecorded,
+            observed_hour: 7.0,
+            evidence_status: EvidenceStatus::Current,
+            authority_ref: "synthetic://authority/shift-supervisor".to_string(),
+            evidence_ref: "synthetic://reconciliation/progress-early".to_string(),
+        });
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn appended_progress_snapshot_without_reconciliation_is_rejected() {
+        let mut case = fixture();
+        case.events.push(ExecutionEvent {
+            event_id: "repair-progress".to_string(),
+            idempotency_key: "repair-progress-key".to_string(),
+            event_type: ExecutionEventType::ProgressSnapshot,
+            event_id_ref: "storm-001".to_string(),
+            task_id: "repair-pump".to_string(),
+            segment_id: "repair-pump-active".to_string(),
+            sequence: 1,
+            start_hour: 4.0,
+            end_hour: 8.0,
+            productive_effort_hours: 3.0,
+            effective_hour: 8.0,
+            observed_hour: 8.0,
+            evidence_status: EvidenceStatus::Current,
+            evidence_class: EvidenceClass::SyntheticFixture,
+            evidence_ref: "synthetic://progress/repair-pump".to_string(),
+            interruption_cause: None,
+        });
+        case.baseline_commitments[0].state = CommitmentState::InProgress;
+        case.proposed_commitments[0].state = CommitmentState::InProgress;
+        case.baseline_commitments[0].version = 1;
+        case.proposed_commitments[0].version = 2;
+        case.baseline_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
+        case.proposed_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
+        case.proposed_commitments[0].frozen_event_ids.push("repair-progress".to_string());
+        case.planned_segments.clear();
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn in_progress_task_cannot_be_silently_rescheduled() {
+        let mut case = fixture();
+        case.events.push(ExecutionEvent {
+            event_id: "repair-progress".to_string(),
+            idempotency_key: "repair-progress-key".to_string(),
+            event_type: ExecutionEventType::ProgressSnapshot,
+            event_id_ref: "storm-001".to_string(),
+            task_id: "repair-pump".to_string(),
+            segment_id: "repair-pump-active".to_string(),
+            sequence: 1,
+            start_hour: 4.0,
+            end_hour: 8.0,
+            productive_effort_hours: 3.0,
+            effective_hour: 8.0,
+            observed_hour: 8.0,
+            evidence_status: EvidenceStatus::Current,
+            evidence_class: EvidenceClass::SyntheticFixture,
+            evidence_ref: "synthetic://progress/repair-pump".to_string(),
+            interruption_cause: None,
+        });
+        case.baseline_events.push(case.events.last().expect("new baseline snapshot").clone());
+        refresh_baseline_manifest(&mut case);
+        case.baseline_commitments[0].state = CommitmentState::InProgress;
+        case.proposed_commitments[0].state = CommitmentState::InProgress;
+        case.baseline_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
+        case.proposed_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
+        case.baseline_commitments[0].frozen_event_ids.push("repair-progress".to_string());
+        case.proposed_commitments[0].frozen_event_ids.push("repair-progress".to_string());
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn commitment_state_change_requires_reconciliation() {
+        let mut case = fixture();
+        case.proposed_commitments[0].state = CommitmentState::Completed;
+        case.proposed_commitments[0].version = 2;
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn active_resource_is_not_reallocated_before_a_pause_is_observed() {
+        let mut case = fixture();
+        case.events.push(ExecutionEvent {
+            event_id: "repair-progress".to_string(),
+            idempotency_key: "repair-progress-key".to_string(),
+            event_type: ExecutionEventType::ProgressSnapshot,
+            event_id_ref: "storm-001".to_string(),
+            task_id: "repair-pump".to_string(),
+            segment_id: "repair-pump-active".to_string(),
+            sequence: 1,
+            start_hour: 4.0,
+            end_hour: 8.0,
+            productive_effort_hours: 3.0,
+            effective_hour: 8.0,
+            observed_hour: 8.0,
+            evidence_status: EvidenceStatus::Current,
+            evidence_class: EvidenceClass::SyntheticFixture,
+            evidence_ref: "synthetic://progress/repair-pump".to_string(),
+            interruption_cause: None,
+        });
+        case.baseline_events.push(case.events.last().expect("new baseline snapshot").clone());
+        refresh_baseline_manifest(&mut case);
+        case.baseline_commitments[0].state = CommitmentState::InProgress;
+        case.proposed_commitments[0].state = CommitmentState::InProgress;
+        case.baseline_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
+        case.proposed_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
+        case.baseline_commitments[0].frozen_event_ids.push("repair-progress".to_string());
+        case.proposed_commitments[0].version = 2;
+        case.proposed_commitments[0].frozen_event_ids.push("repair-progress".to_string());
+        case.planned_segments = vec![PlannedSegment {
+            segment_id: "commission-while-crew-active".to_string(),
+            event_id: "storm-001".to_string(),
+            task_id: "test-commission".to_string(),
+            sequence: 0,
+            start_hour: 12.0,
+            end_hour: 14.0,
+            productive_effort_hours: 2.0,
+            interruption_cause: None,
+        }];
+        case.tasks[1].depends_on.clear();
+        case.reconciliations.push(ReconciliationEvent {
+            event_id: "reconcile-progress-001".to_string(),
+            commitment_id: "commit-repair-pump".to_string(),
+            from_version: 1,
+            to_version: 2,
+            action: ReconciliationAction::ProgressRecorded,
+            observed_hour: 8.0,
+            evidence_status: EvidenceStatus::Current,
+            authority_ref: "synthetic://authority/shift-supervisor".to_string(),
+            evidence_ref: "synthetic://reconciliation/progress-001".to_string(),
+        });
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn synthetic_case_cannot_claim_observed_field_evidence() {
+        let mut case = fixture();
+        case.events[0].evidence_class = EvidenceClass::Observed;
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn impossible_calendar_date_is_rejected() {
+        let mut case = fixture();
+        case.time_origin_utc = "2030-02-30T00:00:00Z".to_string();
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn short_intermediate_segment_is_not_excused_by_later_completion() {
+        let mut case = fixture();
+        case.tasks[0].checkpoint_effort_hours = vec![1.0, 7.0];
+        case.events[0].productive_effort_hours = 1.0;
+        case.planned_segments[0].productive_effort_hours = 7.0;
+        case.planned_segments[0].end_hour = 17.0;
+        case.planned_segments[1].start_hour = 17.0;
+        case.planned_segments[1].end_hour = 19.0;
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn resource_capacity_conflict_is_rejected() {
+        let mut case = fixture();
+        case.planned_segments[1].start_hour = 12.0;
+        case.planned_segments[1].end_hour = 14.0;
+        case.tasks[1].depends_on.clear();
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn released_resource_is_available_between_segments() {
+        let report = validate(&fixture()).expect("released crew can be reused between shifts");
+        assert_eq!(report.result_status, "execution_ledger_and_candidate_schedule_consistent");
+    }
+
+    #[test]
+    fn retained_resource_reserves_the_pause_interval() {
+        let mut case = fixture();
+        case.tasks[0].paused_resource_policy = PausedResourcePolicy::Retain;
+        case.planned_segments[0].start_hour = 6.0;
+        case.planned_segments[0].end_hour = 10.0;
+        case.resources[0].capacity_windows = vec![
+            CapacityWindow { start_hour: 0.0, end_hour: 6.0, capacity_units: 1 },
+            CapacityWindow { start_hour: 10.0, end_hour: 24.0, capacity_units: 1 },
+        ];
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn paused_retained_resource_remains_reserved_until_reconciliation() {
+        let mut case = fixture();
+        case.tasks[0].paused_resource_policy = PausedResourcePolicy::Retain;
+        case.planned_segments.clear();
+        case.resources[0].capacity_windows = vec![
+            CapacityWindow { start_hour: 0.0, end_hour: 8.0, capacity_units: 1 },
+        ];
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn task_dependency_is_respected() {
+        let mut case = fixture();
+        case.planned_segments[1].start_hour = 13.0;
+        case.planned_segments[1].end_hour = 15.0;
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn every_baseline_event_field_is_immutable_across_replanning() {
+        let mutations: Vec<Box<dyn Fn(&mut ExecutionEvent)>> = vec![
+            Box::new(|event| event.event_id.push_str("-changed")),
+            Box::new(|event| event.idempotency_key.push_str("-changed")),
+            Box::new(|event| event.event_type = ExecutionEventType::ProgressSnapshot),
+            Box::new(|event| event.event_id_ref.push_str("-changed")),
+            Box::new(|event| event.task_id.push_str("-changed")),
+            Box::new(|event| event.segment_id.push_str("-changed")),
+            Box::new(|event| event.sequence += 1),
+            Box::new(|event| event.start_hour += 0.25),
+            Box::new(|event| event.end_hour += 0.25),
+            Box::new(|event| event.productive_effort_hours += 0.25),
+            Box::new(|event| event.effective_hour += 0.25),
+            Box::new(|event| event.observed_hour += 0.25),
+            Box::new(|event| event.evidence_status = EvidenceStatus::Superseded),
+            Box::new(|event| event.evidence_class = EvidenceClass::Observed),
+            Box::new(|event| event.evidence_ref.push_str("-changed")),
+            Box::new(|event| event.interruption_cause = Some("rewritten".to_string())),
+        ];
+
+        for mutate in mutations {
+            let mut case = fixture();
+            mutate(&mut case.events[0]);
+            assert!(
+                validate(&case).is_err(),
+                "a baseline event payload field changed without replacing the trusted baseline manifest"
+            );
+        }
+    }
+
+    #[test]
+    fn baseline_execution_event_cannot_be_rewritten_in_place() {
+        let mut case = fixture();
+        case.events[0].productive_effort_hours = 3.5;
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn baseline_execution_event_cannot_be_removed_from_replan() {
+        let mut case = fixture();
+        case.events.clear();
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn baseline_event_manifest_digest_mismatch_is_rejected() {
+        let mut case = fixture();
+        case.baseline_event_manifest_sha256.replace_range(0..1, "0");
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn baseline_event_manifest_reference_is_required() {
+        let mut case = fixture();
+        case.baseline_event_manifest_ref.clear();
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn baseline_event_manifest_rejects_duplicate_ids() {
+        let mut case = fixture();
+        case.baseline_events.push(case.baseline_events[0].clone());
+        refresh_baseline_manifest(&mut case);
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn input_order_does_not_change_canonical_report() {
+        let original = validate(&fixture()).unwrap();
+        let mut reordered = fixture();
+        reordered.tasks.reverse();
+        reordered.resources.reverse();
+        reordered.events.reverse();
+        reordered.planned_segments.reverse();
+        reordered.baseline_commitments.reverse();
+        reordered.proposed_commitments.reverse();
+        let replay = validate(&reordered).unwrap();
+        assert_eq!(original, replay);
+    }
+}
