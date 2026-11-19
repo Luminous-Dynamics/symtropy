@@ -1,0 +1,11 @@
+[package]
+name = "marine-liveaboard-service-vector"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Non-compensatory whole-liveaboard mission service vector auditor"
+
+[dependencies]
+serde_json = "1.0"
+sha2 = "0.10"
