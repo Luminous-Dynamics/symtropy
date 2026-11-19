@@ -10,7 +10,7 @@ pub use ifc_ids_preflight::{
     GeometryPreflightEvaluation, IfcCoordinateContext, IfcIdsPreflightError, IfcIdsPreflightReport,
     IfcLengthUnit,
     IfcIdsWorkPackageInput, IfcSourceEntity, IdsRequirementEvaluation, SourceEntityBinding,
-    preflight_ifc_ids_work_package,
+    SUPPORTED_IDS_VERSION, SUPPORTED_IFC_SCHEMA_RELEASE, preflight_ifc_ids_work_package,
 };
 pub mod site_state_ledger;
 pub use field_layout_acceptance::{
