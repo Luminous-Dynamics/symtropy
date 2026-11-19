@@ -494,10 +494,15 @@ fn simulate_scenario(
                     ) && flight_domain_is_current(target_observation.weather, target_observation.permission);
                     if link.evidence_status != SharedEvidenceStatus::FreshInDomain || !route_domain_clear {
                         checked_add(&mut metrics.hard_gate_blocked_actions, 1, "hard-gate blocked actions")?;
-                    } else if energy.saturating_sub(link.energy_units) < input.protected_energy_reserve_units {
+                    } else if energy
+                        .checked_sub(link.energy_units)
+                        .is_none_or(|remaining| remaining < input.protected_energy_reserve_units)
+                    {
                         checked_add(&mut metrics.energy_blocked_actions, 1, "energy-blocked actions")?;
                     } else {
-                        energy -= link.energy_units;
+                        energy = energy
+                            .checked_sub(link.energy_units)
+                            .ok_or_else(|| "reposition energy underflow after validation".to_string())?;
                         checked_add(&mut metrics.reposition_energy_units, u128::from(link.energy_units), "reposition energy")?;
                         checked_add(&mut metrics.reposition_cost_units, u128::from(link.cost_units), "reposition cost")?;
                         add_cost(&mut metrics, u128::from(link.cost_units))?;
@@ -909,6 +914,26 @@ mod tests {
         assert_eq!(metrics.repositioning_events, 0);
         assert!(metrics.energy_blocked_actions > 0);
         assert_eq!(metrics.end_energy_units, 16);
+    }
+
+    #[test]
+    fn insufficient_energy_blocks_reposition_even_when_reserve_is_zero() {
+        let mut test = input();
+        test.initial_aircraft_energy_units = 2;
+        test.protected_energy_reserve_units = 0;
+        let canonical = canonicalize(&test);
+        let (_nodes, indices, mask) = forced_region_mask(&canonical, "rural");
+        let metrics = simulate_scenario(
+            &canonical,
+            &canonical.scenarios[0],
+            &indices,
+            mask,
+            true,
+        )
+        .expect("insufficient energy must produce a blocked action, not arithmetic underflow");
+        assert_eq!(metrics.repositioning_events, 0);
+        assert_eq!(metrics.energy_blocked_actions, 1);
+        assert_eq!(metrics.end_energy_units, 2);
     }
 
     #[test]
