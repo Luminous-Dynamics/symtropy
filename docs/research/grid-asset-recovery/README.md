@@ -262,3 +262,48 @@ References:
 ### What would constitute a real SOTA claim
 
 A future result must identify the exact benchmark corpus and version, include baseline source/commit hashes, publish hardware/runtime limits, report lower/upper bounds and optimality gaps, and replay the same calendar/task/resource data across methods. A lower restoration time on our synthetic fixture is not a SOTA result. A solver beating PSPLIB is not evidence it beats grid-operator restoration practice. Both algorithmic and operational comparisons are required.
+
+
+## 14. Service-consequence objective: weighted unserved energy
+
+The initial scheduler used makespan as its exact small-case objective. That is useful for project completion, but it can prefer the wrong outage order when simultaneous events have very different service consequences.
+
+A second bounded exact objective now minimises:
+
+`weighted_unserved_energy = \sum_i (firm\_MW\_lost_i - alternate\_firm\_MW_i)^+ \times (restoration\_hour_i)`
+
+Here the per-event weight is net firm-capacity shortfall in MW, and elapsed restoration is measured from the event start through the final required recovery task. This is a simplified weighted unserved-energy proxy; v0.x assumes constant shortfall until restoration and does not represent time-varying demand, customer interruption classes, network power flows, dynamic security, or production-cost dispatch.
+
+The CLI provides two distinct bounded exact modes:
+- `--exact-small`: minimum global makespan, at most 10 tasks.
+- `--exact-small-service`: minimum weighted unserved energy, at most 8 tasks.
+
+Both are exhaustive bounded references, not scalable optimisation claims. The service objective uses a deterministic greedy schedule as an initial upper bound, then exhaustively checks precedence-feasible serial schedules under the same resource calendars.
+
+### Service-priority counterexample
+
+A two-event synthetic example has one crew:
+- Low-consequence event: 10 MW shortfall, 5-hour repair.
+- Critical event: 100 MW shortfall, 10-hour repair.
+
+Stable-ID greedy order repairs the low-consequence event first: 1,550 MWh weighted shortfall. Exact service-oriented ordering repairs the critical event first: 1,150 MWh. That is 400 MWh / 25.8% lower under this simplified objective, with the same 15-hour global makespan.
+
+This is a scheduling microcase, not a grid restoration result. It demonstrates why "minimise project duration" and "minimise service harm" are different objectives and why a recovery plan should expose both.
+
+### Current synthetic fleet service ledger
+
+Under the declared 14-hour daily resource calendar, the fixture has:
+- OUTAGE-001: 80 MW net shortfall × 46 h = 3,680 MWh;
+- OUTAGE-002: 50 MW net shortfall × 1,222 h = 61,100 MWh;
+- OUTAGE-003: 25 MW net shortfall × 36 h = 900 MWh.
+
+Total calculated synthetic weighted unserved energy is **65,680 MWh**. It is a schema/scheduler arithmetic fixture—not measured loss of load or a physical reliability prediction. The CLI includes per-event values and the total in its JSON report.
+
+The next SOTA-facing objective should become a multiobjective Pareto set:
+- weighted unserved energy;
+- worst-event restoration time;
+- p95/p99 restoration under stochastic disruption;
+- lifecycle cost of spares, crew, equipment and logistics;
+- schedule stability and robustness to common-cause outages.
+
+Do not bury these in one opaque weighted score. Publish each objective, the trade-offs and the constraint/evidence boundary.
