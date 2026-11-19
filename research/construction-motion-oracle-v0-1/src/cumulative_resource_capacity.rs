@@ -134,9 +134,7 @@ pub fn evaluate_cumulative_resource_capacity(
     if scenario.scenario_id.trim().is_empty() || scenario.site_clock_domain_id.trim().is_empty() {
         errors.push(CumulativeCapacityError::EmptyScenarioIdentity);
     }
-    if !is_sha256(&scenario.resource_catalog_sha256)
-        || !is_sha256(&scenario.site_snapshot_sha256)
-    {
+    if !is_sha256(&scenario.resource_catalog_sha256) || !is_sha256(&scenario.site_snapshot_sha256) {
         errors.push(CumulativeCapacityError::InvalidScenarioDigest);
     }
 
@@ -512,7 +510,9 @@ mod tests {
         );
 
         let mut missing = scenario(vec![definition("r", 1)], vec![]);
-        missing.reservations.push(reservation("missing", "unknown", 0, 10, 1));
+        missing
+            .reservations
+            .push(reservation("missing", "unknown", 0, 10, 1));
         assert!(
             evaluate_cumulative_resource_capacity(&missing)
                 .unwrap_err()
@@ -530,7 +530,9 @@ mod tests {
         assert!(
             evaluate_cumulative_resource_capacity(&invalid)
                 .unwrap_err()
-                .contains(&CumulativeCapacityError::ResourceDefinitionMismatch("r".into()))
+                .contains(&CumulativeCapacityError::ResourceDefinitionMismatch(
+                    "r".into()
+                ))
         );
 
         let mut other_clock = scenario(
@@ -572,9 +574,11 @@ mod tests {
             reservation("r2", "crane", 5, 12, 2),
             reservation("r3", "power", 0, 20, 2),
         ];
-        let baseline =
-            evaluate_cumulative_resource_capacity(&scenario(resources.clone(), reservations.clone()))
-                .unwrap();
+        let baseline = evaluate_cumulative_resource_capacity(&scenario(
+            resources.clone(),
+            reservations.clone(),
+        ))
+        .unwrap();
 
         let mut reversed_reservations = reservations;
         reversed_reservations.reverse();
@@ -628,8 +632,7 @@ mod tests {
                 oracle_peak = oracle_peak.max(load);
             }
             assert_eq!(
-                report.resource_summaries[0].peak_load_units,
-                oracle_peak,
+                report.resource_summaries[0].peak_load_units, oracle_peak,
                 "sweep and discrete oracle diverged for seed {seed_start}"
             );
             assert_eq!(
