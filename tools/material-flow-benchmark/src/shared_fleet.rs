@@ -410,6 +410,10 @@ fn validate_input(input: &SharedFleetInput) -> Result<(), Vec<String>> {
                     errors.push(format!(
                         "reposition_periods[{row}][{column}]: cross-region transfer must take at least one period"
                     ));
+                } else if usize::from(input.reposition_periods[row][column]) > MAX_PERIODS {
+                    errors.push(format!(
+                        "reposition_periods[{row}][{column}]: exceeds v1 horizon limit"
+                    ));
                 }
                 if input.reposition_cost[row][column] > MAX_COST_PER_UNIT {
                     errors.push(format!("reposition_cost[{row}][{column}]: exceeds v1 ceiling"));
@@ -1014,6 +1018,41 @@ mod tests {
                 ],
             }],
         }
+    }
+
+    #[test]
+    fn fixture_has_expected_two_region_shared_fleet_tree() {
+        let input: SharedFleetInput = serde_json::from_str(include_str!(
+            "../fixtures/synthetic-two-region-shared-uav-fleet.json"
+        ))
+        .expect("shared-fleet fixture must deserialize");
+        let report = evaluate_shared_fleet(&input).expect("fixture must evaluate");
+        assert_eq!(report.region_count, 2);
+        assert_eq!(report.aircraft_count, 2);
+        assert_eq!(report.period_count, 4);
+        assert_eq!(report.scenario_count, 2);
+        assert_eq!(report.nonanticipative_tree_node_count, 7);
+        assert!(report.dynamic_program_state_count > 0);
+        assert!(report.action_count_evaluated > 0);
+        assert_eq!(report.optimized_policy.unauthorized_aerial_dispatches, 0);
+        assert!(!report.dispatch_authorized);
+        assert!(!report.physical_commands_emitted);
+    }
+
+    #[test]
+    fn two_period_reposition_blocks_aircraft_for_both_transit_periods() {
+        let mut input = base_input();
+        input.period_count = 3;
+        input.reposition_periods = vec![vec![0, 2], vec![2, 0]];
+        input.reposition_cost = vec![vec![0, 5], vec![5, 0]];
+        input.scenarios[0].periods.truncate(3);
+        for period in &mut input.scenarios[0].periods {
+            period.observations[1].demand_units = 4;
+        }
+        let report = evaluate_shared_fleet(&input).expect("valid input");
+        assert_eq!(report.optimized_policy.expected_aerial_deliveries, 4.0);
+        assert_eq!(report.optimized_policy.expected_unserved_units, 8.0);
+        assert_eq!(report.optimized_policy.expected_repositioned_aircraft_periods, 2.0);
     }
 
     #[test]
