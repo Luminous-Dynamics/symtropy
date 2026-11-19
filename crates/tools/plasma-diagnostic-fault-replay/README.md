@@ -105,7 +105,7 @@ The `multirate` module adds a causal as-of query across asynchronous diagnostic 
 - Reports missing streams, future-only streams, stale samples and non-measured evidence as distinct states.
 - Rejects non-monotonic timestamps, duplicate stream/sample identities, clock-domain mismatches, non-finite values and measured samples lacking source/calibration lineage.
 - Performs no resampling, interpolation, zero-fill, forward-fill, backfill, diagnostic reconstruction or actuation.
-- Binds request, source-stream and output digests in an alignment receipt. Digests are integrity identifiers, not source authentication.
+- Binds request, source-stream and output digests in an alignment receipt. The request-bound verifier replays the exact supplied streams and compares the complete receipt; digests remain integrity identifiers, not source authentication.
 
 Run the frozen eight-case synthetic corpus as part of the unit-test suite:
 
