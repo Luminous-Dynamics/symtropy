@@ -1,6 +1,6 @@
 mod scheduler;
 
-use scheduler::{AvailabilityWindow, ResourceProfile, ResourceRequirement, ScheduledTask, TaskSpec, exact_small_schedule, exact_small_service_schedule, schedule, weighted_unserved_energy_mwh};
+use scheduler::{AvailabilityWindow, ResourceProfile, ResourceRequirement, SchedulePolicy, ScheduledTask, TaskSpec, exact_small_schedule, exact_small_service_schedule, schedule_with_policy, weighted_unserved_energy_mwh};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -681,8 +681,15 @@ fn task_specs_for_case(case: &Case) -> Vec<TaskSpec> {
         .collect()
 }
 
-fn schedule_for_case(case: &Case) -> Result<Vec<ScheduledTask>, Vec<String>> {
-    schedule(&task_specs_for_case(case), &resource_capacities(case))
+fn schedule_for_case(
+    case: &Case,
+    policy: SchedulePolicy,
+) -> Result<Vec<ScheduledTask>, Vec<String>> {
+    schedule_with_policy(
+        &task_specs_for_case(case),
+        &resource_capacities(case),
+        policy,
+    )
 }
 
 fn build_report(
@@ -690,6 +697,7 @@ fn build_report(
     mut scheduled_tasks: Vec<ScheduledTask>,
     exact_small_comparison: Option<ExactSmallComparison>,
     exact_small_service_comparison: Option<ExactSmallServiceComparison>,
+    policy: SchedulePolicy,
 ) -> ScheduleReport {
     scheduled_tasks.sort_by(|left, right| {
         left.start_hour
@@ -730,7 +738,14 @@ fn build_report(
     ScheduleReport {
         case_id: case.case_id.clone(),
         case_maturity: case.case_maturity.clone(),
-        scheduler: "earliest_feasible_start_list_v0.1".to_string(),
+        scheduler: match policy {
+            SchedulePolicy::EarliestFeasibleStart => {
+                "earliest_feasible_start_list_v0.1".to_string()
+            }
+            SchedulePolicy::ServiceWeightedCriticalPath => {
+                "service_weighted_critical_path_list_v0.1".to_string()
+            }
+        },
         optimality_status: if exact_small_service_comparison.is_some() {
             "exhaustively_optimal_for_bounded_weighted_unserved_energy_case".to_string()
         } else if exact_small_comparison.is_some() {
@@ -746,30 +761,40 @@ fn build_report(
     }
 }
 
-fn run(input: &str) -> Result<(Case, Vec<ScheduledTask>), Vec<String>> {
+fn run_with_policy(
+    input: &str,
+    policy: SchedulePolicy,
+) -> Result<(Case, Vec<ScheduledTask>), Vec<String>> {
     let case: Case =
         serde_json::from_str(input).map_err(|error| vec![format!("JSON decode error: {error}")])?;
     let errors = validate(&case);
     if !errors.is_empty() {
         return Err(errors);
     }
-    let scheduled = schedule_for_case(&case)?;
+    let scheduled = schedule_for_case(&case, policy)?;
     Ok((case, scheduled))
+}
+
+fn run(input: &str) -> Result<(Case, Vec<ScheduledTask>), Vec<String>> {
+    run_with_policy(input, SchedulePolicy::EarliestFeasibleStart)
 }
 
 fn main() {
     let mut path = None;
     let mut exact_small = false;
     let mut exact_small_service = false;
+    let mut policy = SchedulePolicy::EarliestFeasibleStart;
     for argument in env::args().skip(1) {
         if argument == "--exact-small" {
             exact_small = true;
         } else if argument == "--exact-small-service" {
             exact_small_service = true;
+        } else if argument == "--policy-service-weighted-critical-path" {
+            policy = SchedulePolicy::ServiceWeightedCriticalPath;
         } else if path.is_none() {
             path = Some(argument);
         } else {
-            eprintln!("usage: grid-asset-recovery-validator [--exact-small|--exact-small-service] <case.json>");
+            eprintln!("usage: grid-asset-recovery-validator [--policy-service-weighted-critical-path] [--exact-small|--exact-small-service] <case.json>");
             process::exit(2);
         }
     }
@@ -785,7 +810,7 @@ fn main() {
         eprintln!("cannot read {path}: {error}");
         process::exit(2);
     });
-    match run(&input) {
+    match run_with_policy(&input, policy) {
         Ok((case, scheduled)) => {
             let exact_comparison = if exact_small {
                 let tasks = task_specs_for_case(&case);
@@ -877,6 +902,7 @@ fn main() {
                 scheduled,
                 exact_comparison,
                 exact_service_comparison,
+                policy,
             );
             println!(
                 "{}",
