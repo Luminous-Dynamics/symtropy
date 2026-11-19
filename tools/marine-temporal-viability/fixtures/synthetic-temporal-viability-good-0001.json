@@ -10,7 +10,7 @@
   },
   "mission_snapshot": {
     "mission_id": "SYNTHETIC-MARINE-TEMPORAL-MISSION-0001",
-    "mission_snapshot_sha256": "be567df14abb3444a8a22592481c8259392e36e746f0dce7c87c6f52306b260e",
+    "mission_snapshot_sha256": "d70228690d138237b3dd8ff0085acc84036dd65bc3fec77f6664f30cd793b32c",
     "craft_configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
     "occupancy_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
     "initial_resource_state_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
@@ -19,7 +19,9 @@
     "hard_gate_roster_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
     "operating_envelope_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
     "service_floor_contract_sha256": "d636b14c0c8d1f91d57a35d927bf321a5b6d382fd9c751e4357b2ffd9bbb91bc",
-    "scenario_member_set_sha256": "616abc0b5751cd0617575daf99feab2b60c5ec4dd065747f8649b4e534dcbd2a"
+    "scenario_member_set_sha256": "616abc0b5751cd0617575daf99feab2b60c5ec4dd065747f8649b4e534dcbd2a",
+    "mission_window_sha256": "eb8d2088f032640c48e81a436489ff9266676faa29a29748b7fa9494e3287653",
+    "time_grid_sha256": "8c7dc47b9302c2fbc15cdb43fac11ecc1dd0ed639df325b2a6b0deab432e9013"
   },
   "service_floor_contract": [
     {
@@ -108,7 +110,7 @@
       "policy_id": "weather-blind-reference",
       "role": "weather_blind_reference",
       "forecast_use": false,
-      "mission_snapshot_sha256": "be567df14abb3444a8a22592481c8259392e36e746f0dce7c87c6f52306b260e",
+      "mission_snapshot_sha256": "d70228690d138237b3dd8ff0085acc84036dd65bc3fec77f6664f30cd793b32c",
       "paths": [
         {
           "scenario_member_id": "member-01",
@@ -1362,7 +1364,7 @@
       "policy_id": "weather-informed-resource-blind",
       "role": "weather_informed_resource_blind",
       "forecast_use": true,
-      "mission_snapshot_sha256": "be567df14abb3444a8a22592481c8259392e36e746f0dce7c87c6f52306b260e",
+      "mission_snapshot_sha256": "d70228690d138237b3dd8ff0085acc84036dd65bc3fec77f6664f30cd793b32c",
       "paths": [
         {
           "scenario_member_id": "member-01",
@@ -2616,7 +2618,7 @@
       "policy_id": "integrated-mission-candidate",
       "role": "integrated_candidate",
       "forecast_use": true,
-      "mission_snapshot_sha256": "be567df14abb3444a8a22592481c8259392e36e746f0dce7c87c6f52306b260e",
+      "mission_snapshot_sha256": "d70228690d138237b3dd8ff0085acc84036dd65bc3fec77f6664f30cd793b32c",
       "paths": [
         {
           "scenario_member_id": "member-01",
