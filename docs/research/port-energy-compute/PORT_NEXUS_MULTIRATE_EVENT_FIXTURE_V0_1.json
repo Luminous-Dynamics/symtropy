@@ -1,0 +1,312 @@
+{
+  "schema": "luminous.port_nexus.multidomain_event_trigger_benchmark",
+  "schema_version": "0.1.0",
+  "fixture_id": "port-nexus-multirate-trigger-15m-v0-1",
+  "evidence_class": "synthetic_known_answer_fixture",
+  "snapshot_date": "2026-11-19",
+  "claim_ceiling": "Trigger logic only. Not an optimizer, controller, field case, physical state validation or dispatch authorization.",
+  "evaluation_clock": {
+    "sample_interval_minutes": 15,
+    "snapshots_per_day": 96,
+    "day_ahead_plan_horizon_hours": 24,
+    "local_fast_protection_outside_scope": true
+  },
+  "policy": {
+    "normal_cooldown_ms": 900000,
+    "max_plan_age_ms": 3600000,
+    "hysteresis_reset_ratio": 0.5,
+    "hard_bounds_bypass_cooldown": true,
+    "unknown_or_stale_critical_evidence": "DATA_INCOMPLETE"
+  },
+  "signal_definitions": [
+    {
+      "signal_id": "berth_arrival_delay_min",
+      "domain": "Logistics",
+      "unit": "min",
+      "baseline_value": 0,
+      "soft_absolute_threshold": 10,
+      "soft_relative_threshold": 0,
+      "max_age_ms": 60000,
+      "critical": true,
+      "hard_bound": null
+    },
+    {
+      "signal_id": "shore_power_demand_kw",
+      "domain": "ShorePower",
+      "unit": "kW",
+      "baseline_value": 800,
+      "soft_absolute_threshold": 100,
+      "soft_relative_threshold": 0.15,
+      "max_age_ms": 60000,
+      "critical": true,
+      "hard_bound": null
+    },
+    {
+      "signal_id": "pcc_headroom_kw",
+      "domain": "Grid",
+      "unit": "kW",
+      "baseline_value": 400,
+      "soft_absolute_threshold": 80,
+      "soft_relative_threshold": 0.15,
+      "max_age_ms": 30000,
+      "critical": true,
+      "hard_bound": {
+        "kind": "lower",
+        "limit": 100
+      }
+    },
+    {
+      "signal_id": "renewable_forecast_error_kw",
+      "domain": "Renewables",
+      "unit": "kW",
+      "baseline_value": 0,
+      "soft_absolute_threshold": 50,
+      "soft_relative_threshold": 0,
+      "max_age_ms": 300000,
+      "critical": true,
+      "hard_bound": null
+    },
+    {
+      "signal_id": "compute_deadline_slack_min",
+      "domain": "Compute",
+      "unit": "min",
+      "baseline_value": 120,
+      "soft_absolute_threshold": 30,
+      "soft_relative_threshold": 0,
+      "max_age_ms": 60000,
+      "critical": true,
+      "hard_bound": {
+        "kind": "lower",
+        "limit": 15
+      }
+    },
+    {
+      "signal_id": "cooling_discharge_margin_c",
+      "domain": "Cooling",
+      "unit": "degC",
+      "baseline_value": 6,
+      "soft_absolute_threshold": 1.5,
+      "soft_relative_threshold": 0,
+      "max_age_ms": 60000,
+      "critical": true,
+      "hard_bound": {
+        "kind": "lower",
+        "limit": 1
+      }
+    },
+    {
+      "signal_id": "thermal_store_soc_pct",
+      "domain": "ThermalStore",
+      "unit": "%",
+      "baseline_value": 80,
+      "soft_absolute_threshold": 10,
+      "soft_relative_threshold": 0,
+      "max_age_ms": 60000,
+      "critical": true,
+      "hard_bound": {
+        "kind": "lower",
+        "limit": 20
+      }
+    },
+    {
+      "signal_id": "marine_intake_temperature_c",
+      "domain": "Cooling",
+      "unit": "degC",
+      "baseline_value": 20,
+      "soft_absolute_threshold": 1,
+      "soft_relative_threshold": 0,
+      "max_age_ms": 3600000,
+      "critical": true,
+      "hard_bound": null
+    }
+  ],
+  "baseline_snapshot": {
+    "baseline_plan_id": "day-ahead-plan-v1",
+    "decision_time_ms": 1000000,
+    "plan_generated_at_ms": 900000,
+    "measurements": {
+      "berth_arrival_delay_min": 0,
+      "shore_power_demand_kw": 800,
+      "pcc_headroom_kw": 400,
+      "renewable_forecast_error_kw": 0,
+      "compute_deadline_slack_min": 120,
+      "cooling_discharge_margin_c": 6,
+      "thermal_store_soc_pct": 80,
+      "marine_intake_temperature_c": 20
+    },
+    "evidence_quality": "Synthetic",
+    "observation_age_ms": 1000,
+    "availability_lag_ms": 200
+  },
+  "cases": [
+    {
+      "case_id": "stable-baseline",
+      "sequence": 1,
+      "overrides": {},
+      "expected_decision": "NoTrigger",
+      "expected_priority": null,
+      "expected_reasons": []
+    },
+    {
+      "case_id": "logistics-only-deviation",
+      "sequence": 2,
+      "overrides": {
+        "berth_arrival_delay_min": 16
+      },
+      "expected_decision": "ReplanRequested",
+      "expected_priority": "Normal",
+      "expected_reasons": [
+        "SOFT_DEVIATION:berth_arrival_delay_min"
+      ]
+    },
+    {
+      "case_id": "pcc-hard-breach-inside-cooldown",
+      "sequence": 3,
+      "state": {
+        "last_trigger_time_ms": 999999
+      },
+      "overrides": {
+        "pcc_headroom_kw": 75
+      },
+      "expected_decision": "ReplanRequested",
+      "expected_priority": "Hard",
+      "expected_reasons": [
+        "HARD_BOUNDARY_BREACH:pcc_headroom_kw"
+      ]
+    },
+    {
+      "case_id": "compute-queue-deadline-risk",
+      "sequence": 4,
+      "overrides": {
+        "compute_deadline_slack_min": 80
+      },
+      "expected_decision": "ReplanRequested",
+      "expected_priority": "Normal",
+      "expected_reasons": [
+        "SOFT_DEVIATION:compute_deadline_slack_min"
+      ]
+    },
+    {
+      "case_id": "cooling-and-thermal-store-coflex",
+      "sequence": 5,
+      "overrides": {
+        "cooling_discharge_margin_c": 4,
+        "thermal_store_soc_pct": 68
+      },
+      "expected_decision": "ReplanRequested",
+      "expected_priority": "Normal",
+      "expected_reasons": [
+        "SOFT_DEVIATION:cooling_discharge_margin_c",
+        "SOFT_DEVIATION:thermal_store_soc_pct"
+      ]
+    },
+    {
+      "case_id": "critical-pcc-telemetry-stale",
+      "sequence": 6,
+      "overrides": {},
+      "measurement_mutation": {
+        "signal_id": "pcc_headroom_kw",
+        "observed_age_ms": 100000
+      },
+      "expected_decision": "DataIncomplete",
+      "expected_priority": null,
+      "expected_reasons": [
+        "STALE_CRITICAL_SIGNAL:pcc_headroom_kw"
+      ]
+    },
+    {
+      "case_id": "future-marine-forecast-not-yet-available",
+      "sequence": 7,
+      "overrides": {},
+      "measurement_mutation": {
+        "signal_id": "marine_intake_temperature_c",
+        "first_available_after_decision_ms": 1
+      },
+      "expected_decision": "Invalid",
+      "expected_priority": null,
+      "expected_reasons": [
+        "FUTURE_OBSERVATION"
+      ]
+    },
+    {
+      "case_id": "cooling-hard-margin-breach",
+      "sequence": 8,
+      "overrides": {
+        "cooling_discharge_margin_c": 0.5
+      },
+      "expected_decision": "ReplanRequested",
+      "expected_priority": "Hard",
+      "expected_reasons": [
+        "HARD_BOUNDARY_BREACH:cooling_discharge_margin_c"
+      ]
+    },
+    {
+      "case_id": "thermal-store-soft-margin",
+      "sequence": 9,
+      "overrides": {
+        "thermal_store_soc_pct": 65
+      },
+      "expected_decision": "ReplanRequested",
+      "expected_priority": "Normal",
+      "expected_reasons": [
+        "SOFT_DEVIATION:thermal_store_soc_pct"
+      ]
+    },
+    {
+      "case_id": "stale-day-ahead-plan",
+      "sequence": 10,
+      "plan_generated_at_ms": 0,
+      "decision_time_ms": 4000000,
+      "expected_decision": "ReplanRequested",
+      "expected_priority": "Hard",
+      "expected_reasons": [
+        "PLAN_STALE"
+      ]
+    },
+    {
+      "case_id": "persistent-hard-event-not-reemitted",
+      "sequence": 11,
+      "state": {
+        "soft_latched": true,
+        "active_hard_reasons": [
+          "HARD_BOUNDARY_BREACH:pcc_headroom_kw"
+        ]
+      },
+      "overrides": {
+        "pcc_headroom_kw": 75
+      },
+      "expected_decision": "Suppressed",
+      "expected_priority": "Hysteresis",
+      "expected_reasons": [
+        "SOFT_DEVIATION:pcc_headroom_kw"
+      ]
+    },
+    {
+      "case_id": "missing-critical-compute-signal",
+      "sequence": 12,
+      "missing_signals": [
+        "compute_deadline_slack_min"
+      ],
+      "expected_decision": "DataIncomplete",
+      "expected_priority": null,
+      "expected_reasons": [
+        "MISSING_CRITICAL_SIGNAL:compute_deadline_slack_min"
+      ]
+    }
+  ],
+  "policy_comparators": [
+    "fixed_15_minute",
+    "fixed_60_minute",
+    "energy_only_one_sided_trigger",
+    "logistics_plus_energy_bidirectional_trigger",
+    "multi_domain_logistics_energy_compute_cooling_trigger",
+    "multi_domain_trigger_with_evidence_freshness_and_hard_bypass"
+  ],
+  "target_hypotheses": {
+    "replan_request_reduction_vs_fixed_15m_percent": 50,
+    "missed_hard_events": 0,
+    "future_data_leakage": 0,
+    "service_floor_regression": 0,
+    "caveat": "Research targets only. Must be evaluated on identical trace, service and information budgets."
+  }
+}
