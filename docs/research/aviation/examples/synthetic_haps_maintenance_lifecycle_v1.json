@@ -1,0 +1,561 @@
+{
+  "schema_version": "haps-ops-evidence-ledger/v1",
+  "ledger_id": "synthetic.haps-ops-ledger.001",
+  "revision": 1,
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_maintenance_lifecycle",
+  "observation_window": {
+    "start_utc": "2026-04-30T12:00:00Z",
+    "end_utc": "2026-05-07T12:00:00Z",
+    "time_basis": "utc"
+  },
+  "assets": [
+    {
+      "asset_ref": "haps-01",
+      "lift_class": "buoyant_airship",
+      "configuration_ref": "cfg-haps-01-r3",
+      "configuration_revision": "r3",
+      "component_refs": [
+        "component-hinge-synth-01"
+      ]
+    },
+    {
+      "asset_ref": "haps-02",
+      "lift_class": "buoyant_airship",
+      "configuration_ref": "cfg-haps-02-r1",
+      "configuration_revision": "r1",
+      "component_refs": []
+    }
+  ],
+  "events": [
+    {
+      "event_id": "event-01",
+      "event_sequence": 1,
+      "previous_event_id": null,
+      "asset_ref": "haps-01",
+      "configuration_ref": "cfg-haps-01-r3",
+      "event_type": "sortie_launched",
+      "occurred_at_utc": "2026-04-30T12:00:00Z",
+      "observed_at_utc": "2026-04-30T12:00:00Z",
+      "recorded_at_utc": "2026-04-30T12:01:00Z",
+      "clock_uncertainty_s": 1,
+      "from_state": "ready_for_dispatch",
+      "to_state": "launch_recovery",
+      "onset_knowledge": "not_applicable",
+      "onset_interval_earliest_utc": null,
+      "onset_interval_latest_utc": null,
+      "component_refs": [],
+      "producer": {
+        "organization_ref": "synthetic.operator",
+        "role": "synthetic_fixture_producer",
+        "source_system_ref": "synthetic.maintenance-system.v1"
+      },
+      "source_evidence_refs": [
+        {
+          "evidence_ref": "evidence-01",
+          "evidence_kind": "synthetic_fixture",
+          "content_digest": null,
+          "source_uri": null,
+          "rights_ref": "synthetic-only"
+        }
+      ],
+      "event_digest": null,
+      "release_authority_ref": null,
+      "payload": {
+        "sortie_ref": "sortie-synth-001",
+        "launch_site_ref": "site-synth-001"
+      }
+    },
+    {
+      "event_id": "event-02",
+      "event_sequence": 2,
+      "previous_event_id": "event-01",
+      "asset_ref": "haps-01",
+      "configuration_ref": "cfg-haps-01-r3",
+      "event_type": "service_started",
+      "occurred_at_utc": "2026-04-30T12:15:00Z",
+      "observed_at_utc": "2026-04-30T12:15:00Z",
+      "recorded_at_utc": "2026-04-30T12:16:00Z",
+      "clock_uncertainty_s": 1,
+      "from_state": "launch_recovery",
+      "to_state": "in_service",
+      "onset_knowledge": "not_applicable",
+      "onset_interval_earliest_utc": null,
+      "onset_interval_latest_utc": null,
+      "component_refs": [],
+      "producer": {
+        "organization_ref": "synthetic.operator",
+        "role": "synthetic_fixture_producer",
+        "source_system_ref": "synthetic.maintenance-system.v1"
+      },
+      "source_evidence_refs": [
+        {
+          "evidence_ref": "evidence-02",
+          "evidence_kind": "synthetic_fixture",
+          "content_digest": null,
+          "source_uri": null,
+          "rights_ref": "synthetic-only"
+        }
+      ],
+      "event_digest": null,
+      "release_authority_ref": null,
+      "payload": {
+        "service_zone_ref": "zone-north"
+      }
+    },
+    {
+      "event_id": "event-03",
+      "event_sequence": 3,
+      "previous_event_id": "event-02",
+      "asset_ref": "haps-01",
+      "configuration_ref": "cfg-haps-01-r3",
+      "event_type": "service_ended",
+      "occurred_at_utc": "2026-05-01T12:00:00Z",
+      "observed_at_utc": "2026-05-01T12:00:00Z",
+      "recorded_at_utc": "2026-05-01T12:02:00Z",
+      "clock_uncertainty_s": 1,
+      "from_state": "in_service",
+      "to_state": "postflight_inspection",
+      "onset_knowledge": "not_applicable",
+      "onset_interval_earliest_utc": null,
+      "onset_interval_latest_utc": null,
+      "component_refs": [],
+      "producer": {
+        "organization_ref": "synthetic.operator",
+        "role": "synthetic_fixture_producer",
+        "source_system_ref": "synthetic.maintenance-system.v1"
+      },
+      "source_evidence_refs": [
+        {
+          "evidence_ref": "evidence-03",
+          "evidence_kind": "synthetic_fixture",
+          "content_digest": null,
+          "source_uri": null,
+          "rights_ref": "synthetic-only"
+        }
+      ],
+      "event_digest": null,
+      "release_authority_ref": null,
+      "payload": {
+        "sortie_duration_s": 85500,
+        "flight_profile_ref": "profile-synthetic-001"
+      }
+    },
+    {
+      "event_id": "event-04",
+      "event_sequence": 4,
+      "previous_event_id": "event-03",
+      "asset_ref": "haps-01",
+      "configuration_ref": "cfg-haps-01-r3",
+      "event_type": "anomaly_detected",
+      "occurred_at_utc": "2026-05-01T13:00:00Z",
+      "observed_at_utc": "2026-05-01T13:00:00Z",
+      "recorded_at_utc": "2026-05-01T13:01:00Z",
+      "clock_uncertainty_s": 1,
+      "from_state": "postflight_inspection",
+      "to_state": "grounded",
+      "onset_knowledge": "interval_censored",
+      "onset_interval_earliest_utc": "2026-04-30T12:15:00Z",
+      "onset_interval_latest_utc": "2026-05-01T13:00:00Z",
+      "component_refs": [
+        "component-hinge-synth-01"
+      ],
+      "producer": {
+        "organization_ref": "synthetic.operator",
+        "role": "synthetic_fixture_producer",
+        "source_system_ref": "synthetic.maintenance-system.v1"
+      },
+      "source_evidence_refs": [
+        {
+          "evidence_ref": "evidence-04",
+          "evidence_kind": "inspection_report",
+          "content_digest": null,
+          "source_uri": null,
+          "rights_ref": "synthetic-only"
+        }
+      ],
+      "event_digest": null,
+      "release_authority_ref": null,
+      "payload": {
+        "defect_ref": "defect-synth-001",
+        "detection_method": "post_flight_inspection",
+        "onset_point_claimed": false
+      }
+    },
+    {
+      "event_id": "event-05",
+      "event_sequence": 5,
+      "previous_event_id": "event-04",
+      "asset_ref": "haps-01",
+      "configuration_ref": "cfg-haps-01-r3",
+      "event_type": "work_order_opened",
+      "occurred_at_utc": "2026-05-01T13:10:00Z",
+      "observed_at_utc": "2026-05-01T13:10:00Z",
+      "recorded_at_utc": "2026-05-01T13:12:00Z",
+      "clock_uncertainty_s": 1,
+      "from_state": "grounded",
+      "to_state": "maintenance_queued",
+      "onset_knowledge": "not_applicable",
+      "onset_interval_earliest_utc": null,
+      "onset_interval_latest_utc": null,
+      "component_refs": [
+        "component-hinge-synth-01"
+      ],
+      "producer": {
+        "organization_ref": "synthetic.operator",
+        "role": "synthetic_fixture_producer",
+        "source_system_ref": "synthetic.maintenance-system.v1"
+      },
+      "source_evidence_refs": [
+        {
+          "evidence_ref": "evidence-05",
+          "evidence_kind": "work_order",
+          "content_digest": null,
+          "source_uri": null,
+          "rights_ref": "synthetic-only"
+        }
+      ],
+      "event_digest": null,
+      "release_authority_ref": null,
+      "payload": {
+        "work_order_ref": "workorder-synth-001",
+        "priority": "scheduled_after_grounding"
+      }
+    },
+    {
+      "event_id": "event-06",
+      "event_sequence": 6,
+      "previous_event_id": "event-05",
+      "asset_ref": "haps-01",
+      "configuration_ref": "cfg-haps-01-r3",
+      "event_type": "diagnosis_completed",
+      "occurred_at_utc": "2026-05-01T14:00:00Z",
+      "observed_at_utc": "2026-05-01T14:00:00Z",
+      "recorded_at_utc": "2026-05-01T14:02:00Z",
+      "clock_uncertainty_s": 1,
+      "from_state": "maintenance_queued",
+      "to_state": "maintenance_queued",
+      "onset_knowledge": "not_applicable",
+      "onset_interval_earliest_utc": null,
+      "onset_interval_latest_utc": null,
+      "component_refs": [
+        "component-hinge-synth-01"
+      ],
+      "producer": {
+        "organization_ref": "synthetic.operator",
+        "role": "synthetic_fixture_producer",
+        "source_system_ref": "synthetic.maintenance-system.v1"
+      },
+      "source_evidence_refs": [
+        {
+          "evidence_ref": "evidence-06",
+          "evidence_kind": "inspection_report",
+          "content_digest": null,
+          "source_uri": null,
+          "rights_ref": "synthetic-only"
+        }
+      ],
+      "event_digest": null,
+      "release_authority_ref": null,
+      "payload": {
+        "diagnosis_ref": "diagnosis-synth-001",
+        "disposition": "replace_component"
+      }
+    },
+    {
+      "event_id": "event-07",
+      "event_sequence": 7,
+      "previous_event_id": "event-06",
+      "asset_ref": "haps-01",
+      "configuration_ref": "cfg-haps-01-r3",
+      "event_type": "parts_requested",
+      "occurred_at_utc": "2026-05-01T14:30:00Z",
+      "observed_at_utc": "2026-05-01T14:30:00Z",
+      "recorded_at_utc": "2026-05-01T14:32:00Z",
+      "clock_uncertainty_s": 1,
+      "from_state": "maintenance_queued",
+      "to_state": "maintenance_queued",
+      "onset_knowledge": "not_applicable",
+      "onset_interval_earliest_utc": null,
+      "onset_interval_latest_utc": null,
+      "component_refs": [
+        "component-hinge-synth-01"
+      ],
+      "producer": {
+        "organization_ref": "synthetic.operator",
+        "role": "synthetic_fixture_producer",
+        "source_system_ref": "synthetic.maintenance-system.v1"
+      },
+      "source_evidence_refs": [
+        {
+          "evidence_ref": "evidence-07",
+          "evidence_kind": "parts_record",
+          "content_digest": null,
+          "source_uri": null,
+          "rights_ref": "synthetic-only"
+        }
+      ],
+      "event_digest": null,
+      "release_authority_ref": null,
+      "payload": {
+        "part_ref": "part-hinge-synth-02",
+        "request_ref": "parts-request-synth-001"
+      }
+    },
+    {
+      "event_id": "event-08",
+      "event_sequence": 8,
+      "previous_event_id": "event-07",
+      "asset_ref": "haps-01",
+      "configuration_ref": "cfg-haps-01-r3",
+      "event_type": "parts_received",
+      "occurred_at_utc": "2026-05-02T08:00:00Z",
+      "observed_at_utc": "2026-05-02T08:00:00Z",
+      "recorded_at_utc": "2026-05-02T08:05:00Z",
+      "clock_uncertainty_s": 1,
+      "from_state": "maintenance_queued",
+      "to_state": "maintenance_queued",
+      "onset_knowledge": "not_applicable",
+      "onset_interval_earliest_utc": null,
+      "onset_interval_latest_utc": null,
+      "component_refs": [
+        "component-hinge-synth-01"
+      ],
+      "producer": {
+        "organization_ref": "synthetic.operator",
+        "role": "synthetic_fixture_producer",
+        "source_system_ref": "synthetic.maintenance-system.v1"
+      },
+      "source_evidence_refs": [
+        {
+          "evidence_ref": "evidence-08",
+          "evidence_kind": "parts_record",
+          "content_digest": null,
+          "source_uri": null,
+          "rights_ref": "synthetic-only"
+        }
+      ],
+      "event_digest": null,
+      "release_authority_ref": null,
+      "payload": {
+        "part_ref": "part-hinge-synth-02",
+        "batch_ref": "batch-synth-004"
+      }
+    },
+    {
+      "event_id": "event-09",
+      "event_sequence": 9,
+      "previous_event_id": "event-08",
+      "asset_ref": "haps-01",
+      "configuration_ref": "cfg-haps-01-r3",
+      "event_type": "repair_started",
+      "occurred_at_utc": "2026-05-02T08:30:00Z",
+      "observed_at_utc": "2026-05-02T08:30:00Z",
+      "recorded_at_utc": "2026-05-02T08:32:00Z",
+      "clock_uncertainty_s": 1,
+      "from_state": "maintenance_queued",
+      "to_state": "maintenance_in_progress",
+      "onset_knowledge": "not_applicable",
+      "onset_interval_earliest_utc": null,
+      "onset_interval_latest_utc": null,
+      "component_refs": [
+        "component-hinge-synth-01"
+      ],
+      "producer": {
+        "organization_ref": "synthetic.operator",
+        "role": "synthetic_fixture_producer",
+        "source_system_ref": "synthetic.maintenance-system.v1"
+      },
+      "source_evidence_refs": [
+        {
+          "evidence_ref": "evidence-09",
+          "evidence_kind": "work_order",
+          "content_digest": null,
+          "source_uri": null,
+          "rights_ref": "synthetic-only"
+        }
+      ],
+      "event_digest": null,
+      "release_authority_ref": null,
+      "payload": {
+        "work_order_ref": "workorder-synth-001",
+        "work_instruction_ref": "wi-synth-002"
+      }
+    },
+    {
+      "event_id": "event-10",
+      "event_sequence": 10,
+      "previous_event_id": "event-09",
+      "asset_ref": "haps-01",
+      "configuration_ref": "cfg-haps-01-r3",
+      "event_type": "repair_completed",
+      "occurred_at_utc": "2026-05-02T09:00:00Z",
+      "observed_at_utc": "2026-05-02T09:00:00Z",
+      "recorded_at_utc": "2026-05-02T09:02:00Z",
+      "clock_uncertainty_s": 1,
+      "from_state": "maintenance_in_progress",
+      "to_state": "verification_hold",
+      "onset_knowledge": "not_applicable",
+      "onset_interval_earliest_utc": null,
+      "onset_interval_latest_utc": null,
+      "component_refs": [
+        "component-hinge-synth-01"
+      ],
+      "producer": {
+        "organization_ref": "synthetic.operator",
+        "role": "synthetic_fixture_producer",
+        "source_system_ref": "synthetic.maintenance-system.v1"
+      },
+      "source_evidence_refs": [
+        {
+          "evidence_ref": "evidence-10",
+          "evidence_kind": "work_order",
+          "content_digest": null,
+          "source_uri": null,
+          "rights_ref": "synthetic-only"
+        }
+      ],
+      "event_digest": null,
+      "release_authority_ref": null,
+      "payload": {
+        "repair_result": "completed",
+        "verification_required": true
+      }
+    },
+    {
+      "event_id": "event-11",
+      "event_sequence": 11,
+      "previous_event_id": "event-10",
+      "asset_ref": "haps-01",
+      "configuration_ref": "cfg-haps-01-r3",
+      "event_type": "inspection_completed",
+      "occurred_at_utc": "2026-05-02T10:00:00Z",
+      "observed_at_utc": "2026-05-02T10:00:00Z",
+      "recorded_at_utc": "2026-05-02T10:03:00Z",
+      "clock_uncertainty_s": 1,
+      "from_state": "verification_hold",
+      "to_state": "verification_hold",
+      "onset_knowledge": "not_applicable",
+      "onset_interval_earliest_utc": null,
+      "onset_interval_latest_utc": null,
+      "component_refs": [
+        "component-hinge-synth-01"
+      ],
+      "producer": {
+        "organization_ref": "synthetic.operator",
+        "role": "synthetic_fixture_producer",
+        "source_system_ref": "synthetic.maintenance-system.v1"
+      },
+      "source_evidence_refs": [
+        {
+          "evidence_ref": "evidence-11",
+          "evidence_kind": "inspection_report",
+          "content_digest": null,
+          "source_uri": null,
+          "rights_ref": "synthetic-only"
+        }
+      ],
+      "event_digest": null,
+      "release_authority_ref": null,
+      "payload": {
+        "inspection_result": "pass",
+        "inspector_role": "independent_inspection_role"
+      }
+    },
+    {
+      "event_id": "event-12",
+      "event_sequence": 12,
+      "previous_event_id": "event-11",
+      "asset_ref": "haps-01",
+      "configuration_ref": "cfg-haps-01-r3",
+      "event_type": "functional_test_completed",
+      "occurred_at_utc": "2026-05-02T11:00:00Z",
+      "observed_at_utc": "2026-05-02T11:00:00Z",
+      "recorded_at_utc": "2026-05-02T11:02:00Z",
+      "clock_uncertainty_s": 1,
+      "from_state": "verification_hold",
+      "to_state": "awaiting_authorized_release",
+      "onset_knowledge": "not_applicable",
+      "onset_interval_earliest_utc": null,
+      "onset_interval_latest_utc": null,
+      "component_refs": [
+        "component-hinge-synth-01"
+      ],
+      "producer": {
+        "organization_ref": "synthetic.operator",
+        "role": "synthetic_fixture_producer",
+        "source_system_ref": "synthetic.maintenance-system.v1"
+      },
+      "source_evidence_refs": [
+        {
+          "evidence_ref": "evidence-12",
+          "evidence_kind": "test_result",
+          "content_digest": null,
+          "source_uri": null,
+          "rights_ref": "synthetic-only"
+        }
+      ],
+      "event_digest": null,
+      "release_authority_ref": null,
+      "payload": {
+        "test_result": "pass",
+        "return_to_service_authorized": false
+      }
+    }
+  ],
+  "exposure_records": [
+    {
+      "exposure_id": "exposure-haps01-sortie-001",
+      "asset_ref": "haps-01",
+      "configuration_ref": "cfg-haps-01-r3",
+      "exposure_type": "flight",
+      "start_utc": "2026-04-30T12:15:00Z",
+      "end_utc": "2026-05-01T12:00:00Z",
+      "exposure_seconds": 85500,
+      "failure_observation": "failure_or_defect_detected",
+      "censoring_status": "interval_censored",
+      "event_time_lower_bound_utc": "2026-04-30T12:15:00Z",
+      "event_time_upper_bound_utc": "2026-05-01T13:00:00Z",
+      "source_evidence_refs": [
+        "evidence-02",
+        "evidence-03",
+        "evidence-04"
+      ]
+    },
+    {
+      "exposure_id": "exposure-haps02-sortie-right-censored-001",
+      "asset_ref": "haps-02",
+      "configuration_ref": "cfg-haps-02-r1",
+      "exposure_type": "service_on_station",
+      "start_utc": "2026-05-01T12:00:00Z",
+      "end_utc": "2026-05-06T12:00:00Z",
+      "exposure_seconds": 432000,
+      "failure_observation": "no_failure_observed",
+      "censoring_status": "right_censored",
+      "event_time_lower_bound_utc": null,
+      "event_time_upper_bound_utc": null,
+      "source_evidence_refs": [
+        "synthetic-haps02-telemetry-window-001"
+      ]
+    }
+  ],
+  "authorization_boundary": {
+    "release_status": "awaiting_authorized_release",
+    "return_to_service_authorized": false,
+    "release_authority_ref": null,
+    "release_scope": "none"
+  },
+  "source_evidence_refs": [
+    "synthetic-source-evidence-set-001"
+  ],
+  "assumptions": [
+    "All asset identifiers, component references, dates, durations, defects, parts, inspection results and source records are synthetic; no actual HAPS maintenance or flight history is represented.",
+    "The HAPS-01 discrepancy is discovered during post-flight inspection. Its onset is interval-censored between the last declared known-good point and detection; no point failure-onset time is claimed.",
+    "HAPS-02 has a five-day observed exposure with no failure observed before the observation window ends; it is right-censored, not a demonstrated failure-free lifetime.",
+    "Event timestamps distinguish occurred_at_utc, observed_at_utc and recorded_at_utc. Clock uncertainty is illustrative.",
+    "The event chain uses sequential event identifiers and previous_event_id references; event_digest values are null and no cryptographic chain/signature verification is claimed.",
+    "The component replacement and inspection/test events do not authorize return to service. The ledger intentionally ends in awaiting_authorized_release with no release authority reference.",
+    "No MTBF, MTTR, hazard rate, maintenance-duration distribution, repair effectiveness or service availability estimate should be computed from this synthetic fixture.",
+    "A production ledger must bind as-flown configuration digests, calibration status, source-system identity, rights/retention and tamper-evident receipts; those fields are not represented as validated here."
+  ]
+}
