@@ -171,3 +171,14 @@ The European TSO report adds concrete reasons to move beyond single-event procur
 - A parallel survey of 12 TSOs reports nine submissions identifying skilled-workforce availability as a key challenge.
 
 This evidence supports [GRID-RECOVERY-SUPPLY-CHAIN-001 #6237](https://github.com/Luminous-Dynamics/symtropy/issues/6237): shared factory slots, materials, vessels, ports and qualified crews must be modelled as portfolio resources across competing projects. These figures are European survey observations only, not global or South African distributions and not enough to calibrate probability models.
+
+
+### Additional 2026/2027 restoration-method comparators
+
+The external register now includes:
+- Chen & Liao (31 August 2026), two-stage stochastic proactive scheduling of mobile energy storage, repair crews and switching crews on IEEE 33/123-node test systems. The paper reports 19.0%/19.9% lower load-shedding cost on its own cases. Use it as a matched pre-positioning/co-scheduling comparator, not as an external result for our scheduler.
+- Asadi et al. (January 2026), risk-averse IGDT robust service restoration with mobile/fixed power resources and repair-crew groups using an MIQCP formulation. This motivates robust uncertainty-set comparisons; it does not provide calibrated probabilities for our synthetic scenarios.
+- Hosseini et al. (June 2026), stochastic dynamic corrective-maintenance crew deployment using Benders decomposition. This is an algorithmic comparator for crew/depot positioning.
+- Chen & Xie, assigned to the February 2027 issue, topology-aware substation repair sequencing using minimum repair sets and bottleneck-first interleaving with spare allocation. Its abstract reports 4,000 seismic scenarios and 25.0%–36.3% median resilience-index improvements over Global-Greedy, but those metrics are specific to its own substation case. Crucially, it notes that resilience index and final restoration time can diverge. Treat it as forthcoming as of this snapshot.
+
+These method papers are comparators, not public datasets. Reproduce their exact problem semantics, model, solver, objective and compute budgets before claiming parity or superiority. Keep restoration time, time-dependent functionality, unserved service, and final completion as separate metrics.
