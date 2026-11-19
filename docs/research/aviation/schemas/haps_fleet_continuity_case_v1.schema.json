@@ -1,0 +1,466 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminousdynamics:aero:haps-fleet-continuity-case:v1",
+  "title": "HAPS fleet service-continuity case v1",
+  "description": "Event-based synthetic HAPS fleet availability and end-to-end service continuity contract. It models platform states, planned maintenance, reserve activation, common-cause events and alternate-network capacity. It is not a vehicle dynamics, weather forecast, radio propagation or repair-distribution solver.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "revision",
+    "evidence_class",
+    "claim_ceiling",
+    "timebase",
+    "service_contract",
+    "fleet",
+    "common_cause_events",
+    "policy_cases",
+    "expected_oracle",
+    "assumptions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "haps-fleet-continuity-case/v1"
+    },
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,95}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "replayed_operational_trace"
+      ]
+    },
+    "claim_ceiling": {
+      "enum": [
+        "synthetic_event_replay",
+        "offline_service_trace_replay"
+      ]
+    },
+    "timebase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "horizon_hours",
+        "epoch_utc",
+        "time_step_hours",
+        "interval_convention"
+      ],
+      "properties": {
+        "horizon_hours": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "epoch_utc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "time_step_hours": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "interval_convention": {
+          "const": "half_open_start_inclusive_end_exclusive"
+        }
+      }
+    },
+    "service_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service_id",
+        "critical_demand_capacity_units",
+        "full_demand_capacity_units",
+        "normal_terrestrial_capacity_units",
+        "normal_satellite_capacity_units",
+        "capacity_interpretation"
+      ],
+      "properties": {
+        "service_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "critical_demand_capacity_units": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "full_demand_capacity_units": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "normal_terrestrial_capacity_units": {
+          "type": "number",
+          "minimum": 0
+        },
+        "normal_satellite_capacity_units": {
+          "type": "number",
+          "minimum": 0
+        },
+        "capacity_interpretation": {
+          "const": "normalized_service_capacity_units_not_mbps"
+        }
+      }
+    },
+    "fleet": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "platform_id",
+          "lift_class",
+          "service_capacity_units",
+          "initial_state"
+        ],
+        "properties": {
+          "platform_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "lift_class": {
+            "enum": [
+              "solar_fixed_wing",
+              "buoyant_free_balloon",
+              "buoyant_airship",
+              "other",
+              "unknown"
+            ]
+          },
+          "service_capacity_units": {
+            "type": "number",
+            "minimum": 0
+          },
+          "initial_state": {
+            "enum": [
+              "on_station",
+              "standby_ready",
+              "maintenance",
+              "transit",
+              "unavailable"
+            ]
+          }
+        }
+      }
+    },
+    "common_cause_events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event_id",
+          "event_class",
+          "start_hour",
+          "duration_hours",
+          "scope",
+          "haps_capacity_factor",
+          "terrestrial_capacity_override_units",
+          "satellite_capacity_override_units"
+        ],
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "event_class": {
+            "enum": [
+              "regional_weather_restriction",
+              "ground_gateway_outage",
+              "satellite_backhaul_degradation",
+              "shared_configuration_quarantine",
+              "shared_ground_site_closure",
+              "other"
+            ]
+          },
+          "start_hour": {
+            "type": "number",
+            "minimum": 0
+          },
+          "duration_hours": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "scope": {
+            "enum": [
+              "all_haps_in_service_region",
+              "network_layer",
+              "declared_platform_subset"
+            ]
+          },
+          "affected_platform_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "haps_capacity_factor": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "terrestrial_capacity_override_units": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "satellite_capacity_override_units": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "parent_event_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "policy_cases": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "policy_id",
+          "policy_class",
+          "description",
+          "operating_platform_ids",
+          "platform_unavailability_events",
+          "reserve_dispatch_events"
+        ],
+        "properties": {
+          "policy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "policy_class": {
+            "enum": [
+              "two_of_three_no_reserve",
+              "cold_spare_after_delay",
+              "staggered_four_node_rotation",
+              "other"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "operating_platform_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "platform_unavailability_events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "event_id",
+                "platform_id",
+                "event_class",
+                "start_hour",
+                "duration_hours"
+              ],
+              "properties": {
+                "event_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "platform_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "event_class": {
+                  "enum": [
+                    "planned_maintenance",
+                    "corrective_repair",
+                    "inspection_hold",
+                    "transit",
+                    "configuration_quarantine"
+                  ]
+                },
+                "start_hour": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "duration_hours": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              }
+            }
+          },
+          "reserve_dispatch_events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "platform_id",
+                "requested_at_hour",
+                "on_station_at_hour",
+                "released_at_hour",
+                "dispatch_delay_hours"
+              ],
+              "properties": {
+                "platform_id": {
+                  "type": "string"
+                },
+                "requested_at_hour": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "on_station_at_hour": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "released_at_hour": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "dispatch_delay_hours": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "expected_oracle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "oracle_status",
+        "policy_results"
+      ],
+      "properties": {
+        "oracle_status": {
+          "enum": [
+            "independently_calculated",
+            "not_evaluated"
+          ]
+        },
+        "policy_results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "policy_id",
+              "haps_only_full_service_availability_fraction",
+              "critical_service_availability_fraction",
+              "full_service_availability_fraction",
+              "useful_service_capacity_fraction",
+              "full_service_degraded_hours",
+              "critical_service_outage_hours",
+              "full_service_degradation_episode_count",
+              "max_full_service_degradation_hours",
+              "max_critical_service_outage_hours",
+              "planned_maintenance_hours",
+              "reserve_dispatch_delay_hours",
+              "minimum_on_station_haps_capacity_units"
+            ],
+            "properties": {
+              "policy_id": {
+                "type": "string"
+              },
+              "haps_only_full_service_availability_fraction": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "critical_service_availability_fraction": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "full_service_availability_fraction": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "useful_service_capacity_fraction": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "full_service_degraded_hours": {
+                "type": "number",
+                "minimum": 0
+              },
+              "critical_service_outage_hours": {
+                "type": "number",
+                "minimum": 0
+              },
+              "full_service_degradation_episode_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "max_full_service_degradation_hours": {
+                "type": "number",
+                "minimum": 0
+              },
+              "max_critical_service_outage_hours": {
+                "type": "number",
+                "minimum": 0
+              },
+              "planned_maintenance_hours": {
+                "type": "number",
+                "minimum": 0
+              },
+              "reserve_dispatch_delay_hours": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minimum_on_station_haps_capacity_units": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "source_evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "uniqueItems": true
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  },
+  "$comment": "Semantic checks: all platform IDs in events/policies exist; all event intervals lie within the time horizon; maintenance and reserve deployment intervals are half-open; reserve on_station_at_hour - requested_at_hour equals dispatch_delay_hours; common-cause overrides are applied consistently across all affected service intervals; overlapping common-cause overrides follow declared parent/precedence semantics; service availability is computed from delivered normalized capacity, not aircraft count alone; critical and full service are distinct thresholds; capacity is capped at full_demand_capacity_units when computing useful_service_capacity_fraction; exact event-boundary replay must not double-count intervals. This fixture is a deterministic event-sequence case, not a probability estimate or annual SLA claim."
+}
