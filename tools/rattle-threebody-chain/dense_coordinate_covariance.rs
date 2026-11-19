@@ -907,6 +907,45 @@ mod tests {
                 super::super::SolverOptions::default(),
             )
             .unwrap();
+        let (reference_q, reference_v) = flatten_state(&reference.after);
+        let expected_q: Vec9 = [
+            0.0010089846436915279,
+            0.0019923076923076925,
+            -0.00099615384615384626,
+            1.0010039618872384,
+            0.0050009913582665447,
+            4.9567913327247597e-7,
+            1.0029999999999999,
+            1.0059973976845504,
+            0.49799869884227516,
+        ];
+        let expected_v: Vec9 = [
+            0.10179846480785,
+            0.19845961752440786,
+            -0.099231405555917335,
+            0.10079162346812849,
+            0.50019907901438443,
+            9.9092207644121996e-5,
+            0.29999948308340646,
+            0.59948053911007815,
+            -0.2002590830167002,
+        ];
+        assert!(vector_max_abs(&reference_q, &expected_q) <= 3.0e-8);
+        assert!(vector_max_abs(&reference_v, &expected_v) <= 3.0e-8);
+        assert!(
+            (reference.position_multipliers[0] + 0.16639926402027691).abs() <= 3.0e-8
+        );
+        assert!(
+            (reference.position_multipliers[1] - 0.041637047194887977).abs() <= 3.0e-8
+        );
+        assert!(
+            (reference.velocity_multipliers[0] + 0.16600071971991018).abs() <= 3.0e-8
+        );
+        assert!(
+            (reference.velocity_multipliers[1] - 0.041435408689258331).abs() <= 3.0e-8
+        );
+        assert!((reference.external_work + 9.4483065600311963e-5).abs() <= 2.0e-10);
+        assert!((reference.work_energy_residual - 2.063453827157993e-9).abs() <= 2.0e-7);
         assert!(reference.position_multipliers.iter().any(|value| value.abs() > 1.0e-6));
         assert!(reference.velocity_multipliers.iter().any(|value| value.abs() > 1.0e-6));
 
