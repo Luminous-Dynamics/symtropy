@@ -244,6 +244,17 @@
         "design_revision_sha256",
         "entity_id",
         "robot_id",
+        "frame_sha256",
+        "transform_sha256",
+        "robot_configuration_sha256",
+        "tool_configuration_sha256",
+        "payload_configuration_sha256",
+        "primitive_manifest_sha256",
+        "trajectory_sha256",
+        "dynamic_occupancy_manifest_sha256",
+        "actor_manifest_sha256",
+        "candidate_pair_count",
+        "narrowphase_evaluated_pair_count",
         "envelope_sha256",
         "site_snapshot_sha256",
         "occupancy_assessment_receipt_sha256",
@@ -304,6 +315,41 @@
         },
         "clearance_policy_sha256": {
           "$ref": "#/$defs/sha256"
+        },
+        "frame_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "transform_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "robot_configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "tool_configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "payload_configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "primitive_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "trajectory_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "dynamic_occupancy_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "actor_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "candidate_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "narrowphase_evaluated_pair_count": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     }
