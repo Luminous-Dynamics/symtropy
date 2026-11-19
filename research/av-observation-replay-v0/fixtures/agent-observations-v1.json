@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "stream_id": "av-observation-replay-fixture-v1",
+  "observations": [
+    {
+      "kind": "video_frame",
+      "observation": {
+        "observation_id": "obs-video-0001",
+        "sensor_id": "camera-front",
+        "source_sequence": 1,
+        "artifact": {
+          "relative_path": "fixtures/media/frame.gray8",
+          "sha256": "e12e115acf4552b2568b55e93cbd39394c4ef81c82447fafc997882a02d23677",
+          "byte_len": 4
+        },
+        "width": 2,
+        "height": 2,
+        "stride_bytes": 2,
+        "pixel_format": "gray8",
+        "color_space": "srgb",
+        "color_range": "full",
+        "camera_profile_sha256": "6fd25fb0f6593892e799ae37adca11ba7bee257fed18cd41edec5fd83c29ea49",
+        "calibration_profile_sha256": "9fd09911ed08782fd8b7492dda8f55d4a3e21b3d9c8687ffc1c3c31b11bca17d",
+        "clock_domain": {
+          "domain_id": "camera-monotonic",
+          "generation": 0,
+          "time_scale_id": "camera-clock-v1"
+        },
+        "capture_interval": {
+          "start": { "lower_ns": 1000000, "upper_ns": 1001000 },
+          "end": { "lower_ns": 34333000, "upper_ns": 34334000 }
+        }
+      }
+    },
+    {
+      "kind": "audio_chunk",
+      "observation": {
+        "observation_id": "obs-audio-0001",
+        "sensor_id": "microphone-front",
+        "source_sequence": 1,
+        "artifact": {
+          "relative_path": "fixtures/media/audio.s16le",
+          "sha256": "ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f",
+          "byte_len": 8
+        },
+        "sample_format": "s16_le",
+        "sample_rate_hz": 16000,
+        "channels": ["mono"],
+        "source_start_sample": 0,
+        "source_end_sample": 4,
+        "device_profile_sha256": "bdf7c27be44b60aaf40f3e07d0aec84d56ec97dd74e292b57f37ea7a4880ef06",
+        "calibration_profile_sha256": null,
+        "clock_domain": {
+          "domain_id": "microphone-monotonic",
+          "generation": 0,
+          "time_scale_id": "microphone-clock-v1"
+        },
+        "capture_interval": {
+          "start": { "lower_ns": 1000000, "upper_ns": 1100000 },
+          "end": { "lower_ns": 3500000, "upper_ns": 3600000 }
+        }
+      }
+    }
+  ],
+  "transport_events": [
+    {
+      "event_id": "arrival-video-0001",
+      "sensor_id": "camera-front",
+      "source_sequence": 1,
+      "availability_tick": 2,
+      "arrival_order": 1,
+      "disposition": "delivered",
+      "observation_id": "obs-video-0001"
+    },
+    {
+      "event_id": "arrival-audio-0001",
+      "sensor_id": "microphone-front",
+      "source_sequence": 1,
+      "availability_tick": 3,
+      "arrival_order": 2,
+      "disposition": "delivered",
+      "observation_id": "obs-audio-0001"
+    },
+    {
+      "event_id": "drop-audio-0002",
+      "sensor_id": "microphone-front",
+      "source_sequence": 2,
+      "availability_tick": 4,
+      "arrival_order": 3,
+      "disposition": "dropped",
+      "observation_id": null
+    }
+  ]
+}
