@@ -5,6 +5,7 @@ use std::{
     process::ExitCode,
 };
 
+const MAX_INCREMENTAL_INPUT: f64 = 1_000_000.0;
 const CLAIM_CEILING: &str = "Incremental synthetic/reference configuration screen only; not CAD, axle-load or restraint qualification, vehicle dynamics validation, roadworthiness, airworthiness, regulatory approval, measured performance or dispatch authority.";
 
 #[derive(Debug, Deserialize)]
@@ -368,7 +369,7 @@ fn validate_inputs(base: &BaseReport, overlay: &CarrierCorpus) -> Result<(), Str
             ),
         ] {
             if let Some(number) = value {
-                if !number.is_finite() || number < 0.0 {
+                if !number.is_finite() || number < 0.0 || number > MAX_INCREMENTAL_INPUT {
                     return Err(format!(
                         "configurations[{index}].{field}: must be finite and nonnegative"
                     ));
@@ -688,6 +689,27 @@ mod tests {
         assert_eq!(result.vehicle_battery_energy_margin_after_module_kwh, Some(64.462));
         assert_eq!(result.site_peak_power_margin_kw_upper_bound, Some(0.0));
         assert!(result.missing_fields.is_empty());
+    }
+
+    #[test]
+    fn rejects_unbounded_incremental_values() {
+        let mut test = known_zero_config();
+        test.incremental_installed_mass_kg = Some(MAX_INCREMENTAL_INPUT + 1.0);
+        let error = validate_inputs(
+            &BaseReport {
+                schema_version: "0.1.0".into(),
+                catalog_id: "EV-PLATFORM-001".into(),
+                results: vec![base_design("urban-distribution-truck")],
+            },
+            &CarrierCorpus {
+                schema_version: "0.1.0".into(),
+                programme_id: "EV-CARRIER-REF-01".into(),
+                claim_ceiling: "synthetic".into(),
+                configurations: vec![test],
+            },
+        )
+        .expect_err("oversized incremental mass must be rejected");
+        assert!(error.contains("finite and nonnegative"));
     }
 
     #[test]
