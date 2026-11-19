@@ -718,6 +718,22 @@ fn validate_task_dependencies(
 
         for dependency in &task.depends_on {
             let dependency_key = task_key(&task.event_id, dependency);
+            let required_effort = tasks
+                .get(&dependency_key)
+                .map(|dependency_task| dependency_task.required_effort_hours)
+                .unwrap_or(f64::INFINITY);
+            let observed_effort: f64 = segment_views
+                .get(&dependency_key)
+                .into_iter()
+                .flatten()
+                .map(|segment| segment.effort_hours)
+                .sum();
+            let planned_effort: f64 = planned_by_task
+                .get(&dependency_key)
+                .into_iter()
+                .flatten()
+                .map(|segment| segment.productive_effort_hours)
+                .sum();
             let dependency_end = segment_views
                 .get(&dependency_key)
                 .into_iter()
@@ -732,7 +748,14 @@ fn validate_task_dependencies(
                 )
                 .max_by(f64::total_cmp);
             match dependency_end {
-                Some(end) if first_start + TOLERANCE >= end => {}
+                Some(end)
+                    if observed_effort + planned_effort + TOLERANCE >= required_effort
+                        && first_start + TOLERANCE >= end => {}
+                Some(_) if observed_effort + planned_effort + TOLERANCE < required_effort => errors.push(format!(
+                    "task {key} cannot proceed because dependency {dependency} has only {} of {} effort scheduled",
+                    observed_effort + planned_effort,
+                    required_effort
+                )),
                 Some(end) => errors.push(format!(
                     "task {key} starts at {first_start} before dependency {dependency} ends at {end}"
                 )),
@@ -1161,7 +1184,11 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
         if let Some(commitment) = commitment {
             match commitment.state {
                 CommitmentState::InProgress => {
-                    let active = views.iter().find(|view| !view.completed);
+                    let active_segments: Vec<_> = views.iter().filter(|view| !view.completed).collect();
+                    let active = active_segments.first().copied();
+                    if active_segments.len() != 1 {
+                        errors.push(format!("in-progress commitment {} must have exactly one active segment", commitment.commitment_id));
+                    }
                     if active.map(|view| view.segment_id.as_str()) != commitment.active_segment_id.as_deref() {
                         errors.push(format!("in-progress commitment {} does not bind its active segment", commitment.commitment_id));
                     }
@@ -1208,8 +1235,6 @@ pub fn validate(case: &ExecutionCase) -> Result<ExecutionReport, Vec<String>> {
 
         let remaining = (task.required_effort_hours - total).max(0.0);
         let projected_completion = if remaining <= TOLERANCE {
-            all_segments.last().map(|segment| segment.2)
-        } else if planned_effort > 0.0 {
             all_segments.last().map(|segment| segment.2)
         } else {
             None
@@ -1468,7 +1493,7 @@ mod tests {
         case.proposed_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
         case.baseline_commitments[0].frozen_event_ids.push("repair-progress".to_string());
         case.proposed_commitments[0].frozen_event_ids.push("repair-progress".to_string());
-        case.planned_segments.retain(|s| s.task_id != "repair-pump");
+        case.planned_segments.clear();
         let report = validate(&case).expect("in-progress commitment remains frozen");
         let repair = report.tasks.iter().find(|x| x.task_id == "repair-pump").unwrap();
         assert_eq!(repair.observed_effort_hours, 7.0);
