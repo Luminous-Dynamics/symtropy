@@ -1,0 +1,12 @@
+[package]
+name = "dc-bus-energy-ledger"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+# Isolated, dependency-free interval energy-balance reference.
+[workspace]
