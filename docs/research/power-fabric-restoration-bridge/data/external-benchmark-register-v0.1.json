@@ -86,6 +86,62 @@
       "licenseStatus": "document_access_and_reuse_review_required",
       "primarySource": "https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Position%20papers%20and%20reports/2026/entso-e_report_investment_supply_chain_assessment_2026_261030.pdf",
       "limitations": "Survey scope is participating European TSOs and a small parallel workforce survey (12 submissions). The aggregate constraints do not provide per-supplier lead-time distributions, factory capacity datasets, or South African procurement distributions. Do not fabricate probabilities from these values."
+    },
+    {
+      "recordId": "PROACTIVE-DN-RESTORATION-SMIP-2026",
+      "title": "A Two-Stage Stochastic Programming Model for Proactive Scheduling of Distribution Networks with Emergency Resource Participation",
+      "category": "restoration_method_paper",
+      "publisher": "Energies (MDPI)",
+      "publicationDate": "2026-08-31",
+      "status": "published_open_access",
+      "reportedScope": "Two-stage stochastic mixed-integer programming coordinates pre-disaster quantity/location of mobile energy storage, repair crews and switching crews, then post-disaster sequential restoration on standard IEEE test systems. The paper reports 19.0% and 19.9% reductions in load-shedding cost on 33-node and 123-node cases against its own comparison setup.",
+      "benchmarkRole": "Strong comparator for proactive resource pre-positioning and joint mobile-storage/repair-crew/switching-crew scheduling. Reproduce exact scenarios, assumptions, resource mobility, objective and baselines before comparison.",
+      "importStatus": "not_a_dataset",
+      "licenseStatus": "documentation_only",
+      "primarySource": "https://www.mdpi.com/1996-1073/19/17/4110",
+      "limitations": "Paper-specific load-shedding-cost results are not directly comparable to our synthetic weighted-MWh recovery scheduler. The paper is a method comparator, not a reusable recovery dataset or evidence of field performance."
+    },
+    {
+      "recordId": "IGDT-ROBUST-MULTIRESOURCE-RESTORATION-2026",
+      "title": "An IGDT-based robust model for service restoration of distribution networks by scheduling of multiple resources",
+      "category": "restoration_method_paper",
+      "publisher": "Electric Power Systems Research",
+      "publicationDate": "2026-01",
+      "status": "published",
+      "reportedScope": "Risk-averse information-gap decision theory robust optimization for distribution service restoration with mobile/fixed power resources and repair-crew groups; multi-objective MIQCP formulation and uncertainty-radius treatment.",
+      "benchmarkRole": "Robust-optimization comparator for limited or poorly calibrated disruption data. Compare uncertainty-set semantics, conservatism, feasibility, service outcome and solve bounds on matched inputs.",
+      "importStatus": "not_a_dataset",
+      "licenseStatus": "documentation_only",
+      "primarySource": "https://doi.org/10.1016/j.epsr.2025.112351",
+      "limitations": "Method paper and case-study model, not a public grid-restoration event dataset. The IGDT uncertainty radius and objective must be reproduced before comparisons; cannot be translated into calibrated failure probabilities."
+    },
+    {
+      "recordId": "BENDERS-CREW-DEPLOYMENT-2026",
+      "title": "A reliability-oriented model for optimal deployment of corrective maintenance crews in power distribution systems: A stochastic dynamic planning using Benders decomposition",
+      "category": "restoration_method_paper",
+      "publisher": "Reliability Engineering & System Safety",
+      "publicationDate": "2026-06",
+      "status": "published",
+      "reportedScope": "Stochastic dynamic planning model for corrective maintenance crew deployment, using Benders decomposition to compare crew/depot deployment and restoration reliability/cost trade-offs.",
+      "benchmarkRole": "Algorithmic comparator for dynamic crew deployment, depot/resource pre-positioning and decomposition scalability.",
+      "importStatus": "not_a_dataset",
+      "licenseStatus": "documentation_only",
+      "primarySource": "https://doi.org/10.1016/j.ress.2026.112186",
+      "limitations": "Method paper; not a public supplier or repair-event dataset. Must reproduce its system boundaries, reliability measures, scenario assumptions and compute settings before comparing."
+    },
+    {
+      "recordId": "SUBSTATION-BOTTLENECK-SPARES-2027",
+      "title": "Resilience-oriented post-earthquake restoration of substations: Repair sequencing and resource scheduling",
+      "category": "restoration_method_paper",
+      "publisher": "Reliability Engineering & System Safety",
+      "publicationDate": "2027-02",
+      "status": "forthcoming_issue_assignment_as_of_2026-11-19",
+      "reportedScope": "Publisher assigns the article to Volume 278 Part 2, February 2027. The abstract describes connectivity-based functionality, minimum repair sets, Smith's rule intra-layer repair sequencing, bottleneck-first inter-layer sequencing and nested spare allocation. It reports 4,000 synthetic seismic scenarios (1,000 at each of four PGA levels), 25.0%–36.3% improvements in median resilience index over Global-Greedy, equal or lower median values than its MILP benchmark and about three minutes versus over 24 hours for MILP.",
+      "benchmarkRole": "High-priority forthcoming comparator for topology-aware bottleneck-first sequencing and nested spares. Reproduce exact substation model and compare resilience trajectory separately from final restoration time; test the same distinction in our service-cascade bridge.",
+      "importStatus": "not_a_dataset",
+      "licenseStatus": "documentation_only",
+      "primarySource": "https://www.sciencedirect.com/science/article/pii/S0951832026013633",
+      "limitations": "As of 2026-11-19 this is assigned to a February 2027 journal issue, not a formally published 2026 issue paper. Reported metrics are from the paper's own 220 kV substation/seismic test cases and cannot be compared directly with our synthetic transformer fleet. The paper's resilience index and restoration time are distinct metrics."
     }
   ]
 }
