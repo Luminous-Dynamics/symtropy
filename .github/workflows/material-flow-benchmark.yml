@@ -71,6 +71,7 @@ jobs:
             and .truck_only_baseline.expected_total_cost_units == 1980
             and .cvar90_optimal_policy.cvar90_total_cost_units <= .optimized_policy.cvar90_total_cost_units
             and .worst_case_optimal_policy.worst_case_total_cost_units <= .optimized_policy.worst_case_total_cost_units
+            and .service_robust_optimal_policy.worst_case_unserved_units <= .optimized_policy.worst_case_unserved_units
             and .optimized_policy.expected_aerial_deliveries == 4
             and .truck_only_baseline.expected_aerial_deliveries == 0
           ' mfb-l1-evidence/shared-aircraft-report.json
