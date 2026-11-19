@@ -55,21 +55,21 @@ jobs:
         run: |
           jq -e '.episodes[] | select(.episode_id == "elig-001-reordered-fresh") |
             .current_delivery.source_sequence < .delivered_history[0].source_sequence and
-            (.now.tick - .current_delivery.capture_time_us) <= .freshness_policy.maximum_age_us and
+            (.now.timestamp_us - .current_delivery.capture_time_us) <= .freshness_policy.maximum_age_us and
             .now.clock_domain == .current_delivery.clock_domain' research/av-observation-eligibility-v0/fixtures/agent/workload-v1.json
 
       - name: Assert in-order-but-stale is possible
         run: |
           jq -e '.episodes[] | select(.episode_id == "elig-002-in-order-stale") |
             .current_delivery.source_sequence > .delivered_history[0].source_sequence and
-            (.now.tick - .current_delivery.capture_time_us) > .freshness_policy.maximum_age_us' research/av-observation-eligibility-v0/fixtures/agent/workload-v1.json
+            (.now.timestamp_us - .current_delivery.capture_time_us) > .freshness_policy.maximum_age_us' research/av-observation-eligibility-v0/fixtures/agent/workload-v1.json
 
       - name: Assert duplicate does not refresh source age
         run: |
           jq -e '.episodes[] | select(.episode_id == "elig-003-duplicate-no-refresh") |
             .current_delivery.observation_id == .delivered_history[0].observation_id and
             .current_delivery.source_sequence == .delivered_history[0].source_sequence and
-            (.now.tick - .current_delivery.source_capture_time_us) > .freshness_policy.maximum_age_us' research/av-observation-eligibility-v0/fixtures/agent/workload-v1.json
+            (.now.timestamp_us - .current_delivery.source_capture_time_us) > .freshness_policy.maximum_age_us' research/av-observation-eligibility-v0/fixtures/agent/workload-v1.json
 
       - name: Assert decision deadline and historical cutoff differ
         run: |
@@ -96,3 +96,12 @@ jobs:
           jq -e '.episodes[] | select(.episode_id == "elig-008-superseded-request") |
             .current_delivery.request_revision < .task.request_revision and
             .superseded_requests[0].request_revision == .current_delivery.request_revision' research/av-observation-eligibility-v0/fixtures/agent/workload-v1.json
+
+      - name: Assert expected three-axis labels remain orthogonal
+        run: |
+          jq -e '.episodes[] | select(.episode_id == "elig-001-reordered-fresh") |
+            .transport == "Reordered" and .freshness == "Fresh"' research/av-observation-eligibility-v0/fixtures/evaluator-only/outcomes-v1.json
+          jq -e '.episodes[] | select(.episode_id == "elig-002-in-order-stale") |
+            .transport == "Delivered" and .freshness == "Stale"' research/av-observation-eligibility-v0/fixtures/evaluator-only/outcomes-v1.json
+          jq -e '.episodes[] | select(.episode_id == "elig-005-late-live-historical-valid") |
+            .current_window_eligible == false and .historical_eligible == true' research/av-observation-eligibility-v0/fixtures/evaluator-only/outcomes-v1.json
