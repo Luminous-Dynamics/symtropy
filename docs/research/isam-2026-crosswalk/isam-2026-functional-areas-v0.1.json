@@ -1,0 +1,169 @@
+{
+  "schema_id": "luminous.isam-2026-crosswalk-seed",
+  "schema_version": "0.1.0",
+  "record_kind": "source_taxonomy_seed",
+  "source": {
+    "title": "In-space Servicing, Assembly, and Manufacturing (ISAM) State of Play",
+    "edition": 2026,
+    "publisher": "NASA Langley Research Center",
+    "approval": "Approved for Public Release",
+    "url": "https://assets.science.nasa.gov/content/dam/science/missions/isam/ISAM_State_of_Play_2026.pdf",
+    "overview_url": "https://www.nasa.gov/isam/",
+    "printed_page_locators": {
+      "functional_and_cross_cutting_definitions": [
+        1,
+        2,
+        3
+      ],
+      "figure_3_area_counts_and_multi_area_note": [
+        20
+      ],
+      "rpo_capture_docking_mating_definitions": [
+        24
+      ],
+      "fluid_transfer_maturity": [
+        32,
+        33
+      ]
+    }
+  },
+  "count_semantics": {
+    "functional_area_count": 11,
+    "cross_cutting_area_count": 3,
+    "figure_3_area_assignment_sum": 523,
+    "unique_source_entry_count": null,
+    "entries_may_belong_to_multiple_functional_areas": true,
+    "rule": "NASA's webpage reports 621 capability-area entries for the overall 2026 survey. PDF Figure 3 reports 11 functional-area counts summing to 523. The PDF states that activities/technologies can appear in multiple functional areas and Software and Algorithms is a separate cross-cutting area. Reconcile the headline and PDF structures against individual Table 2 and Appendix 9 rows before using either number as a deduplicated denominator.",
+    "do_not_use_figure_3_sum_as_unique_denominator": true,
+    "reported_capability_area_entry_count": 621,
+    "reported_capability_area_entry_count_source": "NASA 2026 ISAM webpage",
+    "reported_capability_area_entry_count_url": "https://www.nasa.gov/isam/",
+    "figure_3_functional_area_count_sum": 523,
+    "figure_3_functional_area_count_sum_is_not_overall_inventory_total": true,
+    "reconciliation_status": "pending_individual_table2_and_appendix9_extraction",
+    "public_webpage_headline_counts": {
+      "capability_area_entries": 621,
+      "facility_descriptions": 61,
+      "developer_profiles": 169,
+      "source_url": "https://www.nasa.gov/isam/"
+    },
+    "pdf_report_counts": {
+      "figure_3_functional_area_count_sum": 523,
+      "cataloged_developers": 171,
+      "developer_count_printed_page": 54,
+      "figure_3_printed_page": 20
+    },
+    "developer_count_reconciliation": "pending; NASA webpage reports 169 developer profiles while the PDF text reports 171 cataloged developers.",
+    "facility_count_reconciliation": "NASA webpage reports 61 facility descriptions; compare against the PDF facility appendix during extraction."
+  },
+  "functional_areas": [
+    {
+      "id": "RM",
+      "name": "Robotic Manipulation",
+      "figure_3_count": 53,
+      "printed_section": "3.1"
+    },
+    {
+      "id": "RCDM",
+      "name": "RPO, Capture, Docking, and Mating",
+      "figure_3_count": 142,
+      "printed_section": "3.2"
+    },
+    {
+      "id": "REL",
+      "name": "Relocation",
+      "figure_3_count": 38,
+      "printed_section": "3.3"
+    },
+    {
+      "id": "PRMUI",
+      "name": "Prepared Repair, Maintenance, Upgrade, and Installation",
+      "figure_3_count": 43,
+      "printed_section": "3.4"
+    },
+    {
+      "id": "URMUI",
+      "name": "Unprepared Repair, Maintenance, Upgrade, and Installation",
+      "figure_3_count": 22,
+      "printed_section": "3.5"
+    },
+    {
+      "id": "RFT",
+      "name": "Refueling and Fluid Transfer",
+      "figure_3_count": 65,
+      "printed_section": "3.6"
+    },
+    {
+      "id": "SMA",
+      "name": "Structural Manufacturing and Assembly",
+      "figure_3_count": 52,
+      "printed_section": "3.7"
+    },
+    {
+      "id": "RRR",
+      "name": "Recycling, Reuse, and Repurposing",
+      "figure_3_count": 9,
+      "printed_section": "3.8"
+    },
+    {
+      "id": "PGM",
+      "name": "Parts and Goods Manufacturing",
+      "figure_3_count": 25,
+      "printed_section": "3.9"
+    },
+    {
+      "id": "SI",
+      "name": "Surface Infrastructure",
+      "figure_3_count": 23,
+      "printed_section": "3.10"
+    },
+    {
+      "id": "IM",
+      "name": "Inspection and Metrology",
+      "figure_3_count": 51,
+      "printed_section": "3.11"
+    }
+  ],
+  "cross_cutting_areas": [
+    {
+      "id": "SA",
+      "name": "Software and Algorithms",
+      "printed_section": "4.1",
+      "relationship": "Supports activities across the functional capability areas; not an additional functional area."
+    },
+    {
+      "id": "LO",
+      "name": "Logistics and Operations",
+      "printed_section": "4.2",
+      "relationship": "Enables sustained exploration and ISAM operations; not an additional functional area."
+    },
+    {
+      "id": "LPS",
+      "name": "Laws, Policies, and Standards",
+      "printed_section": "4.3",
+      "relationship": "Provides operating rules and coordination frameworks; not an additional functional area."
+    }
+  ],
+  "capture_vocabulary": {
+    "rendezvous": "Orbital manoeuvres reduce separation between two space objects.",
+    "proximity_operations": "Relative distance and/or orientation is managed between two space objects.",
+    "capture": "A physical connection is established between two space objects, often using a robotic manipulator.",
+    "docking": "A rigid connection is established without using a robotic arm.",
+    "mating": "A general physical connection is established between objects or interfaces.",
+    "claim_boundary": "A relative-motion position/velocity window is not capture, docking, or mating without separate physical-connection evidence."
+  },
+  "fluid_transfer_evidence_notes": {
+    "storable_fluids": "NASA reports multiple demonstrations and operational use, including ISS support.",
+    "cryogenic_fluids": "NASA describes active development and demonstrations with fluid-specific maturity; storage and transfer are separate claims.",
+    "high_pressure_or_supercritical_fluids": "Treat as a separate capability/evidence lane; do not infer qualification from storable-fluid operations.",
+    "claim_boundary": "Storage, thermal control, coupler manipulation, transfer, measurement, and accepted receiver inventory are separate claims."
+  },
+  "extraction_status": {
+    "individual_activity_rows_extracted": false,
+    "developer_rows_extracted": false,
+    "facility_rows_extracted": false,
+    "cross_cutting_appendix_rows_extracted": false,
+    "luminous_capability_mapping_completed": false,
+    "reason": "This v0.1 file freezes taxonomy and selected aggregate values before individual-entry extraction. It intentionally does not claim complete inventory coverage."
+  }
+}
