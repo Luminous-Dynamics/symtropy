@@ -118,3 +118,22 @@ The separate interruption replay fixture is \`examples/site-state-interruption-r
 ### Actor-role registry and replay
 
 SiteStateLedger now requires a caller-supplied SiteActorRegistry. The default constructor is deliberately deny-all; event payloads cannot self-assert a role that the trusted registry has not granted. Persisted-history replay takes the same registry, so replay cannot bypass role authorization. The registry must be constructed from an authenticated identity/role source; grant() is a policy-building method, not a credential or signature verifier. Production deployments should pin and attest the registry version in their site governance configuration, and enforce separation-of-duty rules for design approval, survey qualification, robot execution, referee inspection and waivers.
+
+
+### Dependency-scoped invalidation v0.1
+
+The typed Rust module dependency_scoped_invalidation models a construction evidence graph where each derived artifact explicitly depends on source evidence and upstream qualifications. Edges point from dependent to prerequisite. A change to an IFC entity, IDS rule set, site frame, survey transform, station qualification, robot/tool/payload configuration or material batch produces a deterministic transitive invalidation plan.
+
+The planner reports:
+- changed source/artifact nodes and their new version digests;
+- only the downstream nodes whose evidence depends on those changes;
+- a deterministic prerequisite-before-dependent requalification order;
+- action classes such as recompile work package, recompile task plan, recompute motion envelope, reconcile execution evidence, reinspect physical output and reevaluate acceptance;
+- unrelated nodes that remain current;
+- an explicit historical-evidence-preserved claim.
+
+Evidence snapshots include the subject node plus all transitive prerequisite versions. A snapshot becomes stale when any ancestor changes, even when an intermediate artifact's own content digest has not yet been regenerated. The stale receipt remains a historical record. After an affected artifact is actually regenerated, the caller records its new node version; only a newly captured snapshot over the current dependency versions is current.
+
+The graph constructor rejects duplicate nodes/edges, unknown references, self-dependencies and cycles. Revision planning rejects empty/no-op/duplicate/unknown/malformed changes. The implementation uses deterministic BTree collections and has no new dependencies.
+
+This is a planning and evidence-currentness primitive. It does not itself revoke a robot permit, issue a stop command, mutate an accepted construction record, recompute the source model, prove a physical change occurred, or perform cryptographic digest verification. Integration into the site ledger must make dispatch/actuation gates consume the returned stale/current state and preserve independent authority boundaries.
