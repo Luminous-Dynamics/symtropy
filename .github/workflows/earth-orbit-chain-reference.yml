@@ -1,0 +1,53 @@
+name: Earth-to-Orbit Chain Reference
+
+on:
+  push:
+    branches: ["feat/earth-orbit-chain-contract-v0-1"]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/domains/symtropy-earth-orbit-chain/**"
+      - ".github/workflows/earth-orbit-chain-reference.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/domains/symtropy-earth-orbit-chain/**"
+      - ".github/workflows/earth-orbit-chain-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: earth-orbit-chain-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  earth-orbit-chain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Resolve package metadata without building unrelated targets
+        run: cargo metadata --locked --manifest-path Cargo.toml --no-deps
+
+      - name: Check package formatting
+        run: cargo fmt --manifest-path Cargo.toml --package symtropy-earth-orbit-chain -- --check
+
+      - name: Run package unit tests
+        run: cargo test --locked --manifest-path Cargo.toml --package symtropy-earth-orbit-chain --lib
+
+      - name: Run package Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path Cargo.toml --package symtropy-earth-orbit-chain --lib -- -D warnings
