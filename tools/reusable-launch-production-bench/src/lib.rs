@@ -207,7 +207,10 @@ fn non_empty(value: &str, label: &str) -> Result<(), String> {
     }
 }
 
-fn schedule_tasks(fixture: &Fixture, asset_ids: &BTreeSet<String>) -> Result<Vec<ScheduledTask>, String> {
+fn schedule_tasks(
+    fixture: &Fixture,
+    asset_ids: &BTreeSet<String>,
+) -> Result<Vec<ScheduledTask>, String> {
     let mut capacities = BTreeMap::<String, usize>::new();
     for capacity in &fixture.station_capacities {
         non_empty(&capacity.station, "station")?;
@@ -215,9 +218,17 @@ fn schedule_tasks(fixture: &Fixture, asset_ids: &BTreeSet<String>) -> Result<Vec
             return Err(format!("station {} has zero parallel slots", capacity.station));
         }
         let slots = usize::try_from(capacity.parallel_slots)
-            .map_err(|_| format!("station {} slot count exceeds platform limits", capacity.station))?;
+            .map_err(|_| {
+                format!(
+                    "station {} slot count exceeds platform limits",
+                    capacity.station
+                )
+            })?;
         if slots > 64 {
-            return Err(format!("station {} exceeds the v0.1 limit of 64 parallel slots", capacity.station));
+            return Err(format!(
+                "station {} exceeds the v0.1 limit of 64 parallel slots",
+                capacity.station
+            ));
         }
         if capacities.insert(capacity.station.clone(), slots).is_some() {
             return Err(format!("duplicate station capacity: {}", capacity.station));
@@ -230,7 +241,10 @@ fn schedule_tasks(fixture: &Fixture, asset_ids: &BTreeSet<String>) -> Result<Vec
         non_empty(&task.task_id, "task_id")?;
         non_empty(&task.asset_serial, "task asset_serial")?;
         if !asset_ids.contains(&task.asset_serial) {
-            return Err(format!("task {} references unknown asset {}", task.task_id, task.asset_serial));
+            return Err(format!(
+                "task {} references unknown asset {}",
+                task.task_id, task.asset_serial
+            ));
         }
         if !seen_tasks.insert(task.task_id.as_str()) {
             return Err(format!("duplicate maintenance task: {}", task.task_id));
@@ -239,13 +253,14 @@ fn schedule_tasks(fixture: &Fixture, asset_ids: &BTreeSet<String>) -> Result<Vec
             return Err(format!("task {} has zero duration", task.task_id));
         }
         if !capacities.contains_key(&task.station) {
-            return Err(format!("task {} references station without capacity: {}", task.task_id, task.station));
+            return Err(format!(
+                "task {} references station without capacity: {}",
+                task.task_id, task.station
+            ));
         }
     }
 
-    tasks.sort_by(|a, b| {
-        (&a.station, a.release_tick, &a.task_id).cmp(&(&b.station, b.release_tick, &b.task_id))
-    });
+    tasks.sort_by_key(|task| (&task.station, task.release_tick, &task.task_id));
 
     let mut availability = capacities
         .iter()
@@ -279,9 +294,13 @@ fn schedule_tasks(fixture: &Fixture, asset_ids: &BTreeSet<String>) -> Result<Vec
         });
     }
 
-    schedule.sort_by(|a, b| {
-        (&a.station, a.start_tick, a.slot, &a.task_id)
-            .cmp(&(&b.station, b.start_tick, b.slot, &b.task_id))
+    schedule.sort_by_key(|task| {
+        (
+            &task.station,
+            task.start_tick,
+            task.slot,
+            &task.task_id,
+        )
     });
     Ok(schedule)
 }
@@ -357,7 +376,11 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
                 AssetState::Flown => {
                     let flight_id = event.flight_id.as_ref().expect("checked above");
                     non_empty(flight_id, "flight_id")?;
-                    if active_flight.is_some() || flown_by.insert(flight_id.clone(), asset.serial.clone()).is_some() {
+                    if active_flight.is_some()
+                        || flown_by
+                            .insert(flight_id.clone(), asset.serial.clone())
+                            .is_some()
+                    {
                         return Err(format!("duplicate or overlapping flight ID: {flight_id}"));
                     }
                     active_flight = Some((flight_id.clone(), event.tick));
@@ -375,7 +398,9 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
                 AssetState::Failed | AssetState::Lost => {
                     let flight_id = event.flight_id.as_ref().expect("checked above");
                     if active_flight.as_ref().map(|(id, _)| id) != Some(flight_id) {
-                        return Err(format!("terminal event references non-active flight {flight_id}"));
+                        return Err(format!(
+                            "terminal event references non-active flight {flight_id}"
+                        ));
                     }
                     if !terminal_failure_ids.insert(flight_id.clone()) {
                         return Err(format!("duplicate terminal failure for flight {flight_id}"));
@@ -423,19 +448,36 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
             return Err(format!("flight {} references unknown stage", flight.flight_id));
         }
         if flown_by.get(&flight.flight_id) != Some(&flight.stage_serial) {
-            return Err(format!("flight {} has no matching Flown event for its stage", flight.flight_id));
+            return Err(format!(
+                "flight {} has no matching Flown event for its stage",
+                flight.flight_id
+            ));
         }
-        if flight.payload_accepted && (!flight.mission_success || flight.accepted_payload_kg == 0) {
-            return Err(format!("flight {} accepts payload without mission success and positive mass", flight.flight_id));
+        if flight.payload_accepted
+            && (!flight.mission_success || flight.accepted_payload_kg == 0)
+        {
+            return Err(format!(
+                "flight {} accepts payload without mission success and positive mass",
+                flight.flight_id
+            ));
         }
         if !flight.payload_accepted && flight.accepted_payload_kg != 0 {
-            return Err(format!("flight {} has payload mass without payload acceptance", flight.flight_id));
+            return Err(format!(
+                "flight {} has payload mass without payload acceptance",
+                flight.flight_id
+            ));
         }
         if flight.recovered != recovered_ids.contains(&flight.flight_id) {
-            return Err(format!("flight {} recovery record contradicts the asset event ledger", flight.flight_id));
+            return Err(format!(
+                "flight {} recovery record contradicts the asset event ledger",
+                flight.flight_id
+            ));
         }
         if flight.recovered == terminal_failure_ids.contains(&flight.flight_id) {
-            return Err(format!("flight {} must have exactly one recovery or terminal-failure outcome", flight.flight_id));
+            return Err(format!(
+                "flight {} must have exactly one recovery or terminal-failure outcome",
+                flight.flight_id
+            ));
         }
         if flight.mission_success {
             mission_successes = checked_add(mission_successes, 1, "mission successes")?;
@@ -450,7 +492,11 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
         }
         if flight.payload_accepted {
             accepted_count = checked_add(accepted_count, 1, "payload acceptances")?;
-            accepted_payload_kg = checked_add(accepted_payload_kg, flight.accepted_payload_kg, "accepted payload mass")?;
+            accepted_payload_kg = checked_add(
+                accepted_payload_kg,
+                flight.accepted_payload_kg,
+                "accepted payload mass",
+            )?;
         }
     }
 
@@ -466,18 +512,47 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
     }
 
     let scheduled_tasks = schedule_tasks(fixture, &asset_ids)?;
-    let inspection_tasks = scheduled_tasks.iter().filter(|task| task.station == "inspection").count() as u64;
-    let refurbishment_tasks = scheduled_tasks.iter().filter(|task| task.station == "refurbishment").count() as u64;
-    if scheduled_tasks.iter().any(|task| task.station != "inspection" && task.station != "refurbishment") {
+    let inspection_tasks = scheduled_tasks
+        .iter()
+        .filter(|task| task.station == "inspection")
+        .count() as u64;
+    let refurbishment_tasks = scheduled_tasks
+        .iter()
+        .filter(|task| task.station == "refurbishment")
+        .count() as u64;
+    if scheduled_tasks
+        .iter()
+        .any(|task| task.station != "inspection" && task.station != "refurbishment")
+    {
         return Err("v0.1 supports only inspection and refurbishment task classes".to_owned());
     }
 
     let costs = &fixture.cost_model;
-    let manufacturing_scu = checked_mul(fixture.assets.len() as u64, costs.manufacture_scu_per_asset, "manufacturing cost")?;
-    let launch_operations_scu = checked_mul(fixture.flights.len() as u64, costs.launch_operations_scu_per_attempt, "launch operations cost")?;
-    let recovery_scu = checked_mul(recovered_count, costs.recovery_scu_per_recovered_asset, "recovery cost")?;
-    let inspection_scu = checked_mul(inspection_tasks, costs.inspection_scu_per_task, "inspection cost")?;
-    let refurbishment_scu = checked_mul(refurbishment_tasks, costs.refurbishment_scu_per_task, "refurbishment cost")?;
+    let manufacturing_scu = checked_mul(
+        fixture.assets.len() as u64,
+        costs.manufacture_scu_per_asset,
+        "manufacturing cost",
+    )?;
+    let launch_operations_scu = checked_mul(
+        fixture.flights.len() as u64,
+        costs.launch_operations_scu_per_attempt,
+        "launch operations cost",
+    )?;
+    let recovery_scu = checked_mul(
+        recovered_count,
+        costs.recovery_scu_per_recovered_asset,
+        "recovery cost",
+    )?;
+    let inspection_scu = checked_mul(
+        inspection_tasks,
+        costs.inspection_scu_per_task,
+        "inspection cost",
+    )?;
+    let refurbishment_scu = checked_mul(
+        refurbishment_tasks,
+        costs.refurbishment_scu_per_task,
+        "refurbishment cost",
+    )?;
     let loss_scu = checked_mul(lost_count, costs.loss_scu_per_lost_asset, "loss cost")?;
     let total_lifecycle_scu = [
         manufacturing_scu,
@@ -492,7 +567,10 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
     let cost_per_accepted_kg_microscu = if accepted_payload_kg == 0 {
         None
     } else {
-        Some(checked_mul(total_lifecycle_scu, 1_000_000, "cost per accepted kilogram")? / accepted_payload_kg)
+        Some(
+            checked_mul(total_lifecycle_scu, 1_000_000, "cost per accepted kilogram")?
+                / accepted_payload_kg,
+        )
     };
 
     let costs = CostBreakdown {
@@ -509,7 +587,11 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
     let maintenance_total_wait_ticks = scheduled_tasks.iter().try_fold(0_u64, |sum, task| {
         checked_add(sum, task.wait_ticks, "maintenance wait")
     })?;
-    let maintenance_max_wait_ticks = scheduled_tasks.iter().map(|task| task.wait_ticks).max().unwrap_or(0);
+    let maintenance_max_wait_ticks = scheduled_tasks
+        .iter()
+        .map(|task| task.wait_ticks)
+        .max()
+        .unwrap_or(0);
     let turnaround_total_ticks = turnaround_ticks.iter().try_fold(0_u64, |sum, ticks| {
         checked_add(sum, *ticks, "turnaround total")
     })?;
