@@ -13,12 +13,12 @@ This tool does not download or decode GRIB/NetCDF, generate forecasts, interpola
 ## Information-set rules
 
 - A deployable forecast object requires model/cycle identity, forecast lead, valid time, grid/CRS/axis metadata, units, artifact digest and explicit first-availability evidence.
-- The chronology is source issue time <= first demonstrable availability <= decision cutoff. retrieved_at is retained separately; a later archive download cannot be used to infer what was available historically.
+- The chronology is source issue time <= first demonstrable availability <= decision cutoff. retrieved_at is retained separately; a later archive download cannot be used to infer what was available historically. For fixed-lead forecast objects, issue time + lead hours must equal valid time, and retrieval cannot precede declared availability.
 - A forecast valid time must match the decision target instant.
 - ERA5/Copernicus-style realized reanalysis belongs only in evaluator_context_source_ids.
 - NDBC-like station observations belong only in validation_observation_source_ids in this initial profile. They are sparse point checks, not route-wide forecast inputs.
 - Commercial route exports are not deployable weather forecasts. Route geometry does not reproduce hidden forecast cycles, polars or routing settings.
-- Unknown rights/availability make the record incomplete; restricted or unauthorized research use blocks replay.
+- Unknown rights/availability make the record incomplete; restricted or unauthorized research use blocks replay. Synthetic-only rights and evidence cannot be promoted into a non-synthetic replay.
 - Non-redistributable source data can still be assessed under an authorized research permission; this tool does not redistribute data.
 - A syntactically valid SHA-256 digest identifies bytes but does not authenticate a publisher or prove measurement quality.
 
