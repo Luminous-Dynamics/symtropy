@@ -115,11 +115,13 @@ The M1 filter here complements these optimizers; it does not replace them. It pr
 
 This review motivates matching candidate comparisons to task torque-speed, reflected inertia, reducer losses, thermal duty, sensing and bandwidth. The Pareto filter does not itself model these factors; it insists that their candidate results and evidence be compared under identical declared conditions.
 
-### Public actuator evidence register
+### Public actuator evidence register (snapshot updated 16 November 2026)
 
 ActuatorList: https://actuatorlist.com/benchmarks
 
-The November 2026 snapshot is useful for discovery and provenance categories, but its reported run counts and lack of lab/community runs are not a fully independent industry leaderboard. This programme keeps vendor, source-author, independent and model-derived information separate rather than inferring measurement quality from a published numeric specification.
+The page reports 22 published runs across 17 catalog actuators as of its 3 November 2026 count, with 0 lab and 0 community submissions. Its data separate raw rig data, tabulated measurements, digitized plots and text-reported figures, and identify Vendor, Vendor-affiliated and Independent origins. The current measured continuous-torque-density table lists RobStride 04 at 28.2 N·m/kg, RobStride 02 at 23.7 N·m/kg, and RobStride 03 at 22.7 N·m/kg—but all three entries are vendor-origin evidence. The visible independent comparison is an AK80-9 backlash result, not an independent continuous-torque-density measurement. The page also exposes vendor-derived torque-speed curves and thermal time-to-limit tables; these are useful design priors, but remain vendor evidence. The M1 evidence-lane filter must not present them as independent lab results.
+
+This changes the industry gap from "there are no benchmark numbers" to "there are many useful numbers with unequal evidence provenance and a thin independent continuous/thermal base." Our target is to improve that base with matched, calibrated, synchronized, held-out specimen measurements.
 
 ## 7. Synthetic known-answer fixture
 
