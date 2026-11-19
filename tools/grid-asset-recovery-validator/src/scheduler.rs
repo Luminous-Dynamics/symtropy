@@ -188,6 +188,28 @@ pub fn schedule(
     profiles: &BTreeMap<String, ResourceProfile>,
 ) -> Result<Vec<ScheduledTask>, Vec<String>> {
     let mut errors = Vec::new();
+    for (resource_id, profile) in profiles {
+        if profile.available_units == 0
+            || !profile.calendar_period_hours.is_finite()
+            || profile.calendar_period_hours <= 0.0
+            || profile.availability_windows.is_empty()
+        {
+            errors.push(format!("resource {resource_id} has invalid capacity or calendar"));
+            continue;
+        }
+        let mut previous_end = 0.0;
+        for window in &profile.availability_windows {
+            if !window.start_hour.is_finite()
+                || !window.end_hour.is_finite()
+                || window.start_hour < previous_end
+                || window.end_hour <= window.start_hour
+                || window.end_hour > profile.calendar_period_hours
+            {
+                errors.push(format!("resource {resource_id} has invalid or overlapping calendar windows"));
+            }
+            previous_end = window.end_hour;
+        }
+    }
     let mut task_by_key = BTreeMap::new();
 
     for task in tasks {
@@ -293,7 +315,7 @@ pub fn schedule(
                 ready_hour,
                 task.duration_hours,
                 &task.resource_requirements,
-                capacities,
+                profiles,
                 &resource_allocations,
             );
             match feasible_start {
@@ -453,7 +475,7 @@ fn exact_search(
             unscheduled,
             scheduled,
             resource_allocations,
-            capacities,
+            profiles,
             best,
         );
 
@@ -509,7 +531,7 @@ pub fn exact_small_schedule(
         &mut unscheduled,
         &mut scheduled,
         &mut resource_allocations,
-        capacities,
+        profiles,
         &mut best,
     );
 
@@ -622,6 +644,30 @@ mod tests {
         let second = result.iter().find(|x| x.event_id == "E2").unwrap();
         assert_eq!(second.start_hour, 10.0);
         assert_eq!(second.end_hour, 20.0);
+    }
+
+    #[test]
+    fn waits_for_next_calendar_window_when_task_cannot_fit() {
+        let task = spec("E1", "repair", &[], 14.0, 5.0, Some("crew"), 1);
+        let profiles = BTreeMap::from([(
+            "crew".to_string(),
+            profile(1, 24.0, &[(8.0, 18.0)]),
+        )]);
+        let result = schedule(&[task], &profiles).expect("calendar should have next shift");
+        assert_eq!(result[0].start_hour, 32.0);
+        assert_eq!(result[0].end_hour, 37.0);
+    }
+
+    #[test]
+    fn rejects_empty_resource_calendar() {
+        let task = spec("E1", "repair", &[], 0.0, 2.0, Some("crew"), 1);
+        let profiles = BTreeMap::from([(
+            "crew".to_string(),
+            profile(1, 24.0, &[]),
+        )]);
+        assert!(schedule(&[task], &profiles)
+            .unwrap_err()[0]
+            .contains("invalid capacity or calendar"));
     }
 
     #[test]
