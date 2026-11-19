@@ -58,6 +58,11 @@ Evidence class is not a confidence score. A newer or more precise value does not
 25. Literature-reproduction case for geothermal polygeneration: reproduce a published organic-flash / absorption-refrigeration / Kalina / humidification-dehumidification desalination configuration. The 2024 *Energy* paper reports 342.3 kW electric, 301.7 kW cooling and 0.233 kg/s freshwater at 31.52% exergy efficiency; these are simulation outputs, not measurements. Reproduction is blocked until complete source inputs, fluid properties, state points, boundary and component assumptions are frozen.
 26. Integrated superhot wellhead envelope: vary wellhead pressure, phase state, casing diameter and mass flow together; report net power alongside single-phase margin, velocity, scaling and corrosion exposure. The cited study's >15 MPa single-phase lever and 50 m/s reference remain case-specific model evidence, not universal design limits.
 27. Transient well-integrity case: simulate circulation interruption, shut-in, restart, cold-water injection and production ramp across phase transitions; track local pressure/temperature/chemistry, cement/casing/elastomer degradation and subcritical exposure near 300–350 °C. Do not infer lifetime from steady-state peak-temperature qualification.
+28. IAPWS-IF97 provider conformance: run the 19 official R7-97(2012) known-answer points in `fixtures/iapws-if97-official-known-answer.json`, including Regions 1–5, saturation and the B23 boundary; add provider-specific domain, round-trip and hostile-input tests. Do not claim brine coverage or complete IF97 validation from these points alone.
+
+## IAPWS-IF97 official known-answer fixtures
+
+See [iapws-if97-official-known-answer.json](fixtures/iapws-if97-official-known-answer.json). It transcribes 19 IAPWS R7-97(2012) computer-program verification points across Regions 1, 2, 3, 4 and 5, plus the B23 region-boundary check. The source tables explicitly recommend eight-byte real values. The fixture records the published decimal precision and table/page attribution; the provider qualification issue must set and document per-property comparison tolerances before scoring. These are standard reference values, not field measurements and not brine properties.
 
 ## Published superhot calibration anchor
 
