@@ -196,25 +196,35 @@ pub fn parse_case_json(bytes: &[u8]) -> Result<FleetOperationsCase, OperationsEr
 
 pub fn validate_case(case: &FleetOperationsCase) -> Result<(), OperationsError> {
     if case.schema_version != "haps-fleet-operations-case/v1" {
-        return Err(OperationsError::new("unsupported HAPS fleet operations schema_version"));
+        return Err(OperationsError::new(
+            "unsupported HAPS fleet operations schema_version",
+        ));
     }
     if case.case_id.trim().is_empty() || case.revision == 0 {
-        return Err(OperationsError::new("case_id must be non-empty and revision positive"));
+        return Err(OperationsError::new(
+            "case_id must be non-empty and revision positive",
+        ));
     }
     if case.evidence_class != "synthetic"
         || case.claim_ceiling != "synthetic_deterministic_event_replay"
     {
-        return Err(OperationsError::new("this evaluator accepts synthetic event traces only"));
+        return Err(OperationsError::new(
+            "this evaluator accepts synthetic event traces only",
+        ));
     }
     if case.horizon_hours == 0 || case.step_hours != 1 {
-        return Err(OperationsError::new("horizon_hours must be positive and step_hours must equal 1"));
+        return Err(OperationsError::new(
+            "horizon_hours must be positive and step_hours must equal 1",
+        ));
     }
     if !case.required_service_capacity_units.is_finite()
         || case.required_service_capacity_units <= 0.0
         || !case.degraded_margin_units.is_finite()
         || case.degraded_margin_units < 0.0
     {
-        return Err(OperationsError::new("service threshold and degraded margin must be finite and valid"));
+        return Err(OperationsError::new(
+            "service threshold and degraded margin must be finite and valid",
+        ));
     }
     if case.nodes.is_empty() {
         return Err(OperationsError::new("at least one HAPS node is required"));
@@ -223,17 +233,29 @@ pub fn validate_case(case: &FleetOperationsCase) -> Result<(), OperationsError> 
     let mut node_ids = HashSet::new();
     for node in &case.nodes {
         if node.node_id.trim().is_empty() || !node_ids.insert(node.node_id.as_str()) {
-            return Err(OperationsError::new(format!("empty or duplicate node_id: {}", node.node_id)));
+            return Err(OperationsError::new(format!(
+                "empty or duplicate node_id: {}",
+                node.node_id
+            )));
         }
         if node.service_region_ref.trim().is_empty()
             || node.hazard_domain.trim().is_empty()
             || !node.base_capacity_units.is_finite()
             || node.base_capacity_units < 0.0
         {
-            return Err(OperationsError::new(format!("invalid node capacity or region: {}", node.node_id)));
+            return Err(OperationsError::new(format!(
+                "invalid node capacity or region: {}",
+                node.node_id
+            )));
         }
-        if !matches!(node.platform_class.as_str(), "solar_fixed_wing_haps" | "buoyant_airship" | "buoyant_free_balloon") {
-            return Err(OperationsError::new(format!("unsupported platform_class on {}", node.node_id)));
+        if !matches!(
+            node.platform_class.as_str(),
+            "solar_fixed_wing_haps" | "buoyant_airship" | "buoyant_free_balloon"
+        ) {
+            return Err(OperationsError::new(format!(
+                "unsupported platform_class on {}",
+                node.node_id
+            )));
         }
     }
 
@@ -248,8 +270,12 @@ pub fn validate_case(case: &FleetOperationsCase) -> Result<(), OperationsError> 
 
     let mut fallback_ids = HashSet::new();
     for fallback in &case.fallback_sources {
-        if fallback.source_id.trim().is_empty() || !fallback_ids.insert(fallback.source_id.as_str()) {
-            return Err(OperationsError::new(format!("empty or duplicate fallback source_id: {}", fallback.source_id)));
+        if fallback.source_id.trim().is_empty() || !fallback_ids.insert(fallback.source_id.as_str())
+        {
+            return Err(OperationsError::new(format!(
+                "empty or duplicate fallback source_id: {}",
+                fallback.source_id
+            )));
         }
         if fallback.service_region_ref.trim().is_empty()
             || fallback.service_region_ref != fleet_region
@@ -257,51 +283,95 @@ pub fn validate_case(case: &FleetOperationsCase) -> Result<(), OperationsError> 
             || !fallback.base_capacity_units.is_finite()
             || fallback.base_capacity_units < 0.0
         {
-            return Err(OperationsError::new(format!("invalid fallback source: {}", fallback.source_id)));
+            return Err(OperationsError::new(format!(
+                "invalid fallback source: {}",
+                fallback.source_id
+            )));
         }
     }
 
     let mut event_ids = HashSet::new();
     for event in &case.events {
         if event.event_id.trim().is_empty() || !event_ids.insert(event.event_id.as_str()) {
-            return Err(OperationsError::new(format!("empty or duplicate event_id: {}", event.event_id)));
+            return Err(OperationsError::new(format!(
+                "empty or duplicate event_id: {}",
+                event.event_id
+            )));
         }
         let expected_class = match event.event_type.as_str() {
-            "launch_transit" | "reposition" | "planned_maintenance" | "recovery_transit" => "planned_operation",
+            "launch_transit" | "reposition" | "planned_maintenance" | "recovery_transit" => {
+                "planned_operation"
+            }
             "unplanned_fault" => "independent_asset",
             "shared_weather_derate" | "shared_weather_outage" => "shared_weather",
             "shared_infrastructure_outage" => "shared_infrastructure",
             "group_handover" => "service_handover",
-            _ => return Err(OperationsError::new(format!("event {} has unsupported event_type", event.event_id))),
+            _ => {
+                return Err(OperationsError::new(format!(
+                    "event {} has unsupported event_type",
+                    event.event_id
+                )));
+            }
         };
         if event.event_class != expected_class {
-            return Err(OperationsError::new(format!("event {} event_class does not match event_type", event.event_id)));
+            return Err(OperationsError::new(format!(
+                "event {} event_class does not match event_type",
+                event.event_id
+            )));
         }
         if event.start_hour >= event.end_hour || event.end_hour > case.horizon_hours {
-            return Err(OperationsError::new(format!("event {} has invalid half-open interval", event.event_id)));
+            return Err(OperationsError::new(format!(
+                "event {} has invalid half-open interval",
+                event.event_id
+            )));
         }
         if !event.capacity_factor.is_finite() || !(0.0..=1.0).contains(&event.capacity_factor) {
-            return Err(OperationsError::new(format!("event {} capacity_factor must be in [0,1]", event.event_id)));
+            return Err(OperationsError::new(format!(
+                "event {} capacity_factor must be in [0,1]",
+                event.event_id
+            )));
         }
         if event.affected_node_ids.is_empty() && event.affected_fallback_ids.is_empty() {
-            return Err(OperationsError::new(format!("event {} affects no fleet or fallback capacity", event.event_id)));
+            return Err(OperationsError::new(format!(
+                "event {} affects no fleet or fallback capacity",
+                event.event_id
+            )));
         }
-        if event.resource_pool != "none" && !RESOURCE_POOLS.contains(&event.resource_pool.as_str()) {
-            return Err(OperationsError::new(format!("event {} uses unknown resource_pool", event.event_id)));
+        if event.resource_pool != "none" && !RESOURCE_POOLS.contains(&event.resource_pool.as_str())
+        {
+            return Err(OperationsError::new(format!(
+                "event {} uses unknown resource_pool",
+                event.event_id
+            )));
         }
         if event.event_class == "shared_weather" || event.event_class == "shared_infrastructure" {
-            if event.shared_cause_id.as_deref().unwrap_or("").trim().is_empty() {
-                return Err(OperationsError::new(format!("shared event {} lacks shared_cause_id", event.event_id)));
+            if event
+                .shared_cause_id
+                .as_deref()
+                .unwrap_or("")
+                .trim()
+                .is_empty()
+            {
+                return Err(OperationsError::new(format!(
+                    "shared event {} lacks shared_cause_id",
+                    event.event_id
+                )));
             }
         }
         for id in &event.affected_node_ids {
             if !node_ids.contains(id.as_str()) {
-                return Err(OperationsError::new(format!("event {} references unknown HAPS node {id}", event.event_id)));
+                return Err(OperationsError::new(format!(
+                    "event {} references unknown HAPS node {id}",
+                    event.event_id
+                )));
             }
         }
         for id in &event.affected_fallback_ids {
             if !fallback_ids.contains(id.as_str()) {
-                return Err(OperationsError::new(format!("event {} references unknown fallback source {id}", event.event_id)));
+                return Err(OperationsError::new(format!(
+                    "event {} references unknown fallback source {id}",
+                    event.event_id
+                )));
             }
         }
     }
@@ -309,7 +379,9 @@ pub fn validate_case(case: &FleetOperationsCase) -> Result<(), OperationsError> 
     let mut sorted_demand = case.demand_periods.iter().collect::<Vec<_>>();
     sorted_demand.sort_by_key(|period| period.start_hour);
     if sorted_demand.is_empty() {
-        return Err(OperationsError::new("at least one demand period is required"));
+        return Err(OperationsError::new(
+            "at least one demand period is required",
+        ));
     }
     let mut expected_start = 0;
     for period in sorted_demand {
@@ -319,12 +391,16 @@ pub fn validate_case(case: &FleetOperationsCase) -> Result<(), OperationsError> 
             || !period.demand_weight.is_finite()
             || period.demand_weight <= 0.0
         {
-            return Err(OperationsError::new("demand periods must form a positive-weight, gap-free, non-overlapping partition"));
+            return Err(OperationsError::new(
+                "demand periods must form a positive-weight, gap-free, non-overlapping partition",
+            ));
         }
         expected_start = period.end_hour;
     }
     if expected_start != case.horizon_hours {
-        return Err(OperationsError::new("demand periods do not cover the complete horizon"));
+        return Err(OperationsError::new(
+            "demand periods do not cover the complete horizon",
+        ));
     }
 
     let mut resource_pools = HashSet::new();
@@ -333,39 +409,61 @@ pub fn validate_case(case: &FleetOperationsCase) -> Result<(), OperationsError> 
             || limit.maximum_concurrent_operations == 0
             || !resource_pools.insert(limit.resource_pool.as_str())
         {
-            return Err(OperationsError::new(format!("invalid or duplicate resource limit: {}", limit.resource_pool)));
+            return Err(OperationsError::new(format!(
+                "invalid or duplicate resource limit: {}",
+                limit.resource_pool
+            )));
         }
     }
     for pool in RESOURCE_POOLS {
         if !resource_pools.contains(pool) {
-            return Err(OperationsError::new(format!("missing resource limit for {pool}")));
+            return Err(OperationsError::new(format!(
+                "missing resource limit for {pool}"
+            )));
         }
     }
 
     let mut handover_ids = HashSet::new();
     for handover in &case.handover_attempts {
-        if handover.handover_id.trim().is_empty() || !handover_ids.insert(handover.handover_id.as_str()) {
-            return Err(OperationsError::new(format!("empty or duplicate handover_id: {}", handover.handover_id)));
+        if handover.handover_id.trim().is_empty()
+            || !handover_ids.insert(handover.handover_id.as_str())
+        {
+            return Err(OperationsError::new(format!(
+                "empty or duplicate handover_id: {}",
+                handover.handover_id
+            )));
         }
         if !node_ids.contains(handover.source_node_id.as_str())
             || !node_ids.contains(handover.target_node_id.as_str())
             || handover.source_node_id == handover.target_node_id
         {
-            return Err(OperationsError::new(format!("handover {} has invalid source/target", handover.handover_id)));
+            return Err(OperationsError::new(format!(
+                "handover {} has invalid source/target",
+                handover.handover_id
+            )));
         }
         if handover.completed_sessions > handover.accepted_sessions
             || handover.accepted_sessions > handover.prepared_sessions
             || handover.prepared_sessions > handover.offered_sessions
-            || handover.timed_out_sessions > handover.accepted_sessions.saturating_sub(handover.completed_sessions)
+            || handover.timed_out_sessions
+                > handover
+                    .accepted_sessions
+                    .saturating_sub(handover.completed_sessions)
         {
-            return Err(OperationsError::new(format!("handover {} has non-monotonic session counts", handover.handover_id)));
+            return Err(OperationsError::new(format!(
+                "handover {} has non-monotonic session counts",
+                handover.handover_id
+            )));
         }
         if !handover.p95_interruption_s.is_finite()
             || !handover.maximum_interruption_s.is_finite()
             || handover.p95_interruption_s < 0.0
             || handover.maximum_interruption_s < handover.p95_interruption_s
         {
-            return Err(OperationsError::new(format!("handover {} has invalid interruption measurements", handover.handover_id)));
+            return Err(OperationsError::new(format!(
+                "handover {} has invalid interruption measurements",
+                handover.handover_id
+            )));
         }
     }
     Ok(())
@@ -373,7 +471,16 @@ pub fn validate_case(case: &FleetOperationsCase) -> Result<(), OperationsError> 
 
 pub fn evaluate_case(case: &FleetOperationsCase) -> Result<FleetOperationsReport, OperationsError> {
     validate_case(case)?;
-    let resource_limit_lookup = case.resource_limits.iter().map(|limit| (limit.resource_pool.as_str(), limit.maximum_concurrent_operations)).collect::<HashMap<_, _>>();
+    let resource_limit_lookup = case
+        .resource_limits
+        .iter()
+        .map(|limit| {
+            (
+                limit.resource_pool.as_str(),
+                limit.maximum_concurrent_operations,
+            )
+        })
+        .collect::<HashMap<_, _>>();
 
     let mut report = FleetOperationsReport {
         case_id: case.case_id.clone(),
@@ -392,7 +499,10 @@ pub fn evaluate_case(case: &FleetOperationsCase) -> Result<FleetOperationsReport
         minimum_service_capacity_units: f64::INFINITY,
         capacity_deficit_units_hours: 0.0,
         capacity_surplus_units_hours: 0.0,
-        maximum_resource_concurrency: RESOURCE_POOLS.iter().map(|pool| ((*pool).to_owned(), 0)).collect(),
+        maximum_resource_concurrency: RESOURCE_POOLS
+            .iter()
+            .map(|pool| ((*pool).to_owned(), 0))
+            .collect(),
         resource_limit_violations: Vec::new(),
         handover_offered_sessions: 0,
         handover_prepared_sessions: 0,
@@ -410,7 +520,10 @@ pub fn evaluate_case(case: &FleetOperationsCase) -> Result<FleetOperationsReport
         for node in &case.nodes {
             let mut factor = 1.0;
             for event in &case.events {
-                if event.start_hour <= hour && hour < event.end_hour && event.affected_node_ids.iter().any(|id| id == &node.node_id) {
+                if event.start_hour <= hour
+                    && hour < event.end_hour
+                    && event.affected_node_ids.iter().any(|id| id == &node.node_id)
+                {
                     factor *= event.capacity_factor;
                 }
             }
@@ -419,17 +532,29 @@ pub fn evaluate_case(case: &FleetOperationsCase) -> Result<FleetOperationsReport
         for fallback in &case.fallback_sources {
             let mut factor = 1.0;
             for event in &case.events {
-                if event.start_hour <= hour && hour < event.end_hour && event.affected_fallback_ids.iter().any(|id| id == &fallback.source_id) {
+                if event.start_hour <= hour
+                    && hour < event.end_hour
+                    && event
+                        .affected_fallback_ids
+                        .iter()
+                        .any(|id| id == &fallback.source_id)
+                {
                     factor *= event.capacity_factor;
                 }
             }
             service_capacity += fallback.base_capacity_units * factor;
         }
-        report.minimum_service_capacity_units = report.minimum_service_capacity_units.min(service_capacity);
-        report.capacity_deficit_units_hours += (case.required_service_capacity_units - service_capacity).max(0.0);
-        report.capacity_surplus_units_hours += (service_capacity - case.required_service_capacity_units).max(0.0);
+        report.minimum_service_capacity_units =
+            report.minimum_service_capacity_units.min(service_capacity);
+        report.capacity_deficit_units_hours +=
+            (case.required_service_capacity_units - service_capacity).max(0.0);
+        report.capacity_surplus_units_hours +=
+            (service_capacity - case.required_service_capacity_units).max(0.0);
 
-        let demand_period = case.demand_periods.iter().find(|period| period.start_hour <= hour && hour < period.end_hour)
+        let demand_period = case
+            .demand_periods
+            .iter()
+            .find(|period| period.start_hour <= hour && hour < period.end_hour)
             .ok_or_else(|| OperationsError::new(format!("no demand period for hour {hour}")))?;
         report.demand_weighted_total_hours += demand_period.demand_weight;
         let capacity_fraction = service_capacity / case.required_service_capacity_units;
@@ -442,12 +567,15 @@ pub fn evaluate_case(case: &FleetOperationsCase) -> Result<FleetOperationsReport
         if service_capacity + EPSILON >= case.required_service_capacity_units {
             report.service_adequate_hours += 1.0;
             report.demand_weighted_available_hours += demand_period.demand_weight;
-            if service_capacity < case.required_service_capacity_units + case.degraded_margin_units {
+            if service_capacity < case.required_service_capacity_units + case.degraded_margin_units
+            {
                 report.degraded_service_hours += 1.0;
             }
             if current_outage_hours > 0.0 {
                 report.outage_episode_count += 1;
-                report.maximum_contiguous_outage_hours = report.maximum_contiguous_outage_hours.max(current_outage_hours);
+                report.maximum_contiguous_outage_hours = report
+                    .maximum_contiguous_outage_hours
+                    .max(current_outage_hours);
                 current_outage_hours = 0.0;
             }
         } else {
@@ -456,10 +584,17 @@ pub fn evaluate_case(case: &FleetOperationsCase) -> Result<FleetOperationsReport
         }
 
         for pool in RESOURCE_POOLS {
-            let count = case.events.iter()
-                .filter(|event| event.resource_pool == pool && event.start_hour <= hour && hour < event.end_hour)
+            let count = case
+                .events
+                .iter()
+                .filter(|event| {
+                    event.resource_pool == pool && event.start_hour <= hour && hour < event.end_hour
+                })
                 .count() as u32;
-            let max_entry = report.maximum_resource_concurrency.get_mut(pool).expect("resource pool initialized");
+            let max_entry = report
+                .maximum_resource_concurrency
+                .get_mut(pool)
+                .expect("resource pool initialized");
             *max_entry = (*max_entry).max(count);
             if count > resource_limit_lookup[pool] {
                 let violation = format!("{pool}@{hour}={count}>{}", resource_limit_lookup[pool]);
@@ -471,21 +606,29 @@ pub fn evaluate_case(case: &FleetOperationsCase) -> Result<FleetOperationsReport
     }
     if current_outage_hours > 0.0 {
         report.outage_episode_count += 1;
-        report.maximum_contiguous_outage_hours = report.maximum_contiguous_outage_hours.max(current_outage_hours);
+        report.maximum_contiguous_outage_hours = report
+            .maximum_contiguous_outage_hours
+            .max(current_outage_hours);
     }
-    report.strict_service_availability_fraction = report.service_adequate_hours / f64::from(case.horizon_hours);
+    report.strict_service_availability_fraction =
+        report.service_adequate_hours / f64::from(case.horizon_hours);
     report.demand_weighted_service_availability_fraction =
         report.demand_weighted_available_hours / report.demand_weighted_total_hours;
-    report.demand_weighted_capacity_satisfaction_fraction =
-        report.demand_weighted_capacity_satisfaction_units_hours / report.demand_weighted_total_hours;
+    report.demand_weighted_capacity_satisfaction_fraction = report
+        .demand_weighted_capacity_satisfaction_units_hours
+        / report.demand_weighted_total_hours;
 
     for handover in &case.handover_attempts {
         report.handover_offered_sessions += handover.offered_sessions;
         report.handover_prepared_sessions += handover.prepared_sessions;
         report.handover_accepted_sessions += handover.accepted_sessions;
         report.handover_completed_sessions += handover.completed_sessions;
-        report.handover_p95_interruption_s_max = report.handover_p95_interruption_s_max.max(handover.p95_interruption_s);
-        report.handover_maximum_interruption_s_max = report.handover_maximum_interruption_s_max.max(handover.maximum_interruption_s);
+        report.handover_p95_interruption_s_max = report
+            .handover_p95_interruption_s_max
+            .max(handover.p95_interruption_s);
+        report.handover_maximum_interruption_s_max = report
+            .handover_maximum_interruption_s_max
+            .max(handover.maximum_interruption_s);
         report.state_transfer_failures += handover.state_transfer_failures;
     }
     if report.handover_offered_sessions > 0 {
@@ -494,7 +637,9 @@ pub fn evaluate_case(case: &FleetOperationsCase) -> Result<FleetOperationsReport
     }
 
     if !report.minimum_service_capacity_units.is_finite() {
-        return Err(OperationsError::new("evaluation produced no service capacity"));
+        return Err(OperationsError::new(
+            "evaluation produced no service capacity",
+        ));
     }
     Ok(report)
 }
@@ -504,7 +649,9 @@ pub fn verify_expected_oracle(
     expected: &ExpectedOperationsOracle,
 ) -> Result<(), OperationsError> {
     if expected.oracle_status != "independently_calculated" {
-        return Err(OperationsError::new("expected_oracle must be independently_calculated"));
+        return Err(OperationsError::new(
+            "expected_oracle must be independently_calculated",
+        ));
     }
     if report.total_hours != expected.total_hours {
         return Err(OperationsError::new("total_hours oracle mismatch"));
@@ -512,7 +659,10 @@ pub fn verify_expected_oracle(
     macro_rules! close {
         ($field:ident) => {
             if (report.$field - expected.$field).abs() > 1.0e-8 {
-                return Err(OperationsError::new(format!("{} oracle mismatch", stringify!($field))));
+                return Err(OperationsError::new(format!(
+                    "{} oracle mismatch",
+                    stringify!($field)
+                )));
             }
         };
     }
@@ -550,7 +700,9 @@ pub fn verify_expected_oracle(
 mod tests {
     use super::*;
 
-    const FIXTURE: &str = include_str!("../../../docs/research/aviation/examples/synthetic_haps_fleet_operations_case_v1.json");
+    const FIXTURE: &str = include_str!(
+        "../../../docs/research/aviation/examples/synthetic_haps_fleet_operations_case_v1.json"
+    );
 
     fn case() -> FleetOperationsCase {
         parse_case_json(FIXTURE.as_bytes()).unwrap()
@@ -563,8 +715,14 @@ mod tests {
         verify_expected_oracle(&report, &case.expected_oracle).unwrap();
         assert_eq!(report.service_adequate_hours, 708.0);
         assert!((report.strict_service_availability_fraction - 0.9833333333333333).abs() < 1e-12);
-        assert!((report.demand_weighted_service_availability_fraction - 0.9365079365079365).abs() < 1e-12);
-        assert!((report.demand_weighted_capacity_satisfaction_fraction - 0.9841269841269841).abs() < 1e-12);
+        assert!(
+            (report.demand_weighted_service_availability_fraction - 0.9365079365079365).abs()
+                < 1e-12
+        );
+        assert!(
+            (report.demand_weighted_capacity_satisfaction_fraction - 0.9841269841269841).abs()
+                < 1e-12
+        );
         assert_eq!(report.total_outage_hours, 12.0);
         assert_eq!(report.maximum_contiguous_outage_hours, 12.0);
     }
@@ -572,7 +730,8 @@ mod tests {
     #[test]
     fn weather_derate_alone_is_absorbed_by_diverse_fallback() {
         let mut case = case();
-        case.events.retain(|event| event.event_id != "shared-ground-core");
+        case.events
+            .retain(|event| event.event_id != "shared-ground-core");
         let report = evaluate_case(&case).unwrap();
         assert_eq!(report.total_outage_hours, 0.0);
         assert_eq!(report.strict_service_availability_fraction, 1.0);
@@ -593,7 +752,12 @@ mod tests {
     #[test]
     fn overlapping_capacity_factors_multiply() {
         let mut case = case();
-        let mut extra = (*case.events.iter().find(|event| event.event_id == "weather-all-and-ground").unwrap()).clone();
+        let mut extra = (*case
+            .events
+            .iter()
+            .find(|event| event.event_id == "weather-all-and-ground")
+            .unwrap())
+        .clone();
         extra.event_id = "second-weather-derate-a".to_owned();
         extra.affected_node_ids = vec!["haps-a".to_owned()];
         extra.affected_fallback_ids.clear();
@@ -646,8 +810,9 @@ mod tests {
         assert!(validate_case(&case).is_err());
     }
 
-
-    const DIVERSE_FIXTURE: &str = include_str!("../../../docs/research/aviation/examples/synthetic_haps_fleet_weather_diverse_reserve_case_v1.json");
+    const DIVERSE_FIXTURE: &str = include_str!(
+        "../../../docs/research/aviation/examples/synthetic_haps_fleet_weather_diverse_reserve_case_v1.json"
+    );
 
     #[test]
     fn weather_diverse_reserve_preserves_service_during_shared_haps_and_ground_outage() {
@@ -665,7 +830,9 @@ mod tests {
     #[test]
     fn reserve_sharing_the_weather_event_restores_the_common_cause_outage() {
         let mut case = parse_case_json(DIVERSE_FIXTURE.as_bytes()).unwrap();
-        let event = case.events.iter_mut()
+        let event = case
+            .events
+            .iter_mut()
             .find(|event| event.event_id == "weather-main-domain-ground-outage")
             .unwrap();
         event.affected_node_ids.push("haps-d".to_owned());
