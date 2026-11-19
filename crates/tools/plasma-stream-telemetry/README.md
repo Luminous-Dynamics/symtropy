@@ -24,6 +24,8 @@ Each stream trace is replayed in observed receive order. Events are never sorted
 
 ## Metrics
 
+The replay summary includes deterministic nearest-rank p50/p95/p99/p99.9 and maximum-observed distributions for each stage and source age, plus the deadline-miss rate over clock-qualified decisions. Maximum-observed latency is explicitly not a worst-case execution-time proof.
+
 The report separates:
 - source-to-acquisition latency = acquisition - source;
 - transport latency = receive - acquisition;
@@ -31,11 +33,12 @@ The report separates:
 - processing latency = processing end - processing start;
 - acquisition-to-decision latency;
 - source-event age at decision;
+- source inter-arrival versus expected cadence, scaled by sequence-number delta and checked against an explicit deviation budget;
 - source inter-arrival versus expected sample period, scaled by sequence-number delta, with an explicit cadence-deviation budget;
 - acquisition-relative deadline status;
 - source sample period, clock uncertainty, queue depth, sequence gaps and optional downstream acknowledgement state.
 
-A late historical sample can remain valid evidence while being stale for the live decision. Model identity requires an artifact digest and a digest reference to separately retained verification evidence; a caller-supplied boolean cannot certify itself. The evidence digest is an integrity reference, not a signature or proof that the verifier is trusted. Acknowledged outcomes require a calibrated acknowledgement timestamp and report decision-to-ack latency. Rejected or unknown acknowledgements downgrade an otherwise on-time event to DEGRADED; an unknown acknowledgement is never treated as success.
+A late historical sample can remain valid evidence while being stale for the live decision. Model identity requires an artifact digest and a digest reference to separately retained verification evidence; a caller-supplied boolean cannot certify itself. The evidence digest is an integrity reference, not a signature or proof that the verifier is trusted. Acknowledged outcomes require a calibrated acknowledgement timestamp and report decision-to-ack latency. An acknowledged outcome also requires a digest reference to separately retained downstream evidence; that digest is an integrity reference, not a signature or trust proof. Missing or invalid acknowledgement evidence, rejected acknowledgements, or unknown acknowledgements downgrade an otherwise on-time event to DEGRADED; unknown is never treated as success.
 
 ## Boundaries
 
