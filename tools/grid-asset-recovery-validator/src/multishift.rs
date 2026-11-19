@@ -384,7 +384,7 @@ fn validate_reconciliations(
             || !finite_nonnegative(reconciliation.observed_hour)
             || reconciliation.observed_hour > case.as_of_hour + TOLERANCE
             || reconciliation.evidence_status != EvidenceStatus::Current
-            || reconciliation.to_version != reconciliation.from_version + 1
+            || reconciliation.from_version.checked_add(1) != Some(reconciliation.to_version)
             || !event_ids.insert(reconciliation.event_id.as_str())
         {
             errors.push(format!(
@@ -878,12 +878,15 @@ fn validate_resource_usage(
                 continue;
             }
             let midpoint = start + ((end - start) / 2.0);
-            let used: u32 = uses
+            let used = uses
                 .iter()
                 .filter(|item| item.start_hour <= midpoint && midpoint < item.end_hour)
-                .map(|item| item.units)
-                .sum();
-            let capacity = capacity_at(resource, midpoint);
+                .try_fold(0_u64, |sum, item| sum.checked_add(u64::from(item.units)));
+            let Some(used) = used else {
+                errors.push(format!("resource {resource_id} concurrent unit count overflowed"));
+                continue;
+            };
+            let capacity = u64::from(capacity_at(resource, midpoint));
             if used > capacity {
                 let owners: BTreeSet<_> = uses
                     .iter()
