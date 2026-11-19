@@ -959,9 +959,8 @@ mod tests {
     #[test]
     fn ledger_026_boundary_couplings_reject_mismatched_mission_clock() {
         let (actuator, mut bus, storage) = complete_motoring_case();
-        bus[1].time_alignment_digest = "different-clock".to_owned();
-        // Restore internal bus consistency while retaining the different
-        // alignment from the actuator boundary.
+        // Change the entire bus control volume to a different clock digest,
+        // preserving its internal consistency but breaking both boundary links.
         for term in &mut bus {
             term.time_alignment_digest = "different-clock".to_owned();
         }
