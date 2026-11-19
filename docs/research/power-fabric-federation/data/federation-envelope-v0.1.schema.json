@@ -607,5 +607,273 @@
         }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "purpose": {
+            "const": "capacity_offer"
+          },
+          "sender": {
+            "properties": {
+              "actor": {
+                "properties": {
+                  "actorType": {
+                    "enum": [
+                      "household",
+                      "individual_site"
+                    ]
+                  }
+                },
+                "required": [
+                  "actorType"
+                ]
+              },
+              "required": [
+                "actor"
+              ]
+            },
+            "required": [
+              "sender"
+            ]
+          }
+        },
+        "required": [
+          "purpose",
+          "sender"
+        ]
+      },
+      "then": {
+        "required": [
+          "consent"
+        ],
+        "properties": {
+          "consent": {
+            "properties": {
+              "participationBasis": {
+                "const": "opt_in"
+              },
+              "revocable": {
+                "const": true
+              }
+            },
+            "required": [
+              "participationBasis",
+              "revocable"
+            ]
+          },
+          "payload": {
+            "properties": {
+              "timeWindow": {
+                "required": [
+                  "start",
+                  "end"
+                ]
+              },
+              "claim": {
+                "required": [
+                  "quantity"
+                ],
+                "properties": {
+                  "quantity": {
+                    "exclusiveMinimum": 0
+                  }
+                }
+              }
+            },
+            "required": [
+              "service",
+              "claim",
+              "timeWindow"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "purpose": {
+            "enum": [
+              "capacity_offer",
+              "commitment_update"
+            ]
+          },
+          "sender": {
+            "properties": {
+              "actor": {
+                "properties": {
+                  "actorType": {
+                    "enum": [
+                      "community_association",
+                      "neighbourhood_group"
+                    ]
+                  }
+                },
+                "required": [
+                  "actorType"
+                ]
+              },
+              "required": [
+                "actor"
+              ]
+            },
+            "required": [
+              "sender"
+            ]
+          }
+        },
+        "required": [
+          "purpose",
+          "sender"
+        ]
+      },
+      "then": {
+        "properties": {
+          "sender": {
+            "properties": {
+              "actor": {
+                "required": [
+                  "representationRef"
+                ]
+              }
+            }
+          },
+          "consent": {
+            "properties": {
+              "participationBasis": {
+                "const": "community_mandate"
+              }
+            }
+          }
+        },
+        "required": [
+          "consent"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "claim": {
+                "properties": {
+                  "state": {
+                    "enum": [
+                      "observed_available",
+                      "locally_dispatchable"
+                    ]
+                  }
+                },
+                "required": [
+                  "state"
+                ]
+              }
+            },
+            "required": [
+              "claim"
+            ]
+          }
+        },
+        "required": [
+          "payload"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "required": [
+              "observation"
+            ],
+            "properties": {
+              "claim": {
+                "properties": {
+                  "evidenceClass": {
+                    "const": "observed"
+                  }
+                }
+              },
+              "observation": {
+                "properties": {
+                  "freshness": {
+                    "const": "current"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "authority": {
+            "properties": {
+              "authorityType": {
+                "const": "observer"
+              }
+            },
+            "required": [
+              "authorityType"
+            ]
+          }
+        },
+        "required": [
+          "authority"
+        ]
+      },
+      "then": {
+        "properties": {
+          "authority": {
+            "properties": {
+              "action": {
+                "enum": [
+                  "publish",
+                  "observe",
+                  "none"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "authority": {
+            "properties": {
+              "basis": {
+                "const": "observation_only"
+              }
+            },
+            "required": [
+              "basis"
+            ]
+          }
+        },
+        "required": [
+          "authority"
+        ]
+      },
+      "then": {
+        "properties": {
+          "authority": {
+            "properties": {
+              "action": {
+                "enum": [
+                  "publish",
+                  "observe",
+                  "none"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }
