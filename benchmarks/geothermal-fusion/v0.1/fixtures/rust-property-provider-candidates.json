@@ -9,7 +9,13 @@
     "path": "benchmarks/geothermal-fusion/v0.1/fixtures/iapws-if97-official-known-answer.json",
     "known_answer_points": 19,
     "source": "IAPWS R7-97(2012)",
-    "regions": [1, 2, 3, 4, 5],
+    "regions": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
     "includes_b23_boundary": true
   },
   "candidates": [
@@ -29,21 +35,75 @@
         "temperature": "K",
         "pressure": "kPa absolute",
         "mass_basis": true,
-        "outputs_include": ["specific_volume_m3_kg", "density_kg_m3", "enthalpy_kj_kg", "internal_energy_kj_kg", "entropy_kj_kg_k", "cp_kj_kg_k", "cv_kj_kg_k", "speed_of_sound_m_s"],
-        "states": ["TP", "TX", "PX", "PH", "PS"],
-        "backward_equations": ["T(p,h)", "T(p,s)"],
-        "regions": [1, 2, 3, 4, 5],
-        "saturation": ["p_sat(T)", "T_sat(p)"],
-        "transport_property_releases": ["IAPWS R12-08 viscosity", "IAPWS R15-11 thermal conductivity", "IAPWS R1-76(2014) surface tension"],
+        "outputs_include": [
+          "specific_volume_m3_kg",
+          "density_kg_m3",
+          "enthalpy_kj_kg",
+          "internal_energy_kj_kg",
+          "entropy_kj_kg_k",
+          "cp_kj_kg_k",
+          "cv_kj_kg_k",
+          "speed_of_sound_m_s"
+        ],
+        "states": [
+          "TP",
+          "TX",
+          "PX",
+          "PH",
+          "PS"
+        ],
+        "backward_equations": [
+          "T(p,h)",
+          "T(p,s)"
+        ],
+        "regions": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "saturation": [
+          "p_sat(T)",
+          "T_sat(p)"
+        ],
+        "transport_property_releases": [
+          "IAPWS R12-08 viscosity",
+          "IAPWS R15-11 thermal conductivity",
+          "IAPWS R1-76(2014) surface tension"
+        ],
         "two_phase_policy": "Transport functions are per-phase and refuse a two-phase state rather than silently averaging; saturation tables expose phase-specific values."
       },
       "upstream_test_evidence": {
         "region_verification": [
-          {"region": 1, "table": 5, "points": 3},
-          {"region": 2, "table": 15, "points": 3},
-          {"region": 3, "table": 33, "points": 3},
-          {"region": 4, "tables": [35, 36], "points": 6},
-          {"region": 5, "table": 42, "points": 3}
+          {
+            "region": 1,
+            "table": 5,
+            "points": 3
+          },
+          {
+            "region": 2,
+            "table": 15,
+            "points": 3
+          },
+          {
+            "region": 3,
+            "table": 33,
+            "points": 3
+          },
+          {
+            "region": 4,
+            "tables": [
+              35,
+              36
+            ],
+            "points": 6
+          },
+          {
+            "region": 5,
+            "table": 42,
+            "points": 3
+          }
         ],
         "additional_tests_reported": [
           "h = u + p v identity",
@@ -59,8 +119,14 @@
           "run_id": 43733986531,
           "commit": "74cafc927e27026c5d41ff2411a56f765031f724",
           "run_url": "https://github.com/miguelju/vle/actions/runs/43733986531",
-          "cargo_test_job": {"job_id": 132872414482, "conclusion": "success"},
-          "format_clippy_job": {"job_id": 132872414269, "conclusion": "success"},
+          "cargo_test_job": {
+            "job_id": 132872414482,
+            "conclusion": "success"
+          },
+          "format_clippy_job": {
+            "job_id": 132872414269,
+            "conclusion": "success"
+          },
           "scope": "Upstream project CI at the release commit. It is not a Symtropy adapter test or independent qualification."
         }
       },
@@ -85,7 +151,15 @@
         "properties_reported": 36,
         "includes_transport_properties": true,
         "includes_process_functions": true,
-        "features": ["optional Python binding", "optional WebAssembly binding"]
+        "features": [
+          "optional Python binding",
+          "optional WebAssembly binding"
+        ],
+        "input_units_reported": {
+          "pressure": "MPa absolute",
+          "temperature": "degrees Celsius"
+        },
+        "region_selector": "Rust API exposes an optional region selector for faster calculation."
       },
       "upstream_claims": [
         "5–20x faster than naive powi-loop implementations for Regions 1–3",
@@ -95,8 +169,11 @@
       "integration_risks": [
         "Check the exact API units and region-selector behavior.",
         "Inspect release source, unsafe/FFI surface, optional features, native build requirements and licence files.",
-        "Performance claims require equal property bundles, same hardware, warm-up, pinned compiler and repeated p50/p95 measurements."
-      ]
+        "Performance claims require equal property bundles, same hardware, warm-up, pinned compiler and repeated p50/p95 measurements.",
+        "Unit adapter differs from Symtropy SI: pressure Pa→MPa and temperature K→°C require checked conversions; never reuse vle-steam's kPa/K adapter.",
+        "Upstream manifest includes native/FFI options and target-cpu=native in its own release profile; review downstream portability and benchmark build flags."
+      ],
+      "upstream_ci_evidence": "No equivalent exact release CI job was inspected in this reconnaissance; do not infer CI status from docs.rs build status."
     },
     {
       "candidate_id": "IAPWS95-CROSS_FORMULATION",
