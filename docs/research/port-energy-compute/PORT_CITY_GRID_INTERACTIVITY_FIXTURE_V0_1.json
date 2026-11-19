@@ -112,9 +112,9 @@
       "normative_status": "synthetic_test_values_not_grid_code_or_equipment_limits"
     },
     "aliasing_calculation": {
-      "baseline_embedded_15_minute_energy_mwh": 75,
-      "event_embedded_15_minute_energy_mwh": 75.00666666666667,
-      "event_extra_energy_kwh": 0.006666666666666667,
+      "baseline_embedded_15_minute_energy_mwh": 1.25,
+      "event_embedded_15_minute_energy_mwh": 1.2501111111111112,
+      "event_extra_energy_kwh": 0.11111111111111112,
       "average_difference_kw": 0.4444444444444444,
       "interpretation": "The 0.8 MW peak excursion and 8 MW/s ramp are compressed into a 0.444 kW difference in a 15-minute average; that average cannot qualify fast electrical behavior."
     }
