@@ -263,9 +263,9 @@ fn validate_input(input: &SharedFleetInput) -> Result<(), Vec<String>> {
         errors.push("aircraft energy capacity, initial energy, reserve, delivery energy and recharge rate are inconsistent".into());
     }
 
-    let mut region_ids = BTreeSet::new();
+    let mut region_ids = BTreeSet::<String>::new();
     for (index, region) in input.regions.iter().enumerate() {
-        if region.region_id.trim().is_empty() || !region_ids.insert(region.region_id.as_str()) {
+        if region.region_id.trim().is_empty() || !region_ids.insert(region.region_id.clone()) {
             errors.push(format!("regions[{index}].region_id: nonempty unique identity required"));
         }
         if region.aerial_service_capacity_units == 0
@@ -275,7 +275,7 @@ fn validate_input(input: &SharedFleetInput) -> Result<(), Vec<String>> {
             errors.push(format!("regions[{index}]: capacity values outside v1 limits"));
         }
     }
-    if !region_ids.contains(input.initial_aircraft_region_id.as_str()) {
+    if !region_ids.contains(&input.initial_aircraft_region_id) {
         errors.push("initial_aircraft_region_id: references unknown region".into());
     }
 
@@ -288,8 +288,8 @@ fn validate_input(input: &SharedFleetInput) -> Result<(), Vec<String>> {
     }
     let mut links = BTreeSet::new();
     for (index, link) in input.reposition_links.iter().enumerate() {
-        if !region_ids.contains(link.from_region_id.as_str())
-            || !region_ids.contains(link.to_region_id.as_str())
+        if !region_ids.contains(&link.from_region_id)
+            || !region_ids.contains(&link.to_region_id)
             || link.from_region_id == link.to_region_id
         {
             errors.push(format!("reposition_links[{index}]: invalid from/to region"));
@@ -343,7 +343,7 @@ fn validate_input(input: &SharedFleetInput) -> Result<(), Vec<String>> {
                 }
             }
             for region_id in &region_ids {
-                if !seen.contains(region_id) {
+                if !seen.iter().any(|seen_region| *seen_region == region_id.as_str()) {
                     errors.push(format!("scenarios[{scenario_index}].periods[{period_index}]: missing region {region_id}"));
                 }
             }
