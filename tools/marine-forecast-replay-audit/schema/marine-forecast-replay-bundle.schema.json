@@ -156,7 +156,8 @@
                   "operational_distribution_log",
                   "verified_archive_manifest",
                   "first_seen_capture",
-                  "unknown"
+                  "unknown",
+                  "synthetic_fixture"
                 ]
               },
               "lead_hours": {
