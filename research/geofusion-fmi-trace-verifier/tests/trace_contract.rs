@@ -236,11 +236,24 @@ fn frozen_adversarial_corpus() {
             "sequence_gap" => {
                 trace.attempts[2].sequence = 3;
             }
+            "retry_recorded_after_later_step" => {
+                let mut future = trace.attempts[5].clone();
+                future.attempt_id = "geo-step-3".to_owned();
+                future.sequence = 3;
+                future.retry_of = None;
+                future.local_start_tick = 3;
+                future.local_requested_end_tick = 4;
+                future.local_returned_end_tick = 4;
+                future.master_start_ns = 3_000_000_000;
+                future.master_requested_end_ns = 4_000_000_000;
+                future.master_returned_end_ns = 4_000_000_000;
+                trace.attempts.insert(5, future);
+            }
             other => panic!("unknown mutation in frozen corpus: {other}"),
         }
 
         assert_code(&trace, expected);
     }
 
-    assert_eq!(seen.len(), 12);
+    assert_eq!(seen.len(), 13);
 }
