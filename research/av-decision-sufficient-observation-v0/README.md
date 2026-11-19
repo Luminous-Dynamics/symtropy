@@ -102,6 +102,25 @@ Proposed, not achieved:
 - deterministic replay for identical fixture/policy revisions.
 - at least one preregistered family where EVSI improves paired decision regret or all-in acquisition cost versus EIG/entropy-only without weakening hard gates.
 
+## Executable fixture audit
+
+The isolated Rust package performs a finite known-answer audit; it does not select a request.
+
+Run from the repository root:
+
+```sh
+cargo test --locked --manifest-path research/av-decision-sufficient-observation-v0/Cargo.toml
+
+cargo run --locked --manifest-path research/av-decision-sufficient-observation-v0/Cargo.toml -- \
+  research/av-decision-sufficient-observation-v0/fixtures/agent/agent-inputs-v1.json \
+  research/av-decision-sufficient-observation-v0/fixtures/evaluator-only/evaluator-oracle-v1.json \
+  research/av-decision-sufficient-observation-v0/fixtures/expected/known-answer-scorecard-v1.json
+```
+
+The audit independently recomputes Shannon EIG and finite Bayes decision risk/EVSI for the first paired counterexample, checks all seven public/oracle/expected episode IDs, checks that realized outcomes are consistent with the declared model except for the explicit open-world negative, and verifies deadline, permission, budget and dependency-group metadata.
+
+The CLI takes three explicit paths. It does not compile evaluator truth into the executable or pass oracle values to an agent. CI runs the audit in the evaluator context. Unit tests use `include_str!` for the fixtures and therefore must not be treated as an agent runtime or as evidence of process isolation.
+
 ## Next integration boundary
 
 The next implementation step is a thin request/response adapter from Symthaea's A5 policy to Symtropy's scenario executor. Requests remain advisory. Symtropy checks capability, consent, privacy, deadline and budget, then produces an observation or explicit rejection receipt. No new generic planner, memory engine, renderer, sensor driver, clock service, or authority system belongs here.
