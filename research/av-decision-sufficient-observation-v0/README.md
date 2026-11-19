@@ -5,6 +5,10 @@
 **Parent:** [#6183 AV observation world](https://github.com/Luminous-Dynamics/symtropy/issues/6183)  
 **Consumer:** [Symthaea #12837 AV-STREAM-001](https://github.com/Luminous-Dynamics/symthaea/issues/12837)
 
+## Competitive benchmark comparison
+
+See [COMPETITIVE_LANDSCAPE.md](COMPETITIVE_LANDSCAPE.md) for the November 2026 comparison set (HERMES, StreamScout, OASIS, LiveProBench, SPOT-Bench, OmniInteract, IPIBench, P3IBench, DCASE and LOCATA), and [TOURNAMENT_PROTOCOL.md](TOURNAMENT_PROTOCOL.md) for the preregistered policy arms, hard gates, metrics, statistics and promotion sequence.
+
 ## The benchmark question
 
 Can an audiovisual agent request the next observation that changes its decision, rather than simply requesting the observation with the greatest expected entropy reduction?
