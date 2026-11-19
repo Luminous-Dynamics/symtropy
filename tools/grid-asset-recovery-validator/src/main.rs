@@ -614,6 +614,8 @@ struct EventScheduleReport {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ExactSmallComparison {
+    reference_type: String,
+    maximum_tasks: usize,
     greedy_makespan_hours: f64,
     exact_makespan_hours: f64,
     absolute_gap_hours: f64,
@@ -624,6 +626,8 @@ struct ExactSmallComparison {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ExactSmallServiceComparison {
+    reference_type: String,
+    maximum_tasks: usize,
     greedy_weighted_unserved_energy_mwh: f64,
     exact_weighted_unserved_energy_mwh: f64,
     absolute_improvement_mwh: f64,
@@ -639,6 +643,7 @@ struct ScheduleReport {
     case_maturity: String,
     scheduler: String,
     optimality_status: String,
+    primary_schedule_is_proven_optimal: bool,
     exact_small_comparison: Option<ExactSmallComparison>,
     exact_small_service_comparison: Option<ExactSmallServiceComparison>,
     total_calculated_unserved_energy_mwh: f64,
@@ -746,13 +751,8 @@ fn build_report(
                 "service_weighted_critical_path_list_v0.1".to_string()
             }
         },
-        optimality_status: if exact_small_service_comparison.is_some() {
-            "exhaustively_optimal_for_bounded_weighted_unserved_energy_case".to_string()
-        } else if exact_small_comparison.is_some() {
-            "exhaustively_optimal_for_bounded_makespan_case".to_string()
-        } else {
-            "heuristic_not_proven_optimal".to_string()
-        },
+        optimality_status: "primary_schedule_heuristic_not_proven_optimal".to_string(),
+        primary_schedule_is_proven_optimal: false,
         exact_small_comparison,
         exact_small_service_comparison,
         total_calculated_unserved_energy_mwh,
@@ -826,6 +826,8 @@ fn main() {
                             .map(|task| task.end_hour)
                             .fold(0.0, f64::max);
                         Some(ExactSmallComparison {
+                            reference_type: "exhaustive_small_instance_minimum_makespan".to_string(),
+                            maximum_tasks: 10,
                             greedy_makespan_hours: greedy_makespan,
                             exact_makespan_hours: exact_makespan,
                             absolute_gap_hours: (greedy_makespan - exact_makespan).max(0.0),
@@ -875,6 +877,8 @@ fn main() {
                             .map(|task| task.end_hour)
                             .fold(0.0, f64::max);
                         Some(ExactSmallServiceComparison {
+                            reference_type: "exhaustive_small_instance_minimum_weighted_unserved_energy".to_string(),
+                            maximum_tasks: 8,
                             greedy_weighted_unserved_energy_mwh: greedy_service,
                             exact_weighted_unserved_energy_mwh: exact_service,
                             absolute_improvement_mwh: (greedy_service - exact_service).max(0.0),
@@ -945,6 +949,23 @@ mod tests {
     #[test]
     fn accepts_subsea_hvdc_cable_recovery_fixture() {
         run(CABLE_FIXTURE).expect("cable recovery fixture should pass");
+    }
+
+    #[test]
+    fn primary_schedule_remains_labelled_heuristic_with_exact_reference() {
+        let (case, scheduled) = run(FIXTURE).expect("fixture should validate");
+        let report = build_report(
+            &case,
+            scheduled,
+            None,
+            None,
+            SchedulePolicy::EarliestFeasibleStart,
+        );
+        assert!(!report.primary_schedule_is_proven_optimal);
+        assert_eq!(
+            report.optimality_status,
+            "primary_schedule_heuristic_not_proven_optimal"
+        );
     }
 
     #[test]
