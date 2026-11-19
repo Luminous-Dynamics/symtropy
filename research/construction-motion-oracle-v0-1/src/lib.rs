@@ -13,8 +13,9 @@ pub use ifc_ids_preflight::{
 pub mod site_state_ledger;
 pub mod dispatch_readiness;
 pub use dispatch_readiness::{
-    DispatchEnvelopeBinding, DispatchReadinessFailure, DispatchReadinessReceipt,
-    DispatchReadinessRequest, OccupancyAssessmentReceipt,
+    DispatchEnvelopeBinding, DispatchReadinessFailure, DispatchReadinessPolicy,
+    DispatchReadinessReceipt, DispatchReadinessRequest, OccupancyAssessmentReceipt,
+    QualifiedSiteClockSnapshot,
     DISPATCH_READINESS_RECEIPT_SCHEMA_VERSION, DISPATCH_READINESS_REQUEST_SCHEMA_VERSION,
     check_dispatch_readiness, verify_dispatch_readiness_receipt_current,
 };
