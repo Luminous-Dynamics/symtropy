@@ -217,6 +217,18 @@ impl CapacityReservationRecord {
     }
 }
 
+/// Read-only capacity admission preview bound to the exact current ledger head.
+/// A positive result is advisory only: the event commit must re-evaluate under
+/// the same serializable append transaction, because another event may arrive.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CapacityAdmissionPreview {
+    pub reservation_id: String,
+    pub site_ledger_sequence: u64,
+    pub site_ledger_event_sha256: String,
+    pub is_admissible: bool,
+    pub report: RobustCumulativeCapacityReport,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum SiteEventPayload {
     WorkPackagePublished {
@@ -722,6 +734,68 @@ impl SiteStateLedger {
         self.capacity_resources.len()
     }
 
+    /// Evaluate a proposed weighted reservation without mutating the site
+    /// ledger. The returned preview is bound to the current sequence/head and
+    /// becomes stale after any subsequent ledger event. The commit reducer
+    /// calls this same owner before appending the event.
+    pub fn preview_capacity_reservation(
+        &self,
+        commit: &CapacityReservationCommit,
+    ) -> Result<CapacityAdmissionPreview, SiteLedgerError> {
+        validate_capacity_reservation_commit(self, commit)?;
+        if self
+            .capacity_reservations
+            .contains_key(&commit.reservation.reservation_id)
+        {
+            return Err(SiteLedgerError::DuplicateCapacityReservation(
+                commit.reservation.reservation_id.clone(),
+            ));
+        }
+        let catalog_sha256 = self
+            .capacity_resource_catalog_sha256
+            .as_ref()
+            .ok_or(SiteLedgerError::CapacityResourceCatalogMismatch)?;
+        let site_snapshot_sha256 = self
+            .capacity_site_snapshot_sha256
+            .as_ref()
+            .ok_or(SiteLedgerError::CapacityAvailabilitySnapshotMismatch)?;
+        let site_clock_domain_id = self
+            .capacity_site_clock_domain_id
+            .as_ref()
+            .ok_or(SiteLedgerError::CapacityAvailabilitySnapshotMismatch)?;
+        let mut reservations: Vec<CapacityReservation> = self
+            .active_capacity_reservations()
+            .map(|record| record.commit.reservation.clone())
+            .collect();
+        reservations.push(commit.reservation.clone());
+        let scenario = RobustCumulativeCapacityScenario {
+            base: CumulativeCapacityScenario {
+                scenario_id: format!(
+                    "capacity-preview-{}-{}",
+                    self.last_sequence, commit.reservation.reservation_id
+                ),
+                resource_catalog_sha256: catalog_sha256.clone(),
+                site_snapshot_sha256: site_snapshot_sha256.clone(),
+                site_clock_domain_id: site_clock_domain_id.clone(),
+                resources: self.capacity_resources.values().cloned().collect(),
+                reservations,
+            },
+            availability_windows: self.capacity_windows.clone(),
+        };
+        let report = evaluate_robust_cumulative_resource_capacity(&scenario)
+            .map_err(SiteLedgerError::CapacityAdmissionUnqualified)?;
+        let is_admissible = report.is_robustly_feasible
+            && report.indeterminate_segment_count == 0
+            && report.definitely_over_capacity_segment_count == 0;
+        Ok(CapacityAdmissionPreview {
+            reservation_id: commit.reservation.reservation_id.clone(),
+            site_ledger_sequence: self.last_sequence,
+            site_ledger_event_sha256: self.last_event_sha256.clone().unwrap_or_default(),
+            is_admissible,
+            report,
+        })
+    }
+
     /// Assess all currently active capacity-N commitments against the latest
     /// owner-attested capacity windows. A non-robust report is evidence of a
     /// changed constraint, not permission to erase or auto-release claims.
@@ -1054,45 +1128,10 @@ impl SiteStateLedger {
                     ));
                 }
 
-                let catalog_sha256 = self
-                    .capacity_resource_catalog_sha256
-                    .as_ref()
-                    .ok_or(SiteLedgerError::CapacityResourceCatalogMismatch)?;
-                let site_snapshot_sha256 = self
-                    .capacity_site_snapshot_sha256
-                    .as_ref()
-                    .ok_or(SiteLedgerError::CapacityAvailabilitySnapshotMismatch)?;
-                let site_clock_domain_id = self
-                    .capacity_site_clock_domain_id
-                    .as_ref()
-                    .ok_or(SiteLedgerError::CapacityAvailabilitySnapshotMismatch)?;
-                let mut reservations: Vec<CapacityReservation> = self
-                    .active_capacity_reservations()
-                    .map(|record| record.commit.reservation.clone())
-                    .collect();
-                reservations.push(commit.reservation.clone());
-                let scenario = RobustCumulativeCapacityScenario {
-                    base: CumulativeCapacityScenario {
-                        scenario_id: format!(
-                            "capacity-admission-{}-{}",
-                            self.last_sequence, commit.reservation.reservation_id
-                        ),
-                        resource_catalog_sha256: catalog_sha256.clone(),
-                        site_snapshot_sha256: site_snapshot_sha256.clone(),
-                        site_clock_domain_id: site_clock_domain_id.clone(),
-                        resources: self.capacity_resources.values().cloned().collect(),
-                        reservations,
-                    },
-                    availability_windows: self.capacity_windows.clone(),
-                };
-                let report = evaluate_robust_cumulative_resource_capacity(&scenario)
-                    .map_err(SiteLedgerError::CapacityAdmissionUnqualified)?;
-                if !report.is_robustly_feasible
-                    || report.indeterminate_segment_count != 0
-                    || report.definitely_over_capacity_segment_count != 0
-                {
+                let preview = self.preview_capacity_reservation(commit)?;
+                if !preview.is_admissible {
                     return Err(SiteLedgerError::CapacityAdmissionNotRobust {
-                        impacted_reservation_ids: report.impacted_reservation_ids(),
+                        impacted_reservation_ids: preview.report.impacted_reservation_ids(),
                     });
                 }
                 Ok(PreparedSiteMutation::CommitCapacityReservation {
