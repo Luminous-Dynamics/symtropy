@@ -794,12 +794,20 @@ mod tests {
             let mut cartesian_state = initial;
             let mut maximum_position_error = 0.0_f64;
             let mut maximum_velocity_error = 0.0_f64;
+            let mut maximum_position_multiplier_error = 0.0_f64;
+            let mut maximum_velocity_multiplier_error = 0.0_f64;
             let mut maximum_position_residual = 0.0_f64;
             let mut maximum_endpoint_tangency = 0.0_f64;
 
             for _step in 0..64 {
                 let reference_step = chain.step(cartesian_state, dt, options).unwrap();
-                let (dense_q_next, dense_v_next, _, _, residuals) = dense_coordinate_rattle_step(
+                let (
+                    dense_q_next,
+                    dense_v_next,
+                    dense_position_lambda,
+                    dense_velocity_lambda,
+                    residuals,
+                ) = dense_coordinate_rattle_step(
                     &basis, &inverse, masses, lengths, &dense_q, &dense_v, dt,
                 );
                 let (reference_q, reference_v) = flatten_state(&reference_step.after);
@@ -807,6 +815,16 @@ mod tests {
                     maximum_position_error.max(vector_max_abs(&dense_q_next, &reference_q));
                 maximum_velocity_error =
                     maximum_velocity_error.max(vector_max_abs(&dense_v_next, &reference_v));
+                for edge in 0..2 {
+                    maximum_position_multiplier_error = maximum_position_multiplier_error
+                        .max((dense_position_lambda[edge]
+                            - reference_step.position_multipliers[edge])
+                            .abs());
+                    maximum_velocity_multiplier_error = maximum_velocity_multiplier_error
+                        .max((dense_velocity_lambda[edge]
+                            - reference_step.velocity_multipliers[edge])
+                            .abs());
+                }
                 for residual in residuals {
                     maximum_position_residual = maximum_position_residual.max(residual.abs());
                 }
@@ -826,6 +844,14 @@ mod tests {
             assert!(
                 maximum_velocity_error <= 3.0e-7,
                 "scale={scale}, 64-step velocity error={maximum_velocity_error:e}"
+            );
+            assert!(
+                maximum_position_multiplier_error <= 3.0e-7,
+                "scale={scale}, 64-step position multiplier error={maximum_position_multiplier_error:e}"
+            );
+            assert!(
+                maximum_velocity_multiplier_error <= 3.0e-7,
+                "scale={scale}, 64-step velocity multiplier error={maximum_velocity_multiplier_error:e}"
             );
             assert!(
                 maximum_position_residual <= 3.0e-12,
