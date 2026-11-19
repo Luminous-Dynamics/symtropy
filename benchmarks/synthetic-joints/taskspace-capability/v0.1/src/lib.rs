@@ -120,7 +120,10 @@ fn symmetric_eigenvalues(mut matrix: Matrix3) -> Option<Vector3> {
         }
     }
 
-    let scale = matrix_max_abs(matrix).max(1.0);
+    let scale = matrix_max_abs(matrix);
+    if !scale.is_finite() || scale == 0.0 {
+        return None;
+    }
     for _ in 0..64 {
         let pairs = [(0, 1), (0, 2), (1, 2)];
         let (p, q) = pairs
@@ -361,7 +364,7 @@ fn is_symmetric_positive_definite(matrix: Matrix3) -> bool {
     if !finite_matrix(matrix) {
         return false;
     }
-    let scale = matrix_max_abs(matrix).max(1.0);
+    let scale = matrix_max_abs(matrix).max(f64::MIN_POSITIVE);
     for row in 0..3 {
         for col in (row + 1)..3 {
             if (matrix[row][col] - matrix[col][row]).abs() > RELATIVE_EPSILON * scale {
@@ -500,13 +503,47 @@ mod tests {
         let stiffness = [[100.0, 0.0, 0.0], [0.0, 80.0, 0.0], [0.0, 0.0, 60.0]];
         let result = task_space_stiffness(rotation, stiffness).unwrap();
         assert!(is_symmetric_positive_definite(result));
-        close(trace(multiply(transpose(rotation), result)), 240.0, 1.0e-8, "stiffness trace invariant");
+        close(trace(result), 240.0, 1.0e-8, "stiffness trace invariant");
     }
 
     #[test]
     fn field_011_non_spd_stiffness_is_rejected() {
         let indefinite = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0]];
         assert!(task_space_stiffness(identity(), indefinite).is_none());
+    }
+
+
+    #[test]
+    fn field_013_singular_value_solver_is_scale_consistent() {
+        let base = [[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 3.0]];
+        let scale = 1.0e-9;
+        let scaled = base.map(|row| row.map(|value| value * scale));
+        let base_metrics = task_space_metrics(base).unwrap();
+        let scaled_metrics = task_space_metrics(scaled).unwrap();
+        close(
+            scaled_metrics.singular_values[0] / scale,
+            base_metrics.singular_values[0],
+            1.0e-10,
+            "scaled sigma max",
+        );
+        close(
+            scaled_metrics.singular_values[1] / scale,
+            base_metrics.singular_values[1],
+            1.0e-10,
+            "scaled sigma middle",
+        );
+        close(
+            scaled_metrics.singular_values[2] / scale,
+            base_metrics.singular_values[2],
+            1.0e-10,
+            "scaled sigma min",
+        );
+        close(
+            scaled_metrics.condition_number,
+            base_metrics.condition_number,
+            1.0e-10,
+            "scale-invariant condition",
+        );
     }
 
     #[test]
