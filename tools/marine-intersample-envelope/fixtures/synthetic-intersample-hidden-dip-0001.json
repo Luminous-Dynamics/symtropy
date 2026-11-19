@@ -12,7 +12,8 @@
     "scenario_roster_sha256": "8e7e650c658c1cbfb64ab325f86cbe793f3b8bd06501fa9a78aad07a21dc2cfd",
     "model_registry_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
     "operating_envelope_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-    "mission_snapshot_sha256": "fde4e803bab04c10bc047aa5b32bb93328c0fc087603ce75ee340925e6d1cb3e"
+    "mission_snapshot_sha256": "e6238cb4bdf073ccf7ad73168619c01a025ab23d6a14b7633cf225d475361435",
+    "initial_resource_state_sha256": "b7a1446cdf21ba1c717657effd3aaa3a85fe9278134378e69b37b5864b0cd59e"
   },
   "service_contract": [
     {
