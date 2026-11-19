@@ -346,43 +346,45 @@ fn validate_policy<'a>(
     zone_ids: &HashSet<&str>,
 ) -> Result<(), FleetError> {
     if policy.fleet_platform_ids.is_empty() {
-        return Err(FleetError::InvalidPolicy(format!("{} has no fleet platforms", policy.policy_id)));
+        return Err(FleetError::InvalidPolicy(format!(
+            "{} has no fleet platforms",
+            policy.policy_id
+        )));
     }
-    finite_positive(policy.required_active_capacity_units, "required_active_capacity_units")?;
+    finite_positive(
+        policy.required_active_capacity_units,
+        "required_active_capacity_units",
+    )?;
     let fleet: HashSet<&str> = policy.fleet_platform_ids.iter().map(String::as_str).collect();
     if fleet.len() != policy.fleet_platform_ids.len() {
-        return Err(FleetError::InvalidPolicy(format!("{} has duplicate fleet platform IDs", policy.policy_id)));
+        return Err(FleetError::InvalidPolicy(format!(
+            "{} has duplicate fleet platform IDs",
+            policy.policy_id
+        )));
     }
     for id in &fleet {
         if !platforms.contains_key(id) {
-            return Err(FleetError::InvalidPolicy(format!("{} references unknown platform {id}", policy.policy_id)));
+            return Err(FleetError::InvalidPolicy(format!(
+                "{} references unknown platform {id}",
+                policy.policy_id
+            )));
         }
     }
     let reserves: HashSet<&str> = policy.reserve_platform_ids.iter().map(String::as_str).collect();
     if reserves.len() != policy.reserve_platform_ids.len() || !reserves.is_subset(&fleet) {
-        return Err(FleetError::InvalidPolicy(format!("{} reserve IDs must be unique members of its fleet", policy.policy_id)));
+        return Err(FleetError::InvalidPolicy(format!(
+            "{} reserve IDs must be unique members of its fleet",
+            policy.policy_id
+        )));
     }
     if policy.intervals.is_empty() {
-        return Err(FleetError::InvalidPolicy(format!("{} has no intervals", policy.policy_id)));
+        return Err(FleetError::InvalidPolicy(format!(
+            "{} has no intervals",
+            policy.policy_id
+        )));
     }
 
     let mut elapsed = 0.0;
-    let mut previous_active: HashMap<String, String> = HashMap::new();
-    let mut computed = FleetMetrics {
-        service_availability_fraction: 0.0,
-        time_weighted_demand_satisfaction_fraction: 0.0,
-        available_hours: 0.0,
-        below_threshold_hours: 0.0,
-        maximum_contiguous_service_gap_hours: 0.0,
-        planned_maintenance_platform_hours: 0.0,
-        corrective_repair_platform_hours: 0.0,
-        common_cause_grounded_platform_hours: 0.0,
-        reserve_platform_hours: 0.0,
-        handover_count: 0,
-        alternate_layer_service_zone_hours: 0.0,
-    };
-    let mut current_gap_s: f64 = 0.0;
-
     for (index, interval) in policy.intervals.iter().enumerate() {
         if !interval.start_s.is_finite()
             || (interval.start_s - elapsed).abs() > TIME_TOLERANCE_S
@@ -406,39 +408,46 @@ fn validate_policy<'a>(
                 policy.policy_id
             )));
         }
-        let mut seen_states = HashSet::new();
-        let mut active_by_zone: HashMap<String, String> = HashMap::new();
-        let mut active_capacity_by_zone: HashMap<String, f64> = HashMap::new();
-        let mut maintenance_count = 0_usize;
-        let mut repair_count = 0_usize;
-        let mut grounded_count = 0_usize;
-        let mut reserve_count = 0_usize;
 
+        let mut seen_states = HashSet::new();
+        let mut active_zones = HashSet::new();
+        let mut grounded_count = 0_usize;
         for state in &interval.platform_states {
-            if !fleet.contains(state.platform_id.as_str()) || !seen_states.insert(state.platform_id.as_str()) {
+            if !fleet.contains(state.platform_id.as_str())
+                || !seen_states.insert(state.platform_id.as_str())
+            {
                 return Err(FleetError::InvalidInterval(format!(
                     "{} interval {index} has an unknown or duplicate platform state",
                     policy.policy_id
                 )));
             }
+
             match state.state.as_str() {
                 "active" => {
-                    let zone_id = state.zone_id.as_ref().ok_or_else(|| FleetError::InvalidInterval(
-                        format!("{} interval {index} active platform needs a zone_id", policy.policy_id)
-                    ))?;
+                    let zone_id = state.zone_id.as_ref().ok_or_else(|| {
+                        FleetError::InvalidInterval(format!(
+                            "{} interval {index} active platform needs a zone_id",
+                            policy.policy_id
+                        ))
+                    })?;
                     if !zone_ids.contains(zone_id.as_str()) {
                         return Err(FleetError::InvalidInterval(format!(
                             "{} interval {index} references unknown zone {zone_id}",
                             policy.policy_id
                         )));
                     }
-                    let platform = platforms.get(state.platform_id.as_str()).expect("validated platform");
-                    active_by_zone.insert(zone_id.clone(), state.platform_id.clone());
-                    *active_capacity_by_zone.entry(zone_id.clone()).or_insert(0.0) += platform.service_capacity_units;
+                    if !active_zones.insert(zone_id.as_str()) {
+                        return Err(FleetError::InvalidInterval(format!(
+                            "{} interval {index} assigns more than one platform to zone {zone_id}; this v1 contract expects one active platform per zone",
+                            policy.policy_id
+                        )));
+                    }
                 }
                 "ready_reserve" => {
                     if state.zone_id.is_some() {
-                        return Err(FleetError::InvalidInterval("ready reserve must not have a service zone".to_owned()));
+                        return Err(FleetError::InvalidInterval(
+                            "ready reserve must not have a service zone".to_owned(),
+                        ));
                     }
                     if !reserves.contains(state.platform_id.as_str()) {
                         return Err(FleetError::InvalidInterval(format!(
@@ -446,24 +455,24 @@ fn validate_policy<'a>(
                             policy.policy_id, state.platform_id
                         )));
                     }
-                    reserve_count += 1;
                 }
-                "scheduled_maintenance" => {
-                    if state.zone_id.is_some() { return Err(FleetError::InvalidInterval("maintenance state cannot be assigned to a zone".to_owned())); }
-                    maintenance_count += 1;
+                "scheduled_maintenance" | "corrective_maintenance" | "grounded_weather"
+                | "transit" | "launch_recovery" | "retired" => {
+                    if state.zone_id.is_some() {
+                        return Err(FleetError::InvalidInterval(format!(
+                            "non-active state {} cannot be assigned to a service zone",
+                            state.state
+                        )));
+                    }
+                    if state.state == "grounded_weather" {
+                        grounded_count += 1;
+                    }
                 }
-                "corrective_maintenance" => {
-                    if state.zone_id.is_some() { return Err(FleetError::InvalidInterval("repair state cannot be assigned to a zone".to_owned())); }
-                    repair_count += 1;
+                other => {
+                    return Err(FleetError::InvalidInterval(format!(
+                        "unknown platform state {other}"
+                    )));
                 }
-                "grounded_weather" => {
-                    if state.zone_id.is_some() { return Err(FleetError::InvalidInterval("grounded platform cannot be assigned to a zone".to_owned())); }
-                    grounded_count += 1;
-                }
-                "transit" | "launch_recovery" | "retired" => {
-                    if state.zone_id.is_some() { return Err(FleetError::InvalidInterval("non-active state cannot be assigned to a zone".to_owned())); }
-                }
-                other => return Err(FleetError::InvalidInterval(format!("unknown platform state {other}"))),
             }
         }
         if seen_states.len() != fleet.len() {
@@ -474,9 +483,14 @@ fn validate_policy<'a>(
         }
 
         if interval.event_class == "common_cause_weather" {
-            if interval.common_cause_event_id.as_deref().unwrap_or("").trim().is_empty()
+            if interval
+                .common_cause_event_id
+                .as_deref()
+                .unwrap_or("")
+                .trim()
+                .is_empty()
                 || grounded_count != fleet.len()
-                || !active_by_zone.is_empty()
+                || !active_zones.is_empty()
             {
                 return Err(FleetError::InvalidInterval(format!(
                     "{} interval {index} common-cause weather must ground every platform with a cause ID",
@@ -490,7 +504,7 @@ fn validate_policy<'a>(
             )));
         }
 
-        let mut alternate_by_zone = HashMap::new();
+        let mut alternate_zones = HashSet::new();
         for alternate in &interval.alternate_service_by_zone {
             if !zone_ids.contains(alternate.zone_id.as_str()) {
                 return Err(FleetError::InvalidInterval(format!(
@@ -498,14 +512,15 @@ fn validate_policy<'a>(
                     policy.policy_id, alternate.zone_id
                 )));
             }
-            finite_nonnegative(alternate.capacity_units, "alternate capacity_units")?;
-            if alternate_by_zone.insert(alternate.zone_id.as_str(), alternate).is_some() {
+            if !alternate_zones.insert(alternate.zone_id.as_str()) {
                 return Err(FleetError::InvalidInterval(format!(
                     "{} interval {index} has duplicate alternate service zone",
                     policy.policy_id
                 )));
             }
-            if interval.event_class == "common_cause_weather" && alternate.capacity_units > VALUE_TOLERANCE
+            finite_nonnegative(alternate.capacity_units, "alternate capacity_units")?;
+            if interval.event_class == "common_cause_weather"
+                && alternate.capacity_units > VALUE_TOLERANCE
                 && alternate.common_cause_independence != "independent_for_this_event"
             {
                 return Err(FleetError::InvalidInterval(format!(
@@ -517,47 +532,11 @@ fn validate_policy<'a>(
                 && alternate.capacity_units > VALUE_TOLERANCE
             {
                 return Err(FleetError::InvalidInterval(
-                    "alternate layer with same_common_cause cannot provide positive capacity during this trace".to_owned(),
+                    "alternate layer with same_common_cause cannot provide positive capacity during this trace"
+                        .to_owned(),
                 ));
             }
         }
-
-        let mut weighted_delivery = 0.0;
-        let mut total_weight = 0.0;
-        for zone in &case.service_zones {
-            let haps_capacity = active_capacity_by_zone.get(&zone.zone_id).copied().unwrap_or(0.0);
-            let alternate_capacity = alternate_by_zone.get(zone.zone_id.as_str())
-                .map(|entry| entry.capacity_units)
-                .unwrap_or(0.0);
-            let served = ((haps_capacity + alternate_capacity) / zone.required_capacity_units).clamp(0.0, 1.0);
-            weighted_delivery += zone.demand_weight * served;
-            total_weight += zone.demand_weight;
-            computed.alternate_layer_service_zone_hours += alternate_capacity * interval.duration_s / SECONDS_PER_HOUR;
-        }
-        let delivered_fraction = weighted_delivery / total_weight;
-        let interval_hours = interval.duration_s / SECONDS_PER_HOUR;
-        let available = delivered_fraction + VALUE_TOLERANCE >= case.service_window.service_availability_threshold_fraction;
-        if available {
-            computed.available_hours += interval_hours;
-            current_gap_s = 0.0;
-        } else {
-            current_gap_s += interval.duration_s;
-            computed.maximum_contiguous_service_gap_hours = computed.maximum_contiguous_service_gap_hours.max(current_gap_s / SECONDS_PER_HOUR);
-        }
-        computed.time_weighted_demand_satisfaction_fraction += delivered_fraction * interval.duration_s;
-        computed.planned_maintenance_platform_hours += maintenance_count as f64 * interval_hours;
-        computed.corrective_repair_platform_hours += repair_count as f64 * interval_hours;
-        computed.common_cause_grounded_platform_hours += grounded_count as f64 * interval_hours;
-        computed.reserve_platform_hours += reserve_count as f64 * interval_hours;
-
-        for (zone_id, platform_id) in &active_by_zone {
-            if let Some(previous_platform) = previous_active.get(zone_id) {
-                if previous_platform != platform_id {
-                    computed.handover_count += 1;
-                }
-            }
-        }
-        previous_active = active_by_zone;
         elapsed = end;
     }
 
@@ -567,13 +546,6 @@ fn validate_policy<'a>(
             policy.policy_id, case.service_window.duration_s
         )));
     }
-    let total_hours = case.service_window.duration_s / SECONDS_PER_HOUR;
-    let total_seconds = case.service_window.duration_s;
-    computed.service_availability_fraction = computed.available_hours * SECONDS_PER_HOUR / total_seconds;
-    computed.below_threshold_hours = total_hours - computed.available_hours;
-    computed.time_weighted_demand_satisfaction_fraction /= total_seconds;
-
-    compare_expected(policy, &computed)?;
     Ok(())
 }
 
@@ -694,6 +666,7 @@ pub fn evaluate_case(case: &FleetServiceCase) -> Result<FleetReport, FleetError>
             handover_count: handovers,
             alternate_layer_service_zone_hours: alt_hours,
         };
+        compare_expected(policy, &metrics)?;
         policy_reports.push(PolicyReport { policy_id: policy.policy_id.clone(), metrics });
     }
 
