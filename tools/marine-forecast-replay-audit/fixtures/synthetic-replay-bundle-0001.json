@@ -1,0 +1,107 @@
+{
+  "schema_version": "0.1.0",
+  "bundle_id": "MARINE-REPLAY-SYNTHETIC-0001",
+  "record_status": "synthetic",
+  "claim_ceiling": "replay_admission_only",
+  "sources": [
+    {
+      "source_id": "gfs-cycle-a",
+      "information_class": "deployable_forecast",
+      "provider": "NOAA/NCEP (synthetic fixture reference)",
+      "product": "GFS 0.25 degree forecast grid",
+      "product_version": "synthetic-cycle-profile-1",
+      "evidence_class": "synthetic",
+      "artifact_uri": "urn:synthetic:marine:gfs-cycle-a",
+      "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "retrieved_at": "2026-11-25T12:00:00Z",
+      "rights": {
+        "status": "synthetic_only",
+        "research_use_allowed": false,
+        "redistributable": false,
+        "review_ref": ""
+      },
+      "forecast": {
+        "cycle_id": "2026-11-19T06:00:00Z",
+        "source_issue_time": "2026-11-19T06:00:00Z",
+        "first_available_at": "2026-11-19T06:20:00Z",
+        "availability_evidence": "operational_distribution_log",
+        "lead_hours": 3,
+        "valid_time": "2026-11-19T09:00:00Z",
+        "parameter_set": "pgrb2b"
+      },
+      "grid": {
+        "grid_id": "GFS-0.25-SYNTHETIC",
+        "coordinate_reference": "EPSG:4326",
+        "axis_order": "latitude_longitude",
+        "variable_units": {
+          "wind_u_10m": "m s-1",
+          "wind_v_10m": "m s-1",
+          "mean_sea_level_pressure": "Pa"
+        }
+      }
+    },
+    {
+      "source_id": "era5-analysis",
+      "information_class": "realized_evaluator_context",
+      "provider": "ECMWF/Copernicus (synthetic fixture reference)",
+      "product": "ERA5 single-level reanalysis",
+      "product_version": "synthetic-era5-revision-1",
+      "evidence_class": "synthetic",
+      "artifact_uri": "urn:synthetic:marine:era5-analysis",
+      "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "retrieved_at": "2026-11-25T12:00:00Z",
+      "rights": {
+        "status": "synthetic_only",
+        "research_use_allowed": false,
+        "redistributable": false,
+        "review_ref": ""
+      },
+      "evaluator": {
+        "valid_time": "2026-11-19T09:00:00Z",
+        "revision": "synthetic-r1"
+      }
+    },
+    {
+      "source_id": "ndbc-44013",
+      "information_class": "in_situ_validation",
+      "provider": "NOAA NDBC (synthetic fixture reference)",
+      "product": "Station observation",
+      "product_version": "synthetic-observation-profile-1",
+      "evidence_class": "synthetic",
+      "artifact_uri": "urn:synthetic:marine:ndbc-44013",
+      "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "retrieved_at": "2026-11-25T12:00:00Z",
+      "rights": {
+        "status": "synthetic_only",
+        "research_use_allowed": false,
+        "redistributable": false,
+        "review_ref": ""
+      },
+      "observation": {
+        "station_id": "44013",
+        "sensor_id": "WSPD",
+        "observation_time": "2026-11-19T09:00:00Z",
+        "quality_flags": [
+          "synthetic"
+        ]
+      }
+    }
+  ],
+  "decisions": [
+    {
+      "decision_id": "synthetic-decision-0001",
+      "policy_id": "synthetic-forecast-only-advisory",
+      "decision_cutoff": "2026-11-19T06:30:00Z",
+      "target_valid_time": "2026-11-19T09:00:00Z",
+      "policy_input_source_ids": [
+        "gfs-cycle-a"
+      ],
+      "evaluator_context_source_ids": [
+        "era5-analysis"
+      ],
+      "validation_observation_source_ids": [
+        "ndbc-44013"
+      ]
+    }
+  ]
+}
