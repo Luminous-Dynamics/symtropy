@@ -1,0 +1,171 @@
+{
+  "schemaVersion": "0.1.0",
+  "bridgeId": "synthetic-restoration-bridge-delayed-pickup-001",
+  "scenario": {
+    "scenarioId": "synthetic-transformer-repair-with-delayed-service",
+    "maturity": "synthetic",
+    "description": "Illustrative example: scheduled work completion, observed repair completion and independently modelled service pickup occur at different times.",
+    "jurisdictionProfileId": "synthetic-jurisdiction-v0"
+  },
+  "timeGrid": {
+    "start": "2030-01-01T00:00:00Z",
+    "end": "2030-01-01T18:00:00Z",
+    "timeZone": "UTC",
+    "stepSeconds": 3600,
+    "resamplingPolicy": "interval_mean",
+    "gapPolicy": "preserve_unknown"
+  },
+  "sourceArtifacts": [
+    {
+      "artifactId": "recovery-plan",
+      "artifactKind": "recovery_report",
+      "sourceRef": "synthetic://recovery-plan",
+      "revision": "schedule-fixture-v1",
+      "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "artifactId": "field-work-log",
+      "artifactKind": "observed_work_log",
+      "sourceRef": "synthetic://field-work-log",
+      "revision": "work-log-fixture-v1",
+      "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "artifactId": "independent-electrical-model",
+      "artifactKind": "domain_model",
+      "sourceRef": "synthetic://electrical-model-run",
+      "revision": "model-run-fixture-v1",
+      "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "configurationDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    {
+      "artifactId": "service-cascade",
+      "artifactKind": "service_cascade_model",
+      "sourceRef": "https://github.com/Luminous-Dynamics/symtropy/pull/3896",
+      "revision": "2594587e04c8abbfccb786398bae81dbff391f4d",
+      "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    }
+  ],
+  "restorationStreams": [
+    {
+      "streamId": "planned-repair",
+      "streamKind": "planned_forecast",
+      "sourceArtifactId": "recovery-plan",
+      "items": [
+        {
+          "eventId": "storm-event-01",
+          "taskId": "repair-transformer",
+          "assetId": "transformer-01",
+          "milestone": "repair_completed",
+          "status": "planned",
+          "plannedAt": "2030-01-01T10:00:00Z",
+          "evidenceClass": "simulated"
+        }
+      ]
+    },
+    {
+      "streamId": "observed-repair",
+      "streamKind": "observed_work",
+      "sourceArtifactId": "field-work-log",
+      "items": [
+        {
+          "eventId": "storm-event-01",
+          "taskId": "repair-transformer",
+          "assetId": "transformer-01",
+          "milestone": "repair_completed",
+          "status": "completed",
+          "observedAt": "2030-01-01T14:00:00Z",
+          "progressFraction": 1,
+          "evidenceRefs": [
+            "synthetic-evidence:field-observation-01"
+          ],
+          "evidenceClass": "observed",
+          "freshness": "current"
+        },
+        {
+          "eventId": "storm-event-01",
+          "taskId": "commission-transformer",
+          "assetId": "transformer-01",
+          "milestone": "commissioning_passed",
+          "status": "completed",
+          "observedAt": "2030-01-01T14:30:00Z",
+          "progressFraction": 1,
+          "evidenceRefs": [
+            "synthetic-evidence:commissioning-record-01"
+          ],
+          "evidenceClass": "observed",
+          "freshness": "current"
+        }
+      ]
+    }
+  ],
+  "serviceStreams": [
+    {
+      "streamId": "independent-power-service-model",
+      "streamKind": "modelled_service",
+      "serviceId": "hospital-electricity-service",
+      "serviceType": "electricity",
+      "cascadeNodeId": "hospital_power",
+      "sourceArtifactId": "independent-electrical-model",
+      "measurementBoundary": "hospital-incomer-firm-service",
+      "nativeUnit": "MW",
+      "nativeMetric": "delivered_firm_power",
+      "normalization": {
+        "methodId": "delivered-firm-power-over-declared-demand-v1",
+        "numeratorDefinition": "independent modelled delivered firm power at hospital incomer",
+        "denominatorDefinition": "declared synthetic hospital critical-service demand of 10 MW for each interval",
+        "applicabilityRef": "synthetic-applicability:hospital-incomer-v1",
+        "clipToUnitInterval": true
+      },
+      "series": [
+        {
+          "start": "2030-01-01T00:00:00Z",
+          "end": "2030-01-01T15:00:00Z",
+          "nativeDelivered": 0,
+          "nativeDemand": 10,
+          "functionalAvailability": 0,
+          "status": "valid",
+          "evidenceClass": "simulated",
+          "sourceRef": "synthetic-electrical-model:step-0"
+        },
+        {
+          "start": "2030-01-01T15:00:00Z",
+          "end": "2030-01-01T16:00:00Z",
+          "nativeDelivered": 2,
+          "nativeDemand": 10,
+          "functionalAvailability": 0.2,
+          "status": "valid",
+          "evidenceClass": "simulated",
+          "sourceRef": "synthetic-electrical-model:step-14"
+        },
+        {
+          "start": "2030-01-01T16:00:00Z",
+          "end": "2030-01-01T18:00:00Z",
+          "nativeDelivered": 9,
+          "nativeDemand": 10,
+          "functionalAvailability": 0.9,
+          "status": "valid",
+          "evidenceClass": "simulated",
+          "sourceRef": "synthetic-electrical-model:step-15"
+        }
+      ]
+    }
+  ],
+  "mappingReceipts": [
+    {
+      "receiptId": "mapping-hospital-power-v1",
+      "serviceStreamId": "independent-power-service-model",
+      "targetNodeId": "hospital_power",
+      "mappingRuleId": "functional-availability-to-cascade-own-availability-v1",
+      "sourceRows": 3,
+      "acceptedRows": 3,
+      "rejectedRows": 0,
+      "unsupportedRows": 0,
+      "unknownRows": 0,
+      "targetTicks": 18,
+      "mappedTicks": 18,
+      "mappingStatus": "complete",
+      "targetArtifactDigest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    }
+  ]
+}

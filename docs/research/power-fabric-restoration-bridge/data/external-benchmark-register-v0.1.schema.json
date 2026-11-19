@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:power-fabric:restoration-external-register:0.1.0",
+  "title": "Power Fabric Restoration External Benchmark Register",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "snapshotDate",
+    "records"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "snapshotDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "recordId",
+          "title",
+          "category",
+          "publisher",
+          "status",
+          "benchmarkRole",
+          "importStatus",
+          "licenseStatus",
+          "primarySource",
+          "limitations"
+        ],
+        "properties": {
+          "recordId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "published_standard",
+              "active_standards_project",
+              "restoration_dataset_and_method",
+              "restoration_method_paper",
+              "industry_survey"
+            ]
+          },
+          "publisher": {
+            "type": "string",
+            "minLength": 1
+          },
+          "publicationDate": {
+            "type": "string",
+            "minLength": 4
+          },
+          "approvalDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "predecessor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reportedScope": {
+            "type": "string",
+            "minLength": 1
+          },
+          "benchmarkRole": {
+            "type": "string",
+            "minLength": 1
+          },
+          "importStatus": {
+            "type": "string",
+            "enum": [
+              "documentation_registered_not_imported",
+              "metadata_registered_not_imported",
+              "not_a_dataset",
+              "document_registered_not_structured_dataset"
+            ]
+          },
+          "licenseStatus": {
+            "type": "string",
+            "enum": [
+              "proprietary_standard_access",
+              "public_project_metadata",
+              "dataset_license_and_redistribution_review_required",
+              "documentation_only",
+              "document_access_and_reuse_review_required"
+            ]
+          },
+          "primarySource": {
+            "type": "string",
+            "format": "uri"
+          },
+          "datasetSource": {
+            "type": "string",
+            "format": "uri"
+          },
+          "limitations": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
