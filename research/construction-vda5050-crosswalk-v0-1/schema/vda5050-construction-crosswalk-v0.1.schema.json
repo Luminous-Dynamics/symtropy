@@ -1,0 +1,316 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-vda5050-crosswalk-v0.1.schema.json",
+  "title": "Construction VDA 5050 Crosswalk Profile v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "owner_issue",
+    "parent_interop_issue",
+    "status",
+    "source",
+    "transport_semantics",
+    "mappings",
+    "required_sidecar_fields",
+    "prohibited_promotions",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "profile_id": {
+      "const": "construction-vda5050-crosswalk-v0.1"
+    },
+    "owner_issue": {
+      "const": 3703
+    },
+    "parent_interop_issue": {
+      "const": 3644
+    },
+    "status": {
+      "const": "research_profile_synthetic_projection"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "standard",
+        "version",
+        "release_date",
+        "official_release_page",
+        "upstream_repository",
+        "release_tag",
+        "release_tag_schema_audit",
+        "corrected_upstream_snapshot",
+        "upstream_issue",
+        "authority_note"
+      ],
+      "properties": {
+        "standard": {
+          "const": "VDA 5050"
+        },
+        "version": {
+          "const": "3.0.0"
+        },
+        "release_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "official_release_page": {
+          "type": "string",
+          "format": "uri"
+        },
+        "upstream_repository": {
+          "type": "string",
+          "format": "uri"
+        },
+        "release_tag": {
+          "const": "3.0.0"
+        },
+        "release_tag_schema_audit": {
+          "type": "array",
+          "minItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "git_blob_oid_sha1",
+              "valid_json",
+              "error"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "git_blob_oid_sha1": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "valid_json": {
+                "type": "boolean"
+              },
+              "error": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "corrected_upstream_snapshot": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "commit",
+            "status",
+            "parse_results"
+          ],
+          "properties": {
+            "commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "status": {
+              "type": "string",
+              "minLength": 1
+            },
+            "parse_results": {
+              "type": "array",
+              "minItems": 3,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path",
+                  "git_blob_oid_sha1",
+                  "valid_json"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "git_blob_oid_sha1": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{40}$"
+                  },
+                  "valid_json": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "upstream_issue": {
+          "type": "string",
+          "format": "uri"
+        },
+        "authority_note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "transport_semantics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transport",
+        "qos_zero_topics",
+        "qos_one_topic",
+        "security",
+        "disconnect",
+        "navigation_coordinates"
+      ],
+      "properties": {
+        "transport": {
+          "const": "MQTT"
+        },
+        "qos_zero_topics": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "qos_one_topic": {
+          "type": "string"
+        },
+        "security": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disconnect": {
+          "type": "string",
+          "minLength": 1
+        },
+        "navigation_coordinates": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "frame_kind",
+            "handedness",
+            "z_axis",
+            "position_unit",
+            "orientation_unit",
+            "warning"
+          ],
+          "properties": {
+            "frame_kind": {
+              "type": "string"
+            },
+            "handedness": {
+              "const": "right_handed"
+            },
+            "z_axis": {
+              "const": "up"
+            },
+            "position_unit": {
+              "const": "m"
+            },
+            "orientation_unit": {
+              "const": "rad"
+            },
+            "warning": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "mappings": {
+      "type": "array",
+      "minItems": 20,
+      "uniqueItems": false,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "canonical_field",
+          "vda_surface",
+          "mapping_class",
+          "sidecar_required",
+          "loss_rule",
+          "meaning"
+        ],
+        "properties": {
+          "canonical_field": {
+            "type": "string",
+            "minLength": 1
+          },
+          "vda_surface": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mapping_class": {
+            "enum": [
+              "transport_metadata_only",
+              "bounded_projection",
+              "sidecar_required",
+              "not_representable"
+            ]
+          },
+          "sidecar_required": {
+            "const": true
+          },
+          "loss_rule": {
+            "type": "string",
+            "minLength": 1
+          },
+          "meaning": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "required_sidecar_fields": {
+      "type": "array",
+      "minItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "prohibited_promotions": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source",
+          "target",
+          "allowed"
+        ],
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "allowed": {
+            "const": false
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
