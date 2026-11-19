@@ -514,21 +514,62 @@ fn evaluate_policy_mask(
         }
 
         let probability = u128::from(scenario.probability_bps);
-        for (target, value, label) in [
-            (&mut weighted.total_cost, scenario_metrics.total_cost, "total cost"),
-            (&mut weighted.road_deliveries, scenario_metrics.road_deliveries, "road deliveries"),
-            (&mut weighted.aerial_deliveries, scenario_metrics.aerial_deliveries, "aerial deliveries"),
-            (&mut weighted.unserved_units, scenario_metrics.unserved_units, "unserved units"),
-            (&mut weighted.activations, scenario_metrics.activations, "activations"),
-            (&mut weighted.deactivations, scenario_metrics.deactivations, "deactivations"),
-            (&mut weighted.active_periods, scenario_metrics.active_periods, "active periods"),
-            (&mut weighted.unauthorized_dispatches, scenario_metrics.unauthorized_dispatches, "unauthorized dispatches"),
-        ] {
-            let contribution = value
+        checked_add(
+            &mut weighted.total_cost,
+            scenario_metrics.total_cost
                 .checked_mul(probability)
-                .ok_or_else(|| format!("weighted {label} overflow"))?;
-            checked_add(target, contribution, &format!("expected {label}"))?;
-        }
+                .ok_or_else(|| "weighted total cost overflow".to_string())?,
+            "expected total cost",
+        )?;
+        checked_add(
+            &mut weighted.road_deliveries,
+            scenario_metrics.road_deliveries
+                .checked_mul(probability)
+                .ok_or_else(|| "weighted road deliveries overflow".to_string())?,
+            "expected road deliveries",
+        )?;
+        checked_add(
+            &mut weighted.aerial_deliveries,
+            scenario_metrics.aerial_deliveries
+                .checked_mul(probability)
+                .ok_or_else(|| "weighted aerial deliveries overflow".to_string())?,
+            "expected aerial deliveries",
+        )?;
+        checked_add(
+            &mut weighted.unserved_units,
+            scenario_metrics.unserved_units
+                .checked_mul(probability)
+                .ok_or_else(|| "weighted unserved units overflow".to_string())?,
+            "expected unserved units",
+        )?;
+        checked_add(
+            &mut weighted.activations,
+            scenario_metrics.activations
+                .checked_mul(probability)
+                .ok_or_else(|| "weighted activation count overflow".to_string())?,
+            "expected activation count",
+        )?;
+        checked_add(
+            &mut weighted.deactivations,
+            scenario_metrics.deactivations
+                .checked_mul(probability)
+                .ok_or_else(|| "weighted deactivation count overflow".to_string())?,
+            "expected deactivation count",
+        )?;
+        checked_add(
+            &mut weighted.active_periods,
+            scenario_metrics.active_periods
+                .checked_mul(probability)
+                .ok_or_else(|| "weighted active-period count overflow".to_string())?,
+            "expected active-period count",
+        )?;
+        checked_add(
+            &mut weighted.unauthorized_dispatches,
+            scenario_metrics.unauthorized_dispatches
+                .checked_mul(probability)
+                .ok_or_else(|| "weighted unauthorized dispatch count overflow".to_string())?,
+            "expected unauthorized dispatch count",
+        )?;
     }
 
     Ok(weighted)
