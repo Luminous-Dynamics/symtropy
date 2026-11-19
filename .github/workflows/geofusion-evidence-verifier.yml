@@ -33,6 +33,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned Draft 2020-12 schema CLI (CI-only)
+        run: python -m pip install --disable-pip-version-check "check-jsonschema==0.39.0"
+
+      - name: Validate schema documents against their declared metaschema
+        run: |
+          check-jsonschema --check-metaschema \
+            docs/research/geothermal-fusion/evidence/schemas/raw-source-interval-v0.1.schema.json \
+            docs/research/geothermal-fusion/evidence/schemas/evidence-envelope-v0.1.schema.json \
+            docs/research/geothermal-fusion/evidence/schemas/source-allocation-receipt-v0.1.schema.json
+
+      - name: Validate positive evidence fixtures
+        run: |
+          check-jsonschema \
+            --schemafile docs/research/geothermal-fusion/evidence/schemas/raw-source-interval-v0.1.schema.json \
+            docs/research/geothermal-fusion/evidence/fixtures/synthetic-geothermal-source-interval.v0.1.json
+          check-jsonschema \
+            --schemafile docs/research/geothermal-fusion/evidence/schemas/evidence-envelope-v0.1.schema.json \
+            docs/research/geothermal-fusion/evidence/fixtures/synthetic-source-interval-evidence.v0.1.json
+          check-jsonschema \
+            --schemafile docs/research/geothermal-fusion/evidence/schemas/source-allocation-receipt-v0.1.schema.json \
+            docs/research/geothermal-fusion/evidence/fixtures/synthetic-source-allocation-receipt.v0.1.json
+
+      - name: Reject invalid source identity negative control
+        run: |
+          if check-jsonschema \
+            --schemafile docs/research/geothermal-fusion/evidence/schemas/raw-source-interval-v0.1.schema.json \
+            docs/research/geothermal-fusion/evidence/fixtures/invalid-source-interval-null-asset.v0.1.json; then
+            echo "schema accepted a null source asset identity"
+            exit 1
+          fi
+
       - name: Install pinned Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
