@@ -236,6 +236,47 @@
                 }
               }
             }
+          },
+          "calendarExceptions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "exceptionId",
+                "startHour",
+                "endHour",
+                "exceptionType",
+                "reason"
+              ],
+              "properties": {
+                "exceptionId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "startHour": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "endHour": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "exceptionType": {
+                  "enum": [
+                    "public_holiday",
+                    "site_access_closed",
+                    "planned_maintenance",
+                    "workforce_training",
+                    "other"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
           }
         }
       }
