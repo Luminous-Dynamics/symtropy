@@ -151,6 +151,8 @@ pub struct CandidateAssessment {
     pub operating_condition_digest: String,
     pub mission_set_digest: String,
     pub stress_set_digest: String,
+    pub model_digest: Option<String>,
+    pub prediction_domain_digest: Option<String>,
     pub disposition: CandidateDisposition,
     pub violated_constraints: Vec<String>,
     pub known_constraint_violations: Vec<KnownConstraintViolation>,
@@ -533,6 +535,8 @@ fn assess_candidate(
         operating_condition_digest: candidate.operating_condition_digest.clone(),
         mission_set_digest: candidate.mission_set_digest.clone(),
         stress_set_digest: candidate.stress_set_digest.clone(),
+        model_digest: candidate.model_digest.clone(),
+        prediction_domain_digest: candidate.prediction_domain_digest.clone(),
         disposition,
         violated_constraints,
         known_constraint_violations,
@@ -813,7 +817,7 @@ mod tests {
             0.8,
             70.0,
             0.95,
-            EvidenceClass::ModelDerived,
+            EvidenceClass::IndependentPhysical,
         );
         candidate.model_digest = Some("torque-surrogate-model-v1".to_owned());
         candidate.prediction_domain_digest = Some("torque-speed-domain-v1".to_owned());
@@ -1065,7 +1069,15 @@ mod tests {
     }
 
     #[test]
-    fn pareto_024_calibrated_model_prediction_remains_conditional() {
+    fn pareto_024_calibrated_model_evidence_class_is_conditional_even_alone() {
+        assert_eq!(
+            lane_for_evidence(&[EvidenceClass::CalibratedModelPrediction]),
+            Some(EvidenceLane::Conditional)
+        );
+    }
+
+    #[test]
+    fn pareto_033_calibrated_model_prediction_remains_conditional() {
         let calibrated = calibrated_model_candidate("calibrated-model");
         let report = robust_pareto_report(&[calibrated], &objective_defs(), &constraint_defs()).unwrap();
         assert_eq!(
@@ -1077,7 +1089,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_025_calibrated_model_prediction_cannot_cross_dominate_independent_measurement() {
+    fn pareto_033_calibrated_model_prediction_cannot_cross_dominate_independent_measurement() {
         let calibrated = calibrated_model_candidate("calibrated-model");
         let independent = candidate(
             "independent",
@@ -1098,7 +1110,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_026_calibrated_model_torque_margin_requires_receipt() {
+    fn pareto_033_calibrated_model_torque_margin_requires_receipt() {
         let mut candidate = calibrated_model_candidate("missing-receipt");
         candidate.hard_constraints[1].calibration_receipt = None;
         assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
@@ -1109,7 +1121,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_027_calibration_receipt_cannot_be_used_to_launder_an_independent_claim() {
+    fn pareto_033_calibration_receipt_cannot_be_used_to_launder_an_independent_claim() {
         let mut candidate = candidate(
             "laundered",
             1.0,
@@ -1122,7 +1134,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_028_torque_calibration_receipt_cannot_validate_energy_or_thermal_metrics() {
+    fn pareto_033_torque_calibration_receipt_cannot_validate_energy_or_thermal_metrics() {
         let mut candidate = candidate(
             "wrong-unit-calibration",
             1.0,
@@ -1138,7 +1150,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_029_stale_model_domain_boundary_or_mission_receipt_rejects() {
+    fn pareto_033_stale_model_domain_boundary_or_mission_receipt_rejects() {
         let mut candidate = calibrated_model_candidate("stale-model");
         candidate.model_digest = Some("different-model".to_owned());
         assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
@@ -1154,7 +1166,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_030_insufficient_or_malformed_calibration_receipt_rejects() {
+    fn pareto_033_insufficient_or_malformed_calibration_receipt_rejects() {
         let mut insufficient = calibrated_model_candidate("insufficient-calibration");
         let receipt = insufficient.objectives[0].calibration_receipt.as_mut().unwrap();
         receipt.order_statistic_rank = 4;
@@ -1169,7 +1181,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_031_calibrated_model_violation_receipt_retains_calibration_provenance() {
+    fn pareto_033_calibrated_model_violation_receipt_retains_calibration_provenance() {
         let mut candidate = calibrated_model_candidate("calibrated-violation");
         candidate.hard_constraints[1].minimum_robust_margin = Some(-0.25);
         let report = robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).unwrap();
@@ -1182,7 +1194,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_032_all_candidates_are_retained_as_assessments() {
+    fn pareto_033_all_candidates_are_retained_as_assessments() {
         let good = candidate("good", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
         let mut bad = candidate("bad", 0.5, 50.0, 1.0, EvidenceClass::IndependentPhysical);
         bad.hard_constraints[0].minimum_robust_margin = Some(-0.5);
