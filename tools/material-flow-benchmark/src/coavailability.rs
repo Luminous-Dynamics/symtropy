@@ -376,15 +376,16 @@ fn find_first_available_launch(
 
             if overlaps_launch_pad || overlaps_aircraft || overlaps_recovery_pad {
                 blocked = true;
-                let candidate_after_reservation = if overlaps_recovery_pad {
-                    reservation
+                if overlaps_launch_pad || overlaps_aircraft {
+                    next_candidate = next_candidate.max(reservation.end_ms);
+                }
+                if overlaps_recovery_pad {
+                    let candidate_after_recovery_reservation = reservation
                         .end_ms
                         .checked_sub(launch_to_recovery_offset_ms)
-                        .ok_or_else(|| "recovery reservation offset underflows".to_string())?
-                } else {
-                    reservation.end_ms
-                };
-                next_candidate = next_candidate.max(candidate_after_reservation);
+                        .ok_or_else(|| "recovery reservation offset underflows".to_string())?;
+                    next_candidate = next_candidate.max(candidate_after_recovery_reservation);
+                }
             }
         }
 
