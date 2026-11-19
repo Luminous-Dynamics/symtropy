@@ -40,7 +40,7 @@ pub enum SampleDecision {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MissionDecision {
+pub enum MechanicalEnvelopeDecision {
     Feasible,
     Infeasible,
     Unknown,
@@ -116,12 +116,16 @@ pub struct SampleAssessment {
     pub continuous_margin_nm: Option<f64>,
     pub peak_margin_nm: Option<f64>,
     pub evidence_class: Option<EvidenceClass>,
+    pub evidence_reference: Option<String>,
+    pub evidence_method: Option<String>,
+    pub calibration_reference: Option<String>,
     pub reason: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MissionMetrics {
     pub peak_required_torque_nm: f64,
+    pub peak_required_torque_upper_nm: f64,
     pub peak_speed_rad_s: f64,
     pub rms_required_torque_nm: f64,
     pub positive_mechanical_work_j: f64,
@@ -130,7 +134,12 @@ pub struct MissionMetrics {
     pub absorbed_mechanical_work_j: f64,
     pub minimum_continuous_margin_nm: Option<f64>,
     pub minimum_peak_margin_nm: Option<f64>,
-    pub torque_sample_coverage: f64,
+    /// Fraction of non-coast samples with a known, configuration-matched torque envelope.
+    /// Coast samples are excluded from the denominator.
+    pub torque_envelope_sample_coverage: Option<f64>,
+    pub torque_demand_sample_count: usize,
+    pub evidence_covered_torque_sample_count: usize,
+    pub coast_sample_count: usize,
     pub unknown_sample_count: usize,
     pub infeasible_sample_count: usize,
     pub peak_duration_violation_count: usize,
@@ -141,7 +150,10 @@ pub struct MissionMetrics {
 pub struct MissionEvaluation {
     pub candidate_id: String,
     pub mission_id: String,
-    pub decision: MissionDecision,
+    pub candidate_configuration_digest: String,
+    pub operating_condition_digest: String,
+    /// This decision covers the mechanical torque-speed envelope only.
+    pub decision: MechanicalEnvelopeDecision,
     pub samples: Vec<SampleAssessment>,
     pub metrics: MissionMetrics,
     pub interpretation: String,
@@ -381,6 +393,9 @@ pub fn evaluate_mission(
                 continuous_margin_nm: None,
                 peak_margin_nm: None,
                 evidence_class: None,
+                evidence_reference: None,
+                evidence_method: None,
+                calibration_reference: None,
                 reason: Some("torque uncertainty crosses zero, so operating direction is ambiguous".to_owned()),
             }
         } else if regime == Some(OperatingRegime::Coast) {
@@ -395,6 +410,9 @@ pub fn evaluate_mission(
                 continuous_margin_nm: None,
                 peak_margin_nm: None,
                 evidence_class: None,
+                evidence_reference: None,
+                evidence_method: None,
+                calibration_reference: None,
                 reason: None,
             }
         } else if let Some(envelope) = candidate.regimes.iter().find(|branch| Some(branch.regime) == regime) {
@@ -410,6 +428,9 @@ pub fn evaluate_mission(
                     continuous_margin_nm: None,
                     peak_margin_nm: None,
                     evidence_class: Some(EvidenceClass::Unknown),
+                    evidence_reference: Some(envelope.evidence.source_reference.clone()),
+                    evidence_method: Some(envelope.evidence.method.clone()),
+                    calibration_reference: envelope.evidence.calibration_reference.clone(),
                     reason: Some("envelope evidence provenance is unknown".to_owned()),
                 }
             } else {
@@ -450,6 +471,9 @@ pub fn evaluate_mission(
                         continuous_margin_nm: Some(continuous_margin),
                         peak_margin_nm: Some(peak_margin),
                         evidence_class: Some(envelope.evidence.class),
+                        evidence_reference: Some(envelope.evidence.source_reference.clone()),
+                        evidence_method: Some(envelope.evidence.method.clone()),
+                        calibration_reference: envelope.evidence.calibration_reference.clone(),
                         reason,
                     }
                 }
@@ -464,6 +488,9 @@ pub fn evaluate_mission(
                     continuous_margin_nm: None,
                     peak_margin_nm: None,
                     evidence_class: Some(envelope.evidence.class),
+                    evidence_reference: Some(envelope.evidence.source_reference.clone()),
+                    evidence_method: Some(envelope.evidence.method.clone()),
+                    calibration_reference: envelope.evidence.calibration_reference.clone(),
                     reason: Some("speed is outside the envelope domain or falls in an interpolation gap".to_owned()),
                 },
             }
@@ -480,6 +507,9 @@ pub fn evaluate_mission(
                 continuous_margin_nm: None,
                 peak_margin_nm: None,
                 evidence_class: None,
+                evidence_reference: None,
+                evidence_method: None,
+                calibration_reference: None,
                 reason: Some("no evidence-backed envelope exists for this operating regime".to_owned()),
             }
         };
@@ -519,12 +549,33 @@ pub fn evaluate_mission(
     }
 
     let sample_count = mission.samples.len();
-    let known_count = sample_count - unknown_count;
-    let coverage = known_count as f64 / sample_count as f64;
+    let coast_count = assessments
+        .iter()
+        .filter(|assessment| assessment.decision == SampleDecision::Coast)
+        .count();
+    let torque_demand_count = sample_count - coast_count;
+    let evidence_covered_count = assessments
+        .iter()
+        .filter(|assessment| {
+            assessment.evidence_class.is_some()
+                && assessment.decision != SampleDecision::Unknown
+                && assessment.decision != SampleDecision::Coast
+        })
+        .count();
+    let torque_coverage = if torque_demand_count == 0 {
+        None
+    } else {
+        Some(evidence_covered_count as f64 / torque_demand_count as f64)
+    };
+
     let mut peak_required_torque = 0.0_f64;
+    let mut peak_required_torque_upper = 0.0_f64;
     let mut peak_speed = 0.0_f64;
     for sample in &mission.samples {
         peak_required_torque = peak_required_torque.max(sample.required_torque_nm.abs());
+        peak_required_torque_upper = peak_required_torque_upper.max(
+            sample.required_torque_nm.abs() + sample.required_torque_uncertainty_nm,
+        );
         peak_speed = peak_speed.max(sample.angular_speed_rad_s.abs());
     }
 
@@ -553,39 +604,45 @@ pub fn evaluate_mission(
     if !finite(rms_torque)
         || !finite(positive_work)
         || !finite(absorbed_work)
-        || !finite(coverage)
+        || torque_coverage.is_some_and(|coverage| !finite(coverage))
     {
         return Err("mission metric calculation produced a non-finite value".to_owned());
     }
 
     let decision = if infeasible_count > 0 || peak_duration_violations > 0 {
-        MissionDecision::Infeasible
+        MechanicalEnvelopeDecision::Infeasible
     } else if unknown_count > 0 {
-        MissionDecision::Unknown
+        MechanicalEnvelopeDecision::Unknown
     } else {
-        MissionDecision::Feasible
+        MechanicalEnvelopeDecision::Feasible
     };
 
     Ok(MissionEvaluation {
         candidate_id: candidate.candidate_id.clone(),
         mission_id: mission.mission_id.clone(),
+        candidate_configuration_digest: candidate.configuration_digest.clone(),
+        operating_condition_digest: candidate.operating_condition_digest.clone(),
         decision,
         samples: assessments,
         metrics: MissionMetrics {
             peak_required_torque_nm: peak_required_torque,
+            peak_required_torque_upper_nm: peak_required_torque_upper,
             peak_speed_rad_s: peak_speed,
             rms_required_torque_nm: rms_torque,
             positive_mechanical_work_j: positive_work,
             absorbed_mechanical_work_j: absorbed_work,
             minimum_continuous_margin_nm: minimum_continuous_margin,
             minimum_peak_margin_nm: minimum_peak_margin,
-            torque_sample_coverage: coverage,
+            torque_envelope_sample_coverage: torque_coverage,
+            torque_demand_sample_count: torque_demand_count,
+            evidence_covered_torque_sample_count: evidence_covered_count,
+            coast_sample_count: coast_count,
             unknown_sample_count: unknown_count,
             infeasible_sample_count: infeasible_count,
             peak_duration_violation_count: peak_duration_violations,
             maximum_observed_contiguous_peak_duration_s: maximum_peak_duration,
         },
-        interpretation: "Mechanical torque-speed feasibility only. Thermal, voltage, current, electrical recovery, passivity, geometry, reliability and task-success gates require their own evidence-backed qualification.".to_owned(),
+        interpretation: "This is a mechanical torque-speed envelope decision only, not a whole-robot task-success or safety decision. Thermal, voltage, current, electrical recovery, passivity, geometry, reliability and task acceptance require separate evidence-backed gates.".to_owned(),
     })
 }
 
@@ -678,7 +735,7 @@ mod tests {
             &candidate(),
             &mission(vec![sample(0.0, 5.0, 0.5, 5.0), sample(1.0, 5.0, 0.5, 5.0)]),
         ).unwrap();
-        assert_eq!(result.decision, MissionDecision::Feasible);
+        assert_eq!(result.decision, MechanicalEnvelopeDecision::Feasible);
         assert_eq!(result.samples[0].decision, SampleDecision::Continuous);
         // At 5 rad/s the interpolated nominal value is 9 N m and uncertainty 1 N m.
         assert!((result.samples[0].continuous_torque_lower_nm.unwrap() - 8.0).abs() < 1.0e-12);
@@ -692,7 +749,7 @@ mod tests {
             &mission(vec![sample(0.0, 8.0, 0.5, 5.0), sample(0.1, 8.0, 0.5, 5.0)]),
         ).unwrap();
         assert_eq!(result.samples[0].decision, SampleDecision::PeakLimited);
-        assert_eq!(result.decision, MissionDecision::Feasible);
+        assert_eq!(result.decision, MechanicalEnvelopeDecision::Feasible);
     }
 
     #[test]
@@ -705,7 +762,7 @@ mod tests {
                 sample(0.6, 8.0, 0.5, 5.0),
             ]),
         ).unwrap();
-        assert_eq!(result.decision, MissionDecision::Infeasible);
+        assert_eq!(result.decision, MechanicalEnvelopeDecision::Infeasible);
         assert!(result.metrics.peak_duration_violation_count > 0);
         assert!((result.metrics.maximum_observed_contiguous_peak_duration_s - 0.6).abs() < 1.0e-12);
     }
@@ -717,7 +774,7 @@ mod tests {
             &mission(vec![sample(0.0, 14.0, 0.5, 5.0), sample(0.1, 14.0, 0.5, 5.0)]),
         ).unwrap();
         assert_eq!(result.samples[0].decision, SampleDecision::Infeasible);
-        assert_eq!(result.decision, MissionDecision::Infeasible);
+        assert_eq!(result.decision, MechanicalEnvelopeDecision::Infeasible);
     }
 
     #[test]
@@ -726,7 +783,7 @@ mod tests {
             &candidate(),
             &mission(vec![sample(0.0, 2.0, 0.0, 25.0), sample(0.1, 2.0, 0.0, 25.0)]),
         ).unwrap();
-        assert_eq!(result.decision, MissionDecision::Unknown);
+        assert_eq!(result.decision, MechanicalEnvelopeDecision::Unknown);
         assert_eq!(result.metrics.unknown_sample_count, 2);
         assert_eq!(result.metrics.torque_sample_coverage, 0.0);
     }
@@ -739,7 +796,7 @@ mod tests {
             &candidate,
             &mission(vec![sample(0.0, -2.0, 0.0, 3.0), sample(0.1, -2.0, 0.0, 3.0)]),
         ).unwrap();
-        assert_eq!(result.decision, MissionDecision::Unknown);
+        assert_eq!(result.decision, MechanicalEnvelopeDecision::Unknown);
         assert_eq!(result.samples[0].regime, OperatingRegime::ForwardRegenerating);
     }
 
@@ -761,7 +818,7 @@ mod tests {
             &mission(vec![sample(0.0, 7.5, 0.0, 5.0), sample(0.1, 7.5, 0.0, 5.0)]),
         ).unwrap();
         assert_eq!(result.samples[0].decision, SampleDecision::PeakLimited);
-        assert_eq!(result.decision, MissionDecision::Feasible);
+        assert_eq!(result.decision, MechanicalEnvelopeDecision::Feasible);
         assert_eq!(result.samples[0].continuous_margin_nm, Some(-0.5));
     }
 
@@ -774,7 +831,7 @@ mod tests {
             &candidate,
             &mission(vec![sample(0.0, 2.0, 0.0, 5.0), sample(0.1, 2.0, 0.0, 5.0)]),
         ).unwrap();
-        assert_eq!(result.decision, MissionDecision::Unknown);
+        assert_eq!(result.decision, MechanicalEnvelopeDecision::Unknown);
     }
 
     #[test]
@@ -828,7 +885,7 @@ mod tests {
             &candidate(),
             &mission(vec![sample(0.0, 0.1, 0.2, 3.0), sample(0.1, 0.1, 0.2, 3.0)]),
         ).unwrap();
-        assert_eq!(result.decision, MissionDecision::Unknown);
+        assert_eq!(result.decision, MechanicalEnvelopeDecision::Unknown);
         assert_eq!(result.samples[0].decision, SampleDecision::Unknown);
         assert!(result.samples[0].reason.as_ref().unwrap().contains("direction is ambiguous"));
     }
@@ -857,7 +914,7 @@ mod tests {
             &envelope,
             &mission(vec![sample(0.0, 2.0, 0.0, 0.0), sample(0.1, 2.0, 0.0, 0.0)]),
         ).unwrap();
-        assert_eq!(result.decision, MissionDecision::Unknown);
+        assert_eq!(result.decision, MechanicalEnvelopeDecision::Unknown);
         assert_eq!(result.samples[0].evidence_class, Some(EvidenceClass::Unknown));
     }
 
@@ -869,7 +926,7 @@ mod tests {
             &envelope,
             &mission(vec![sample(0.0, 2.0, 0.0, 0.0), sample(0.1, 2.0, 0.0, 0.0)]),
         ).unwrap();
-        assert_eq!(result.decision, MissionDecision::Feasible);
+        assert_eq!(result.decision, MechanicalEnvelopeDecision::Feasible);
         assert_eq!(result.samples[0].evidence_class, Some(EvidenceClass::VendorPhysicalTest));
     }
 
