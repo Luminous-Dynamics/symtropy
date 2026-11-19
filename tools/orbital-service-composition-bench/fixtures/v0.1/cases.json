@@ -1,0 +1,772 @@
+{
+  "suite_id": "orbital-service-composition",
+  "suite_version": "0.1.0",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic event-contract replay only. Does not validate source receipt bytes, producer authentication, physical launch, capture, fluid transfer, hardware, mission service or flight qualification.",
+  "source_pins": [
+    {
+      "component": "reusable_launch",
+      "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
+      "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324"
+    },
+    {
+      "component": "orbital_capture",
+      "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
+      "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9"
+    },
+    {
+      "component": "orbital_fluid",
+      "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
+      "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee"
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "NOMINAL_SYNTHETIC_COMPOSITION",
+      "expected_status": "accepted_for_synthetic_composition",
+      "profile": {
+        "subject_id": "client-001",
+        "target_orbit_id": "leo-550-km",
+        "interface_id": "svc-port-a",
+        "interface_revision": 3,
+        "fluid_id": "synthetic-storable-fluid-a",
+        "minimum_accepted_mass_g": 380000
+      },
+      "events": [
+        {
+          "event_id": "evt-launch",
+          "sequence": 10,
+          "kind": "payload_delivery_accepted",
+          "subject_id": "client-001",
+          "target_orbit_id": "leo-550-km",
+          "evidence": {
+            "component": "reusable_launch",
+            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
+            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "reference": "synthetic://reusable_launch/launch-001",
+            "decision": "payload_delivery_accepted",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-capture",
+          "sequence": 20,
+          "kind": "capture_handoff_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "evidence": {
+            "component": "orbital_capture",
+            "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
+            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "reference": "synthetic://orbital_capture/capture-001",
+            "decision": "accepted_for_handoff",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-fluid",
+          "sequence": 30,
+          "kind": "fluid_receiver_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "fluid_id": "synthetic-storable-fluid-a",
+          "accepted_mass_g": 390000,
+          "evidence": {
+            "component": "orbital_fluid",
+            "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
+            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "reference": "synthetic://orbital_fluid/fluid-001",
+            "decision": "transfer_accepted",
+            "evidence_class": "synthetic"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "LAUNCH_ATTEMPT_ONLY",
+      "expected_status": "indeterminate",
+      "profile": {
+        "subject_id": "client-001",
+        "target_orbit_id": "leo-550-km",
+        "interface_id": "svc-port-a",
+        "interface_revision": 3,
+        "fluid_id": "synthetic-storable-fluid-a",
+        "minimum_accepted_mass_g": 380000
+      },
+      "events": [
+        {
+          "event_id": "evt-attempt",
+          "sequence": 10,
+          "kind": "launch_attempt_succeeded"
+        }
+      ]
+    },
+    {
+      "case_id": "APPROACH_ONLY",
+      "expected_status": "indeterminate",
+      "profile": {
+        "subject_id": "client-001",
+        "target_orbit_id": "leo-550-km",
+        "interface_id": "svc-port-a",
+        "interface_revision": 3,
+        "fluid_id": "synthetic-storable-fluid-a",
+        "minimum_accepted_mass_g": 380000
+      },
+      "events": [
+        {
+          "event_id": "evt-launch",
+          "sequence": 10,
+          "kind": "payload_delivery_accepted",
+          "subject_id": "client-001",
+          "target_orbit_id": "leo-550-km",
+          "evidence": {
+            "component": "reusable_launch",
+            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
+            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "reference": "synthetic://reusable_launch/launch-001",
+            "decision": "payload_delivery_accepted",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-approach",
+          "sequence": 20,
+          "kind": "approach_observed"
+        }
+      ]
+    },
+    {
+      "case_id": "CAPTURE_WRONG_SUBJECT",
+      "expected_status": "rejected",
+      "profile": {
+        "subject_id": "client-001",
+        "target_orbit_id": "leo-550-km",
+        "interface_id": "svc-port-a",
+        "interface_revision": 3,
+        "fluid_id": "synthetic-storable-fluid-a",
+        "minimum_accepted_mass_g": 380000
+      },
+      "events": [
+        {
+          "event_id": "evt-launch",
+          "sequence": 10,
+          "kind": "payload_delivery_accepted",
+          "subject_id": "client-001",
+          "target_orbit_id": "leo-550-km",
+          "evidence": {
+            "component": "reusable_launch",
+            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
+            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "reference": "synthetic://reusable_launch/launch-001",
+            "decision": "payload_delivery_accepted",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-capture",
+          "sequence": 20,
+          "kind": "capture_handoff_accepted",
+          "subject_id": "client-foreign",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "evidence": {
+            "component": "orbital_capture",
+            "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
+            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "reference": "synthetic://orbital_capture/capture-001",
+            "decision": "accepted_for_handoff",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-fluid",
+          "sequence": 30,
+          "kind": "fluid_receiver_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "fluid_id": "synthetic-storable-fluid-a",
+          "accepted_mass_g": 390000,
+          "evidence": {
+            "component": "orbital_fluid",
+            "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
+            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "reference": "synthetic://orbital_fluid/fluid-001",
+            "decision": "transfer_accepted",
+            "evidence_class": "synthetic"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "INTERFACE_REVISION_MISMATCH",
+      "expected_status": "rejected",
+      "profile": {
+        "subject_id": "client-001",
+        "target_orbit_id": "leo-550-km",
+        "interface_id": "svc-port-a",
+        "interface_revision": 3,
+        "fluid_id": "synthetic-storable-fluid-a",
+        "minimum_accepted_mass_g": 380000
+      },
+      "events": [
+        {
+          "event_id": "evt-launch",
+          "sequence": 10,
+          "kind": "payload_delivery_accepted",
+          "subject_id": "client-001",
+          "target_orbit_id": "leo-550-km",
+          "evidence": {
+            "component": "reusable_launch",
+            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
+            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "reference": "synthetic://reusable_launch/launch-001",
+            "decision": "payload_delivery_accepted",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-capture",
+          "sequence": 20,
+          "kind": "capture_handoff_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "evidence": {
+            "component": "orbital_capture",
+            "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
+            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "reference": "synthetic://orbital_capture/capture-001",
+            "decision": "accepted_for_handoff",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-fluid",
+          "sequence": 30,
+          "kind": "fluid_receiver_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 4,
+          "fluid_id": "synthetic-storable-fluid-a",
+          "accepted_mass_g": 390000,
+          "evidence": {
+            "component": "orbital_fluid",
+            "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
+            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "reference": "synthetic://orbital_fluid/fluid-001",
+            "decision": "transfer_accepted",
+            "evidence_class": "synthetic"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "CRYOGENIC_STORAGE_ONLY",
+      "expected_status": "indeterminate",
+      "profile": {
+        "subject_id": "client-001",
+        "target_orbit_id": "leo-550-km",
+        "interface_id": "svc-port-a",
+        "interface_revision": 3,
+        "fluid_id": "synthetic-storable-fluid-a",
+        "minimum_accepted_mass_g": 380000
+      },
+      "events": [
+        {
+          "event_id": "evt-launch",
+          "sequence": 10,
+          "kind": "payload_delivery_accepted",
+          "subject_id": "client-001",
+          "target_orbit_id": "leo-550-km",
+          "evidence": {
+            "component": "reusable_launch",
+            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
+            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "reference": "synthetic://reusable_launch/launch-001",
+            "decision": "payload_delivery_accepted",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-capture",
+          "sequence": 20,
+          "kind": "capture_handoff_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "evidence": {
+            "component": "orbital_capture",
+            "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
+            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "reference": "synthetic://orbital_capture/capture-001",
+            "decision": "accepted_for_handoff",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-fluid",
+          "sequence": 30,
+          "kind": "fluid_receiver_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "fluid_id": "synthetic-storable-fluid-a",
+          "accepted_mass_g": 0,
+          "evidence": {
+            "component": "orbital_fluid",
+            "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
+            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "reference": "synthetic://orbital_fluid/fluid-001",
+            "decision": "storage_only_not_transfer_evidence",
+            "evidence_class": "synthetic"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "RECEIVER_MASS_SHORTFALL",
+      "expected_status": "rejected",
+      "profile": {
+        "subject_id": "client-001",
+        "target_orbit_id": "leo-550-km",
+        "interface_id": "svc-port-a",
+        "interface_revision": 3,
+        "fluid_id": "synthetic-storable-fluid-a",
+        "minimum_accepted_mass_g": 380000
+      },
+      "events": [
+        {
+          "event_id": "evt-launch",
+          "sequence": 10,
+          "kind": "payload_delivery_accepted",
+          "subject_id": "client-001",
+          "target_orbit_id": "leo-550-km",
+          "evidence": {
+            "component": "reusable_launch",
+            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
+            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "reference": "synthetic://reusable_launch/launch-001",
+            "decision": "payload_delivery_accepted",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-capture",
+          "sequence": 20,
+          "kind": "capture_handoff_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "evidence": {
+            "component": "orbital_capture",
+            "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
+            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "reference": "synthetic://orbital_capture/capture-001",
+            "decision": "accepted_for_handoff",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-fluid",
+          "sequence": 30,
+          "kind": "fluid_receiver_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "fluid_id": "synthetic-storable-fluid-a",
+          "accepted_mass_g": 100000,
+          "evidence": {
+            "component": "orbital_fluid",
+            "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
+            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "reference": "synthetic://orbital_fluid/fluid-001",
+            "decision": "transfer_accepted",
+            "evidence_class": "synthetic"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "STALE_SOURCE_COMMIT",
+      "expected_status": "rejected",
+      "profile": {
+        "subject_id": "client-001",
+        "target_orbit_id": "leo-550-km",
+        "interface_id": "svc-port-a",
+        "interface_revision": 3,
+        "fluid_id": "synthetic-storable-fluid-a",
+        "minimum_accepted_mass_g": 380000
+      },
+      "events": [
+        {
+          "event_id": "evt-launch",
+          "sequence": 10,
+          "kind": "payload_delivery_accepted",
+          "subject_id": "client-001",
+          "target_orbit_id": "leo-550-km",
+          "evidence": {
+            "component": "reusable_launch",
+            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
+            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "reference": "synthetic://reusable_launch/launch-001",
+            "decision": "payload_delivery_accepted",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-capture",
+          "sequence": 20,
+          "kind": "capture_handoff_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "evidence": {
+            "component": "orbital_capture",
+            "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
+            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "reference": "synthetic://orbital_capture/capture-001",
+            "decision": "accepted_for_handoff",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-fluid",
+          "sequence": 30,
+          "kind": "fluid_receiver_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "fluid_id": "synthetic-storable-fluid-a",
+          "accepted_mass_g": 390000,
+          "evidence": {
+            "component": "orbital_fluid",
+            "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
+            "source_commit": "0000000000000000000000000000000000000000",
+            "reference": "synthetic://orbital_fluid/fluid-old",
+            "decision": "transfer_accepted",
+            "evidence_class": "synthetic"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "DUPLICATE_EVENT_ID",
+      "expected_status": "rejected",
+      "profile": {
+        "subject_id": "client-001",
+        "target_orbit_id": "leo-550-km",
+        "interface_id": "svc-port-a",
+        "interface_revision": 3,
+        "fluid_id": "synthetic-storable-fluid-a",
+        "minimum_accepted_mass_g": 380000
+      },
+      "events": [
+        {
+          "event_id": "evt-launch",
+          "sequence": 10,
+          "kind": "payload_delivery_accepted",
+          "subject_id": "client-001",
+          "target_orbit_id": "leo-550-km",
+          "evidence": {
+            "component": "reusable_launch",
+            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
+            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "reference": "synthetic://reusable_launch/launch-001",
+            "decision": "payload_delivery_accepted",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-capture",
+          "sequence": 20,
+          "kind": "capture_handoff_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "evidence": {
+            "component": "orbital_capture",
+            "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
+            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "reference": "synthetic://orbital_capture/capture-001",
+            "decision": "accepted_for_handoff",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-capture",
+          "sequence": 30,
+          "kind": "fluid_receiver_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "fluid_id": "synthetic-storable-fluid-a",
+          "accepted_mass_g": 390000,
+          "evidence": {
+            "component": "orbital_fluid",
+            "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
+            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "reference": "synthetic://orbital_fluid/fluid-001",
+            "decision": "transfer_accepted",
+            "evidence_class": "synthetic"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "CUSTOMER_ACK_ONLY",
+      "expected_status": "indeterminate",
+      "profile": {
+        "subject_id": "client-001",
+        "target_orbit_id": "leo-550-km",
+        "interface_id": "svc-port-a",
+        "interface_revision": 3,
+        "fluid_id": "synthetic-storable-fluid-a",
+        "minimum_accepted_mass_g": 380000
+      },
+      "events": [
+        {
+          "event_id": "evt-customer",
+          "sequence": 10,
+          "kind": "customer_acknowledged"
+        }
+      ]
+    },
+    {
+      "case_id": "OUT_OF_ORDER",
+      "expected_status": "rejected",
+      "profile": {
+        "subject_id": "client-001",
+        "target_orbit_id": "leo-550-km",
+        "interface_id": "svc-port-a",
+        "interface_revision": 3,
+        "fluid_id": "synthetic-storable-fluid-a",
+        "minimum_accepted_mass_g": 380000
+      },
+      "events": [
+        {
+          "event_id": "evt-launch",
+          "sequence": 10,
+          "kind": "payload_delivery_accepted",
+          "subject_id": "client-001",
+          "target_orbit_id": "leo-550-km",
+          "evidence": {
+            "component": "reusable_launch",
+            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
+            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "reference": "synthetic://reusable_launch/launch-001",
+            "decision": "payload_delivery_accepted",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-fluid",
+          "sequence": 20,
+          "kind": "fluid_receiver_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "fluid_id": "synthetic-storable-fluid-a",
+          "accepted_mass_g": 390000,
+          "evidence": {
+            "component": "orbital_fluid",
+            "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
+            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "reference": "synthetic://orbital_fluid/fluid-001",
+            "decision": "transfer_accepted",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-capture",
+          "sequence": 30,
+          "kind": "capture_handoff_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "evidence": {
+            "component": "orbital_capture",
+            "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
+            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "reference": "synthetic://orbital_capture/capture-001",
+            "decision": "accepted_for_handoff",
+            "evidence_class": "synthetic"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "MISSING_FLUID_EVIDENCE",
+      "expected_status": "indeterminate",
+      "profile": {
+        "subject_id": "client-001",
+        "target_orbit_id": "leo-550-km",
+        "interface_id": "svc-port-a",
+        "interface_revision": 3,
+        "fluid_id": "synthetic-storable-fluid-a",
+        "minimum_accepted_mass_g": 380000
+      },
+      "events": [
+        {
+          "event_id": "evt-launch",
+          "sequence": 10,
+          "kind": "payload_delivery_accepted",
+          "subject_id": "client-001",
+          "target_orbit_id": "leo-550-km",
+          "evidence": {
+            "component": "reusable_launch",
+            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
+            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "reference": "synthetic://reusable_launch/launch-001",
+            "decision": "payload_delivery_accepted",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-capture",
+          "sequence": 20,
+          "kind": "capture_handoff_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "evidence": {
+            "component": "orbital_capture",
+            "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
+            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "reference": "synthetic://orbital_capture/capture-001",
+            "decision": "accepted_for_handoff",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-fluid",
+          "sequence": 30,
+          "kind": "fluid_receiver_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "fluid_id": "synthetic-storable-fluid-a",
+          "accepted_mass_g": 390000
+        }
+      ]
+    },
+    {
+      "case_id": "WRONG_TARGET_ORBIT",
+      "expected_status": "rejected",
+      "profile": {
+        "subject_id": "client-001",
+        "target_orbit_id": "leo-550-km",
+        "interface_id": "svc-port-a",
+        "interface_revision": 3,
+        "fluid_id": "synthetic-storable-fluid-a",
+        "minimum_accepted_mass_g": 380000
+      },
+      "events": [
+        {
+          "event_id": "evt-launch",
+          "sequence": 10,
+          "kind": "payload_delivery_accepted",
+          "subject_id": "client-001",
+          "target_orbit_id": "geo-transfer-orbit",
+          "evidence": {
+            "component": "reusable_launch",
+            "receipt_schema": "luminous.reusable-launch-production.receipt.v0.1",
+            "source_commit": "f65a00560d763dbf867a8157bc9b5bde2778d324",
+            "reference": "synthetic://reusable_launch/launch-001",
+            "decision": "payload_delivery_accepted",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-capture",
+          "sequence": 20,
+          "kind": "capture_handoff_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "evidence": {
+            "component": "orbital_capture",
+            "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
+            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "reference": "synthetic://orbital_capture/capture-001",
+            "decision": "accepted_for_handoff",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-fluid",
+          "sequence": 30,
+          "kind": "fluid_receiver_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "fluid_id": "synthetic-storable-fluid-a",
+          "accepted_mass_g": 390000,
+          "evidence": {
+            "component": "orbital_fluid",
+            "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
+            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "reference": "synthetic://orbital_fluid/fluid-001",
+            "decision": "transfer_accepted",
+            "evidence_class": "synthetic"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "MISSING_PER_PAYLOAD_LAUNCH_LINK",
+      "expected_status": "indeterminate",
+      "profile": {
+        "subject_id": "client-001",
+        "target_orbit_id": "leo-550-km",
+        "interface_id": "svc-port-a",
+        "interface_revision": 3,
+        "fluid_id": "synthetic-storable-fluid-a",
+        "minimum_accepted_mass_g": 380000
+      },
+      "events": [
+        {
+          "event_id": "evt-launch-summary",
+          "sequence": 10,
+          "kind": "launch_attempt_succeeded"
+        },
+        {
+          "event_id": "evt-capture",
+          "sequence": 20,
+          "kind": "capture_handoff_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "evidence": {
+            "component": "orbital_capture",
+            "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
+            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "reference": "synthetic://orbital_capture/capture-001",
+            "decision": "accepted_for_handoff",
+            "evidence_class": "synthetic"
+          }
+        },
+        {
+          "event_id": "evt-fluid",
+          "sequence": 30,
+          "kind": "fluid_receiver_accepted",
+          "subject_id": "client-001",
+          "interface_id": "svc-port-a",
+          "interface_revision": 3,
+          "fluid_id": "synthetic-storable-fluid-a",
+          "accepted_mass_g": 390000,
+          "evidence": {
+            "component": "orbital_fluid",
+            "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
+            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "reference": "synthetic://orbital_fluid/fluid-001",
+            "decision": "transfer_accepted",
+            "evidence_class": "synthetic"
+          }
+        }
+      ]
+    }
+  ]
+}
