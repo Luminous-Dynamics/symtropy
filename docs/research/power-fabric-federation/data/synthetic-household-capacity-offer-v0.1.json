@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "0.1.0",
+  "messageId": "4d4f0f9a-8246-4a3b-96e3-3a8d1abf3f67",
+  "purpose": "capacity_offer",
+  "issuedAt": "2030-01-01T08:00:00Z",
+  "expiresAt": "2030-01-01T16:00:00Z",
+  "sender": {
+    "actorId": "household-site-001",
+    "actorType": "household",
+    "scopeLevel": "household_site",
+    "scopeId": "site-001",
+    "jurisdictionProfileId": "synthetic-jurisdiction-v0"
+  },
+  "recipient": {
+    "scopeLevel": "organization_community",
+    "scopeId": "cooperative-001"
+  },
+  "subject": {
+    "subjectType": "resource_pool",
+    "subjectId": "site-battery-001"
+  },
+  "payload": {
+    "service": {
+      "serviceType": "electricity",
+      "serviceMetric": "active_power",
+      "unit": "kW",
+      "criticalityClass": "important"
+    },
+    "claim": {
+      "state": "offered",
+      "evidenceClass": "declared",
+      "quantity": 5,
+      "constraints": [
+        "owner-approved-offer-only"
+      ],
+      "failureDomainIds": [
+        "site-001"
+      ]
+    },
+    "timeWindow": {
+      "start": "2030-01-01T10:00:00Z",
+      "end": "2030-01-01T14:00:00Z",
+      "timeZone": "Africa/Johannesburg"
+    }
+  },
+  "authority": {
+    "authorityRef": "synthetic-authority:household-owner-001",
+    "authorityType": "asset_owner",
+    "action": "offer",
+    "scopeLevel": "household_site",
+    "scopeId": "site-001",
+    "basis": "ownership",
+    "jurisdictionProfileId": "synthetic-jurisdiction-v0"
+  },
+  "consent": {
+    "participationBasis": "opt_in",
+    "purpose": "Offer up to 5 kW from the household battery to the named cooperative during the stated time window.",
+    "revocable": true,
+    "consentRecordRef": "synthetic-consent:household-capacity-offer-001",
+    "expiresAt": "2030-01-01T14:00:00Z"
+  },
+  "evidence": [
+    {
+      "evidenceId": "battery-nameplate-declared",
+      "evidenceClass": "declared",
+      "sourceRef": "synthetic://site-battery-001/nameplate",
+      "recordedAt": "2030-01-01T07:55:00Z",
+      "status": "current"
+    }
+  ],
+  "integrity": {
+    "canonicalization": "RFC8785",
+    "payloadDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "signatureAlgorithm": "Ed25519",
+    "keyId": "synthetic-key:household-site-001:v1",
+    "signature": "AA=="
+  }
+}
