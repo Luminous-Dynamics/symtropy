@@ -354,3 +354,21 @@ The fixture contains two demand/weather paths and 11 derived policy nodes, so th
 This is not a calibrated demand forecast or real-options valuation for South Africa. It does not yet model shared aircraft pools across regions, asset relocation, fixed depot hubs, detachable pods, AMR/locker alternatives, depot charging queues, battery degradation, crew constraints or route-level feasibility. It assumes independent per-region aerial capacity and deterministic per-period service capacities/costs. Those are subsequent research increments; do not interpret the synthetic result as operational cost savings or an optimal real fleet configuration.
 
 The broader activation/sharing/repositioning/withdrawal benchmark is tracked by [LOGISTICS-MODE-OPTIONS-001 #6153](https://github.com/Luminous-Dynamics/symtropy/issues/6153). Related SOTA papers include the 2026 stochastic entry/exit model for truck-only versus drone-assisted delivery (https://doi.org/10.1016/j.trc.2026.105807) and the 2026 joint multi-truck/multi-drone fleet-sizing and routing study (https://doi.org/10.3390/drones10090658). Their results and instances must be reproduced under matched assumptions before claiming improvement.
+
+
+## Shared aircraft repositioning (synthetic exact oracle)
+
+The `mfb-evaluate-shared-fleet` binary extends the independent per-region mode-options oracle with **one aircraft shared across multiple regions**. It enumerates a nonanticipative finite-horizon policy over region targets or idle/recharge actions and compares the exact policy with truck-only and fixed-initial-region baselines.
+
+Run:
+
+```bash
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-evaluate-shared-fleet -- \
+  tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-aircraft.json
+```
+
+The v0.1 fixture has two regions, three periods, two scenarios, five observed-history decision nodes and 243 policies. A transfer consumes a complete decision period and is limited to exactly one period in v0.1; longer transfers are rejected until an explicit in-transit state with time-varying route evidence is implemented. Each weather and permission observation, and each reposition link, carries an evidence reference. Dispatch is never authorized and the binary emits no commands.
+
+Detailed formulation, independent fixture replay, limits, target benchmarks and current literature comparators: [Shared aircraft repositioning v0.1](../../docs/research/MFB_SHARED_AIRCRAFT_REPOSITIONING_V0_1.md).
+
+This is a synthetic oracle, not a fleet-scale optimizer or flight model. The full programme remains [LOGISTICS-MODE-OPTIONS-001 #6153](https://github.com/Luminous-Dynamics/symtropy/issues/6153).
