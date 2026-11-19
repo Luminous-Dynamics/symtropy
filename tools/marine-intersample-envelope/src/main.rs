@@ -452,6 +452,53 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                 Some(_) => errors.push(format!("scenario '{scenario_id}' scenario_sha256 does not bind the complete sample/event payload")),
                 None => errors.push(format!("scenario '{scenario_id}' cannot be canonically serialized")),
             }
+            let event_items = events.cloned().unwrap_or_default();
+            let has_event = |event_class: &str, component_id: &str| {
+                event_items.iter().any(|event|
+                    string_at(event, "event_class") == Some(event_class)
+                    && string_at(event, "component_id") == Some(component_id)
+                )
+            };
+            match scenario_class {
+                "nominal" => {
+                    if !event_items.is_empty() {
+                        errors.push(format!("nominal scenario '{scenario_id}' must not include disturbance events"));
+                    }
+                }
+                "adverse_forecast_error" => {
+                    if !has_event("weather_disturbance", "environment") {
+                        errors.push(format!("adverse scenario '{scenario_id}' requires an explicit weather disturbance event"));
+                    }
+                }
+                "main_generation_outage" => {
+                    if !has_event("outage", "main_generator") {
+                        errors.push(format!("generation-outage scenario '{scenario_id}' requires a main_generator outage event"));
+                    }
+                }
+                "watermaker_outage" => {
+                    if !has_event("outage", "watermaker") {
+                        errors.push(format!("watermaker-outage scenario '{scenario_id}' requires a watermaker outage event"));
+                    }
+                }
+                "common_cause_generation_watermaker_outage" => {
+                    let generator = event_items.iter().find(|event|
+                        string_at(event, "event_class") == Some("outage")
+                        && string_at(event, "component_id") == Some("main_generator")
+                    );
+                    let watermaker = event_items.iter().find(|event|
+                        string_at(event, "event_class") == Some("outage")
+                        && string_at(event, "component_id") == Some("watermaker")
+                    );
+                    let shared = generator.zip(watermaker).is_some_and(|(generator, watermaker)|
+                        string_at(generator, "event_id") == string_at(watermaker, "event_id")
+                        && string_at(generator, "timestamp") == string_at(watermaker, "timestamp")
+                    );
+                    if !shared {
+                        errors.push(format!("common-cause scenario '{scenario_id}' requires one shared outage event identity/time for generation and watermaker"));
+                    }
+                }
+                _ => {}
+            }
 
             let Some(samples) = scenario.get("samples").and_then(Value::as_array) else {
                 errors.push(format!("scenario '{scenario_id}' has no samples array"));
@@ -552,6 +599,10 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                             "rate_bound_method":contract_metric.rate_bound_method,
                             "rate_bound_evidence_sha256":contract_metric.rate_bound_evidence_sha256,
                             "endpoint_measurement_coverage_min":start.coverage.min(end.coverage),
+                            "start_measurement_class":start.measurement_class,
+                            "end_measurement_class":end.measurement_class,
+                            "start_measurement_method":start.measurement_method,
+                            "end_measurement_method":end.measurement_method,
                             "endpoint_evidence_sha256":[start.evidence_sha256.clone(),end.evidence_sha256.clone()]
                         });
                         if margin < -NUMERIC_TOLERANCE && scenario_first_breach.is_none() {
@@ -804,6 +855,51 @@ mod tests {
         value["scenarios"][0]["samples"][1]["resource_metrics"][0]["lower_bound"] = json!(0.9);
         value["scenarios"][0]["samples"][1]["resource_metrics"][0]["upper_bound"] = json!(1.1);
         assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn each_disturbance_scenario_requires_its_declared_event_type() {
+        let mut value = fixture();
+        value["scenarios"][2]["events"] = json!([]);
+        value["scenarios"][2]["event_manifest_sha256"] = json!(sha256_hex(&serde_json::to_vec(&value["scenarios"][2]["events"]).unwrap()));
+        value["scenarios"][2]["scenario_sha256"] = json!("");
+        let digest = canonical_json_digest(&value["scenarios"][2], Some("scenario_sha256")).unwrap();
+        value["scenarios"][2]["scenario_sha256"] = json!(digest);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn common_cause_requires_shared_event_identity_and_timestamp() {
+        let mut value = fixture();
+        value["scenarios"][1]["events"][1]["event_id"] = json!("independent-watermaker-event");
+        value["scenarios"][1]["event_manifest_sha256"] = json!(sha256_hex(&serde_json::to_vec(&value["scenarios"][1]["events"]).unwrap()));
+        value["scenarios"][1]["scenario_sha256"] = json!("");
+        let digest = canonical_json_digest(&value["scenarios"][1], Some("scenario_sha256")).unwrap();
+        value["scenarios"][1]["scenario_sha256"] = json!(digest);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn closed_form_bounds_are_conservative_against_dense_segment_sampling() {
+        for a_i in 0..=8 {
+            for b_i in 0..=8 {
+                for rate_i in 0..=5 {
+                    let a = a_i as f64;
+                    let b = b_i as f64;
+                    let rate = rate_i as f64 * 0.2;
+                    let dt = 3.0;
+                    let lower = exact_lower_tube_min(a, b, rate, dt);
+                    let upper = exact_upper_tube_max(a, b, rate, dt);
+                    for step in 0..=10_000 {
+                        let t = dt * step as f64 / 10_000.0;
+                        let lower_cone = (a - rate * t).max(b - rate * (dt - t));
+                        let upper_cone = (a + rate * t).min(b + rate * (dt - t));
+                        assert!(lower <= lower_cone + 1e-9);
+                        assert!(upper + 1e-9 >= upper_cone);
+                    }
+                }
+            }
+        }
     }
 
     #[test]
