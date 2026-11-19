@@ -33,17 +33,28 @@
       "required": false,
       "owner": "GeoFusion evidence composition / #6158; standards semantics reused from SSP project",
       "establishes": [
-        "simulation process metadata",
-        "traceability and credibility information associated with simulation artifacts",
-        "calibration and measurement context as defined by the layered standard"
+        "credible decision and simulation process metadata",
+        "simulation task lifecycle inputs, procedures, outputs and rationale",
+        "simulation resource metadata and references",
+        "derivation-chain snapshots using globally unique GUIDs for traceability document revisions",
+        "optional SRMD resource checksum using SHA3-256 over raw resource bytes"
       ],
       "does_not_establish": [
-        "certificate authenticity",
-        "instrument accuracy",
-        "physical truth",
-        "authority to promote evidence class"
+        "meter calibration certificate authority or calibration-interval coverage",
+        "instrument accuracy or physical measurement truth",
+        "source/carrier/boundary/interval energy-allocation semantics",
+        "physical model validity or operational authority"
       ],
-      "url": "https://ssp-standard.org/ssp-ls-traceability/1.0.0/"
+      "url": "https://ssp-standard.org/ssp-ls-traceability/1.0.0/",
+      "checksum_semantics": {
+        "algorithm": "SHA3-256",
+        "scope": "optional SRMD resource raw-byte checksum",
+        "distinct_from": [
+          "GeoFusion evidence-envelope SHA-256 payload digest",
+          "BagIt SHA-256/SHA-512 payload manifests"
+        ],
+        "note": "SSP-LS DerivationChain GUIDs are traceability-document identifiers, not cryptographic digests."
+      }
     },
     {
       "id": "FMI",
@@ -176,7 +187,8 @@
     "SSP-LS-Traceability carries simulation-process traceability context; GeoFusion retains source/carrier/boundary/interval/allocation semantics.",
     "BagIt owns package completeness and manifest-level checksums; runtime source verifier owns semantic source-receipt checks.",
     "RO-Crate owns research-object context; PROV-O owns graph semantics; do not duplicate either.",
-    "DSSE/in-toto signer and trust policy remains owned by #5560; signatures never upgrade scientific evidence class."
+    "DSSE/in-toto signer and trust policy remains owned by #5560; signatures never upgrade scientific evidence class.",
+    "SSP-LS DerivationChain GUIDs track STMD/DTMD document lineage; PROV-O models evidence/activity/agent semantics; byte digests verify exact content. Do not conflate these three identities."
   ],
   "claim_ceiling": "Conformance and integrity results for the declared interchange/package layers only. They do not establish physical truth, calibrated measurement quality, solver validity, geothermal resource quality, fusion performance or operational authority."
 }
