@@ -80,6 +80,15 @@
       "direct_master_comparator": false,
       "expected_use": "complementary FMI behavior checks where compatible",
       "evidence_url": "https://modelica.github.io/fmi-guides/main/fmi-guide/"
+    },
+    {
+      "id": "ssp_2_0_1",
+      "project": "System Structure and Parameterization",
+      "role": "system_structure_package",
+      "algorithm_class": "interoperable_system_topology_and_parameterization",
+      "direct_master_comparator": false,
+      "expected_use": "package and round-trip full multi-FMU component topology, connections, unit definitions and parameters across tools",
+      "evidence_url": "https://ssp-standard.org/docs/2.0.1/"
     }
   ],
   "fmi_support_note": "The OpenModelica User Guide in this research snapshot reports FMI 3.0.2 support as experimental. Pin the exact release/commit and probe per-FMU capability support before scoring.",
@@ -98,7 +107,8 @@
     "communication_calls_and_time_to_qualified_result",
     "false_closure_and_false_qualification",
     "invalid_input_and_unsupported_feature_refusal",
-    "deterministic_receipt_replay"
+    "deterministic_receipt_replay",
+    "SSP component_connection_parameter_and_unit_semantics_round_trip"
   ],
   "hard_gates": {
     "false_conservation_closures": 0,
@@ -136,6 +146,11 @@
     {
       "id": "fmi_implementers_guide",
       "url": "https://modelica.github.io/fmi-guides/main/fmi-guide/"
+    },
+    {
+      "id": "ssp_2_0_1",
+      "url": "https://ssp-standard.org/docs/2.0.1/"
     }
-  ]
+  ],
+  "claim_ceiling": ""
 }
