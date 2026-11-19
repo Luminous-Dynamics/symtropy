@@ -1,6 +1,6 @@
 mod scheduler;
 
-use scheduler::{ResourceRequirement, ScheduledTask, TaskSpec, exact_small_schedule, schedule};
+use scheduler::{AvailabilityWindow, ResourceProfile, ResourceRequirement, ScheduledTask, TaskSpec, exact_small_schedule, schedule};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -74,6 +74,8 @@ struct Resource {
     resource_id: String,
     resource_type: String,
     available_units: u32,
+    calendar_period_hours: f64,
+    availability_windows: Vec<AvailabilityWindow>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -572,8 +574,13 @@ fn validate(case: &Case) -> Vec<String> {
         }
     }
     for resource in &case.resources {
-        if resource.resource_type.trim().is_empty() || resource.available_units == 0 {
-            errors.push(format!("{} has invalid resource type or capacity", resource.resource_id));
+        if resource.resource_type.trim().is_empty()
+            || resource.available_units == 0
+            || !resource.calendar_period_hours.is_finite()
+            || resource.calendar_period_hours <= 0.0
+            || resource.availability_windows.is_empty()
+        {
+            errors.push(format!("{} has invalid resource type, capacity or calendar", resource.resource_id));
         }
     }
     for route in &case.logistics_routes {
@@ -627,10 +634,19 @@ struct ScheduleReport {
     scheduled_tasks: Vec<ScheduledTask>,
 }
 
-fn resource_capacities(case: &Case) -> BTreeMap<String, u32> {
+fn resource_capacities(case: &Case) -> BTreeMap<String, ResourceProfile> {
     case.resources
         .iter()
-        .map(|resource| (resource.resource_id.clone(), resource.available_units))
+        .map(|resource| {
+            (
+                resource.resource_id.clone(),
+                ResourceProfile {
+                    available_units: resource.available_units,
+                    calendar_period_hours: resource.calendar_period_hours,
+                    availability_windows: resource.availability_windows.clone(),
+                },
+            )
+        })
         .collect()
 }
 
