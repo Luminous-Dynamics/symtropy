@@ -598,6 +598,14 @@ fn validate_split_manifest(raw: &[u8], manifest: &Value) -> Value {
             "Split algorithm and seed must be pinned before evaluating model results.");
     }
 
+    if string_at(manifest, &["dataset_id"]).is_none_or(str::is_empty) {
+        add(&mut findings, "SPLIT_DATASET_ID_MISSING", "INCOMPLETE",
+            "A split manifest must identify the frozen dataset.");
+    }
+    if string_at(manifest, &["dataset_manifest_sha256"]).is_none_or(|digest| !valid_sha256(digest)) {
+        add(&mut findings, "SPLIT_DATASET_DIGEST_INVALID", "ERROR",
+            "A split manifest requires the SHA-256 digest of its dataset manifest.");
+    }
     let expected_folds = ["development", "validation", "test"];
     let fold_values = manifest.get("folds").and_then(Value::as_array);
     let declared_folds: BTreeSet<String> = fold_values.into_iter().flatten()
@@ -677,6 +685,13 @@ fn validate_split_manifest(raw: &[u8], manifest: &Value) -> Value {
             }
         } else {
             bundle_fold.insert(bundle_digest.to_owned(), fold.to_owned());
+        }
+
+        if string_at(episode, &["craft_configuration_sha256"])
+            .is_none_or(|digest| !valid_sha256(digest))
+        {
+            add(&mut findings, "SPLIT_CRAFT_DIGEST_INVALID", "ERROR",
+                &format!("episode '{episode_id}' requires a pinned craft configuration digest."));
         }
 
         let start = time_at(episode, &["start_time"], "episode start_time",
@@ -876,6 +891,100 @@ mod tests {
     fn audit(value: &Value) -> Value {
         let raw = serde_json::to_vec(value).expect("bundle serializes");
         audit_bundle(&raw, value)
+    }
+
+
+    fn split_fixture() -> Value {
+        serde_json::from_str(include_str!("../fixtures/synthetic-episode-split-manifest-0001.json"))
+            .expect("synthetic episode split manifest must parse")
+    }
+
+    fn audit_split(value: &Value) -> Value {
+        let raw = serde_json::to_vec(value).expect("split manifest serializes");
+        validate_split_manifest(&raw, value)
+    }
+
+    #[test]
+    fn grouped_split_fixture_is_synthetic_only_and_group_disjoint() {
+        let report = audit_split(&split_fixture());
+        assert_eq!(report["disposition"], "SYNTHETIC_ONLY");
+        assert_eq!(report["episode_count"], 9);
+        assert_eq!(report["decision_sample_count"], 18);
+        assert_eq!(report["episodes_by_fold"]["development"], 3);
+        assert_eq!(report["episodes_by_fold"]["validation"], 3);
+        assert_eq!(report["episodes_by_fold"]["test"], 3);
+        assert!(report["held_out_test_strata"].as_array().unwrap().len() >= 3);
+    }
+
+    #[test]
+    fn weather_event_cannot_cross_folds() {
+        let mut value = split_fixture();
+        value["episodes"][6]["weather_event_id"] = value["episodes"][0]["weather_event_id"].clone();
+        assert_eq!(audit_split(&value)["disposition"], "BLOCKED");
+    }
+
+    #[test]
+    fn voyage_cannot_cross_folds() {
+        let mut value = split_fixture();
+        value["episodes"][6]["voyage_id"] = value["episodes"][0]["voyage_id"].clone();
+        assert_eq!(audit_split(&value)["disposition"], "BLOCKED");
+    }
+
+    #[test]
+    fn overlapping_windows_within_one_voyage_are_blocked() {
+        let mut value = split_fixture();
+        value["episodes"][1]["voyage_id"] = value["episodes"][0]["voyage_id"].clone();
+        value["episodes"][1]["start_time"] = json!("2026-01-01T05:00:00Z");
+        value["episodes"][1]["end_time"] = json!("2026-01-01T09:00:00Z");
+        value["episodes"][1]["decision_samples"] = json!([
+            {"decision_id":"overlap-1","decision_cutoff":"2026-01-01T05:00:00Z","target_valid_time":"2026-01-01T06:00:00Z"}
+        ]);
+        assert_eq!(audit_split(&value)["disposition"], "BLOCKED");
+    }
+
+    #[test]
+    fn identical_replay_bundle_cannot_cross_folds() {
+        let mut value = split_fixture();
+        value["episodes"][6]["replay_bundle_sha256"] = value["episodes"][0]["replay_bundle_sha256"].clone();
+        assert_eq!(audit_split(&value)["disposition"], "BLOCKED");
+    }
+
+    #[test]
+    fn duplicate_decision_id_is_invalid() {
+        let mut value = split_fixture();
+        value["episodes"][1]["decision_samples"][0]["decision_id"] =
+            value["episodes"][0]["decision_samples"][0]["decision_id"].clone();
+        assert_eq!(audit_split(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn decision_outside_episode_window_is_invalid() {
+        let mut value = split_fixture();
+        value["episodes"][0]["decision_samples"][0]["target_valid_time"] =
+            json!("2026-01-02T01:00:00Z");
+        assert_eq!(audit_split(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn held_out_test_requires_multiple_environment_strata() {
+        let mut value = split_fixture();
+        for episode in value["episodes"].as_array_mut().unwrap().iter_mut()
+            .filter(|episode| episode["fold"] == "test")
+        {
+            episode["environment_strata"] = json!(["wind_sea_state:high"]);
+        }
+        let report = audit_split(&value);
+        assert_eq!(report["disposition"], "INCOMPLETE");
+        assert!(report["findings"].as_array().unwrap().iter()
+            .any(|finding| finding["code"] == "TEST_STRATA_COVERAGE_INSUFFICIENT"));
+    }
+
+    #[test]
+    fn every_declared_fold_must_have_episodes() {
+        let mut value = split_fixture();
+        value["episodes"].as_array_mut().unwrap()
+            .retain(|episode| episode["fold"] != "validation");
+        assert_eq!(audit_split(&value)["disposition"], "INCOMPLETE");
     }
 
     #[test]
