@@ -320,9 +320,7 @@ fn validate_inputs(
             }
         }
     }
-    if case_ids.len() != carrier_ids.len()
-        || carrier_ids.iter().any(|config_id| !case_ids.contains(config_id))
-    {
+    if case_ids != carrier_ids {
         errors.push("qualification catalog must cover every carrier engineering configuration exactly once".into());
     }
     if errors.is_empty() { Ok(()) } else { Err(errors) }
@@ -719,6 +717,44 @@ mod tests {
         assert_eq!(report.results[0].disposition, Disposition::EvidenceCompleteForHumanReview);
         assert!(!report.production_release_ready);
         assert!(!report.release_authority_granted);
+    }
+
+    #[test]
+    fn external_authority_evidence_is_not_substituted_by_an_independent_test() {
+        let matrix = catalog(case(vec![gate(
+            "aviation-permission",
+            EvidenceClass::ExternalAuthority,
+            GateState::Qualified,
+            EvidenceClass::IndependentTest,
+            Some(sha('a')),
+        )]));
+        let report = evaluate_qualification_chain(
+            &carrier_report("passes_evidence_backed_screen", "measured", vec![]),
+            &factory_report("passes_evidence_backed_screen", "measured", true),
+            &matrix,
+            digests(),
+        ).expect("valid inputs");
+        assert_eq!(report.results[0].disposition, Disposition::Indeterminate);
+        assert!(!report.results[0].gates[0].qualifying);
+    }
+
+    #[test]
+    fn base_factory_release_gap_prevents_complete_human_review_disposition() {
+        let matrix = catalog(case(vec![gate(
+            "hv-isolation",
+            EvidenceClass::IndependentTest,
+            GateState::Qualified,
+            EvidenceClass::IndependentTest,
+            Some(sha('a')),
+        )]));
+        let report = evaluate_qualification_chain(
+            &carrier_report("passes_evidence_backed_screen", "measured", vec![]),
+            &factory_report("passes_evidence_backed_screen", "measured", false),
+            &matrix,
+            digests(),
+        ).expect("valid inputs");
+        assert_eq!(report.results[0].disposition, Disposition::Indeterminate);
+        assert!(report.results[0].findings.iter().any(|finding| finding == "base_factory_not_production_release_ready"));
     }
 
     #[test]
