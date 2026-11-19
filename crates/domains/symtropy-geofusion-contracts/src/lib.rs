@@ -12,6 +12,13 @@
 use std::collections::BTreeSet;
 use std::fmt;
 
+pub mod superhot_well;
+pub use superhot_well::{
+    FluidPropertyProvenance, ReservoirBoundaryState, ReservoirWellheadCase,
+    VelocityReferenceComparison, VelocityReferenceThreshold, WellheadBoundaryState,
+    WellheadFlowMetrics, WellheadPhase, WellheadValidationError,
+};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EnergyCarrier {
     /// Electrical power (MW_e) and electrical energy (MWh_e).
