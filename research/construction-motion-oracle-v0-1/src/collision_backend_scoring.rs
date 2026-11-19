@@ -435,8 +435,7 @@ fn validate_adapter(adapter: &AdapterObservation) -> Result<(), CollisionScoreIn
             if adapter.observation.is_some() {
                 return Err(CollisionScoreInputError::UnexpectedObservation);
             }
-            if adapter.reason.as_deref().is_none_or(str::is_empty)
-                || adapter.reason_code.is_none()
+            if adapter.reason.as_deref().is_none_or(str::is_empty) || adapter.reason_code.is_none()
             {
                 return Err(CollisionScoreInputError::MissingReason);
             }
@@ -452,7 +451,6 @@ fn validate_adapter(adapter: &AdapterObservation) -> Result<(), CollisionScoreIn
     if let Some(observation) = adapter.observation {
         validate_collision_observation(observation)?;
     }
-
 
     Ok(())
 }
