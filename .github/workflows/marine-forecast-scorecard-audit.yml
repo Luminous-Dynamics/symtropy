@@ -47,6 +47,13 @@ jobs:
           cargo run --quiet --manifest-path tools/marine-forecast-scorecard/Cargo.toml --bin member-coherent-risk -- audit-member-risk tools/marine-forecast-scorecard/fixtures/synthetic-member-coherent-risk-0001.json > /tmp/member-coherent-risk.json
           jq -e '.disposition == "SYNTHETIC_ONLY" and .route_ranking_changes_when_member_coherence_is_destroyed == true and .best_route_by_member_coherent_cvar95 == "route-correlated-alternating" and .best_route_by_independent_edge_marginal_resampling == "route-correlated-high-low"' /tmp/member-coherent-risk.json
 
+      - name: Information/noise field-verification schema and smoothing negative control
+        run: |
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.field_cases.minItems >= 2 and .properties.field_cases.items.properties.weighting_method.const == "normalized_cell_area"' tools/marine-forecast-scorecard/schema/marine-forecast-information-noise.schema.json
+          jq -e '.record_status == "synthetic" and .claim_ceiling == "field_information_noise_diagnostics_only" and (.field_cases | length == 2) and ([.field_cases[].variant] | sort) == ["damped","raw"]' tools/marine-forecast-scorecard/fixtures/synthetic-information-noise-0001.json
+          cargo run --quiet --manifest-path tools/marine-forecast-scorecard/Cargo.toml --bin forecast-information-noise -- audit-information-noise tools/marine-forecast-scorecard/fixtures/synthetic-information-noise-0001.json > /tmp/forecast-information-noise.json
+          jq -e '.disposition == "SYNTHETIC_ONLY" and .field_case_count == 2 and .smoothing_pair_count == 1 and .smoothing_rmse_gaming_case_count == 1 and .smoothing_comparisons[0].rmse_improves_while_information_degrades == true' /tmp/forecast-information-noise.json
+
       - name: Scorecard audit must remain synthetic-only
         run: |
           cargo run --quiet --manifest-path tools/marine-forecast-scorecard/Cargo.toml -- audit-scorecard tools/marine-forecast-scorecard/fixtures/synthetic-scorecard-0001.json > /tmp/marine-scorecard.json
