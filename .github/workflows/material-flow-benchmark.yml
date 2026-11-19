@@ -34,6 +34,10 @@ jobs:
           components: clippy, rustfmt
       - name: Formatting
         run: cargo fmt --manifest-path tools/material-flow-benchmark/Cargo.toml -- --check
+      - name: Validate shared-aircraft scenario schema and fixture JSON
+        run: |
+          jq empty tools/material-flow-benchmark/schemas/shared_aircraft_repositioning_v0_1.schema.json
+          jq empty tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-aircraft.json
       - name: Clippy
         run: cargo clippy --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --all-targets -- -D warnings
       - name: Tests
@@ -48,6 +52,21 @@ jobs:
           grep -q '"exact_policy_count_evaluated": 8192' mfb-l1-evidence/mode-options-report.json
           grep -q '"unauthorized_aerial_dispatches": 0' mfb-l1-evidence/mode-options-report.json
           cat mfb-l1-evidence/mode-options-report.json
+      - name: Evaluate exact shared-aircraft repositioning oracle
+        run: |
+          mkdir -p mfb-l1-evidence
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-evaluate-shared-fleet -- tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-aircraft.json > mfb-l1-evidence/shared-aircraft-report.json
+          grep -q '"region_count": 2' mfb-l1-evidence/shared-aircraft-report.json
+          grep -q '"period_count": 3' mfb-l1-evidence/shared-aircraft-report.json
+          grep -q '"scenario_count": 2' mfb-l1-evidence/shared-aircraft-report.json
+          grep -q '"nonanticipative_policy_node_count": 5' mfb-l1-evidence/shared-aircraft-report.json
+          grep -q '"exact_policy_count_evaluated": 243' mfb-l1-evidence/shared-aircraft-report.json
+          grep -q '"physical_dispatch_authorized": false' mfb-l1-evidence/shared-aircraft-report.json
+          grep -q '"dispatch_commands_emitted": false' mfb-l1-evidence/shared-aircraft-report.json
+          grep -q '"unauthorized_aerial_dispatches": 0' mfb-l1-evidence/shared-aircraft-report.json
+          grep -q '"protected_reserve_violations": 0' mfb-l1-evidence/shared-aircraft-report.json
+          grep -q '"expected_aerial_deliveries": 0' mfb-l1-evidence/shared-aircraft-report.json
+          cat mfb-l1-evidence/shared-aircraft-report.json
       - name: Validate synthetic 3D cargo-bay loading
         run: |
           mkdir -p mfb-l1-evidence
@@ -222,6 +241,17 @@ jobs:
             echo
             echo "[cross_channel_false_positive_digest]"
             sha256sum mfb-l1-evidence/cross-channel-false-positive.json
+            echo
+            echo "[shared_aircraft_schema_digest]"
+            sha256sum tools/material-flow-benchmark/schemas/shared_aircraft_repositioning_v0_1.schema.json
+            echo
+            echo "[shared_aircraft_fixture_digest]"
+            sha256sum tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-aircraft.json
+            echo
+            echo "[shared_aircraft_source_digest]"
+            sha256sum tools/material-flow-benchmark/src/shared_fleet.rs
+            sha256sum tools/material-flow-benchmark/src/bin/mfb-evaluate-shared-fleet.rs
+            sha256sum mfb-l1-evidence/shared-aircraft-report.json
             echo
             echo "[dependency_lock_digest]"
             sha256sum tools/material-flow-benchmark/Cargo.lock
