@@ -162,6 +162,8 @@ pub struct Metrics {
     pub flight_attempts: u64,
     pub mission_successes: u64,
     pub recovered_stages: u64,
+    pub failed_flights: u64,
+    pub lost_stages: u64,
     pub payload_acceptances: u64,
     pub accepted_payload_kg: u64,
     pub completed_reflight_cycles: u64,
@@ -298,9 +300,10 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
     let mut flown_by = BTreeMap::<String, String>::new();
     let mut recovered_ids = BTreeSet::new();
     let mut terminal_failure_ids = BTreeSet::new();
+    let mut failed_ids = BTreeSet::new();
+    let mut lost_ids = BTreeSet::new();
     let mut turnaround_ticks = Vec::<u64>::new();
     let mut asset_summaries = Vec::new();
-    let mut total_cycles = 0_u64;
 
     for asset in &fixture.assets {
         non_empty(&asset.serial, "asset serial")?;
@@ -374,6 +377,11 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
                     if !terminal_failure_ids.insert(flight_id.clone()) {
                         return Err(format!("duplicate terminal failure for flight {flight_id}"));
                     }
+                    match event.to_state {
+                        AssetState::Failed => { failed_ids.insert(flight_id.clone()); }
+                        AssetState::Lost => { lost_ids.insert(flight_id.clone()); }
+                        _ => unreachable!("matched only failed or lost states"),
+                    }
                 }
                 AssetState::Ready if event.from_state == AssetState::Requalified => {
                     if let Some((_, flown_tick)) = active_flight.take() {
@@ -387,7 +395,6 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
             last_tick = event.tick;
         }
 
-        total_cycles = checked_add(total_cycles, cycles, "total flight cycles")?;
         asset_summaries.push(AssetSummary {
             serial: asset.serial.clone(),
             final_state: current_state,
@@ -398,6 +405,8 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
     let mut seen_flights = BTreeSet::new();
     let mut mission_successes = 0_u64;
     let mut recovered_count = 0_u64;
+    let mut failed_count = 0_u64;
+    let mut lost_count = 0_u64;
     let mut accepted_count = 0_u64;
     let mut accepted_payload_kg = 0_u64;
     let mut lost_count = 0_u64;
@@ -430,8 +439,11 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
         }
         if flight.recovered {
             recovered_count = checked_add(recovered_count, 1, "recovered stages")?;
-        } else {
-            lost_count = checked_add(lost_count, 1, "unrecovered stages")?;
+        } else if failed_ids.contains(&flight.flight_id) {
+            failed_count = checked_add(failed_count, 1, "failed flights")?;
+        }
+        if lost_ids.contains(&flight.flight_id) {
+            lost_count = checked_add(lost_count, 1, "lost stages")?;
         }
         if flight.payload_accepted {
             accepted_count = checked_add(accepted_count, 1, "payload acceptances")?;
@@ -444,6 +456,8 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
     }
     if recovered_ids.iter().any(|id| !seen_flights.contains(id.as_str()))
         || terminal_failure_ids.iter().any(|id| !seen_flights.contains(id.as_str()))
+        || failed_ids.iter().any(|id| !seen_flights.contains(id.as_str()))
+        || lost_ids.iter().any(|id| !seen_flights.contains(id.as_str()))
     {
         return Err("orphan recovery or terminal-failure event".to_owned());
     }
@@ -514,6 +528,8 @@ pub fn evaluate(fixture: &Fixture) -> Result<Report, String> {
             flight_attempts: fixture.flights.len() as u64,
             mission_successes,
             recovered_stages: recovered_count,
+            failed_flights: failed_count,
+            lost_stages: lost_count,
             payload_acceptances: accepted_count,
             accepted_payload_kg,
             completed_reflight_cycles: turnaround_ticks.len() as u64,
@@ -553,6 +569,8 @@ mod tests {
         assert_eq!(report.metrics.flight_attempts, 3);
         assert_eq!(report.metrics.mission_successes, 2);
         assert_eq!(report.metrics.recovered_stages, 2);
+        assert_eq!(report.metrics.failed_flights, 0);
+        assert_eq!(report.metrics.lost_stages, 1);
         assert_eq!(report.metrics.payload_acceptances, 2);
         assert_eq!(report.metrics.accepted_payload_kg, 18_000);
         assert_eq!(report.metrics.completed_reflight_cycles, 1);
