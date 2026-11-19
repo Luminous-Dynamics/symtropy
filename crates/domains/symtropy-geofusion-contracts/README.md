@@ -28,7 +28,7 @@ cargo test -p symtropy-geofusion-contracts
 cargo clippy -p symtropy-geofusion-contracts --all-targets -- -D warnings
 ```
 
-The crate is part of the public Symtropy workspace. See the programme architecture and system-level benchmark at [docs/research/geothermal-fusion](../../../docs/research/geothermal-fusion/README.md) on the integration documentation branch and [GEOFUSION-INTEGRATION-001](https://github.com/Luminous-Dynamics/symtropy/issues/6142).
+The crate is part of the public Symtropy workspace. See the [system architecture and 27-case benchmark documentation](https://github.com/Luminous-Dynamics/symtropy/pull/6143) and [GEOFUSION-INTEGRATION-001](https://github.com/Luminous-Dynamics/symtropy/issues/6142).
 
 ## Superhot wellhead state boundary
 
