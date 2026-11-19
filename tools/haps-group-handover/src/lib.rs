@@ -551,6 +551,8 @@ fn evaluate_scenario(
     let duplicate_ack_ignored = scenario.duplicate_completion_ack_delivery
         && scenario.failure_point == "none"
         && total_completed > 0;
+    let total_deadline_missed = total(|row| row.deadline_missed_ues);
+    let total_local_safe_mode = total(|row| row.local_safe_mode_ues);
 
     Ok(ExpectedOracle {
         oracle_status: "independently_calculated".to_owned(),
@@ -561,8 +563,8 @@ fn evaluate_scenario(
         total_rejected_ues: total_rejected,
         total_rolled_back_ues: total_rolled_back,
         total_unresolved_ues: total_unresolved,
-        total_deadline_missed_ues: total(|row| row.deadline_missed_ues),
-        total_local_safe_mode_ues: total(|row| row.local_safe_mode_ues),
+        total_deadline_missed_ues: total_deadline_missed,
+        total_local_safe_mode_ues: total_local_safe_mode,
         total_committed_ues: total_completed,
         duplicate_ack_ignored,
         duplicate_authority_violations: 0,
