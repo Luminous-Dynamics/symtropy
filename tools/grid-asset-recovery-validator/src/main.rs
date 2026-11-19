@@ -1083,20 +1083,28 @@ fn run(input: &str) -> Result<(Case, Vec<ScheduledTask>), Vec<String>> {
 
 fn main() {
     let mut path = None;
+    let mut scenario_set_path = None;
     let mut exact_small = false;
     let mut exact_small_service = false;
     let mut policy = SchedulePolicy::EarliestFeasibleStart;
-    for argument in env::args().skip(1) {
+    let mut arguments = env::args().skip(1);
+    while let Some(argument) = arguments.next() {
         if argument == "--exact-small" {
             exact_small = true;
         } else if argument == "--exact-small-service" {
             exact_small_service = true;
         } else if argument == "--policy-service-weighted-critical-path" {
             policy = SchedulePolicy::ServiceWeightedCriticalPath;
+        } else if argument == "--scenario-set" {
+            scenario_set_path = arguments.next();
+            if scenario_set_path.is_none() {
+                eprintln!("--scenario-set requires a file path");
+                process::exit(2);
+            }
         } else if path.is_none() {
             path = Some(argument);
         } else {
-            eprintln!("usage: grid-asset-recovery-validator [--policy-service-weighted-critical-path] [--exact-small|--exact-small-service] <case.json>");
+            eprintln!("usage: grid-asset-recovery-validator [--policy-service-weighted-critical-path] [--scenario-set scenarios.json] [--exact-small|--exact-small-service] <case.json>");
             process::exit(2);
         }
     }
@@ -1203,11 +1211,29 @@ fn main() {
             } else {
                 None
             };
+            let scenario_set_report = if let Some(scenario_path) = scenario_set_path {
+                let scenario_input = fs::read_to_string(&scenario_path).unwrap_or_else(|error| {
+                    eprintln!("cannot read scenario set {scenario_path}: {error}");
+                    process::exit(2);
+                });
+                match evaluate_scenario_set(&case, &scenario_input, policy) {
+                    Ok(report) => Some(report),
+                    Err(errors) => {
+                        for error in errors {
+                            eprintln!("SCENARIO-SET-FAIL: {error}");
+                        }
+                        process::exit(1);
+                    }
+                }
+            } else {
+                None
+            };
             let report = build_report(
                 &case,
                 scheduled,
                 exact_comparison,
                 exact_service_comparison,
+                scenario_set_report,
                 policy,
             );
             println!(
