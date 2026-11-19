@@ -10,7 +10,7 @@ A small, dependency-free Rust library for validating energy-stream boundary reco
 - Requires an explicitly declared isolated intermediate loop for geothermal/fusion primary heat streams.
 - Rejects cross-connection of geothermal-primary and fusion-primary circuit classes.
 - Rejects direct geothermal-primary heat as a D–T plasma-heating input; geothermal-generated electricity may feed a separately identified electrical plasma-heating power supply.
-- Evaluates a first-law energy ledger with storage state change. Negative storage delta represents discharge.
+- Evaluates a multi-carrier first-law ledger (for example thermal input, electric output and rejected heat) while preserving the carrier label on every term. Negative storage delta represents discharge.
 
 ## Explicit non-goals
 
