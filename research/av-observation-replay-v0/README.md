@@ -40,7 +40,7 @@ The existing Bevy scene/capture path can produce candidate visual artifacts; #15
 
 ## Time semantics
 
-A capture interval is a bounded interval on its named clock domain. A clock identity includes domain ID, generation and time-scale ID. A clock reset creates a different generation. Two numerically equal timestamps from different clock identities are **incomparable** here; no transform is inferred.
+A capture interval is a bounded interval on its named clock domain. A clock identity includes domain ID, generation and time-scale ID. A clock reset creates a different generation. Transport records carry the clock identity governing their source sequence, so sequence ordering is scoped to sensor + clock domain + generation + time scale. A reset may begin a new sequence origin without being compared to the prior generation. Two numerically equal timestamps from different clock identities are **incomparable** here; no transform is inferred.
 
 Source measurement/capture time is distinct from transport availability time. Replay availability ticks determine when the agent may first receive an observation. Arrival order provides a deterministic tie-break and preserves reordering. Packet arrival time is never substituted for capture time.
 
@@ -61,7 +61,7 @@ This library enforces a **schema boundary**, not a security boundary. A real hid
 Run:
 cargo test --manifest-path research/av-observation-replay-v0/Cargo.toml
 
-The package declares its own Cargo workspace so it does not silently join the larger Symtropy workspace. The current repository execution environment did not have Rust/Cargo available when this source was authored; test execution and exact-head CI are therefore pending.
+The package declares its own Cargo workspace so it does not silently join the larger Symtropy workspace. Direct dependencies and the transitive dependency graph are pinned in the package Cargo.lock. The current repository execution environment did not have Rust/Cargo available when this source was authored; test execution and exact-head CI are therefore pending.
 
 ## Fixture
 
