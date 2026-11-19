@@ -81,7 +81,7 @@ This is a qualification disposition under submitted M1 records only; it is not w
 
 ## 5. Joint-port cross-check
 
-When an independent joint-output torque transducer is available, the evaluator subtracts its interval from the sum of individual unit torque intervals. If the residual interval contains zero, the intervals overlap and are **Consistent**. If not, the result is **Contradictory** and the joint is Infeasible under this M1 comparison.
+When an independently measured physical joint-output torque transducer is available, the evaluator subtracts its interval from the sum of individual unit torque intervals. If the residual interval contains zero, the intervals overlap and are **Consistent**. If not, the result is **Contradictory** and the joint is Infeasible under this M1 comparison.
 
 The cross-check must use the same:
 - joint configuration digest;
@@ -122,7 +122,7 @@ cargo clippy --manifest-path benchmarks/synthetic-joints/paired-actuator-sharing
 
 Dedicated workflow: `.github/workflows/paired-actuator-load-sharing.yml`.
 
-Twenty Rust test definitions cover conservative torque sum, unequal torque shares, missing shares, no equal-share assumption, hottest-unit thermal gate, aggregate-pass/unit-fail, loaded speed, per-unit peak duration, joint-transducer agreement/contradiction, reference-plane/clock/condition mismatch, unknown evidence, preserved vendor/model classes, separate current share, joint configuration/time binding, per-unit evidence receipts and malformed capabilities.
+Twenty-one Rust test definitions cover conservative torque sum, unequal torque shares, missing shares, no equal-share assumption, hottest-unit thermal gate, aggregate-pass/unit-fail, loaded speed, per-unit peak duration, joint-transducer agreement/contradiction, reference-plane/clock/condition mismatch, unknown evidence, preserved vendor/model classes, separate current share, joint configuration/time binding, per-unit evidence receipts, independent-only joint cross-check and malformed capabilities.
 
 ## 9. M0–M5 and prospective targets
 
