@@ -36,7 +36,7 @@ pub enum Disposition {
     Indeterminate,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct CarrierEngineeringReport {
     pub schema_version: String,
     pub programme_id: String,
@@ -44,7 +44,7 @@ pub struct CarrierEngineeringReport {
     results: Vec<CarrierEngineeringResult>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 struct CarrierEngineeringResult {
     config_id: String,
     base_design_id: String,
@@ -55,7 +55,7 @@ struct CarrierEngineeringResult {
     missing_fields: Vec<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ModuleFactoryReport {
     pub schema_version: String,
     pub benchmark_id: String,
@@ -64,7 +64,7 @@ pub struct ModuleFactoryReport {
     results: Vec<ModuleFactoryResult>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 struct ModuleFactoryResult {
     site_id: String,
     template_id: String,
@@ -77,7 +77,7 @@ struct ModuleFactoryResult {
     missing_fields: Vec<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct QualificationCatalog {
     pub schema_version: String,
@@ -86,7 +86,7 @@ pub struct QualificationCatalog {
     pub cases: Vec<QualificationCase>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct QualificationCase {
     pub carrier_config_id: String,
@@ -99,7 +99,7 @@ pub struct QualificationCase {
     pub notes: Vec<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct QualificationGate {
     pub requirement_id: String,
@@ -385,10 +385,8 @@ fn evaluate_case(
         indeterminate = true;
         findings.push("carrier_engineering_inputs_incomplete".into());
     }
-    if carrier_row.base_evidence_class == "synthetic"
-        || carrier_row.incremental_evidence_class == "synthetic"
-        || carrier_row.base_evidence_class == "unknown"
-        || carrier_row.incremental_evidence_class == "unknown"
+    if !matches!(carrier_row.base_evidence_class.as_str(), "measured" | "independent_test")
+        || !matches!(carrier_row.incremental_evidence_class.as_str(), "measured" | "independent_test")
     {
         indeterminate = true;
         findings.push("carrier_engineering_source_is_synthetic_or_unknown".into());
@@ -444,8 +442,7 @@ fn evaluate_case(
                             any_blocked = true;
                         }
                         if row.status != "passes_evidence_backed_screen"
-                            || row.evidence_class == "synthetic"
-                            || row.evidence_class == "unknown"
+                            || !matches!(row.evidence_class.as_str(), "measured" | "independent_test")
                             || !row.missing_fields.is_empty()
                         {
                             all_evidence_backed = false;
