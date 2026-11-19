@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Geothermal Fusion Source Allocation Receipt v0.1",
+  "description": "Replay-facing record of a single source/carrier/interval allocation. Arithmetic sums and service/carrier consistency are independently evaluated by the Rust contract; JSON Schema cannot enforce cross-record arithmetic or identity equality.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "source_evidence_id",
+    "source_payload_digest",
+    "source_asset_id",
+    "source_boundary_id",
+    "source_interval_id",
+    "carrier",
+    "available_energy_mwh",
+    "allocations",
+    "curtailed_energy_mwh",
+    "evaluation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "receipt_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_evidence_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_payload_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "source_asset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_boundary_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_interval_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "carrier": {
+      "enum": [
+        "electricity",
+        "heat"
+      ]
+    },
+    "available_energy_mwh": {
+      "type": "number",
+      "minimum": 0
+    },
+    "allocations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "allocation_id",
+          "destination_asset_id",
+          "service",
+          "carrier",
+          "energy_mwh"
+        ],
+        "properties": {
+          "allocation_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "destination_asset_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "service": {
+            "enum": [
+              "dt_plasma_heating",
+              "fusion_electrical_auxiliary",
+              "facility_electrical_load",
+              "industrial_process_heat",
+              "facility_heat",
+              "grid_export",
+              "thermal_storage_charge",
+              "power_cycle_thermal_input",
+              "absorption_chiller_drive_heat",
+              "thermal_desalination_heat",
+              "reverse_osmosis_electrical_load",
+              "other"
+            ]
+          },
+          "carrier": {
+            "enum": [
+              "electricity",
+              "heat"
+            ]
+          },
+          "energy_mwh": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "destination_evidence_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "curtailed_energy_mwh": {
+      "type": "number",
+      "minimum": 0
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relative_tolerance",
+        "allocated_energy_mwh",
+        "residual_energy_mwh",
+        "normalized_absolute_residual",
+        "within_tolerance",
+        "disposition"
+      ],
+      "properties": {
+        "relative_tolerance": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "allocated_energy_mwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "residual_energy_mwh": {
+          "type": "number"
+        },
+        "normalized_absolute_residual": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "within_tolerance": {
+          "type": "boolean"
+        },
+        "disposition": {
+          "enum": [
+            "within_tolerance",
+            "unbalanced",
+            "refused"
+          ]
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "derived_from_evidence_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "evaluation_code_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "value"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "sha256"
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    }
+  }
+}
