@@ -1,0 +1,141 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "GEOFUSION-FMI-MASTER-BASELINE-001",
+  "status": "planned_not_executed",
+  "research_snapshot_date": "2026-11-19",
+  "parent_issue": 6156,
+  "owner_issue": 6224,
+  "comparator_roles": [
+    {
+      "id": "oms_ma",
+      "project": "OMSimulator",
+      "role": "co_simulation_master",
+      "algorithm_class": "fixed_step",
+      "direct_master_comparator": true,
+      "required_parameters": [
+        "fixedStepSize"
+      ],
+      "evidence_url": "https://openmodelica.org/doc/OpenModelicaUsersGuide/latest/omsimulator.html"
+    },
+    {
+      "id": "oms_mav",
+      "project": "OMSimulator",
+      "role": "co_simulation_master",
+      "algorithm_class": "variable_step_tolerance_control",
+      "direct_master_comparator": true,
+      "required_parameters": [
+        "initialStepSize",
+        "minimumStepSize",
+        "maximumStepSize",
+        "relativeTolerance"
+      ],
+      "evidence_url": "https://openmodelica.org/doc/OpenModelicaUsersGuide/latest/omsimulator.html"
+    },
+    {
+      "id": "oms_mav2",
+      "project": "OMSimulator",
+      "role": "co_simulation_master",
+      "algorithm_class": "variable_step_enhanced_error_estimation",
+      "direct_master_comparator": true,
+      "required_parameters": [
+        "initialStepSize",
+        "minimumStepSize",
+        "maximumStepSize",
+        "relativeTolerance"
+      ],
+      "evidence_url": "https://openmodelica.org/doc/OpenModelicaUsersGuide/latest/omsimulator.html"
+    },
+    {
+      "id": "fmpy",
+      "project": "FMPy",
+      "role": "fmi_importer_and_simulation_harness",
+      "algorithm_class": "tool_default",
+      "direct_master_comparator": false,
+      "expected_use": "FMI 3.0 importer interoperability smoke tests",
+      "evidence_url": "https://github.com/CATIA-Systems/FMPy"
+    },
+    {
+      "id": "fmusim",
+      "project": "FMI Reference FMUs",
+      "role": "reference_runner",
+      "algorithm_class": "reference_fmu_execution",
+      "direct_master_comparator": false,
+      "expected_use": "reference model execution and importer smoke checks",
+      "evidence_url": "https://modelica.github.io/fmi-guides/main/fmi-guide/"
+    },
+    {
+      "id": "fmu_check",
+      "project": "FMU-Check",
+      "role": "static_fmu_validator",
+      "algorithm_class": "static",
+      "direct_master_comparator": false,
+      "expected_use": "package/schema preflight only",
+      "evidence_url": "https://modelica.github.io/fmi-guides/main/fmi-guide/"
+    },
+    {
+      "id": "vdmcheck",
+      "project": "VDMCheck",
+      "role": "formal_fmi_semantics_checker",
+      "algorithm_class": "formal_validation",
+      "direct_master_comparator": false,
+      "expected_use": "complementary FMI behavior checks where compatible",
+      "evidence_url": "https://modelica.github.io/fmi-guides/main/fmi-guide/"
+    }
+  ],
+  "fmi_support_note": "The OpenModelica User Guide in this research snapshot reports FMI 3.0.2 support as experimental. Pin the exact release/commit and probe per-FMU capability support before scoring.",
+  "scorecard": [
+    "trajectory_error_absolute_relative_rms_peak_integral",
+    "step_refinement_and_stability_envelope",
+    "event_time_and_order_error",
+    "thermal_balance_residual_by_boundary_and_interval",
+    "electrical_balance_residual_by_boundary_and_interval",
+    "source_allocation_edge_exactness",
+    "clock_alignment_and_synchronization_skew",
+    "accepted_rejected_early_return_step_counts",
+    "retry_rollback_restart_counts",
+    "interpolation_extrapolation_method",
+    "wall_cpu_memory_latency_p50_p95_p99_real_time_factor",
+    "communication_calls_and_time_to_qualified_result",
+    "false_closure_and_false_qualification",
+    "invalid_input_and_unsupported_feature_refusal",
+    "deterministic_receipt_replay"
+  ],
+  "hard_gates": {
+    "false_conservation_closures": 0,
+    "injected_semantic_faults_detected_or_not_evaluable": 1,
+    "silent_capability_fallback": false,
+    "silent_extrapolation": false,
+    "exact_carrier_boundary_interval_model_binding": true,
+    "deterministic_receipts_for_deterministic_inputs": true,
+    "failures_timeouts_unsupported_in_denominator": true
+  },
+  "stretch_objectives": [
+    "Pareto_improve_trajectory_error_balance_residual_and_latency",
+    "fewer_communication_calls_at_equal_or_better_accuracy_and_conservation",
+    "event_time_error_within_one_declared_master_clock_tick_on_analytic_fixtures",
+    "higher_valid_feature_coverage_without_more_false_acceptance",
+    "minimize_time_to_qualified_result"
+  ],
+  "sources": [
+    {
+      "id": "fmi_3_0_2",
+      "url": "https://fmi-standard.org/docs/3.0.2/"
+    },
+    {
+      "id": "omsimulator_solver_methods",
+      "url": "https://openmodelica.org/doc/OpenModelicaUsersGuide/latest/omsimulator.html"
+    },
+    {
+      "id": "openmodelica_fmi_support",
+      "url": "https://openmodelica.org/doc/OpenModelicaUsersGuide/OpenModelicaUsersGuide-latest.pdf"
+    },
+    {
+      "id": "fmpy",
+      "url": "https://github.com/CATIA-Systems/FMPy"
+    },
+    {
+      "id": "fmi_implementers_guide",
+      "url": "https://modelica.github.io/fmi-guides/main/fmi-guide/"
+    }
+  ]
+}
