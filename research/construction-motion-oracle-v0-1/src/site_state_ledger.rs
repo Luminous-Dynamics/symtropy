@@ -21,7 +21,8 @@ use crate::field_layout_acceptance::{
 };
 
 use crate::cumulative_resource_capacity::{
-    CapacityReservation, CapacityResourceDefinition, CumulativeCapacityScenario,
+    CapacityDemandClaim, CapacityReservation, CapacityResourceDefinition,
+    CumulativeCapacityScenario,
 };
 use crate::robust_capacity_profile::{
     CapacityAvailabilityWindow, RobustCapacityError, RobustCumulativeCapacityScenario,
@@ -925,6 +926,12 @@ impl SiteStateLedger {
                             resource.resource_id.clone(),
                         ));
                     }
+                    if !self
+                        .actor_registry
+                        .allows(&resource.capacity_owner_id, SiteActorRole::SiteResourceAuthority)
+                    {
+                        return Err(SiteLedgerError::ActorRoleDenied);
+                    }
                     if self.resource_catalog.contains_key(&resource.resource_id) {
                         return Err(SiteLedgerError::CapacityCatalogNamespaceCollision(
                             resource.resource_id.clone(),
@@ -984,6 +991,14 @@ impl SiteStateLedger {
                     .capacity_resource_catalog_sha256
                     .as_ref()
                     .ok_or(SiteLedgerError::CapacityResourceCatalogMismatch)?;
+                for window in windows {
+                    if !self
+                        .actor_registry
+                        .allows(&window.capacity_owner_id, SiteActorRole::SiteResourceAuthority)
+                    {
+                        return Err(SiteLedgerError::ActorRoleDenied);
+                    }
+                }
                 let scenario = RobustCumulativeCapacityScenario {
                     base: CumulativeCapacityScenario {
                         scenario_id: format!(
@@ -1981,6 +1996,12 @@ fn validate_capacity_reservation_commit(
         ));
     }
 
+    if !ledger
+        .actor_registry
+        .allows(&commit.robot_id, SiteActorRole::Robot)
+    {
+        return Err(SiteLedgerError::ActorRoleDenied);
+    }
     if ledger.capacity_resource_catalog_sha256.as_deref()
         != Some(commit.resource_catalog_sha256.as_str())
     {
