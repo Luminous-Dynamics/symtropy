@@ -233,6 +233,51 @@
       "required_diagnostic_codes": [],
       "assertion": "An event cannot claim a source ID different from the dependency it mutates.",
       "synthetic_only": true
+    },
+    {
+      "id": "CRR-REPLAY-008",
+      "mode": "metamorphic",
+      "test_name": "changed_evidence_digest_invalidates_readiness",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "A source-record digest change invalidates dependent readiness evidence.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-REPLAY-009",
+      "mode": "metamorphic",
+      "test_name": "source_subject_revision_change_invalidates_readiness",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "A changed inspection subject revision invalidates dependent readiness.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-REPLAY-010",
+      "mode": "metamorphic",
+      "test_name": "exclusion_zone_state_change_invalidates_readiness",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "A changed site exclusion-zone state invalidates the readiness claim.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-REPLAY-011",
+      "mode": "metamorphic",
+      "test_name": "changed_lift_preflight_receipt_invalidates_readiness",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "A replaced underlying lift-preflight input/report digest invalidates readiness.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-REPLAY-012",
+      "mode": "metamorphic",
+      "test_name": "operation_window_and_clock_domain_changes_invalidate_readiness",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Changes to operation interval or clock domain invalidate the readiness claim.",
+      "synthetic_only": true
     }
   ]
 }
