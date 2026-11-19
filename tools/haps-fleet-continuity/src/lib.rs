@@ -380,6 +380,7 @@ fn validate_case(case: &FleetContinuityCase) -> Result<(), FleetError> {
             || !platform_ids.insert(platform.platform_id.as_str())
             || !platform.service_capacity_units.is_finite()
             || platform.service_capacity_units < 0.0
+            || !["on_station", "standby_ready"].contains(&platform.initial_state.as_str())
         {
             return Err(FleetError::InvalidCase(
                 "fleet IDs must be unique and service capacities finite/non-negative".to_owned(),
@@ -445,8 +446,17 @@ fn validate_case(case: &FleetContinuityCase) -> Result<(), FleetError> {
         }
     }
     for event in &case.common_cause_events {
-        if let Some(parent_id) = &event.parent_event_id {
-            let parent = common_ids.get(parent_id.as_str()).ok_or_else(|| {
+        let mut visited_parent_ids = HashSet::new();
+        visited_parent_ids.insert(event.event_id.as_str());
+        let mut next_parent_id = event.parent_event_id.as_deref();
+        while let Some(parent_id) = next_parent_id {
+            if !visited_parent_ids.insert(parent_id) {
+                return Err(FleetError::InvalidEvent(format!(
+                    "{} participates in a common-cause parent cycle",
+                    event.event_id
+                )));
+            }
+            let parent = common_ids.get(parent_id).ok_or_else(|| {
                 FleetError::InvalidEvent(format!(
                     "{} references unknown parent event {}",
                     event.event_id, parent_id
@@ -462,6 +472,7 @@ fn validate_case(case: &FleetContinuityCase) -> Result<(), FleetError> {
                     event.event_id, parent_id
                 )));
             }
+            next_parent_id = parent.parent_event_id.as_deref();
         }
     }
 
@@ -549,6 +560,7 @@ fn validate_case(case: &FleetContinuityCase) -> Result<(), FleetError> {
             }
         }
 
+        let mut reserve_service_windows: HashMap<&str, Vec<(f64, f64)>> = HashMap::new();
         for dispatch in &policy.reserve_dispatch_events {
             if !platform_ids.contains(dispatch.platform_id.as_str()) {
                 return Err(FleetError::UnknownPlatform(dispatch.platform_id.clone()));
@@ -574,7 +586,7 @@ fn validate_case(case: &FleetContinuityCase) -> Result<(), FleetError> {
             if values.iter().any(|value| !value.is_finite())
                 || dispatch.requested_at_hour < 0.0
                 || dispatch.on_station_at_hour < dispatch.requested_at_hour
-                || dispatch.released_at_hour < dispatch.on_station_at_hour
+                || dispatch.released_at_hour <= dispatch.on_station_at_hour + EPSILON
                 || dispatch.released_at_hour > horizon
                 || (dispatch.on_station_at_hour
                     - dispatch.requested_at_hour
@@ -593,6 +605,21 @@ fn validate_case(case: &FleetContinuityCase) -> Result<(), FleetError> {
                     "{} has an invalid reserve dispatch interval/delay",
                     policy.policy_id
                 )));
+            }
+            reserve_service_windows
+                .entry(dispatch.platform_id.as_str())
+                .or_default()
+                .push((dispatch.on_station_at_hour, dispatch.released_at_hour));
+        }
+        for (platform_id, windows) in reserve_service_windows.iter_mut() {
+            windows.sort_by(|left, right| left.0.total_cmp(&right.0));
+            for pair in windows.windows(2) {
+                if pair[1].0 < pair[0].1 - EPSILON {
+                    return Err(FleetError::InvalidEvent(format!(
+                        "{} has overlapping reserve dispatch windows for {}",
+                        policy.policy_id, platform_id
+                    )));
+                }
             }
         }
     }
@@ -742,10 +769,10 @@ fn evaluate_policy(
                 continue;
             }
             if let Some(value) = event.terrestrial_capacity_override_units {
-                terrestrial_capacity = value;
+                terrestrial_capacity = terrestrial_capacity.min(value);
             }
             if let Some(value) = event.satellite_capacity_override_units {
-                satellite_capacity = value;
+                satellite_capacity = satellite_capacity.min(value);
             }
         }
 
@@ -940,6 +967,49 @@ mod tests {
             baseline.useful_service_capacity_fraction,
             affected.useful_service_capacity_fraction
         );
+    }
+
+    #[test]
+    fn common_cause_event_order_does_not_change_service_replay() {
+        let base = parse_case(FIXTURE).expect("fixture parses");
+        let baseline = evaluate(&base).expect("baseline evaluates");
+        let mut reordered = base;
+        reordered.common_cause_events.reverse();
+        let replay = evaluate(&reordered).expect("reordered events evaluate");
+
+        assert_eq!(baseline.policy_results, replay.policy_results);
+    }
+
+    #[test]
+    fn common_cause_parent_cycles_fail_closed() {
+        let mut case = parse_case(FIXTURE).expect("fixture parses");
+        case.common_cause_events[0].start_hour = 370.0;
+        case.common_cause_events[0].duration_hours = 6.0;
+        case.common_cause_events[0].parent_event_id =
+            Some("gateway-satellite-degradation-01".to_owned());
+
+        assert!(matches!(
+            evaluate(&case),
+            Err(FleetError::InvalidEvent(message))
+                if message.contains("parent cycle")
+        ));
+    }
+
+    #[test]
+    fn reserve_dispatch_windows_for_same_platform_cannot_overlap() {
+        let mut case = parse_case(FIXTURE).expect("fixture parses");
+        case.policy_cases[1].reserve_dispatch_events.push(ReserveDispatchEvent {
+            platform_id: "haps-d".to_owned(),
+            requested_at_hour: 150.0,
+            on_station_at_hour: 162.0,
+            released_at_hour: 200.0,
+            dispatch_delay_hours: 12.0,
+        });
+
+        assert!(matches!(
+            evaluate(&case),
+            Err(FleetError::InvalidEvent(_))
+        ));
     }
 
     #[test]
