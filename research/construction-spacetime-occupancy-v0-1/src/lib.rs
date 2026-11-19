@@ -358,6 +358,61 @@ impl SpatialOccupancyBook {
     /// it falls back to every occupancy assigned to that level. Long existing
     /// intervals have their own global fallback. These rules make the index
     /// incapable of dropping a true temporal overlap.
+    fn spatial_candidate_estimate(&self, bounds: &Bounds3Mm) -> usize {
+        let Some(cells) = grid_cells(bounds) else {
+            return self.occupancies.len();
+        };
+        cells.iter().fold(self.global_occupancies.len(), |count, cell| {
+            count.saturating_add(self.spatial_cells.get(cell).map_or(0, BTreeSet::len))
+        })
+    }
+
+    fn spatial_candidate_contains(&self, bounds: &Bounds3Mm, occupancy_id: &str) -> bool {
+        if !self.occupancies.contains_key(occupancy_id) {
+            return false;
+        }
+        if self.global_occupancies.contains(occupancy_id) {
+            return true;
+        }
+        let Some(cells) = grid_cells(bounds) else {
+            return true;
+        };
+        cells.iter().any(|cell| {
+            self.spatial_cells
+                .get(cell)
+                .is_some_and(|ids| ids.contains(occupancy_id))
+        })
+    }
+
+    fn temporal_candidate_estimate(&self, interval: (u64, u64)) -> usize {
+        OCCUPANCY_TIME_BUCKET_WIDTHS_MS
+            .iter()
+            .copied()
+            .enumerate()
+            .fold(
+                self.global_time_occupancies.len(),
+                |count, (level, width_ms)| {
+                    let level_count = match time_bucket_bounds(interval.0, interval.1, width_ms) {
+                        Some((first_bucket, last_bucket)) => (first_bucket..=last_bucket).fold(
+                            0_usize,
+                            |level_count, bucket| {
+                                level_count.saturating_add(
+                                    self.temporal_buckets
+                                        .get(&(level, bucket))
+                                        .map_or(0, BTreeSet::len),
+                                )
+                            },
+                        ),
+                        None => self
+                            .temporal_level_occupancies
+                            .get(&level)
+                            .map_or(0, BTreeSet::len),
+                    };
+                    count.saturating_add(level_count)
+                },
+            )
+    }
+
     fn temporal_candidate_ids(&self, (start_ms, end_ms): (u64, u64)) -> BTreeSet<String> {
         let mut candidates = self.global_time_occupancies.clone();
 
@@ -386,10 +441,34 @@ impl SpatialOccupancyBook {
         bounds: &Bounds3Mm,
         interval: (u64, u64),
     ) -> (BTreeSet<String>, BTreeSet<String>, BTreeSet<String>) {
-        let spatial = self.spatial_candidate_ids(bounds);
-        let temporal = self.temporal_candidate_ids(interval);
-        let combined = spatial.intersection(&temporal).cloned().collect();
-        (spatial, temporal, combined)
+        let spatial_estimate = self.spatial_candidate_estimate(bounds);
+        let temporal_estimate = self.temporal_candidate_estimate(interval);
+        if spatial_estimate <= temporal_estimate {
+            // Spatially selective: generate that side, then apply exact expanded
+            // interval overlap without materializing a possibly huge temporal set.
+            let spatial = self.spatial_candidate_ids(bounds);
+            let temporal: BTreeSet<_> = spatial
+                .iter()
+                .filter(|id| {
+                    self.expanded_intervals.get(*id).is_some_and(|(start, end)| {
+                        interval.0 < *end && *start < interval.1
+                    })
+                })
+                .cloned()
+                .collect();
+            (spatial, temporal.clone(), temporal)
+        } else {
+            // Temporally selective: generate only active time candidates, then
+            // probe the spatial grid per ID. This avoids enumerating every prior
+            // occupancy in a repeatedly reused workface cell.
+            let temporal = self.temporal_candidate_ids(interval);
+            let spatial: BTreeSet<_> = temporal
+                .iter()
+                .filter(|id| self.spatial_candidate_contains(bounds, id))
+                .cloned()
+                .collect();
+            (spatial.clone(), temporal, spatial)
+        }
     }
 
     fn index_temporal_interval(&mut self, occupancy_id: &str, interval: (u64, u64)) {
