@@ -268,3 +268,54 @@ cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bi
 `mfb-validate-campaign` proves only that the ten episodes and expected terminal states form a consistent test plan. It does not execute faults. The separate `mfb-run-campaign` binary executes the ten typed fault events against a fresh instance of the Rust handoff state machine and verifies the expected terminal states and negative controls: pre-dispatch failures never dispatch, same-command replay is suppressed, duplicate physical release evidence enters reconciliation, and post-dispatch ambiguity blocks blind retry.
 
 This is **protocol-level event injection**, not physical fault injection: it does not cut power, partition a live network, corrupt a sensor, move a real package or operate an actuator. Its report is included in the CI evidence artifact.
+
+## Carrier–UAV co-availability screen (synthetic contract slice)
+
+The `mfb-evaluate-coavailability` binary screens one proposed delivery-UAV sortie against a declared carrier itinerary. It checks:
+- route-stop identity, chronological route-stop time envelopes and carrier stop windows;
+- pad-resource identity bound to the exact launch and recovery route stops;
+- conservative rendezvous bounds: the latest possible arrival and earliest possible departure define the guaranteed carrier-presence interval (not optimistic ETA bounds);
+- launch and recovery service windows with interval arithmetic (launch service time is added before flight duration);
+- payload, usable battery energy plus protected reserve, peak power and continuous power;
+- declared operating permission and freshness/domain status of carrier route timing, pad/site resources, aircraft capability, permission and weather evidence;
+- launch/recovery pad reservations using half-open intervals;
+- exclusive aircraft occupancy from launch-service start through recovery-service completion, preventing one airframe from being double-booked while flying or turning around.
+
+It returns `feasible`, `infeasible` or `indeterminate`, plus a canonical SHA-256 input digest. Pad-resource and reservation ordering is normalized for hashing, while carrier route-stop order is preserved as semantic. This digest binds the report to serialized input content but does not authenticate issuers or prove the truth of source evidence. Unknown / stale / conflicted evidence and unknown / expired permission never become a pass. A known hard constraint violation is reported as infeasible. The output hard-codes `dispatch_authorized=false` and `physical_command_emitted=false`.
+
+Run the synthetic arithmetic fixture from the repository root:
+
+```bash
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-evaluate-coavailability -- \
+  tools/material-flow-benchmark/fixtures/synthetic-carrier-uav-coavailability.json
+```
+
+The fixture is synthetic and checks only declared envelopes and times. The v0.1 slice does **not** model aerodynamic performance, wind magnitude or gust effects, aircraft battery electrochemistry, route travel-time derivation, carrier traction energy, charger losses, site power, airspace truth, flight control, airworthiness, HIL or field performance. It is not dispatch authorization. Carrier arrival bounds, capability evidence, weather status and permission status are caller-supplied inputs and must be sourced/qualified by their owning systems before any operational use.
+
+The v0.1 evaluator is a feasibility/admission layer, not an optimizer. It does not select routes, move a drone or truck, create reservations, or claim savings. Broader integration and external benchmark comparison remain tracked by [MFB-DRONE-CARRIER-COOPT-001 #6083](https://github.com/Luminous-Dynamics/symtropy/issues/6083).
+
+
+## 3D cargo-bay loading validator (synthetic contract slice)
+
+The `mfb-validate-cargo-load` binary checks one declared multi-package cargo arrangement against a supplied vehicle cargo-bay, mass and combined-CG envelope. It currently provides:
+- six axis permutations for an axis-aligned cuboid;
+- bay containment and pairwise non-overlap;
+- straight-line extraction corridors from a declared X/Y bay face;
+- total cargo payload and gross vehicle mass;
+- combined CG using vehicle tare mass/CG plus package mass/box-centre contributions;
+- evidence states for bay geometry, vehicle mass/CG, package geometry and restraint;
+- a canonical SHA-256 input digest that sorts package and allowed-orientation sets while preserving the typed geometry and placement data.
+
+Run the synthetic three-package fixture from the repository root:
+
+```bash
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate-cargo-load -- \
+  tools/material-flow-benchmark/fixtures/synthetic-three-package-cargo.json
+```
+
+The straight-line access corridor is a deliberately narrow v1 abstraction; it is not a robot/gripper reachability or rehandling planner. Geometry uses axis-aligned bounding boxes and treats touching faces as non-overlap. Combined CG is calculated from the supplied vehicle tare CG and box-centre mass assumptions, with exact rational bounds checks before the integer-mm report value is emitted.
+
+The validator does **not** establish axle loads, suspension/tire capability, load restraint strength, crashworthiness, cargo deformation, irregular-shape nesting, stack stability, dynamic load transfer or roadworthiness. The supplied bay / vehicle envelope and restraint evidence must be qualified by the vehicle / road-dynamics and cargo-restraint owners. A `feasible` software report sets `physical_load_authorized=false` and is not a loading instruction.
+
+Broader 3D loading, package access/release-time, pickup/return, locker and en-route resupply benchmark work is tracked by [MFB-CARGO-3D-DYNAMIC-001 #6147](https://github.com/Luminous-Dynamics/symtropy/issues/6147).
+
