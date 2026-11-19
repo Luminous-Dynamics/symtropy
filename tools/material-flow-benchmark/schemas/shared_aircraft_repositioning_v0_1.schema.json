@@ -1,0 +1,238 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MFB shared aircraft repositioning scenario v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scenario_set_id",
+    "period_count",
+    "initial_aircraft_region_id",
+    "maximum_aircraft_energy_units",
+    "initial_aircraft_energy_units",
+    "protected_energy_reserve_units",
+    "energy_units_per_aerial_delivery",
+    "recharge_energy_units_per_idle_period",
+    "aircraft_idle_cost_per_period",
+    "regions",
+    "reposition_links",
+    "scenarios"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "scenario_set_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "period_count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 6
+    },
+    "initial_aircraft_region_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "maximum_aircraft_energy_units": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "initial_aircraft_energy_units": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "protected_energy_reserve_units": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "energy_units_per_aerial_delivery": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "recharge_energy_units_per_idle_period": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "aircraft_idle_cost_per_period": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "regions": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "region_id",
+          "road_capacity_units",
+          "aerial_service_capacity_units",
+          "road_cost_per_unit",
+          "aerial_cost_per_unit",
+          "unserved_penalty_per_unit"
+        ],
+        "properties": {
+          "region_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "road_capacity_units": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "aerial_service_capacity_units": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "road_cost_per_unit": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "aerial_cost_per_unit": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unserved_penalty_per_unit": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "reposition_links": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from_region_id",
+          "to_region_id",
+          "travel_periods",
+          "energy_units",
+          "cost_units",
+          "evidence_status"
+        ],
+        "properties": {
+          "from_region_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "to_region_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "travel_periods": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "energy_units": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "cost_units": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "evidence_status": {
+            "enum": [
+              "fresh_in_domain",
+              "unknown",
+              "stale",
+              "conflicted",
+              "revoked"
+            ]
+          }
+        }
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "probability_bps",
+          "periods"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "probability_bps": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "periods": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 6,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "observations"
+              ],
+              "properties": {
+                "observations": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "region_id",
+                      "demand_units",
+                      "weather",
+                      "permission"
+                    ],
+                    "properties": {
+                      "region_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "demand_units": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000000
+                      },
+                      "weather": {
+                        "enum": [
+                          "clear_fresh",
+                          "blocked_fresh",
+                          "unknown",
+                          "stale"
+                        ]
+                      },
+                      "permission": {
+                        "enum": [
+                          "approved_fresh",
+                          "not_approved_fresh",
+                          "unknown",
+                          "stale",
+                          "revoked"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
