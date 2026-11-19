@@ -29,7 +29,14 @@
         "maximum_pressure_pa": 500000,
         "maximum_measurement_uncertainty_g": 2000
       },
-      "evidence_refs": ["synthetic:source-scale", "synthetic:receiver-scale", "synthetic:composition-check"]
+      "evidence_refs": [
+        "synthetic:source-scale",
+        "synthetic:receiver-scale",
+        "synthetic:composition-check"
+      ],
+      "receiver_id": "serviced-client-001",
+      "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
+      "interface_revision": 3
     },
     {
       "scenario_id": "CRYOGENIC_STORAGE_ONLY",
@@ -56,7 +63,12 @@
         "maximum_pressure_pa": 300000,
         "maximum_measurement_uncertainty_g": 3000
       },
-      "evidence_refs": ["synthetic:storage-telemetry"]
+      "evidence_refs": [
+        "synthetic:storage-telemetry"
+      ],
+      "receiver_id": "serviced-client-001",
+      "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
+      "interface_revision": 3
     },
     {
       "scenario_id": "HIGH_PRESSURE_GAS_NOMINAL",
@@ -83,7 +95,14 @@
         "maximum_pressure_pa": 15000000,
         "maximum_measurement_uncertainty_g": 2000
       },
-      "evidence_refs": ["synthetic:source-meter", "synthetic:receiver-meter", "synthetic:pressure-log"]
+      "evidence_refs": [
+        "synthetic:source-meter",
+        "synthetic:receiver-meter",
+        "synthetic:pressure-log"
+      ],
+      "receiver_id": "serviced-client-001",
+      "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
+      "interface_revision": 3
     }
   ]
 }
