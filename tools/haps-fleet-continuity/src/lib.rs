@@ -476,6 +476,47 @@ fn validate_case(case: &FleetContinuityCase) -> Result<(), FleetError> {
         }
     }
 
+    for left_index in 0..case.common_cause_events.len() {
+        for right_index in left_index + 1..case.common_cause_events.len() {
+            let left = &case.common_cause_events[left_index];
+            let right = &case.common_cause_events[right_index];
+            let overlaps = left.start_hour
+                < right.start_hour + right.duration_hours - EPSILON
+                && right.start_hour
+                    < left.start_hour + left.duration_hours - EPSILON;
+            if !overlaps
+                || is_common_event_ancestor(left.event_id.as_str(), right, &common_ids)
+                || is_common_event_ancestor(right.event_id.as_str(), left, &common_ids)
+            {
+                continue;
+            }
+            let terrestrial_conflict = match (
+                left.terrestrial_capacity_override_units,
+                right.terrestrial_capacity_override_units,
+            ) {
+                (Some(left_value), Some(right_value)) => {
+                    (left_value - right_value).abs() > EPSILON
+                }
+                _ => false,
+            };
+            let satellite_conflict = match (
+                left.satellite_capacity_override_units,
+                right.satellite_capacity_override_units,
+            ) {
+                (Some(left_value), Some(right_value)) => {
+                    (left_value - right_value).abs() > EPSILON
+                }
+                _ => false,
+            };
+            if terrestrial_conflict || satellite_conflict {
+                return Err(FleetError::InvalidEvent(format!(
+                    "overlapping sibling common-cause events {} and {} have conflicting network-capacity overrides",
+                    left.event_id, right.event_id
+                )));
+            }
+        }
+    }
+
     let mut policy_ids = HashSet::new();
     for policy in &case.policy_cases {
         if policy.policy_id.trim().is_empty()
@@ -670,6 +711,38 @@ fn validate_interval(
     Ok(())
 }
 
+fn is_common_event_ancestor(
+    ancestor_id: &str,
+    descendant: &CommonCauseEvent,
+    events_by_id: &HashMap<&str, &CommonCauseEvent>,
+) -> bool {
+    let mut next_parent_id = descendant.parent_event_id.as_deref();
+    while let Some(parent_id) = next_parent_id {
+        if parent_id == ancestor_id {
+            return true;
+        }
+        next_parent_id = events_by_id
+            .get(parent_id)
+            .and_then(|parent| parent.parent_event_id.as_deref());
+    }
+    false
+}
+
+fn common_event_depth(
+    event: &CommonCauseEvent,
+    events_by_id: &HashMap<&str, &CommonCauseEvent>,
+) -> usize {
+    let mut depth = 0;
+    let mut next_parent_id = event.parent_event_id.as_deref();
+    while let Some(parent_id) = next_parent_id {
+        depth += 1;
+        next_parent_id = events_by_id
+            .get(parent_id)
+            .and_then(|parent| parent.parent_event_id.as_deref());
+    }
+    depth
+}
+
 fn evaluate_policy(
     case: &FleetContinuityCase,
     policy: &PolicyCase,
@@ -694,6 +767,18 @@ fn evaluate_policy(
     let mut current_critical_outage = 0usize;
     let mut max_critical_outage = 0usize;
     let mut planned_maintenance_hours = 0.0;
+    let common_events_by_id: HashMap<&str, &CommonCauseEvent> = case
+        .common_cause_events
+        .iter()
+        .map(|event| (event.event_id.as_str(), event))
+        .collect();
+    let mut ordered_common_events: Vec<&CommonCauseEvent> =
+        case.common_cause_events.iter().collect();
+    ordered_common_events.sort_by(|left, right| {
+        common_event_depth(left, &common_events_by_id)
+            .cmp(&common_event_depth(right, &common_events_by_id))
+            .then_with(|| left.event_id.cmp(&right.event_id))
+    });
     let reserve_dispatch_delay_hours = policy
         .reserve_dispatch_events
         .iter()
@@ -732,7 +817,7 @@ fn evaluate_policy(
                 continue;
             }
             let mut platform_factor = 1.0;
-            for event in &case.common_cause_events {
+            for event in &ordered_common_events {
                 let in_interval = time + EPSILON >= event.start_hour
                     && time < event.start_hour + event.duration_hours - EPSILON;
                 if !in_interval {
@@ -762,17 +847,17 @@ fn evaluate_policy(
         let mut terrestrial_capacity =
             case.service_contract.normal_terrestrial_capacity_units;
         let mut satellite_capacity = case.service_contract.normal_satellite_capacity_units;
-        for event in &case.common_cause_events {
+        for event in &ordered_common_events {
             let in_interval = time + EPSILON >= event.start_hour
                 && time < event.start_hour + event.duration_hours - EPSILON;
             if !in_interval {
                 continue;
             }
             if let Some(value) = event.terrestrial_capacity_override_units {
-                terrestrial_capacity = terrestrial_capacity.min(value);
+                terrestrial_capacity = value;
             }
             if let Some(value) = event.satellite_capacity_override_units {
-                satellite_capacity = satellite_capacity.min(value);
+                satellite_capacity = value;
             }
         }
 
@@ -992,6 +1077,29 @@ mod tests {
             evaluate(&case),
             Err(FleetError::InvalidEvent(message))
                 if message.contains("parent cycle")
+        ));
+    }
+
+    #[test]
+    fn overlapping_sibling_network_overrides_fail_closed() {
+        let mut case = parse_case(FIXTURE).expect("fixture parses");
+        case.common_cause_events.push(CommonCauseEvent {
+            event_id: "independent-gateway-outage".to_owned(),
+            event_class: "ground_gateway_outage".to_owned(),
+            start_hour: 370.0,
+            duration_hours: 6.0,
+            scope: "network_layer".to_owned(),
+            affected_platform_ids: None,
+            haps_capacity_factor: 1.0,
+            terrestrial_capacity_override_units: Some(0.1),
+            satellite_capacity_override_units: Some(0.2),
+            parent_event_id: None,
+        });
+
+        assert!(matches!(
+            evaluate(&case),
+            Err(FleetError::InvalidEvent(message))
+                if message.contains("conflicting network-capacity overrides")
         ));
     }
 
