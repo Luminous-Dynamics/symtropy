@@ -48,6 +48,8 @@ An in-progress commitment reserves each required resource through the evaluation
 
 ## Event and commitment semantics
 
+A case carries two event ledgers: `baselineEvents` is the immutable observation snapshot at the planning cut, while `events` is the proposed ledger containing the baseline plus any newly admitted records. Baseline event payloads—not only their identifiers—must match byte-for-byte at the typed-record level; deletion or in-place mutation is rejected. Baseline commitments must bind exactly the baseline event IDs for their task, and proposed commitments must bind the complete current event IDs. This gives the replay an explicit non-anticipative history boundary.
+
 Execution events bind:
 - event and idempotency identities;
 - task/segment/sequence;
@@ -72,6 +74,10 @@ This is the best first external calendar/disruption transfer corpus for #6119/#6
 
 Salvadori and Agnetis, *The impact of the number of preemptions in resource-constrained project scheduling problems with time-varying resources*, Annals of Operations Research (2025), DOI [10.1007/s10479-025-06892-2](https://doi.org/10.1007/s10479-025-06892-2). The study computes makespan/preemption Pareto fronts for 30-job instances and reports that a small number of preemptions often captures much of the makespan benefit, especially with time-varying resources. The benchmark implication is to measure makespan and interruption/coordination burden together, not maximize preemption.
 
+### Distribution-network electrical and microgrid qualification
+
+The November 2026 review *Microgrid integration into IEEE standard test-bus distribution networks: Load flow, optimal dispatch, reliability, and protection coordination* surveys IEEE 14/33/69/118/123-bus families and identifies gaps in unbalanced three-phase modelling and cyber/physical integration. DOI: [10.1016/j.compeleceng.2026.111424](https://doi.org/10.1016/j.compeleceng.2026.111424). Use IEEE feeder models to test the service/physical-model interface and do not let the project scheduler imply electrical feasibility, protection coordination or safe switching. These are separate qualification oracles owned by the grid model specialists.
+
 ### Decision-valued inspection and information quality
 
 Three adjacent 2026 studies make the next grid-specific extension clear:
@@ -82,6 +88,10 @@ Three adjacent 2026 studies make the next grid-specific extension clear:
 
 These are inspection/diagnosis and value-of-information comparators, not evidence that our scheduler has that capability. Integrate their question into #6242 and reuse the repository's decision-value / selective-repair pattern in [#5520](https://github.com/Luminous-Dynamics/symtropy/issues/5520) and [#3527](https://github.com/Luminous-Dynamics/symtropy/issues/3527). Do not fork a second Bayesian diagnosis engine or generic VoI model.
 
+### Grid restoration with uncertainty-aware repair scheduling
+
+An additional June 2026 comparator, *An integrated framework for post-disaster distribution system restoration with uncertainty-aware repair scheduling* (Sustainable Energy, Grids and Networks 46, 102294), jointly considers repair-crew depot placement, uncertain crew scheduling and mobile-generator utilization, with short-/long-duration fault categories and time-driven assignments. DOI: [10.1016/j.segan.2026.102294](https://doi.org/10.1016/j.segan.2026.102294). This is a stronger grid-native operational comparator than generic RCPSP alone; its resource/depot/mobile-generation assumptions should be adapted faithfully and its results remain paper-specific until independently reproduced.
+
 ### Stochastic reactive scheduling
 
 *Constraint programming approaches for stochastic RCPSP subject to disruptions*, Computers & Operations Research 191 (July 2026), 107431, DOI [10.1016/j.cor.2026.107431](https://doi.org/10.1016/j.cor.2026.107431), compares proactive-reactive CP strategies with a right-shift control policy under random job durations. It reports improved robustness/stability against its own classical baseline but no public dataset. Use it as a policy comparator, not an imported corpus.
@@ -91,6 +101,11 @@ These are inspection/diagnosis and value-of-information comparators, not evidenc
 Ghasemi et al., *A multi-skilled RCPSP with reliability constraints*, Computers & Industrial Engineering 219 (September 2026), 112154, DOI [10.1016/j.cie.2026.112154](https://doi.org/10.1016/j.cie.2026.112154). It uses M/M/1 disruption/retrieval rates, an exact AUGMECON2-VIKOR small-instance approach and a hybrid NSGA-II large-instance comparator on PSPLIB/iMOPSE. This informs future multi-skill/reliability benchmarking; it is not equivalent to the current fixed-resource recovery case.
 
 ## Benchmark protocol
+
+An additional **event-history immutability stratum** is mandatory: mutate a baseline event while preserving its ID, delete a baseline event, duplicate a baseline ID, append an event without a reconciliation, or reorder independent records. The first four must fail closed; the final permutation must produce the same canonical report. Candidate replanning is evaluated only relative to a frozen event payload snapshot, not a mutable list of identifiers.
+
+## Benchmark protocol
+
 
 Compare the existing non-preemptive scheduler with:
 1. non-preemptive calendar-aware baseline;
