@@ -74,6 +74,17 @@ fn earliest_slot_for_resource(
             requirement.resource_id
         ));
     }
+    let max_window_hours = profile
+        .availability_windows
+        .iter()
+        .map(|window| window.end_hour - window.start_hour)
+        .fold(0.0, f64::max);
+    if duration_hours > max_window_hours + 1e-9 {
+        return Err(format!(
+            "task duration {}h exceeds every availability window for resource {}",
+            duration_hours, requirement.resource_id
+        ));
+    }
 
     let mut period_index = (ready_hour / profile.calendar_period_hours).floor().max(0.0);
     for _ in 0..100_000 {
@@ -656,6 +667,36 @@ mod tests {
         let result = schedule(&[task], &profiles).expect("calendar should have next shift");
         assert_eq!(result[0].start_hour, 32.0);
         assert_eq!(result[0].end_hour, 37.0);
+    }
+
+    #[test]
+    fn intersects_calendars_across_all_simultaneous_resources() {
+        let mut task = spec("E1", "repair", &[], 0.0, 2.0, None, 0);
+        task.resource_requirements = vec![
+            ResourceRequirement { resource_id: "crew".to_string(), units: 1 },
+            ResourceRequirement { resource_id: "crane".to_string(), units: 1 },
+            ResourceRequirement { resource_id: "test_rig".to_string(), units: 1 },
+        ];
+        let profiles = BTreeMap::from([
+            ("crew".to_string(), profile(1, 24.0, &[(0.0, 24.0)])),
+            ("crane".to_string(), profile(1, 24.0, &[(8.0, 12.0)])),
+            ("test_rig".to_string(), profile(1, 24.0, &[(10.0, 18.0)])),
+        ]);
+        let result = schedule(&[task], &profiles).expect("calendar intersection should exist");
+        assert_eq!(result[0].start_hour, 10.0);
+        assert_eq!(result[0].end_hour, 12.0);
+    }
+
+    #[test]
+    fn rejects_task_longer_than_every_shift_window() {
+        let task = spec("E1", "haul", &[], 0.0, 12.0, Some("hauler"), 1);
+        let profiles = BTreeMap::from([(
+            "hauler".to_string(),
+            profile(1, 24.0, &[(8.0, 18.0)]),
+        )]);
+        assert!(schedule(&[task], &profiles)
+            .unwrap_err()[0]
+            .contains("exceeds every availability window"));
     }
 
     #[test]
