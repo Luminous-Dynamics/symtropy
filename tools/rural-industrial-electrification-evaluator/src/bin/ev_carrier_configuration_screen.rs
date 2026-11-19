@@ -36,7 +36,7 @@ struct BaseDesignResult {
     site_power_budget_kw: f64,
     simultaneous_vehicles: u32,
     charging_efficiency_fraction: f64,
-    base_peak_site_input_power_kw: f64,
+    base_peak_site_input_power_kw_upper_bound: f64,
     effective_charger_power_kw: f64,
     estimated_recharge_hours: f64,
     available_window_hours: f64,
@@ -126,9 +126,9 @@ struct CarrierResult {
     combined_site_meter_energy_kwh: Option<f64>,
     total_vehicle_recharge_hours: Option<f64>,
     remaining_vehicle_charge_window_hours: Option<f64>,
-    combined_site_peak_input_power_kw: Option<f64>,
+    combined_site_peak_input_power_kw_upper_bound: Option<f64>,
     site_power_budget_kw: f64,
-    site_peak_power_margin_kw: Option<f64>,
+    site_peak_power_margin_kw_upper_bound: Option<f64>,
     missing_fields: Vec<String>,
     findings: Vec<String>,
     energy_boundary: String,
@@ -474,10 +474,16 @@ fn evaluate_configuration(
     };
 
     let external_site_recharge_lower_bound = match (external_site_energy, external_site_peak) {
-        (Some(energy), Some(peak)) if energy == 0.0 => Some(0.0),
+        (Some(0.0), Some(_)) => Some(0.0),
         (Some(energy), Some(peak)) if peak > 0.0 => Some(energy / peak),
         _ => None,
     };
+    let external_site_recharge_is_peak_power_lower_bound =
+        matches!((external_site_energy, external_site_peak), (Some(energy), Some(peak)) if energy > 0.0 && peak > 0.0);
+    if external_site_recharge_is_peak_power_lower_bound {
+        missing_fields.push("external_site_charge_curve_or_time_series_profile".into());
+
+    }
     let external_site_window_margin_lower_bound = match (
         external_site_recharge_lower_bound,
         external_site_window,
@@ -491,12 +497,12 @@ fn evaluate_configuration(
         configuration.external_site_peak_coincident_with_vehicle_charging,
     ) {
         (Some(additional), Some(coincident)) => Some(if coincident {
-            base.base_peak_site_input_power_kw + additional
+            base.base_peak_site_input_power_kw_upper_bound + additional
         } else {
-            base.base_peak_site_input_power_kw.max(additional)
+            base.base_peak_site_input_power_kw_upper_bound.max(additional)
         }),
         (Some(additional), None) if additional == 0.0 => {
-            Some(base.base_peak_site_input_power_kw)
+            Some(base.base_peak_site_input_power_kw_upper_bound)
         }
         (Some(_), None) | (None, _) => None,
     };
@@ -552,7 +558,15 @@ fn evaluate_configuration(
             );
         }
     }
-    let known_blocker = !findings.is_empty();
+    let known_blocker = base.status == BaseStatus::Blocked
+        || gross_mass_margin.is_some_and(|margin| margin < -1e-9)
+        || battery_energy_margin.is_some_and(|margin| margin < -1e-9)
+        || continuous_power_margin.is_some_and(|margin| margin < -1e-9)
+        || peak_power_margin.is_some_and(|margin| margin < -1e-9)
+        || remaining_charge_window.is_some_and(|margin| margin < -1e-9)
+        || site_peak_margin.is_some_and(|margin| margin < -1e-9)
+        || matches!((external_site_energy, external_site_peak), (Some(energy), Some(0.0)) if energy > 0.0)
+        || external_site_window_margin_lower_bound.is_some_and(|margin| margin < -1e-9);
     let base_indeterminate = base.status == BaseStatus::Indeterminate;
     let unknown_evidence = configuration.evidence_class == "unknown";
     let status = if known_blocker {
@@ -592,12 +606,13 @@ fn evaluate_configuration(
         external_site_recharge_hours_lower_bound: external_site_recharge_lower_bound,
         external_site_charge_window_margin_hours_lower_bound:
             external_site_window_margin_lower_bound,
+        external_site_recharge_is_peak_power_lower_bound,
         combined_site_meter_energy_kwh: combined_site_energy,
         total_vehicle_recharge_hours,
         remaining_vehicle_charge_window_hours: remaining_charge_window,
-        combined_site_peak_input_power_kw: combined_site_peak,
+        combined_site_peak_input_power_kw_upper_bound: combined_site_peak,
         site_power_budget_kw: base.site_power_budget_kw,
-        site_peak_power_margin_kw: site_peak_margin,
+        site_peak_power_margin_kw_upper_bound: site_peak_margin,
         missing_fields,
         findings,
         energy_boundary: configuration.energy_boundary_note.clone(),
@@ -631,7 +646,7 @@ mod tests {
             site_power_budget_kw: 500.0,
             simultaneous_vehicles: 2,
             charging_efficiency_fraction: 0.93,
-            base_peak_site_input_power_kw: 500.0,
+            base_peak_site_input_power_kw_upper_bound: 500.0,
             effective_charger_power_kw: 250.0,
             estimated_recharge_hours: (230.0 / 0.93) / 250.0,
             available_window_hours: 4.0,
@@ -670,7 +685,7 @@ mod tests {
         assert_eq!(result.loaded_mass_with_module_kg, Some(20_200.0));
         assert_eq!(result.gross_mass_margin_after_module_kg, Some(5_800.0));
         assert_eq!(result.vehicle_battery_energy_margin_after_module_kwh, Some(64.462));
-        assert_eq!(result.site_peak_power_margin_kw, Some(0.0));
+        assert_eq!(result.site_peak_power_margin_kw_upper_bound, Some(0.0));
         assert!(result.missing_fields.is_empty());
     }
 
@@ -731,7 +746,25 @@ mod tests {
         assert_eq!(result.external_site_recharge_hours_lower_bound, Some(2.0));
         assert_eq!(result.external_site_charge_window_margin_hours_lower_bound, Some(1.0));
         assert!(result.external_site_recharge_is_peak_power_lower_bound);
-        assert_eq!(result.status, Status::PassesSyntheticScreen);
+        assert_eq!(result.status, Status::Indeterminate);
+        assert!(result.missing_fields.iter().any(|field| {
+            field == "external_site_charge_curve_or_time_series_profile"
+        }));
+    }
+
+    #[test]
+    fn external_site_energy_is_not_rankable_from_peak_power_lower_bound_alone() {
+        let mut config = known_zero_config();
+        config.incremental_external_site_meter_energy_kwh = Some(20.0);
+        config.incremental_external_site_peak_power_kw = Some(10.0);
+        config.incremental_external_site_charging_window_hours = Some(3.0);
+        config.external_site_peak_coincident_with_vehicle_charging = Some(false);
+        let mut result = evaluate_configuration(&config, &base_design("urban-distribution-truck"));
+        assert_eq!(result.external_site_recharge_hours_lower_bound, Some(2.0));
+        assert_eq!(result.status, Status::Indeterminate);
+        assert!(result.missing_fields.iter().any(|field| {
+            field == "external_site_charge_curve_or_time_series_profile"
+        }));
     }
 
     #[test]
@@ -770,7 +803,7 @@ mod tests {
         config.external_site_peak_coincident_with_vehicle_charging = Some(true);
         let result = evaluate_configuration(&config, &base_design("urban-distribution-truck"));
         assert_eq!(result.status, Status::Blocked);
-        assert_eq!(result.site_peak_power_margin_kw, Some(-50.0));
+        assert_eq!(result.site_peak_power_margin_kw_upper_bound, Some(-50.0));
     }
 
     #[test]
