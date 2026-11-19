@@ -1,0 +1,599 @@
+{
+  "schema": "symtropy.engine_capability_census_reference.v1",
+  "title": "ENG-SYNTH-CRED-001B exact engine capability and model-path reference",
+  "status": "frozen_source_reference_pending_independent_qualification",
+  "source_identity": {
+    "repository": "Luminous-Dynamics/symtropy",
+    "branch_at_resolution": "main",
+    "commit": "0b3b9a6f541b616a2132fee1493515f9bcf3d4c0",
+    "package": "symtropy-physics",
+    "package_version": "0.2.1",
+    "rust_edition": "2024",
+    "math_package": "symtropy-math",
+    "math_package_version": "0.2.1",
+    "source_files": {
+      "crates/core/symtropy-physics/Cargo.toml": "ac8f9105d2d180a780e2a8c88f9a4bc3f8cb9a66",
+      "crates/core/symtropy-physics/src/lib.rs": "19bac3b37524474e466204d14ab89207a308840c",
+      "crates/core/symtropy-physics/src/world.rs": "7dccf283f858c4874c96425fd7aa8aa3e176a557",
+      "crates/core/symtropy-physics/src/body.rs": "094f5f67ebc07b3eb28d69fc0b8b60d9299012e9",
+      "crates/core/symtropy-physics/src/integrator.rs": "c2e32f1bc14adf249f3b797e54209d501e491d9d",
+      "crates/core/symtropy-physics/src/ccd.rs": "baeb60e4837135423b162c223138ad54effbaea9",
+      "crates/core/symtropy-physics/src/raycast.rs": "df6b088f27bc98e536be96ff5d72670a5f18d54c",
+      "crates/core/symtropy-physics/src/diagnostics.rs": "d4bab2ec7217471653315986eb77f0d13a895d44",
+      "crates/core/symtropy-physics/src/replay.rs": "ae4a822f97c6c80edf4882641279fd4fdcae4c2f",
+      "crates/core/symtropy-physics/src/bin/replay_cli.rs": "17673d1ab937ea3ccb282508a07b4b140add30e3",
+      "crates/core/symtropy-physics/src/joints/mod.rs": "93be02d7d87b20294a4619db7cd015b0fa6d967e",
+      "crates/core/symtropy-physics/src/joints/hinge.rs": "6e77cb284b092d955143faa7f2aed8898387d01c",
+      "crates/core/symtropy-physics/src/joints/prismatic.rs": "afb019dcaf7d5f5d490696154a2df9be26b83ea9",
+      "crates/core/symtropy-physics/src/constraint.rs": "631ef8b3f59261175b0c8a7a95866932e02f1262",
+      "crates/core/symtropy-physics/src/contact.rs": "d90224abdc205feed54df1ca7b8d540fc6631d0e",
+      "crates/core/symtropy-physics/src/manifold_gen.rs": "5b1acbf6a2997981989f9cc49b78fe2670d2d12e",
+      "crates/core/symtropy-physics/src/articulation.rs": "7925bc6ec7fe619bc161ef476675d7d42b982e27",
+      "crates/core/symtropy-math/src/lib.rs": "42052c3e91d478e18d777d4eb3c7086b238ea377",
+      "crates/core/symtropy-math/src/shape.rs": "80664df2db0e59a8d8328527e500fc47baa86aa6",
+      "crates/core/symtropy-math/src/compound.rs": "a5eca908e897738425d065cc13fd2f6fb7ec3a4e",
+      "crates/core/symtropy-math/src/convex_hull.rs": "be10bf349bc5e0b02181b062981f31387653bafa",
+      "crates/core/symtropy-math/src/halfspace.rs": "5ce17d01f793bc543037310bec737f463bb51e87",
+      "crates/core/symtropy-math/src/hyperbox.rs": "d5fab7bfae199bf3d743d5ec9e3a63f811200e52",
+      "crates/core/symtropy-math/src/capsule.rs": "0c3012a49ec8c698776cd3db9c3f5854d958c505",
+      "crates/core/symtropy-math/src/sphere.rs": "24da623e2f1b880da9cf61a86343b94b55a90160"
+    }
+  },
+  "capability_status_vocabulary": [
+    "SupportedExactUnderProfile",
+    "SupportedNumericalModel",
+    "SupportedApproximation",
+    "SupportedViaDeclaredProvider",
+    "PartiallySupported",
+    "Unsupported",
+    "UnknownUncensused"
+  ],
+  "dimensions": {
+    "compile_time_model": "const-generic D",
+    "public_documentation_focus": [
+      2,
+      3,
+      4
+    ],
+    "interpretation": "Type-level dimensional generality does not imply every subsystem path is supported or qualified in every dimension."
+  },
+  "shape_families": [
+    {
+      "id": "Sphere",
+      "status": "SupportedNumericalModel"
+    },
+    {
+      "id": "HyperBox",
+      "status": "SupportedNumericalModel"
+    },
+    {
+      "id": "Capsule",
+      "status": "SupportedNumericalModel"
+    },
+    {
+      "id": "HalfSpace",
+      "status": "SupportedNumericalModel"
+    },
+    {
+      "id": "ConvexHull",
+      "status": "SupportedNumericalModel"
+    },
+    {
+      "id": "CompoundShape",
+      "status": "SupportedNumericalModel"
+    },
+    {
+      "id": "ExternalNonConvexMesh",
+      "status": "SupportedViaDeclaredProvider"
+    },
+    {
+      "id": "Hyperplane",
+      "status": "UnknownUncensusedForWorldCollision"
+    }
+  ],
+  "contact_paths": [
+    {
+      "pair": "exactly one HalfSpace + one bounded convex Shape",
+      "route": "analytical HalfSpace contact; trust analytic no-contact result",
+      "status": "SupportedExactUnderProfile"
+    },
+    {
+      "pair": "HalfSpace + HalfSpace",
+      "route": "not admitted to analytic or generic GJK/EPA route",
+      "status": "Unsupported"
+    },
+    {
+      "pair": "HyperBox + HyperBox, both identity rotations",
+      "route": "axis-aligned SAT",
+      "status": "SupportedExactUnderProfile",
+      "dimensions": "all compiled D"
+    },
+    {
+      "pair": "HyperBox + HyperBox, rotated",
+      "route": "oriented-box SAT",
+      "status": "SupportedExactUnderProfile",
+      "dimensions": [
+        2,
+        3
+      ]
+    },
+    {
+      "pair": "HyperBox + HyperBox, rotated 4D",
+      "route": "transform-aware GJK/EPA",
+      "status": "SupportedNumericalModel",
+      "dimensions": [
+        4
+      ]
+    },
+    {
+      "pair": "bounded convex support-mapped pair without specialization",
+      "route": "transform-aware GJK then EPA",
+      "status": "SupportedNumericalModel"
+    },
+    {
+      "pair": "mesh pair with declared provider",
+      "route": "downstream mesh-contact callback",
+      "status": "SupportedViaDeclaredProvider"
+    },
+    {
+      "pair": "mesh-like or unknown shape without provider",
+      "route": "generic Shape support-map fallback where applicable",
+      "status": "SupportedApproximation"
+    }
+  ],
+  "ccd": {
+    "speed_threshold": 5,
+    "caster": "dynamic, non-sleeping, non-sensor Sphere only",
+    "targets": [
+      "Sphere",
+      "HalfSpace"
+    ],
+    "analytical_routes": [
+      "quadratic swept sphere-sphere",
+      "linear swept sphere-halfspace"
+    ],
+    "unsupported_casters": [
+      "HyperBox",
+      "Capsule",
+      "ConvexHull",
+      "CompoundShape",
+      "other non-Sphere"
+    ],
+    "unsupported_targets": [
+      "non-Sphere",
+      "non-HalfSpace"
+    ],
+    "status": "PartiallySupported",
+    "caveat": "Speed threshold and tested analytical pairs do not prove absence of tunneling outside this profile."
+  },
+  "raycasts": [
+    {
+      "shape": "Sphere",
+      "route": "transformed analytical ray-sphere",
+      "status": "SupportedExactUnderProfile"
+    },
+    {
+      "shape": "HyperBox",
+      "route": "transformed analytical ray-box",
+      "status": "SupportedExactUnderProfile"
+    },
+    {
+      "shape": "Capsule",
+      "route": "transformed analytical ray-capsule",
+      "status": "SupportedExactUnderProfile"
+    },
+    {
+      "shape": "HalfSpace",
+      "route": "transformed analytical ray-halfspace",
+      "status": "SupportedExactUnderProfile"
+    },
+    {
+      "shape": "ConvexHull / CompoundShape / other generic shapes",
+      "route": "transformed bounding-sphere fallback",
+      "status": "SupportedApproximation",
+      "effect": "possible false-positive geometry hit"
+    }
+  ],
+  "joints": {
+    "exported_types": [
+      "FixedJoint",
+      "BallJoint",
+      "HingeJoint",
+      "PrismaticJoint"
+    ],
+    "additional_constraint_api": "Constraint<D> with DistanceConstraint implementation",
+    "motor_drive": "MotorDrive.calculate_impulse implements position-plus-velocity PD when caller supplies current position and velocity.",
+    "hinge": {
+      "mode": "velocity-only PD",
+      "target_pos_consumed": false,
+      "target_vel_consumed": true,
+      "angle_limits_enforced": false,
+      "effort_update": "torque * dt applied as fixed +/-0.5 angular-velocity changes on dynamic endpoints",
+      "inverse_inertia_mapping": "not applied through endpoint inverse inertia in inspected hinge motor path",
+      "work_record": "torque * relative angular velocity * dt",
+      "status": "PartiallySupported",
+      "owner_issue": 4516
+    },
+    "prismatic": {
+      "mode": "slide-axis position/velocity PD",
+      "status": "SupportedNumericalModel"
+    },
+    "solver_iterations_default": 4,
+    "solver_loops": "position and velocity-level constraint solves each repeat solver_iterations",
+    "capacity": "No fixed global maximum constraint count found; runtime capacity remains UnknownUncensused."
+  },
+  "callbacks_and_providers": {
+    "callback_api": "PhysicsCallback<D>",
+    "callback_methods": [
+      "modulate_force",
+      "modulate_impulse",
+      "friction_multiplier",
+      "on_collision",
+      "record_dissipation",
+      "record_work",
+      "apply_trauma"
+    ],
+    "step_without_callback": "PhysicsWorld.step uses NoOpCallback",
+    "explicit_callback_path": "PhysicsWorld.step_with_callback",
+    "callback_identity": "Caller-supplied identity is not stored by PhysicsWorld; descriptor can report API/policy surface only.",
+    "mesh_provider_apis": [
+      "register_mesh_contact_fn (translation-only compatibility)",
+      "register_mesh_contact_transform_fn (transform-aware)"
+    ],
+    "provider_identity": "Injected closure identity is not introspectable; owner must supply exact provider build identity."
+  },
+  "determinism": {
+    "native_float": {
+      "status": "SupportedNumericalModel",
+      "claim": "Cross-platform bitwise equality is not established."
+    },
+    "deterministic_net_q16_16": {
+      "status": "PartiallySupported",
+      "quantized": [
+        "force_accumulator before integration",
+        "translation after integration",
+        "linear_velocity after integration"
+      ],
+      "not_quantized": [
+        "torque_accumulator",
+        "angular_velocity",
+        "rotation",
+        "contact_cache/lambda",
+        "constraint_internal_state",
+        "callback_outputs",
+        "mesh_provider_outputs"
+      ],
+      "claim": "The feature comment must not be promoted into an all-state bitwise guarantee."
+    }
+  },
+  "sleeping": {
+    "default_threshold": 0.5,
+    "default_ticks": 60,
+    "semantic_effect": "After the low-speed counter reaches the configured tick count, a dynamic body is marked sleeping and linear_velocity and angular_velocity are set to zero.",
+    "profile_identity_fields": [
+      "enabled",
+      "threshold",
+      "ticks",
+      "velocity_zeroing_semantics"
+    ]
+  },
+  "diagnostics": {
+    "observed_fields": [
+      "dynamic_mass",
+      "center_of_mass",
+      "linear_momentum",
+      "kinetic_energy",
+      "gravitational_potential_energy",
+      "mechanical_energy",
+      "max_linear_speed",
+      "max_angular_speed",
+      "max_rotation_orthogonality_error",
+      "max_rotation_determinant_error",
+      "max_penetration_depth",
+      "non_finite_body_count"
+    ],
+    "health_predicate_checks": [
+      "non_finite_body_count == 0",
+      "max_rotation_orthogonality_error <= supplied tolerance",
+      "max_rotation_determinant_error <= supplied tolerance"
+    ],
+    "health_predicate_does_not_check": [
+      "momentum_drift",
+      "energy_drift",
+      "max_speeds",
+      "max_penetration_depth",
+      "input_sanitization",
+      "velocity_clamp_activation",
+      "contact/constraint residuals",
+      "callback/provider participation",
+      "sleep velocity zeroing",
+      "Q16 quantization error",
+      "model-path applicability"
+    ],
+    "status": "PartiallySupported"
+  },
+  "replay": {
+    "low_level": {
+      "types": [
+        "ReplayTape",
+        "WorldCommand",
+        "WorldSnapshot"
+      ],
+      "identity": "BodyHandle",
+      "snapshot": "raw f64 state bits plus body handles and last-step collision events"
+    },
+    "symtape_cli": {
+      "format": "SYMTAPE v1",
+      "identity": "stable NetId sorted for world reconstruction",
+      "dimensions": [
+        2,
+        3,
+        4
+      ],
+      "hash": "FNV-1a 64 non-cryptographic state hash",
+      "status": "ProofOfConceptCLI"
+    },
+    "reusable_library": "No generalized reusable SYMTAPE library contract established in this source.",
+    "portable_engineering_identity": "Unavailable",
+    "cross_platform_bitwise": "NotEstablished"
+  },
+  "profile_defaults": {
+    "solver_iterations": 4,
+    "slop": 0.01,
+    "baumgarte": 0.2,
+    "compliance": 0,
+    "sleep_threshold": 0.5,
+    "sleep_ticks": 60,
+    "ccd_speed_threshold": 5,
+    "max_contacts_constant": 8,
+    "manifold_generator_emission_cap": 4,
+    "note": "Per-manifold contact capacity is not a global world contact-pair capacity. No global maximum body or constraint count was found."
+  },
+  "approximations_and_negative_findings": [
+    {
+      "id": "rotational_inertia",
+      "status": "SupportedApproximation",
+      "detail": "Integrator averages inverse inertia components before applying angular acceleration; exact only for isotropic inertia profiles such as spheres."
+    },
+    {
+      "id": "rotational_kinetic_energy",
+      "status": "SupportedApproximation",
+      "detail": "RigidBody.kinetic_energy uses a mean inertia scalar."
+    },
+    {
+      "id": "merge_toolhead",
+      "status": "SupportedApproximation",
+      "detail": "Tool inertia estimate is 0.4 * tool_mass * 0.1^2; combined inertia is collapsed into an isotropic scalar repeated across axes."
+    },
+    {
+      "id": "input_and_state_guards",
+      "status": "SupportedNumericalModel",
+      "detail": "Non-finite force/torque accumulators are sanitized; linear/angular speed clamps and post-integration non-finite handling alter the numerical path."
+    },
+    {
+      "id": "ten_box_stack",
+      "status": "KnownNegativeFinding",
+      "detail": "The ten-box stack test is ignored; source comments report it does not settle cleanly after trying 30 solver iterations. The three-box regression is a separate passing scope."
+    },
+    {
+      "id": "hinge_motor_and_limits",
+      "status": "PartiallySupported",
+      "detail": "Hinge target_pos and stored angle_limits are not consumed by the inspected hinge solve; motor velocity updates use a fixed half-split."
+    },
+    {
+      "id": "replay_hash_authority",
+      "status": "KnownNegativeFinding",
+      "detail": "SYMTAPE FNV-1a 64 is a divergence diagnostic, not a cryptographic evidence commitment."
+    }
+  ],
+  "capacity_and_overflow": {
+    "max_contact_points_constant": 8,
+    "manifold_generator_emission_cap": 4,
+    "max_bodies": "UnknownUncensused",
+    "max_constraints": "UnknownUncensused",
+    "broadphase_capacity": "UnknownUncensused",
+    "workspace_capacity": "UnknownUncensused",
+    "interpretation": "Do not infer absence of limits or silent truncation without an exact source path."
+  },
+  "fixtures": [
+    {
+      "id": "same_source_same_profile",
+      "mutation": "same source + same features + same profile",
+      "expected": "identity_unchanged",
+      "rationale": "Canonical reference content has one stable identity."
+    },
+    {
+      "id": "deterministic_net_feature_enabled",
+      "mutation": "enable deterministic-net",
+      "expected": "identity_changed",
+      "rationale": "Feature-set change is claim-relevant."
+    },
+    {
+      "id": "halfspace_pair_generic_shape_trait",
+      "mutation": "two HalfSpace shapes",
+      "expected": "unsupported",
+      "rationale": "Generic support maps do not make unbounded HalfSpace pairs valid."
+    },
+    {
+      "id": "exactly_one_halfspace",
+      "mutation": "one HalfSpace + one bounded convex Shape",
+      "expected": "analytic_path",
+      "rationale": "Exactly-one-HalfSpace pair uses the analytical route."
+    },
+    {
+      "id": "rotated_4d_box_pair",
+      "mutation": "rotated HyperBox pair in 4D",
+      "expected": "gjk_epa_path",
+      "rationale": "Rotated 4D boxes do not use 2D/3D oriented-box SAT."
+    },
+    {
+      "id": "sphere_ccd_to_box",
+      "mutation": "fast box used as CCD caster",
+      "expected": "unsupported",
+      "rationale": "World CCD caster is dynamic Sphere only."
+    },
+    {
+      "id": "ccd_speed_threshold",
+      "mutation": "speed around threshold 5.0",
+      "expected": "conditional",
+      "rationale": "Speed gate does not prove absence of tunneling."
+    },
+    {
+      "id": "mesh_provider_absent_vs_declared",
+      "mutation": "provider absent versus declared",
+      "expected": "different_capability",
+      "rationale": "Provider absence/presence are distinct."
+    },
+    {
+      "id": "callback_api_vs_engineering_permission",
+      "mutation": "PhysicsCallback API exists",
+      "expected": "not_authorized",
+      "rationale": "API existence does not grant EngineeringDeterministic permission."
+    },
+    {
+      "id": "noop_vs_arbitrary_callback",
+      "mutation": "NoOpCallback versus caller callback",
+      "expected": "different_model_path",
+      "rationale": "No-op behavior does not qualify arbitrary callback behavior."
+    },
+    {
+      "id": "mean_inertia_stable_integration",
+      "mutation": "asymmetric body with mean inertia",
+      "expected": "approximation_retained",
+      "rationale": "Stable integration does not upgrade inertia approximation."
+    },
+    {
+      "id": "ignored_ten_box_stack",
+      "mutation": "ten-box stack negative reference",
+      "expected": "limitation_retained",
+      "rationale": "Ignored long-stack failure remains visible."
+    },
+    {
+      "id": "healthy_predicate_with_energy_drift",
+      "mutation": "healthy predicate true with energy drift",
+      "expected": "no_upgrade",
+      "rationale": "Health helper does not test energy drift."
+    },
+    {
+      "id": "symtape_cli_as_library",
+      "mutation": "SYMTAPE CLI exists",
+      "expected": "cli_only",
+      "rationale": "CLI PoC is not a reusable replay library."
+    },
+    {
+      "id": "replay_tape_portability",
+      "mutation": "ReplayTape uses BodyHandle",
+      "expected": "portable_identity_unavailable",
+      "rationale": "Runtime handle is not portable engineering identity."
+    },
+    {
+      "id": "overlap_sensor_as_measurement",
+      "mutation": "sensor overlap event observed",
+      "expected": "synthetic_event_only",
+      "rationale": "Overlap event is not calibrated measurement."
+    },
+    {
+      "id": "raycast_as_perception",
+      "mutation": "raycast hit for collider",
+      "expected": "geometry_query_only",
+      "rationale": "Geometry query is not perception accuracy."
+    },
+    {
+      "id": "joint_export_as_validation",
+      "mutation": "joint type exported",
+      "expected": "parameter_validation_unknown",
+      "rationale": "Exported type does not validate every regime."
+    },
+    {
+      "id": "unknown_capability",
+      "mutation": "uncensused path requested",
+      "expected": "unknown_uncensused",
+      "rationale": "Unknown remains unknown."
+    },
+    {
+      "id": "census_as_authority",
+      "mutation": "capability census queried",
+      "expected": "no_authority_promotion",
+      "rationale": "No credibility, requirement or actuation authority."
+    },
+    {
+      "id": "q16_coverage",
+      "mutation": "deterministic-net enabled",
+      "expected": "partial_quantization",
+      "rationale": "Only force, translation and linear velocity are quantized in inspected path."
+    },
+    {
+      "id": "sleep_profile_change",
+      "mutation": "sleep threshold or ticks changed",
+      "expected": "identity_changed",
+      "rationale": "Sleep policy is model/profile identity."
+    },
+    {
+      "id": "sleep_velocity_zeroing",
+      "mutation": "body enters sleep",
+      "expected": "state_transform_retained",
+      "rationale": "Sleep zeros linear and angular velocity."
+    },
+    {
+      "id": "convex_hull_raycast",
+      "mutation": "raycast generic ConvexHull",
+      "expected": "bounding_sphere_approximation",
+      "rationale": "Generic raycast fallback may false-positive."
+    },
+    {
+      "id": "replay_body_handle",
+      "mutation": "ReplayTape command uses BodyHandle",
+      "expected": "transient_identity",
+      "rationale": "Low-level replay uses runtime handles."
+    },
+    {
+      "id": "symtape_net_id",
+      "mutation": "SYMTAPE reconstructs sorted NetId bodies",
+      "expected": "stable_cli_identity",
+      "rationale": "Stable CLI identity differs from low-level replay."
+    },
+    {
+      "id": "health_with_model_limitation",
+      "mutation": "healthy predicate with approximate model path",
+      "expected": "applicability_unchanged",
+      "rationale": "Numerical health does not remove model limitation."
+    },
+    {
+      "id": "merge_toolhead_mass_properties",
+      "mutation": "merge_toolhead invoked",
+      "expected": "approximation_disclosed",
+      "rationale": "Fixed tool inertia estimate and isotropic scalar collapse."
+    },
+    {
+      "id": "solver_iteration_change",
+      "mutation": "solver_iterations changed",
+      "expected": "identity_changed",
+      "rationale": "Solver iteration count changes profile identity."
+    },
+    {
+      "id": "callback_provider_determinism",
+      "mutation": "callback/provider labelled deterministic",
+      "expected": "conditional_only",
+      "rationale": "Determinism is conditional on their own qualified behavior."
+    }
+  ],
+  "claim_ceiling": {
+    "establishes": "Only that a reference descriptor for one exact engine source revision reports the inspected implementation paths and known limitations.",
+    "does_not_establish": [
+      "physical validity",
+      "accuracy for any engineering context of use",
+      "numerical health of a particular run",
+      "model credibility",
+      "requirement satisfaction",
+      "safety",
+      "certification",
+      "authorization",
+      "physical-control authority"
+    ]
+  },
+  "content_identity": {
+    "algorithm": "SHA-256",
+    "canonicalization": "UTF-8 JSON; sort object keys; compact separators; omit content_identity.digest from input",
+    "digest": "1e86cc2275d7e1c416dc3cfc1e8b57bc38a3fc1512963914e110d0a233bd4df3"
+  }
+}
