@@ -1,0 +1,149 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "EV-CARRIER-MODULE-MFG-001",
+  "claim_ceiling": "Synthetic module-process capacity screen only. Cycle times, yields, equipment, footprint, staffing and utility values in synthetic demo routes are illustrative assumptions, not industrial engineering studies, quotations or validated processes. No configuration is production release ready.",
+  "configurations": [
+    {
+      "config_id": "detachable-uav-pod-synthetic-demo",
+      "architecture": "detachable_drone_pod",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic://EV-CARRIER-MODULE-MFG-001/detachable-uav-pod",
+      "modules_per_good_vehicle": 1,
+      "good_module_yield_fraction": 0.95,
+      "station_processes": [
+        {
+          "process_id": "pod-frame-and-enclosure",
+          "process_label": "Pod frame, enclosure and dimensional inspection",
+          "cycle_minutes_per_attempt": 45,
+          "equipment_capex_usd_per_cell": 45000,
+          "footprint_sqm_per_cell": 50,
+          "operators_per_cell_per_shift": 3,
+          "energy_kwh_per_attempt": 5,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "hv-lv-harness-and-charger",
+          "process_label": "HV/LV harness, protection and charger integration",
+          "cycle_minutes_per_attempt": 35,
+          "equipment_capex_usd_per_cell": 30000,
+          "footprint_sqm_per_cell": 35,
+          "operators_per_cell_per_shift": 2,
+          "energy_kwh_per_attempt": 4,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "aircraft-restraint-and-dock",
+          "process_label": "Aircraft retention, dock, access and service interface",
+          "cycle_minutes_per_attempt": 25,
+          "equipment_capex_usd_per_cell": 25000,
+          "footprint_sqm_per_cell": 32,
+          "operators_per_cell_per_shift": 2,
+          "energy_kwh_per_attempt": 2,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "electrical-fire-and-eol-test",
+          "process_label": "Electrical isolation, thermal/fire interface and end-of-line tests",
+          "cycle_minutes_per_attempt": 40,
+          "equipment_capex_usd_per_cell": 60000,
+          "footprint_sqm_per_cell": 40,
+          "operators_per_cell_per_shift": 2,
+          "energy_kwh_per_attempt": 6,
+          "thermal_energy_kwh_per_attempt": 0
+        }
+      ],
+      "notes": [
+        "All values are synthetic placeholders to exercise station sizing and output scaling.",
+        "A real release requires measured work content, equipment quotations, trained staffing, EOL acceptance criteria and independent safety evidence."
+      ]
+    },
+    {
+      "config_id": "amr-handoff-synthetic-demo",
+      "architecture": "amr_cargo_handoff",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic://EV-CARRIER-MODULE-MFG-001/amr-handoff",
+      "modules_per_good_vehicle": 2,
+      "good_module_yield_fraction": 0.98,
+      "station_processes": [
+        {
+          "process_id": "amr-base-and-drive",
+          "process_label": "AMR base, drive and braking assembly",
+          "cycle_minutes_per_attempt": 35,
+          "equipment_capex_usd_per_cell": 35000,
+          "footprint_sqm_per_cell": 42,
+          "operators_per_cell_per_shift": 2,
+          "energy_kwh_per_attempt": 3,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "cargo-interface-and-sensors",
+          "process_label": "Cargo interface, sensing and safety controls",
+          "cycle_minutes_per_attempt": 30,
+          "equipment_capex_usd_per_cell": 30000,
+          "footprint_sqm_per_cell": 34,
+          "operators_per_cell_per_shift": 2,
+          "energy_kwh_per_attempt": 2,
+          "thermal_energy_kwh_per_attempt": 0
+        },
+        {
+          "process_id": "amr-eol-test",
+          "process_label": "Navigation, braking and EOL functional test",
+          "cycle_minutes_per_attempt": 25,
+          "equipment_capex_usd_per_cell": 25000,
+          "footprint_sqm_per_cell": 36,
+          "operators_per_cell_per_shift": 1,
+          "energy_kwh_per_attempt": 3,
+          "thermal_energy_kwh_per_attempt": 0
+        }
+      ],
+      "notes": [
+        "Two AMR units per good carrier is an illustrative sizing assumption, not a fleet recommendation.",
+        "All process values are synthetic and do not establish operational robot safety."
+      ]
+    },
+    {
+      "config_id": "integrated-drone-bay-production-intent-unknown",
+      "architecture": "integrated_enclosed_bay",
+      "evidence_class": "unknown",
+      "evidence_reference": "unknown://production-intent-process-study-not-performed",
+      "modules_per_good_vehicle": 1,
+      "good_module_yield_fraction": null,
+      "station_processes": [
+        {
+          "process_id": "body-modification-and-retention",
+          "process_label": "Body structure, mounting and retention modification",
+          "cycle_minutes_per_attempt": null,
+          "equipment_capex_usd_per_cell": null,
+          "footprint_sqm_per_cell": null,
+          "operators_per_cell_per_shift": null,
+          "energy_kwh_per_attempt": null,
+          "thermal_energy_kwh_per_attempt": null
+        },
+        {
+          "process_id": "high-voltage-and-thermal-integration",
+          "process_label": "HV, charging, thermal/fire and environmental integration",
+          "cycle_minutes_per_attempt": null,
+          "equipment_capex_usd_per_cell": null,
+          "footprint_sqm_per_cell": null,
+          "operators_per_cell_per_shift": null,
+          "energy_kwh_per_attempt": null,
+          "thermal_energy_kwh_per_attempt": null
+        },
+        {
+          "process_id": "aircraft-retention-and-eol",
+          "process_label": "Aircraft retention, maintenance access and EOL validation",
+          "cycle_minutes_per_attempt": null,
+          "equipment_capex_usd_per_cell": null,
+          "footprint_sqm_per_cell": null,
+          "operators_per_cell_per_shift": null,
+          "energy_kwh_per_attempt": null,
+          "thermal_energy_kwh_per_attempt": null
+        }
+      ],
+      "notes": [
+        "No production-intent process engineering or time study has been completed.",
+        "Unknown cycle time, yield, equipment, staffing, floor area and utility use must remain unknown."
+      ]
+    }
+  ]
+}
