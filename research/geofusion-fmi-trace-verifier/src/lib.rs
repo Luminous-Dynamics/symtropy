@@ -36,6 +36,7 @@ pub enum TraceError {
     InitialClockMismatch,
     BarrierParticipantCount,
     DuplicateBarrierParticipant,
+    AttemptOrderRegression,
     UnknownBarrierAttempt,
     BarrierAttemptNotTerminal,
     BarrierFederateMismatch,
@@ -76,6 +77,7 @@ impl TraceError {
             Self::InitialClockMismatch => "INITIAL_CLOCK_MISMATCH",
             Self::BarrierParticipantCount => "BARRIER_PARTICIPANT_COUNT",
             Self::DuplicateBarrierParticipant => "DUPLICATE_BARRIER_PARTICIPANT",
+            Self::AttemptOrderRegression => "ATTEMPT_ORDER_REGRESSION",
             Self::UnknownBarrierAttempt => "UNKNOWN_BARRIER_ATTEMPT",
             Self::BarrierAttemptNotTerminal => "BARRIER_ATTEMPT_NOT_TERMINAL",
             Self::BarrierFederateMismatch => "BARRIER_FEDERATE_MISMATCH",
@@ -235,6 +237,7 @@ pub fn validate_trace(trace: &RunTrace) -> Result<(), TraceError> {
     let initial_time = common_initial_time.ok_or(TraceError::EmptyFederates)?;
     let mut attempts_by_sequence =
         BTreeMap::<(String, u64), Vec<&StepAttempt>>::new();
+    let mut last_sequence_by_federate = BTreeMap::<String, u64>::new();
     let mut attempt_lookup = BTreeMap::<String, &StepAttempt>::new();
 
     for attempt in &trace.attempts {
@@ -312,6 +315,16 @@ pub fn validate_trace(trace: &RunTrace) -> Result<(), TraceError> {
                 }
             }
         }
+
+        if let Some(previous_sequence) =
+            last_sequence_by_federate.get(&attempt.federate_id)
+        {
+            if attempt.sequence < *previous_sequence {
+                return Err(TraceError::AttemptOrderRegression);
+            }
+        }
+        last_sequence_by_federate
+            .insert(attempt.federate_id.clone(), attempt.sequence);
 
         attempts_by_sequence
             .entry((attempt.federate_id.clone(), attempt.sequence))
