@@ -51,7 +51,8 @@ pub struct AdmissionContract {
     pub base_pcc_net_import_kw: Vec<f64>,
     /// Optional upper import limit for each interval.
     pub pcc_max_import_kw: Vec<Option<f64>>,
-    /// Optional maximum absolute PCC change between adjacent intervals.
+    /// Optional maximum absolute PCC change between adjacent interval averages.
+    /// This is a kW step-change limit, not a time-normalized ramp rate (kW/s).
     /// Length must be slot_count - 1.
     pub pcc_max_abs_ramp_kw: Vec<Option<f64>>,
     pub feeders: Vec<FeederEnvelope>,
@@ -729,6 +730,19 @@ mod tests {
         assert!(!report.admitted);
         assert_eq!(report.candidate_peak_import_kw, 22.0);
         assert!(report.violations.iter().any(|v| v.code == ViolationCode::NewPeak));
+    }
+
+    #[test]
+    fn no_new_peak_carbon_fixture_is_admitted() {
+        let (contract, jobs, baseline) = fixture();
+        let report = verify_admission(&contract, &jobs, &baseline, &placements([1, 5, 5, 5]))
+            .expect("valid paired schedules");
+        assert!(report.admitted, "{:?}", report.violations);
+        assert_eq!(report.baseline_peak_import_kw, 18.0);
+        assert_eq!(report.candidate_peak_import_kw, 18.0);
+        assert_eq!(report.candidate_pcc_net_import_kw, vec![
+            14.0, 17.0, 18.0, 17.0, 10.0, 14.0, 12.0, 13.0
+        ]);
     }
 
     #[test]
