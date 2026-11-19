@@ -145,3 +145,14 @@ These references complement, but do not replace, the CARM-Plus/PSPLIB/MSLIB/MMLI
 ## 11. Qualification boundary
 
 This contract and its synthetic fixture do not implement a production adapter, validate a physical network, establish standards conformity, verify a meter, authorize switching or prove safe return to service. No CI or Rust execution claim is made by this documentation/schema artifact. Independent model owners, operators, asset owners, qualified engineers and competent authorities retain their responsibilities.
+
+
+## 12. Machine-readable external register
+
+The machine-readable external comparator register and its Draft 2020-12 schema are:
+- data/external-benchmark-register-v0.1.json
+- data/external-benchmark-register-v0.1.schema.json
+
+The register separates published standards, active standards revision projects, restoration datasets/methods, methodological papers and industry surveys. It records import and licensing status independently. The May 2026 restoration paper is open access, but the associated dataset's reuse terms remain review-required until confirmed. The ENTSO-E supply-chain survey is operational context, not an algorithmic leaderboard.
+
+All entries are metadata-registered only; no external benchmark dataset is claimed to have been imported, frozen or executed by this PR.
