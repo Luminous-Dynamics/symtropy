@@ -125,6 +125,8 @@ pub enum ValidationError {
     PlasmaHeatingMustBeElectrical,
     PrimaryGeothermalHeatCannotFeedPlasma,
     ServiceCarrierMismatch,
+    EmptyEnergyBalance,
+    NegativeEnergyTerm(&'static str),
 }
 
 impl fmt::Display for ValidationError {
@@ -277,16 +279,25 @@ impl EnergyStream {
     }
 }
 
-/// A first-law balance over one declared boundary and one energy carrier.
-/// Positive `storage_delta_mwh` means stored energy increased; negative means
-/// stored energy was discharged. Exergy is deliberately not inferred here.
+/// One energy term at a named carrier boundary. All terms use MWh as the
+/// common energy dimension; the carrier label is retained so electric and
+/// thermal paths cannot be silently interchanged in downstream reporting.
 #[derive(Debug, Clone, Copy, PartialEq)]
+pub struct EnergyTerm {
+    pub carrier: EnergyCarrier,
+    pub energy_mwh: f64,
+}
+
+/// First-law balance across a component that may convert between carriers.
+/// Positive storage delta means the store gained energy; negative means it
+/// discharged. Exergy is not inferred from this energy-only balance.
+#[derive(Debug, Clone, PartialEq)]
 pub struct EnergyBalance {
-    pub input_mwh: f64,
-    pub useful_output_mwh: f64,
-    pub rejected_mwh: f64,
-    pub conversion_loss_mwh: f64,
-    pub storage_delta_mwh: f64,
+    pub inputs: Vec<EnergyTerm>,
+    pub useful_outputs: Vec<EnergyTerm>,
+    pub rejected_outputs: Vec<EnergyTerm>,
+    pub conversion_losses: Vec<EnergyTerm>,
+    pub storage_deltas: Vec<EnergyTerm>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -296,45 +307,55 @@ pub struct BalanceResult {
     pub within_tolerance: bool,
 }
 
+fn sum_energy_terms(
+    terms: &[EnergyTerm],
+    name: &'static str,
+    allow_negative: bool,
+) -> Result<f64, ValidationError> {
+    terms.iter().try_fold(0.0, |total, term| {
+        if !term.energy_mwh.is_finite() {
+            return Err(ValidationError::NonFiniteOrNonPositive(name));
+        }
+        if !allow_negative && term.energy_mwh < 0.0 {
+            return Err(ValidationError::NegativeEnergyTerm(name));
+        }
+        let next = total + term.energy_mwh;
+        if !next.is_finite() {
+            return Err(ValidationError::NonFiniteOrNonPositive(name));
+        }
+        Ok(next)
+    })
+}
+
 impl EnergyBalance {
-    /// Evaluate `input = useful + rejected + losses + change_in_storage`.
+    /// Evaluate `sum(inputs) = sum(useful) + sum(rejected) + sum(losses) + Δstorage`.
+    ///
+    /// Electric and thermal terms may coexist in this first-law balance because
+    /// both are energy quantities expressed in MWh. Their carrier labels remain
+    /// attached to each term. This does not calculate exergy or conversion quality.
     pub fn evaluate(&self, relative_tolerance: f64) -> Result<BalanceResult, ValidationError> {
         if !relative_tolerance.is_finite() || relative_tolerance < 0.0 {
             return Err(ValidationError::InvalidTolerance);
         }
-        for (name, value) in [
-            ("input MWh", self.input_mwh),
-            ("useful output MWh", self.useful_output_mwh),
-            ("rejected MWh", self.rejected_mwh),
-            ("conversion loss MWh", self.conversion_loss_mwh),
-            ("storage delta MWh", self.storage_delta_mwh),
-        ] {
-            if !value.is_finite() {
-                return Err(ValidationError::NonFiniteOrNonPositive(name));
-            }
-        }
-        if self.input_mwh < 0.0
-            || self.useful_output_mwh < 0.0
-            || self.rejected_mwh < 0.0
-            || self.conversion_loss_mwh < 0.0
+        if self.inputs.is_empty()
+            && self.useful_outputs.is_empty()
+            && self.rejected_outputs.is_empty()
+            && self.conversion_losses.is_empty()
+            && self.storage_deltas.is_empty()
         {
-            return Err(ValidationError::NonFiniteOrNonPositive("negative energy term"));
+            return Err(ValidationError::EmptyEnergyBalance);
         }
 
-        let residual = self.input_mwh
-            - self.useful_output_mwh
-            - self.rejected_mwh
-            - self.conversion_loss_mwh
-            - self.storage_delta_mwh;
-        let scale = self
-            .input_mwh
+        let input = sum_energy_terms(&self.inputs, "input MWh", false)?;
+        let useful = sum_energy_terms(&self.useful_outputs, "useful output MWh", false)?;
+        let rejected = sum_energy_terms(&self.rejected_outputs, "rejected MWh", false)?;
+        let losses = sum_energy_terms(&self.conversion_losses, "conversion loss MWh", false)?;
+        let storage_delta = sum_energy_terms(&self.storage_deltas, "storage delta MWh", true)?;
+
+        let residual = input - useful - rejected - losses - storage_delta;
+        let scale = input
             .abs()
-            .max(
-                self.useful_output_mwh.abs()
-                    + self.rejected_mwh.abs()
-                    + self.conversion_loss_mwh.abs()
-                    + self.storage_delta_mwh.abs(),
-            )
+            .max(useful.abs() + rejected.abs() + losses.abs() + storage_delta.abs())
             .max(f64::MIN_POSITIVE);
         let normalized = residual.abs() / scale;
         Ok(BalanceResult {
@@ -547,11 +568,46 @@ mod tests {
     #[test]
     fn storage_discharge_uses_negative_storage_delta() {
         let balance = EnergyBalance {
-            input_mwh: 0.0,
-            useful_output_mwh: 0.95,
-            rejected_mwh: 0.0,
-            conversion_loss_mwh: 0.05,
-            storage_delta_mwh: -1.0,
+            inputs: vec![],
+            useful_outputs: vec![EnergyTerm {
+                carrier: EnergyCarrier::Electricity,
+                energy_mwh: 0.95,
+            }],
+            rejected_outputs: vec![],
+            conversion_losses: vec![EnergyTerm {
+                carrier: EnergyCarrier::Electricity,
+                energy_mwh: 0.05,
+            }],
+            storage_deltas: vec![EnergyTerm {
+                carrier: EnergyCarrier::Electricity,
+                energy_mwh: -1.0,
+            }],
+        };
+        let result = balance.evaluate(1e-12).unwrap();
+        assert!(result.within_tolerance);
+        assert_eq!(result.residual_mwh, 0.0);
+    }
+
+    #[test]
+    fn first_law_balance_can_reconcile_thermal_to_electric_conversion() {
+        let balance = EnergyBalance {
+            inputs: vec![EnergyTerm {
+                carrier: EnergyCarrier::Heat,
+                energy_mwh: 10.0,
+            }],
+            useful_outputs: vec![EnergyTerm {
+                carrier: EnergyCarrier::Electricity,
+                energy_mwh: 2.0,
+            }],
+            rejected_outputs: vec![EnergyTerm {
+                carrier: EnergyCarrier::Heat,
+                energy_mwh: 7.0,
+            }],
+            conversion_losses: vec![EnergyTerm {
+                carrier: EnergyCarrier::Heat,
+                energy_mwh: 1.0,
+            }],
+            storage_deltas: vec![],
         };
         let result = balance.evaluate(1e-12).unwrap();
         assert!(result.within_tolerance);
@@ -561,14 +617,56 @@ mod tests {
     #[test]
     fn balance_exposes_mismatch_instead_of_silently_closing() {
         let balance = EnergyBalance {
-            input_mwh: 10.0,
-            useful_output_mwh: 8.0,
-            rejected_mwh: 1.0,
-            conversion_loss_mwh: 0.5,
-            storage_delta_mwh: 0.0,
+            inputs: vec![EnergyTerm {
+                carrier: EnergyCarrier::Electricity,
+                energy_mwh: 10.0,
+            }],
+            useful_outputs: vec![EnergyTerm {
+                carrier: EnergyCarrier::Electricity,
+                energy_mwh: 8.0,
+            }],
+            rejected_outputs: vec![EnergyTerm {
+                carrier: EnergyCarrier::Electricity,
+                energy_mwh: 1.0,
+            }],
+            conversion_losses: vec![EnergyTerm {
+                carrier: EnergyCarrier::Electricity,
+                energy_mwh: 0.5,
+            }],
+            storage_deltas: vec![],
         };
         let result = balance.evaluate(0.001).unwrap();
         assert!(!result.within_tolerance);
         assert!((result.residual_mwh - 0.5).abs() < 1e-12);
+    }
+
+    #[test]
+    fn empty_balance_is_rejected() {
+        let balance = EnergyBalance {
+            inputs: vec![],
+            useful_outputs: vec![],
+            rejected_outputs: vec![],
+            conversion_losses: vec![],
+            storage_deltas: vec![],
+        };
+        assert_eq!(balance.evaluate(1e-9), Err(ValidationError::EmptyEnergyBalance));
+    }
+
+    #[test]
+    fn negative_non_storage_energy_term_is_rejected() {
+        let balance = EnergyBalance {
+            inputs: vec![EnergyTerm {
+                carrier: EnergyCarrier::Heat,
+                energy_mwh: -1.0,
+            }],
+            useful_outputs: vec![],
+            rejected_outputs: vec![],
+            conversion_losses: vec![],
+            storage_deltas: vec![],
+        };
+        assert_eq!(
+            balance.evaluate(1e-9),
+            Err(ValidationError::NegativeEnergyTerm("input MWh"))
+        );
     }
 }
