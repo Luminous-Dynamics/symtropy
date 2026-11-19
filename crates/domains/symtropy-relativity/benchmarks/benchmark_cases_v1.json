@@ -485,7 +485,9 @@
         "training": "10^4-10^5 steps; Adam schedule then L-BFGS",
         "reported_pre_refinement_residual": "~1e-3",
         "spectral_refinement": "Chebyshev pseudo-spectral Gauss-Newton with extended precision",
-        "note": "Reproduction requires same norm, action, boundary data, domain compactification, precision and source data."
+        "note": "Reproduction requires same norm, action, boundary data, domain compactification, precision and source data.",
+        "akribeia_source": "Agurto-Sepulveda et al., arXiv:2607.07418, accepted PRD 12 Nov 2026",
+        "classical_comparison_owner": "crates/domains/symtropy-relativity/benchmarks/bh_solver_comparison_matrix_v1.md"
       },
       "architecture_boundary": {
         "existing_symtropy_relativity_metric_storage": "4x4",
@@ -619,7 +621,18 @@
         "implementation_status": "Rust evaluator and six tests authored, not compiled or executed.",
         "tests_authored": 6
       },
-      "implementation_status": "Rust exact-reference crate has 16 tests and action-derived ODE module has 6 tests; 22 authored total, none executed."
+      "implementation_status": "Rust exact-reference crate has 16 tests and action-derived ODE module has 6 tests; 22 authored total, none executed.",
+      "classical_bvp_baseline": {
+        "source": "Brihaye et al. (2010), Section 4.1.1",
+        "solver": "Newton-Raphson boundary-value ODE solver with adaptive mesh selection; cites Ascher, Christiansen and Russell",
+        "typical_mesh_points": "10^2-10^3",
+        "reported_typical_relative_accuracy": "~10^-6",
+        "continuation_seeds": [
+          "exact Myers-Perry while increasing alpha",
+          "static Boulware-Deser while increasing Omega_H"
+        ],
+        "matching_requirement": "Recompute common observables/residual norms from matched profiles; paper-reported relative accuracy is not directly the same as a pointwise field-residual norm."
+      }
     },
     {
       "case_id": "BH-5D-EGB-SLOW-ROTATION-001",
@@ -798,6 +811,9 @@
     "The 5D radial-action oracle must be varied before g=r² is substituted; retain E_g after gauge slicing and check all five residuals on exact MP and BD branches.",
     "The fourth Einstein-Hilbert radial-action term is b*g'*h'/h; exact branch controls reject b*g'*h'/g.",
     "Include the published finite-alpha 5D slow-rotation control as an intermediate validation rung between static BD and fully nonlinear rotating EGB.",
-    "For the slow-rotation background F=BD, the angular flux denominator K=r²-alpha(F-1)=r²*s is analytically positive and satisfies K>=r² for alpha>=0; this does not prove K stays nonzero for arbitrary nonlinear candidates."
+    "For the slow-rotation background F=BD, the angular flux denominator K=r²-alpha(F-1)=r²*s is analytically positive and satisfies K>=r² for alpha>=0; this does not prove K stays nonzero for arbitrary nonlinear candidates.",
+    "The 2010 classical comparator is a Newton-Raphson BVP solver with adaptive mesh, typically 100-1000 points and reported typical relative accuracy ~1e-6; compare common observables and recomputed residual norms rather than equating this with Akribeia's residual metric.",
+    "The matched solver matrix must include the classical 2010 BVP solver, Akribeia neural-to-Chebyshev refinement, and Symtropy's action/Noether/perturbative continuation pipeline.",
+    "Symtropy is not considered superior until it reproduces 2010 observables and demonstrates a matched work-precision advantage plus independent residual/domain qualification."
   ]
 }
