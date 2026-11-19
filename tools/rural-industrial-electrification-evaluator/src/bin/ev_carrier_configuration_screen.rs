@@ -1,9 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::BTreeSet,
-    env, fs,
-    process::ExitCode,
-};
+use std::{collections::BTreeSet, env, fs, process::ExitCode};
 
 const MAX_INCREMENTAL_INPUT: f64 = 1_000_000.0;
 const CLAIM_CEILING: &str = "Incremental synthetic/reference configuration screen only; not CAD, axle-load or restraint qualification, vehicle dynamics validation, roadworthiness, airworthiness, regulatory approval, measured performance or dispatch authority.";
@@ -250,24 +246,57 @@ fn validate_inputs(base: &BaseReport, overlay: &CarrierCorpus) -> Result<(), Str
             ("loaded_mass_kg", design.loaded_mass_kg),
             ("maximum_gross_mass_kg", design.maximum_gross_mass_kg),
             ("mass_margin_kg", design.mass_margin_kg),
-            ("usable_battery_energy_kwh", design.usable_battery_energy_kwh),
-            ("battery_energy_demand_kwh_per_shift", design.battery_energy_demand_kwh_per_shift),
-            ("battery_energy_margin_kwh", design.battery_energy_margin_kwh),
-            ("rated_continuous_power_kw", design.rated_continuous_power_kw),
-            ("required_continuous_power_kw", design.required_continuous_power_kw),
-            ("continuous_power_margin_kw", design.continuous_power_margin_kw),
+            (
+                "usable_battery_energy_kwh",
+                design.usable_battery_energy_kwh,
+            ),
+            (
+                "battery_energy_demand_kwh_per_shift",
+                design.battery_energy_demand_kwh_per_shift,
+            ),
+            (
+                "battery_energy_margin_kwh",
+                design.battery_energy_margin_kwh,
+            ),
+            (
+                "rated_continuous_power_kw",
+                design.rated_continuous_power_kw,
+            ),
+            (
+                "required_continuous_power_kw",
+                design.required_continuous_power_kw,
+            ),
+            (
+                "continuous_power_margin_kw",
+                design.continuous_power_margin_kw,
+            ),
             ("rated_peak_power_kw", design.rated_peak_power_kw),
             ("required_peak_power_kw", design.required_peak_power_kw),
             ("peak_power_margin_kw", design.peak_power_margin_kw),
-            ("grid_energy_to_replenish_kwh", design.grid_energy_to_replenish_kwh),
+            (
+                "grid_energy_to_replenish_kwh",
+                design.grid_energy_to_replenish_kwh,
+            ),
             ("charger_rating_kw", design.charger_rating_kw),
             ("site_power_budget_kw", design.site_power_budget_kw),
-            ("charging_efficiency_fraction", design.charging_efficiency_fraction),
-            ("base_peak_site_input_power_kw_upper_bound", design.base_peak_site_input_power_kw_upper_bound),
-            ("effective_charger_power_kw", design.effective_charger_power_kw),
+            (
+                "charging_efficiency_fraction",
+                design.charging_efficiency_fraction,
+            ),
+            (
+                "base_peak_site_input_power_kw_upper_bound",
+                design.base_peak_site_input_power_kw_upper_bound,
+            ),
+            (
+                "effective_charger_power_kw",
+                design.effective_charger_power_kw,
+            ),
             ("estimated_recharge_hours", design.estimated_recharge_hours),
             ("available_window_hours", design.available_window_hours),
-            ("charging_window_margin_hours", design.charging_window_margin_hours),
+            (
+                "charging_window_margin_hours",
+                design.charging_window_margin_hours,
+            ),
         ] {
             if !value.is_finite() {
                 return Err(format!("base_{}_must_be_finite", field));
@@ -278,7 +307,10 @@ fn validate_inputs(base: &BaseReport, overlay: &CarrierCorpus) -> Result<(), Str
             || design.charging_efficiency_fraction > 1.0
             || design.effective_charger_power_kw <= 0.0
         {
-            return Err(format!("base_{}_has_invalid_charging_envelope", design.design_id));
+            return Err(format!(
+                "base_{}_has_invalid_charging_envelope",
+                design.design_id
+            ));
         }
     }
 
@@ -334,15 +366,24 @@ fn validate_inputs(base: &BaseReport, overlay: &CarrierCorpus) -> Result<(), Str
         }
         if configuration.energy_boundary_note.trim().is_empty()
             || configuration.notes.is_empty()
-            || configuration.notes.iter().any(|note| note.trim().is_empty())
+            || configuration
+                .notes
+                .iter()
+                .any(|note| note.trim().is_empty())
         {
             return Err(format!(
                 "configurations[{index}]: energy boundary note and nonempty notes are required"
             ));
         }
         for (field, value) in [
-            ("incremental_installed_mass_kg", configuration.incremental_installed_mass_kg),
-            ("incremental_payload_mass_kg", configuration.incremental_payload_mass_kg),
+            (
+                "incremental_installed_mass_kg",
+                configuration.incremental_installed_mass_kg,
+            ),
+            (
+                "incremental_payload_mass_kg",
+                configuration.incremental_payload_mass_kg,
+            ),
             (
                 "incremental_vehicle_battery_draw_kwh",
                 configuration.incremental_vehicle_battery_draw_kwh,
@@ -397,8 +438,14 @@ fn evaluate_configuration(
 ) -> CarrierResult {
     let mut missing_fields = Vec::new();
     for (field, value) in [
-        ("incremental_installed_mass_kg", configuration.incremental_installed_mass_kg),
-        ("incremental_payload_mass_kg", configuration.incremental_payload_mass_kg),
+        (
+            "incremental_installed_mass_kg",
+            configuration.incremental_installed_mass_kg,
+        ),
+        (
+            "incremental_payload_mass_kg",
+            configuration.incremental_payload_mass_kg,
+        ),
         (
             "incremental_vehicle_battery_draw_kwh",
             configuration.incremental_vehicle_battery_draw_kwh,
@@ -428,8 +475,13 @@ fn evaluate_configuration(
             missing_fields.push(field.to_string());
         }
     }
-    if configuration.incremental_external_site_peak_power_kw.unwrap_or(0.0) > 0.0
-        && configuration.external_site_peak_coincident_with_vehicle_charging.is_none()
+    if configuration
+        .incremental_external_site_peak_power_kw
+        .unwrap_or(0.0)
+        > 0.0
+        && configuration
+            .external_site_peak_coincident_with_vehicle_charging
+            .is_none()
     {
         missing_fields.push("external_site_peak_coincident_with_vehicle_charging".into());
     }
@@ -449,27 +501,26 @@ fn evaluate_configuration(
     };
     let gross_mass_margin = loaded_mass.map(|mass| base.maximum_gross_mass_kg - mass);
 
-    let total_battery_demand = incremental_battery_draw
-        .map(|draw| base.battery_energy_demand_kwh_per_shift + draw);
-    let battery_energy_margin = incremental_battery_draw
-        .map(|draw| base.battery_energy_margin_kwh - draw);
+    let total_battery_demand =
+        incremental_battery_draw.map(|draw| base.battery_energy_demand_kwh_per_shift + draw);
+    let battery_energy_margin =
+        incremental_battery_draw.map(|draw| base.battery_energy_margin_kwh - draw);
 
-    let total_continuous_power = added_continuous_power
-        .map(|power| base.required_continuous_power_kw + power);
-    let continuous_power_margin = added_continuous_power
-        .map(|power| base.continuous_power_margin_kw - power);
-    let total_peak_power = added_peak_power
-        .map(|power| base.required_peak_power_kw + power);
+    let total_continuous_power =
+        added_continuous_power.map(|power| base.required_continuous_power_kw + power);
+    let continuous_power_margin =
+        added_continuous_power.map(|power| base.continuous_power_margin_kw - power);
+    let total_peak_power = added_peak_power.map(|power| base.required_peak_power_kw + power);
     let peak_power_margin = added_peak_power.map(|power| base.peak_power_margin_kw - power);
 
-    let vehicle_draw_grid_energy = incremental_battery_draw
-        .map(|draw| draw / base.charging_efficiency_fraction);
-    let total_vehicle_grid_energy = vehicle_draw_grid_energy
-        .map(|extra| base.grid_energy_to_replenish_kwh + extra);
-    let total_vehicle_recharge_hours = total_vehicle_grid_energy
-        .map(|energy| energy / base.effective_charger_power_kw);
-    let remaining_charge_window = total_vehicle_recharge_hours
-        .map(|hours| base.available_window_hours - hours);
+    let vehicle_draw_grid_energy =
+        incremental_battery_draw.map(|draw| draw / base.charging_efficiency_fraction);
+    let total_vehicle_grid_energy =
+        vehicle_draw_grid_energy.map(|extra| base.grid_energy_to_replenish_kwh + extra);
+    let total_vehicle_recharge_hours =
+        total_vehicle_grid_energy.map(|energy| energy / base.effective_charger_power_kw);
+    let remaining_charge_window =
+        total_vehicle_recharge_hours.map(|hours| base.available_window_hours - hours);
     let combined_site_energy = match (total_vehicle_grid_energy, external_site_energy) {
         (Some(vehicle_energy), Some(site_energy)) => Some(vehicle_energy + site_energy),
         _ => None,
@@ -480,19 +531,15 @@ fn evaluate_configuration(
         (Some(energy), Some(peak)) if peak > 0.0 => Some(energy / peak),
         _ => None,
     };
-    let external_site_recharge_is_peak_power_lower_bound =
-        matches!((external_site_energy, external_site_peak), (Some(energy), Some(peak)) if energy > 0.0 && peak > 0.0);
+    let external_site_recharge_is_peak_power_lower_bound = matches!((external_site_energy, external_site_peak), (Some(energy), Some(peak)) if energy > 0.0 && peak > 0.0);
     if external_site_recharge_is_peak_power_lower_bound {
         missing_fields.push("external_site_charge_curve_or_time_series_profile".into());
-
     }
-    let external_site_window_margin_lower_bound = match (
-        external_site_recharge_lower_bound,
-        external_site_window,
-    ) {
-        (Some(hours), Some(window)) => Some(window - hours),
-        _ => None,
-    };
+    let external_site_window_margin_lower_bound =
+        match (external_site_recharge_lower_bound, external_site_window) {
+            (Some(hours), Some(window)) => Some(window - hours),
+            _ => None,
+        };
 
     let combined_site_peak = match (
         external_site_peak,
@@ -501,15 +548,15 @@ fn evaluate_configuration(
         (Some(additional), Some(coincident)) => Some(if coincident {
             base.base_peak_site_input_power_kw_upper_bound + additional
         } else {
-            base.base_peak_site_input_power_kw_upper_bound.max(additional)
+            base.base_peak_site_input_power_kw_upper_bound
+                .max(additional)
         }),
         (Some(additional), None) if additional == 0.0 => {
             Some(base.base_peak_site_input_power_kw_upper_bound)
         }
         (Some(_), None) | (None, _) => None,
     };
-    let site_peak_margin =
-        combined_site_peak.map(|peak| base.site_power_budget_kw - peak);
+    let site_peak_margin = combined_site_peak.map(|peak| base.site_power_budget_kw - peak);
 
     let mut findings = Vec::new();
     if base.status == BaseStatus::Blocked {
@@ -522,9 +569,8 @@ fn evaluate_configuration(
     }
     if let Some(margin) = battery_energy_margin {
         if margin < -1e-9 {
-            findings.push(
-                "incremental_vehicle_battery_draw_consumes_required_energy_reserve".into(),
-            );
+            findings
+                .push("incremental_vehicle_battery_draw_consumes_required_energy_reserve".into());
         }
     }
     if let Some(margin) = continuous_power_margin {
@@ -686,7 +732,10 @@ mod tests {
         assert_eq!(result.status, Status::PassesSyntheticScreen);
         assert_eq!(result.loaded_mass_with_module_kg, Some(20_200.0));
         assert_eq!(result.gross_mass_margin_after_module_kg, Some(5_800.0));
-        assert_eq!(result.vehicle_battery_energy_margin_after_module_kwh, Some(64.462));
+        assert_eq!(
+            result.vehicle_battery_energy_margin_after_module_kwh,
+            Some(64.462)
+        );
         assert_eq!(result.site_peak_power_margin_kw_upper_bound, Some(0.0));
         assert!(result.missing_fields.is_empty());
     }
@@ -721,7 +770,12 @@ mod tests {
         config.incremental_vehicle_battery_draw_kwh = None;
         let result = evaluate_configuration(&config, &base_design("urban-distribution-truck"));
         assert_eq!(result.status, Status::Indeterminate);
-        assert!(result.missing_fields.iter().any(|field| field == "incremental_installed_mass_kg"));
+        assert!(
+            result
+                .missing_fields
+                .iter()
+                .any(|field| field == "incremental_installed_mass_kg")
+        );
         assert!(result.gross_mass_margin_after_module_kg.is_none());
     }
 
@@ -731,7 +785,12 @@ mod tests {
         config.incremental_installed_mass_kg = Some(6_000.0);
         let result = evaluate_configuration(&config, &base_design("urban-distribution-truck"));
         assert_eq!(result.status, Status::Blocked);
-        assert!(result.findings.iter().any(|finding| finding.contains("gross_mass_limit")));
+        assert!(
+            result
+                .findings
+                .iter()
+                .any(|finding| finding.contains("gross_mass_limit"))
+        );
         assert_eq!(result.gross_mass_margin_after_module_kg, Some(-200.0));
     }
 
@@ -742,11 +801,17 @@ mod tests {
         let result = evaluate_configuration(&config, &base_design("urban-distribution-truck"));
         assert_eq!(result.status, Status::Blocked);
         assert!(
-            (result.vehicle_battery_energy_margin_after_module_kwh.unwrap() + 5.538).abs()
+            (result
+                .vehicle_battery_energy_margin_after_module_kwh
+                .unwrap()
+                + 5.538)
+                .abs()
                 < 1e-9
         );
-        assert!(result.total_vehicle_replenishment_grid_energy_kwh.unwrap()
-            > base_design("urban-distribution-truck").grid_energy_to_replenish_kwh);
+        assert!(
+            result.total_vehicle_replenishment_grid_energy_kwh.unwrap()
+                > base_design("urban-distribution-truck").grid_energy_to_replenish_kwh
+        );
     }
 
     #[test]
@@ -755,7 +820,10 @@ mod tests {
         config.incremental_vehicle_bus_peak_power_kw = Some(100.0);
         let result = evaluate_configuration(&config, &base_design("urban-distribution-truck"));
         assert_eq!(result.status, Status::Blocked);
-        assert_eq!(result.vehicle_peak_power_margin_after_module_kw, Some(-10.0));
+        assert_eq!(
+            result.vehicle_peak_power_margin_after_module_kw,
+            Some(-10.0)
+        );
     }
 
     #[test]
@@ -767,12 +835,18 @@ mod tests {
         config.external_site_peak_coincident_with_vehicle_charging = Some(false);
         let result = evaluate_configuration(&config, &base_design("urban-distribution-truck"));
         assert_eq!(result.external_site_recharge_hours_lower_bound, Some(2.0));
-        assert_eq!(result.external_site_charge_window_margin_hours_lower_bound, Some(1.0));
+        assert_eq!(
+            result.external_site_charge_window_margin_hours_lower_bound,
+            Some(1.0)
+        );
         assert!(result.external_site_recharge_is_peak_power_lower_bound);
         assert_eq!(result.status, Status::Indeterminate);
-        assert!(result.missing_fields.iter().any(|field| {
-            field == "external_site_charge_curve_or_time_series_profile"
-        }));
+        assert!(
+            result
+                .missing_fields
+                .iter()
+                .any(|field| { field == "external_site_charge_curve_or_time_series_profile" })
+        );
     }
 
     #[test]
@@ -785,9 +859,12 @@ mod tests {
         let mut result = evaluate_configuration(&config, &base_design("urban-distribution-truck"));
         assert_eq!(result.external_site_recharge_hours_lower_bound, Some(2.0));
         assert_eq!(result.status, Status::Indeterminate);
-        assert!(result.missing_fields.iter().any(|field| {
-            field == "external_site_charge_curve_or_time_series_profile"
-        }));
+        assert!(
+            result
+                .missing_fields
+                .iter()
+                .any(|field| { field == "external_site_charge_curve_or_time_series_profile" })
+        );
     }
 
     #[test]
@@ -799,7 +876,10 @@ mod tests {
         config.external_site_peak_coincident_with_vehicle_charging = Some(false);
         let result = evaluate_configuration(&config, &base_design("urban-distribution-truck"));
         assert_eq!(result.status, Status::Blocked);
-        assert_eq!(result.external_site_charge_window_margin_hours_lower_bound, Some(-1.0));
+        assert_eq!(
+            result.external_site_charge_window_margin_hours_lower_bound,
+            Some(-1.0)
+        );
     }
 
     #[test]
@@ -849,9 +929,12 @@ mod tests {
         config.external_site_peak_coincident_with_vehicle_charging = Some(false);
         let result = evaluate_configuration(&config, &base_design("urban-distribution-truck"));
         assert_eq!(result.status, Status::Indeterminate);
-        assert!(result.missing_fields.iter().any(|field| {
-            field == "incremental_external_site_charging_window_hours"
-        }));
+        assert!(
+            result
+                .missing_fields
+                .iter()
+                .any(|field| { field == "incremental_external_site_charging_window_hours" })
+        );
     }
 
     #[test]
@@ -876,7 +959,12 @@ mod tests {
         base.status = BaseStatus::Blocked;
         let result = evaluate_configuration(&known_zero_config(), &base);
         assert_eq!(result.status, Status::Blocked);
-        assert!(result.findings.iter().any(|finding| finding == "base_vehicle_design_is_blocked"));
+        assert!(
+            result
+                .findings
+                .iter()
+                .any(|finding| finding == "base_vehicle_design_is_blocked")
+        );
     }
 
     #[test]
