@@ -110,6 +110,8 @@ pub struct JointTorqueCrossCheck {
     pub reference_clock_id: String,
     pub system_boundary_digest: String,
     pub operating_condition_digest: String,
+    pub reference_instant_s: f64,
+    pub joint_configuration_digest: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -222,6 +224,7 @@ fn validate_input(input: &JointEvaluationInput) -> Result<(), String> {
         || !nonempty(&input.operating_condition_digest)
         || !nonempty(&input.output_reference_plane_digest)
         || !nonempty(&input.reference_clock_id)
+        || !input.reference_instant_s.is_finite()
     {
         return Err("joint identity, configuration, boundary, condition, reference plane and clock are required".to_owned());
     }
@@ -323,6 +326,8 @@ fn validate_input(input: &JointEvaluationInput) -> Result<(), String> {
             || !nonempty(&check.method)
             || !nonempty(&check.calibration_digest)
             || check.evidence_class == EvidenceClass::Unknown
+            || !check.reference_instant_s.is_finite()
+            || !nonempty(&check.joint_configuration_digest)
         {
             return Err("joint torque cross-check interval/evidence is invalid or unknown".to_owned());
         }
@@ -355,9 +360,10 @@ fn assess_unit(
     }
     if unit.continuous_torque_capability_lower_nm.is_none()
         || unit.peak_torque_capability_lower_nm.is_none()
+        || unit.capability_evidence_class == EvidenceClass::Unknown
     {
         unknown = true;
-        reasons.push("continuous or peak torque capability lower bound is missing".to_owned());
+        reasons.push("continuous/peak torque capability lower bound or its evidence is missing".to_owned());
     }
     if unit.output_speed_rad_s.is_none() || unit.maximum_speed_capability_lower_rad_s.is_none() {
         unknown = true;
@@ -635,6 +641,8 @@ mod tests {
             output_reference_plane_digest: PLANE.to_owned(),
             reference_clock_id: CLOCK.to_owned(),
             system_boundary_digest: BOUNDARY.to_owned(),
+            reference_instant_s: 1.0,
+            joint_configuration_digest: "paired-knee-config-v1".to_owned(),
             operating_condition_digest: CONDITION.to_owned(),
             reference_instant_s: 1.0,
             joint_configuration_digest: "paired-knee-config-v1".to_owned(),
@@ -847,7 +855,21 @@ mod tests {
     }
 
     #[test]
-    fn sharing_017_duplicate_ids_and_invalid_capability_reject() {
+    fn sharing_017_unknown_capability_provenance_cannot_be_feasible() {
+        let mut a = unit("A", interval(4.0, 5.0), interval(40.0, 42.0));
+        a.capability_evidence_class = EvidenceClass::Unknown;
+        a.capability_source_reference = None;
+        a.capability_method = None;
+        a.capability_digest = None;
+        let report = evaluate_joint(&input(vec![
+            a,
+            unit("B", interval(5.0, 6.0), interval(41.0, 43.0)),
+        ])).unwrap();
+        assert_eq!(report.disposition, JointDisposition::Unknown);
+    }
+
+    #[test]
+    fn sharing_018_duplicate_ids_and_invalid_capability_reject() {
         let a = unit("same", interval(4.0, 5.0), interval(40.0, 42.0));
         let b = unit("same", interval(5.0, 6.0), interval(41.0, 43.0));
         assert!(evaluate_joint(&input(vec![a, b])).is_err());
@@ -861,7 +883,7 @@ mod tests {
     }
 
     #[test]
-    fn sharing_016_aggregate_temperature_is_not_used_as_unit_temperature() {
+    fn sharing_019_aggregate_temperature_is_not_used_as_unit_temperature() {
         let report = evaluate_joint(&input(vec![
             unit("A", interval(4.0, 5.0), interval(30.0, 32.0)),
             unit("B", interval(5.0, 6.0), interval(60.0, 65.0)),
