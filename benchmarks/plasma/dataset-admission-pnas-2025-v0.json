@@ -13,9 +13,7 @@
       "reported_size": "41.0 MB",
       "expected_size_bytes": null,
       "remote_md5": "6370e709ce0a825148917fabc8638a2a",
-      "remote_sha256": null,
-      "observed_size_bytes": null,
-      "observed_sha256": null
+      "remote_sha256": null
     },
     {
       "artifact_id": "nonlinear-landau-damping-training-data",
@@ -23,9 +21,7 @@
       "reported_size": "41.0 MB",
       "expected_size_bytes": null,
       "remote_md5": "6370e709ce0a825148917fabc8638a2a",
-      "remote_sha256": null,
-      "observed_size_bytes": null,
-      "observed_sha256": null
+      "remote_sha256": null
     }
   ]
 }
