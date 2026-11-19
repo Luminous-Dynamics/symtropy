@@ -559,7 +559,9 @@
     "release_status": "awaiting_authorized_release",
     "return_to_service_authorized": false,
     "release_authority_ref": null,
-    "release_scope": "none"
+    "release_scope": "none",
+    "authorized_asset_ref": null,
+    "authorized_configuration_ref": null
   },
   "source_evidence_refs": [
     "synthetic-source-evidence-set-001"
