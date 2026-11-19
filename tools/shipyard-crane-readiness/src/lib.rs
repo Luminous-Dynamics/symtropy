@@ -139,6 +139,7 @@ pub struct LiftPreflightReceiptRef {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReadinessPlan {
+    pub contract_version: String,
     pub readiness_id: String,
     pub crane_id: String,
     pub crane_configuration_revision: String,
@@ -233,6 +234,15 @@ fn disposition_for(diagnostics: &[Diagnostic]) -> Disposition {
 }
 
 fn validate_context(plan: &ReadinessPlan, diagnostics: &mut Vec<Diagnostic>) {
+    if plan.contract_version != CONTRACT_VERSION {
+        push(
+            diagnostics,
+            "READINESS_CONTRACT_VERSION_MISMATCH",
+            DiagnosticSeverity::Indeterminate,
+            Some(&plan.readiness_id),
+            "input contract version does not match this evaluator",
+        );
+    }
     for (field, value) in [
         ("readiness_id", plan.readiness_id.as_str()),
         ("crane_id", plan.crane_id.as_str()),
@@ -1022,6 +1032,7 @@ mod tests {
             ));
         }
         ReadinessPlan {
+            contract_version: CONTRACT_VERSION.to_owned(),
             readiness_id: "readiness-001".to_owned(),
             crane_id: "gantry-1".to_owned(),
             crane_configuration_revision: "crane-r4".to_owned(),
@@ -1136,6 +1147,15 @@ mod tests {
 
     fn has_code(report: &ReadinessReport, code: &str) -> bool {
         report.diagnostics.iter().any(|item| item.code == code)
+    }
+
+    #[test]
+    fn unsupported_readiness_contract_version_is_indeterminate() {
+        let mut plan = baseline();
+        plan.contract_version = "shipyard-crane-readiness-v0.0".to_owned();
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "READINESS_CONTRACT_VERSION_MISMATCH"));
     }
 
     #[test]
