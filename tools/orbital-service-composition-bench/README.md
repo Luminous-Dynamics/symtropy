@@ -31,7 +31,7 @@ The v0.1 corpus contains 14 synthetic cases: one complete contract control, seve
 
 The three source contracts are deliberately separate:
 
-- Symtropy [#3252 Earth-to-orbit chain](https://github.com/Luminous-Dynamics/symtropy/pull/3252) now exposes per-cargo `CargoDeliveryV1` records with cargo identity, mass, target orbit, destination, terminal node and arrival epoch. Its exact branch head is pinned in this fixture. It remains a draft domain contract without a canonical serialized/signed receipt envelope.
+- Symtropy [#3252 Earth-to-orbit chain](https://github.com/Luminous-Dynamics/symtropy/pull/3252) now exposes per-cargo `CargoDeliveryV1` records with cargo identity, mass, target orbit, destination, terminal node and arrival epoch. Its exact branch head is pinned in this fixture. Its per-cargo domain report is now Serde-serializable, but it is not yet a signed/authenticated receipt envelope.
 - Symthaea [#12903 orbital-capture-handoff](https://github.com/Luminous-Dynamics/symthaea/pull/12903) qualifies a synthetic capture-handoff envelope, but its current report does not yet expose a joined service-client identity and prepared fluid-interface lineage as an authenticated artifact.
 - Symtropy [#6182 orbital-fluid-transfer](https://github.com/Luminous-Dynamics/symtropy/pull/6182) validates synthetic fluid accounting and receiver-state conditions, but its current scenario/report does not yet carry the same receiver/client and prepared interface ID/revision as the capture handoff.
 
