@@ -12,6 +12,7 @@
     "test_conditions",
     "actuators",
     "mechanical_share_observability",
+    "run_ledger_summary",
     "runs",
     "thermal_limits",
     "evidence",
@@ -69,6 +70,61 @@
       "type": "array",
       "items": {
         "type": "string"
+      }
+    },
+    "run_ledger_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attempted_runs",
+        "included_runs",
+        "excluded_or_invalid_runs",
+        "raw_log_files_available",
+        "missing_or_deleted_logs",
+        "scope_notes"
+      ],
+      "properties": {
+        "attempted_runs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "included_runs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "excluded_or_invalid_runs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "raw_log_files_available": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "missing_or_deleted_logs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "scope_notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       }
     }
   },
@@ -392,13 +448,15 @@
         "load_torque_nm",
         "output_speed_rad_s",
         "repetitions",
+        "analysis_inclusion",
         "outcome",
         "duration_s",
         "first_limit_event",
         "per_actuator_observations",
         "pair_observations",
         "mechanical_share",
-        "notes"
+        "notes",
+        "raw_trace_refs"
       ],
       "properties": {
         "run_id": {
@@ -437,11 +495,10 @@
         "outcome": {
           "enum": [
             "completed",
-            "derated",
             "thermal_stop",
-            "mechanical_stop",
+            "angle_abort",
             "aborted",
-            "censored",
+            "partial",
             "indeterminate",
             "not_applicable"
           ]
@@ -523,6 +580,20 @@
           "$ref": "#/$defs/mechanical_share"
         },
         "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "analysis_inclusion": {
+          "enum": [
+            "included",
+            "excluded",
+            "partial",
+            "unknown"
+          ]
+        },
+        "raw_trace_refs": {
           "type": "array",
           "items": {
             "type": "string"
