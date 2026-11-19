@@ -1,0 +1,19 @@
+[package]
+name = "port-nexus-flex-verifier"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Standalone deterministic verifier for aggregate port-compute workload-shift admission"
+
+[[bin]]
+name = "port-nexus-flex-verifier"
+path = "src/main.rs"
+
+[lib]
+path = "src/lib.rs"
+
+# Keep this tool isolated from Symtropy's much larger standalone workspace.
+# It is intentionally std-only and can be checked independently.
+[workspace]
+resolver = "2"
