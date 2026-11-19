@@ -338,7 +338,6 @@ pub fn verify_source_interval(
         return Err(VerificationError::UnsupportedEvidenceKind);
     }
 
-    let payload_class = string_field(&payload, "evidence_class", "source payload")?;
     let evidence_class = string_field(evidence, "evidence_class", "evidence envelope")?;
     if !matches!(
         evidence_class,
@@ -444,6 +443,8 @@ pub fn verify_source_interval(
     if string_field(&payload, "schema_version", "source payload")? != "0.1.0" {
         return Err(VerificationError::UnsupportedSchemaVersion);
     }
+    let payload_class = string_field(&payload, "evidence_class", "source payload")?;
+    same_text(payload_class, evidence_class, "evidence_class")?;
 
     let subject = required(evidence, "subject", "evidence envelope")?;
     if string_field(subject, "kind", "subject")? != "physical_asset" {
