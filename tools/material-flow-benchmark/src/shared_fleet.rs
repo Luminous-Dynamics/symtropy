@@ -608,7 +608,7 @@ fn transition(
 
     let idle = input.regions.len();
     let mut next_state = state.clone();
-    let mut available_by_region = vec![0_u64; input.regions.len()];
+    let mut service_capacity_by_region = vec![0_u64; input.regions.len()];
     let mut metrics = StepMetrics::default();
 
     for (index, target) in targets.iter().enumerate() {
@@ -623,18 +623,16 @@ fn transition(
             if *target != aircraft_state.region_index {
                 return Err("aircraft cannot be redirected while repositioning".into());
             }
-            metrics.repositioned_aircraft_periods = metrics
-                .repositioned_aircraft_periods
-                .checked_add(1)
-                .ok_or_else(|| "repositioned-period count overflow".to_string())?;
             continue;
         }
 
         if *target == aircraft_state.region_index {
             if input.aircraft[index].capability_evidence == SharedEvidenceStatus::FreshInDomain {
-                available_by_region[*target] = available_by_region[*target]
-                    .checked_add(1)
-                    .ok_or_else(|| "available aircraft count overflow".to_string())?;
+                service_capacity_by_region[*target] = service_capacity_by_region[*target]
+                    .checked_add(u64::from(
+                        input.aircraft[index].maximum_service_units_per_period,
+                    ))
+                    .ok_or_else(|| "available aircraft capacity overflow".to_string())?;
             }
         } else {
             let duration = input.reposition_periods[aircraft_state.region_index][*target];
@@ -671,19 +669,7 @@ fn transition(
         let aerial_allowed = observation.weather.permits_aerial_service()
             && observation.permission.permits_aerial_service();
         let aircraft_capacity = if aerial_allowed {
-            available_by_region[region_index]
-                .checked_mul(u64::from(
-                    input
-                        .aircraft
-                        .iter()
-                        .filter(|aircraft| {
-                            aircraft.capability_evidence == SharedEvidenceStatus::FreshInDomain
-                        })
-                        .map(|aircraft| aircraft.maximum_service_units_per_period)
-                        .max()
-                        .unwrap_or(0),
-                ))
-                .ok_or_else(|| "aggregate aerial capacity overflow".to_string())?
+            service_capacity_by_region[region_index]
         } else {
             0
         };
@@ -1055,8 +1041,14 @@ mod tests {
         let mut input = base_input();
         input.scenarios[0].periods[0].observations[0].demand_units = 4;
         input.scenarios[0].periods[0].observations[1].demand_units = 0;
-        input.scenarios[0].periods[0].observations[0].weather = SharedWeatherState::Stale;
-        input.scenarios[0].periods[1].observations[0].permission = SharedPermissionState::Revoked;
+        for scenario in &mut input.scenarios {
+            for period in &mut scenario.periods {
+                for observation in &mut period.observations {
+                    observation.weather = SharedWeatherState::Stale;
+                    observation.permission = SharedPermissionState::Revoked;
+                }
+            }
+        }
         let report = evaluate_shared_fleet(&input).expect("valid input");
         assert_eq!(report.optimized_policy.unauthorized_aerial_dispatches, 0);
         assert_eq!(report.optimized_policy.expected_aerial_deliveries, 0.0);
