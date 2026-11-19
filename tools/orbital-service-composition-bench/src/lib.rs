@@ -226,8 +226,8 @@ fn named_record<'a>(
         .ok_or_else(|| format!("{label}: missing {collection} record {id_value}"))
 }
 
-fn parse_receipt<'a>(
-    bytes: &'a [u8],
+fn parse_receipt(
+    bytes: &[u8],
     label: &str,
     expected_schema: &str,
     pin: &SourcePin,
@@ -284,6 +284,16 @@ pub fn compose_receipt_bundle(
     if pins.len() != 3 {
         return Err("composition fixture must pin all three source components".to_owned());
     }
+    for (component, expected_schema) in [
+        (Component::EarthOrbitChain, "luminous.earth-orbit-chain.receipt.v1"),
+        (Component::OrbitalCapture, "luminous.orbital-capture-handoff.receipt.v0.1"),
+        (Component::OrbitalFluid, "luminous.orbital-fluid-transfer.receipt.v0.1"),
+    ] {
+        let pin = pins.get(&component).expect("all three pins checked above");
+        if !is_source_commit(&pin.source_commit) || pin.receipt_schema != expected_schema {
+            return Err(format!("invalid source pin for {component:?}"));
+        }
+    }
     let service_case = fixture
         .cases
         .iter()
@@ -338,6 +348,9 @@ pub fn compose_receipt_bundle(
         return Err("target orbit does not match service profile".to_owned());
     }
     let destination_node_id = required_str(cargo, "destination_node_id", "delivery cargo")?;
+    if destination_node_id != profile.destination_node_id {
+        return Err("destination node does not match service profile".to_owned());
+    }
     if required_str(cargo, "terminal_node_id", "delivery cargo")? != destination_node_id {
         return Err("cargo terminal node does not match declared destination".to_owned());
     }
