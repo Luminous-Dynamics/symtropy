@@ -6,7 +6,6 @@
 //! Removes D-1 translational DOF and all rotational DOF, leaving 1 translational DOF.
 //! Uses: suspension springs, elevator platforms, sliding doors, linear actuators.
 
-#[cfg(test)]
 use nalgebra::SVector;
 
 use crate::body::{BodyHandle, RigidBody};
@@ -119,12 +118,66 @@ impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
         }
     }
 
-    fn solve_velocity(
+    fn solve_actuator_step(
         &self,
         body_a: &mut RigidBody<D>,
         body_b: &mut RigidBody<D>,
         dt: f64,
-        mut callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
+        callback: &mut dyn crate::world::PhysicsCallback<D>,
+    ) {
+        let Some(motor) = self.motor.as_ref() else {
+            return;
+        };
+        if self.axis >= D
+            || !dt.is_finite()
+            || dt <= 0.0
+            || !motor.kp.is_finite()
+            || !motor.kd.is_finite()
+            || !motor.target_pos.is_finite()
+            || !motor.target_vel.is_finite()
+            || !motor.max_force.is_finite()
+            || motor.max_force < 0.0
+        {
+            return;
+        }
+
+        let inverse_mass_a = if body_a.is_dynamic() { body_a.inv_mass } else { 0.0 };
+        let inverse_mass_b = if body_b.is_dynamic() { body_b.inv_mass } else { 0.0 };
+        if inverse_mass_a + inverse_mass_b <= 0.0 {
+            return;
+        }
+
+        let displacement =
+            body_b.transform.translation.0[self.axis] - body_a.transform.translation.0[self.axis];
+        let relative_velocity_before =
+            body_b.linear_velocity[self.axis] - body_a.linear_velocity[self.axis];
+        let generalized_impulse = motor.calculate_impulse(displacement, relative_velocity_before, dt);
+        if !generalized_impulse.is_finite() {
+            return;
+        }
+
+        let mut impulse = SVector::<f64, D>::zeros();
+        impulse[self.axis] = generalized_impulse;
+        crate::integrator::apply_impulse(body_a, &(-impulse));
+        crate::integrator::apply_impulse(body_b, &impulse);
+
+        let relative_velocity_after =
+            body_b.linear_velocity[self.axis] - body_a.linear_velocity[self.axis];
+        // Discrete impulse work: J * midpoint(relative linear velocity).
+        // This is booked once from the actually applied generalized impulse.
+        let work_joules =
+            generalized_impulse * 0.5 * (relative_velocity_before + relative_velocity_after);
+        if work_joules.is_finite() {
+            callback.record_work(self.body_b, work_joules);
+        }
+    }
+
+    fn solve_velocity(
+        &self,
+        body_a: &mut RigidBody<D>,
+        body_b: &mut RigidBody<D>,
+        _dt: f64,
+        _callback: Option<&mut dyn crate::world::PhysicsCallback<D>>,
     ) {
         let total_inv = body_a.inv_mass + body_b.inv_mass;
         if total_inv < 1e-15 {
@@ -149,29 +202,8 @@ impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
             }
         }
 
-        // Motor drive on slide axis
-        if let Some(ref motor) = self.motor {
-            let displacement = body_b.transform.translation.0[self.axis]
-                - body_a.transform.translation.0[self.axis];
-            let rel_vel = body_b.linear_velocity[self.axis] - body_a.linear_velocity[self.axis];
-
-            // PD controller: impulse = (kp * (target - pos) + kd * (target_vel - vel)) * dt
-            let impulse = motor.calculate_impulse(displacement, rel_vel, dt);
-
-            // METABOLIC HEARTBEAT: Calculate Work and Energy Recovery
-            // Work = Impulse * Velocity
-            let work_joules = impulse * rel_vel;
-            if let Some(ref mut cb) = callback {
-                cb.record_work(self.body_b, work_joules);
-            }
-
-            if body_a.is_dynamic() {
-                body_a.linear_velocity[self.axis] -= impulse * body_a.inv_mass;
-            }
-            if body_b.is_dynamic() {
-                body_b.linear_velocity[self.axis] += impulse * body_b.inv_mass;
-            }
-        }
+        // The motor impulse is applied by solve_actuator_step exactly once
+        // per world step; this iterative path only relaxes passive constraints.
 
         // Damp all angular velocity (prismatic = no rotation)
         for i in 0..D {
