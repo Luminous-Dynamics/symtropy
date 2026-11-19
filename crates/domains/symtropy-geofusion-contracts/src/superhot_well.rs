@@ -26,6 +26,10 @@ pub struct FluidPropertyProvenance {
     pub reference_state_id: String,
     pub output_digest: String,
     pub state_boundary_id: String,
+    /// Exact pressure/temperature and phase used to obtain the property outputs.
+    pub evaluated_pressure_pa: f64,
+    pub evaluated_temperature_k: f64,
+    pub evaluated_phase: WellheadPhase,
     pub evidence_class: EvidenceClass,
 }
 
@@ -81,6 +85,7 @@ pub enum WellheadValidationError {
     NonFinite(&'static str),
     WellIdentityMismatch,
     PropertyBoundaryMismatch,
+    PropertyStateMismatch,
     PropertyProvenanceMissing(&'static str),
     TwoPhaseRequiresQualifiedHydraulics,
     UnknownPhase,
@@ -157,6 +162,14 @@ impl ReservoirWellheadCase {
         }
         if p.state_boundary_id != self.wellhead.boundary_id {
             return Err(WellheadValidationError::PropertyBoundaryMismatch);
+        }
+        require_positive("property evaluation pressure Pa", p.evaluated_pressure_pa)?;
+        require_positive("property evaluation temperature K", p.evaluated_temperature_k)?;
+        if p.evaluated_pressure_pa.to_bits() != self.wellhead.pressure_pa.to_bits()
+            || p.evaluated_temperature_k.to_bits() != self.wellhead.temperature_k.to_bits()
+            || p.evaluated_phase != self.wellhead.phase
+        {
+            return Err(WellheadValidationError::PropertyStateMismatch);
         }
 
         match self.wellhead.phase {
@@ -273,6 +286,9 @@ mod tests {
                     reference_state_id: "synthetic-h0".into(),
                     output_digest: "synthetic-output-digest".into(),
                     state_boundary_id: "wellhead-01".into(),
+                    evaluated_pressure_pa: 10.0e6,
+                    evaluated_temperature_k: 648.15,
+                    evaluated_phase: WellheadPhase::Supercritical,
                     evidence_class: EvidenceClass::Synthetic,
                 },
                 evidence_class: EvidenceClass::Synthetic,
@@ -325,6 +341,31 @@ mod tests {
         assert_eq!(
             value.evaluate(),
             Err(WellheadValidationError::PropertyBoundaryMismatch)
+        );
+    }
+
+    #[test]
+    fn property_outputs_must_match_exact_pressure_temperature_and_phase() {
+        let mut value = case();
+        value.wellhead.property_provenance.evaluated_pressure_pa = 9.9e6;
+        assert_eq!(
+            value.evaluate(),
+            Err(WellheadValidationError::PropertyStateMismatch)
+        );
+
+        value = case();
+        value.wellhead.property_provenance.evaluated_temperature_k = 647.15;
+        assert_eq!(
+            value.evaluate(),
+            Err(WellheadValidationError::PropertyStateMismatch)
+        );
+
+        value = case();
+        value.wellhead.property_provenance.evaluated_phase =
+            WellheadPhase::SinglePhaseVapor;
+        assert_eq!(
+            value.evaluate(),
+            Err(WellheadValidationError::PropertyStateMismatch)
         );
     }
 
