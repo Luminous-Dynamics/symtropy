@@ -875,6 +875,35 @@ mod tests {
         "../../../docs/research/geothermal-fusion/evidence/fixtures/",
         "synthetic-source-allocation-receipt.v0.1.json"
     ));
+    const ELECTRIC_PAYLOAD: &[u8] = include_bytes!(concat!(
+        "../../../docs/research/geothermal-fusion/evidence/fixtures/",
+        "synthetic-grid-electric-source-interval.v0.1.json"
+    ));
+    const ELECTRIC_EVIDENCE: &str = include_str!(concat!(
+        "../../../docs/research/geothermal-fusion/evidence/fixtures/",
+        "synthetic-grid-electric-source-interval-evidence.v0.1.json"
+    ));
+    const ELECTRIC_ALLOCATION: &str = include_str!(concat!(
+        "../../../docs/research/geothermal-fusion/evidence/fixtures/",
+        "synthetic-grid-electric-source-allocation-receipt.v0.1.json"
+    ));
+
+    fn electrical_evidence() -> Value {
+        serde_json::from_str(ELECTRIC_EVIDENCE).expect("electrical evidence fixture JSON")
+    }
+
+    fn electrical_allocation() -> Value {
+        serde_json::from_str(ELECTRIC_ALLOCATION)
+            .expect("electrical allocation fixture JSON")
+    }
+
+    fn electricity_fixture() -> (Vec<u8>, Value, Value) {
+        (
+            ELECTRIC_PAYLOAD.to_vec(),
+            electrical_evidence(),
+            electrical_allocation(),
+        )
+    }
 
     fn evidence() -> Value {
         serde_json::from_str(EVIDENCE).expect("evidence fixture JSON")
@@ -932,6 +961,68 @@ mod tests {
         assert_eq!(report.allocated_energy_mwh, 9.0);
         assert_eq!(report.curtailed_energy_mwh, 1.0);
         assert_eq!(report.residual_energy_mwh, 0.0);
+    }
+
+    #[test]
+    fn electrical_source_interval_verifies_power_and_allocation() {
+        let (bytes, evidence, allocation) = electricity_fixture();
+        let report = verify_source_interval(&bytes, &evidence, &allocation).unwrap();
+        assert_eq!(report.carrier, "electricity");
+        assert_eq!(report.payload_byte_length, 509);
+        assert_eq!(
+            report.payload_sha256,
+            "2630c420ddb096e2a763ff2a096acad3eb554b441adbb3bc5eb1d14edfae9c72"
+        );
+        assert_eq!(report.allocated_energy_mwh, 10.0);
+        assert_eq!(report.residual_energy_mwh, 0.0);
+        assert!(report.qualified);
+    }
+
+    #[test]
+    fn electrical_source_energy_must_match_average_electric_power() {
+        let (mut bytes, mut evidence, mut allocation) = electricity_fixture();
+        let mut payload: Value = serde_json::from_slice(&bytes).unwrap();
+        payload["average_electric_power_mw"] = json!(11.0);
+        bytes = serde_json::to_vec(&payload).unwrap();
+        let digest = digest_hex(&bytes);
+        evidence["artifact"]["byte_length"] = json!(bytes.len());
+        evidence["artifact"]["digest"]["value"] = json!(digest);
+        allocation["source_payload_digest"]["value"] = json!(digest);
+
+        let error = verify_source_interval(&bytes, &evidence, &allocation).unwrap_err();
+        assert_eq!(error.code(), "SOURCE_POWER_ENERGY_MISMATCH");
+    }
+
+    #[test]
+    fn electrical_source_rejects_heat_only_service_allocations() {
+        let (bytes, evidence, mut allocation) = electricity_fixture();
+        allocation["allocations"][0]["service"] = json!("industrial_process_heat");
+        let error = verify_source_interval(&bytes, &evidence, &allocation).unwrap_err();
+        assert_eq!(error.code(), "SERVICE_CARRIER_MISMATCH");
+    }
+
+    #[test]
+    fn batch_accepts_heat_and_electricity_as_distinct_carriers() {
+        let heat_evidence = evidence();
+        let heat_allocation = allocation();
+        let (electric_bytes, electric_evidence, electric_allocation) = electricity_fixture();
+        let inputs = [
+            SourceIntervalInput {
+                payload_bytes: PAYLOAD,
+                evidence: &heat_evidence,
+                allocation: &heat_allocation,
+            },
+            SourceIntervalInput {
+                payload_bytes: &electric_bytes,
+                evidence: &electric_evidence,
+                allocation: &electric_allocation,
+            },
+        ];
+        let reports = verify_source_interval_batch(&inputs).unwrap();
+        assert_eq!(reports.len(), 2);
+        assert!(reports.iter().all(|report| report.qualified));
+        assert!(reports.iter().any(|report| report.carrier == "heat"));
+        assert!(reports.iter().any(|report| report.carrier == "electricity"));
     }
 
     #[test]
