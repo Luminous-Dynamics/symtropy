@@ -1,0 +1,20 @@
+[package]
+name = "marine-forecast-scorecard"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Evidence-bound marine forecast skill and paired mission decision scorecard"
+
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = ["std"] }
+serde_json = "1.0"
+sha2 = "0.10"
+
+[[bin]]
+name = "member-coherent-risk"
+path = "src/bin/member_coherent_risk.rs"
+
+[[bin]]
+name = "forecast-information-noise"
+path = "src/bin/forecast_information_noise.rs"

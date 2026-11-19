@@ -1,0 +1,60 @@
+name: Marine Forecast Skill and Mission Decision Scorecard
+
+on:
+  pull_request:
+    paths:
+      - "tools/marine-forecast-scorecard/**"
+      - ".github/workflows/marine-forecast-scorecard-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marine-forecast-scorecard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scorecard-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/marine-forecast-scorecard/Cargo.toml -- --check
+
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/marine-forecast-scorecard/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run scorecard semantic and negative-control tests
+        run: cargo test --manifest-path tools/marine-forecast-scorecard/Cargo.toml
+
+      - name: Check scorecard schema and synthetic fixture structure
+        run: |
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.record_status.enum == ["synthetic","shadow_replay","measured_campaign","published_reproduction"] and .properties.forecast_cases.minItems >= 1 and .properties.mission_pairs.minItems >= 1' tools/marine-forecast-scorecard/schema/marine-forecast-scorecard.schema.json
+          jq -e '.record_status == "synthetic" and .claim_ceiling == "descriptive_skill_and_paired_outcome_metrics_only" and .dataset.split_strategy == "forward_chaining_joint_grouped" and .dataset.grouping_unit == "joint_voyage_weather_event" and (.forecast_cases | length == 9) and (.mission_pairs | length == 9) and ([.forecast_cases[].fold] | sort | group_by(.) | map({(.[0]): length}) | add == {"development":3,"validation":3,"test":3}) and ([.forecast_cases[] | select(.fold == "test") | .environment_strata[]] | unique | length >= 3) and all(.mission_pairs[]; has("weather_blind_reference") and (.weather_blind_reference.forecast_use == false) and (.candidate.forecast_use == true) and (.baseline.forecast_use == true))' tools/marine-forecast-scorecard/fixtures/synthetic-scorecard-0001.json
+
+      - name: Member-coherent risk schema and negative control
+        run: |
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.routes.minItems >= 2 and .properties.forecast.properties.members.minItems >= 2' tools/marine-forecast-scorecard/schema/marine-member-coherent-risk.schema.json
+          jq -e '.record_status == "synthetic" and .claim_ceiling == "member_coherent_route_risk_only" and .forecast.forecast_issue_time == "2025-03-01T00:00:00Z" and (.routes | length == 2) and ([.routes[].members[]] | length == 4)' tools/marine-forecast-scorecard/fixtures/synthetic-member-coherent-risk-0001.json
+          cargo run --quiet --manifest-path tools/marine-forecast-scorecard/Cargo.toml --bin member-coherent-risk -- audit-member-risk tools/marine-forecast-scorecard/fixtures/synthetic-member-coherent-risk-0001.json > /tmp/member-coherent-risk.json
+          jq -e '.disposition == "SYNTHETIC_ONLY" and .route_ranking_changes_when_member_coherence_is_destroyed == true and .best_route_by_member_coherent_cvar95 == "route-correlated-alternating" and .best_route_by_independent_edge_marginal_resampling == "route-correlated-high-low"' /tmp/member-coherent-risk.json
+
+      - name: Information/noise field-verification schema and smoothing negative control
+        run: |
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.field_cases.minItems >= 2 and .properties.field_cases.items.properties.weighting_method.const == "normalized_cell_area"' tools/marine-forecast-scorecard/schema/marine-forecast-information-noise.schema.json
+          jq -e '.record_status == "synthetic" and .claim_ceiling == "field_information_noise_diagnostics_only" and (.field_cases | length == 2) and ([.field_cases[].variant] | sort) == ["damped","raw"]' tools/marine-forecast-scorecard/fixtures/synthetic-information-noise-0001.json
+          cargo run --quiet --manifest-path tools/marine-forecast-scorecard/Cargo.toml --bin forecast-information-noise -- audit-information-noise tools/marine-forecast-scorecard/fixtures/synthetic-information-noise-0001.json > /tmp/forecast-information-noise.json
+          jq -e '.disposition == "SYNTHETIC_ONLY" and .field_case_count == 2 and .smoothing_pair_count == 1 and .smoothing_rmse_gaming_case_count == 1 and .smoothing_comparisons[0].rmse_improves_while_information_degrades == true' /tmp/forecast-information-noise.json
+
+      - name: Scorecard audit must remain synthetic-only
+        run: |
+          cargo run --quiet --manifest-path tools/marine-forecast-scorecard/Cargo.toml -- audit-scorecard tools/marine-forecast-scorecard/fixtures/synthetic-scorecard-0001.json > /tmp/marine-scorecard.json
+          jq -e '.disposition == "SYNTHETIC_ONLY" and .forecast_case_count == 9 and .mission_pair_count == 9 and .decision_metrics.statistical_inference == "NOT_PERFORMED" and .decision_metrics.weather_blind_reference_policy_id == "weather-blind-reference" and .decision_metrics.by_fold.test.paired_case_count == 3 and .decision_metrics.by_fold.test.mean_paired_energy_improvement_vs_weather_blind_pct > 0 and .decision_metrics.by_fold.test.weather_blind_cvar95_regret_kwh_equivalent > 0 and ([.forecast_metrics[] | select(.fold == "test") | .sample_count] | add == 3) and .claim_ceiling == "descriptive_metrics_only_no_statistical_superiority_or_operational_authorization"' /tmp/marine-scorecard.json

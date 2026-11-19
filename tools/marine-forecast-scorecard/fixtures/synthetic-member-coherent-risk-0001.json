@@ -1,0 +1,107 @@
+{
+  "schema_version": "0.1.0",
+  "scorecard_id": "MARINE-MEMBER-COHERENCE-SYNTHETIC-0001",
+  "record_status": "synthetic",
+  "claim_ceiling": "member_coherent_route_risk_only",
+  "forecast": {
+    "source_id": "synthetic-ensemble-source-0001",
+    "cycle_id": "synthetic-cycle-2025-03-01T00:00Z",
+    "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "first_available_at": "2025-03-01T00:20:00Z",
+    "decision_cutoff": "2025-03-01T00:30:00Z",
+    "availability_receipt_ref": "SYNTHETIC-FORECAST-AVAILABILITY-0001",
+    "availability_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "member_set_sha256": "633ee70aef12bc0f24e640b11f0e673e3d6baea221dbe0d0899dfa0f48083b5a",
+    "members": [
+      {
+        "member_id": "member-01",
+        "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "member_id": "member-02",
+        "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    ],
+    "forecast_issue_time": "2025-03-01T00:00:00Z"
+  },
+  "routes": [
+    {
+      "route_id": "route-correlated-alternating",
+      "edge_ids": [
+        "edge-1",
+        "edge-2"
+      ],
+      "members": [
+        {
+          "member_id": "member-01",
+          "source_member_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "path_result_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "edge_losses": [
+            {
+              "edge_id": "edge-1",
+              "loss_kwh_equivalent": 10
+            },
+            {
+              "edge_id": "edge-2",
+              "loss_kwh_equivalent": 0
+            }
+          ]
+        },
+        {
+          "member_id": "member-02",
+          "source_member_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "path_result_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "edge_losses": [
+            {
+              "edge_id": "edge-1",
+              "loss_kwh_equivalent": 0
+            },
+            {
+              "edge_id": "edge-2",
+              "loss_kwh_equivalent": 10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route_id": "route-correlated-high-low",
+      "edge_ids": [
+        "edge-1",
+        "edge-2"
+      ],
+      "members": [
+        {
+          "member_id": "member-01",
+          "source_member_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "path_result_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "edge_losses": [
+            {
+              "edge_id": "edge-1",
+              "loss_kwh_equivalent": 8
+            },
+            {
+              "edge_id": "edge-2",
+              "loss_kwh_equivalent": 8
+            }
+          ]
+        },
+        {
+          "member_id": "member-02",
+          "source_member_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "path_result_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "edge_losses": [
+            {
+              "edge_id": "edge-1",
+              "loss_kwh_equivalent": 0
+            },
+            {
+              "edge_id": "edge-2",
+              "loss_kwh_equivalent": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

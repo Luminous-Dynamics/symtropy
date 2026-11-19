@@ -1,0 +1,117 @@
+{
+  "schema_version": "0.1.0",
+  "scorecard_id": "MARINE-INFORMATION-NOISE-SYNTHETIC-0001",
+  "record_status": "synthetic",
+  "claim_ceiling": "field_information_noise_diagnostics_only",
+  "dataset": {
+    "dataset_id": "SYNTHETIC-FIELD-DATASET-0001",
+    "dataset_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "split_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "split_strategy": "forward_chaining_joint_grouped",
+    "grouping_unit": "joint_voyage_weather_event"
+  },
+  "field_cases": [
+    {
+      "pair_id": "damping-pair-0001",
+      "fold": "test",
+      "episode_id": "episode-test-01",
+      "voyage_id": "voyage-test-01",
+      "weather_event_id": "event-test-01",
+      "variable": "wind_u_10m",
+      "lead_hours": 6,
+      "forecast_source_id": "synthetic-nwp-source",
+      "cycle_id": "2025-01-01T00:00:00Z",
+      "forecast_issue_time": "2025-01-01T00:00:00Z",
+      "first_available_at": "2025-01-01T00:20:00Z",
+      "decision_cutoff": "2025-01-01T00:30:00Z",
+      "availability_receipt_ref": "SYNTHETIC-AVAILABILITY-RECEIPT-0001",
+      "availability_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "valid_time": "2025-01-01T06:00:00Z",
+      "verification_valid_time": "2025-01-01T06:00:00Z",
+      "verifying_source_id": "synthetic-observation-grid",
+      "verifying_source_class": "in_situ_validation",
+      "verifying_source_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "grid_id": "SYNTHETIC-GRID-3-CELL",
+      "weighting_method": "normalized_cell_area",
+      "support_sha256": "3001c00799fb8d85754bd4abb27b7237682aaff372e571cf5cc36bbbfcc47d1a",
+      "climatology_sha256": "c42b30bac093a842e5e3cdb3a7b89370d7bbb262da0834dcb0ebfb0928ccf53b",
+      "cells": [
+        {
+          "cell_id": "cell-01",
+          "weight": 0.3333333333333333,
+          "forecast_value": -0.65,
+          "observed_value": -1,
+          "climatology_value": 0
+        },
+        {
+          "cell_id": "cell-02",
+          "weight": 0.3333333333333333,
+          "forecast_value": -0.3,
+          "observed_value": 0,
+          "climatology_value": 0
+        },
+        {
+          "cell_id": "cell-03",
+          "weight": 0.3333333333333333,
+          "forecast_value": 0.95,
+          "observed_value": 1,
+          "climatology_value": 0
+        }
+      ],
+      "field_case_id": "field-raw-0001",
+      "variant": "raw",
+      "forecast_artifact_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+    },
+    {
+      "pair_id": "damping-pair-0001",
+      "fold": "test",
+      "episode_id": "episode-test-01",
+      "voyage_id": "voyage-test-01",
+      "weather_event_id": "event-test-01",
+      "variable": "wind_u_10m",
+      "lead_hours": 6,
+      "forecast_source_id": "synthetic-nwp-source",
+      "cycle_id": "2025-01-01T00:00:00Z",
+      "forecast_issue_time": "2025-01-01T00:00:00Z",
+      "first_available_at": "2025-01-01T00:20:00Z",
+      "decision_cutoff": "2025-01-01T00:30:00Z",
+      "availability_receipt_ref": "SYNTHETIC-AVAILABILITY-RECEIPT-0001",
+      "availability_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "valid_time": "2025-01-01T06:00:00Z",
+      "verification_valid_time": "2025-01-01T06:00:00Z",
+      "verifying_source_id": "synthetic-observation-grid",
+      "verifying_source_class": "in_situ_validation",
+      "verifying_source_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "grid_id": "SYNTHETIC-GRID-3-CELL",
+      "weighting_method": "normalized_cell_area",
+      "support_sha256": "3001c00799fb8d85754bd4abb27b7237682aaff372e571cf5cc36bbbfcc47d1a",
+      "climatology_sha256": "c42b30bac093a842e5e3cdb3a7b89370d7bbb262da0834dcb0ebfb0928ccf53b",
+      "cells": [
+        {
+          "cell_id": "cell-01",
+          "weight": 0.3333333333333333,
+          "forecast_value": -0.7,
+          "observed_value": -1,
+          "climatology_value": 0
+        },
+        {
+          "cell_id": "cell-02",
+          "weight": 0.3333333333333333,
+          "forecast_value": 0,
+          "observed_value": 0,
+          "climatology_value": 0
+        },
+        {
+          "cell_id": "cell-03",
+          "weight": 0.3333333333333333,
+          "forecast_value": 0.7,
+          "observed_value": 1,
+          "climatology_value": 0
+        }
+      ],
+      "field_case_id": "field-damped-0001",
+      "variant": "damped",
+      "forecast_artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+    }
+  ]
+}
