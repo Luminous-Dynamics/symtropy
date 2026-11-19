@@ -10,7 +10,8 @@ This dependency-free Rust package checks the **time and communication-step seman
 It verifies:
 - stable federate, model-revision and clock-binding identity;
 - exact rational mapping from each model's integer clock ticks to a common integer-nanosecond master clock;
-- accepted, early-return and rejected communication-step semantics;
+- accepted, early-return and normalized-discard communication-step semantics;
+- FMI importer permission for early return, actual `lastSuccessfulTime`, and unchanged-state checks for discard;
 - retry identity and unchanged retry start state;
 - contiguous per-federate step sequences;
 - common commit barriers containing exactly one terminal step from every required federate;
@@ -35,13 +36,15 @@ The mapping is accepted only when the result is integral and representable as i6
 
 ## Step semantics
 
-- `Accepted`: returned model time equals the requested endpoint.
-- `EarlyReturn`: returned time is strictly between start and requested endpoint. The master barrier is placed at that returned time; every other required federate must also stop at the same master time.
-- `Rejected`: returned time equals the start time; no model-time advancement is committed.
+- `Accepted`: the FMI call did not set `earlyReturn`. The actual `lastSuccessfulTime` must advance the model clock and must not exceed the requested communication endpoint. It **need not equal** the requested endpoint: FMI 3.0.2 explicitly permits deviation for internal fixed-/variable-step solver reasons. The actual returned time, not the requested endpoint, anchors the next trace interval.
+- `EarlyReturn`: the importer had enabled `earlyReturnAllowed`, and the returned time is strictly between the current and requested endpoint. All required federates must reach the same master-time barrier before the next communication sequence.
+- An early return at the current communication point is valid FMI behavior in some event situations, but v0.1 has no same-time event-round record. It is classified as `ZERO_PROGRESS_EARLY_RETURN_UNSUPPORTED`, not as an invalid FMI trace.
+- `eventHandlingNeeded` and `terminateSimulation` are explicitly rejected as unsupported trace paths until Event Mode and termination membership transitions are represented. If an event is signalled without Event Mode being enabled, it is rejected as a contract violation.
+- `Rejected`: a normalized no-advance/discard disposition. Caller-supplied before/after state digests must match. The verifier does not trust undefined outputs from an FMI `fmi3Discard` call as a successful time advance.
 - A retry must have a new attempt ID, reference the immediately preceding rejected attempt, preserve its start state and not widen its requested horizon.
 - Every commit barrier must contain exactly one terminal accepted/early-return attempt per required federate.
 
-This is a bounded trace contract, not a complete FMI 3 importer/master implementation. It does not implement FMU loading, FMI callbacks, event iteration, intermediate update, rollback of opaque solver state, interpolation, or wall-clock scheduling.
+FMI source: [FMI 3.0.2, §4.1.3 and §4.2](https://fmi-standard.org/docs/3.0.2/). This verifier is stricter than the full standard in several deliberately unsupported areas. It is a bounded trace profile, not a complete importer/master implementation. It does not load FMUs, implement Event Mode / `fmi3UpdateDiscreteStates`, Intermediate Update callbacks, successful-step rollback/re-execution, Scheduled Execution, interpolation/hold, or wall-clock scheduling.
 
 ## Run
 
@@ -52,6 +55,6 @@ cargo clippy --manifest-path research/geofusion-fmi-trace-verifier/Cargo.toml --
 
 ## Frozen corpus and claim ceiling
 
-The frozen TSV corpus mutates a valid two-federate trace with wrong model identity, clock-map mismatch, rejected-step advancement, invalid retry linkage/start/horizon, unresolved rejection, sequence gaps and barrier membership/time defects.
+The frozen TSV corpus mutates a valid two-federate trace with wrong model identity, clock-map mismatch, rejected-step advancement or state mutation, early return without importer permission, zero-progress early return, unrepresented event/termination paths, invalid retry linkage/start/horizon, unresolved rejection, sequence gaps and barrier membership/time defects.
 
 All examples are synthetic. Passing tests establish only the declared trace-verification behavior. They do not prove FMI standard conformance, physical model accuracy, energy conservation, geothermal output, fusion performance, grid stability, equipment safety or operational authorization.
