@@ -223,7 +223,7 @@ def qualify_source(root: Path, reference: dict[str, Any]) -> None:
     hinge_motor = hinge[hinge_motor_start:hinge_motor_end]
     # Strip line comments before checking semantic use so an explanatory
     # reference to the old target_pos bug is not mistaken for executable use.
-    hinge_motor_code = "\\n".join(
+    hinge_motor_code = "\n".join(
         line.split("//", 1)[0] for line in hinge_motor.splitlines()
     )
     require_text(
