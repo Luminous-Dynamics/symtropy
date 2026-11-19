@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/synthetic-joints/synchronized-metrology/v0.1/synchronized_port_power.schema.json",
+  "title": "Synchronized Actuator Port-Power Measurement v0.1",
+  "description": "Bounded torque/velocity channel records and synchronized mechanical port power. Deterministic intervals are not statistical confidence intervals.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "torque_channel",
+    "angular_velocity_channel",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "torque_channel": {
+      "$ref": "#/$defs/channel"
+    },
+    "angular_velocity_channel": {
+      "$ref": "#/$defs/channel"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lower",
+        "upper"
+      ],
+      "properties": {
+        "lower": {
+          "type": "number"
+        },
+        "upper": {
+          "type": "number"
+        }
+      }
+    },
+    "channel_kind": {
+      "enum": [
+        "output_torque",
+        "angular_velocity"
+      ]
+    },
+    "bound_representation": {
+      "enum": [
+        "validated_bound",
+        "standard_uncertainty",
+        "expanded_uncertainty",
+        "unknown"
+      ]
+    },
+    "calibration_status": {
+      "enum": [
+        "in_date",
+        "expired",
+        "out_of_tolerance",
+        "unknown",
+        "not_calibrated"
+      ]
+    },
+    "traceability_status": {
+      "enum": [
+        "established",
+        "partial",
+        "not_established",
+        "unknown"
+      ]
+    },
+    "evidence_class": {
+      "enum": [
+        "independent_physical",
+        "source_author_physical",
+        "vendor_physical",
+        "model_derived",
+        "unknown"
+      ]
+    },
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "value",
+        "sensor_range",
+        "calibrated_range",
+        "bound_representation",
+        "calibration_status",
+        "traceability_status",
+        "evidence_class",
+        "sensor_serial",
+        "calibration_sensor_serial",
+        "calibration_certificate_reference",
+        "reference_standard_reference",
+        "calibration_chain_digest",
+        "calibration_digest",
+        "system_boundary_digest",
+        "operating_condition_digest",
+        "source_reference",
+        "measurement_method",
+        "reference_clock_id",
+        "clock_mapping_digest",
+        "reference_instant_s",
+        "sample_time_offset_s",
+        "clock_offset_uncertainty_s",
+        "timestamp_jitter_bound_s",
+        "filter_group_delay_s",
+        "filter_delay_compensation_s",
+        "filter_delay_uncertainty_s",
+        "absolute_slew_bound_per_s",
+        "slew_bound_provenance_digest",
+        "slew_bound_source_reference"
+      ],
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/channel_kind"
+        },
+        "value": {
+          "$ref": "#/$defs/interval"
+        },
+        "sensor_range": {
+          "$ref": "#/$defs/interval"
+        },
+        "calibrated_range": {
+          "$ref": "#/$defs/interval"
+        },
+        "bound_representation": {
+          "$ref": "#/$defs/bound_representation"
+        },
+        "calibration_status": {
+          "$ref": "#/$defs/calibration_status"
+        },
+        "traceability_status": {
+          "$ref": "#/$defs/traceability_status"
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        },
+        "sensor_serial": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_sensor_serial": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_certificate_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_standard_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_chain_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "system_boundary_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operating_condition_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_clock_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_mapping_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_instant_s": {
+          "type": "number"
+        },
+        "sample_time_offset_s": {
+          "type": "number"
+        },
+        "clock_offset_uncertainty_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "timestamp_jitter_bound_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "filter_group_delay_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "filter_delay_compensation_s": {
+          "type": "number"
+        },
+        "filter_delay_uncertainty_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "absolute_slew_bound_per_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "slew_bound_provenance_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slew_bound_source_reference": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
