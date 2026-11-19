@@ -313,3 +313,27 @@ The next SOTA-facing objective should become a multiobjective Pareto set:
 - schedule stability and robustness to common-cause outages.
 
 Do not bury these in one opaque weighted score. Publish each objective, the trade-offs and the constraint/evidence boundary.
+
+
+## 15. Second asset-family archetype: submarine HVDC cable repair
+
+The benchmark corpus now has a separate synthetic cable-repair case, not just transformer replacement. It exercises:
+- port inventory for a cable repair kit;
+- port-to-subsea-fault heavy logistics with explicit cargo capacity and 18-hour transit;
+- marine mobilisation;
+- a heavy-haul vehicle;
+- jointing team, cable-lay vessel and crane reserved simultaneously;
+- two explicit 12-hour repair work blocks across recurring daily work windows;
+- HVDC test equipment and return-to-service commissioning.
+
+The cable case declares:
+- 350 MW lost firm capacity and 50 MW bounded alternate capacity;
+- 300 MW net shortfall;
+- 110 hours from outage start to completion under the synthetic daily calendars;
+- 33,000 MWh constant-shortfall arithmetic.
+
+These figures are deliberately synthetic. The 12-hour repair blocks are task segmentation across windows, not a field-validated cable repair method or vessel operating plan. The model does not yet include weather forecasts, sea-state limits, vessel mobilisation permits, fault-localisation uncertainty, cable route engineering, burial depth, joint bay construction or site-specific commissioning requirements.
+
+This second archetype is important because the model should not assume transformer-style recovery applies to cable systems. Later corpus families should add overhead-line tower/conductor failures, HVDC converter valves/transformers, GIS/circuit breakers and remote island/mine corridors.
+
+The validator CI now schema-checks both transformer-fleet and submarine-cable fixtures, runs the same Rust semantic tests over both and invokes the CLI on both cases.
