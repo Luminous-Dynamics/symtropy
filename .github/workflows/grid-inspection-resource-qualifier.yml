@@ -32,6 +32,7 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
+          import hashlib
           import json
           from pathlib import Path
           from jsonschema import Draft202012Validator
@@ -42,6 +43,10 @@ jobs:
           Draft202012Validator.check_schema(schema)
           errors = sorted(Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER).iter_errors(case), key=lambda error: list(error.path))
           assert not errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in errors)
+          canonical_resource = json.dumps(case["resourceManifest"], separators=(",", ":"), sort_keys=True, ensure_ascii=False).encode()
+          canonical_policy = json.dumps(case["policyCertificate"], separators=(",", ":"), sort_keys=True, ensure_ascii=False).encode()
+          assert hashlib.sha256(canonical_resource).hexdigest() == case["resourceManifestSha256"]
+          assert hashlib.sha256(canonical_policy).hexdigest() == case["policyCertificateSha256"]
           assert sum(branch["probabilityBasisPoints"] for branch in case["policyCertificate"]["firstOutcomeBranches"]) == 10_000
           nested = next(branch for branch in case["policyCertificate"]["firstOutcomeBranches"] if branch["secondOutcomeBranches"])
           assert sum(leaf["probabilityBasisPoints"] for leaf in nested["secondOutcomeBranches"]) == 10_000
@@ -70,5 +75,8 @@ jobs:
             and .expectedCandidateActionCompletionHour > 18.0
             and .worstCaseCandidateActionCompletionHour == 18.25
             and (.expectedResourceHours | length == 4)
+            and ([.expectedResourceHours[] | select(.resourceRef == "synthetic://resource/specialist-crew-01")][0].expectedUnitHours == 9.05)
+            and ([.expectedResourceHours[] | select(.resourceRef == "synthetic://resource/portable-test-set-01")][0].expectedUnitHours == 3.05)
+            and ([.branches[] | select(.recoveryAction.activityId == "repair-bushing")][0].branchResourceHours[] | select(.resourceRef == "synthetic://resource/specialist-crew-01").unitHours) == 9.5
             and (.claimBoundary | contains("not service restoration"))
           ' /tmp/grid-inspection-resource-report.json
