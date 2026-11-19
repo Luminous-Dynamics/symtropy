@@ -72,6 +72,23 @@ jobs:
                   print(f"scenario-set:{location}: {error.message}")
               raise SystemExit(1)
           print("JSON Schema PASS: synthetic recovery scenario set conforms")
+
+          register_schema = json.loads((root / "scheduling-benchmark-register-v0.1.schema.json").read_text())
+          register = json.loads((root / "scheduling-benchmark-register-v0.1.json").read_text())
+          Draft202012Validator.check_schema(register_schema)
+          errors = sorted(
+              Draft202012Validator(
+                  register_schema,
+                  format_checker=FormatChecker(),
+              ).iter_errors(register),
+              key=lambda error: list(map(str, error.absolute_path)),
+          )
+          if errors:
+              for error in errors:
+                  location = ".".join(map(str, error.absolute_path)) or "$"
+                  print(f"benchmark-register:{location}: {error.message}")
+              raise SystemExit(1)
+          print(f"JSON Schema PASS: {len(register['records'])} benchmark register records conform")
           PY
 
       - name: Check Rust formatting
