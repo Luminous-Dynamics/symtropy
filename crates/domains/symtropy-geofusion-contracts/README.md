@@ -11,6 +11,7 @@ A small, dependency-free Rust library for validating energy-stream boundary reco
 - Rejects cross-connection of geothermal-primary and fusion-primary circuit classes.
 - Rejects direct geothermal-primary heat as a D–T plasma-heating input; geothermal-generated electricity may feed a separately identified electrical plasma-heating power supply.
 - Evaluates a multi-carrier first-law ledger (for example thermal input, electric output and rejected heat) while preserving the carrier label on every term. Negative storage delta represents discharge.
+- Uses overflow-resistant normalized residual arithmetic and explicitly refuses unrepresentable totals/residuals rather than allowing NaN/inf to appear as a balanced result.
 
 ## Explicit non-goals
 
