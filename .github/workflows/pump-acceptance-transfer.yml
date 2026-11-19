@@ -1,0 +1,64 @@
+name: Pump Acceptance-to-Service Transferability
+
+on:
+  pull_request:
+    paths:
+      - "tools/pump-acceptance-transfer/**"
+      - "docs/research/PUMP_ACCEPTANCE_TO_SERVICE_TRANSFER_V0_1.md"
+      - ".github/workflows/pump-acceptance-transfer.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stage0:
+    name: Synthetic pump acceptance-to-service qualification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/pump-acceptance-transfer/Cargo.toml -- --check
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/pump-acceptance-transfer/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run tests
+        run: cargo test --locked --manifest-path tools/pump-acceptance-transfer/Cargo.toml --all-targets
+
+      - name: Emit report and evidence manifest
+        run: |
+          mkdir -p stage0-evidence
+          cargo run --locked --manifest-path tools/pump-acceptance-transfer/Cargo.toml -- --report > stage0-evidence/report.tsv
+          test "$(wc -l < stage0-evidence/report.tsv)" -eq 33
+          {
+            echo "workflow_run_id=${GITHUB_RUN_ID}"
+            echo "workflow_attempt=${GITHUB_RUN_ATTEMPT}"
+            echo "checkout_sha=$(git rev-parse HEAD)"
+            echo "source_head_sha=${{ github.event.pull_request.head.sha || github.sha }}"
+            echo "rustc=$(rustc --version)"
+            echo "cargo=$(cargo --version)"
+            echo "scenario_count=$(($(wc -l < tools/pump-acceptance-transfer/fixtures/cases-v0.1.tsv) - 1))"
+            echo "curve_point_count=$(($(wc -l < tools/pump-acceptance-transfer/fixtures/curve-points-v0.1.tsv) - 1))"
+            echo "report_line_count=$(wc -l < stage0-evidence/report.tsv)"
+          } > stage0-evidence/manifest.txt
+          sha256sum \
+            tools/pump-acceptance-transfer/fixtures/cases-v0.1.tsv \
+            tools/pump-acceptance-transfer/fixtures/curve-points-v0.1.tsv \
+            tools/pump-acceptance-transfer/fixtures/expected-v0.1.tsv \
+            stage0-evidence/report.tsv >> stage0-evidence/manifest.txt
+
+      - name: Upload exact-run evidence bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: pump-acceptance-transfer-stage0-${{ github.sha }}
+          path: stage0-evidence/
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,13 @@
+[package]
+name = "pump-acceptance-transfer"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+
+[lib]
+name = "pump_acceptance_transfer"
+path = "src/lib.rs"
+
+[[bin]]
+name = "pump-acceptance-transfer"
+path = "src/main.rs"
