@@ -480,9 +480,6 @@ fn report_event(
                                             "source cadence cannot be compared under the declared clock budget"
                                                 .to_owned(),
                                         );
-                                        if disposition == EventDisposition::OnTimeValid {
-                                            // A timing-quality issue must not retain an ON_TIME disposition.
-                                        }
                                     }
                                 }
                             }
@@ -890,6 +887,91 @@ mod tests {
     fn future_source_timestamp_is_unqualified() {
         let report = replay_trace(&request(vec![event(1, 1100, 1000)])).expect("replay");
         assert_eq!(report.body.reports[0].disposition, EventDisposition::ClockUnqualified);
+    }
+
+    #[test]
+    fn cadence_deviation_is_explicit_and_degrades_an_otherwise_valid_event() {
+        let report = replay_trace(&request(vec![
+            event(1, 900, 1000),
+            event(2, 1020, 1100),
+        ]))
+        .expect("replay");
+        let second = &report.body.reports[1];
+        assert_eq!(second.disposition, EventDisposition::Degraded);
+        assert_eq!(second.metrics.observed_source_interarrival_ns, Some(120));
+        assert_eq!(second.metrics.expected_source_interarrival_ns, Some(100));
+        assert_eq!(second.metrics.source_period_deviation_ns, Some(20));
+        assert_eq!(second.metrics.source_period_consistent, Some(false));
+    }
+
+    #[test]
+    fn cadence_within_registered_jitter_budget_is_consistent() {
+        let report = replay_trace(&request(vec![
+            event(1, 900, 1000),
+            event(2, 1050, 1100),
+        ]))
+        .expect("replay");
+        let second = &report.body.reports[1];
+        assert_eq!(second.metrics.observed_source_interarrival_ns, Some(150));
+        assert_eq!(second.metrics.expected_source_interarrival_ns, Some(100));
+        assert_eq!(second.metrics.source_period_deviation_ns, Some(50));
+        assert_eq!(second.metrics.source_period_consistent, Some(false));
+    }
+
+    #[test]
+    fn unknown_downstream_acknowledgement_downgrades_current_event() {
+        let mut input = event(1, 900, 1000);
+        input.acknowledgement = Some(DownstreamAcknowledgement {
+            acknowledgement_id: "ack-unknown".to_owned(),
+            state: AcknowledgementState::Unknown,
+            timestamp: None,
+        });
+        let report = replay_trace(&request(vec![input])).expect("replay");
+        assert_eq!(report.body.reports[0].disposition, EventDisposition::Degraded);
+        assert!(report.body.reports[0].findings.iter().any(|item| item.contains("unknown")));
+    }
+
+    #[test]
+    fn acknowledged_downstream_latency_is_measured_from_decision() {
+        let mut input = event(1, 900, 1000);
+        input.acknowledgement = Some(DownstreamAcknowledgement {
+            acknowledgement_id: "ack-ok".to_owned(),
+            state: AcknowledgementState::Acknowledged,
+            timestamp: Some(stamp(1060)),
+        });
+        let report = replay_trace(&request(vec![input])).expect("replay");
+        assert_eq!(report.body.reports[0].disposition, EventDisposition::OnTimeValid);
+        assert_eq!(report.body.reports[0].metrics.downstream_ack_latency_ns, Some(20));
+    }
+
+    #[test]
+    fn rejected_downstream_acknowledgement_is_not_reported_as_success() {
+        let mut input = event(1, 900, 1000);
+        input.acknowledgement = Some(DownstreamAcknowledgement {
+            acknowledgement_id: "ack-rejected".to_owned(),
+            state: AcknowledgementState::Rejected,
+            timestamp: None,
+        });
+        let report = replay_trace(&request(vec![input])).expect("replay");
+        assert_eq!(report.body.reports[0].disposition, EventDisposition::Degraded);
+    }
+
+    #[test]
+    fn calibration_anchor_must_be_inside_its_validity_interval() {
+        let mut input = request(vec![event(1, 900, 1000)]);
+        input.calibrations[0].anchor_clock_ns = 100;
+        input.calibrations[0].valid_from_clock_ns = 200;
+        assert!(replay_trace(&input).is_err());
+    }
+
+    #[test]
+    fn affine_clock_drift_correction_is_applied() {
+        let mut input = request(vec![event(1, 900, 1000)]);
+        input.calibrations[0].drift_ppb = 100_000_000;
+        let report = replay_trace(&input).expect("replay");
+        let row = &report.body.reports[0];
+        assert_eq!(row.metrics.source_to_acquisition_latency_ns, Some(110));
+        assert_eq!(row.metrics.transport_latency_ns, Some(44));
     }
 
     #[test]
