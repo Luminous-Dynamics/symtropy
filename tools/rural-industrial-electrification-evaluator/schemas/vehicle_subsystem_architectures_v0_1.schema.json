@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/rural-industrial-electrification-evaluator/schemas/vehicle_subsystem_architectures_v0_1.schema.json",
+  "title": "Electric mobility conceptual subsystem architecture tree v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "programme_id", "claim_ceiling", "voltage_policy", "architecture_patterns", "designs"],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "programme_id": { "const": "EV-PLATFORM-001" },
+    "claim_ceiling": { "type": "string", "minLength": 1 },
+    "voltage_policy": { "type": "string", "minLength": 1 },
+    "architecture_patterns": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/pattern" }
+    },
+    "designs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/design" }
+    }
+  },
+  "$defs": {
+    "uniqueTextList": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "pattern": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pattern_id", "label", "energy_path", "voltage_decision", "primary_gates"],
+      "properties": {
+        "pattern_id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "label": { "type": "string", "minLength": 1 },
+        "energy_path": { "type": "string", "minLength": 1 },
+        "voltage_decision": { "type": "string", "minLength": 1 },
+        "primary_gates": { "$ref": "#/$defs/uniqueTextList" }
+      }
+    },
+    "subsystem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subsystem_id", "role", "reference_architecture", "status", "qualification_gate"],
+      "properties": {
+        "subsystem_id": { "type": "string", "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$" },
+        "role": { "type": "string", "minLength": 1 },
+        "reference_architecture": { "type": "string", "minLength": 1 },
+        "status": { "const": "conceptual" },
+        "qualification_gate": { "type": "string", "minLength": 1 }
+      }
+    },
+    "design": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["design_id", "platform_family_id", "architecture_pattern_id", "layout_concept", "subsystems"],
+      "properties": {
+        "design_id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "platform_family_id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "architecture_pattern_id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "layout_concept": { "type": "string", "minLength": 1 },
+        "subsystems": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": { "$ref": "#/$defs/subsystem" }
+        }
+      }
+    }
+  }
+}

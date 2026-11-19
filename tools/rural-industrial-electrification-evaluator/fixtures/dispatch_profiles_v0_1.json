@@ -1,0 +1,189 @@
+{
+  "schema_version": "0.1.0",
+  "scenarios": [
+    {
+      "scenario_id": "farm-solar-and-shifted-charging",
+      "label": "Synthetic farm with midday generation and time-varying equipment demand",
+      "evidence_class": "synthetic",
+      "storage": {
+        "capacity_kwh": 20.0,
+        "initial_soc_kwh": 8.0,
+        "minimum_soc_kwh": 3.0,
+        "maximum_charge_power_kw": 8.0,
+        "maximum_discharge_power_kw": 6.0,
+        "charge_efficiency_fraction": 0.95,
+        "discharge_efficiency_fraction": 0.95
+      },
+      "slots": [
+        {
+          "slot_id": "dawn",
+          "duration_hours": 2.0,
+          "onsite_generation_available_kw": 1.0,
+          "grid_import_limit_kw": 4.0,
+          "critical_load_requested_kw": 2.0,
+          "flexible_load_requested_kw": 3.0,
+          "allow_storage_for_flexible_load": false,
+          "allow_grid_charging": false,
+          "grid_price_per_kwh": 0.18,
+          "grid_carbon_kg_per_kwh": 0.45
+        },
+        {
+          "slot_id": "solar-peak",
+          "duration_hours": 3.0,
+          "onsite_generation_available_kw": 12.0,
+          "grid_import_limit_kw": 4.0,
+          "critical_load_requested_kw": 2.0,
+          "flexible_load_requested_kw": 4.0,
+          "allow_storage_for_flexible_load": false,
+          "allow_grid_charging": false,
+          "grid_price_per_kwh": 0.09,
+          "grid_carbon_kg_per_kwh": 0.35
+        },
+        {
+          "slot_id": "afternoon-fieldwork",
+          "duration_hours": 2.0,
+          "onsite_generation_available_kw": 3.0,
+          "grid_import_limit_kw": 3.0,
+          "critical_load_requested_kw": 2.0,
+          "flexible_load_requested_kw": 4.0,
+          "allow_storage_for_flexible_load": false,
+          "allow_grid_charging": false,
+          "grid_price_per_kwh": 0.15,
+          "grid_carbon_kg_per_kwh": 0.42
+        },
+        {
+          "slot_id": "night-critical-plus-fleet",
+          "duration_hours": 4.0,
+          "onsite_generation_available_kw": 0.0,
+          "grid_import_limit_kw": 2.0,
+          "critical_load_requested_kw": 1.0,
+          "flexible_load_requested_kw": 2.0,
+          "allow_storage_for_flexible_load": true,
+          "allow_grid_charging": false,
+          "grid_price_per_kwh": 0.1,
+          "grid_carbon_kg_per_kwh": 0.4
+        }
+      ]
+    },
+    {
+      "scenario_id": "remote-farm-weak-grid",
+      "label": "Synthetic remote farm with severe grid limit and essential night loads",
+      "evidence_class": "synthetic",
+      "storage": {
+        "capacity_kwh": 6.0,
+        "initial_soc_kwh": 3.0,
+        "minimum_soc_kwh": 1.0,
+        "maximum_charge_power_kw": 2.0,
+        "maximum_discharge_power_kw": 2.0,
+        "charge_efficiency_fraction": 0.9,
+        "discharge_efficiency_fraction": 0.9
+      },
+      "slots": [
+        {
+          "slot_id": "night-outage",
+          "duration_hours": 2.0,
+          "onsite_generation_available_kw": 0.0,
+          "grid_import_limit_kw": 1.0,
+          "critical_load_requested_kw": 3.0,
+          "flexible_load_requested_kw": 1.0,
+          "allow_storage_for_flexible_load": false,
+          "allow_grid_charging": false,
+          "grid_price_per_kwh": null,
+          "grid_carbon_kg_per_kwh": null
+        },
+        {
+          "slot_id": "day-recovery",
+          "duration_hours": 4.0,
+          "onsite_generation_available_kw": 4.0,
+          "grid_import_limit_kw": 1.0,
+          "critical_load_requested_kw": 2.0,
+          "flexible_load_requested_kw": 2.0,
+          "allow_storage_for_flexible_load": false,
+          "allow_grid_charging": false,
+          "grid_price_per_kwh": null,
+          "grid_carbon_kg_per_kwh": null
+        }
+      ]
+    },
+    {
+      "scenario_id": "industrial-peak-shaving",
+      "label": "Synthetic industrial site charging storage off-peak to protect peak import limits",
+      "evidence_class": "synthetic",
+      "storage": {
+        "capacity_kwh": 100.0,
+        "initial_soc_kwh": 40.0,
+        "minimum_soc_kwh": 10.0,
+        "maximum_charge_power_kw": 40.0,
+        "maximum_discharge_power_kw": 60.0,
+        "charge_efficiency_fraction": 0.95,
+        "discharge_efficiency_fraction": 0.95
+      },
+      "slots": [
+        {
+          "slot_id": "off-peak",
+          "duration_hours": 2.0,
+          "onsite_generation_available_kw": 5.0,
+          "grid_import_limit_kw": 100.0,
+          "critical_load_requested_kw": 30.0,
+          "flexible_load_requested_kw": 0.0,
+          "allow_storage_for_flexible_load": false,
+          "allow_grid_charging": true,
+          "grid_price_per_kwh": 0.08,
+          "grid_carbon_kg_per_kwh": 0.3
+        },
+        {
+          "slot_id": "peak",
+          "duration_hours": 1.0,
+          "onsite_generation_available_kw": 5.0,
+          "grid_import_limit_kw": 60.0,
+          "critical_load_requested_kw": 110.0,
+          "flexible_load_requested_kw": 10.0,
+          "allow_storage_for_flexible_load": true,
+          "allow_grid_charging": false,
+          "grid_price_per_kwh": 0.24,
+          "grid_carbon_kg_per_kwh": 0.55
+        }
+      ]
+    },
+    {
+      "scenario_id": "fleet-coincident-charging-peak",
+      "label": "Synthetic rural fleet where charging requests exceed simultaneous site headroom",
+      "evidence_class": "synthetic",
+      "storage": {
+        "capacity_kwh": 30.0,
+        "initial_soc_kwh": 15.0,
+        "minimum_soc_kwh": 5.0,
+        "maximum_charge_power_kw": 10.0,
+        "maximum_discharge_power_kw": 10.0,
+        "charge_efficiency_fraction": 0.9,
+        "discharge_efficiency_fraction": 0.9
+      },
+      "slots": [
+        {
+          "slot_id": "simultaneous-return",
+          "duration_hours": 1.0,
+          "onsite_generation_available_kw": 0.0,
+          "grid_import_limit_kw": 50.0,
+          "critical_load_requested_kw": 10.0,
+          "flexible_load_requested_kw": 60.0,
+          "allow_storage_for_flexible_load": false,
+          "allow_grid_charging": false,
+          "grid_price_per_kwh": 0.2,
+          "grid_carbon_kg_per_kwh": 0.45
+        },
+        {
+          "slot_id": "later-break",
+          "duration_hours": 1.0,
+          "onsite_generation_available_kw": 0.0,
+          "grid_import_limit_kw": 50.0,
+          "critical_load_requested_kw": 10.0,
+          "flexible_load_requested_kw": 10.0,
+          "allow_storage_for_flexible_load": false,
+          "allow_grid_charging": true,
+          "grid_price_per_kwh": 0.08,
+          "grid_carbon_kg_per_kwh": 0.3
+        }
+      ]
+    }
+  ]
+}

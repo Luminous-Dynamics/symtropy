@@ -1,0 +1,392 @@
+{
+  "schema_version": "0.1.0",
+  "programme_id": "EV-PLATFORM-001",
+  "claim_ceiling": "Architecture and software-interface contracts only; no physical component interoperability, safety compliance or hardware commonality is claimed.",
+  "shared_interface_contracts": [
+    {
+      "contract_id": "vehicle-identity-configuration",
+      "layer": "configuration",
+      "shared_semantics": [
+        "design_id",
+        "variant_revision",
+        "installed_module_ids",
+        "pack_identity",
+        "software_hash",
+        "calibration_revision",
+        "evidence_links"
+      ],
+      "qualification_boundary": "Configuration and identity semantics only; does not validate installed hardware."
+    },
+    {
+      "contract_id": "low-voltage-diagnostics",
+      "layer": "controls",
+      "shared_semantics": [
+        "typed_fault_events",
+        "diagnostic_snapshot",
+        "safe_update_state",
+        "watchdog_status",
+        "telemetry_timestamping"
+      ],
+      "qualification_boundary": "Connector, voltage, network, redundancy, timing and environmental rating remain class-specific."
+    },
+    {
+      "contract_id": "high-voltage-safe-state",
+      "layer": "energy_safety",
+      "shared_semantics": [
+        "isolation_state",
+        "stored_energy_warning",
+        "service_lockout_record",
+        "discharge_state",
+        "fault_latched"
+      ],
+      "qualification_boundary": "Isolation devices, insulation design, creepage/clearance, current interruption, service procedures and safety integrity are class-specific and require qualification."
+    },
+    {
+      "contract_id": "battery-energy-boundary",
+      "layer": "energy",
+      "shared_semantics": [
+        "nominal_energy_kwh",
+        "usable_energy_kwh",
+        "state_of_health_fraction",
+        "temperature_capacity_fraction",
+        "reserve_fraction",
+        "state_of_charge_fraction"
+      ],
+      "qualification_boundary": "Pack structure, chemistry, thermal paths, voltage class, current limits, cell monitoring and crash/impact protection are class-specific."
+    },
+    {
+      "contract_id": "charging-state-contract",
+      "layer": "charging",
+      "shared_semantics": [
+        "requested_power_kw",
+        "available_power_kw",
+        "accepted_power_kw",
+        "session_state",
+        "isolation_state",
+        "charge_stop_reason",
+        "energy_meter_boundary"
+      ],
+      "qualification_boundary": "Physical connector, protocol version, inlet/receiver, cable cooling, charge curve, contactor sequencing and interoperability are not assumed interchangeable."
+    },
+    {
+      "contract_id": "thermal-derate-observability",
+      "layer": "thermal",
+      "shared_semantics": [
+        "sensor_id",
+        "measured_temperature_c",
+        "limit_reference",
+        "derate_reason",
+        "available_power_kw",
+        "sensor_health"
+      ],
+      "qualification_boundary": "Thermal topology, coolant, heat exchangers, thermal runaway/fire controls and validated limits remain specific to each vehicle and component."
+    },
+    {
+      "contract_id": "traction-regeneration-accounting",
+      "layer": "traction",
+      "shared_semantics": [
+        "positive_wheel_work_kwh",
+        "battery_traction_energy_kwh",
+        "regeneration_available_kwh",
+        "regeneration_captured_kwh",
+        "regeneration_curtailed_kwh"
+      ],
+      "qualification_boundary": "Motor topology, gear reduction, torque map, inverter, brakes, axle, traction-control and regenerative-braking behavior remain vehicle-specific."
+    },
+    {
+      "contract_id": "work-tool-power-contract",
+      "layer": "work_system",
+      "shared_semantics": [
+        "tool_energy_kwh",
+        "requested_power_kw",
+        "accepted_power_kw",
+        "interlock_state",
+        "tool_fault_state",
+        "task_counter"
+      ],
+      "qualification_boundary": "PTO, hydraulics, hoists, ramps/lifts, refrigeration, implement attachments and their load paths/interlocks require class-specific engineering."
+    },
+    {
+      "contract_id": "charging-site-and-dispatch",
+      "layer": "fleet_energy",
+      "shared_semantics": [
+        "charger_id",
+        "site_import_limit_kw",
+        "concurrent_vehicle_count",
+        "queue_state",
+        "departure_deadline",
+        "minimum_return_reserve_kwh"
+      ],
+      "qualification_boundary": "Grid studies, protection, charger sizing, queueing and operating policies need the actual site and fleet."
+    },
+    {
+      "contract_id": "maintenance-provenance",
+      "layer": "service_lifecycle",
+      "shared_semantics": [
+        "vehicle_serial",
+        "module_serial",
+        "part_revision",
+        "maintenance_action",
+        "technician_evidence",
+        "fault_code",
+        "repair_duration",
+        "end_of_life_disposition"
+      ],
+      "qualification_boundary": "Privacy, access control, regulated records, supplier serialization and certified maintenance rules depend on deployment and jurisdiction."
+    },
+    {
+      "contract_id": "safe-stop-and-recovery-events",
+      "layer": "safety_recovery",
+      "shared_semantics": [
+        "trigger_class",
+        "safe_state_requested",
+        "safe_state_reached",
+        "manual_override_state",
+        "recovery_method",
+        "recovery_duration"
+      ],
+      "qualification_boundary": "Actual safe state, hazard controls, recovery points, towing/lifting, braking and autonomy behaviors require vehicle-specific hazard analysis and testing."
+    }
+  ],
+  "platform_families": [
+    {
+      "platform_family_id": "micro-mobility",
+      "label": "Cargo micro-mobility",
+      "design_ids": [
+        "cargo-micro-mobility"
+      ],
+      "hardware_reuse_policy": "No cross-family physical hardware reuse assumed.",
+      "shared_contracts": [
+        "vehicle-identity-configuration",
+        "low-voltage-diagnostics",
+        "battery-energy-boundary",
+        "charging-state-contract",
+        "traction-regeneration-accounting",
+        "maintenance-provenance",
+        "safe-stop-and-recovery-events"
+      ],
+      "specialization_constraints": [
+        "Loaded handling, braking, stability, rider exposure, wheel/frame ratings and human-assist controls are specific to this class."
+      ]
+    },
+    {
+      "platform_family_id": "passenger-road",
+      "label": "Compact and family passenger road vehicles",
+      "design_ids": [
+        "compact-passenger-ev",
+        "family-passenger-ev"
+      ],
+      "hardware_reuse_policy": "Candidate reuse only after mass, crash structure, axle, thermal, voltage and packaging validation; no shared pack/frame is assumed.",
+      "shared_contracts": [
+        "vehicle-identity-configuration",
+        "low-voltage-diagnostics",
+        "high-voltage-safe-state",
+        "battery-energy-boundary",
+        "charging-state-contract",
+        "thermal-derate-observability",
+        "traction-regeneration-accounting",
+        "maintenance-provenance",
+        "safe-stop-and-recovery-events"
+      ],
+      "specialization_constraints": [
+        "Occupant protection, airbag/restraint integration, intrusion/retention, child-seat and cargo packaging, axle/tire loads and HVAC duty require each-variant validation."
+      ]
+    },
+    {
+      "platform_family_id": "accessible-transit",
+      "label": "Accessible shuttle and city bus",
+      "design_ids": [
+        "accessible-shuttle",
+        "city-bus"
+      ],
+      "hardware_reuse_policy": "Reuse interface semantics and test protocols only unless a qualified chassis/body programme proves compatibility.",
+      "shared_contracts": [
+        "vehicle-identity-configuration",
+        "low-voltage-diagnostics",
+        "high-voltage-safe-state",
+        "battery-energy-boundary",
+        "charging-state-contract",
+        "thermal-derate-observability",
+        "traction-regeneration-accounting",
+        "charging-site-and-dispatch",
+        "maintenance-provenance",
+        "safe-stop-and-recovery-events"
+      ],
+      "specialization_constraints": [
+        "Boarding/ramp/lift/securement, passenger capacity, body structure, egress, door/HVAC duty, route dwell and accessible service recovery are specific to each vehicle."
+      ]
+    },
+    {
+      "platform_family_id": "light-commercial-utility",
+      "label": "Light commercial van, rural utility and emergency response",
+      "design_ids": [
+        "light-commercial-van",
+        "rural-all-terrain-utility",
+        "emergency-resilience-vehicle"
+      ],
+      "hardware_reuse_policy": "Share diagnostics and energy/service interfaces. No common chassis or battery module is assumed across road, off-road and emergency bodies.",
+      "shared_contracts": [
+        "vehicle-identity-configuration",
+        "low-voltage-diagnostics",
+        "high-voltage-safe-state",
+        "battery-energy-boundary",
+        "charging-state-contract",
+        "thermal-derate-observability",
+        "traction-regeneration-accounting",
+        "work-tool-power-contract",
+        "charging-site-and-dispatch",
+        "maintenance-provenance",
+        "safe-stop-and-recovery-events"
+      ],
+      "specialization_constraints": [
+        "Cargo retention, water/dust/corrosion, recovery hardware and rescue-body requirements differ. Emergency export power requires a separately qualified isolated power system and reserve policy."
+      ]
+    },
+    {
+      "platform_family_id": "commercial-and-municipal-trucks",
+      "label": "Municipal work truck and urban distribution truck",
+      "design_ids": [
+        "municipal-work-truck",
+        "urban-distribution-truck"
+      ],
+      "hardware_reuse_policy": "Candidate common rolling-chassis modules only after gross/axle/body/load-path and crash validation; body and work interfaces remain configuration-specific.",
+      "shared_contracts": [
+        "vehicle-identity-configuration",
+        "low-voltage-diagnostics",
+        "high-voltage-safe-state",
+        "battery-energy-boundary",
+        "charging-state-contract",
+        "thermal-derate-observability",
+        "traction-regeneration-accounting",
+        "work-tool-power-contract",
+        "charging-site-and-dispatch",
+        "maintenance-provenance",
+        "safe-stop-and-recovery-events"
+      ],
+      "specialization_constraints": [
+        "Municipal equipment simultaneous peaks and work-tool duty differ from delivery payload and stop-start routes. Account for axle loads, centers of gravity and work-body interlocks."
+      ]
+    },
+    {
+      "platform_family_id": "agricultural-work",
+      "label": "Smallholder and row-crop agricultural machines",
+      "design_ids": [
+        "smallholder-tractor-carrier",
+        "medium-row-crop-tractor"
+      ],
+      "hardware_reuse_policy": "Share implement-power semantics, diagnostics and work-cycle measurement only. No shared tractor chassis, axle, pack or PTO sizing is presumed.",
+      "shared_contracts": [
+        "vehicle-identity-configuration",
+        "low-voltage-diagnostics",
+        "high-voltage-safe-state",
+        "battery-energy-boundary",
+        "charging-state-contract",
+        "thermal-derate-observability",
+        "traction-regeneration-accounting",
+        "work-tool-power-contract",
+        "maintenance-provenance",
+        "safe-stop-and-recovery-events"
+      ],
+      "specialization_constraints": [
+        "Implement geometry, drawbar/PTO/hydraulic loads, soil/traction, ballast, rollover protection, seasonal availability and local repair conditions must be assessed per class and tool."
+      ]
+    },
+    {
+      "platform_family_id": "construction-equipment",
+      "label": "Compact construction excavator",
+      "design_ids": [
+        "compact-electric-excavator"
+      ],
+      "hardware_reuse_policy": "Share energy accounting and diagnostics contracts only; excavation hydraulics, stability, arm geometry and tool interlocks remain machine-specific.",
+      "shared_contracts": [
+        "vehicle-identity-configuration",
+        "low-voltage-diagnostics",
+        "high-voltage-safe-state",
+        "battery-energy-boundary",
+        "charging-state-contract",
+        "thermal-derate-observability",
+        "traction-regeneration-accounting",
+        "work-tool-power-contract",
+        "maintenance-provenance",
+        "safe-stop-and-recovery-events"
+      ],
+      "specialization_constraints": [
+        "Hydraulic duty, load charts, emergency lowering, lifting stability, track/undercarriage, cooling at low travel speed and electrical/hydraulic lockout require dedicated validation."
+      ]
+    },
+    {
+      "platform_family_id": "heavy-road-and-yard",
+      "label": "Long-haul and port/yard heavy vehicles",
+      "design_ids": [
+        "long-haul-heavy-truck",
+        "port-yard-terminal-tractor"
+      ],
+      "hardware_reuse_policy": "Share charge planning, energy accounting and service telemetry. No shared axle, frame, charger intake or pack fit is assumed.",
+      "shared_contracts": [
+        "vehicle-identity-configuration",
+        "low-voltage-diagnostics",
+        "high-voltage-safe-state",
+        "battery-energy-boundary",
+        "charging-state-contract",
+        "thermal-derate-observability",
+        "traction-regeneration-accounting",
+        "work-tool-power-contract",
+        "charging-site-and-dispatch",
+        "maintenance-provenance",
+        "safe-stop-and-recovery-events"
+      ],
+      "specialization_constraints": [
+        "Highway endurance/grade/retarder duty differs from low-speed high-torque hitch cycles, short dwell and yard interactions. Heavy-duty charge interface compatibility must be qualified end-to-end."
+      ]
+    },
+    {
+      "platform_family_id": "mine-mobile-equipment",
+      "label": "Underground mobile unit and open-pit haul variants",
+      "design_ids": [
+        "underground-mine-mobile-unit",
+        "open-pit-haul-battery-only-control",
+        "open-pit-haul-trolley-battery"
+      ],
+      "hardware_reuse_policy": "Share the model boundary, telemetry and energy interfaces only. Mine-qualified components, haul chassis, trolley collector, voltage class and fire response are site/class-specific.",
+      "shared_contracts": [
+        "vehicle-identity-configuration",
+        "low-voltage-diagnostics",
+        "high-voltage-safe-state",
+        "battery-energy-boundary",
+        "charging-state-contract",
+        "thermal-derate-observability",
+        "traction-regeneration-accounting",
+        "work-tool-power-contract",
+        "charging-site-and-dispatch",
+        "maintenance-provenance",
+        "safe-stop-and-recovery-events"
+      ],
+      "specialization_constraints": [
+        "Underground ventilation/egress/water/dust needs differ from open-pit gross mass, haul-road grade, tire limits, trolley corridor coverage and fault recovery. Direct-supply energy must not be double-counted as battery energy."
+      ]
+    },
+    {
+      "platform_family_id": "autonomous-material-handling",
+      "label": "Warehouse and yard autonomous carrier",
+      "design_ids": [
+        "warehouse-autonomous-carrier"
+      ],
+      "hardware_reuse_policy": "Reuse scheduling, telemetry and charge-state contracts; perception, braking, protective fields, load geometry and safe-stop architecture are specific.",
+      "shared_contracts": [
+        "vehicle-identity-configuration",
+        "low-voltage-diagnostics",
+        "high-voltage-safe-state",
+        "battery-energy-boundary",
+        "charging-state-contract",
+        "thermal-derate-observability",
+        "traction-regeneration-accounting",
+        "charging-site-and-dispatch",
+        "maintenance-provenance",
+        "safe-stop-and-recovery-events"
+      ],
+      "specialization_constraints": [
+        "Human-sharing assumptions, safe stop, localization/network failure behavior, charger docking, recovery and fleet-level blocked-route logic must be validated for the intended facility."
+      ]
+    }
+  ]
+}
