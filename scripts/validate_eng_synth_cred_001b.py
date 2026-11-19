@@ -221,13 +221,18 @@ def qualify_source(root: Path, reference: dict[str, Any]) -> None:
     hinge_motor_start = hinge.index("// Motor drive on the hinge rotation axis")
     hinge_motor_end = hinge.index("\n    }", hinge_motor_start)
     hinge_motor = hinge[hinge_motor_start:hinge_motor_end]
+    # Strip line comments before checking semantic use so an explanatory
+    # reference to the old target_pos bug is not mistaken for executable use.
+    hinge_motor_code = "\\n".join(
+        line.split("//", 1)[0] for line in hinge_motor.splitlines()
+    )
     require_text(
-        hinge_motor,
+        hinge_motor_code,
         ["motor.target_vel", "let impulse = torque * _dt", "impulse * 0.5", "cb.record_work"],
         "hinge motor path",
     )
-    if "motor.target_pos" in hinge_motor:
-        fail("hinge target_pos appears in solver path; refresh reference")
+    if "motor.target_pos" in hinge_motor_code:
+        fail("hinge target_pos appears in executable solver path; refresh reference")
     if "self.angle_limits" in texts["crates/core/symtropy-physics/src/joints/hinge.rs"]:
         # Declaration/build storage is expected; only solver consumption would be
         # a semantic change. Keep this test conservative and check solve sections.
