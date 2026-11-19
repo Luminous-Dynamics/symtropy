@@ -66,7 +66,7 @@ The same M1 package now includes a generic 3D force-polytope and coverage refere
 3. Enumerate feasible intersections of triples of boundary planes to obtain candidate vertices, reject invalid/unbounded regions, and triangulate each convex face to compute volume.
 4. Compute required-force-region coverage as `volume(force_set intersect required_region) / volume(required_region)`.
 
-The synthetic fixtures check exact cube volumes, identical and partial intersections, an empty intersection, invalid/unbounded regions, rank-deficient Jacobians, and nonzero minimum tendon tension (pretension). These are generic analytic geometry tests; they are not PACT's source task-force regions.
+The 13 synthetic geometry tests cover axis-aligned and oblique tetrahedron/cube volumes, rotated/scaled coverage invariance, identical/partial/disjoint intersections, redundant parallel constraints, boundedness including an oblique lineality direction, rank-deficient Jacobians, and nonzero minimum tendon pretension. Together with six directional-oracle tests, the package defines 19 Rust test cases. These are generic analytic geometry tests; they are not PACT's source task-force regions.
 
 The projection retains per-tendon minimum and maximum tensions. This is useful for future antagonistic/pretension models: a signed joint-torque interval is not substituted for the physical tendon tension bounds.
 
