@@ -1,0 +1,259 @@
+{
+  "schema": "luminous.ocean_thermal_balance_golden_fixture",
+  "schema_version": "0.2.0",
+  "fixture_id": "ocean-thermal-balance-3-mode-plus-recovery-synthetic-v0-2",
+  "evidence_class": "synthetic_known_answer_fixture",
+  "snapshot_date": "2026-11-19",
+  "claim_ceiling": "0D steady-state accounting for cooling and direct heat-exchanger recovery only. Not heat-pump/ORC performance, measured site data, RO SEC improvement, qualified water, heat-exchanger design, CFD, plume prediction, environmental compliance or field validation.",
+  "assumptions": {
+    "interval_duration_seconds": 900,
+    "it_electric_load_is_heat_at_declared_boundary": true,
+    "thermal_storage_change_w": 0,
+    "unlisted_heat_paths": "Not represented; any real case must declare them before qualification.",
+    "water_heat_capacity_j_per_kg_k": 4180,
+    "seawater_mass_flow_kg_per_s": 5,
+    "pump_electric_input_w": 5000,
+    "pump_heat_fraction_to_seawater": 1,
+    "other_cooling_auxiliary_electric_input_w": 0,
+    "other_heat_to_seawater_w": 0,
+    "temperature_tolerance_c": 1e-9,
+    "heat_balance_tolerance_w": 0.000001
+  },
+  "formulae": {
+    "it_heat_balance_w": "direct_heat_to_seawater_w + chiller_evaporator_heat_w + recovered_heat_source_w",
+    "expected_seawater_heat_rejection_w": "direct_heat_to_seawater_w + recovery_loss_to_seawater_w + chiller_evaporator_heat_w + chiller_electric_input_w + water_pump_electric_input_w * pump_heat_fraction_to_seawater + other_heat_to_seawater_w",
+    "measured_seawater_heat_pickup_w": "seawater_mass_flow_kg_per_s * seawater_specific_heat_j_per_kg_k * (discharge_temperature_c - intake_temperature_c)",
+    "interval_energy_kwh": "average_power_w * interval_duration_seconds / 3600000",
+    "recovery_heat_balance_w": "recovered_heat_source_w - useful_heat_delivered_w - recovery_loss_to_seawater_w - recovery_loss_to_ambient_w"
+  },
+  "valid_cases": [
+    {
+      "case_id": "direct-seawater",
+      "mode": "DirectSeawater",
+      "input": {
+        "it_heat_load_w": 100000,
+        "direct_heat_to_seawater_w": 100000,
+        "chiller_evaporator_heat_w": 0,
+        "chiller_electric_input_w": 0,
+        "water_pump_electric_input_w": 5000,
+        "other_cooling_auxiliary_electric_input_w": 0,
+        "other_heat_to_seawater_w": 0,
+        "seawater_mass_flow_kg_per_s": 5,
+        "seawater_specific_heat_j_per_kg_k": 4180,
+        "seawater_intake_temperature_c": 20,
+        "seawater_discharge_temperature_c": 25.023923444976077,
+        "recovered_heat_source_w": 0,
+        "useful_heat_delivered_w": 0,
+        "recovery_loss_to_seawater_w": 0,
+        "recovery_loss_to_ambient_w": 0,
+        "heat_sink_id": null,
+        "heat_delivery_observation_id": null
+      },
+      "expected": {
+        "it_heat_balance_residual_w": 0,
+        "seawater_heat_balance_residual_w": 0,
+        "expected_seawater_heat_rejection_w": 105000,
+        "seawater_temperature_rise_c": 5.023923444976076,
+        "it_heat_energy_kwh": 25,
+        "cooling_electric_energy_kwh": 1.25,
+        "seawater_heat_rejected_energy_kwh": 26.25,
+        "chiller_cop": null,
+        "violations": [],
+        "recovery_heat_balance_residual_w": 0,
+        "recovered_heat_source_energy_kwh": 0,
+        "useful_heat_delivered_energy_kwh": 0,
+        "recovery_loss_to_seawater_energy_kwh": 0,
+        "recovery_loss_to_ambient_energy_kwh": 0
+      }
+    },
+    {
+      "case_id": "partial-economiser-plus-chiller",
+      "mode": "PartialEconomiserPlusChiller",
+      "input": {
+        "it_heat_load_w": 100000,
+        "direct_heat_to_seawater_w": 60000,
+        "chiller_evaporator_heat_w": 40000,
+        "chiller_electric_input_w": 10000,
+        "water_pump_electric_input_w": 5000,
+        "other_cooling_auxiliary_electric_input_w": 0,
+        "other_heat_to_seawater_w": 0,
+        "seawater_mass_flow_kg_per_s": 5,
+        "seawater_specific_heat_j_per_kg_k": 4180,
+        "seawater_intake_temperature_c": 20,
+        "seawater_discharge_temperature_c": 25.502392344497608,
+        "recovered_heat_source_w": 0,
+        "useful_heat_delivered_w": 0,
+        "recovery_loss_to_seawater_w": 0,
+        "recovery_loss_to_ambient_w": 0,
+        "heat_sink_id": null,
+        "heat_delivery_observation_id": null
+      },
+      "expected": {
+        "it_heat_balance_residual_w": 0,
+        "seawater_heat_balance_residual_w": 0,
+        "expected_seawater_heat_rejection_w": 115000,
+        "seawater_temperature_rise_c": 5.502392344497608,
+        "it_heat_energy_kwh": 25,
+        "cooling_electric_energy_kwh": 3.75,
+        "seawater_heat_rejected_energy_kwh": 28.75,
+        "chiller_cop": 4,
+        "violations": [],
+        "recovery_heat_balance_residual_w": 0,
+        "recovered_heat_source_energy_kwh": 0,
+        "useful_heat_delivered_energy_kwh": 0,
+        "recovery_loss_to_seawater_energy_kwh": 0,
+        "recovery_loss_to_ambient_energy_kwh": 0
+      }
+    },
+    {
+      "case_id": "chiller-only",
+      "mode": "ChillerOnly",
+      "input": {
+        "it_heat_load_w": 100000,
+        "direct_heat_to_seawater_w": 0,
+        "chiller_evaporator_heat_w": 100000,
+        "chiller_electric_input_w": 25000,
+        "water_pump_electric_input_w": 5000,
+        "other_cooling_auxiliary_electric_input_w": 0,
+        "other_heat_to_seawater_w": 0,
+        "seawater_mass_flow_kg_per_s": 5,
+        "seawater_specific_heat_j_per_kg_k": 4180,
+        "seawater_intake_temperature_c": 20,
+        "seawater_discharge_temperature_c": 26.220095693779903,
+        "recovered_heat_source_w": 0,
+        "useful_heat_delivered_w": 0,
+        "recovery_loss_to_seawater_w": 0,
+        "recovery_loss_to_ambient_w": 0,
+        "heat_sink_id": null,
+        "heat_delivery_observation_id": null
+      },
+      "expected": {
+        "it_heat_balance_residual_w": 0,
+        "seawater_heat_balance_residual_w": 0,
+        "expected_seawater_heat_rejection_w": 130000,
+        "seawater_temperature_rise_c": 6.220095693779904,
+        "it_heat_energy_kwh": 25,
+        "cooling_electric_energy_kwh": 7.5,
+        "seawater_heat_rejected_energy_kwh": 32.5,
+        "chiller_cop": 4,
+        "violations": [],
+        "recovery_heat_balance_residual_w": 0,
+        "recovered_heat_source_energy_kwh": 0,
+        "useful_heat_delivered_energy_kwh": 0,
+        "recovery_loss_to_seawater_energy_kwh": 0,
+        "recovery_loss_to_ambient_energy_kwh": 0
+      }
+    },
+    {
+      "case_id": "direct-heat-recovery-to-ro-feed-sink",
+      "mode": "DirectSeawater",
+      "input": {
+        "it_heat_load_w": 10000000,
+        "direct_heat_to_seawater_w": 2162500,
+        "chiller_evaporator_heat_w": 0,
+        "chiller_electric_input_w": 0,
+        "water_pump_electric_input_w": 0,
+        "other_cooling_auxiliary_electric_input_w": 0,
+        "recovered_heat_source_w": 7837500,
+        "useful_heat_delivered_w": 6270000,
+        "recovery_loss_to_seawater_w": 1567500,
+        "recovery_loss_to_ambient_w": 0,
+        "heat_sink_id": "synthetic-ro-feed-sink",
+        "heat_delivery_observation_id": "synthetic-ro-feed-heat-meter",
+        "pump_heat_fraction_to_seawater": 0,
+        "other_heat_to_seawater_w": 0,
+        "seawater_mass_flow_kg_per_s": 500,
+        "seawater_specific_heat_j_per_kg_k": 4180,
+        "seawater_intake_temperature_c": 20,
+        "seawater_discharge_temperature_c": 21.784688995215312,
+        "interval_duration_seconds": 900,
+        "heat_balance_tolerance_w": 0.000001
+      },
+      "expected": {
+        "it_heat_balance_residual_w": 0,
+        "recovery_heat_balance_residual_w": 0,
+        "seawater_heat_balance_residual_w": 0,
+        "expected_seawater_heat_rejection_w": 3730000,
+        "seawater_heat_pickup_w": 3730000,
+        "seawater_temperature_rise_c": 1.784688995215311,
+        "it_heat_energy_kwh": 2500,
+        "recovered_heat_source_energy_kwh": 1959.375,
+        "useful_heat_delivered_energy_kwh": 1567.5,
+        "recovery_loss_to_seawater_energy_kwh": 391.875,
+        "recovery_loss_to_ambient_energy_kwh": 0,
+        "cooling_electric_energy_kwh": 0,
+        "seawater_heat_rejected_energy_kwh": 932.5,
+        "chiller_cop": null,
+        "ro_sec_change": null,
+        "qualified_product_water_credit": false,
+        "heat_sink_id": "synthetic-ro-feed-sink",
+        "heat_delivery_observation_id": "synthetic-ro-feed-heat-meter",
+        "violations": [],
+        "claim": "Synthetic direct heat-exchanger partition only; no RO process or potable-water claim."
+      }
+    }
+  ],
+  "hostile_cases": [
+    {
+      "case_id": "discharge-temperature-meter-mismatch",
+      "base_case": "direct-seawater",
+      "mutation": "Increase seawater_discharge_temperature_c by 0.1 C without changing flow or cooling energy.",
+      "expected_disposition": "Reject by seawater heat-balance tolerance."
+    },
+    {
+      "case_id": "site-specific-discharge-limit",
+      "base_case": "direct-seawater",
+      "mutation": "Provide an illustrative site maximum discharge temperature of 22 C.",
+      "expected_disposition": "Report a site-limit violation; 22 C is a synthetic test input, not a universal environmental threshold."
+    },
+    {
+      "case_id": "site-specific-temperature-rise-limit",
+      "base_case": "direct-seawater",
+      "mutation": "Provide an illustrative site maximum temperature rise of 4 C.",
+      "expected_disposition": "Report a site-limit violation; 4 C is a synthetic test input, not a universal environmental threshold."
+    },
+    {
+      "case_id": "pump-heat-boundary-omitted",
+      "base_case": "direct-seawater",
+      "mutation": "Change pump_heat_fraction_to_seawater from 1 to 0 while retaining the same measured seawater rise.",
+      "expected_disposition": "Reject by seawater heat-balance residual."
+    },
+    {
+      "case_id": "recovery-sink-identity-missing",
+      "base_case": "direct-heat-recovery-to-ro-feed-sink",
+      "mutation": "Remove heat_sink_id while recovered_heat_source_w remains positive.",
+      "expected_disposition": "Reject as missing required sink identity."
+    },
+    {
+      "case_id": "recovery-delivery-observation-missing",
+      "base_case": "direct-heat-recovery-to-ro-feed-sink",
+      "mutation": "Remove heat_delivery_observation_id while recovered_heat_source_w remains positive.",
+      "expected_disposition": "Reject as missing delivery observation identity."
+    },
+    {
+      "case_id": "recovery-heat-is-double-counted",
+      "base_case": "direct-heat-recovery-to-ro-feed-sink",
+      "mutation": "Add the full recovered_heat_source_w to the seawater outlet heat while retaining it as an external useful sink stream.",
+      "expected_disposition": "Reject by seawater heat balance; recovered source heat cannot be counted as both useful sink delivery and ocean rejection."
+    },
+    {
+      "case_id": "recovery-path-loss-unaccounted",
+      "base_case": "direct-heat-recovery-to-ro-feed-sink",
+      "mutation": "Reduce recovery_loss_to_seawater_w without increasing useful_heat_delivered_w or recovery_loss_to_ambient_w.",
+      "expected_disposition": "Report recovery heat-balance violation."
+    }
+  ],
+  "not_included": {
+    "site_water_temperature": null,
+    "bathymetry_and_intake_depth": null,
+    "site_specific_flow_profile": null,
+    "site_environmental_discharge_limit": null,
+    "thermal_plume_dispersion_model": null,
+    "heat_exchanger_calibration": null,
+    "fouling_and_biofouling_characterization": null,
+    "external_cfd_validation": null,
+    "ro_temperature_response_model": null,
+    "qualified_product_water": null,
+    "heat_pump_and_orc_conversion": null
+  }
+}
