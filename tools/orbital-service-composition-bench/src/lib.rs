@@ -512,7 +512,7 @@ mod tests {
     #[test]
     fn storage_only_is_not_receiver_accepted_transfer() {
         let data = fixture();
-        let case = data.cases.iter().find(|item| item.case_id == "CRYOGENIC_STORAGE_ONLY").unwrap();
+        let case = data.cases.iter().find(|item| item.case_id == "STORAGE_ONLY_NOT_TRANSFER_EVIDENCE").unwrap();
         assert_eq!(evaluate_case(case, &pins(&data)).actual_status, GateStatus::Indeterminate);
     }
 
