@@ -128,6 +128,19 @@ fn scenario_member_set_digest(members: &BTreeMap<String, String>) -> String {
     sha256_hex(&canonical)
 }
 
+fn mission_window_digest(window: &Value) -> Option<String> {
+    let start = string_at(window, "start")?;
+    let end = string_at(window, "end")?;
+    let max_gap = number_at(window, "max_sample_gap_hours")?;
+    Some(sha256_hex(&format!(
+        "end|{end}\nmax_sample_gap_hours|{max_gap:.17}\nstart|{start}"
+    )))
+}
+
+fn time_grid_digest(grid: &[String]) -> String {
+    sha256_hex(&grid.join("\n"))
+}
+
 fn floor_map(contract: &Value, errors: &mut Vec<String>) -> BTreeMap<String, Floor> {
     let mut floors = BTreeMap::<String, Floor>::new();
     let Some(items) = contract.as_array() else {
@@ -535,6 +548,10 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     }
 
     let window = value.get("mission_window").unwrap_or(&Value::Null);
+    let window_hash = mission_window_digest(window);
+    if window_hash.as_deref() != string_at(value.get("mission_snapshot").unwrap_or(&Value::Null), "mission_window_sha256") {
+        errors.push("mission_window_sha256 does not bind UTC start/end and max sample gap".to_owned());
+    }
     let start = parse_time(string_at(window, "start"));
     let end = parse_time(string_at(window, "end"));
     let max_gap = number_at(window, "max_sample_gap_hours");
@@ -557,6 +574,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
         "craft_configuration_sha256", "occupancy_sha256", "initial_resource_state_sha256",
         "mission_plan_sha256", "forecast_information_set_sha256", "hard_gate_roster_sha256",
         "operating_envelope_sha256", "service_floor_contract_sha256", "scenario_member_set_sha256",
+        "mission_window_sha256", "time_grid_sha256",
     ] {
         if !digest_valid(string_at(snapshot, field)) {
             errors.push(format!("mission snapshot has invalid {field}"));
@@ -673,6 +691,10 @@ fn validate(raw: &[u8], value: &Value) -> Value {
         if !roles.contains(required) {
             errors.push(format!("required policy role '{required}' is missing"));
         }
+    }
+    let calculated_time_grid = mission_time_grid.as_ref().map(|grid| time_grid_digest(grid));
+    if calculated_time_grid.as_deref() != string_at(snapshot, "time_grid_sha256") {
+        errors.push("time_grid_sha256 does not bind the shared exact UTC trajectory time grid".to_owned());
     }
 
     let disposition = if !errors.is_empty() {
@@ -819,6 +841,20 @@ mod tests {
     fn stale_sample_gap_is_invalid() {
         let mut value = fixture();
         value["mission_window"]["max_sample_gap_hours"] = json!(3.0);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn mission_window_digest_binds_start_end_and_gap_limit() {
+        let mut value = fixture();
+        value["mission_window"]["max_sample_gap_hours"] = json!(7.0);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn trajectory_time_grid_digest_is_exact() {
+        let mut value = fixture();
+        value["policies"][2]["paths"][0]["timepoints"][1]["at"] = json!("2025-03-01T07:00:00Z");
         assert_eq!(audit(&value)["disposition"], "INVALID");
     }
 
