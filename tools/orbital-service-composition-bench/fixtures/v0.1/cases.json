@@ -7,7 +7,7 @@
     {
       "component": "earth_orbit_chain",
       "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
-      "source_commit": "f2f9fab0fb31e91a0192329aeb638c39b0a81c4f"
+      "source_commit": "4cd244805ecf3de344583b79f042afbf3312d40f"
     },
     {
       "component": "orbital_capture",
@@ -17,7 +17,7 @@
     {
       "component": "orbital_fluid",
       "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-      "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8"
+      "source_commit": "a8e611dc3b86370d1f684f0da7e97507f7333999"
     }
   ],
   "cases": [
@@ -43,7 +43,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
-            "source_commit": "f2f9fab0fb31e91a0192329aeb638c39b0a81c4f",
+            "source_commit": "4cd244805ecf3de344583b79f042afbf3312d40f",
             "reference": "synthetic://earth_orbit_chain/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -88,7 +88,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
+            "source_commit": "a8e611dc3b86370d1f684f0da7e97507f7333999",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -144,7 +144,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
-            "source_commit": "f2f9fab0fb31e91a0192329aeb638c39b0a81c4f",
+            "source_commit": "4cd244805ecf3de344583b79f042afbf3312d40f",
             "reference": "synthetic://earth_orbit_chain/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -185,7 +185,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
-            "source_commit": "f2f9fab0fb31e91a0192329aeb638c39b0a81c4f",
+            "source_commit": "4cd244805ecf3de344583b79f042afbf3312d40f",
             "reference": "synthetic://earth_orbit_chain/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -230,7 +230,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
+            "source_commit": "a8e611dc3b86370d1f684f0da7e97507f7333999",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -266,7 +266,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
-            "source_commit": "f2f9fab0fb31e91a0192329aeb638c39b0a81c4f",
+            "source_commit": "4cd244805ecf3de344583b79f042afbf3312d40f",
             "reference": "synthetic://earth_orbit_chain/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -311,7 +311,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
+            "source_commit": "a8e611dc3b86370d1f684f0da7e97507f7333999",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -347,7 +347,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
-            "source_commit": "f2f9fab0fb31e91a0192329aeb638c39b0a81c4f",
+            "source_commit": "4cd244805ecf3de344583b79f042afbf3312d40f",
             "reference": "synthetic://earth_orbit_chain/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -392,7 +392,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
+            "source_commit": "a8e611dc3b86370d1f684f0da7e97507f7333999",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "storage_only_not_transfer_evidence",
             "evidence_class": "synthetic",
@@ -428,7 +428,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
-            "source_commit": "f2f9fab0fb31e91a0192329aeb638c39b0a81c4f",
+            "source_commit": "4cd244805ecf3de344583b79f042afbf3312d40f",
             "reference": "synthetic://earth_orbit_chain/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -473,7 +473,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
+            "source_commit": "a8e611dc3b86370d1f684f0da7e97507f7333999",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -509,7 +509,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
-            "source_commit": "f2f9fab0fb31e91a0192329aeb638c39b0a81c4f",
+            "source_commit": "4cd244805ecf3de344583b79f042afbf3312d40f",
             "reference": "synthetic://earth_orbit_chain/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -590,7 +590,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
-            "source_commit": "f2f9fab0fb31e91a0192329aeb638c39b0a81c4f",
+            "source_commit": "4cd244805ecf3de344583b79f042afbf3312d40f",
             "reference": "synthetic://earth_orbit_chain/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -635,7 +635,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
+            "source_commit": "a8e611dc3b86370d1f684f0da7e97507f7333999",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -691,7 +691,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
-            "source_commit": "f2f9fab0fb31e91a0192329aeb638c39b0a81c4f",
+            "source_commit": "4cd244805ecf3de344583b79f042afbf3312d40f",
             "reference": "synthetic://earth_orbit_chain/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -715,7 +715,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
+            "source_commit": "a8e611dc3b86370d1f684f0da7e97507f7333999",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -772,7 +772,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
-            "source_commit": "f2f9fab0fb31e91a0192329aeb638c39b0a81c4f",
+            "source_commit": "4cd244805ecf3de344583b79f042afbf3312d40f",
             "reference": "synthetic://earth_orbit_chain/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -840,7 +840,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
-            "source_commit": "f2f9fab0fb31e91a0192329aeb638c39b0a81c4f",
+            "source_commit": "4cd244805ecf3de344583b79f042afbf3312d40f",
             "reference": "synthetic://earth_orbit_chain/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -885,7 +885,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
+            "source_commit": "a8e611dc3b86370d1f684f0da7e97507f7333999",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -950,7 +950,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
+            "source_commit": "a8e611dc3b86370d1f684f0da7e97507f7333999",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -986,7 +986,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
-            "source_commit": "f2f9fab0fb31e91a0192329aeb638c39b0a81c4f",
+            "source_commit": "4cd244805ecf3de344583b79f042afbf3312d40f",
             "reference": "synthetic://earth_orbit_chain/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -1031,7 +1031,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
+            "source_commit": "a8e611dc3b86370d1f684f0da7e97507f7333999",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -1067,7 +1067,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
-            "source_commit": "f2f9fab0fb31e91a0192329aeb638c39b0a81c4f",
+            "source_commit": "4cd244805ecf3de344583b79f042afbf3312d40f",
             "reference": "synthetic://earth_orbit_chain/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -1112,7 +1112,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
+            "source_commit": "a8e611dc3b86370d1f684f0da7e97507f7333999",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -1148,7 +1148,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
-            "source_commit": "f2f9fab0fb31e91a0192329aeb638c39b0a81c4f",
+            "source_commit": "4cd244805ecf3de344583b79f042afbf3312d40f",
             "reference": "synthetic://earth_orbit_chain/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -1193,7 +1193,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
+            "source_commit": "a8e611dc3b86370d1f684f0da7e97507f7333999",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -1229,7 +1229,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
-            "source_commit": "f2f9fab0fb31e91a0192329aeb638c39b0a81c4f",
+            "source_commit": "4cd244805ecf3de344583b79f042afbf3312d40f",
             "reference": "synthetic://earth_orbit_chain/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -1274,7 +1274,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
+            "source_commit": "a8e611dc3b86370d1f684f0da7e97507f7333999",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -1310,7 +1310,7 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
-            "source_commit": "f2f9fab0fb31e91a0192329aeb638c39b0a81c4f",
+            "source_commit": "4cd244805ecf3de344583b79f042afbf3312d40f",
             "reference": "synthetic://earth_orbit_chain/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -1355,7 +1355,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
+            "source_commit": "a8e611dc3b86370d1f684f0da7e97507f7333999",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -1391,7 +1391,88 @@
           "evidence": {
             "component": "earth_orbit_chain",
             "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
-            "source_commit": "f2f9fab0fb31e91a0192329aeb638c39b0a81c4f",
+            "source_commit": "4cd244805ecf3de344583b79f042afbf3312d40f",
+            "reference": "synthetic://earth_orbit_chain/launch-001",
+            "decision": "ready",
+            "evidence_class": "synthetic",
+            "artifact_sha256": "a0c7c6fd0f31f9419a969618f7ca22ba31bcaedc9d789c0d10785e41921834a9",
+            "producer_id": "synthetic:earth_orbit_chain:fixture-producer",
+            "authority_scope": "benchmark_fixture_only",
+            "context_of_use": "orbital_service_composition_v0_1",
+            "claim_ceiling": "synthetic_contract_only"
+          },
+          "destination_node_id": "orbit"
+        },
+        {
+          "event_id": "evt-capture",
+          "sequence": 20,
+          "kind": "capture_handoff_accepted",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
+          "interface_revision": 3,
+          "evidence": {
+            "component": "orbital_capture",
+            "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
+            "source_commit": "df2d878519acdbed6df3b15c1ff637ad3bc295c5",
+            "reference": "synthetic://orbital_capture/capture-001",
+            "decision": "accepted_for_handoff",
+            "evidence_class": "synthetic",
+            "artifact_sha256": "3e89b225ea905d4a04f6adb90e2ff8853ec51c52f372339268a24135882eb9bc",
+            "producer_id": "synthetic:orbital_capture:fixture-producer",
+            "authority_scope": "benchmark_fixture_only",
+            "context_of_use": "orbital_service_composition_v0_1",
+            "claim_ceiling": "synthetic_contract_only"
+          }
+        },
+        {
+          "event_id": "evt-fluid",
+          "sequence": 30,
+          "kind": "fluid_receiver_accepted",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
+          "interface_revision": 3,
+          "fluid_id": "synthetic-hydrazine-analogue",
+          "accepted_mass_g": 390000,
+          "evidence": {
+            "component": "orbital_fluid",
+            "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
+            "source_commit": "a8e611dc3b86370d1f684f0da7e97507f7333999",
+            "reference": "synthetic://orbital_fluid/fluid-001",
+            "decision": "transfer_accepted",
+            "evidence_class": "synthetic",
+            "artifact_sha256": "9b0b1788ebadc926c09e37cc0f681286e60162c3215d98b62b0f266bd26b5653",
+            "producer_id": "synthetic:orbital_fluid:fixture-producer",
+            "authority_scope": "benchmark_fixture_only",
+            "context_of_use": "orbital_service_composition_v0_1",
+            "claim_ceiling": "synthetic_contract_only"
+          },
+          "receiver_id": "serviced-client-001"
+        }
+      ]
+    },
+    {
+      "case_id": "WRONG_DESTINATION_NODE",
+      "expected_status": "rejected",
+      "profile": {
+        "subject_id": "serviced-client-001",
+        "target_orbit_id": "leo-550-km",
+        "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
+        "interface_revision": 3,
+        "fluid_id": "synthetic-hydrazine-analogue",
+        "minimum_accepted_mass_g": 380000,
+        "destination_node_id": "orbit"
+      },
+      "events": [
+        {
+          "event_id": "evt-launch",
+          "sequence": 10,
+          "kind": "payload_delivery_accepted",
+          "subject_id": "serviced-client-001",
+          "target_orbit_id": "leo-550-km",
+          "evidence": {
+            "component": "earth_orbit_chain",
+            "receipt_schema": "luminous.earth-orbit-chain.receipt.v1",
+            "source_commit": "4cd244805ecf3de344583b79f042afbf3312d40f",
             "reference": "synthetic://earth_orbit_chain/launch-001",
             "decision": "ready",
             "evidence_class": "synthetic",
@@ -1436,7 +1517,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
+            "source_commit": "a8e611dc3b86370d1f684f0da7e97507f7333999",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
