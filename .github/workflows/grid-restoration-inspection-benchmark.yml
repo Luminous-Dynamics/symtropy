@@ -29,6 +29,7 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
+          import hashlib
           import json
           from pathlib import Path
           from jsonschema import Draft202012Validator
@@ -36,11 +37,31 @@ jobs:
           root = Path("tools/grid-restoration-inspection-benchmark")
           schema = json.loads((root / "grid-restoration-inspection-episode-v0.1.schema.json").read_text())
           fixture = json.loads((root / "fixtures/synthetic-grid-inspection-episode-v0.1.json").read_text())
+          resource_manifest = json.loads((root / "fixtures/synthetic-resource-manifest-v0.1.json").read_text())
           Draft202012Validator.check_schema(schema)
           validator = Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER)
           errors = sorted(validator.iter_errors(fixture), key=lambda error: list(error.path))
           assert not errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in errors)
 
+          canonical_resource_manifest = json.dumps(
+              resource_manifest, separators=(",", ":"), sort_keys=True, ensure_ascii=False
+          ).encode()
+          assert hashlib.sha256(canonical_resource_manifest).hexdigest() == fixture["resourceState"]["asOfManifestSha256"]
+          assert resource_manifest["manifestId"] in fixture["resourceState"]["asOfManifestRef"]
+          assert resource_manifest["asOfHour"] == fixture["asOfHour"]
+          resource_refs = {item["resourceRef"] for item in resource_manifest["resources"]}
+          required_refs = {
+              item["resourceRef"]
+              for candidate in fixture["inspectionCandidates"]
+              for item in candidate["resourceRequirements"]
+          } | {
+              item["resourceRef"]
+              for action in fixture["recoveryActions"]
+              for item in action["resourceRequirements"]
+          }
+          assert required_refs <= resource_refs
+          crew = next(item for item in resource_manifest["resources"] if item["resourceRef"] == "synthetic://resource/specialist-crew-01")
+          assert crew["capacityUnits"] == 1
           as_of = fixture["asOfHour"]
           assert all(item["effectiveHour"] <= as_of and item["observedHour"] <= as_of for item in fixture["observableState"]["observations"])
           assert len({item["inspectionId"] for item in fixture["inspectionCandidates"]}) == len(fixture["inspectionCandidates"])
