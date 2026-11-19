@@ -67,6 +67,11 @@
       "event_id": "arrival-video-0001",
       "sensor_id": "camera-front",
       "source_sequence": 1,
+      "clock_domain": {
+        "domain_id": "camera-monotonic",
+        "generation": 0,
+        "time_scale_id": "camera-clock-v1"
+      },
       "availability_tick": 2,
       "arrival_order": 1,
       "disposition": "delivered",
@@ -76,6 +81,11 @@
       "event_id": "arrival-audio-0001",
       "sensor_id": "microphone-front",
       "source_sequence": 1,
+      "clock_domain": {
+        "domain_id": "microphone-monotonic",
+        "generation": 0,
+        "time_scale_id": "microphone-clock-v1"
+      },
       "availability_tick": 3,
       "arrival_order": 2,
       "disposition": "delivered",
@@ -85,6 +95,11 @@
       "event_id": "drop-audio-0002",
       "sensor_id": "microphone-front",
       "source_sequence": 2,
+      "clock_domain": {
+        "domain_id": "microphone-monotonic",
+        "generation": 0,
+        "time_scale_id": "microphone-clock-v1"
+      },
       "availability_tick": 4,
       "arrival_order": 3,
       "disposition": "dropped",
