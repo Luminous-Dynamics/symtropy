@@ -149,22 +149,30 @@ fn finite(value: f64) -> bool {
     value.is_finite()
 }
 
-fn classify_regime(torque_nm: f64, speed_rad_s: f64) -> OperatingRegime {
+fn classify_regime(
+    torque_nm: f64,
+    torque_uncertainty_nm: f64,
+    speed_rad_s: f64,
+) -> Option<OperatingRegime> {
     if speed_rad_s == 0.0 {
-        if torque_nm == 0.0 {
-            OperatingRegime::Coast
+        if torque_nm == 0.0 && torque_uncertainty_nm == 0.0 {
+            Some(OperatingRegime::Coast)
         } else {
-            OperatingRegime::Hold
+            Some(OperatingRegime::Hold)
         }
+    } else if torque_nm.abs() <= torque_uncertainty_nm && torque_uncertainty_nm > 0.0 {
+        // The uncertainty interval crosses zero, so motoring versus
+        // regeneration is not identifiable from this sample.
+        None
     } else if torque_nm == 0.0 {
-        OperatingRegime::Coast
+        Some(OperatingRegime::Coast)
     } else {
-        match (torque_nm.is_sign_positive(), speed_rad_s.is_sign_positive()) {
+        Some(match (torque_nm.is_sign_positive(), speed_rad_s.is_sign_positive()) {
             (true, true) => OperatingRegime::ForwardMotoring,
             (false, true) => OperatingRegime::ForwardRegenerating,
             (false, false) => OperatingRegime::ReverseMotoring,
             (true, false) => OperatingRegime::ReverseRegenerating,
-        }
+        })
     }
 }
 
@@ -351,14 +359,32 @@ pub fn evaluate_mission(
     let mut minimum_peak_margin: Option<f64> = None;
 
     for (index, sample) in mission.samples.iter().enumerate() {
-        let regime = classify_regime(sample.required_torque_nm, sample.angular_speed_rad_s);
+        let regime = classify_regime(
+            sample.required_torque_nm,
+            sample.required_torque_uncertainty_nm,
+            sample.angular_speed_rad_s,
+        );
         let required_upper = sample.required_torque_nm.abs() + sample.required_torque_uncertainty_nm;
 
-        let assessment = if regime == OperatingRegime::Coast {
+        let assessment = if regime.is_none() {
             SampleAssessment {
                 sample_index: index,
                 time_s: sample.time_s,
-                regime,
+                regime: OperatingRegime::Coast,
+                decision: SampleDecision::Unknown,
+                required_torque_upper_nm: required_upper,
+                continuous_torque_lower_nm: None,
+                peak_torque_lower_nm: None,
+                continuous_margin_nm: None,
+                peak_margin_nm: None,
+                evidence_class: None,
+                reason: Some("torque uncertainty crosses zero, so operating direction is ambiguous".to_owned()),
+            }
+        } else if regime == Some(OperatingRegime::Coast) {
+            SampleAssessment {
+                sample_index: index,
+                time_s: sample.time_s,
+                regime: OperatingRegime::Coast,
                 decision: SampleDecision::Coast,
                 required_torque_upper_nm: required_upper,
                 continuous_torque_lower_nm: None,
@@ -368,7 +394,7 @@ pub fn evaluate_mission(
                 evidence_class: None,
                 reason: None,
             }
-        } else if let Some(envelope) = candidate.regimes.iter().find(|branch| branch.regime == regime) {
+        } else if let Some(envelope) = candidate.regimes.iter().find(|branch| Some(branch.regime) == regime) {
             let speed = sample.angular_speed_rad_s.abs();
             let continuous = interpolate_lower_bound(envelope, speed, false);
             let peak = interpolate_lower_bound(envelope, speed, true);
@@ -427,7 +453,7 @@ pub fn evaluate_mission(
             SampleAssessment {
                 sample_index: index,
                 time_s: sample.time_s,
-                regime,
+                regime: regime.unwrap(),
                 decision: SampleDecision::Unknown,
                 required_torque_upper_nm: required_upper,
                 continuous_torque_lower_nm: None,
@@ -699,21 +725,24 @@ mod tests {
 
     #[test]
     fn mcjce_007_uncertainty_can_reverse_a_nominal_feasibility_claim() {
-        let mut candidate = candidate();
-        let branch = candidate.regimes.iter_mut().find(|b| b.regime == OperatingRegime::ForwardMotoring).unwrap();
+        let mut envelope = candidate();
+        let branch = envelope.regimes.iter_mut()
+            .find(|b| b.regime == OperatingRegime::ForwardMotoring).unwrap();
         for point in &mut branch.points {
             point.continuous_torque_nm = 8.0;
             point.continuous_uncertainty_nm = 1.0;
             point.peak_torque_nm = 10.0;
             point.peak_uncertainty_nm = 1.0;
         }
+        // The nominal request (7.5 N m) is below the nominal 8 N m limit,
+        // but the conservative lower capability is 7 N m.
         let result = evaluate_mission(
-            &candidate(),
+            &envelope,
             &mission(vec![sample(0.0, 7.5, 0.0, 5.0), sample(0.1, 7.5, 0.0, 5.0)]),
-        );
-        // This test is replaced below with a candidate that retains the mutated branch.
-        assert!(result.is_ok());
-        let _ = branch;
+        ).unwrap();
+        assert_eq!(result.samples[0].decision, SampleDecision::PeakLimited);
+        assert_eq!(result.decision, MissionDecision::Feasible);
+        assert_eq!(result.samples[0].continuous_margin_nm, Some(-0.5));
     }
 
     #[test]
@@ -774,7 +803,18 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_013_invalid_knots_timestamp_and_uncertainty_reject() {
+    fn mcjce_013_uncertainty_crossing_zero_makes_power_direction_unknown() {
+        let result = evaluate_mission(
+            &candidate(),
+            &mission(vec![sample(0.0, 0.1, 0.2, 3.0), sample(0.1, 0.1, 0.2, 3.0)]),
+        ).unwrap();
+        assert_eq!(result.decision, MissionDecision::Unknown);
+        assert_eq!(result.samples[0].decision, SampleDecision::Unknown);
+        assert!(result.samples[0].reason.as_ref().unwrap().contains("direction is ambiguous"));
+    }
+
+    #[test]
+    fn mcjce_014_invalid_knots_timestamp_and_uncertainty_reject() {
         let mut bad_candidate = candidate();
         bad_candidate.regimes[0].points[1].speed_abs_rad_s = 0.0;
         assert!(evaluate_mission(
@@ -790,7 +830,7 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_014_duplicate_regime_and_inconsistent_evidence_reject() {
+    fn mcjce_015_duplicate_regime_and_inconsistent_evidence_reject() {
         let mut duplicate = candidate();
         duplicate.regimes.push(duplicate.regimes[0].clone());
         assert!(evaluate_mission(
