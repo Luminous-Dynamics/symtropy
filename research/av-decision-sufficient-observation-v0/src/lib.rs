@@ -273,6 +273,155 @@ fn assert_number(
     Ok(())
 }
 
+fn audit_oracle_references(
+    agent_episodes: &[Value],
+    oracle_episodes: &[Value],
+) -> Result<(), String> {
+    for (agent_episode, oracle_episode) in agent_episodes.iter().zip(oracle_episodes.iter()) {
+        let episode_id = string(
+            required(agent_episode, "episode_id")?,
+            "agent.episode_id",
+        )?;
+        let realized_hypothesis =
+            string(required(oracle_episode, "realized_hypothesis_id")?, "oracle.realized_hypothesis_id")?;
+        let public_hypotheses = array(
+            required(required(agent_episode, "public_belief")?, "hypotheses")?,
+            "agent.public_belief.hypotheses",
+        )?;
+        if !public_hypotheses.iter().any(|hypothesis| {
+            hypothesis.get("id").and_then(Value::as_str) == Some(realized_hypothesis.as_str())
+        }) {
+            return Err(format!(
+                "oracle realized hypothesis {realized_hypothesis:?} is absent from agent catalogue in {episode_id}"
+            ));
+        }
+
+        let requests = array(
+            required(agent_episode, "candidate_requests")?,
+            "agent.candidate_requests",
+        )?;
+        if let Some(outcomes) = oracle_episode.get("realized_outcomes").and_then(Value::as_object) {
+            for (request_id, realized_outcome) in outcomes {
+                let request = requests
+                    .iter()
+                    .find(|request| {
+                        request.get("request_id").and_then(Value::as_str) == Some(request_id)
+                    })
+                    .ok_or_else(|| {
+                        format!("oracle outcome references unknown request {request_id:?} in {episode_id}")
+                    })?;
+                let outcome_label = string(realized_outcome, "oracle.realized_outcome")?;
+                let rows = array(
+                    required(request, "predicted_observation_model")?,
+                    "request.predicted_observation_model",
+                )?;
+                let realized_row = rows.iter().find(|row| {
+                    row.get("hypothesis_id").and_then(Value::as_str)
+                        == Some(realized_hypothesis.as_str())
+                });
+                let row = realized_row.ok_or_else(|| {
+                    format!("oracle hypothesis {realized_hypothesis:?} is not modelled for request {request_id:?}")
+                })?;
+                let labels_realized_outcome = array(
+                    required(row, "outcomes")?,
+                    "request.outcomes",
+                )?
+                .iter()
+                .any(|outcome| {
+                    outcome.get("outcome").and_then(Value::as_str) == Some(outcome_label.as_str())
+                        && outcome.get("probability").and_then(Value::as_f64).unwrap_or(0.0) > 0.0
+                });
+                let intentionally_open_world = episode_id
+                    == "av-dso-007-uncalibrated-incomplete-outcome-partition"
+                    && outcome_label == "unmodeled_outcome";
+                if !labels_realized_outcome && !intentionally_open_world {
+                    return Err(format!(
+                        "oracle outcome {outcome_label:?} is unsupported under realized hypothesis for {request_id:?}"
+                    ));
+                }
+            }
+        }
+
+        if let Some(actual_arrivals) = oracle_episode.get("actual_arrival_tick").and_then(Value::as_object) {
+            for (request_id, actual_tick) in actual_arrivals {
+                let actual_tick = actual_tick.as_u64().ok_or_else(|| {
+                    format!("oracle arrival tick for {request_id:?} must be an integer")
+                })?;
+                let request = requests
+                    .iter()
+                    .find(|request| {
+                        request.get("request_id").and_then(Value::as_str) == Some(request_id)
+                    })
+                    .ok_or_else(|| format!("unknown arrival request {request_id:?}"))?;
+                let declared_tick = required(request, "arrival_tick")?.as_u64().ok_or_else(|| {
+                    format!("agent arrival tick for {request_id:?} must be an integer")
+                })?;
+                if declared_tick != actual_tick {
+                    return Err(format!("agent/evaluator arrival tick mismatch for {request_id:?}"));
+                }
+            }
+        }
+
+        if let Some(permission_truth) =
+            oracle_episode.get("permission_truth").and_then(Value::as_object)
+        {
+            for (request_id, truth) in permission_truth {
+                let truth = string(truth, "oracle.permission_truth")?;
+                let request = requests
+                    .iter()
+                    .find(|request| {
+                        request.get("request_id").and_then(Value::as_str) == Some(request_id)
+                    })
+                    .ok_or_else(|| format!("unknown permission request {request_id:?}"))?;
+                let declared = string(required(request, "permission")?, "request.permission")?;
+                let expected_permission = if truth == "not_permitted" {
+                    "denied"
+                } else {
+                    truth.as_str()
+                };
+                if declared != expected_permission {
+                    return Err(format!("agent/evaluator permission mismatch for {request_id:?}"));
+                }
+            }
+        }
+
+        if let Some(dependency_truth) =
+            oracle_episode.get("actual_dependency_groups").and_then(Value::as_object)
+        {
+            let current_evidence = agent_episode
+                .get("current_evidence")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            for (source_id, actual_group) in dependency_truth {
+                let actual_group = string(actual_group, "oracle.dependency_group")?;
+                let declared_group = current_evidence
+                    .iter()
+                    .find(|evidence| {
+                        evidence.get("evidence_ref").and_then(Value::as_str) == Some(source_id)
+                    })
+                    .and_then(|evidence| evidence.get("dependency_group"))
+                    .and_then(Value::as_str)
+                    .or_else(|| {
+                        requests
+                            .iter()
+                            .find(|request| {
+                                request.get("request_id").and_then(Value::as_str) == Some(source_id)
+                            })
+                            .and_then(|request| request.get("dependency_group"))
+                            .and_then(Value::as_str)
+                    });
+                if declared_group != Some(actual_group.as_str()) {
+                    return Err(format!(
+                        "agent/evaluator dependency-group mismatch for {source_id:?}"
+                    ));
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 fn check_episode_ids(
     agent_episodes: &[Value],
     oracle_episodes: &[Value],
@@ -321,6 +470,7 @@ pub fn audit_fixtures(
     let oracle_episodes = array(required(oracle, "episodes")?, "oracle.episodes")?;
     let expected_episodes = array(required(expected, "episodes")?, "expected.episodes")?;
     check_episode_ids(agent_episodes, oracle_episodes, expected_episodes)?;
+    audit_oracle_references(agent_episodes, oracle_episodes)?;
 
     if agent_episodes.len() != 7 {
         return Err(format!(
