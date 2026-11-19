@@ -943,10 +943,19 @@ mod tests {
             profile(1, 24.0, &[(0.0, 24.0)]),
         )]);
         let greedy = schedule(&tasks, &profiles).expect("greedy schedule");
+        let service_policy = schedule_with_policy(
+            &tasks,
+            &profiles,
+            SchedulePolicy::ServiceWeightedCriticalPath,
+        )
+        .expect("service-weighted heuristic");
         let exact = exact_small_service_schedule(&tasks, &profiles).expect("exact service schedule");
         let greedy_mwh = weighted_unserved_energy_mwh(&tasks, &greedy).expect("greedy objective");
+        let service_policy_mwh =
+            weighted_unserved_energy_mwh(&tasks, &service_policy).expect("service policy objective");
         let exact_mwh = weighted_unserved_energy_mwh(&tasks, &exact).expect("exact objective");
         assert_eq!(greedy_mwh, 1550.0);
+        assert_eq!(service_policy_mwh, 1150.0);
         assert_eq!(exact_mwh, 1150.0);
         assert!(exact_mwh < greedy_mwh);
         assert_eq!(
