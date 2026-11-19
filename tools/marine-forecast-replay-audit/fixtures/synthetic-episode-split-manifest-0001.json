@@ -5,7 +5,7 @@
   "claim_ceiling": "holdout_partition_integrity_only",
   "dataset_id": "SYNTHETIC-MARINE-REPLAY-DATASET-0001",
   "dataset_manifest_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-  "grouping_unit": "whole_voyage",
+  "grouping_unit": "joint_voyage_weather_event",
   "split_algorithm": "stratified_group_assignment_v1",
   "split_seed": "marine-replay-split-seed-2026-11-19",
   "folds": [
