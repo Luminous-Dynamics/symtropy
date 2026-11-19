@@ -106,7 +106,7 @@ A model-generated route diversity label does not establish independence. Unknown
 
 ## First executable slice — 0D thermal balance verifier
 
-A standalone, std-only Rust package is included in this research PR at `tools/ocean-thermal-balance-verifier/`.
+A standalone, std-only Rust package is included in this research PR at `tools/ocean-thermal-balance-verifier/`. Its frozen known-answer inputs/expected outputs are in `docs/research/port-energy-compute/OCEAN_THERMAL_BALANCE_GOLDEN_FIXTURE_V0_1.json` (three valid modes and four hostile mutations).
 
 It checks one declared steady-state interval:
 - IT heat load = direct heat transferred to seawater + chiller evaporator heat;
