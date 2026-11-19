@@ -704,8 +704,13 @@ pub fn replay_trace(request: &ReplayRequest) -> Result<ReplayReport, String> {
             report.disposition = EventDisposition::OutOfOrder;
             report.findings.push("sequence number is lower than a previously received event".to_owned());
         }
-        if sequence_gap {
-            sequence_gaps += 1;
+        if let Some(previous) = last_sequence
+            && event.sequence_number > previous.saturating_add(1)
+        {
+            let missing = event.sequence_number - previous - 1;
+            sequence_gaps = sequence_gaps
+                .checked_add(usize::try_from(missing).unwrap_or(usize::MAX))
+                .ok_or_else(|| "sequence gap count overflow".to_owned())?;
         }
         seen_sequences.insert(event.sequence_number);
         last_sequence = Some(last_sequence.map_or(event.sequence_number, |value| value.max(event.sequence_number)));
@@ -915,6 +920,17 @@ mod tests {
         assert_eq!(report.body.reports[1].disposition, EventDisposition::Degraded);
         assert!(report.body.reports[1].metrics.sequence_gap_before_event);
         assert_eq!(report.body.summary.sequence_gaps, 1);
+    }
+
+    #[test]
+    fn sequence_gap_summary_counts_missing_sequence_numbers_not_gap_events() {
+        let report = replay_trace(&request(vec![
+            event(1, 900, 1000),
+            event(4, 1200, 1300),
+        ]))
+        .expect("replay");
+        assert_eq!(report.body.reports[1].disposition, EventDisposition::Degraded);
+        assert_eq!(report.body.summary.sequence_gaps, 2);
     }
 
     #[test]
