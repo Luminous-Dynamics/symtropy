@@ -101,6 +101,10 @@ pub struct CandidateAssessment {
 #[derive(Debug, Clone, PartialEq)]
 pub struct EvidenceLaneFront {
     pub lane: EvidenceLane,
+    /// Pareto comparisons are only valid within identical mission and
+    /// operating-condition cohorts.
+    pub operating_condition_digest: String,
+    pub mission_set_digest: String,
     pub candidate_ids: Vec<String>,
 }
 
@@ -400,6 +404,8 @@ pub fn robust_pareto_report(
             }
             let other_index = *candidate_index.get(other.candidate_id.as_str()).unwrap();
             if assessments[other_index].disposition == CandidateDisposition::Feasible(lane)
+                && other.operating_condition_digest == right.operating_condition_digest
+                && other.mission_set_digest == right.mission_set_digest
                 && dominates(other, right, objectives)
             {
                 dominated_by.push(other.candidate_id.clone());
@@ -415,17 +421,30 @@ pub fn robust_pareto_report(
         EvidenceLane::SourceReported,
         EvidenceLane::Conditional,
     ] {
-        let mut candidate_ids: Vec<String> = assessments
-            .iter()
-            .filter(|assessment| {
-                assessment.disposition == CandidateDisposition::Feasible(lane)
-                    && assessment.dominated_by.is_empty()
-            })
-            .map(|assessment| assessment.candidate_id.clone())
-            .collect();
-        candidate_ids.sort();
-        if !candidate_ids.is_empty() {
-            fronts.push(EvidenceLaneFront { lane, candidate_ids });
+        let mut cohorts: BTreeMap<(String, String), Vec<String>> = BTreeMap::new();
+        for assessment in &assessments {
+            if assessment.disposition != CandidateDisposition::Feasible(lane)
+                || !assessment.dominated_by.is_empty()
+            {
+                continue;
+            }
+            let candidate = &candidates[*candidate_index.get(assessment.candidate_id.as_str()).unwrap()];
+            cohorts
+                .entry((
+                    candidate.operating_condition_digest.clone(),
+                    candidate.mission_set_digest.clone(),
+                ))
+                .or_default()
+                .push(candidate.candidate_id.clone());
+        }
+        for ((operating_condition_digest, mission_set_digest), mut candidate_ids) in cohorts {
+            candidate_ids.sort();
+            fronts.push(EvidenceLaneFront {
+                lane,
+                operating_condition_digest,
+                mission_set_digest,
+                candidate_ids,
+            });
         }
     }
 
@@ -659,7 +678,35 @@ mod tests {
     }
 
     #[test]
-    fn pareto_016_all_candidates_are_retained_as_assessments() {
+    fn pareto_016_mission_sets_are_separate_comparison_cohorts() {
+        let a = candidate("mission-a", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        let mut b = candidate("mission-b", 2.0, 110.0, 0.8, EvidenceClass::IndependentPhysical);
+        b.mission_set_digest = "different-mission-set".to_owned();
+        let report = robust_pareto_report(&[a, b], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(report.fronts.len(), 2);
+        assert!(report.assessments.iter().all(|assessment| assessment.dominated_by.is_empty()));
+        assert!(report.fronts.iter().any(|front| front.mission_set_digest == MISSIONS));
+        assert!(report.fronts.iter().any(|front| front.mission_set_digest == "different-mission-set"));
+    }
+
+    #[test]
+    fn pareto_017_operating_conditions_are_separate_comparison_cohorts() {
+        let a = candidate("cooling-a", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        let mut b = candidate("cooling-b", 2.0, 110.0, 0.8, EvidenceClass::IndependentPhysical);
+        b.operating_condition_digest = "48V-25C-cooling-b".to_owned();
+        for metric in &mut b.objectives {
+            metric.operating_condition_digest = b.operating_condition_digest.clone();
+        }
+        for constraint in &mut b.hard_constraints {
+            constraint.operating_condition_digest = b.operating_condition_digest.clone();
+        }
+        let report = robust_pareto_report(&[a, b], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(report.fronts.len(), 2);
+        assert!(report.assessments.iter().all(|assessment| assessment.dominated_by.is_empty()));
+    }
+
+    #[test]
+    fn pareto_018_all_candidates_are_retained_as_assessments() {
         let good = candidate("good", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
         let mut bad = candidate("bad", 0.5, 50.0, 1.0, EvidenceClass::IndependentPhysical);
         bad.hard_constraints[0].minimum_robust_margin = Some(-0.5);
