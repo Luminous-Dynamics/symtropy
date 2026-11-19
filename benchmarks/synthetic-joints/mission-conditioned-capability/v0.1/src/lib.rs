@@ -875,7 +875,7 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_021_configuration_or_condition_mismatch_fails_closed() {
+    fn mcjce_011_configuration_or_condition_mismatch_fails_closed() {
         let mut wrong_config = mission(vec![sample(0.0, 1.0, 0.0, 1.0), sample(0.1, 1.0, 0.0, 1.0)]);
         wrong_config.candidate_configuration_digest = "different".to_owned();
         assert!(evaluate_mission(&candidate(), &wrong_config).is_err());
@@ -886,7 +886,7 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_010_positive_and_absorbed_mechanical_work_are_separate() {
+    fn mcjce_012_positive_and_absorbed_mechanical_work_are_separate() {
         let result = evaluate_mission(
             &candidate(),
             &mission(vec![
@@ -899,7 +899,7 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_021_rms_torque_uses_time_weighted_linear_interpolation() {
+    fn mcjce_013_rms_torque_uses_time_weighted_linear_interpolation() {
         let result = evaluate_mission(
             &candidate(),
             &mission(vec![sample(0.0, 2.0, 0.0, 1.0), sample(1.0, 2.0, 0.0, 1.0)]),
@@ -908,7 +908,7 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_020_coast_and_zero_speed_hold_are_not_confused() {
+    fn mcjce_014_coast_and_zero_speed_hold_are_not_confused() {
         let result = evaluate_mission(
             &candidate(),
             &mission(vec![sample(0.0, 2.0, 0.0, 0.0), sample(1.0, 0.0, 0.0, 3.0)]),
@@ -920,7 +920,7 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_021_uncertainty_crossing_zero_makes_power_direction_unknown() {
+    fn mcjce_015_uncertainty_crossing_zero_makes_power_direction_unknown() {
         let result = evaluate_mission(
             &candidate(),
             &mission(vec![sample(0.0, 0.1, 0.2, 3.0), sample(0.1, 0.1, 0.2, 3.0)]),
@@ -931,7 +931,7 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_020_invalid_knots_timestamp_and_uncertainty_reject() {
+    fn mcjce_016_invalid_knots_timestamp_and_uncertainty_reject() {
         let mut bad_candidate = candidate();
         bad_candidate.regimes[0].points[1].speed_abs_rad_s = 0.0;
         assert!(evaluate_mission(
@@ -947,7 +947,7 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_021_unknown_evidence_cannot_produce_a_feasible_decision() {
+    fn mcjce_017_unknown_evidence_cannot_produce_a_feasible_decision() {
         let mut envelope = candidate();
         envelope.regimes[0].evidence.class = EvidenceClass::Unknown;
         let result = evaluate_mission(
@@ -959,7 +959,7 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_020_vendor_evidence_class_is_preserved_not_promoted() {
+    fn mcjce_018_vendor_evidence_class_is_preserved_not_promoted() {
         let mut envelope = candidate();
         envelope.regimes[0].evidence.class = EvidenceClass::VendorPhysicalTest;
         let result = evaluate_mission(
@@ -971,7 +971,7 @@ mod tests {
     }
 
     #[test]
-    fn mcjce_021_coast_only_mission_does_not_claim_torque_envelope_coverage() {
+    fn mcjce_019_coast_only_mission_does_not_claim_torque_envelope_coverage() {
         let result = evaluate_mission(
             &candidate(),
             &mission(vec![sample(0.0, 0.0, 0.0, 2.0), sample(1.0, 0.0, 0.0, 3.0)]),
