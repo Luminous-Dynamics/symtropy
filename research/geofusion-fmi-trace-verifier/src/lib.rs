@@ -24,7 +24,13 @@ pub enum TraceError {
     ClockMappingMismatch,
     InvalidStepInterval,
     StepOutcomeMismatch,
+    EarlyReturnNotAllowed,
+    ZeroProgressEarlyReturnUnsupported,
+    EventModeNotEnabled,
+    EventModeTraceUnsupported,
+    TerminationTraceUnsupported,
     RejectedStepAdvanced,
+    RejectedStateChanged,
     MissingFederateSteps,
     SequenceGap,
     RetryLinkMismatch,
@@ -65,7 +71,13 @@ impl TraceError {
             Self::ClockMappingMismatch => "CLOCK_MAPPING_MISMATCH",
             Self::InvalidStepInterval => "INVALID_STEP_INTERVAL",
             Self::StepOutcomeMismatch => "STEP_OUTCOME_MISMATCH",
+            Self::EarlyReturnNotAllowed => "EARLY_RETURN_NOT_ALLOWED",
+            Self::ZeroProgressEarlyReturnUnsupported => "ZERO_PROGRESS_EARLY_RETURN_UNSUPPORTED",
+            Self::EventModeNotEnabled => "EVENT_MODE_NOT_ENABLED",
+            Self::EventModeTraceUnsupported => "EVENT_MODE_TRACE_UNSUPPORTED",
+            Self::TerminationTraceUnsupported => "TERMINATION_TRACE_UNSUPPORTED",
             Self::RejectedStepAdvanced => "REJECTED_STEP_ADVANCED",
+            Self::RejectedStateChanged => "REJECTED_STATE_CHANGED",
             Self::MissingFederateSteps => "MISSING_FEDERATE_STEPS",
             Self::SequenceGap => "SEQUENCE_GAP",
             Self::RetryLinkMismatch => "RETRY_LINK_MISMATCH",
@@ -135,6 +147,10 @@ pub struct FederateProfile {
     pub model_digest: String,
     pub clock: ClockBinding,
     pub initial_local_tick: i64,
+    /// Importer-side opt-in supplied to FMI 3 `fmi3InstantiateCoSimulation`.
+    pub early_return_allowed: bool,
+    /// Importer/FMU event-mode agreement established at instantiation.
+    pub event_mode_enabled: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -162,6 +178,13 @@ pub struct StepAttempt {
     pub master_start_ns: i64,
     pub master_requested_end_ns: i64,
     pub master_returned_end_ns: i64,
+    /// Caller-provided state snapshot identities; required to prove no mutation on discard.
+    pub state_before_digest: String,
+    pub state_after_digest: String,
+    /// FMI 3 `eventHandlingNeeded` output from `fmi3DoStep`.
+    pub event_handling_needed: bool,
+    /// FMI 3 `terminateSimulation` output from `fmi3DoStep`.
+    pub terminate_simulation: bool,
     pub outcome: StepOutcome,
 }
 
@@ -246,6 +269,8 @@ pub fn validate_trace(trace: &RunTrace) -> Result<(), TraceError> {
             || attempt.model_digest.trim().is_empty()
             || attempt.clock_binding_id.trim().is_empty()
             || attempt.clock_mapping_digest.trim().is_empty()
+            || attempt.state_before_digest.trim().is_empty()
+            || attempt.state_after_digest.trim().is_empty()
         {
             return Err(TraceError::EmptyIdentity("step_attempt"));
         }
@@ -290,28 +315,64 @@ pub fn validate_trace(trace: &RunTrace) -> Result<(), TraceError> {
             return Err(TraceError::InvalidStepInterval);
         }
 
+        if attempt.event_handling_needed {
+            if !profile.event_mode_enabled {
+                return Err(TraceError::EventModeNotEnabled);
+            }
+            // v0.1 has no Event Mode / UpdateDiscreteStates round-trip records.
+            return Err(TraceError::EventModeTraceUnsupported);
+        }
+        if attempt.terminate_simulation {
+            // Termination changes the required federation membership and is
+            // deliberately not inferred from a time-step record alone.
+            return Err(TraceError::TerminationTraceUnsupported);
+        }
+
         match attempt.outcome {
             StepOutcome::Accepted => {
-                if attempt.local_returned_end_tick != attempt.local_requested_end_tick
-                    || mapped_returned != mapped_requested
+                // FMI 3.0.2 permits lastSuccessfulTime to differ from the
+                // requested endpoint even when earlyReturn is false. The
+                // actual returned time becomes this trace's commit time.
+                if attempt.local_returned_end_tick <= attempt.local_start_tick
+                    || attempt.local_returned_end_tick > attempt.local_requested_end_tick
+                    || mapped_returned <= mapped_start
+                    || mapped_returned > mapped_requested
                 {
                     return Err(TraceError::StepOutcomeMismatch);
                 }
             }
             StepOutcome::EarlyReturn => {
-                if attempt.local_returned_end_tick <= attempt.local_start_tick
+                if !profile.early_return_allowed {
+                    return Err(TraceError::EarlyReturnNotAllowed);
+                }
+                // FMI permits an early return at the current communication
+                // point. That is a zero-progress event/coordination round;
+                // v0.1 does not model those rounds and reports them as
+                // unsupported, not as an invalid FMI trace.
+                if attempt.local_returned_end_tick == attempt.local_start_tick
+                    || mapped_returned == mapped_start
+                {
+                    return Err(TraceError::ZeroProgressEarlyReturnUnsupported);
+                }
+                if attempt.local_returned_end_tick < attempt.local_start_tick
                     || attempt.local_returned_end_tick >= attempt.local_requested_end_tick
-                    || mapped_returned <= mapped_start
+                    || mapped_returned < mapped_start
                     || mapped_returned >= mapped_requested
                 {
                     return Err(TraceError::StepOutcomeMismatch);
                 }
             }
             StepOutcome::Rejected => {
+                // A normalized no-advance/discard disposition. The caller
+                // must supply equal before/after state identities; the
+                // rejected lastSuccessfulTime is not committed.
                 if attempt.local_returned_end_tick != attempt.local_start_tick
                     || mapped_returned != mapped_start
                 {
                     return Err(TraceError::RejectedStepAdvanced);
+                }
+                if attempt.state_before_digest != attempt.state_after_digest {
+                    return Err(TraceError::RejectedStateChanged);
                 }
             }
         }
