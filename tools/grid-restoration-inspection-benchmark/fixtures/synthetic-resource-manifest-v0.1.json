@@ -55,6 +55,32 @@
         }
       ],
       "sourceRef": "synthetic://resource-state/uav-01/v1"
+    },
+    {
+      "resourceRef": "synthetic://resource/heavy-haul-01",
+      "status": "available",
+      "capacityUnits": 1,
+      "availabilityWindows": [
+        {
+          "startHour": 9,
+          "endHour": 18,
+          "capacityUnits": 1
+        }
+      ],
+      "sourceRef": "synthetic://resource-state/heavy-haul-01/v1"
+    },
+    {
+      "resourceRef": "synthetic://resource/crane-01",
+      "status": "available",
+      "capacityUnits": 1,
+      "availabilityWindows": [
+        {
+          "startHour": 9,
+          "endHour": 18,
+          "capacityUnits": 1
+        }
+      ],
+      "sourceRef": "synthetic://resource-state/crane-01/v1"
     }
   ]
 }
