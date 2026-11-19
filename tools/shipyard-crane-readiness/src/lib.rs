@@ -1150,6 +1150,39 @@ mod tests {
     }
 
     #[test]
+    fn frozen_conformance_fixture_maps_all_vectors_to_rust_tests() {
+        const FIXTURE: &str = include_str!("../fixtures/conformance-vectors-v0.1.json");
+        let mappings: [(&str, &str); 15] = [
+            ("CRR-VERSION-001", stringify!(unsupported_readiness_contract_version_is_indeterminate)),
+            ("CRR-BASE-001", stringify!(complete_current_evidence_is_ready_for_human_review_only)),
+            ("CRR-INSP-001", stringify!(missing_crane_inspection_is_indeterminate)),
+            ("CRR-INSP-002", stringify!(revoked_crane_inspection_is_rejected)),
+            ("CRR-DEVICE-001", stringify!(bypassed_required_limiter_is_rejected)),
+            ("CRR-DUTY-001", stringify!(stale_duty_monitoring_evidence_is_indeterminate)),
+            ("CRR-PEOPLE-001", stringify!(missing_required_personnel_role_is_indeterminate)),
+            ("CRR-BRIEF-001", stringify!(briefing_without_all_required_role_acknowledgements_is_indeterminate)),
+            ("CRR-BRIEF-002", stringify!(acknowledgement_for_another_method_statement_revision_is_indeterminate)),
+            ("CRR-INSP-003", stringify!(duplicate_matching_inspection_records_are_ambiguous)),
+            ("CRR-ZONE-001", stringify!(unenforced_exclusion_zone_is_rejected)),
+            ("CRR-PREFLIGHT-001", stringify!(invalidated_or_wrong_crane_lift_receipt_is_indeterminate)),
+            ("CRR-META-001", stringify!(evidence_input_permutation_preserves_canonical_report_value)),
+            ("CRR-DEVICE-002", stringify!(unknown_limiter_state_is_indeterminate_not_a_pass)),
+            ("CRR-EVID-001", stringify!(evidence_record_id_conflict_is_indeterminate)),
+        ];
+        assert_eq!(FIXTURE.matches(r#""id": "CRR-"#).count(), 15);
+        for (vector_id, test_name) in mappings {
+            assert!(
+                FIXTURE.contains(&format!(r#""id": "{vector_id}""#)),
+                "missing conformance vector {vector_id}"
+            );
+            assert!(
+                FIXTURE.contains(&format!(r#""test_name": "{test_name}""#)),
+                "missing test mapping {test_name}"
+            );
+        }
+    }
+
+    #[test]
     fn unsupported_readiness_contract_version_is_indeterminate() {
         let mut plan = baseline();
         plan.contract_version = "shipyard-crane-readiness-v0.0".to_owned();
