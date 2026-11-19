@@ -789,6 +789,22 @@ mod tests {
         }
     }
 
+    fn forced_region_mask(input: &SharedFleetInput, target_region_id: &str) -> (Vec<SharedDecisionNode>, BTreeMap<SharedDecisionKey, usize>, u64) {
+        let canonical = canonicalize(input);
+        let (nodes, indices) = build_decision_nodes(&canonical).expect("build policy nodes");
+        let target_index = canonical.regions.iter()
+            .position(|region| region.region_id == target_region_id)
+            .expect("target region exists") as u64;
+        let radix = canonical.regions.len() as u64 + 1;
+        let mut mask = 0_u64;
+        let mut multiplier = 1_u64;
+        for _ in 0..nodes.len() {
+            mask += target_index * multiplier;
+            multiplier *= radix;
+        }
+        (nodes, indices, mask)
+    }
+
     #[test]
     fn exact_two_region_fixture_has_nonanticipative_policy_tree() {
         let report = evaluate_shared_fleet(&input()).expect("valid input");
@@ -809,28 +825,58 @@ mod tests {
     }
 
     #[test]
-    fn no_teleporting_reposition_consumes_the_declared_periods() {
+    fn repositioning_consumes_time_before_aerial_service_can_begin() {
         let mut test = input();
         test.reposition_links[0].travel_periods = 2;
-        let report = evaluate_shared_fleet(&test).expect("valid input");
-        assert_eq!(report.optimized_policy.unauthorized_aerial_dispatches, 0);
-        assert!(!report.physical_dispatch_authorized);
+        let canonical = canonicalize(&test);
+        let (nodes, indices, mask) = forced_region_mask(&canonical, "rural");
+        let metrics = simulate_scenario(
+            &canonical,
+            &canonical.scenarios[0],
+            &indices,
+            mask,
+            true,
+        )
+        .expect("forced reposition policy");
+        assert_eq!(metrics.repositioning_periods, 2);
+        assert_eq!(metrics.repositioning_events, 1);
+        assert_eq!(metrics.aerial_deliveries, 4);
     }
 
     #[test]
-    fn stale_link_evidence_blocks_repositioning() {
+    fn stale_link_evidence_blocks_a_forced_reposition_attempt() {
         let mut test = input();
         test.reposition_links[0].evidence_status = SharedEvidenceStatus::Stale;
-        let report = evaluate_shared_fleet(&test).expect("valid input");
-        assert_eq!(report.optimized_policy.unauthorized_aerial_dispatches, 0);
+        let canonical = canonicalize(&test);
+        let (_, indices, mask) = forced_region_mask(&canonical, "rural");
+        let metrics = simulate_scenario(
+            &canonical,
+            &canonical.scenarios[0],
+            &indices,
+            mask,
+            true,
+        )
+        .expect("forced reposition policy");
+        assert_eq!(metrics.repositioning_events, 0);
+        assert!(metrics.hard_gate_blocked_actions > 0);
     }
 
     #[test]
-    fn route_weather_or_permission_block_prevents_reposition() {
+    fn route_weather_or_permission_block_prevents_a_forced_reposition() {
         let mut test = input();
-        test.scenarios[0].periods[1].observations[1].permission = PermissionState::Unknown;
-        let report = evaluate_shared_fleet(&test).expect("valid input");
-        assert_eq!(report.optimized_policy.unauthorized_aerial_dispatches, 0);
+        test.scenarios[0].periods[0].observations[1].permission = PermissionState::Unknown;
+        let canonical = canonicalize(&test);
+        let (_, indices, mask) = forced_region_mask(&canonical, "rural");
+        let metrics = simulate_scenario(
+            &canonical,
+            &canonical.scenarios[0],
+            &indices,
+            mask,
+            true,
+        )
+        .expect("forced reposition policy");
+        assert_eq!(metrics.repositioning_events, 0);
+        assert!(metrics.hard_gate_blocked_actions > 0);
     }
 
     #[test]
