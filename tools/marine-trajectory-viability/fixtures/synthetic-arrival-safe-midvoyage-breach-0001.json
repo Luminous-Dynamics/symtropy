@@ -113,8 +113,8 @@
     {
       "scenario_id": "scenario-nominal",
       "scenario_class": "nominal",
-      "scenario_sha256": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss",
-      "disturbance_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "scenario_sha256": "f90293866063faf0180279ea3896633d1d5b314fb29c4e15f7150c518ab3ebd9",
+      "disturbance_sha256": "64324037075d06bc0577a8bbfa508e49a9c5286860f2c19e6e442e2fbb5c2907",
       "model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "states": [
         {
@@ -641,8 +641,8 @@
     {
       "scenario_id": "scenario-adverse-forecast",
       "scenario_class": "adverse_forecast_error",
-      "scenario_sha256": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss",
-      "disturbance_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "scenario_sha256": "1ebe9e3a7ea703d6e4bd47258769cd2a38c8910dc11d46e09ee99b959b6ab493",
+      "disturbance_sha256": "b2fafe7790f0783147bffb866135463a9a1928b3e59a420a93df9aa98e949c76",
       "model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "states": [
         {
@@ -1169,8 +1169,8 @@
     {
       "scenario_id": "scenario-generation-outage",
       "scenario_class": "main_generation_outage",
-      "scenario_sha256": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss",
-      "disturbance_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "scenario_sha256": "428d83969847caf5a7d3903a0aaa3ee7dba37118eb414eb690556e09b9828a66",
+      "disturbance_sha256": "ac639dcddd176d6f9d441397f8edafbfe4756d5d36301078c0b9fb5427e6bcde",
       "model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "states": [
         {
@@ -1697,8 +1697,8 @@
     {
       "scenario_id": "scenario-watermaker-outage",
       "scenario_class": "watermaker_outage",
-      "scenario_sha256": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss",
-      "disturbance_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "scenario_sha256": "b67b1d3782aa479952e79655d77155ba3c5927bd9e44894e59aa8392a088ba04",
+      "disturbance_sha256": "980ab0a98d0471462a04fea35941a4e810a4747158e058b2c09f26de0a88344d",
       "model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "states": [
         {
@@ -2225,8 +2225,8 @@
     {
       "scenario_id": "scenario-common-cause",
       "scenario_class": "common_cause_generation_watermaker_outage",
-      "scenario_sha256": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss",
-      "disturbance_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "scenario_sha256": "f14321b00888fa7763df518a166d8b9049d5338823c49fe1b24f82f370e250f6",
+      "disturbance_sha256": "e1ac111c920bb654f0d9f5f17a8d3834543c4be794fca4362373f50878b30033",
       "model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "states": [
         {
