@@ -939,7 +939,7 @@ mod tests {
         let canonical = canonicalize(&input());
         let (nodes, indices) = build_decision_nodes(&canonical).expect("valid tree");
         let radix = canonical.regions.len() as u64 + 1;
-        let all_idle_mask = (radix.pow(nodes.len() as u32) - 1) / (radix - 1);
+        let all_idle_mask = radix.pow(nodes.len() as u32) - 1;
         let metrics = simulate_scenario(
             &canonical,
             &canonical.scenarios[0],
