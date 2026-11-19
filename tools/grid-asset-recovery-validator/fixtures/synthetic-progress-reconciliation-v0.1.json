@@ -159,5 +159,6 @@
       "authorityRef": "synthetic://authority/shift-supervisor",
       "evidenceRef": "synthetic://reconciliation/progress-001"
     }
-  ]
+  ],
+  "caseMaturity": "synthetic_fixture"
 }
