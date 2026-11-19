@@ -18,16 +18,16 @@ symtropy-physics (depends on: symtropy-math, nalgebra, arrayvec)
     BallJoint, FixedJoint, HingeJoint  -- articulation constraints
     Raycast                  -- analytical ray-sphere intersection
     Replay + NetId           -- deterministic record/replay
-    PhysicsCallback<D> trait -- THE coupling point for Phi
+    PhysicsCallback<D> trait -- low-level application/research callback
         |
         v
 symtropy-consciousness-physics (depends on: symtropy-physics, symthaea-consciousness-equation)
-    ConsciousnessField<D>    -- implements PhysicsCallback<D>
+    ConsciousnessField<D>    -- experimental metric-coupled callback
     EntityConsciousness      -- per-entity Phi computation + energy budget
-    HarmonyField<D>          -- CEMI-inspired 1/r^(D-1) spatial fields
-    EnergyBudget             -- Helmholtz free energy, 2nd Law enforcement
-    ThermodynamicLedger      -- J/Phi metric, conservation tracking
-    SafetyTier               -- NRC 4-tier motor authority
+    HarmonyField<D>          -- model-defined spatial research field
+    EnergyBudget             -- experimental agent resource-budget model
+    ThermodynamicLedger      -- model-specific resource bookkeeping and diagnostics
+    SafetyTier               -- experimental motor-authority mapping
     FEP gradient             -- free energy principle agent behavior
     Active Inference         -- Bayesian belief updating
     DimensionalLeakage       -- 4D-to-3D energy transfer
