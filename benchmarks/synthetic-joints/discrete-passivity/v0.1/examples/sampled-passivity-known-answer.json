@@ -1,0 +1,231 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "synthetic-sampled-passivity-energy-tank-known-answer-v0.1",
+  "system_boundary": {
+    "system_id": "synthetic-scalar-rotary-joint",
+    "declared_control_volume": "One scalar mechanical joint port and a virtual controller energy tank; no electrical bus or physical storage is included.",
+    "included_ports": [
+      "scalar mechanical effort-flow port",
+      "declared virtual energy tank"
+    ],
+    "excluded_ports": [
+      "motor DC electrical port",
+      "battery/DC link",
+      "environmental wrench sensor",
+      "unmeasured thermal losses"
+    ],
+    "sampling_rate_hz": 2,
+    "control_period_s": 0.5,
+    "delay_model": "Zero delay in synthetic fixture; real delay must be recorded and tested separately."
+  },
+  "conventions": {
+    "mechanical_port_effort": "Generalized torque tau in N m.",
+    "mechanical_port_flow": "Generalized angular velocity omega in rad/s.",
+    "positive_work_direction": "Positive tau*omega injects energy into the plant and debits the virtual energy tank.",
+    "storage_change_sign": "Positive delta_H is an increase in declared plant stored energy.",
+    "time_basis": "Seconds; each interval is integrated from port samples using trapezoidal power integration."
+  },
+  "controller": {
+    "controller_id": "synthetic-energy-budget-controller",
+    "control_law": "Effort saturation followed by energy-tank work scaling; no feedback passivity intervention in these intervals.",
+    "effort_limit": {
+      "status": "synthetic",
+      "value": 10,
+      "unit": "N m",
+      "uncertainty": 0,
+      "reason": "Synthetic actuator limit."
+    },
+    "passivity_action": "energy_tank",
+    "tank_capture_path": "Explicit synthetic mechanical capture path with configured 0.5 efficiency; this is a mathematical fixture, not evidence of electrical regeneration.",
+    "sample_and_hold": "Piecewise linear port samples across each 0.5 s interval.",
+    "notes": [
+      "No physical hardware, environment contact or electrical storage."
+    ]
+  },
+  "intervals": [
+    {
+      "interval_id": "A-positive-work",
+      "start_time_s": 0,
+      "end_time_s": 0.5,
+      "port_samples": [
+        {
+          "time_s": 0,
+          "effort": 4,
+          "flow": 1,
+          "effort_unit": "N m",
+          "flow_unit": "rad/s",
+          "status": "synthetic",
+          "reason": null
+        },
+        {
+          "time_s": 0.5,
+          "effort": 4,
+          "flow": 1,
+          "effort_unit": "N m",
+          "flow_unit": "rad/s",
+          "status": "synthetic",
+          "reason": null
+        }
+      ],
+      "storage_change_j": 1.9,
+      "port_work_j": 2,
+      "tolerance_j": 0.2,
+      "passivity_residual_j": -0.1,
+      "passivity_deficit_j": 0,
+      "tank_before_j": 5,
+      "tank_after_j": 3,
+      "effort_command": {
+        "desired_effort": 4,
+        "actuator_saturated_effort": 4,
+        "tank_limited_effort": 4,
+        "applied_effort": 4,
+        "requested_work_j": 2,
+        "applied_work_j": 2,
+        "curtailed_injection_j": 0
+      },
+      "passivity_intervention": {
+        "applied": false,
+        "damping_effort": 0,
+        "energy_dissipated_j": 0,
+        "remaining_deficit_j": 0,
+        "torque_authority_exhausted": false,
+        "reason": "Passivity deficit is zero within the declared tolerance."
+      },
+      "raw_trace_refs": [],
+      "notes": [
+        "Synthetic check: tau*omega = 4 W for 0.5 s, yielding +2 J mechanical-port work; tank is debited by 2 J."
+      ]
+    },
+    {
+      "interval_id": "B-negative-work-captured",
+      "start_time_s": 0.5,
+      "end_time_s": 1,
+      "port_samples": [
+        {
+          "time_s": 0.5,
+          "effort": -2,
+          "flow": 1,
+          "effort_unit": "N m",
+          "flow_unit": "rad/s",
+          "status": "synthetic",
+          "reason": null
+        },
+        {
+          "time_s": 1,
+          "effort": -2,
+          "flow": 1,
+          "effort_unit": "N m",
+          "flow_unit": "rad/s",
+          "status": "synthetic",
+          "reason": null
+        }
+      ],
+      "storage_change_j": -0.8,
+      "port_work_j": -1,
+      "tolerance_j": 0.25,
+      "passivity_residual_j": 0.2,
+      "passivity_deficit_j": 0,
+      "tank_before_j": 3,
+      "tank_after_j": 3.5,
+      "effort_command": {
+        "desired_effort": -2,
+        "actuator_saturated_effort": -2,
+        "tank_limited_effort": -2,
+        "applied_effort": -2,
+        "requested_work_j": -1,
+        "applied_work_j": -1,
+        "curtailed_injection_j": 0
+      },
+      "passivity_intervention": {
+        "applied": false,
+        "damping_effort": 0,
+        "energy_dissipated_j": 0,
+        "remaining_deficit_j": 0,
+        "torque_authority_exhausted": false,
+        "reason": "No passivity correction required."
+      },
+      "raw_trace_refs": [],
+      "notes": [
+        "Synthetic negative mechanical work is credited only because this fixture explicitly declares a 0.5 capture efficiency; this is not a generic assumption."
+      ]
+    },
+    {
+      "interval_id": "C-tank-limits-injection",
+      "start_time_s": 1,
+      "end_time_s": 1.5,
+      "port_samples": [
+        {
+          "time_s": 1,
+          "effort": 5,
+          "flow": 1,
+          "effort_unit": "N m",
+          "flow_unit": "rad/s",
+          "status": "synthetic",
+          "reason": null
+        },
+        {
+          "time_s": 1.5,
+          "effort": 5,
+          "flow": 1,
+          "effort_unit": "N m",
+          "flow_unit": "rad/s",
+          "status": "synthetic",
+          "reason": null
+        }
+      ],
+      "storage_change_j": 2.4,
+      "port_work_j": 2.5,
+      "tolerance_j": 0.2,
+      "passivity_residual_j": -0.1,
+      "passivity_deficit_j": 0,
+      "tank_before_j": 3.5,
+      "tank_after_j": 1,
+      "effort_command": {
+        "desired_effort": 8,
+        "actuator_saturated_effort": 8,
+        "tank_limited_effort": 5,
+        "applied_effort": 5,
+        "requested_work_j": 4,
+        "applied_work_j": 2.5,
+        "curtailed_injection_j": 1.5
+      },
+      "passivity_intervention": {
+        "applied": false,
+        "damping_effort": 0,
+        "energy_dissipated_j": 0,
+        "remaining_deficit_j": 0,
+        "torque_authority_exhausted": false,
+        "reason": "The tank scales the effort to its remaining 2.5 J injection budget; no additional damping correction is needed."
+      },
+      "raw_trace_refs": [],
+      "notes": [
+        "Tank reaches its minimum bound exactly; attempted 4 J injection is limited to 2.5 J."
+      ]
+    }
+  ],
+  "energy_tank": {
+    "energy_unit": "J",
+    "initial_energy_j": 5,
+    "minimum_energy_j": 1,
+    "maximum_energy_j": 10,
+    "final_energy_j": 1,
+    "capture_efficiency": 0.5,
+    "capture_path": "Synthetic route used only for known-answer arithmetic. Physical capture requires an instrumented/measured energy path.",
+    "overflow_sink": "Not modelled; overflow is reported as spilled energy by the analytic API.",
+    "underflow_action": "Reject the injection command; it must not mutate tank state or debit below 1 J.",
+    "initialization_method": "Synthetic initial state."
+  },
+  "evidence": [
+    {
+      "reference": "https://github.com/Luminous-Dynamics/symtropy",
+      "source_class": "synthetic_fixture",
+      "method": "Synthetic known-answer record designed to match the analytic energy-tank API and its three port-work intervals.",
+      "date": "2026-11-19",
+      "independence": "not_assessed"
+    }
+  ],
+  "claim_ceiling": "Synthetic discrete port/tank arithmetic only. Not a real passivity proof, sampled-data stability guarantee, electrical recovery claim, controller performance result, HRI safety case or hardware qualification.",
+  "notes": [
+    "Torque is N m; energy is J. The third interval's 8 N m request is curtailed to 5 N m over 0.5 rad of angular travel, giving a 2.5 J work cap."
+  ]
+}
