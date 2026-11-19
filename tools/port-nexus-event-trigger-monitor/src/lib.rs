@@ -932,7 +932,7 @@ mod tests {
     }
 
     #[test]
-    fn same_sequence_with_different_snapshot_id_is_invalid() {
+    fn same_sequence_with_different_snapshot_digest_is_invalid() {
         let first = snapshot(1, 100_000, &[]);
         let first_result = evaluate_trigger(&first, &definitions(), &policy(), &TriggerState::default()).unwrap();
         let mut second = snapshot(1, 100_000, &[]);
