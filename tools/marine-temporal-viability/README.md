@@ -13,9 +13,9 @@ cargo run --manifest-path tools/marine-temporal-viability/Cargo.toml -- audit-tr
 
 ## What it checks
 
-- The mission, vessel, occupancy, initial resource state, plan, forecast information set, hard-gate roster, operating envelope and floor contract share an exact digest-bound snapshot.
+- The mission, vessel, occupancy, initial resource state, plan, forecast information set, hard-gate roster, operating envelope, floor contract, UTC mission window/sample-gap limit and exact trajectory time grid share an exact digest-bound snapshot.
 - Scenario member IDs and source-artifact digests are frozen; every policy must replay every member on the exact same time grid.
-- UTC event times, elapsed hours, route progress, sample gap limits and segment boundaries are consistent.
+- UTC event times, elapsed hours, route progress, sample gap limits and segment boundaries are consistent; the exact mission window and replay grid are SHA-256 bound to the snapshot.
 - Every point and every inter-sample segment carries all ten service dimensions, conservative bounds, coverage and provenance.
 - Minimum reserve floors use the lower bound; maximum delay/outage/comfort/workload/purchased-energy floors use the upper bound.
 - Hard-gate results are checked at every sample and segment; any fail, infeasible or abstain result prevents candidate viability.
@@ -35,7 +35,7 @@ The synthetic adversarial fixture has a freshwater reserve of 2 days at hour 6, 
 
 ## Adversarial corpus and benchmark boundary
 
-Sixteen authored Rust tests cover: positive whole-trajectory admission; arrival-only acceptance trap with later replenishment; inter-sample segment breach; point-estimate pass with conservative-bound failure; cumulative outage memory; crew workload spike; stale/gapped sampling; missing or mismatched resource events; event-sign semantics; scenario-member source digest identity; weather-blind forecast isolation; hard-gate failure; exact segment/time-grid alignment; segment envelopes must contain both adjacent endpoint uncertainty intervals.
+Eighteen authored Rust tests cover: positive whole-trajectory admission; arrival-only acceptance trap with later replenishment; inter-sample segment breach; point-estimate pass with conservative-bound failure; cumulative outage memory; crew workload spike; stale/gapped sampling; missing or mismatched resource events; event-sign semantics; scenario-member source digest identity; weather-blind forecast isolation; hard-gate failure; exact segment/time-grid alignment; segment envelopes must contain both adjacent endpoint uncertainty intervals.
 
 The first fixture contains three matched policy arms, two coherent scenario members per arm, 18 timepoints and 12 inter-sample segments. The adversarial fixture has the integrated candidate cross its freshwater reserve floor at hour 6, consume 3 reserve-days with a timed receipt, then replenish 3 reserve-days at hour 8 and arrive at hour 12 with 5 reserve-days. The trajectory is blocked even though the final arrival snapshot passes.
 
