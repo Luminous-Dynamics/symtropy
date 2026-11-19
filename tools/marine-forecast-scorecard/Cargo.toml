@@ -14,3 +14,7 @@ sha2 = "0.10"
 [[bin]]
 name = "member-coherent-risk"
 path = "src/bin/member_coherent_risk.rs"
+
+[[bin]]
+name = "forecast-information-noise"
+path = "src/bin/forecast_information_noise.rs"
