@@ -21,7 +21,7 @@ Seawater-side balance:
     = direct heat + chiller evaporator heat + chiller electric input
       + declared pump heat fraction + other declared heat
 
-It also checks declared site-specific maximum discharge temperature and temperature-rise limits; no universal limit is hardcoded. It reports interval energy in kWh and chiller COP when applicable.
+Cooling electricity includes chiller, water-loop pump and separately declared other cooling auxiliaries. The verifier also checks declared site-specific maximum discharge temperature and temperature-rise limits; no universal limit is hardcoded. It reports interval energy in kWh and chiller COP when applicable.
 
 ## Important assumptions
 
