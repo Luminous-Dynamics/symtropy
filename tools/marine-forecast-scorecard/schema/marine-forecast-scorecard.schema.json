@@ -1,0 +1,406 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:marine-forecast-scorecard:0.1.0",
+  "title": "Marine Forecast Skill and Mission Decision Scorecard",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scorecard_id",
+    "record_status",
+    "claim_ceiling",
+    "dataset",
+    "calibration_bin_count",
+    "forecast_cases",
+    "mission_pairs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "scorecard_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "record_status": {
+      "enum": [
+        "synthetic",
+        "shadow_replay",
+        "measured_campaign",
+        "published_reproduction"
+      ]
+    },
+    "claim_ceiling": {
+      "const": "descriptive_skill_and_paired_outcome_metrics_only"
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id",
+        "dataset_sha256",
+        "split_manifest_sha256",
+        "transform_sha256",
+        "split_strategy",
+        "grouping_unit"
+      ],
+      "properties": {
+        "dataset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dataset_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "split_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "transform_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "split_strategy": {
+          "const": "forward_chaining_joint_grouped"
+        },
+        "grouping_unit": {
+          "const": "joint_voyage_weather_event"
+        }
+      }
+    },
+    "calibration_bin_count": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 20
+    },
+    "forecast_cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "fold",
+          "episode_id",
+          "voyage_id",
+          "weather_event_id",
+          "environment_strata",
+          "decision_cutoff",
+          "forecast_source_id",
+          "forecast_sha256",
+          "forecast_issue_time",
+          "first_available_at",
+          "availability_receipt_ref",
+          "availability_receipt_sha256",
+          "lead_hours",
+          "forecast_valid_time",
+          "variable",
+          "unit",
+          "deterministic_value",
+          "ensemble_members",
+          "verifying_source_id",
+          "verifying_source_class",
+          "verifying_source_sha256",
+          "verification_valid_time",
+          "observation_time",
+          "observed_value",
+          "threshold_events"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fold": {
+            "enum": [
+              "development",
+              "validation",
+              "test"
+            ]
+          },
+          "episode_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "voyage_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "weather_event_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "environment_strata": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "decision_cutoff": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "forecast_source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "forecast_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "forecast_issue_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "first_available_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "availability_receipt_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "availability_receipt_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "lead_hours": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "forecast_valid_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "variable": {
+            "enum": [
+              "wind_speed",
+              "significant_wave_height",
+              "mean_sea_level_pressure"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "deterministic_value": {
+            "type": "number"
+          },
+          "ensemble_members": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "number"
+            }
+          },
+          "verifying_source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "verifying_source_class": {
+            "enum": [
+              "in_situ_validation",
+              "realized_reanalysis"
+            ]
+          },
+          "verifying_source_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "verification_valid_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "observation_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "observed_value": {
+            "type": "number"
+          },
+          "threshold_events": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "event_id",
+                "threshold",
+                "comparison",
+                "probability",
+                "observed"
+              ],
+              "properties": {
+                "event_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "threshold": {
+                  "type": "number"
+                },
+                "comparison": {
+                  "enum": [
+                    "gt",
+                    "gte"
+                  ]
+                },
+                "probability": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "observed": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "mission_pairs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pair_id",
+          "case_id",
+          "fold",
+          "episode_id",
+          "voyage_id",
+          "weather_event_id",
+          "matching_context_sha256",
+          "craft_configuration_sha256",
+          "loading_sha256",
+          "occupancy_sha256",
+          "service_fingerprint_sha256",
+          "forecast_information_set_sha256",
+          "compute_budget_sha256",
+          "hard_gate_roster_sha256",
+          "candidate",
+          "baseline"
+        ],
+        "properties": {
+          "pair_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fold": {
+            "enum": [
+              "development",
+              "validation",
+              "test"
+            ]
+          },
+          "episode_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "voyage_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "weather_event_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "matching_context_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "craft_configuration_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "loading_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "occupancy_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "service_fingerprint_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "forecast_information_set_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "compute_budget_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "hard_gate_roster_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "candidate": {
+            "$ref": "#/$defs/policy_result"
+          },
+          "baseline": {
+            "$ref": "#/$defs/policy_result"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "policy_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_id",
+        "purchased_energy_kwh_per_berth_day",
+        "mission_regret_kwh_equivalent",
+        "hard_gate_violations",
+        "service_floor_breaches",
+        "comfort_breaches",
+        "plan_changes"
+      ],
+      "properties": {
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "purchased_energy_kwh_per_berth_day": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "mission_regret_kwh_equivalent": {
+          "type": "number",
+          "minimum": 0
+        },
+        "hard_gate_violations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "service_floor_breaches": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "comfort_breaches": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "plan_changes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
