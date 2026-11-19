@@ -28,7 +28,7 @@ The strongest recent systems do not simply process more frames. They specialize 
 
 - HERMES, ACL Anthology: https://aclanthology.org/2026.acl-long.381/
 - StreamScout, arXiv: https://arxiv.org/abs/2609.00291
-- OASIS, CVPR Open Access: https://openaccess.thecvf.com/content/CVPR2026/html/ (search title: OASIS)
+- OASIS, CVPR Open Access: https://openaccess.thecvf.com/content/CVPR2026/html/Liang_OASIS_On-Demand_Hierarchical_Event_Memory_for_Streaming_Video_Reasoning_CVPR_2026_paper.html
 - LiveProBench / ProactiveBench, arXiv: https://arxiv.org/abs/2609.12658
 - SPOT-Bench, paper: https://arxiv.org/abs/2604.24317 ; project/leaderboard: https://dibschat.github.io/SPOT-Bench/
 - OmniInteract, ACL Anthology: https://aclanthology.org/2026.emnlp-main.490/
@@ -38,6 +38,14 @@ The strongest recent systems do not simply process more frames. They specialize 
 - DCASE 2026 challenge results index: https://dcase.community/challenge2026/index
 - LOCATA: https://www.locata.lms.tf.fau.de/datasets/
 - African ASR study, PMLR: https://proceedings.mlr.press/v302/nahabwe26a.html
+
+
+## Additional interpretation notes
+
+- **SPOT-Bench** is especially valuable because it scores every proactive output across the stream rather than only answering selected queries. Its published leaderboard reports Ctrl-SPOT at 20.9 T-F1@5, JoyAI-VL-Interaction at 16.3 and MiniCPM-o 4.5 at 14.9. The authors also identify “dead-time”: intervals in which no response is expected. Use this to evaluate restraint and resource scheduling, not just event recall.
+- **LiveProBench / ProactiveBench** evaluates one-second stream intervals without an explicit response cue and separates premature, in-window and missed responses. Its finding that premature responses exceed missed responses for four of six evaluated systems makes false intervention a first-class metric.
+- **IPIBench** extends proactive interaction beyond a fixed alert: user requests may be added, modified or cancelled while proactive monitoring and task management continue. This is relevant to long-lived assistants whose task intent can change during a stream.
+- **DCASE Task 3** uses dense spatial acoustic maps (13 classes; 360×180 equirectangular output; 20° angular matching threshold for the matching metrics). The challenge reports 29 submissions from eight teams. Audio-only and audiovisual track values differ by metric; do not compare the best mAP from one track to the best Pearson correlation from another or assume that adding video always improves every score.
 
 ## The paradigm shifts these results imply
 
