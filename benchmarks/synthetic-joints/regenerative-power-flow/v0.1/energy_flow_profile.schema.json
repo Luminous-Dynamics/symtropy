@@ -1,0 +1,740 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/synthetic-joints/regenerative-power-flow/v0.1/energy_flow_profile.schema.json",
+  "title": "Regenerative Power Flow Profile v0.1",
+  "description": "Evidence-bound record of mechanical/electrical energy ports, DC-bus behavior, storage acceptance and dissipation. Not a safety certification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "system",
+    "conventions",
+    "test_conditions",
+    "runs",
+    "evidence",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "system": {
+      "$ref": "#/$defs/system"
+    },
+    "conventions": {
+      "$ref": "#/$defs/conventions"
+    },
+    "test_conditions": {
+      "$ref": "#/$defs/conditions"
+    },
+    "runs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/run"
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "system": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "system_id",
+        "topology",
+        "source_sink_mode",
+        "dc_link_capacitance",
+        "included_components",
+        "excluded_components"
+      ],
+      "properties": {
+        "system_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "topology": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_sink_mode": {
+          "enum": [
+            "source_only",
+            "bidirectional_supply",
+            "battery_accepting",
+            "supercapacitor",
+            "shared_bus",
+            "braking_chopper",
+            "unknown"
+          ]
+        },
+        "dc_link_capacitance": {
+          "$ref": "#/$defs/measurement"
+        },
+        "included_components": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "excluded_components": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "storage_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "braking_resistor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "conventions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mechanical_power_sign",
+        "dc_current_sign",
+        "energy_positive_direction",
+        "reference_frame",
+        "sampling_time_basis"
+      ],
+      "properties": {
+        "mechanical_power_sign": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dc_current_sign": {
+          "type": "string",
+          "minLength": 1
+        },
+        "energy_positive_direction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sampling_time_basis": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "conditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "supply_voltage_v",
+        "ambient_temperature_c",
+        "load_profile",
+        "motion_profile",
+        "cooling_boundary",
+        "raw_trace_state"
+      ],
+      "properties": {
+        "supply_voltage_v": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "ambient_temperature_c": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "load_profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "motion_profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cooling_boundary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_trace_state": {
+          "enum": [
+            "available",
+            "partial",
+            "not_available",
+            "not_disclosed"
+          ]
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "value",
+        "unit",
+        "uncertainty",
+        "reason"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "measured",
+            "reported",
+            "derived",
+            "estimated",
+            "assumed",
+            "unknown",
+            "not_disclosed",
+            "not_applicable"
+          ]
+        },
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uncertainty": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "energy_value": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "value_j",
+        "uncertainty_j",
+        "reason"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "measured",
+            "reported",
+            "derived",
+            "estimated",
+            "assumed",
+            "unknown",
+            "not_disclosed",
+            "not_applicable"
+          ]
+        },
+        "value_j": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "uncertainty_j": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "operating_quadrant",
+        "test_outcome",
+        "duration_s",
+        "mechanical_ports",
+        "electrical_ports",
+        "storage_ports",
+        "dissipation_ports",
+        "dc_bus_observations",
+        "energy_balance",
+        "protection_events",
+        "raw_trace_refs",
+        "notes"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operating_quadrant": {
+          "enum": [
+            "I_forward_motoring",
+            "II_forward_regenerating",
+            "III_reverse_motoring",
+            "IV_reverse_regenerating",
+            "mixed_transition",
+            "unknown"
+          ]
+        },
+        "test_outcome": {
+          "enum": [
+            "completed",
+            "overvoltage",
+            "undervoltage",
+            "aborted",
+            "derated",
+            "censored",
+            "invalid_for_primary_metric",
+            "unknown"
+          ]
+        },
+        "duration_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "mechanical_ports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/port"
+          }
+        },
+        "electrical_ports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/port"
+          }
+        },
+        "storage_ports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/storage_port"
+          }
+        },
+        "dissipation_ports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/dissipation_port"
+          }
+        },
+        "dc_bus_observations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/bus_observation"
+          }
+        },
+        "energy_balance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "input_energy",
+            "output_energy",
+            "stored_energy_change",
+            "dissipated_energy",
+            "residual_energy",
+            "control_volume"
+          ],
+          "properties": {
+            "input_energy": {
+              "$ref": "#/$defs/energy_value"
+            },
+            "output_energy": {
+              "$ref": "#/$defs/energy_value"
+            },
+            "stored_energy_change": {
+              "$ref": "#/$defs/energy_value"
+            },
+            "dissipated_energy": {
+              "$ref": "#/$defs/energy_value"
+            },
+            "residual_energy": {
+              "$ref": "#/$defs/energy_value"
+            },
+            "control_volume": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "protection_events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/protection_event"
+          }
+        },
+        "raw_trace_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "port": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "port_id",
+        "domain",
+        "location",
+        "power_direction",
+        "energy",
+        "instrumentation"
+      ],
+      "properties": {
+        "port_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "domain": {
+          "enum": [
+            "mechanical",
+            "electrical",
+            "thermal",
+            "other"
+          ]
+        },
+        "location": {
+          "type": "string",
+          "minLength": 1
+        },
+        "power_direction": {
+          "enum": [
+            "into_control_volume",
+            "out_of_control_volume",
+            "bidirectional",
+            "unknown"
+          ]
+        },
+        "energy": {
+          "$ref": "#/$defs/energy_value"
+        },
+        "instrumentation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current_sign_convention": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "storage_port": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "storage_id",
+        "storage_type",
+        "accepted_energy",
+        "state_start",
+        "state_end",
+        "measurement_boundary"
+      ],
+      "properties": {
+        "storage_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "storage_type": {
+          "enum": [
+            "battery",
+            "supercapacitor",
+            "dc_link_capacitance",
+            "other",
+            "none",
+            "unknown"
+          ]
+        },
+        "accepted_energy": {
+          "$ref": "#/$defs/energy_value"
+        },
+        "state_start": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "state_end": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "measurement_boundary": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "dissipation_port": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sink_id",
+        "sink_type",
+        "dissipated_energy",
+        "thermal_observation",
+        "measurement_boundary"
+      ],
+      "properties": {
+        "sink_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sink_type": {
+          "enum": [
+            "braking_resistor",
+            "winding",
+            "inverter",
+            "gearbox",
+            "mechanical_friction",
+            "other",
+            "unknown"
+          ]
+        },
+        "dissipated_energy": {
+          "$ref": "#/$defs/energy_value"
+        },
+        "thermal_observation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_boundary": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "bus_observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel",
+        "status",
+        "minimum_v",
+        "maximum_v",
+        "threshold_v",
+        "samples_above_threshold",
+        "duration_above_threshold_s",
+        "reason"
+      ],
+      "properties": {
+        "channel": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "measured_external",
+            "drive_reported",
+            "derived",
+            "estimated",
+            "unknown"
+          ]
+        },
+        "minimum_v": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "maximum_v": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "threshold_v": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "samples_above_threshold": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "duration_above_threshold_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "protection_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event",
+        "status",
+        "time_s",
+        "threshold_v",
+        "observed_value_v",
+        "action",
+        "reason"
+      ],
+      "properties": {
+        "event": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "not_observed",
+            "unknown",
+            "not_disclosed"
+          ]
+        },
+        "time_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "threshold_v": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "observed_value_v": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference",
+        "source_class",
+        "method",
+        "date",
+        "independence"
+      ],
+      "properties": {
+        "reference": {
+          "type": "string",
+          "format": "uri"
+        },
+        "source_class": {
+          "enum": [
+            "paper_reported_physical_measurement",
+            "raw_source_trace",
+            "independent_lab_measurement",
+            "manufacturer_claim",
+            "other"
+          ]
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        },
+        "independence": {
+          "enum": [
+            "independent",
+            "source_author",
+            "vendor",
+            "not_assessed",
+            "unknown"
+          ]
+        }
+      }
+    }
+  }
+}
