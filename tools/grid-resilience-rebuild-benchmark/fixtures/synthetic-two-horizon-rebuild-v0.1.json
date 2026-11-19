@@ -144,7 +144,7 @@
   "resourceState": {
     "portfolioRef": "synthetic://resource-portfolio/municipal-feeder-17",
     "asOfManifestRef": "synthetic://resource-manifest/municipal-feeder-17/v1",
-    "asOfManifestSha256": "9d62ec77cc2318d40adf41f8845cc607363e7eacdf52e634d5c8dc3fa035b74e"
+    "asOfManifestSha256": "1ae18e2cd998bc0476b531257e8f98bdb3d2fdabab1eddf29a57a4804c8e9ed5"
   },
   "references": {
     "executionLedgerRef": "symtropy://grid-asset-recovery/6213/execution-case/municipal-feeder-17",
