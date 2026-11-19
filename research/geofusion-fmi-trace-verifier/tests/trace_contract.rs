@@ -27,6 +27,7 @@ fn profile(
     }
 }
 
+#[allow(clippy::too_many_arguments)] // Mirrors the complete frozen step-attempt record.
 fn attempt(
     attempt_id: &str,
     federate_id: &str,
@@ -234,7 +235,9 @@ fn frozen_adversarial_corpus() {
                 trace.federates[1].initial_local_tick = 1;
             }
             "sequence_gap" => {
-                trace.attempts[2].sequence = 3;
+                trace.attempts[2].sequence = 2;
+                trace.attempts[4].sequence = 3;
+                trace.attempts[5].sequence = 3;
             }
             "retry_recorded_after_later_step" => {
                 let mut future = trace.attempts[5].clone();
