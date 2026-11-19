@@ -1,4 +1,4 @@
-use chrono::{DateTime, Duration, FixedOffset};
+use chrono::{DateTime, FixedOffset};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
@@ -116,8 +116,10 @@ fn validate(raw: &[u8], value: &Value) -> Value {
         for (index, case) in cases.iter().enumerate() {
             let case_id = string_at(case, "case_id").unwrap_or("").to_owned();
             let fold = string_at(case, "fold").unwrap_or("").to_owned();
-            if case_id.is_empty() || !case_by_id.insert(case_id.clone(), case.clone()).is_none() {
+            if case_id.is_empty() || case_by_id.contains_key(&case_id) {
                 errors.push(format!("forecast_cases[{index}] has a missing or duplicated case_id"));
+            } else {
+                case_by_id.insert(case_id.clone(), case.clone());
             }
             if !["development", "validation", "test"].contains(&fold.as_str()) {
                 errors.push(format!("forecast case '{case_id}' has an unsupported fold"));
@@ -171,9 +173,14 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                 }
             }
             if let (Some(issue_time), Some(valid_time)) = (issue.as_ref(), valid.as_ref()) {
-                match count_at(case, "lead_hours") {
-                    Some(lead) if issue_time.clone() + Duration::hours(lead as i64) == *valid_time => {}
-                    _ => errors.push(format!("forecast case '{case_id}' issue time + lead_hours must equal forecast_valid_time")),
+                let coherent_lead = count_at(case, "lead_hours")
+                    .and_then(|lead| i64::try_from(lead).ok())
+                    .and_then(|lead| lead.checked_mul(3_600))
+                    .and_then(|seconds| issue_time.timestamp().checked_add(seconds))
+                    .is_some_and(|expected| expected == valid_time.timestamp())
+                    && issue_time.timestamp_subsec_nanos() == valid_time.timestamp_subsec_nanos();
+                if !coherent_lead {
+                    errors.push(format!("forecast case '{case_id}' issue time + lead_hours must equal forecast_valid_time"));
                 }
             }
             if let (Some(valid_time), Some(cutoff_time)) = (valid.as_ref(), cutoff.as_ref()) {
