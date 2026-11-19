@@ -916,6 +916,30 @@ mod tests {
     }
 
     #[test]
+    fn cvar90_uses_fractional_probability_mass_at_the_tail_boundary() {
+        let costs = vec![(100_u128, 500_u16), (20_u128, 9_500_u16)];
+        assert_eq!(upper_tail_cvar90(&costs).expect("valid tail"), 60);
+        assert_eq!(worst_case_cost(&costs).expect("valid scenarios"), 100);
+    }
+
+    #[test]
+    fn exact_search_reports_expected_cost_cvar90_and_worst_case_objectives() {
+        let report = evaluate_shared_fleet(&input()).expect("valid input");
+        assert!(
+            report.cvar90_optimal_policy.cvar90_total_cost_units
+                <= report.optimized_policy.cvar90_total_cost_units
+        );
+        assert!(
+            report.worst_case_optimal_policy.worst_case_total_cost_units
+                <= report.optimized_policy.worst_case_total_cost_units
+        );
+        assert_eq!(report.optimized_policy.expected_total_cost_units, 1_511);
+        assert_eq!(report.fixed_initial_region_baseline.expected_total_cost_units, 1_576);
+        assert_eq!(report.truck_only_baseline.expected_total_cost_units, 1_980);
+        assert!(!report.physical_dispatch_authorized);
+    }
+
+    #[test]
     fn exact_two_region_fixture_has_nonanticipative_policy_tree() {
         let report = evaluate_shared_fleet(&input()).expect("valid input");
         assert_eq!(report.region_count, 2);
