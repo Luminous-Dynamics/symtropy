@@ -1,0 +1,345 @@
+{
+  "schema_version": "0.1.0",
+  "scorecard_id": "MARINE-LIVEABOARD-SERVICE-VECTOR-SYNTHETIC-0001",
+  "record_status": "synthetic",
+  "claim_ceiling": "non_compensatory_service_vector_comparison_only",
+  "mission_snapshot": {
+    "mission_id": "SYNTHETIC-LIVEABOARD-MISSION-0001",
+    "mission_snapshot_sha256": "10314d95d66795c32ba2141bcf66db0ec1f0992f03b254eddc1b42f4d63173a0",
+    "craft_configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "occupancy_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "initial_resource_state_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "mission_plan_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "forecast_information_set_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "hard_gate_roster_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "operating_envelope_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "service_floor_contract_sha256": "2a6506cda1d96b4c6406ec84904fdf07bc2ca4d2b0a9bbfa0360fb7e9700a919"
+  },
+  "service_floor_contract": [
+    {
+      "metric": "arrival_delay_hours",
+      "unit": "h",
+      "operator": "lte",
+      "floor_value": 5,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "energy_reserve_hours_at_arrival",
+      "unit": "h",
+      "operator": "gte",
+      "floor_value": 12,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "freshwater_reserve_days_at_arrival",
+      "unit": "day",
+      "operator": "gte",
+      "floor_value": 3,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "food_reserve_days_at_arrival",
+      "unit": "day",
+      "operator": "gte",
+      "floor_value": 7,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "waste_capacity_margin_days",
+      "unit": "day",
+      "operator": "gte",
+      "floor_value": 1,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "critical_spares_coverage_days",
+      "unit": "day",
+      "operator": "gte",
+      "floor_value": 3,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "essential_service_outage_minutes",
+      "unit": "min",
+      "operator": "lte",
+      "floor_value": 30,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "comfort_breach_minutes",
+      "unit": "min",
+      "operator": "lte",
+      "floor_value": 60,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "crew_workload_hours_per_day",
+      "unit": "h/day",
+      "operator": "lte",
+      "floor_value": 8,
+      "minimum_coverage_fraction": 0.95
+    },
+    {
+      "metric": "purchased_energy_kwh_per_berth_day",
+      "unit": "kWh/berth-day",
+      "operator": "lte",
+      "floor_value": 6,
+      "minimum_coverage_fraction": 0.95
+    }
+  ],
+  "comparison": {
+    "baseline_policy_id": "weather-informed-resource-blind",
+    "candidate_policy_id": "integrated-mission-candidate"
+  },
+  "policies": [
+    {
+      "policy_id": "weather-blind-reference",
+      "role": "weather_blind_reference",
+      "forecast_use": false,
+      "mission_snapshot_sha256": "10314d95d66795c32ba2141bcf66db0ec1f0992f03b254eddc1b42f4d63173a0",
+      "decision_output_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "operating_envelope_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "hard_gate_disposition": "pass",
+      "hard_gate_violations": 0,
+      "soft_constraint_relaxations": [],
+      "resource_metrics": [
+        {
+          "metric": "arrival_delay_hours",
+          "unit": "h",
+          "value": 4,
+          "coverage_fraction": 1,
+          "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric": "energy_reserve_hours_at_arrival",
+          "unit": "h",
+          "value": 18,
+          "coverage_fraction": 1,
+          "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "metric": "freshwater_reserve_days_at_arrival",
+          "unit": "day",
+          "value": 4,
+          "coverage_fraction": 1,
+          "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        {
+          "metric": "food_reserve_days_at_arrival",
+          "unit": "day",
+          "value": 12,
+          "coverage_fraction": 1,
+          "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        {
+          "metric": "waste_capacity_margin_days",
+          "unit": "day",
+          "value": 2,
+          "coverage_fraction": 1,
+          "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        {
+          "metric": "critical_spares_coverage_days",
+          "unit": "day",
+          "value": 4,
+          "coverage_fraction": 1,
+          "evidence_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "metric": "essential_service_outage_minutes",
+          "unit": "min",
+          "value": 15,
+          "coverage_fraction": 1,
+          "evidence_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        {
+          "metric": "comfort_breach_minutes",
+          "unit": "min",
+          "value": 45,
+          "coverage_fraction": 1,
+          "evidence_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        {
+          "metric": "crew_workload_hours_per_day",
+          "unit": "h/day",
+          "value": 5,
+          "coverage_fraction": 1,
+          "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        {
+          "metric": "purchased_energy_kwh_per_berth_day",
+          "unit": "kWh/berth-day",
+          "value": 5.2,
+          "coverage_fraction": 1,
+          "evidence_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+        }
+      ]
+    },
+    {
+      "policy_id": "weather-informed-resource-blind",
+      "role": "weather_informed_resource_blind",
+      "forecast_use": true,
+      "mission_snapshot_sha256": "10314d95d66795c32ba2141bcf66db0ec1f0992f03b254eddc1b42f4d63173a0",
+      "decision_output_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "operating_envelope_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "hard_gate_disposition": "pass",
+      "hard_gate_violations": 0,
+      "soft_constraint_relaxations": [],
+      "resource_metrics": [
+        {
+          "metric": "arrival_delay_hours",
+          "unit": "h",
+          "value": 2,
+          "coverage_fraction": 1,
+          "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric": "energy_reserve_hours_at_arrival",
+          "unit": "h",
+          "value": 22,
+          "coverage_fraction": 1,
+          "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "metric": "freshwater_reserve_days_at_arrival",
+          "unit": "day",
+          "value": 5,
+          "coverage_fraction": 1,
+          "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        {
+          "metric": "food_reserve_days_at_arrival",
+          "unit": "day",
+          "value": 14,
+          "coverage_fraction": 1,
+          "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        {
+          "metric": "waste_capacity_margin_days",
+          "unit": "day",
+          "value": 3,
+          "coverage_fraction": 1,
+          "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        {
+          "metric": "critical_spares_coverage_days",
+          "unit": "day",
+          "value": 6,
+          "coverage_fraction": 1,
+          "evidence_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "metric": "essential_service_outage_minutes",
+          "unit": "min",
+          "value": 5,
+          "coverage_fraction": 1,
+          "evidence_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        {
+          "metric": "comfort_breach_minutes",
+          "unit": "min",
+          "value": 30,
+          "coverage_fraction": 1,
+          "evidence_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        {
+          "metric": "crew_workload_hours_per_day",
+          "unit": "h/day",
+          "value": 3,
+          "coverage_fraction": 1,
+          "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        {
+          "metric": "purchased_energy_kwh_per_berth_day",
+          "unit": "kWh/berth-day",
+          "value": 4.6,
+          "coverage_fraction": 1,
+          "evidence_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+        }
+      ]
+    },
+    {
+      "policy_id": "integrated-mission-candidate",
+      "role": "integrated_candidate",
+      "forecast_use": true,
+      "mission_snapshot_sha256": "10314d95d66795c32ba2141bcf66db0ec1f0992f03b254eddc1b42f4d63173a0",
+      "decision_output_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "operating_envelope_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "hard_gate_disposition": "pass",
+      "hard_gate_violations": 0,
+      "soft_constraint_relaxations": [],
+      "resource_metrics": [
+        {
+          "metric": "arrival_delay_hours",
+          "unit": "h",
+          "value": 2.5,
+          "coverage_fraction": 1,
+          "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric": "energy_reserve_hours_at_arrival",
+          "unit": "h",
+          "value": 26,
+          "coverage_fraction": 1,
+          "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "metric": "freshwater_reserve_days_at_arrival",
+          "unit": "day",
+          "value": 6,
+          "coverage_fraction": 1,
+          "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        {
+          "metric": "food_reserve_days_at_arrival",
+          "unit": "day",
+          "value": 12,
+          "coverage_fraction": 1,
+          "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        {
+          "metric": "waste_capacity_margin_days",
+          "unit": "day",
+          "value": 4,
+          "coverage_fraction": 1,
+          "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        {
+          "metric": "critical_spares_coverage_days",
+          "unit": "day",
+          "value": 7,
+          "coverage_fraction": 1,
+          "evidence_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "metric": "essential_service_outage_minutes",
+          "unit": "min",
+          "value": 0,
+          "coverage_fraction": 1,
+          "evidence_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        {
+          "metric": "comfort_breach_minutes",
+          "unit": "min",
+          "value": 25,
+          "coverage_fraction": 1,
+          "evidence_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        {
+          "metric": "crew_workload_hours_per_day",
+          "unit": "h/day",
+          "value": 4,
+          "coverage_fraction": 1,
+          "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        {
+          "metric": "purchased_energy_kwh_per_berth_day",
+          "unit": "kWh/berth-day",
+          "value": 4.4,
+          "coverage_fraction": 1,
+          "evidence_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+        }
+      ]
+    }
+  ]
+}
