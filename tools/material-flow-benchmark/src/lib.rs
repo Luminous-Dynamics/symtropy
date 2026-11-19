@@ -16,6 +16,7 @@ pub mod convergence;
 pub mod cross_channel;
 pub mod observation;
 pub mod mode_options;
+pub mod shared_fleet;
 pub mod procedure;
 pub mod simulation;
 pub mod transaction;
