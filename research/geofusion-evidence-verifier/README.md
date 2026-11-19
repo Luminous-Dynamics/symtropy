@@ -15,7 +15,7 @@ This is a deliberately bounded Rust runtime slice. It is not a full Draft 2020-1
 1. Validates the evidence and allocation-receipt schema versions and required envelope fields.
 2. Recomputes SHA-256 over the **exact raw payload bytes before parsing the raw payload**; it never hashes a parsed-and-reserialized JSON object.
 3. Recomputes and checks payload byte length, then parses the payload and checks its version.
-4. For the thermal profile, recomputes `average_thermal_power_mw × duration_ns / 3.6e12` and rejects a source payload whose energy value does not agree with its power and interval duration.
+4. For heat, recomputes `average_thermal_power_mw × duration_ns / 3.6e12`; for electricity, recomputes `average_electric_power_mw × duration_ns / 3.6e12`. A mismatched energy/power/duration triple is rejected.
 5. Joins evidence class, source asset, measurement boundary, explicit source interval ID, carrier and bounded time window across the raw payload, evidence envelope and allocation receipt.
 6. Parses strict UTC `Z` timestamps into integer nanoseconds, enforces the declared clock-quality profile, and checks calibration-window coverage for measured/audited evidence.
 7. Joins the allocation receipt to the exact evidence ID and recomputed payload digest.
@@ -28,7 +28,7 @@ This is a deliberately bounded Rust runtime slice. It is not a full Draft 2020-1
 
 ## Schema validation
 
-The CI workflow uses `check-jsonschema==0.39.0` **as a CI-only tool** to validate the four Draft 2020-12 schemas against their declared metaschemas, check positive source/evidence/allocation and batch-manifest fixtures, and assert that the null-asset negative control is rejected. The runtime library and CLI remain Rust-only; the external CLI is not a production dependency. The raw payload schema is currently the first heat-only profile; it is not yet an electrical source-payload schema.
+The CI workflow uses `check-jsonschema==0.39.0` **as a CI-only tool** to validate the four Draft 2020-12 schemas against their declared metaschemas, check positive source/evidence/allocation and batch-manifest fixtures, and assert that the null-asset negative control is rejected. The runtime library and CLI remain Rust-only; the external CLI is not a production dependency. Raw source-payload schemas now cover both heat and electricity with separate, carrier-specific power fields.
 
 ## Standards composition
 
@@ -58,7 +58,7 @@ Exit codes:
 
 ## Adversarial and positive test coverage
 
-The 39 current unit tests cover exact fixture success, byte tampering (including malformed tampered JSON), declared byte-length mismatch, interval-ID mismatch, boundary mismatch, synthetic-to-measured evidence-class promotion, duplicate allocation IDs, service/carrier mismatch, over-allocation and negative residual, forged reported balance, allocation digest mismatch, rejected integrity state, zero tolerance, stale/unknown validity, clock-quality refusal, mismatched and non-UTC time windows, unsupported digest algorithms, malformed digests, relative comparisons at tiny energy scales, duplicate source intervals across batches (including fractional-second spellings), overlapping intervals, invalid calendar dates, duplicate evidence/receipt IDs, source power-duration mismatch and zero-duration rejection.
+The 43 current unit tests cover exact fixture success, byte tampering (including malformed tampered JSON), declared byte-length mismatch, interval-ID mismatch, boundary mismatch, synthetic-to-measured evidence-class promotion, duplicate allocation IDs, service/carrier mismatch, over-allocation and negative residual, forged reported balance, allocation digest mismatch, rejected integrity state, zero tolerance, stale/unknown validity, clock-quality refusal, mismatched and non-UTC time windows, unsupported digest algorithms, malformed digests, relative comparisons at tiny energy scales, electrical energy/power consistency and allocation, heat/electricity batch coexistence, duplicate source intervals across batches (including fractional-second spellings), overlapping intervals, invalid calendar dates, duplicate evidence/receipt IDs, source power-duration mismatch and zero-duration rejection.
 
 ## Batch uniqueness
 
@@ -68,7 +68,7 @@ The check is **batch-scoped**. It parses canonical UTC `Z` timestamps into integ
 
 ## Explicit limitations
 
-- The runtime API currently supports source-interval envelopes and source-allocation receipts; the checked raw payload JSON Schema is the first heat-only profile. Electrical raw-payload profiles are not yet defined.
+- The runtime API currently supports source-interval envelopes and source-allocation receipts with separate heat/electricity raw-payload schemas. Additional carriers (e.g. mechanical work, exergy or fluid mass) are not part of v0.1.
 - The batch API prevents duplicate and overlapping interval reuse within one supplied batch, using a canonical UTC nanosecond start key.
 - The verifier performs runtime semantic checks on the fields it consumes; it does not execute the complete JSON Schema Draft 2020-12 specification.
 - It cannot detect reuse of the same source interval across separately verified batches; a persistent cross-campaign ledger is not implemented.
