@@ -1,0 +1,11 @@
+[package]
+name = "symtropy-vision-eval"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Passive hidden-ground-truth evaluation protocols for Symtropy/Symthaea visual cognition"
+repository = "https://github.com/Luminous-Dynamics/symtropy"
+publish = false
+
+[lints.clippy]
+all = "warn"
