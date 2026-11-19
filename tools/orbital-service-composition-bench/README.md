@@ -29,15 +29,17 @@ The v0.1 corpus contains 14 synthetic cases: one complete contract control, seve
 
 ## Current integration gap
 
-The three source benchmarks are deliberately separate:
+The three source contracts are deliberately separate:
 
-- Symtropy [#6168 reusable-launch-production](https://github.com/Luminous-Dynamics/symtropy/pull/6168) reports fleet lifecycle and aggregate accepted payload; its current report does not bind a particular payload identity to a target-orbit insertion receipt.
-- Symthaea [#12903 orbital-capture-handoff](https://github.com/Luminous-Dynamics/symthaea/pull/12903) qualifies a synthetic handoff envelope, but the current report does not yet expose a joined service-client identity and a prepared fluid-interface identity/revision as an authenticated artifact.
-- Symtropy [#6182 orbital-fluid-transfer](https://github.com/Luminous-Dynamics/symtropy/pull/6182) validates synthetic fluid accounting and receiver conditions, but its current report does not consume an authenticated capture/interface handoff receipt.
+- Symtropy [#3252 Earth-to-orbit chain](https://github.com/Luminous-Dynamics/symtropy/pull/3252) now exposes per-cargo `CargoDeliveryV1` records with cargo identity, mass, target orbit, destination, terminal node and arrival epoch. Its exact branch head is pinned in this fixture. It remains a draft domain contract without a canonical serialized/signed receipt envelope.
+- Symthaea [#12903 orbital-capture-handoff](https://github.com/Luminous-Dynamics/symthaea/pull/12903) qualifies a synthetic capture-handoff envelope, but its current report does not yet expose a joined service-client identity and prepared fluid-interface lineage as an authenticated artifact.
+- Symtropy [#6182 orbital-fluid-transfer](https://github.com/Luminous-Dynamics/symtropy/pull/6182) validates synthetic fluid accounting and receiver-state conditions, but its current scenario/report does not yet carry the same receiver/client and prepared interface ID/revision as the capture handoff.
 
-The v0.1 fixture pins those source commits to make version assumptions explicit. Its `synthetic://` evidence references are adapter-contract test values, not real CI artifacts or source receipt digests. The evaluator validates the declared event contract and pin consistency; it does not fetch or authenticate the source receipts.
+Symtropy [#6168 reusable-launch-production](https://github.com/Luminous-Dynamics/symtropy/pull/6168) remains an important separate fleet/manufacturing/maintenance owner; it is not treated as proof of a particular payload's target-orbit delivery.
 
-Consequently, the complete positive control is a *hypothetical adapter-shape test*. It is not evidence that the three current PRs already integrate. A current aggregate-only launch record, a proximity-only result, a storage-only cryogenic record or a receiver transfer without capture linkage correctly remains Indeterminate.
+The v0.1 fixture pins those source commits to make version assumptions explicit. Its `synthetic://` evidence references are adapter-contract test values, not actual source receipt digests. The current chain crate exposes a domain report but not a canonical signed serialized receipt. The evaluator checks the declared event contract and source-pin consistency; it does not fetch, authenticate or independently recompute source receipts.
+
+Consequently, the complete positive control is a *hypothetical adapter-shape test*. It is not evidence that the three current PRs already integrate. A cargo aggregate without a per-cargo qualified delivery record, a proximity-only result, a storage-only cryogenic record or a receiver transfer without the matching capture/interface lineage correctly remains Indeterminate.
 
 ## Paradigm shifts and next qualification steps
 
