@@ -174,8 +174,8 @@
   ],
   "resourceState": {
     "portfolioRef": "synthetic://shared-resource-portfolio/grid-recovery-001",
-    "asOfManifestRef": "synthetic://resource-manifest/grid-recovery-001/v1",
-    "asOfManifestSha256": "1a5f3e6b4b6d31d5d9c7c88a1f0f2b8c4f5c9a2e8d4f7b1c6a0e3d9f5b2a7c81"
+    "asOfManifestRef": "synthetic://resource-manifest/synthetic-grid-resource-manifest-001/v1",
+    "asOfManifestSha256": "8fd962771c344831b16f72c4a1a6b2143baa08d3f1623d9f79123a6be93e1c5a"
   },
   "references": {
     "diagnosisModelRef": "symthaea://industrial-diagnosis-voi/12403",
