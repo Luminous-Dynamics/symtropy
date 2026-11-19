@@ -1,0 +1,1430 @@
+{
+  "schema_version": "luminous.nh3-h2-service.v0",
+  "benchmark_id": "NH3-H2-SERVICE-TWIN-001",
+  "frozen_at": "2026-11-16",
+  "evidence_class": "synthetic",
+  "physical_measurements": false,
+  "luminous_measurements": false,
+  "route_sources": [
+    {
+      "source_case_id": "NH3-CRACK-MW-ATM-MECHANISM-2026",
+      "route_id": "MICROWAVE_PURE_NH3",
+      "evidence_class": "PUBLISHED_LAB_EXPERIMENT",
+      "claim_ceiling": "three source points; throughput pairing discrepancy unresolved",
+      "allowed_operating_point_ids": [
+        "NH3-MW-ATM-HIGH-CONVERSION",
+        "NH3-MW-ATM-HIGH-THROUGHPUT-PAIRING-UNRESOLVED",
+        "NH3-MW-ATM-HIGH-ENERGY-YIELD"
+      ],
+      "luminous_reproduction": false
+    },
+    {
+      "source_case_id": "NH3-CRACK-MW-RESONATOR-DYNAMIC-2026",
+      "route_id": "MICROWAVE_QWCCR",
+      "evidence_class": "PUBLISHED_LAB_EXPERIMENT",
+      "claim_ceiling": "ACR diagnostic response only; accepted H2 response not measured",
+      "allowed_operating_point_ids": [
+        "QWCCR-STEADY-200W-1BAR-1SLPM",
+        "QWCCR-POWER-UP-160-180W-1BAR",
+        "QWCCR-POWER-DOWN-180-160W-1BAR"
+      ],
+      "luminous_reproduction": false
+    },
+    {
+      "source_case_id": "NH3-CRACK-WAVEGUIDE-MWPJ-2026",
+      "route_id": "MICROWAVE_WAVEGUIDE_MWPJ",
+      "evidence_class": "PUBLISHED_LAB_EXPERIMENT",
+      "claim_ceiling": "Ar-balance-gas configuration; relative efficiency claim only",
+      "allowed_operating_point_ids": [
+        "MWPJ-CRITICAL-INLET-NH3-FRACTION",
+        "MWPJ-SURFATRON-COMPARATOR"
+      ],
+      "luminous_reproduction": false
+    },
+    {
+      "source_case_id": "NH3-PLASMA-DUAL-MEMBRANE-PEDMADS-2025",
+      "route_id": "PLASMA_CATALYST_DUAL_MEMBRANE",
+      "evidence_class": "PUBLISHED_LAB_EXPERIMENT",
+      "claim_ceiling": "lab result plus modeled TEA; residual NH3 is not H2 purity",
+      "allowed_operating_point_ids": [
+        "PEDMADS-400C-5-STAGE-CASCADE"
+      ],
+      "luminous_reproduction": false
+    },
+    {
+      "source_case_id": "NH3-CATALYTIC-MEMBRANE-30BAR-MODEL-2026",
+      "route_id": "CATALYTIC_MEMBRANE",
+      "evidence_class": "PUBLISHED_NUMERICAL_STUDY",
+      "claim_ceiling": "distinct modeled permeate-pressure/membrane-area cases",
+      "allowed_operating_point_ids": [
+        "CATALYTIC-MEMBRANE-BASE-550C-30BAR-1BAR",
+        "CATALYTIC-MEMBRANE-5BAR-PERMEATE-PLUS50AREA"
+      ],
+      "luminous_reproduction": false
+    },
+    {
+      "source_case_id": "NH3-EC-MEA-CRACKER-NTU-2026",
+      "route_id": "ELECTROCHEMICAL_MEA",
+      "evidence_class": "INSTITUTION_REPORTED_TECH_TRANSFER_RESULT",
+      "claim_ceiling": "distinct cell modes; no complete plant energy/product qualification",
+      "allowed_operating_point_ids": [
+        "MEA-HIGH-THROUGHPUT-0.47A-0.35V",
+        "MEA-LOW-ENERGY-0.10A-0.076V"
+      ],
+      "luminous_reproduction": false
+    },
+    {
+      "source_case_id": "NH3-PACKED-BED-MEMBRANE-OPTIMIZATION-2026",
+      "route_id": "PACKED_BED_MEMBRANE_MODEL",
+      "evidence_class": "PUBLISHED_NUMERICAL_STUDY",
+      "claim_ceiling": "modeled conversion/recovery/flow and surrogate fit",
+      "allowed_operating_point_ids": [
+        "PBMR-SELECTED-MULTIOBJECTIVE-COMPROMISE"
+      ],
+      "luminous_reproduction": false
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "synthetic-plasma-h2-service-positive",
+      "evidence_class": "synthetic",
+      "route_id": "MICROWAVE_PURE_NH3",
+      "operating_point_id": "SYNTHETIC-synthetic-plasma-h2-service-positive",
+      "source_case_id": null,
+      "source_operating_point_id": null,
+      "feed_contract_id": "SYNTHETIC-PURE-NH3-FEED-A",
+      "product_contract_id": "SYNTHETIC-H2-99.5PCT-30BAR",
+      "energy_boundary_id": "SYNTHETIC-GRID-TO-ACCEPTED-H2-A",
+      "duty_cycle_id": "SYNTHETIC-STEADY-60MIN-A",
+      "feed": {
+        "nh3_input_mass_g": 100,
+        "nh3_reacted_mass_g": 80,
+        "nh3_recovered_mass_g": 15,
+        "nh3_purge_mass_g": 5,
+        "nh3_slip_mass_g": 0,
+        "reported_conversion_fraction": 0.8,
+        "unknown_streams": [],
+        "tolerance_g": 0.00001
+      },
+      "reaction": {
+        "h2_generated_mass_g": 14.204240387257702,
+        "n2_generated_mass_g": 65.7957596127423
+      },
+      "separation": {
+        "h2_accepted_mass_g": 13.5,
+        "h2_rejected_mass_g": 0.2,
+        "h2_unrecovered_mass_g": 0.5042403872577019,
+        "n2_recovered_mass_g": 60.7957596127423,
+        "n2_purge_mass_g": 5,
+        "unknown_streams": [],
+        "tolerance_g": 0.00001
+      },
+      "product": {
+        "accepted_h2_mass_g": 13.5,
+        "gross_product_stream_mass_g": 13.5135,
+        "reported_h2_purity_fraction": 0.9990009990009989,
+        "minimum_h2_purity_fraction": 0.995,
+        "delivery_pressure_bar_abs": 30,
+        "minimum_delivery_pressure_bar_abs": 30,
+        "delivery_interval_s": 3600,
+        "contract_id": "SYNTHETIC-H2-99.5PCT-30BAR",
+        "quantitative_product_measurement_ref": "SYNTHETIC-H2-MEASUREMENT-synthetic-plasma-h2-service-positive",
+        "calibration_ref": "SYNTHETIC-H2-CALIBRATION-synthetic-plasma-h2-service-positive",
+        "minimum_transient_purity_fraction": 0.995,
+        "maximum_flow_overshoot_fraction": 0.05,
+        "maximum_offspec_duration_ms": 100
+      },
+      "energy": {
+        "boundary_id": "SYNTHETIC-GRID-TO-ACCEPTED-H2-A",
+        "meter_mode": "non_overlapping_grid_side_meters",
+        "meters": [
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-1",
+            "role": "power_conversion",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-2",
+            "role": "conversion_device",
+            "energy_kwh": 0.18
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-3",
+            "role": "feed_conditioning",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-4",
+            "role": "gas_handling",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-5",
+            "role": "nh3_recovery_recycle",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-6",
+            "role": "h2_separation_polishing",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-7",
+            "role": "compression_buffer",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-8",
+            "role": "thermal_management",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-9",
+            "role": "controls_standby",
+            "energy_kwh": 0.01
+          }
+        ],
+        "required_roles": [
+          "power_conversion",
+          "conversion_device",
+          "feed_conditioning",
+          "gas_handling",
+          "nh3_recovery_recycle",
+          "h2_separation_polishing",
+          "compression_buffer",
+          "thermal_management",
+          "controls_standby"
+        ],
+        "meter_calibration_status": "synthetic_declared"
+      },
+      "dynamic_service_claimed": true,
+      "dynamic_service": {
+        "claimed_response_measurand": "accepted_h2_delivery",
+        "actual_evidence_layer": "customer_product_metered",
+        "power_command_ms": 0,
+        "grid_power_measured_ms": 5,
+        "conversion_state_ms": 70,
+        "diagnostic_proxy_ms": 80,
+        "measured_gas_ms": 600,
+        "purified_h2_ms": 2400,
+        "customer_accepted_h2_ms": 2600,
+        "customer_delivery_settled_ms": 3200,
+        "clock_sync_ref": "SYNTHETIC-CLOCK-synthetic-plasma-h2-service-positive",
+        "product_flow_measurement_ref": "SYNTHETIC-FLOW-synthetic-plasma-h2-service-positive",
+        "customer_boundary_ref": "SYNTHETIC-DELIVERY-BOUNDARY-synthetic-plasma-h2-service-positive",
+        "minimum_transient_purity_observed": 0.998,
+        "product_flow_overshoot_fraction": 0.03,
+        "offspec_duration_ms": 0
+      },
+      "expected_disposition": "SYNTHETIC_ACCOUNTING_PASS"
+    },
+    {
+      "id": "synthetic-electrochemical-h2-service-positive",
+      "evidence_class": "synthetic",
+      "route_id": "ELECTROCHEMICAL_MEA",
+      "operating_point_id": "SYNTHETIC-synthetic-electrochemical-h2-service-positive",
+      "source_case_id": null,
+      "source_operating_point_id": null,
+      "feed_contract_id": "SYNTHETIC-PURE-NH3-FEED-A",
+      "product_contract_id": "SYNTHETIC-H2-99.5PCT-30BAR",
+      "energy_boundary_id": "SYNTHETIC-GRID-TO-ACCEPTED-H2-A",
+      "duty_cycle_id": "SYNTHETIC-STEADY-60MIN-A",
+      "feed": {
+        "nh3_input_mass_g": 100,
+        "nh3_reacted_mass_g": 80,
+        "nh3_recovered_mass_g": 15,
+        "nh3_purge_mass_g": 5,
+        "nh3_slip_mass_g": 0,
+        "reported_conversion_fraction": 0.8,
+        "unknown_streams": [],
+        "tolerance_g": 0.00001
+      },
+      "reaction": {
+        "h2_generated_mass_g": 14.204240387257702,
+        "n2_generated_mass_g": 65.7957596127423
+      },
+      "separation": {
+        "h2_accepted_mass_g": 13,
+        "h2_rejected_mass_g": 0.2,
+        "h2_unrecovered_mass_g": 1.004240387257702,
+        "n2_recovered_mass_g": 60.7957596127423,
+        "n2_purge_mass_g": 5,
+        "unknown_streams": [],
+        "tolerance_g": 0.00001
+      },
+      "product": {
+        "accepted_h2_mass_g": 13,
+        "gross_product_stream_mass_g": 13.013,
+        "reported_h2_purity_fraction": 0.999000999000999,
+        "minimum_h2_purity_fraction": 0.995,
+        "delivery_pressure_bar_abs": 30,
+        "minimum_delivery_pressure_bar_abs": 30,
+        "delivery_interval_s": 3600,
+        "contract_id": "SYNTHETIC-H2-99.5PCT-30BAR",
+        "quantitative_product_measurement_ref": "SYNTHETIC-H2-MEASUREMENT-synthetic-electrochemical-h2-service-positive",
+        "calibration_ref": "SYNTHETIC-H2-CALIBRATION-synthetic-electrochemical-h2-service-positive",
+        "minimum_transient_purity_fraction": 0.995,
+        "maximum_flow_overshoot_fraction": 0.05,
+        "maximum_offspec_duration_ms": 100
+      },
+      "energy": {
+        "boundary_id": "SYNTHETIC-GRID-TO-ACCEPTED-H2-A",
+        "meter_mode": "non_overlapping_grid_side_meters",
+        "meters": [
+          {
+            "meter_id": "synthetic-electrochemical-h2-service-positive-METER-1-B",
+            "role": "power_conversion",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-electrochemical-h2-service-positive-METER-2-B",
+            "role": "conversion_device",
+            "energy_kwh": 0.16
+          },
+          {
+            "meter_id": "synthetic-electrochemical-h2-service-positive-METER-3-B",
+            "role": "feed_conditioning",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-electrochemical-h2-service-positive-METER-4-B",
+            "role": "gas_handling",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-electrochemical-h2-service-positive-METER-5-B",
+            "role": "nh3_recovery_recycle",
+            "energy_kwh": 0.03
+          },
+          {
+            "meter_id": "synthetic-electrochemical-h2-service-positive-METER-6-B",
+            "role": "h2_separation_polishing",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-electrochemical-h2-service-positive-METER-7-B",
+            "role": "compression_buffer",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-electrochemical-h2-service-positive-METER-8-B",
+            "role": "thermal_management",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-electrochemical-h2-service-positive-METER-9-B",
+            "role": "controls_standby",
+            "energy_kwh": 0.01
+          }
+        ],
+        "required_roles": [
+          "power_conversion",
+          "conversion_device",
+          "feed_conditioning",
+          "gas_handling",
+          "nh3_recovery_recycle",
+          "h2_separation_polishing",
+          "compression_buffer",
+          "thermal_management",
+          "controls_standby"
+        ],
+        "meter_calibration_status": "synthetic_declared"
+      },
+      "dynamic_service_claimed": true,
+      "dynamic_service": {
+        "claimed_response_measurand": "accepted_h2_delivery",
+        "actual_evidence_layer": "customer_product_metered",
+        "power_command_ms": 0,
+        "grid_power_measured_ms": 5,
+        "conversion_state_ms": 70,
+        "diagnostic_proxy_ms": 80,
+        "measured_gas_ms": 600,
+        "purified_h2_ms": 2400,
+        "customer_accepted_h2_ms": 2600,
+        "customer_delivery_settled_ms": 3200,
+        "clock_sync_ref": "SYNTHETIC-CLOCK-synthetic-electrochemical-h2-service-positive",
+        "product_flow_measurement_ref": "SYNTHETIC-FLOW-synthetic-electrochemical-h2-service-positive",
+        "customer_boundary_ref": "SYNTHETIC-DELIVERY-BOUNDARY-synthetic-electrochemical-h2-service-positive",
+        "minimum_transient_purity_observed": 0.998,
+        "product_flow_overshoot_fraction": 0.03,
+        "offspec_duration_ms": 0
+      },
+      "expected_disposition": "SYNTHETIC_ACCOUNTING_PASS"
+    },
+    {
+      "id": "synthetic-alternate-product-contract",
+      "evidence_class": "synthetic",
+      "route_id": "CATALYTIC_MEMBRANE",
+      "operating_point_id": "SYNTHETIC-synthetic-alternate-product-contract",
+      "source_case_id": null,
+      "source_operating_point_id": null,
+      "feed_contract_id": "SYNTHETIC-PURE-NH3-FEED-A",
+      "product_contract_id": "SYNTHETIC-H2-98PCT-15BAR",
+      "energy_boundary_id": "SYNTHETIC-GRID-TO-ACCEPTED-H2-A",
+      "duty_cycle_id": "SYNTHETIC-STEADY-60MIN-A",
+      "feed": {
+        "nh3_input_mass_g": 100,
+        "nh3_reacted_mass_g": 80,
+        "nh3_recovered_mass_g": 15,
+        "nh3_purge_mass_g": 5,
+        "nh3_slip_mass_g": 0,
+        "reported_conversion_fraction": 0.8,
+        "unknown_streams": [],
+        "tolerance_g": 0.00001
+      },
+      "reaction": {
+        "h2_generated_mass_g": 14.204240387257702,
+        "n2_generated_mass_g": 65.7957596127423
+      },
+      "separation": {
+        "h2_accepted_mass_g": 13.2,
+        "h2_rejected_mass_g": 0.2,
+        "h2_unrecovered_mass_g": 0.8042403872577026,
+        "n2_recovered_mass_g": 60.7957596127423,
+        "n2_purge_mass_g": 5,
+        "unknown_streams": [],
+        "tolerance_g": 0.00001
+      },
+      "product": {
+        "accepted_h2_mass_g": 13.2,
+        "gross_product_stream_mass_g": 13.213,
+        "reported_h2_purity_fraction": 0.9990161204873987,
+        "minimum_h2_purity_fraction": 0.98,
+        "delivery_pressure_bar_abs": 30,
+        "minimum_delivery_pressure_bar_abs": 15,
+        "delivery_interval_s": 3600,
+        "contract_id": "SYNTHETIC-H2-98PCT-15BAR",
+        "quantitative_product_measurement_ref": "SYNTHETIC-H2-MEASUREMENT-synthetic-alternate-product-contract",
+        "calibration_ref": "SYNTHETIC-H2-CALIBRATION-synthetic-alternate-product-contract",
+        "minimum_transient_purity_fraction": 0.995,
+        "maximum_flow_overshoot_fraction": 0.05,
+        "maximum_offspec_duration_ms": 100
+      },
+      "energy": {
+        "boundary_id": "SYNTHETIC-GRID-TO-ACCEPTED-H2-A",
+        "meter_mode": "non_overlapping_grid_side_meters",
+        "meters": [
+          {
+            "meter_id": "synthetic-alternate-product-contract-METER-1-C",
+            "role": "power_conversion",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-alternate-product-contract-METER-2-C",
+            "role": "conversion_device",
+            "energy_kwh": 0.17
+          },
+          {
+            "meter_id": "synthetic-alternate-product-contract-METER-3-C",
+            "role": "feed_conditioning",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-alternate-product-contract-METER-4-C",
+            "role": "gas_handling",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-alternate-product-contract-METER-5-C",
+            "role": "nh3_recovery_recycle",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-alternate-product-contract-METER-6-C",
+            "role": "h2_separation_polishing",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-alternate-product-contract-METER-7-C",
+            "role": "compression_buffer",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-alternate-product-contract-METER-8-C",
+            "role": "thermal_management",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-alternate-product-contract-METER-9-C",
+            "role": "controls_standby",
+            "energy_kwh": 0.01
+          }
+        ],
+        "required_roles": [
+          "power_conversion",
+          "conversion_device",
+          "feed_conditioning",
+          "gas_handling",
+          "nh3_recovery_recycle",
+          "h2_separation_polishing",
+          "compression_buffer",
+          "thermal_management",
+          "controls_standby"
+        ],
+        "meter_calibration_status": "synthetic_declared"
+      },
+      "dynamic_service_claimed": true,
+      "dynamic_service": {
+        "claimed_response_measurand": "accepted_h2_delivery",
+        "actual_evidence_layer": "customer_product_metered",
+        "power_command_ms": 0,
+        "grid_power_measured_ms": 5,
+        "conversion_state_ms": 70,
+        "diagnostic_proxy_ms": 80,
+        "measured_gas_ms": 600,
+        "purified_h2_ms": 2400,
+        "customer_accepted_h2_ms": 2600,
+        "customer_delivery_settled_ms": 3200,
+        "clock_sync_ref": "SYNTHETIC-CLOCK-synthetic-alternate-product-contract",
+        "product_flow_measurement_ref": "SYNTHETIC-FLOW-synthetic-alternate-product-contract",
+        "customer_boundary_ref": "SYNTHETIC-DELIVERY-BOUNDARY-synthetic-alternate-product-contract",
+        "minimum_transient_purity_observed": 0.998,
+        "product_flow_overshoot_fraction": 0.03,
+        "offspec_duration_ms": 0
+      },
+      "expected_disposition": "SYNTHETIC_ACCOUNTING_PASS"
+    },
+    {
+      "id": "blocked-missing-compression-meter",
+      "evidence_class": "synthetic",
+      "route_id": "MICROWAVE_PURE_NH3",
+      "operating_point_id": "SYNTHETIC-synthetic-plasma-h2-service-positive",
+      "source_case_id": null,
+      "source_operating_point_id": null,
+      "feed_contract_id": "SYNTHETIC-PURE-NH3-FEED-A",
+      "product_contract_id": "SYNTHETIC-H2-99.5PCT-30BAR",
+      "energy_boundary_id": "SYNTHETIC-GRID-TO-ACCEPTED-H2-A",
+      "duty_cycle_id": "SYNTHETIC-STEADY-60MIN-A",
+      "feed": {
+        "nh3_input_mass_g": 100,
+        "nh3_reacted_mass_g": 80,
+        "nh3_recovered_mass_g": 15,
+        "nh3_purge_mass_g": 5,
+        "nh3_slip_mass_g": 0,
+        "reported_conversion_fraction": 0.8,
+        "unknown_streams": [],
+        "tolerance_g": 0.00001
+      },
+      "reaction": {
+        "h2_generated_mass_g": 14.204240387257702,
+        "n2_generated_mass_g": 65.7957596127423
+      },
+      "separation": {
+        "h2_accepted_mass_g": 13.5,
+        "h2_rejected_mass_g": 0.2,
+        "h2_unrecovered_mass_g": 0.5042403872577019,
+        "n2_recovered_mass_g": 60.7957596127423,
+        "n2_purge_mass_g": 5,
+        "unknown_streams": [],
+        "tolerance_g": 0.00001
+      },
+      "product": {
+        "accepted_h2_mass_g": 13.5,
+        "gross_product_stream_mass_g": 13.5135,
+        "reported_h2_purity_fraction": 0.9990009990009989,
+        "minimum_h2_purity_fraction": 0.995,
+        "delivery_pressure_bar_abs": 30,
+        "minimum_delivery_pressure_bar_abs": 30,
+        "delivery_interval_s": 3600,
+        "contract_id": "SYNTHETIC-H2-99.5PCT-30BAR",
+        "quantitative_product_measurement_ref": "SYNTHETIC-H2-MEASUREMENT-synthetic-plasma-h2-service-positive",
+        "calibration_ref": "SYNTHETIC-H2-CALIBRATION-synthetic-plasma-h2-service-positive",
+        "minimum_transient_purity_fraction": 0.995,
+        "maximum_flow_overshoot_fraction": 0.05,
+        "maximum_offspec_duration_ms": 100
+      },
+      "energy": {
+        "boundary_id": "SYNTHETIC-GRID-TO-ACCEPTED-H2-A",
+        "meter_mode": "non_overlapping_grid_side_meters",
+        "meters": [
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-1",
+            "role": "power_conversion",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-2",
+            "role": "conversion_device",
+            "energy_kwh": 0.18
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-3",
+            "role": "feed_conditioning",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-4",
+            "role": "gas_handling",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-5",
+            "role": "nh3_recovery_recycle",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-6",
+            "role": "h2_separation_polishing",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-8",
+            "role": "thermal_management",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-9",
+            "role": "controls_standby",
+            "energy_kwh": 0.01
+          }
+        ],
+        "required_roles": [
+          "power_conversion",
+          "conversion_device",
+          "feed_conditioning",
+          "gas_handling",
+          "nh3_recovery_recycle",
+          "h2_separation_polishing",
+          "compression_buffer",
+          "thermal_management",
+          "controls_standby"
+        ],
+        "meter_calibration_status": "synthetic_declared"
+      },
+      "dynamic_service_claimed": true,
+      "dynamic_service": {
+        "claimed_response_measurand": "accepted_h2_delivery",
+        "actual_evidence_layer": "customer_product_metered",
+        "power_command_ms": 0,
+        "grid_power_measured_ms": 5,
+        "conversion_state_ms": 70,
+        "diagnostic_proxy_ms": 80,
+        "measured_gas_ms": 600,
+        "purified_h2_ms": 2400,
+        "customer_accepted_h2_ms": 2600,
+        "customer_delivery_settled_ms": 3200,
+        "clock_sync_ref": "SYNTHETIC-CLOCK-synthetic-plasma-h2-service-positive",
+        "product_flow_measurement_ref": "SYNTHETIC-FLOW-synthetic-plasma-h2-service-positive",
+        "customer_boundary_ref": "SYNTHETIC-DELIVERY-BOUNDARY-synthetic-plasma-h2-service-positive",
+        "minimum_transient_purity_observed": 0.998,
+        "product_flow_overshoot_fraction": 0.03,
+        "offspec_duration_ms": 0
+      },
+      "expected_disposition": "BLOCKED"
+    },
+    {
+      "id": "rejected-under-spec-h2-product",
+      "evidence_class": "synthetic",
+      "route_id": "MICROWAVE_PURE_NH3",
+      "operating_point_id": "SYNTHETIC-synthetic-plasma-h2-service-positive",
+      "source_case_id": null,
+      "source_operating_point_id": null,
+      "feed_contract_id": "SYNTHETIC-PURE-NH3-FEED-A",
+      "product_contract_id": "SYNTHETIC-H2-99.5PCT-30BAR",
+      "energy_boundary_id": "SYNTHETIC-GRID-TO-ACCEPTED-H2-A",
+      "duty_cycle_id": "SYNTHETIC-STEADY-60MIN-A",
+      "feed": {
+        "nh3_input_mass_g": 100,
+        "nh3_reacted_mass_g": 80,
+        "nh3_recovered_mass_g": 15,
+        "nh3_purge_mass_g": 5,
+        "nh3_slip_mass_g": 0,
+        "reported_conversion_fraction": 0.8,
+        "unknown_streams": [],
+        "tolerance_g": 0.00001
+      },
+      "reaction": {
+        "h2_generated_mass_g": 14.204240387257702,
+        "n2_generated_mass_g": 65.7957596127423
+      },
+      "separation": {
+        "h2_accepted_mass_g": 13.5,
+        "h2_rejected_mass_g": 0.2,
+        "h2_unrecovered_mass_g": 0.5042403872577019,
+        "n2_recovered_mass_g": 60.7957596127423,
+        "n2_purge_mass_g": 5,
+        "unknown_streams": [],
+        "tolerance_g": 0.00001
+      },
+      "product": {
+        "accepted_h2_mass_g": 13.5,
+        "gross_product_stream_mass_g": 13.5135,
+        "reported_h2_purity_fraction": 0.9990009990009989,
+        "minimum_h2_purity_fraction": 0.9995,
+        "delivery_pressure_bar_abs": 30,
+        "minimum_delivery_pressure_bar_abs": 30,
+        "delivery_interval_s": 3600,
+        "contract_id": "SYNTHETIC-H2-99.5PCT-30BAR",
+        "quantitative_product_measurement_ref": "SYNTHETIC-H2-MEASUREMENT-synthetic-plasma-h2-service-positive",
+        "calibration_ref": "SYNTHETIC-H2-CALIBRATION-synthetic-plasma-h2-service-positive",
+        "minimum_transient_purity_fraction": 0.9995,
+        "maximum_flow_overshoot_fraction": 0.05,
+        "maximum_offspec_duration_ms": 100
+      },
+      "energy": {
+        "boundary_id": "SYNTHETIC-GRID-TO-ACCEPTED-H2-A",
+        "meter_mode": "non_overlapping_grid_side_meters",
+        "meters": [
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-1",
+            "role": "power_conversion",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-2",
+            "role": "conversion_device",
+            "energy_kwh": 0.18
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-3",
+            "role": "feed_conditioning",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-4",
+            "role": "gas_handling",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-5",
+            "role": "nh3_recovery_recycle",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-6",
+            "role": "h2_separation_polishing",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-7",
+            "role": "compression_buffer",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-8",
+            "role": "thermal_management",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-9",
+            "role": "controls_standby",
+            "energy_kwh": 0.01
+          }
+        ],
+        "required_roles": [
+          "power_conversion",
+          "conversion_device",
+          "feed_conditioning",
+          "gas_handling",
+          "nh3_recovery_recycle",
+          "h2_separation_polishing",
+          "compression_buffer",
+          "thermal_management",
+          "controls_standby"
+        ],
+        "meter_calibration_status": "synthetic_declared"
+      },
+      "dynamic_service_claimed": true,
+      "dynamic_service": {
+        "claimed_response_measurand": "accepted_h2_delivery",
+        "actual_evidence_layer": "customer_product_metered",
+        "power_command_ms": 0,
+        "grid_power_measured_ms": 5,
+        "conversion_state_ms": 70,
+        "diagnostic_proxy_ms": 80,
+        "measured_gas_ms": 600,
+        "purified_h2_ms": 2400,
+        "customer_accepted_h2_ms": 2600,
+        "customer_delivery_settled_ms": 3200,
+        "clock_sync_ref": "SYNTHETIC-CLOCK-synthetic-plasma-h2-service-positive",
+        "product_flow_measurement_ref": "SYNTHETIC-FLOW-synthetic-plasma-h2-service-positive",
+        "customer_boundary_ref": "SYNTHETIC-DELIVERY-BOUNDARY-synthetic-plasma-h2-service-positive",
+        "minimum_transient_purity_observed": 0.998,
+        "product_flow_overshoot_fraction": 0.03,
+        "offspec_duration_ms": 0
+      },
+      "expected_disposition": "REJECTED"
+    },
+    {
+      "id": "blocked-unknown-nh3-recycle-stream",
+      "evidence_class": "synthetic",
+      "route_id": "MICROWAVE_PURE_NH3",
+      "operating_point_id": "SYNTHETIC-synthetic-plasma-h2-service-positive",
+      "source_case_id": null,
+      "source_operating_point_id": null,
+      "feed_contract_id": "SYNTHETIC-PURE-NH3-FEED-A",
+      "product_contract_id": "SYNTHETIC-H2-99.5PCT-30BAR",
+      "energy_boundary_id": "SYNTHETIC-GRID-TO-ACCEPTED-H2-A",
+      "duty_cycle_id": "SYNTHETIC-STEADY-60MIN-A",
+      "feed": {
+        "nh3_input_mass_g": 100,
+        "nh3_reacted_mass_g": 80,
+        "nh3_recovered_mass_g": null,
+        "nh3_purge_mass_g": 5,
+        "nh3_slip_mass_g": 0,
+        "reported_conversion_fraction": 0.8,
+        "unknown_streams": [
+          "NH3_recovered"
+        ],
+        "tolerance_g": 0.00001
+      },
+      "reaction": {
+        "h2_generated_mass_g": 14.204240387257702,
+        "n2_generated_mass_g": 65.7957596127423
+      },
+      "separation": {
+        "h2_accepted_mass_g": 13.5,
+        "h2_rejected_mass_g": 0.2,
+        "h2_unrecovered_mass_g": 0.5042403872577019,
+        "n2_recovered_mass_g": 60.7957596127423,
+        "n2_purge_mass_g": 5,
+        "unknown_streams": [],
+        "tolerance_g": 0.00001
+      },
+      "product": {
+        "accepted_h2_mass_g": 13.5,
+        "gross_product_stream_mass_g": 13.5135,
+        "reported_h2_purity_fraction": 0.9990009990009989,
+        "minimum_h2_purity_fraction": 0.995,
+        "delivery_pressure_bar_abs": 30,
+        "minimum_delivery_pressure_bar_abs": 30,
+        "delivery_interval_s": 3600,
+        "contract_id": "SYNTHETIC-H2-99.5PCT-30BAR",
+        "quantitative_product_measurement_ref": "SYNTHETIC-H2-MEASUREMENT-synthetic-plasma-h2-service-positive",
+        "calibration_ref": "SYNTHETIC-H2-CALIBRATION-synthetic-plasma-h2-service-positive",
+        "minimum_transient_purity_fraction": 0.995,
+        "maximum_flow_overshoot_fraction": 0.05,
+        "maximum_offspec_duration_ms": 100
+      },
+      "energy": {
+        "boundary_id": "SYNTHETIC-GRID-TO-ACCEPTED-H2-A",
+        "meter_mode": "non_overlapping_grid_side_meters",
+        "meters": [
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-1",
+            "role": "power_conversion",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-2",
+            "role": "conversion_device",
+            "energy_kwh": 0.18
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-3",
+            "role": "feed_conditioning",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-4",
+            "role": "gas_handling",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-5",
+            "role": "nh3_recovery_recycle",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-6",
+            "role": "h2_separation_polishing",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-7",
+            "role": "compression_buffer",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-8",
+            "role": "thermal_management",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-9",
+            "role": "controls_standby",
+            "energy_kwh": 0.01
+          }
+        ],
+        "required_roles": [
+          "power_conversion",
+          "conversion_device",
+          "feed_conditioning",
+          "gas_handling",
+          "nh3_recovery_recycle",
+          "h2_separation_polishing",
+          "compression_buffer",
+          "thermal_management",
+          "controls_standby"
+        ],
+        "meter_calibration_status": "synthetic_declared"
+      },
+      "dynamic_service_claimed": true,
+      "dynamic_service": {
+        "claimed_response_measurand": "accepted_h2_delivery",
+        "actual_evidence_layer": "customer_product_metered",
+        "power_command_ms": 0,
+        "grid_power_measured_ms": 5,
+        "conversion_state_ms": 70,
+        "diagnostic_proxy_ms": 80,
+        "measured_gas_ms": 600,
+        "purified_h2_ms": 2400,
+        "customer_accepted_h2_ms": 2600,
+        "customer_delivery_settled_ms": 3200,
+        "clock_sync_ref": "SYNTHETIC-CLOCK-synthetic-plasma-h2-service-positive",
+        "product_flow_measurement_ref": "SYNTHETIC-FLOW-synthetic-plasma-h2-service-positive",
+        "customer_boundary_ref": "SYNTHETIC-DELIVERY-BOUNDARY-synthetic-plasma-h2-service-positive",
+        "minimum_transient_purity_observed": 0.998,
+        "product_flow_overshoot_fraction": 0.03,
+        "offspec_duration_ms": 0
+      },
+      "expected_disposition": "BLOCKED"
+    },
+    {
+      "id": "rejected-cross-paired-source-operating-point",
+      "evidence_class": "synthetic",
+      "route_id": "MICROWAVE_PURE_NH3",
+      "operating_point_id": "SYNTHETIC-synthetic-plasma-h2-service-positive",
+      "source_case_id": "NH3-CATALYTIC-MEMBRANE-30BAR-MODEL-2026",
+      "source_operating_point_id": "QWCCR-POWER-UP-160-180W-1BAR",
+      "feed_contract_id": "SYNTHETIC-PURE-NH3-FEED-A",
+      "product_contract_id": "SYNTHETIC-H2-99.5PCT-30BAR",
+      "energy_boundary_id": "SYNTHETIC-GRID-TO-ACCEPTED-H2-A",
+      "duty_cycle_id": "SYNTHETIC-STEADY-60MIN-A",
+      "feed": {
+        "nh3_input_mass_g": 100,
+        "nh3_reacted_mass_g": 80,
+        "nh3_recovered_mass_g": 15,
+        "nh3_purge_mass_g": 5,
+        "nh3_slip_mass_g": 0,
+        "reported_conversion_fraction": 0.8,
+        "unknown_streams": [],
+        "tolerance_g": 0.00001
+      },
+      "reaction": {
+        "h2_generated_mass_g": 14.204240387257702,
+        "n2_generated_mass_g": 65.7957596127423
+      },
+      "separation": {
+        "h2_accepted_mass_g": 13.5,
+        "h2_rejected_mass_g": 0.2,
+        "h2_unrecovered_mass_g": 0.5042403872577019,
+        "n2_recovered_mass_g": 60.7957596127423,
+        "n2_purge_mass_g": 5,
+        "unknown_streams": [],
+        "tolerance_g": 0.00001
+      },
+      "product": {
+        "accepted_h2_mass_g": 13.5,
+        "gross_product_stream_mass_g": 13.5135,
+        "reported_h2_purity_fraction": 0.9990009990009989,
+        "minimum_h2_purity_fraction": 0.995,
+        "delivery_pressure_bar_abs": 30,
+        "minimum_delivery_pressure_bar_abs": 30,
+        "delivery_interval_s": 3600,
+        "contract_id": "SYNTHETIC-H2-99.5PCT-30BAR",
+        "quantitative_product_measurement_ref": "SYNTHETIC-H2-MEASUREMENT-synthetic-plasma-h2-service-positive",
+        "calibration_ref": "SYNTHETIC-H2-CALIBRATION-synthetic-plasma-h2-service-positive",
+        "minimum_transient_purity_fraction": 0.995,
+        "maximum_flow_overshoot_fraction": 0.05,
+        "maximum_offspec_duration_ms": 100
+      },
+      "energy": {
+        "boundary_id": "SYNTHETIC-GRID-TO-ACCEPTED-H2-A",
+        "meter_mode": "non_overlapping_grid_side_meters",
+        "meters": [
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-1",
+            "role": "power_conversion",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-2",
+            "role": "conversion_device",
+            "energy_kwh": 0.18
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-3",
+            "role": "feed_conditioning",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-4",
+            "role": "gas_handling",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-5",
+            "role": "nh3_recovery_recycle",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-6",
+            "role": "h2_separation_polishing",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-7",
+            "role": "compression_buffer",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-8",
+            "role": "thermal_management",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-9",
+            "role": "controls_standby",
+            "energy_kwh": 0.01
+          }
+        ],
+        "required_roles": [
+          "power_conversion",
+          "conversion_device",
+          "feed_conditioning",
+          "gas_handling",
+          "nh3_recovery_recycle",
+          "h2_separation_polishing",
+          "compression_buffer",
+          "thermal_management",
+          "controls_standby"
+        ],
+        "meter_calibration_status": "synthetic_declared"
+      },
+      "dynamic_service_claimed": true,
+      "dynamic_service": {
+        "claimed_response_measurand": "accepted_h2_delivery",
+        "actual_evidence_layer": "customer_product_metered",
+        "power_command_ms": 0,
+        "grid_power_measured_ms": 5,
+        "conversion_state_ms": 70,
+        "diagnostic_proxy_ms": 80,
+        "measured_gas_ms": 600,
+        "purified_h2_ms": 2400,
+        "customer_accepted_h2_ms": 2600,
+        "customer_delivery_settled_ms": 3200,
+        "clock_sync_ref": "SYNTHETIC-CLOCK-synthetic-plasma-h2-service-positive",
+        "product_flow_measurement_ref": "SYNTHETIC-FLOW-synthetic-plasma-h2-service-positive",
+        "customer_boundary_ref": "SYNTHETIC-DELIVERY-BOUNDARY-synthetic-plasma-h2-service-positive",
+        "minimum_transient_purity_observed": 0.998,
+        "product_flow_overshoot_fraction": 0.03,
+        "offspec_duration_ms": 0
+      },
+      "expected_disposition": "REJECTED"
+    },
+    {
+      "id": "rejected-stoichiometric-h2-overclaim",
+      "evidence_class": "synthetic",
+      "route_id": "MICROWAVE_PURE_NH3",
+      "operating_point_id": "SYNTHETIC-synthetic-plasma-h2-service-positive",
+      "source_case_id": null,
+      "source_operating_point_id": null,
+      "feed_contract_id": "SYNTHETIC-PURE-NH3-FEED-A",
+      "product_contract_id": "SYNTHETIC-H2-99.5PCT-30BAR",
+      "energy_boundary_id": "SYNTHETIC-GRID-TO-ACCEPTED-H2-A",
+      "duty_cycle_id": "SYNTHETIC-STEADY-60MIN-A",
+      "feed": {
+        "nh3_input_mass_g": 100,
+        "nh3_reacted_mass_g": 80,
+        "nh3_recovered_mass_g": 15,
+        "nh3_purge_mass_g": 5,
+        "nh3_slip_mass_g": 0,
+        "reported_conversion_fraction": 0.8,
+        "unknown_streams": [],
+        "tolerance_g": 0.00001
+      },
+      "reaction": {
+        "h2_generated_mass_g": 18,
+        "n2_generated_mass_g": 65.7957596127423
+      },
+      "separation": {
+        "h2_accepted_mass_g": 17,
+        "h2_rejected_mass_g": 0.2,
+        "h2_unrecovered_mass_g": 0.5042403872577019,
+        "n2_recovered_mass_g": 60.7957596127423,
+        "n2_purge_mass_g": 5,
+        "unknown_streams": [],
+        "tolerance_g": 0.00001
+      },
+      "product": {
+        "accepted_h2_mass_g": 17,
+        "gross_product_stream_mass_g": 17.017,
+        "reported_h2_purity_fraction": 0.999000999000999,
+        "minimum_h2_purity_fraction": 0.995,
+        "delivery_pressure_bar_abs": 30,
+        "minimum_delivery_pressure_bar_abs": 30,
+        "delivery_interval_s": 3600,
+        "contract_id": "SYNTHETIC-H2-99.5PCT-30BAR",
+        "quantitative_product_measurement_ref": "SYNTHETIC-H2-MEASUREMENT-synthetic-plasma-h2-service-positive",
+        "calibration_ref": "SYNTHETIC-H2-CALIBRATION-synthetic-plasma-h2-service-positive",
+        "minimum_transient_purity_fraction": 0.995,
+        "maximum_flow_overshoot_fraction": 0.05,
+        "maximum_offspec_duration_ms": 100
+      },
+      "energy": {
+        "boundary_id": "SYNTHETIC-GRID-TO-ACCEPTED-H2-A",
+        "meter_mode": "non_overlapping_grid_side_meters",
+        "meters": [
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-1",
+            "role": "power_conversion",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-2",
+            "role": "conversion_device",
+            "energy_kwh": 0.18
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-3",
+            "role": "feed_conditioning",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-4",
+            "role": "gas_handling",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-5",
+            "role": "nh3_recovery_recycle",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-6",
+            "role": "h2_separation_polishing",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-7",
+            "role": "compression_buffer",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-8",
+            "role": "thermal_management",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-9",
+            "role": "controls_standby",
+            "energy_kwh": 0.01
+          }
+        ],
+        "required_roles": [
+          "power_conversion",
+          "conversion_device",
+          "feed_conditioning",
+          "gas_handling",
+          "nh3_recovery_recycle",
+          "h2_separation_polishing",
+          "compression_buffer",
+          "thermal_management",
+          "controls_standby"
+        ],
+        "meter_calibration_status": "synthetic_declared"
+      },
+      "dynamic_service_claimed": true,
+      "dynamic_service": {
+        "claimed_response_measurand": "accepted_h2_delivery",
+        "actual_evidence_layer": "customer_product_metered",
+        "power_command_ms": 0,
+        "grid_power_measured_ms": 5,
+        "conversion_state_ms": 70,
+        "diagnostic_proxy_ms": 80,
+        "measured_gas_ms": 600,
+        "purified_h2_ms": 2400,
+        "customer_accepted_h2_ms": 2600,
+        "customer_delivery_settled_ms": 3200,
+        "clock_sync_ref": "SYNTHETIC-CLOCK-synthetic-plasma-h2-service-positive",
+        "product_flow_measurement_ref": "SYNTHETIC-FLOW-synthetic-plasma-h2-service-positive",
+        "customer_boundary_ref": "SYNTHETIC-DELIVERY-BOUNDARY-synthetic-plasma-h2-service-positive",
+        "minimum_transient_purity_observed": 0.998,
+        "product_flow_overshoot_fraction": 0.03,
+        "offspec_duration_ms": 0
+      },
+      "expected_disposition": "REJECTED"
+    },
+    {
+      "id": "rejected-diagnostic-proxy-promotion",
+      "evidence_class": "synthetic",
+      "route_id": "MICROWAVE_PURE_NH3",
+      "operating_point_id": "SYNTHETIC-synthetic-plasma-h2-service-positive",
+      "source_case_id": null,
+      "source_operating_point_id": null,
+      "feed_contract_id": "SYNTHETIC-PURE-NH3-FEED-A",
+      "product_contract_id": "SYNTHETIC-H2-99.5PCT-30BAR",
+      "energy_boundary_id": "SYNTHETIC-GRID-TO-ACCEPTED-H2-A",
+      "duty_cycle_id": "SYNTHETIC-STEADY-60MIN-A",
+      "feed": {
+        "nh3_input_mass_g": 100,
+        "nh3_reacted_mass_g": 80,
+        "nh3_recovered_mass_g": 15,
+        "nh3_purge_mass_g": 5,
+        "nh3_slip_mass_g": 0,
+        "reported_conversion_fraction": 0.8,
+        "unknown_streams": [],
+        "tolerance_g": 0.00001
+      },
+      "reaction": {
+        "h2_generated_mass_g": 14.204240387257702,
+        "n2_generated_mass_g": 65.7957596127423
+      },
+      "separation": {
+        "h2_accepted_mass_g": 13.5,
+        "h2_rejected_mass_g": 0.2,
+        "h2_unrecovered_mass_g": 0.5042403872577019,
+        "n2_recovered_mass_g": 60.7957596127423,
+        "n2_purge_mass_g": 5,
+        "unknown_streams": [],
+        "tolerance_g": 0.00001
+      },
+      "product": {
+        "accepted_h2_mass_g": 13.5,
+        "gross_product_stream_mass_g": 13.5135,
+        "reported_h2_purity_fraction": 0.9990009990009989,
+        "minimum_h2_purity_fraction": 0.995,
+        "delivery_pressure_bar_abs": 30,
+        "minimum_delivery_pressure_bar_abs": 30,
+        "delivery_interval_s": 3600,
+        "contract_id": "SYNTHETIC-H2-99.5PCT-30BAR",
+        "quantitative_product_measurement_ref": "SYNTHETIC-H2-MEASUREMENT-synthetic-plasma-h2-service-positive",
+        "calibration_ref": "SYNTHETIC-H2-CALIBRATION-synthetic-plasma-h2-service-positive",
+        "minimum_transient_purity_fraction": 0.995,
+        "maximum_flow_overshoot_fraction": 0.05,
+        "maximum_offspec_duration_ms": 100
+      },
+      "energy": {
+        "boundary_id": "SYNTHETIC-GRID-TO-ACCEPTED-H2-A",
+        "meter_mode": "non_overlapping_grid_side_meters",
+        "meters": [
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-1",
+            "role": "power_conversion",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-2",
+            "role": "conversion_device",
+            "energy_kwh": 0.18
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-3",
+            "role": "feed_conditioning",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-4",
+            "role": "gas_handling",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-5",
+            "role": "nh3_recovery_recycle",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-6",
+            "role": "h2_separation_polishing",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-7",
+            "role": "compression_buffer",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-8",
+            "role": "thermal_management",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-9",
+            "role": "controls_standby",
+            "energy_kwh": 0.01
+          }
+        ],
+        "required_roles": [
+          "power_conversion",
+          "conversion_device",
+          "feed_conditioning",
+          "gas_handling",
+          "nh3_recovery_recycle",
+          "h2_separation_polishing",
+          "compression_buffer",
+          "thermal_management",
+          "controls_standby"
+        ],
+        "meter_calibration_status": "synthetic_declared"
+      },
+      "dynamic_service_claimed": true,
+      "dynamic_service": {
+        "claimed_response_measurand": "accepted_h2_delivery",
+        "actual_evidence_layer": "diagnostic_proxy",
+        "power_command_ms": 0,
+        "grid_power_measured_ms": 5,
+        "conversion_state_ms": 70,
+        "diagnostic_proxy_ms": 80,
+        "measured_gas_ms": 600,
+        "purified_h2_ms": 2400,
+        "customer_accepted_h2_ms": 2600,
+        "customer_delivery_settled_ms": 3200,
+        "clock_sync_ref": "SYNTHETIC-CLOCK-synthetic-plasma-h2-service-positive",
+        "product_flow_measurement_ref": "SYNTHETIC-FLOW-synthetic-plasma-h2-service-positive",
+        "customer_boundary_ref": "SYNTHETIC-DELIVERY-BOUNDARY-synthetic-plasma-h2-service-positive",
+        "minimum_transient_purity_observed": 0.998,
+        "product_flow_overshoot_fraction": 0.03,
+        "offspec_duration_ms": 0
+      },
+      "expected_disposition": "REJECTED"
+    },
+    {
+      "id": "blocked-missing-product-calibration",
+      "evidence_class": "synthetic",
+      "route_id": "MICROWAVE_PURE_NH3",
+      "operating_point_id": "SYNTHETIC-synthetic-plasma-h2-service-positive",
+      "source_case_id": null,
+      "source_operating_point_id": null,
+      "feed_contract_id": "SYNTHETIC-PURE-NH3-FEED-A",
+      "product_contract_id": "SYNTHETIC-H2-99.5PCT-30BAR",
+      "energy_boundary_id": "SYNTHETIC-GRID-TO-ACCEPTED-H2-A",
+      "duty_cycle_id": "SYNTHETIC-STEADY-60MIN-A",
+      "feed": {
+        "nh3_input_mass_g": 100,
+        "nh3_reacted_mass_g": 80,
+        "nh3_recovered_mass_g": 15,
+        "nh3_purge_mass_g": 5,
+        "nh3_slip_mass_g": 0,
+        "reported_conversion_fraction": 0.8,
+        "unknown_streams": [],
+        "tolerance_g": 0.00001
+      },
+      "reaction": {
+        "h2_generated_mass_g": 14.204240387257702,
+        "n2_generated_mass_g": 65.7957596127423
+      },
+      "separation": {
+        "h2_accepted_mass_g": 13.5,
+        "h2_rejected_mass_g": 0.2,
+        "h2_unrecovered_mass_g": 0.5042403872577019,
+        "n2_recovered_mass_g": 60.7957596127423,
+        "n2_purge_mass_g": 5,
+        "unknown_streams": [],
+        "tolerance_g": 0.00001
+      },
+      "product": {
+        "accepted_h2_mass_g": 13.5,
+        "gross_product_stream_mass_g": 13.5135,
+        "reported_h2_purity_fraction": 0.9990009990009989,
+        "minimum_h2_purity_fraction": 0.995,
+        "delivery_pressure_bar_abs": 30,
+        "minimum_delivery_pressure_bar_abs": 30,
+        "delivery_interval_s": 3600,
+        "contract_id": "SYNTHETIC-H2-99.5PCT-30BAR",
+        "quantitative_product_measurement_ref": "SYNTHETIC-H2-MEASUREMENT-synthetic-plasma-h2-service-positive",
+        "calibration_ref": null,
+        "minimum_transient_purity_fraction": 0.995,
+        "maximum_flow_overshoot_fraction": 0.05,
+        "maximum_offspec_duration_ms": 100
+      },
+      "energy": {
+        "boundary_id": "SYNTHETIC-GRID-TO-ACCEPTED-H2-A",
+        "meter_mode": "non_overlapping_grid_side_meters",
+        "meters": [
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-1",
+            "role": "power_conversion",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-2",
+            "role": "conversion_device",
+            "energy_kwh": 0.18
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-3",
+            "role": "feed_conditioning",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-4",
+            "role": "gas_handling",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-5",
+            "role": "nh3_recovery_recycle",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-6",
+            "role": "h2_separation_polishing",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-7",
+            "role": "compression_buffer",
+            "energy_kwh": 0.02
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-8",
+            "role": "thermal_management",
+            "energy_kwh": 0.01
+          },
+          {
+            "meter_id": "synthetic-plasma-h2-service-positive-METER-9",
+            "role": "controls_standby",
+            "energy_kwh": 0.01
+          }
+        ],
+        "required_roles": [
+          "power_conversion",
+          "conversion_device",
+          "feed_conditioning",
+          "gas_handling",
+          "nh3_recovery_recycle",
+          "h2_separation_polishing",
+          "compression_buffer",
+          "thermal_management",
+          "controls_standby"
+        ],
+        "meter_calibration_status": "synthetic_declared"
+      },
+      "dynamic_service_claimed": true,
+      "dynamic_service": {
+        "claimed_response_measurand": "accepted_h2_delivery",
+        "actual_evidence_layer": "customer_product_metered",
+        "power_command_ms": 0,
+        "grid_power_measured_ms": 5,
+        "conversion_state_ms": 70,
+        "diagnostic_proxy_ms": 80,
+        "measured_gas_ms": 600,
+        "purified_h2_ms": 2400,
+        "customer_accepted_h2_ms": 2600,
+        "customer_delivery_settled_ms": 3200,
+        "clock_sync_ref": "SYNTHETIC-CLOCK-synthetic-plasma-h2-service-positive",
+        "product_flow_measurement_ref": "SYNTHETIC-FLOW-synthetic-plasma-h2-service-positive",
+        "customer_boundary_ref": "SYNTHETIC-DELIVERY-BOUNDARY-synthetic-plasma-h2-service-positive",
+        "minimum_transient_purity_observed": 0.998,
+        "product_flow_overshoot_fraction": 0.03,
+        "offspec_duration_ms": 0
+      },
+      "expected_disposition": "BLOCKED"
+    }
+  ],
+  "comparisons": [
+    {
+      "id": "synthetic-plasma-vs-electrochemical",
+      "candidate_scenario_id": "synthetic-plasma-h2-service-positive",
+      "reference_scenario_id": "synthetic-electrochemical-h2-service-positive",
+      "expected_disposition": "SYNTHETIC_COMPARABLE_ACCOUNTING_ONLY"
+    },
+    {
+      "id": "not-comparable-different-product-contract",
+      "candidate_scenario_id": "synthetic-plasma-h2-service-positive",
+      "reference_scenario_id": "synthetic-alternate-product-contract",
+      "expected_disposition": "NOT_COMPARABLE"
+    }
+  ]
+}
