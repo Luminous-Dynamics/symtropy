@@ -10,6 +10,7 @@
     "evidence_kind",
     "evidence_class",
     "subject",
+    "time_window",
     "artifact",
     "measurement",
     "model",
