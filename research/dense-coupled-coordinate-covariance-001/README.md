@@ -47,7 +47,13 @@ It compares lifted positions/velocities, both multiplier vectors, squared-link r
 
 The new machine-readable step vector is `fixtures/dense_coupled_chain_rattle_step_case_v0.2.json`, with its own Draft 2020-12 schema. It pins the solver profile and per-observable tolerances.
 
-**Qualification status:** the exact Rust 1.96 run on code head `f45a5e3` passed formatting, all 27 warning-denied tests, and the optimized deterministic replay. The dense-step comparison is therefore qualified for this frozen force-free open-chain fixture and the two tested basis changes. The later branch commits add only the v0.2 fixture/schema and README (no solver-code changes). This does not qualify forced RATTLE, pHDAE equivalence, contact/friction or long-horizon drift.
+**Qualification status (exact-head):**
+
+- At code head `f45a5e3`, pinned Rust 1.96 passed formatting, 27 warning-denied tests and optimized deterministic replay for the original two-basis one-step slice.
+- At code head `c5ce8ba393e81e54d4d68125e06583ed75f2fa50`, pinned Rust 1.96 passed formatting, **30 warning-denied tests**, optimized deterministic RATTLE replay, and the rank-diagnostics workflow's **15 tests plus optimized replay**. This included the third-basis conditioning stress, 32-step recursive trajectory, 64-step dense-vs-Cartesian trajectory and timestep-refinement ladder.
+- A further regression now adds position- and velocity-multiplier comparisons at every step of the 64-step trajectory (commit `e962fd5`). That incremental strengthening needs its own exact-head run; no pass is claimed until it completes.
+
+The qualified scope at `c5ce8ba` is still force-free, three-body/two-link open-chain mechanics over a 0.32 s trajectory and the declared basis ladder. This is not a general long-horizon stability theorem. It does not qualify forced RATTLE, pHDAE equivalence, contact/friction, arbitrary charts, physical calibration or production performance.
 
 ## Competitive benchmark ladder
 
