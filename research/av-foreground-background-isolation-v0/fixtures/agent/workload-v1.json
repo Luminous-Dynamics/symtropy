@@ -47,12 +47,13 @@
     },
     {
       "episode_id": "as-known-002-late-index",
-      "description": "An earlier measurement is not indexed until after the historical query cutoff.",
+      "description": "A microphone observation is delivered and available to the foreground live buffer, but that buffer expires before the historical query and the durable event index is not ready until after the query cutoff.",
       "query": {
         "query_id": "what-was-known-at-tick-80",
         "created_tick": 80,
         "as_known_cutoff_tick": 80,
-        "deadline_tick": 110
+        "deadline_tick": 110,
+        "retrieval_scope": "committed_background_event_memory_only"
       },
       "admitted_evidence": [
         {
@@ -77,7 +78,15 @@
       "policy_arms": [
         "single_loop",
         "async_memory_backend"
-      ]
+      ],
+      "source_observation": {
+        "evidence_ref": "obs:mic:chunk-021",
+        "event_start_tick": 20,
+        "event_end_tick": 21,
+        "available_to_foreground_tick": 25,
+        "foreground_working_buffer_expires_tick": 40,
+        "historical_index_ready_tick": "evaluator_only"
+      }
     },
     {
       "episode_id": "cancel-003-stale-retrieval",
