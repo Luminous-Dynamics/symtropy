@@ -56,6 +56,22 @@ jobs:
                       print(f"{fixture_name}:{location}: {error.message}")
                   raise SystemExit(1)
               print(f"JSON Schema PASS: {fixture_name} conforms to Draft 2020-12 contract")
+          scenario_schema = json.loads((root / "recovery-scenarios-v0.1.schema.json").read_text())
+          scenario_fixture = json.loads((root / "synthetic-recovery-scenarios-v0.1.json").read_text())
+          Draft202012Validator.check_schema(scenario_schema)
+          errors = sorted(
+              Draft202012Validator(
+                  scenario_schema,
+                  format_checker=FormatChecker(),
+              ).iter_errors(scenario_fixture),
+              key=lambda error: list(map(str, error.absolute_path)),
+          )
+          if errors:
+              for error in errors:
+                  location = ".".join(map(str, error.absolute_path)) or "$"
+                  print(f"scenario-set:{location}: {error.message}")
+              raise SystemExit(1)
+          print("JSON Schema PASS: synthetic recovery scenario set conforms")
           PY
 
       - name: Check Rust formatting
@@ -72,3 +88,6 @@ jobs:
 
       - name: Validate submarine cable recovery case
         run: cargo run --manifest-path tools/grid-asset-recovery-validator/Cargo.toml -- docs/research/grid-asset-recovery/data/synthetic-cable-recovery-v0.1.json
+
+      - name: Evaluate compound disruption scenario set
+        run: cargo run --manifest-path tools/grid-asset-recovery-validator/Cargo.toml -- --scenario-set docs/research/grid-asset-recovery/data/synthetic-recovery-scenarios-v0.1.json docs/research/grid-asset-recovery/data/synthetic-asset-recovery-v0.1.json
