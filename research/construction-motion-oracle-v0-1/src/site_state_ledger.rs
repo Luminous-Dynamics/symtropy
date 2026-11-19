@@ -2540,6 +2540,255 @@ mod tests {
         )
     }
 
+    fn setup_capacity_ledger() -> SiteStateLedger {
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
+        publish_package(&mut ledger, package('a', &["panel-1"]));
+        publish_capacity_resource_catalog(&mut ledger);
+        publish_capacity_snapshot(&mut ledger, '3', '4', 2, 2, 3);
+        ledger
+    }
+
+    #[test]
+    fn capacity_n_commit_admits_lower_bound_rejects_third_and_referee_release_frees_capacity() {
+        let mut ledger = setup_capacity_ledger();
+        let first = capacity_reservation_event(&ledger, "capacity-res-1", 1, 20, 50);
+        ledger.apply(first).unwrap();
+        let second = capacity_reservation_event(&ledger, "capacity-res-2", 1, 20, 50);
+        ledger.apply(second).unwrap();
+
+        assert_eq!(ledger.active_capacity_reservation_count(), 2);
+        let report = ledger.assess_current_capacity().unwrap();
+        assert!(report.is_robustly_feasible);
+        assert_eq!(report.indeterminate_segment_count, 0);
+        assert_eq!(report.definitely_over_capacity_segment_count, 0);
+
+        let sequence_before_rejection = ledger.last_sequence();
+        let event_count_before_rejection = ledger.event_count();
+        let third = capacity_reservation_event(&ledger, "capacity-res-3", 1, 20, 50);
+        assert!(matches!(
+            ledger.apply(third),
+            Err(SiteLedgerError::CapacityAdmissionNotRobust { .. })
+        ));
+        assert_eq!(ledger.last_sequence(), sequence_before_rejection);
+        assert_eq!(ledger.event_count(), event_count_before_rejection);
+        assert_eq!(ledger.active_capacity_reservation_count(), 2);
+
+        let release = capacity_release_event(&ledger, "capacity-res-1");
+        ledger.apply(release).unwrap();
+        assert_eq!(ledger.active_capacity_reservation_count(), 1);
+        assert!(
+            !ledger
+                .capacity_reservation("capacity-res-1")
+                .unwrap()
+                .is_active()
+        );
+        assert!(ledger.assess_current_capacity().unwrap().is_robustly_feasible);
+
+        let replacement =
+            capacity_reservation_event(&ledger, "capacity-res-3-after-release", 1, 20, 50);
+        ledger.apply(replacement).unwrap();
+        assert_eq!(ledger.active_capacity_reservation_count(), 2);
+        assert!(ledger.assess_current_capacity().unwrap().is_robustly_feasible);
+    }
+
+    #[test]
+    fn adverse_capacity_snapshot_is_recorded_without_auto_releasing_existing_claims() {
+        let mut ledger = setup_capacity_ledger();
+        ledger
+            .apply(capacity_reservation_event(
+                &ledger,
+                "capacity-res-1",
+                1,
+                20,
+                50,
+            ))
+            .unwrap();
+        ledger
+            .apply(capacity_reservation_event(
+                &ledger,
+                "capacity-res-2",
+                1,
+                20,
+                50,
+            ))
+            .unwrap();
+
+        // The owner reports a capacity reduction below existing active load.
+        // This adverse fact must be appended; rejecting it would hide the
+        // derating. The existing reservations remain physically active.
+        publish_capacity_snapshot(&mut ledger, '8', '9', 1, 1, 1);
+        assert_eq!(ledger.active_capacity_reservation_count(), 2);
+        let assessment = ledger.assess_current_capacity().unwrap();
+        assert!(!assessment.is_robustly_feasible);
+        assert!(assessment.definitely_over_capacity_segment_count > 0);
+        assert_eq!(ledger.active_capacity_reservation_count(), 2);
+
+        let sequence_before_rejection = ledger.last_sequence();
+        let third = capacity_reservation_event(&ledger, "capacity-res-3", 1, 20, 50);
+        assert!(matches!(
+            ledger.apply(third),
+            Err(SiteLedgerError::CapacityAdmissionNotRobust { .. })
+        ));
+        assert_eq!(ledger.last_sequence(), sequence_before_rejection);
+        assert_eq!(ledger.active_capacity_reservation_count(), 2);
+    }
+
+    #[test]
+    fn capacity_admission_binds_current_site_ledger_head_and_snapshot() {
+        let mut ledger = setup_capacity_ledger();
+        let mut stale = capacity_reservation_event(&ledger, "capacity-res-stale", 1, 20, 50);
+        if let SiteEventPayload::CapacityReservationCommitted { commit } = &mut stale.payload {
+            commit.site_ledger_sequence = 1;
+            commit.site_ledger_event_sha256 = digest('0');
+        }
+        assert_eq!(
+            ledger.apply(stale),
+            Err(SiteLedgerError::CapacityReservationSnapshotMismatch)
+        );
+        assert_eq!(ledger.last_sequence(), 3);
+
+        let mut wrong_snapshot =
+            capacity_reservation_event(&ledger, "capacity-res-wrong-snapshot", 1, 20, 50);
+        if let SiteEventPayload::CapacityReservationCommitted { commit } =
+            &mut wrong_snapshot.payload
+        {
+            commit.site_snapshot_sha256 = digest('0');
+        }
+        assert_eq!(
+            ledger.apply(wrong_snapshot),
+            Err(SiteLedgerError::CapacityAvailabilitySnapshotMismatch)
+        );
+        assert_eq!(ledger.last_sequence(), 3);
+    }
+
+    #[test]
+    fn capacity_owner_must_be_registered_and_capacity_namespaces_cannot_overlap() {
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
+        publish_package(&mut ledger, package('a', &["panel-1"]));
+        let unregistered = event(
+            "capacity-catalog-unregistered-owner",
+            2,
+            ledger.last_event_sha256().map(str::to_owned),
+            '3',
+            "resource-authority",
+            SiteActorRole::SiteResourceAuthority,
+            SiteEventPayload::CapacityResourceCatalogPublished {
+                catalog_sha256: digest('2'),
+                resources: vec![CapacityResourceDefinition {
+                    resource_id: "shared-hoist".into(),
+                    capacity_owner_id: "unknown-capacity-owner".into(),
+                    definition_sha256: digest('5'),
+                    capacity_units: 3,
+                    unit_label: "pallet-slots".into(),
+                }],
+            },
+        );
+        assert_eq!(
+            ledger.apply(unregistered),
+            Err(SiteLedgerError::ActorRoleDenied)
+        );
+        assert_eq!(ledger.last_sequence(), 1);
+
+        let exclusive = event(
+            "exclusive-resource-catalog",
+            2,
+            ledger.last_event_sha256().map(str::to_owned),
+            '3',
+            "resource-authority",
+            SiteActorRole::SiteResourceAuthority,
+            SiteEventPayload::ResourceCatalogPublished {
+                catalog_sha256: digest('6'),
+                resources: vec![SiteResourceDefinition {
+                    resource_id: "shared-hoist".into(),
+                    definition_sha256: digest('7'),
+                }],
+            },
+        );
+        ledger.apply(exclusive).unwrap();
+        let overlapping_capacity_catalog = event(
+            "capacity-catalog-namespace-collision",
+            3,
+            ledger.last_event_sha256().map(str::to_owned),
+            '4',
+            "resource-authority",
+            SiteActorRole::SiteResourceAuthority,
+            SiteEventPayload::CapacityResourceCatalogPublished {
+                catalog_sha256: digest('8'),
+                resources: vec![CapacityResourceDefinition {
+                    resource_id: "shared-hoist".into(),
+                    capacity_owner_id: "capacity-owner-1".into(),
+                    definition_sha256: digest('5'),
+                    capacity_units: 3,
+                    unit_label: "pallet-slots".into(),
+                }],
+            },
+        );
+        assert_eq!(
+            ledger.apply(overlapping_capacity_catalog),
+            Err(SiteLedgerError::CapacityCatalogNamespaceCollision(
+                "shared-hoist".into()
+            ))
+        );
+        assert_eq!(ledger.last_sequence(), 2);
+    }
+
+    #[test]
+    fn catalog_revision_cannot_orphan_active_capacity_reservations() {
+        let mut ledger = setup_capacity_ledger();
+        let commit = capacity_reservation_event(&ledger, "capacity-res-1", 1, 20, 50);
+        ledger.apply(commit).unwrap();
+        let event = event(
+            "capacity-catalog-v2",
+            ledger.last_sequence() + 1,
+            ledger.last_event_sha256().map(str::to_owned),
+            '8',
+            "resource-authority",
+            SiteActorRole::SiteResourceAuthority,
+            SiteEventPayload::CapacityResourceCatalogPublished {
+                catalog_sha256: digest('9'),
+                resources: vec![CapacityResourceDefinition {
+                    resource_id: "shared-hoist".into(),
+                    capacity_owner_id: "capacity-owner-1".into(),
+                    definition_sha256: digest('5'),
+                    capacity_units: 4,
+                    unit_label: "pallet-slots".into(),
+                }],
+            },
+        );
+        assert!(matches!(
+            ledger.apply(event),
+            Err(SiteLedgerError::CapacityResourceCatalogWouldOrphanReservation(_))
+        ));
+        assert_eq!(ledger.active_capacity_reservation_count(), 1);
+        assert_eq!(ledger.capacity_resource_catalog_sha256(), Some(digest('2').as_str()));
+    }
+
+    #[test]
+    fn weighted_capacity_reservations_and_referee_releases_replay_deterministically() {
+        let mut ledger = setup_capacity_ledger();
+        ledger
+            .apply(capacity_reservation_event(
+                &ledger,
+                "capacity-res-1",
+                1,
+                20,
+                50,
+            ))
+            .unwrap();
+        ledger
+            .apply(capacity_release_event(&ledger, "capacity-res-1"))
+            .unwrap();
+        let history = ledger.event_history().to_vec();
+        let replayed =
+            SiteStateLedger::replay(&history, ledger.actor_registry().clone()).unwrap();
+        assert_eq!(replayed, ledger);
+        assert_eq!(replayed.active_capacity_reservation_count(), 0);
+        assert!(!replayed
+            .capacity_reservation("capacity-res-1")
+            .unwrap()
+            .is_active());
+    }
+
     fn measurement(residual_x_mm: f64, u95_mm: f64) -> RefereeMeasurement {
         RefereeMeasurement {
             residual_x_mm,
