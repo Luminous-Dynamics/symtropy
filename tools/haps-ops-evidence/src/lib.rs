@@ -145,6 +145,8 @@ pub struct AuthorizationBoundary {
     pub return_to_service_authorized: bool,
     pub release_authority_ref: Option<String>,
     pub release_scope: String,
+    pub authorized_asset_ref: Option<String>,
+    pub authorized_configuration_ref: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -379,7 +381,7 @@ fn validate_ledger(ledger: &OpsEvidenceLedger) -> Result<(), LedgerError> {
     let mut previous_event: Option<&str> = None;
     let mut previous_sequence = 0_u64;
     let mut last_recorded_at = i64::MIN;
-    let mut authorized_release_event = false;
+    let mut authorized_release_event: Option<(&str, &str, &str)> = None;
 
     for event in &ledger.events {
         if event.event_id.trim().is_empty() || !event_ids.insert(event.event_id.as_str()) {
@@ -591,7 +593,31 @@ fn validate_ledger(ledger: &OpsEvidenceLedger) -> Result<(), LedgerError> {
             )));
         }
         if event.event_type == "return_to_service_authorized" {
-            authorized_release_event = true;
+            let authority_ref = event
+                .release_authority_ref
+                .as_deref()
+                .filter(|value| !value.trim().is_empty())
+                .ok_or_else(|| {
+                    LedgerError::AuthorizationBoundary(format!(
+                        "authorized-release event {} lacks its authority reference",
+                        event.event_id
+                    ))
+                })?;
+            let matching_authority_evidence = event.source_evidence_refs.iter().any(|evidence| {
+                evidence.evidence_kind == "release_authority_record"
+                    && evidence.evidence_ref == authority_ref
+            });
+            if !matching_authority_evidence {
+                return Err(LedgerError::AuthorizationBoundary(format!(
+                    "authorized-release event {} does not bind its authority reference to a source evidence record",
+                    event.event_id
+                )));
+            }
+            authorized_release_event = Some((
+                authority_ref,
+                event.asset_ref.as_str(),
+                event.configuration_ref.as_str(),
+            ));
         }
         states.insert(event.asset_ref.clone(), event.to_state.clone());
         previous_event = Some(event.event_id.as_str());
@@ -740,18 +766,58 @@ fn validate_ledger(ledger: &OpsEvidenceLedger) -> Result<(), LedgerError> {
     let boundary = &ledger.authorization_boundary;
     if boundary.return_to_service_authorized {
         if boundary.release_status != "authorized_by_external_authority"
-            || boundary.release_authority_ref.as_deref().is_none_or(|value| value.trim().is_empty())
             || boundary.release_scope != "specific_configuration_and_scope"
-            || !authorized_release_event
         {
             return Err(LedgerError::AuthorizationBoundary(
-                "return-to-service authorization requires an external authority record, specific scope and authorized-release event"
+                "return-to-service authorization requires external authority status and configuration-specific scope"
+                    .to_owned(),
+            ));
+        }
+        let authority_ref = boundary
+            .release_authority_ref
+            .as_deref()
+            .filter(|value| !value.trim().is_empty())
+            .ok_or_else(|| {
+                LedgerError::AuthorizationBoundary(
+                    "return-to-service authorization requires a non-empty authority reference"
+                        .to_owned(),
+                )
+            })?;
+        let asset_ref = boundary
+            .authorized_asset_ref
+            .as_deref()
+            .filter(|value| !value.trim().is_empty())
+            .ok_or_else(|| {
+                LedgerError::AuthorizationBoundary(
+                    "return-to-service authorization requires an exact asset reference".to_owned(),
+                )
+            })?;
+        let configuration_ref = boundary
+            .authorized_configuration_ref
+            .as_deref()
+            .filter(|value| !value.trim().is_empty())
+            .ok_or_else(|| {
+                LedgerError::AuthorizationBoundary(
+                    "return-to-service authorization requires an exact configuration reference"
+                        .to_owned(),
+                )
+            })?;
+        let release_event = authorized_release_event.ok_or_else(|| {
+            LedgerError::AuthorizationBoundary(
+                "return-to-service authorization requires an authorized-release event".to_owned(),
+            )
+        })?;
+        if release_event != (authority_ref, asset_ref, configuration_ref) {
+            return Err(LedgerError::AuthorizationBoundary(
+                "release authority, asset and configuration must match the authorized-release event exactly"
                     .to_owned(),
             ));
         }
     } else if boundary.release_status == "authorized_by_external_authority"
         || boundary.release_authority_ref.is_some()
-        || authorized_release_event
+        || boundary.authorized_asset_ref.is_some()
+        || boundary.authorized_configuration_ref.is_some()
+        || authorized_release_event.is_some()
     {
         return Err(LedgerError::AuthorizationBoundary(
             "authorization evidence conflicts with return_to_service_authorized=false".to_owned(),
@@ -864,6 +930,138 @@ mod tests {
         let bytes = serde_json::to_vec(&value).expect("serialize");
         let error = validate_ledger_json(&bytes).expect_err("authorization without authority receipt must fail");
         assert!(error.to_string().contains("external authority record"));
+    }
+
+    fn authorized_release_fixture(
+        event_authority_ref: &str,
+        boundary_authority_ref: &str,
+        boundary_asset_ref: &str,
+        boundary_configuration_ref: &str,
+        evidence_kind: &str,
+    ) -> Value {
+        let mut value = fixture_value();
+        let release_event = serde_json::json!({
+            "event_id": "event-13",
+            "event_sequence": 13,
+            "previous_event_id": "event-12",
+            "asset_ref": "haps-01",
+            "configuration_ref": "cfg-haps-01-r3",
+            "event_type": "return_to_service_authorized",
+            "occurred_at_utc": "2026-05-03T12:00:00Z",
+            "observed_at_utc": "2026-05-03T12:00:00Z",
+            "recorded_at_utc": "2026-05-03T12:01:00Z",
+            "clock_uncertainty_s": 1.0,
+            "from_state": "awaiting_authorized_release",
+            "to_state": "ready_for_dispatch",
+            "onset_knowledge": "not_applicable",
+            "onset_known_at_utc": null,
+            "onset_interval_earliest_utc": null,
+            "onset_interval_latest_utc": null,
+            "component_refs": ["component-hinge-synth-01"],
+            "producer": {
+                "organization_ref": "synthetic.operator",
+                "role": "external_release_authority_fixture",
+                "source_system_ref": "synthetic.authority-ledger.v1"
+            },
+            "source_evidence_refs": [{
+                "evidence_ref": event_authority_ref,
+                "evidence_kind": evidence_kind,
+                "content_digest": null,
+                "source_uri": null,
+                "rights_ref": "synthetic-only"
+            }],
+            "event_digest": null,
+            "release_authority_ref": event_authority_ref,
+            "payload": {
+                "release_scope": "specific_configuration_and_scope"
+            }
+        });
+        value["events"].as_array_mut().unwrap().push(release_event);
+        value["authorization_boundary"]["release_status"] =
+            Value::String("authorized_by_external_authority".to_owned());
+        value["authorization_boundary"]["return_to_service_authorized"] = Value::Bool(true);
+        value["authorization_boundary"]["release_authority_ref"] =
+            Value::String(boundary_authority_ref.to_owned());
+        value["authorization_boundary"]["release_scope"] =
+            Value::String("specific_configuration_and_scope".to_owned());
+        value["authorization_boundary"]["authorized_asset_ref"] =
+            Value::String(boundary_asset_ref.to_owned());
+        value["authorization_boundary"]["authorized_configuration_ref"] =
+            Value::String(boundary_configuration_ref.to_owned());
+        value
+    }
+
+    #[test]
+    fn return_to_service_requires_event_bound_authority_asset_and_configuration() {
+        let value = authorized_release_fixture(
+            "authority-release-001",
+            "authority-release-001",
+            "haps-01",
+            "cfg-haps-01-r3",
+            "release_authority_record",
+        );
+        let bytes = serde_json::to_vec(&value).expect("serialize");
+        let report = validate_ledger_json(&bytes).expect("exact scoped release validates");
+        assert!(report.return_to_service_authorized);
+        assert_eq!(
+            report.final_asset_states["haps-01"],
+            "ready_for_dispatch"
+        );
+    }
+
+    #[test]
+    fn mismatched_authority_reference_is_rejected() {
+        let value = authorized_release_fixture(
+            "authority-release-event",
+            "authority-release-boundary",
+            "haps-01",
+            "cfg-haps-01-r3",
+            "release_authority_record",
+        );
+        let bytes = serde_json::to_vec(&value).expect("serialize");
+        let error = validate_ledger_json(&bytes).expect_err("mismatched authority must fail");
+        assert!(error.to_string().contains("must match the authorized-release event exactly"));
+    }
+
+    #[test]
+    fn mismatched_asset_or_configuration_scope_is_rejected() {
+        let wrong_asset = authorized_release_fixture(
+            "authority-release-001",
+            "authority-release-001",
+            "haps-02",
+            "cfg-haps-01-r3",
+            "release_authority_record",
+        );
+        let bytes = serde_json::to_vec(&wrong_asset).expect("serialize");
+        let error = validate_ledger_json(&bytes).expect_err("wrong asset must fail");
+        assert!(error.to_string().contains("must match the authorized-release event exactly"));
+
+        let wrong_configuration = authorized_release_fixture(
+            "authority-release-001",
+            "authority-release-001",
+            "haps-01",
+            "cfg-haps-01-r4",
+            "release_authority_record",
+        );
+        let bytes = serde_json::to_vec(&wrong_configuration).expect("serialize");
+        let error =
+            validate_ledger_json(&bytes).expect_err("wrong configuration must fail");
+        assert!(error.to_string().contains("must match the authorized-release event exactly"));
+    }
+
+    #[test]
+    fn release_event_must_link_a_release_authority_evidence_record() {
+        let value = authorized_release_fixture(
+            "authority-release-001",
+            "authority-release-001",
+            "haps-01",
+            "cfg-haps-01-r3",
+            "inspection_report",
+        );
+        let bytes = serde_json::to_vec(&value).expect("serialize");
+        let error =
+            validate_ledger_json(&bytes).expect_err("wrong evidence kind must fail");
+        assert!(error.to_string().contains("does not bind its authority reference"));
     }
 
     #[test]
