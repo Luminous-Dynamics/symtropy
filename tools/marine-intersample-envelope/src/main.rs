@@ -448,10 +448,17 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                     if !times.iter().any(|grid_time| grid_time == timestamp) {
                         errors.push(format!("scenario '{scenario_id}' event at '{timestamp}' is not an explicit time-grid boundary"));
                     }
+                    let event_class = string_at(event, "event_class").unwrap_or("");
+                    let component_id = string_at(event, "component_id").unwrap_or("");
                     if string_at(event, "event_id").is_none_or(str::is_empty)
-                        || string_at(event, "component_id").is_none_or(str::is_empty)
+                        || !["outage", "repair", "weather_disturbance", "operator_action", "shore_service"].contains(&event_class)
+                        || ![
+                            "environment", "main_generator", "watermaker", "shore_power",
+                            "battery_inverter", "potable_water_system", "waste_service"
+                        ].contains(&component_id)
+                        || parse_time(Some(timestamp)).is_none()
                     {
-                        errors.push(format!("scenario '{scenario_id}' contains an event without identity"));
+                        errors.push(format!("scenario '{scenario_id}' contains an event with invalid identity, class, component or timestamp"));
                     }
                 }
             }
@@ -891,6 +898,17 @@ mod tests {
         value["scenarios"][2]["scenario_sha256"] = json!("");
         let digest = canonical_json_digest(&value["scenarios"][2], Some("scenario_sha256")).unwrap();
         value["scenarios"][2]["scenario_sha256"] = json!(digest);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn unsupported_event_class_or_component_is_invalid() {
+        let mut value = fixture();
+        value["scenarios"][0]["events"][0]["component_id"] = json!("unknown-sensor");
+        value["scenarios"][0]["event_manifest_sha256"] = json!(sha256_hex(&serde_json::to_vec(&value["scenarios"][0]["events"]).unwrap()));
+        value["scenarios"][0]["scenario_sha256"] = json!("");
+        let digest = canonical_json_digest(&value["scenarios"][0], Some("scenario_sha256")).unwrap();
+        value["scenarios"][0]["scenario_sha256"] = json!(digest);
         assert_eq!(audit(&value)["disposition"], "INVALID");
     }
 
