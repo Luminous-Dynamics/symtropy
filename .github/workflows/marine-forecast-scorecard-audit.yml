@@ -40,6 +40,13 @@ jobs:
           jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.record_status.enum == ["synthetic","shadow_replay","measured_campaign","published_reproduction"] and .properties.forecast_cases.minItems >= 1 and .properties.mission_pairs.minItems >= 1' tools/marine-forecast-scorecard/schema/marine-forecast-scorecard.schema.json
           jq -e '.record_status == "synthetic" and .claim_ceiling == "descriptive_skill_and_paired_outcome_metrics_only" and .dataset.split_strategy == "forward_chaining_joint_grouped" and .dataset.grouping_unit == "joint_voyage_weather_event" and (.forecast_cases | length == 9) and (.mission_pairs | length == 9) and ([.forecast_cases[].fold] | sort | group_by(.) | map({(.[0]): length}) | add == {"development":3,"validation":3,"test":3}) and ([.forecast_cases[] | select(.fold == "test") | .environment_strata[]] | unique | length >= 3)' tools/marine-forecast-scorecard/fixtures/synthetic-scorecard-0001.json
 
+      - name: Member-coherent risk schema and negative control
+        run: |
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.routes.minItems >= 2 and .properties.forecast.properties.members.minItems >= 2' tools/marine-forecast-scorecard/schema/marine-member-coherent-risk.schema.json
+          jq -e '.record_status == "synthetic" and .claim_ceiling == "member_coherent_route_risk_only" and (.routes | length == 2) and ([.routes[].members[]] | length == 4)' tools/marine-forecast-scorecard/fixtures/synthetic-member-coherent-risk-0001.json
+          cargo run --quiet --manifest-path tools/marine-forecast-scorecard/Cargo.toml --bin member-coherent-risk -- audit-member-risk tools/marine-forecast-scorecard/fixtures/synthetic-member-coherent-risk-0001.json > /tmp/member-coherent-risk.json
+          jq -e '.disposition == "SYNTHETIC_ONLY" and .route_ranking_changes_when_member_coherence_is_destroyed == true and .best_route_by_member_coherent_cvar95 == "route-correlated-alternating" and .best_route_by_independent_edge_marginal_resampling == "route-correlated-high-low"' /tmp/member-coherent-risk.json
+
       - name: Scorecard audit must remain synthetic-only
         run: |
           cargo run --quiet --manifest-path tools/marine-forecast-scorecard/Cargo.toml -- audit-scorecard tools/marine-forecast-scorecard/fixtures/synthetic-scorecard-0001.json > /tmp/marine-scorecard.json
