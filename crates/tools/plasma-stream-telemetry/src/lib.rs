@@ -72,6 +72,7 @@ pub struct StreamSpec {
     pub diagnostic_id: String,
     pub reference_clock_domain_id: String,
     pub expected_period_ns: u64,
+    pub max_source_period_deviation_ns: u64,
     pub max_source_age_ns: u64,
     pub deadline_from_acquisition_ns: u64,
     pub max_clock_uncertainty_ns: u64,
@@ -129,10 +130,15 @@ pub enum EventDisposition {
 #[serde(deny_unknown_fields)]
 pub struct LatencyMetrics {
     pub source_to_acquisition_latency_ns: Option<u64>,
+    pub observed_source_interarrival_ns: Option<u64>,
+    pub expected_source_interarrival_ns: Option<u64>,
+    pub source_period_deviation_ns: Option<u64>,
+    pub source_period_consistent: Option<bool>,
     pub transport_latency_ns: Option<u64>,
     pub queue_wait_ns: Option<u64>,
     pub processing_latency_ns: Option<u64>,
     pub acquisition_to_decision_ns: Option<u64>,
+    pub downstream_ack_latency_ns: Option<u64>,
     pub source_age_at_decision_ns: Option<u64>,
     pub source_period_ns: u64,
     pub deadline_budget_ns: u64,
@@ -317,6 +323,8 @@ fn validate_request(request: &ReplayRequest) -> Result<(), String> {
             || !non_empty(&calibration.reference_clock_domain_id)
             || !calibration_ids.insert(calibration.calibration_id.clone())
             || calibration.valid_from_clock_ns >= calibration.valid_until_clock_ns
+            || calibration.anchor_clock_ns < calibration.valid_from_clock_ns
+            || calibration.anchor_clock_ns >= calibration.valid_until_clock_ns
             || !is_sha256(&calibration.evidence_sha256)
         {
             return Err("clock calibration identity, interval or evidence is invalid".to_owned());
@@ -344,10 +352,15 @@ fn validate_request(request: &ReplayRequest) -> Result<(), String> {
 fn empty_metrics(spec: &StreamSpec, sequence_gap: bool) -> LatencyMetrics {
     LatencyMetrics {
         source_to_acquisition_latency_ns: None,
+        observed_source_interarrival_ns: None,
+        expected_source_interarrival_ns: None,
+        source_period_deviation_ns: None,
+        source_period_consistent: None,
         transport_latency_ns: None,
         queue_wait_ns: None,
         processing_latency_ns: None,
         acquisition_to_decision_ns: None,
+        downstream_ack_latency_ns: None,
         source_age_at_decision_ns: None,
         source_period_ns: spec.expected_period_ns,
         deadline_budget_ns: spec.deadline_from_acquisition_ns,
@@ -362,6 +375,7 @@ fn report_event(
     spec: &StreamSpec,
     calibrations: &BTreeMap<String, &ClockCalibration>,
     sequence_gap: bool,
+    previous_source: Option<(u64, MappedStamp)>,
 ) -> EventReport {
     let mut findings = Vec::new();
     let mut metrics = empty_metrics(spec, sequence_gap);
@@ -439,6 +453,39 @@ fn report_event(
                         } else {
                             metrics.source_to_acquisition_latency_ns =
                                 source_to_acquisition.as_ref().ok().map(|item| item.0);
+                            if let Some((previous_sequence, previous_stamp)) = previous_source
+                                && event.sequence_number > previous_sequence
+                            {
+                                let sequence_delta = event.sequence_number - previous_sequence;
+                                let expected = spec
+                                    .expected_period_ns
+                                    .checked_mul(sequence_delta);
+                                match (interval(previous_stamp, source, spec.max_clock_uncertainty_ns), expected) {
+                                    (Ok((observed, _)), Some(expected)) => {
+                                        let deviation = observed.abs_diff(expected);
+                                        let consistent = deviation <= spec.max_source_period_deviation_ns;
+                                        metrics.observed_source_interarrival_ns = Some(observed);
+                                        metrics.expected_source_interarrival_ns = Some(expected);
+                                        metrics.source_period_deviation_ns = Some(deviation);
+                                        metrics.source_period_consistent = Some(consistent);
+                                        if !consistent {
+                                            findings.push(
+                                                "source inter-arrival deviates from the declared sample cadence"
+                                                    .to_owned(),
+                                            );
+                                        }
+                                    }
+                                    _ => {
+                                        findings.push(
+                                            "source cadence cannot be compared under the declared clock budget"
+                                                .to_owned(),
+                                        );
+                                        if disposition == EventDisposition::OnTimeValid {
+                                            // A timing-quality issue must not retain an ON_TIME disposition.
+                                        }
+                                    }
+                                }
+                            }
                             metrics.transport_latency_ns = transport.as_ref().ok().map(|item| item.0);
                             metrics.queue_wait_ns = queue.as_ref().ok().map(|item| item.0);
                             metrics.processing_latency_ns = processing.as_ref().ok().map(|item| item.0);
@@ -454,6 +501,7 @@ fn report_event(
                             if sequence_gap {
                                 findings.push("one or more sequence numbers were skipped".to_owned());
                             }
+                            let cadence_degraded = metrics.source_period_consistent == Some(false);
                             if deadline_missed {
                                 findings.push("decision completed after the acquisition-relative deadline".to_owned());
                                 EventDisposition::DeadlineMissed
@@ -463,7 +511,7 @@ fn report_event(
                                         .to_owned(),
                                 );
                                 EventDisposition::LateValidButStaleForDecision
-                            } else if sequence_gap {
+                            } else if sequence_gap || cadence_degraded {
                                 EventDisposition::Degraded
                             } else {
                                 EventDisposition::OnTimeValid
@@ -479,17 +527,52 @@ fn report_event(
         }
     };
 
-    if event.acknowledgement.as_ref().is_some_and(|ack| ack.state == AcknowledgementState::Unknown) {
-        findings.push("downstream acknowledgement is unknown; no success is inferred".to_owned());
-    }
-    if event.acknowledgement.as_ref().is_some_and(|ack| {
-        !non_empty(&ack.acknowledgement_id)
-            || ack.timestamp.as_ref().is_some_and(|stamp| {
-                map_stamp(stamp, calibrations, &spec.reference_clock_domain_id).is_err()
-            })
-    }) {
-        findings.push("downstream acknowledgement identity or timestamp is unqualified".to_owned());
-        if disposition == EventDisposition::OnTimeValid {
+    if let Some(acknowledgement) = &event.acknowledgement {
+        let mut acknowledgement_qualified = !non_empty(&acknowledgement.acknowledgement_id);
+        match acknowledgement.state {
+            AcknowledgementState::Acknowledged => {
+                match (
+                    event.decision_time.as_ref().map(|stamp| {
+                        map_stamp(stamp, calibrations, &spec.reference_clock_domain_id)
+                    }),
+                    acknowledgement.timestamp.as_ref().map(|stamp| {
+                        map_stamp(stamp, calibrations, &spec.reference_clock_domain_id)
+                    }),
+                ) {
+                    (Some(Ok(decision)), Some(Ok(ack))) => {
+                        match interval(decision, ack, spec.max_clock_uncertainty_ns) {
+                            Ok((latency, _)) => {
+                                metrics.downstream_ack_latency_ns = Some(latency);
+                            }
+                            Err(_) => {
+                                acknowledgement_qualified = true;
+                                findings.push(
+                                    "acknowledgement timestamp is inconsistent or exceeds clock uncertainty"
+                                        .to_owned(),
+                                );
+                            }
+                        }
+                    }
+                    _ => {
+                        acknowledgement_qualified = true;
+                        findings.push(
+                            "acknowledged outcome has no qualified timestamp or decision time"
+                                .to_owned(),
+                        );
+                    }
+                }
+            }
+            AcknowledgementState::Rejected => {
+                acknowledgement_qualified = true;
+                findings.push("downstream explicitly rejected the request".to_owned());
+            }
+            AcknowledgementState::Unknown => {
+                acknowledgement_qualified = true;
+                findings.push("downstream acknowledgement is unknown; no success is inferred".to_owned());
+            }
+        }
+
+        if acknowledgement_qualified && disposition == EventDisposition::OnTimeValid {
             disposition = EventDisposition::Degraded;
         }
     }
@@ -517,6 +600,7 @@ pub fn replay_trace(request: &ReplayRequest) -> Result<ReplayReport, String> {
         .collect::<BTreeMap<_, _>>();
 
     let mut last_sequence: Option<u64> = None;
+    let mut last_source: Option<(u64, MappedStamp)> = None;
     let mut seen_sequences = BTreeSet::new();
     let mut reports = Vec::with_capacity(request.events.len());
     let mut sequence_gaps = 0;
@@ -527,7 +611,24 @@ pub fn replay_trace(request: &ReplayRequest) -> Result<ReplayReport, String> {
         let sequence_gap = last_sequence.is_some_and(|previous| {
             previous.checked_add(1).is_some_and(|expected| event.sequence_number > expected)
         });
-        let mut report = report_event(event, &request.spec, &calibrations, sequence_gap);
+        let mut report = report_event(
+            event,
+            &request.spec,
+            &calibrations,
+            sequence_gap,
+            last_source,
+        );
+        if event.ingress == IngressDisposition::Received
+            && last_sequence.is_none_or(|previous| event.sequence_number > previous)
+        {
+            if let Ok(mapped_source) = map_stamp(
+                &event.source_time,
+                &calibrations,
+                &request.spec.reference_clock_domain_id,
+            ) {
+                last_source = Some((event.sequence_number, mapped_source));
+            }
+        }
 
         if duplicate {
             report.disposition = EventDisposition::Duplicate;
@@ -641,6 +742,7 @@ mod tests {
                 diagnostic_id: "BES".to_owned(),
                 reference_clock_domain_id: "ref".to_owned(),
                 expected_period_ns: 100,
+                max_source_period_deviation_ns: 10,
                 max_source_age_ns: 200,
                 deadline_from_acquisition_ns: 80,
                 max_clock_uncertainty_ns: 20,
