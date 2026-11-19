@@ -1,0 +1,461 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminousdynamics:aero:haps-group-handover-case:v1",
+  "title": "HAPS group handover case v1",
+  "description": "Deterministic group admission and authority-transfer contract; not a radio, mobility, queueing or semi-Markov model.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "revision",
+    "evidence_class",
+    "claim_ceiling",
+    "source",
+    "source_node_id",
+    "authority_policy",
+    "target",
+    "cohorts",
+    "scenarios",
+    "assumptions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "haps-group-handover-case/v1"
+    },
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,95}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_handover_accounting_oracle"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_kind",
+        "source_uri",
+        "source_digest",
+        "rights_or_license_ref",
+        "available_at_decision_time"
+      ],
+      "properties": {
+        "source_kind": {
+          "const": "synthetic_generator"
+        },
+        "source_uri": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "source_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rights_or_license_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "available_at_decision_time": {
+          "const": false
+        }
+      }
+    },
+    "authority_policy": {
+      "const": "release_source_only_after_target_completion_ack"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_node_id",
+        "target_layer",
+        "available",
+        "maximum_user_equivalents",
+        "maximum_aggregate_bitrate_kbps",
+        "admission_policy",
+        "tie_break_policy",
+        "backhaul_available"
+      ],
+      "properties": {
+        "target_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_layer": {
+          "enum": [
+            "haps",
+            "terrestrial",
+            "leo",
+            "drone_edge"
+          ]
+        },
+        "available": {
+          "type": "boolean"
+        },
+        "maximum_user_equivalents": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_aggregate_bitrate_kbps": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "admission_policy": {
+          "const": "priority_rank_then_cohort_id"
+        },
+        "tie_break_policy": {
+          "const": "cohort_id_ascending"
+        },
+        "backhaul_available": {
+          "type": "boolean"
+        }
+      }
+    },
+    "cohorts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "cohort_id",
+          "service_class",
+          "priority_rank",
+          "criticality",
+          "offered_user_count",
+          "per_user_bitrate_kbps",
+          "maximum_handover_latency_ms",
+          "stateful",
+          "fallback_policy",
+          "context_epoch"
+        ],
+        "properties": {
+          "cohort_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "service_class": {
+            "enum": [
+              "safety_drone_control",
+              "emergency_alert",
+              "health",
+              "critical_infrastructure",
+              "public_broadband",
+              "iot",
+              "best_effort"
+            ]
+          },
+          "priority_rank": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "criticality": {
+            "enum": [
+              "safety_critical",
+              "emergency_critical",
+              "mission_critical",
+              "best_effort"
+            ]
+          },
+          "offered_user_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "per_user_bitrate_kbps": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "maximum_handover_latency_ms": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "stateful": {
+            "type": "boolean"
+          },
+          "fallback_policy": {
+            "enum": [
+              "drone_local_safe_mode",
+              "route_to_terrestrial_gateway",
+              "store_and_forward",
+              "defer_best_effort",
+              "retain_source"
+            ]
+          },
+          "context_epoch": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "target_available",
+          "backhaul_available",
+          "failure_point",
+          "duplicate_completion_ack_delivery",
+          "phase_durations_ms",
+          "expected_oracle"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target_available": {
+            "type": "boolean"
+          },
+          "backhaul_available": {
+            "type": "boolean"
+          },
+          "failure_point": {
+            "enum": [
+              "none",
+              "initiation",
+              "preparation",
+              "execution",
+              "completion_ack_lost",
+              "stale_context"
+            ]
+          },
+          "duplicate_completion_ack_delivery": {
+            "type": "boolean"
+          },
+          "phase_durations_ms": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "initiation",
+              "preparation",
+              "execution",
+              "completion"
+            ],
+            "properties": {
+              "initiation": {
+                "type": "number",
+                "minimum": 0
+              },
+              "preparation": {
+                "type": "number",
+                "minimum": 0
+              },
+              "execution": {
+                "type": "number",
+                "minimum": 0
+              },
+              "completion": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          },
+          "expected_oracle": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "oracle_status",
+              "cohorts",
+              "total_offered_ues",
+              "total_admitted_ues",
+              "total_completed_ues",
+              "total_rejected_ues",
+              "total_rolled_back_ues",
+              "total_unresolved_ues",
+              "total_deadline_missed_ues",
+              "total_local_safe_mode_ues",
+              "total_committed_ues",
+              "duplicate_ack_ignored",
+              "duplicate_authority_violations",
+              "all_offered_users_accounted_for",
+              "source_release_after_ack_only"
+            ],
+            "properties": {
+              "oracle_status": {
+                "const": "independently_calculated"
+              },
+              "cohorts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "cohort_id",
+                    "offered_ues",
+                    "admitted_ues",
+                    "completed_ues",
+                    "rejected_ues",
+                    "rolled_back_ues",
+                    "unresolved_ues",
+                    "deadline_missed_ues",
+                    "local_safe_mode_ues",
+                    "source_authoritative_ues",
+                    "target_authoritative_ues",
+                    "authority_overlap_ues",
+                    "reconciliation_required",
+                    "handover_latency_ms",
+                    "outcome"
+                  ],
+                  "properties": {
+                    "cohort_id": {
+                      "type": "string"
+                    },
+                    "offered_ues": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "admitted_ues": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "completed_ues": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "rejected_ues": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "rolled_back_ues": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "unresolved_ues": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "deadline_missed_ues": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "local_safe_mode_ues": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "source_authoritative_ues": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "target_authoritative_ues": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "authority_overlap_ues": {
+                      "type": "integer",
+                      "const": 0
+                    },
+                    "reconciliation_required": {
+                      "type": "boolean"
+                    },
+                    "handover_latency_ms": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "outcome": {
+                      "enum": [
+                        "completed",
+                        "rejected",
+                        "rolled_back",
+                        "reconciliation_required",
+                        "partially_completed"
+                      ]
+                    }
+                  }
+                }
+              },
+              "total_offered_ues": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "total_admitted_ues": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "total_completed_ues": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "total_rejected_ues": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "total_rolled_back_ues": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "total_unresolved_ues": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "total_deadline_missed_ues": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "total_local_safe_mode_ues": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "total_committed_ues": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "duplicate_ack_ignored": {
+                "type": "boolean"
+              },
+              "duplicate_authority_violations": {
+                "type": "integer",
+                "const": 0
+              },
+              "all_offered_users_accounted_for": {
+                "const": true
+              },
+              "source_release_after_ack_only": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "source_evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "uniqueItems": true
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "source_node_id": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$comment": "Semantic invariants: unique cohort IDs; lower priority_rank means higher priority; deterministic admission by (priority_rank, cohort_id); partial admission by individual user using integer bitrate capacity; no admission until initiation and preparation succeed; source authority is released only after valid target completion acknowledgement; completed + rejected + rolled_back + unresolved equals offered per cohort; source_authoritative_ues + target_authoritative_ues equals offered; authority_overlap_ues is zero; completion_ack_lost leaves source authoritative and requires reconciliation; safety-critical users not completed use drone_local_safe_mode; duplicate acknowledgements are idempotent. This does not model RF, SINR, propagation, mobility or stochastic/semi-Markov phase durations."
+}

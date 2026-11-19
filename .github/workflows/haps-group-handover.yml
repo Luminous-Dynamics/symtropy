@@ -1,0 +1,37 @@
+name: HAPS Group Handover
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/haps-group-handover.yml"
+      - "tools/haps-group-handover/**"
+      - "docs/research/aviation/schemas/haps_group_handover_case_v1.schema.json"
+      - "docs/research/aviation/examples/synthetic_haps_group_handover_case_v1.json"
+
+permissions:
+  contents: read
+
+jobs:
+  standalone-rust:
+    name: Standalone HAPS group handover
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/haps-group-handover/Cargo.toml --all -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --locked --manifest-path tools/haps-group-handover/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run unit and fixture-replay tests
+        run: cargo test --locked --manifest-path tools/haps-group-handover/Cargo.toml
+
+      - name: Replay checked-in handover fixture
+        run: cargo run --locked --manifest-path tools/haps-group-handover/Cargo.toml -- docs/research/aviation/examples/synthetic_haps_group_handover_case_v1.json
