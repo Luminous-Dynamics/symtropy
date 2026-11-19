@@ -53,5 +53,5 @@ jobs:
 
       - name: Replay admission must remain synthetic-only
         run: |
-          cargo run --quiet --manifest-path tools/marine-forecast-replay-audit/Cargo.toml -- tools/marine-forecast-replay-audit/fixtures/synthetic-replay-bundle-0001.json > /tmp/marine-replay-audit.json
+          cargo run --quiet --manifest-path tools/marine-forecast-replay-audit/Cargo.toml -- audit-bundle tools/marine-forecast-replay-audit/fixtures/synthetic-replay-bundle-0001.json > /tmp/marine-replay-audit.json
           jq -e '.disposition == "SYNTHETIC_ONLY" and .decision_reports[0].disposition == "SYNTHETIC_ONLY" and (.decision_reports[0].policy_input_candidates | length == 1) and (.decision_reports[0].admitted_policy_inputs | length == 0) and (.decision_reports[0].evaluator_only_inputs | length == 1) and (.decision_reports[0].validation_only_inputs | length == 1)' /tmp/marine-replay-audit.json
