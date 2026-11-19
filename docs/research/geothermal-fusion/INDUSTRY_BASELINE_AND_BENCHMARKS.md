@@ -18,6 +18,9 @@
 | UKAEA PROCESS | Integrated fusion systems code covering machine physics and plant engineering / power conversion | Specialist fusion systems model | Fusion plant design outputs, gross-to-net power terms and heat-system boundaries; retain exact PROCESS version and input manifest |
 | DOE Fusion S&T Roadmap (June 2026) | Calls for whole-plant digital twins spanning plasma, materials, tritium, power conversion and controls, calibrated and stress-tested against measured data with quantified uncertainty over steady operation, transients and faults | Government roadmap | Evidence traceability, uncertainty calibration, multi-fidelity validation, fault and maintenance coverage |
 | Council for Geoscience (South Africa) | Public programme states preliminary low-enthalpy potential and ongoing magnetotelluric work near known hot springs to map structures / potential hot-water reservoirs | Public national geoscience programme | A South African low-enthalpy evidence case; unknown values stay unknown. This is not evidence of a South African superhot resource |
+| ASHRAE absorption-equipment chapter | Reports representative single-effect indirect-fired water/LiBr heat-source conditions (115–132 °C steam-heated, some waste-heat machines lower) and 160–188 °C hot-fluid input for typical double-effect equipment | Engineering handbook reference ranges | Temperature-grade and equipment-map checks for a cooling co-product; actual machine, cooling-water conditions and parasitic loads remain required |
+| Zhou et al. (2024), geothermal polygeneration | Modelled ORC/flash + absorption refrigeration + Kalina + humidification-dehumidification desalination configuration; reports 342.3 kW electric, 301.7 kW cooling, 0.233 kg/s freshwater and 31.52% exergy efficiency | Published simulation output, not physical demonstration | Reproduce the complete source-pinned model as a co-product reference case; do not treat the output vector as measured plant performance |
+| Wang et al. (2026), desalination review | Modern seawater RO approaches its practical thermodynamic minimum; future performance gains are increasingly system-level (loss distribution, high recovery, pretreatment/cleaning/post-treatment, brine handling) | Peer-reviewed review | Avoid a membrane-permeability-only benchmark; compare full water-treatment train and product/residual service |
 
 ### Source register
 
@@ -32,6 +35,9 @@
 - UKAEA PROCESS: https://www.ukaea.org/service/process/
 - DOE Fusion Science and Technology Roadmap, 9 June 2026: https://www.energy.gov/articles/energy-department-releases-finalized-fusion-science-and-technology-roadmap-accelerate
 - Council for Geoscience geothermal programme: https://www.geoscience.org.za/project/geothermal-energy-potential-of-south-africa-project/
+- ASHRAE Handbook 2018, Chapter 18, Absorption Equipment: https://handbook.ashrae.org/handbooks/R18/SI/R18_Ch18/r18_ch18_si.aspx
+- Zhou et al. (2024), geothermal polygeneration, DOI 10.1016/j.energy.2024.131667: https://doi.org/10.1016/j.energy.2024.131667
+- Wang et al. (9 October 2026), desalination energy efficiency and sustainability, DOI 10.1038/s44359-026-00221-x: https://doi.org/10.1038/s44359-026-00221-x
 
 ## 2. What is actually novel in our target
 
@@ -72,6 +78,8 @@ For each external model, freeze its exact version, model class, input deck, solv
 - OpenGeoSys: reproduce selected TH2M verification cases only where the relevant coupled process and boundary conditions match.
 - PROCESS: reproduce selected fusion system-code outputs and power balance cases, keeping plasma Q, gross thermal power, gross electric output, fixed/variable recirculating demand and net export distinct.
 - STEP: use source-documented pilot performance for an sCO₂ component/cycle boundary; do not infer a geothermal plant's efficiency from the pilot rating alone.
+- Absorption cooling / geothermal polygeneration: reproduce the source-pinned literature case with equipment-specific temperature grades and all cooling-water, pumping, electric parasitics, product water and brine outputs. The reported Zhou et al. (2024) vector is a model reproduction target, not a measured benchmark.
+- Desalination train: compare RO / MED / HDH and hybrid high-recovery configurations at identical product quality and feed/residual boundaries; use the 2026 review to focus on whole-train losses and brine management rather than membrane permeability alone.
 
 A Symtropy integration PASS means we preserve and reconcile the specialist result at its declared boundary. It does not mean Symtropy has independently validated the specialist solver's underlying physics.
 
