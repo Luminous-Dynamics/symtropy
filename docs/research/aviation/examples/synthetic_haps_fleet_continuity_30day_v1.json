@@ -152,8 +152,7 @@
       "operating_platform_ids": [
         "haps-a",
         "haps-b",
-        "haps-c",
-        "haps-d"
+        "haps-c"
       ],
       "platform_unavailability_events": [
         {
@@ -185,7 +184,15 @@
           "duration_hours": 48
         }
       ],
-      "reserve_dispatch_events": []
+      "reserve_dispatch_events": [
+        {
+          "platform_id": "haps-d",
+          "requested_at_hour": 0,
+          "on_station_at_hour": 0,
+          "released_at_hour": 720,
+          "dispatch_delay_hours": 0
+        }
+      ]
     }
   ],
   "expected_oracle": {
