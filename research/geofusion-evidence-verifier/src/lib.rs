@@ -31,6 +31,7 @@ pub enum VerificationError {
     ByteLengthMismatch,
     SourceIdentityMismatch(&'static str),
     TimeWindowMismatch(&'static str),
+    SourcePowerEnergyMismatch,
     UnsupportedCarrier,
     InvalidEnergy(&'static str),
     DuplicateAllocationId,
@@ -60,6 +61,7 @@ impl VerificationError {
             Self::ByteLengthMismatch => "BYTE_LENGTH_MISMATCH",
             Self::SourceIdentityMismatch(_) => "SOURCE_IDENTITY_MISMATCH",
             Self::TimeWindowMismatch(_) => "TIME_WINDOW_MISMATCH",
+            Self::SourcePowerEnergyMismatch => "SOURCE_POWER_ENERGY_MISMATCH",
             Self::UnsupportedCarrier => "UNSUPPORTED_CARRIER",
             Self::InvalidEnergy(_) => "INVALID_ENERGY",
             Self::DuplicateAllocationId => "DUPLICATE_ALLOCATION_ID",
@@ -420,8 +422,15 @@ pub fn verify_source_interval(
         "time_window.start_utc",
     )
     .map_err(|_| VerificationError::TimeWindowMismatch("start_utc"))?;
+    let source_interval_duration_ns =
+        unsigned_field(&payload, "duration_ns", "source payload")?;
+    if source_interval_duration_ns == 0 {
+        return Err(VerificationError::TimeWindowMismatch(
+            "duration_ns must be positive",
+        ));
+    }
     if unsigned_field(time_window, "duration_ns", "time_window")?
-        != unsigned_field(&payload, "duration_ns", "source payload")?
+        != source_interval_duration_ns
     {
         return Err(VerificationError::TimeWindowMismatch("duration_ns"));
     }
@@ -469,6 +478,23 @@ pub fn verify_source_interval(
     let available = number_field(&payload, "available_energy_mwh", "source payload")?;
     if available < 0.0 {
         return Err(VerificationError::InvalidEnergy("available_energy_mwh"));
+    }
+    let average_power_field = match carrier {
+        "heat" => "average_thermal_power_mw",
+        "electricity" => "average_electric_power_mw",
+        _ => return Err(VerificationError::UnsupportedCarrier),
+    };
+    let average_power = number_field(&payload, average_power_field, "source payload")?;
+    if average_power < 0.0 {
+        return Err(VerificationError::InvalidEnergy(average_power_field));
+    }
+    let duration_hours = source_interval_duration_ns as f64 / 3_600_000_000_000.0;
+    let power_duration_energy_mwh = average_power * duration_hours;
+    if !duration_hours.is_finite() || !power_duration_energy_mwh.is_finite() {
+        return Err(VerificationError::ArithmeticOverflow);
+    }
+    if !same_number(power_duration_energy_mwh, available) {
+        return Err(VerificationError::SourcePowerEnergyMismatch);
     }
     let receipt_available =
         number_field(allocation, "available_energy_mwh", "allocation receipt")?;
@@ -599,8 +625,6 @@ pub fn verify_source_interval(
 
     let source_interval_start_utc =
         string_field(time_window, "start_utc", "time_window")?.to_owned();
-    let source_interval_duration_ns =
-        unsigned_field(time_window, "duration_ns", "time_window")?;
     let receipt_id = string_field(allocation, "receipt_id", "allocation receipt")?;
     Ok(VerificationReport {
         evidence_id: evidence_id.to_owned(),
@@ -876,6 +900,41 @@ mod tests {
         e["artifact"]["digest"]["value"] = json!("z".repeat(64));
         let error = verify_source_interval(PAYLOAD, &e, &allocation()).unwrap_err();
         assert_eq!(error.code(), "MALFORMED_DIGEST");
+    }
+
+    #[test]
+    fn source_energy_must_equal_average_power_times_interval_duration() {
+        let mut payload: Value = serde_json::from_slice(PAYLOAD).unwrap();
+        payload["available_energy_mwh"] = json!(11.0);
+        let bytes = serde_json::to_vec(&payload).unwrap();
+        let digest = digest_hex(&bytes);
+
+        let mut e = evidence();
+        e["artifact"]["byte_length"] = json!(bytes.len());
+        e["artifact"]["digest"]["value"] = json!(digest);
+        let mut a = allocation();
+        a["source_payload_digest"]["value"] = json!(digest);
+
+        let error = verify_source_interval(&bytes, &e, &a).unwrap_err();
+        assert_eq!(error.code(), "SOURCE_POWER_ENERGY_MISMATCH");
+    }
+
+    #[test]
+    fn zero_duration_source_interval_is_rejected() {
+        let mut payload: Value = serde_json::from_slice(PAYLOAD).unwrap();
+        payload["duration_ns"] = json!(0);
+        let bytes = serde_json::to_vec(&payload).unwrap();
+        let digest = digest_hex(&bytes);
+
+        let mut e = evidence();
+        e["artifact"]["byte_length"] = json!(bytes.len());
+        e["artifact"]["digest"]["value"] = json!(digest);
+        e["time_window"]["duration_ns"] = json!(0);
+        let mut a = allocation();
+        a["source_payload_digest"]["value"] = json!(digest);
+
+        let error = verify_source_interval(&bytes, &e, &a).unwrap_err();
+        assert_eq!(error.code(), "TIME_WINDOW_MISMATCH");
     }
 
     #[test]
