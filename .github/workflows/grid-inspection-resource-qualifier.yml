@@ -43,7 +43,18 @@ jobs:
           Draft202012Validator.check_schema(schema)
           errors = sorted(Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER).iter_errors(case), key=lambda error: list(error.path))
           assert not errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in errors)
-          canonical_resource = json.dumps(case["resourceManifest"], separators=(",", ":"), sort_keys=True, ensure_ascii=False).encode()
+          resource_for_hash = json.loads(json.dumps(case["resourceManifest"]))
+          resource_for_hash["asOfHour"] = float(resource_for_hash["asOfHour"])
+          resource_for_hash["horizonEndHour"] = float(resource_for_hash["horizonEndHour"])
+          for resource in resource_for_hash["resources"]:
+              resource["validUntilHour"] = float(resource["validUntilHour"])
+              for window in resource["capacityWindows"]:
+                  window["startHour"] = float(window["startHour"])
+                  window["endHour"] = float(window["endHour"])
+              for reservation in resource["reservations"]:
+                  reservation["startHour"] = float(reservation["startHour"])
+                  reservation["endHour"] = float(reservation["endHour"])
+          canonical_resource = json.dumps(resource_for_hash, separators=(",", ":"), sort_keys=True, ensure_ascii=False).encode()
           canonical_policy = json.dumps(case["policyCertificate"], separators=(",", ":"), sort_keys=True, ensure_ascii=False).encode()
           assert hashlib.sha256(canonical_resource).hexdigest() == case["resourceManifestSha256"]
           assert hashlib.sha256(canonical_policy).hexdigest() == case["policyCertificateSha256"]
