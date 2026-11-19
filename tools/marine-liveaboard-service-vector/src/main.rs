@@ -132,6 +132,8 @@ struct PolicyReport {
     policy_id: String,
     role: String,
     operating_envelope: String,
+    hard_gate_evidence_ref: String,
+    hard_gate_evidence_sha256: String,
     feasible: bool,
     metrics: BTreeMap<String, MetricValue>,
     relaxation_count: usize,
@@ -153,8 +155,10 @@ fn policy_report(
     if !digest_valid(string_at(policy, "mission_snapshot_sha256"))
         || !digest_valid(string_at(policy, "decision_output_sha256"))
         || !digest_valid(string_at(policy, "operating_envelope_sha256"))
+        || !digest_valid(string_at(policy, "hard_gate_evidence_sha256"))
+        || string_at(policy, "hard_gate_evidence_ref").is_none_or(str::is_empty)
     {
-        errors.push(format!("policy '{policy_id}' has invalid snapshot, output or operating-envelope digest"));
+        errors.push(format!("policy '{policy_id}' has invalid snapshot, output, operating-envelope or hard-gate evidence identity"));
     }
     let expected_forecast_use = match role.as_str() {
         "weather_blind_reference" => Some(false),
@@ -335,6 +339,8 @@ fn policy_report(
         policy_id,
         role,
         operating_envelope: policy_envelope.to_owned(),
+        hard_gate_evidence_ref: string_at(policy, "hard_gate_evidence_ref").unwrap_or("").to_owned(),
+        hard_gate_evidence_sha256: string_at(policy, "hard_gate_evidence_sha256").unwrap_or("").to_owned(),
         feasible,
         metrics: values,
         relaxation_count,
@@ -522,6 +528,8 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             "policy_id":policy.policy_id,
             "role":policy.role,
             "operating_envelope_sha256":policy.operating_envelope,
+            "hard_gate_evidence_ref":policy.hard_gate_evidence_ref,
+            "hard_gate_evidence_sha256":policy.hard_gate_evidence_sha256,
             "feasible":policy.feasible,
             "relaxation_count":policy.relaxation_count,
             "resource_metrics":policy.metrics.iter().map(|(metric, value)| json!({
@@ -626,6 +634,20 @@ mod tests {
         let mut value = fixture();
         value["record_status"] = json!("measured_campaign");
         value["policies"][2]["resource_metrics"][2]["measurement_class"] = json!("synthetic");
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn policy_hard_gate_result_requires_receipt_digest() {
+        let mut value = fixture();
+        value["policies"][2]["hard_gate_evidence_sha256"] = json!("not-a-digest");
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn policy_hard_gate_result_requires_receipt_reference() {
+        let mut value = fixture();
+        value["policies"][2]["hard_gate_evidence_ref"] = json!("");
         assert_eq!(audit(&value)["disposition"], "INVALID");
     }
 
