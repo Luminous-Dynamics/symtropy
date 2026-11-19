@@ -134,6 +134,43 @@ fn snapshot_digest(snapshot: &Value) -> Option<String> {
         .as_bytes()))
 }
 
+fn canonical_scenario_digest(scenario: &Value) -> Option<String> {
+    let mut canonical = scenario.clone();
+    canonical.as_object_mut()?.remove("scenario_sha256");
+    let bytes = serde_json::to_vec(&canonical).ok()?;
+    Some(sha256_hex(&bytes))
+}
+
+fn disturbance_digest(scenario: &Value) -> Option<String> {
+    let scenario_class = string_at(scenario, "scenario_class")?;
+    let states = scenario.get("states")?.as_array()?;
+    let mut disturbance_states = Vec::<Value>::new();
+    for state in states {
+        let components = state.get("components")?.as_array()?;
+        let mut component_records = components.iter().map(|component| {
+            json!({
+                "component_id": string_at(component, "component_id"),
+                "availability": string_at(component, "availability"),
+                "event_id": string_at(component, "event_id")
+            })
+        }).collect::<Vec<_>>();
+        component_records.sort_by(|left, right| {
+            left["component_id"].as_str().cmp(&right["component_id"].as_str())
+        });
+        disturbance_states.push(json!({
+            "time_index": state.get("time_index"),
+            "timestamp": string_at(state, "timestamp"),
+            "components": component_records
+        }));
+    }
+    let canonical = json!({
+        "scenario_class": scenario_class,
+        "states": disturbance_states
+    });
+    let bytes = serde_json::to_vec(&canonical).ok()?;
+    Some(sha256_hex(&bytes))
+}
+
 fn initial_state_digest(state: &Value, errors: &mut Vec<String>) -> Option<String> {
     let metrics = state.get("resource_metrics").and_then(Value::as_array)?;
     let mut rows = Vec::<(String, String)>::new();
@@ -573,10 +610,18 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             if !SCENARIO_CLASSES.contains(&scenario_class) {
                 errors.push(format!("scenario '{scenario_id}' has unknown scenario class '{scenario_class}'"));
             }
-            for field in ["scenario_sha256","disturbance_sha256","model_sha256"] {
-                if !valid_digest(string_at(scenario,field)) {
-                    errors.push(format!("scenario '{scenario_id}' has invalid {field}"));
-                }
+            if !valid_digest(string_at(scenario,"model_sha256")) {
+                errors.push(format!("scenario '{scenario_id}' has invalid model_sha256"));
+            }
+            match disturbance_digest(scenario) {
+                Some(calculated) if string_at(scenario,"disturbance_sha256") == Some(calculated.as_str()) => {}
+                Some(_) => errors.push(format!("scenario '{scenario_id}' disturbance_sha256 does not bind its time-indexed component/event roster")),
+                None => errors.push(format!("scenario '{scenario_id}' disturbance payload is incomplete")),
+            }
+            match canonical_scenario_digest(scenario) {
+                Some(calculated) if string_at(scenario,"scenario_sha256") == Some(calculated.as_str()) => {}
+                Some(_) => errors.push(format!("scenario '{scenario_id}' scenario_sha256 does not bind the canonical scenario record")),
+                None => errors.push(format!("scenario '{scenario_id}' cannot be canonically serialized for digest verification")),
             }
 
             let states = scenario.get("states").and_then(Value::as_array);
@@ -893,6 +938,21 @@ mod tests {
     fn mission_snapshot_digest_must_match_all_bound_artifacts() {
         let mut value=fixture();
         value["mission_snapshot"]["mission_plan_sha256"]=json!("f".repeat(64));
+        assert_eq!(audit(&value)["disposition"],"INVALID");
+    }
+
+    #[test]
+    fn canonical_scenario_digest_binds_every_state_and_ledger() {
+        let mut value=fixture();
+        value["scenarios"][0]["states"][1]["resource_metrics"][0]["value"]=json!(15.0);
+        assert_eq!(audit(&value)["disposition"],"INVALID");
+    }
+
+    #[test]
+    fn disturbance_digest_binds_component_availability_and_event_identity() {
+        let mut value=fixture();
+        value["scenarios"][0]["states"][1]["components"][0]["availability"]=json!("unavailable");
+        value["scenarios"][0]["states"][1]["components"][0]["event_id"]=json!("new-event");
         assert_eq!(audit(&value)["disposition"],"INVALID");
     }
 
