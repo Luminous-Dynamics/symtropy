@@ -13,7 +13,7 @@ cargo run --manifest-path tools/marine-liveaboard-service-vector/Cargo.toml -- a
 
 ## Contract
 
-The ten initial axes are arrival delay, energy reserve, freshwater reserve, food reserve, waste capacity, critical-spares coverage, essential-service outage, comfort-breach time, crew workload and purchased energy per occupied berth-day. Each axis has a physical unit, non-compensatory floor, measurement-coverage threshold and evidence digest.
+The ten initial axes are arrival delay, energy reserve, freshwater reserve, food reserve, waste capacity, critical-spares coverage, essential-service outage, comfort-breach time, crew workload and purchased energy per occupied berth-day. Each axis has a physical unit, non-compensatory floor, measurement-coverage threshold, evidence digest, measurement method/class, measurement time window, and lower/upper uncertainty bounds. A `gte` floor is tested against the lower bound; an `lte` floor is tested against the upper bound, never just the point estimate.
 
 The validator requires identical mission snapshot identities, craft configuration, occupancy, initial resource state, plan, forecast information set, hard-gate roster and operating envelope across policy arms. It requires three distinct arms: weather-blind, weather-informed/resource-blind and integrated mission candidate.
 
@@ -27,3 +27,12 @@ Any candidate hard-gate violation, essential service/reserve floor breach or ina
 - The validator checks declared evidence digests and shared identity; it does not authenticate sources, verify physical sensor quality or define medically/legally safe values.
 - Floor values in the synthetic example are demonstration parameters only. A real contract requires owner/crew agreement, qualified system owners, applicable law, measured vessel configuration and documented uncertainty.
 - No seaworthiness, stability, water safety, food sufficiency, waste legality, marine-safety or navigation-authority claim is made.
+
+
+## Uncertainty and measurement time
+
+The service-vector auditor requires every metric to declare a measurement window and a finite uncertainty interval containing its point estimate. Essential resource floors are evaluated conservatively: lower confidence/uncertainty bound for minimum reserves, upper bound for maximum outage, delay, comfort breach, workload and purchased-energy quantities. A point estimate that passes while its conservative bound breaches the floor is not accepted.
+
+Measurement classes are explicit (`measured`, `modeled`, `derived`, `synthetic`). Synthetic records cannot be relabelled as measured campaigns. Coverage below the service contract minimum blocks the candidate. The fixture uses 24-hour synthetic projection windows and illustrative ±0.1 intervals only; these bounds are not calibrated confidence intervals.
+
+Pareto dominance is also conservative: candidate worst-case bounds must be at least as good as baseline best-case bounds on every axis to claim dominance. Otherwise report incomparability and preserve all axis deltas. The engine never computes a scalar utility.
