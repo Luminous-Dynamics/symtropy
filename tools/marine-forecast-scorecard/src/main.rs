@@ -42,9 +42,9 @@ fn parse_time(
 
 fn empirical_crps(members: &[f64], observation: f64) -> f64 {
     let n = members.len() as f64;
-    let observation_term = members.iter().map(|member| (member - observation).abs()).sum::<f64>() / n;
+    let observation_term = members.iter().map(|member| (*member - observation).abs()).sum::<f64>() / n;
     let pair_term = members.iter().flat_map(|left| {
-        members.iter().map(move |right| (left - right).abs())
+        members.iter().map(move |right| (*left - *right).abs())
     }).sum::<f64>() / (2.0 * n * n);
     observation_term - pair_term
 }
@@ -379,7 +379,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     }
 
     let forecast_metrics = skill.into_iter().map(|(stratum, samples)| {
-        let errors_for_samples = samples.iter().map(|(forecast, observed, _)| forecast - observed).collect::<Vec<_>>();
+        let errors_for_samples = samples.iter().map(|(forecast, observed, _)| *forecast - *observed).collect::<Vec<_>>();
         let absolute = errors_for_samples.iter().map(|error| error.abs()).collect::<Vec<_>>();
         let squared = errors_for_samples.iter().map(|error| error * error).collect::<Vec<_>>();
         let crps = samples.iter().map(|sample| sample.2).collect::<Vec<_>>();
@@ -396,7 +396,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     let threshold_metrics = events.into_iter().map(|(event_id, samples)| {
         let brier = mean(&samples.iter().map(|(probability, observed)| {
             let outcome = if *observed { 1.0 } else { 0.0 };
-            (probability - outcome).powi(2)
+            (*probability - outcome).powi(2)
         }).collect::<Vec<_>>());
         let mut bins = (0..bin_count).map(|_| Vec::<(f64, bool)>::new()).collect::<Vec<_>>();
         for sample in &samples {
