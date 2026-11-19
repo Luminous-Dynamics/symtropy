@@ -31,7 +31,8 @@
           "source_reference": "https://example.invalid/source/actuator-motoring/dc_terminal_in",
           "measurement_method": "Synthetic known-answer fixture; not physical measurement.",
           "calibration_digest": "cal-actuator-motoring-dc_terminal_in-v1",
-          "raw_trace_digest": "raw-actuator-motoring-dc_terminal_in-v1"
+          "raw_trace_digest": "raw-actuator-motoring-dc_terminal_in-v1",
+          "physical_port_digest": "actuator-motoring-dc_terminal_in-interface-v1"
         },
         {
           "port_id": "mechanical_output",
@@ -58,7 +59,8 @@
           "source_reference": "https://example.invalid/source/actuator-motoring/mechanical_output",
           "measurement_method": "Synthetic known-answer fixture; not physical measurement.",
           "calibration_digest": "cal-actuator-motoring-mechanical_output-v1",
-          "raw_trace_digest": "raw-actuator-motoring-mechanical_output-v1"
+          "raw_trace_digest": "raw-actuator-motoring-mechanical_output-v1",
+          "physical_port_digest": "actuator-motoring-mechanical_output-interface-v1"
         },
         {
           "port_id": "thermal_dissipated",
@@ -85,7 +87,8 @@
           "source_reference": "https://example.invalid/source/actuator-motoring/thermal_dissipated",
           "measurement_method": "Synthetic known-answer fixture; not physical measurement.",
           "calibration_digest": "cal-actuator-motoring-thermal_dissipated-v1",
-          "raw_trace_digest": "raw-actuator-motoring-thermal_dissipated-v1"
+          "raw_trace_digest": "raw-actuator-motoring-thermal_dissipated-v1",
+          "physical_port_digest": "actuator-motoring-thermal_dissipated-interface-v1"
         },
         {
           "port_id": "delta_internal_stored",
@@ -112,7 +115,8 @@
           "source_reference": "https://example.invalid/source/actuator-motoring/delta_internal_stored",
           "measurement_method": "Synthetic known-answer fixture; not physical measurement.",
           "calibration_digest": "cal-actuator-motoring-delta_internal_stored-v1",
-          "raw_trace_digest": "raw-actuator-motoring-delta_internal_stored-v1"
+          "raw_trace_digest": "raw-actuator-motoring-delta_internal_stored-v1",
+          "physical_port_digest": "actuator-motoring-delta_internal_stored-interface-v1"
         }
       ],
       "expected_residual_j": {
@@ -150,7 +154,8 @@
           "source_reference": "https://example.invalid/source/actuator-overhauling/dc_terminal_in",
           "measurement_method": "Synthetic known-answer fixture; not physical measurement.",
           "calibration_digest": "cal-actuator-overhauling-dc_terminal_in-v1",
-          "raw_trace_digest": "raw-actuator-overhauling-dc_terminal_in-v1"
+          "raw_trace_digest": "raw-actuator-overhauling-dc_terminal_in-v1",
+          "physical_port_digest": "actuator-overhauling-dc_terminal_in-interface-v1"
         },
         {
           "port_id": "mechanical_output",
@@ -177,7 +182,8 @@
           "source_reference": "https://example.invalid/source/actuator-overhauling/mechanical_output",
           "measurement_method": "Synthetic known-answer fixture; not physical measurement.",
           "calibration_digest": "cal-actuator-overhauling-mechanical_output-v1",
-          "raw_trace_digest": "raw-actuator-overhauling-mechanical_output-v1"
+          "raw_trace_digest": "raw-actuator-overhauling-mechanical_output-v1",
+          "physical_port_digest": "actuator-overhauling-mechanical_output-interface-v1"
         },
         {
           "port_id": "thermal_dissipated",
@@ -204,7 +210,8 @@
           "source_reference": "https://example.invalid/source/actuator-overhauling/thermal_dissipated",
           "measurement_method": "Synthetic known-answer fixture; not physical measurement.",
           "calibration_digest": "cal-actuator-overhauling-thermal_dissipated-v1",
-          "raw_trace_digest": "raw-actuator-overhauling-thermal_dissipated-v1"
+          "raw_trace_digest": "raw-actuator-overhauling-thermal_dissipated-v1",
+          "physical_port_digest": "actuator-overhauling-thermal_dissipated-interface-v1"
         },
         {
           "port_id": "delta_internal_stored",
@@ -231,7 +238,8 @@
           "source_reference": "https://example.invalid/source/actuator-overhauling/delta_internal_stored",
           "measurement_method": "Synthetic known-answer fixture; not physical measurement.",
           "calibration_digest": "cal-actuator-overhauling-delta_internal_stored-v1",
-          "raw_trace_digest": "raw-actuator-overhauling-delta_internal_stored-v1"
+          "raw_trace_digest": "raw-actuator-overhauling-delta_internal_stored-v1",
+          "physical_port_digest": "actuator-overhauling-delta_internal_stored-interface-v1"
         }
       ],
       "expected_residual_j": {
@@ -269,7 +277,8 @@
           "source_reference": "https://example.invalid/source/shared-bus/external_source_in",
           "measurement_method": "Synthetic known-answer fixture; not physical measurement.",
           "calibration_digest": "cal-shared-bus-external_source_in-v1",
-          "raw_trace_digest": "raw-shared-bus-external_source_in-v1"
+          "raw_trace_digest": "raw-shared-bus-external_source_in-v1",
+          "physical_port_digest": "shared-dc-bus-external_source_in-interface-v1"
         },
         {
           "port_id": "drive_draw_signed",
@@ -296,7 +305,8 @@
           "source_reference": "https://example.invalid/source/shared-bus/drive_draw_signed",
           "measurement_method": "Synthetic known-answer fixture; not physical measurement.",
           "calibration_digest": "cal-shared-bus-drive_draw_signed-v1",
-          "raw_trace_digest": "raw-shared-bus-drive_draw_signed-v1"
+          "raw_trace_digest": "raw-shared-bus-drive_draw_signed-v1",
+          "physical_port_digest": "shared-dc-bus-drive_draw_signed-interface-v1"
         },
         {
           "port_id": "storage_draw_signed",
@@ -323,7 +333,8 @@
           "source_reference": "https://example.invalid/source/shared-bus/storage_draw_signed",
           "measurement_method": "Synthetic known-answer fixture; not physical measurement.",
           "calibration_digest": "cal-shared-bus-storage_draw_signed-v1",
-          "raw_trace_digest": "raw-shared-bus-storage_draw_signed-v1"
+          "raw_trace_digest": "raw-shared-bus-storage_draw_signed-v1",
+          "physical_port_digest": "shared-dc-bus-storage_draw_signed-interface-v1"
         },
         {
           "port_id": "other_loads",
@@ -350,7 +361,8 @@
           "source_reference": "https://example.invalid/source/shared-bus/other_loads",
           "measurement_method": "Synthetic known-answer fixture; not physical measurement.",
           "calibration_digest": "cal-shared-bus-other_loads-v1",
-          "raw_trace_digest": "raw-shared-bus-other_loads-v1"
+          "raw_trace_digest": "raw-shared-bus-other_loads-v1",
+          "physical_port_digest": "shared-dc-bus-other_loads-interface-v1"
         },
         {
           "port_id": "brake_dissipated",
@@ -377,7 +389,8 @@
           "source_reference": "https://example.invalid/source/shared-bus/brake_dissipated",
           "measurement_method": "Synthetic known-answer fixture; not physical measurement.",
           "calibration_digest": "cal-shared-bus-brake_dissipated-v1",
-          "raw_trace_digest": "raw-shared-bus-brake_dissipated-v1"
+          "raw_trace_digest": "raw-shared-bus-brake_dissipated-v1",
+          "physical_port_digest": "shared-dc-bus-brake_dissipated-interface-v1"
         },
         {
           "port_id": "delta_bus_cap",
@@ -404,7 +417,8 @@
           "source_reference": "https://example.invalid/source/shared-bus/delta_bus_cap",
           "measurement_method": "Synthetic known-answer fixture; not physical measurement.",
           "calibration_digest": "cal-shared-bus-delta_bus_cap-v1",
-          "raw_trace_digest": "raw-shared-bus-delta_bus_cap-v1"
+          "raw_trace_digest": "raw-shared-bus-delta_bus_cap-v1",
+          "physical_port_digest": "shared-dc-bus-delta_bus_cap-interface-v1"
         }
       ],
       "expected_residual_j": {
@@ -442,7 +456,8 @@
           "source_reference": "https://example.invalid/source/storage/storage_terminal_in",
           "measurement_method": "Synthetic known-answer fixture; not physical measurement.",
           "calibration_digest": "cal-storage-storage_terminal_in-v1",
-          "raw_trace_digest": "raw-storage-storage_terminal_in-v1"
+          "raw_trace_digest": "raw-storage-storage_terminal_in-v1",
+          "physical_port_digest": "storage-system-storage_terminal_in-interface-v1"
         },
         {
           "port_id": "delta_stored_energy",
@@ -469,7 +484,8 @@
           "source_reference": "https://example.invalid/source/storage/delta_stored_energy",
           "measurement_method": "Synthetic known-answer fixture; not physical measurement.",
           "calibration_digest": "cal-storage-delta_stored_energy-v1",
-          "raw_trace_digest": "raw-storage-delta_stored_energy-v1"
+          "raw_trace_digest": "raw-storage-delta_stored_energy-v1",
+          "physical_port_digest": "storage-system-delta_stored_energy-interface-v1"
         },
         {
           "port_id": "storage_losses",
@@ -496,7 +512,8 @@
           "source_reference": "https://example.invalid/source/storage/storage_losses",
           "measurement_method": "Synthetic known-answer fixture; not physical measurement.",
           "calibration_digest": "cal-storage-storage_losses-v1",
-          "raw_trace_digest": "raw-storage-storage_losses-v1"
+          "raw_trace_digest": "raw-storage-storage_losses-v1",
+          "physical_port_digest": "storage-system-storage_losses-interface-v1"
         }
       ],
       "expected_residual_j": {
