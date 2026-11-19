@@ -681,7 +681,7 @@ mod tests {
             .map(|definition| {
                 let value = overrides
                     .iter()
-                    .find(|(id, _)| *id == definition.signal_id)
+                    .find(|(id, _)| *id == definition.signal_id.as_str())
                     .map(|(_, value)| *value)
                     .unwrap_or(definition.baseline_value);
                 SignalMeasurement {
