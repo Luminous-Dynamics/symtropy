@@ -1,0 +1,196 @@
+{
+  "schema_version": 1,
+  "period_count": 4,
+  "regions": [
+    {
+      "region_id": "urban",
+      "road_capacity_units": 4,
+      "road_cost_per_unit": 5,
+      "aerial_cost_per_unit": 2,
+      "unserved_penalty_per_unit": 30
+    },
+    {
+      "region_id": "rural",
+      "road_capacity_units": 1,
+      "road_cost_per_unit": 8,
+      "aerial_cost_per_unit": 2,
+      "unserved_penalty_per_unit": 45
+    }
+  ],
+  "aircraft": [
+    {
+      "aircraft_id": "uav-01",
+      "initial_region_id": "urban",
+      "maximum_service_units_per_period": 4,
+      "capability_evidence": "fresh_in_domain"
+    },
+    {
+      "aircraft_id": "uav-02",
+      "initial_region_id": "urban",
+      "maximum_service_units_per_period": 3,
+      "capability_evidence": "fresh_in_domain"
+    }
+  ],
+  "reposition_periods": [
+    [
+      0,
+      1
+    ],
+    [
+      1,
+      0
+    ]
+  ],
+  "reposition_cost": [
+    [
+      0,
+      8
+    ],
+    [
+      8,
+      0
+    ]
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "normal",
+      "probability_bps": 6000,
+      "periods": [
+        {
+          "observations": [
+            {
+              "region_id": "urban",
+              "demand_units": 3,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            },
+            {
+              "region_id": "rural",
+              "demand_units": 5,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            }
+          ]
+        },
+        {
+          "observations": [
+            {
+              "region_id": "urban",
+              "demand_units": 6,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            },
+            {
+              "region_id": "rural",
+              "demand_units": 6,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            }
+          ]
+        },
+        {
+          "observations": [
+            {
+              "region_id": "urban",
+              "demand_units": 5,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            },
+            {
+              "region_id": "rural",
+              "demand_units": 7,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            }
+          ]
+        },
+        {
+          "observations": [
+            {
+              "region_id": "urban",
+              "demand_units": 6,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            },
+            {
+              "region_id": "rural",
+              "demand_units": 3,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "storm",
+      "probability_bps": 4000,
+      "periods": [
+        {
+          "observations": [
+            {
+              "region_id": "urban",
+              "demand_units": 3,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            },
+            {
+              "region_id": "rural",
+              "demand_units": 5,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            }
+          ]
+        },
+        {
+          "observations": [
+            {
+              "region_id": "urban",
+              "demand_units": 6,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            },
+            {
+              "region_id": "rural",
+              "demand_units": 6,
+              "weather": "blocked_fresh",
+              "permission": "approved_fresh"
+            }
+          ]
+        },
+        {
+          "observations": [
+            {
+              "region_id": "urban",
+              "demand_units": 5,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            },
+            {
+              "region_id": "rural",
+              "demand_units": 7,
+              "weather": "stale",
+              "permission": "approved_fresh"
+            }
+          ]
+        },
+        {
+          "observations": [
+            {
+              "region_id": "urban",
+              "demand_units": 6,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            },
+            {
+              "region_id": "rural",
+              "demand_units": 3,
+              "weather": "clear_fresh",
+              "permission": "approved_fresh"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
