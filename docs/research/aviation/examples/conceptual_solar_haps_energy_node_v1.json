@@ -1,0 +1,146 @@
+{
+  "schema_version": "aero-aircraft-candidate/v1",
+  "candidate_id": "conceptual.solar-haps.energy-node.001",
+  "revision": 1,
+  "family": "solar_haps",
+  "data_origin": "synthetic",
+  "claim_ceiling": "synthetic_architecture_screening",
+  "configuration_status": "conceptual",
+  "propulsion": {
+    "architecture": "solar_electric_haps",
+    "propulsor_count": null,
+    "drive_train_config_ref": null
+  },
+  "energy": {
+    "primary_storage": "battery",
+    "secondary_sources": [
+      "solar"
+    ],
+    "energy_system_model_ref": null,
+    "thermal_model_ref": null
+  },
+  "owner_work_refs": [
+    {
+      "system": "symthaea",
+      "issue_url": "https://github.com/Luminous-Dynamics/symthaea/issues/7343",
+      "responsibility": "Persistent solar HAPS energy-balance and long-duration platform screening owner."
+    },
+    {
+      "system": "symthaea",
+      "issue_url": "https://github.com/Luminous-Dynamics/symthaea/issues/7646",
+      "responsibility": "Mission-bounded aircraft energy, power, reserve and whole-system architecture owner."
+    },
+    {
+      "system": "symtropy",
+      "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/5885",
+      "responsibility": "HAPS-specific system boundary and energy-export/network benchmark."
+    },
+    {
+      "system": "symtropy",
+      "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/3885",
+      "responsibility": "Mission-matched aircraft energy architecture and aircraft replenishment comparison."
+    },
+    {
+      "system": "symtropy",
+      "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/3458",
+      "responsibility": "Optical transfer physics, receiver and modality-specific safety evidence."
+    },
+    {
+      "system": "symtropy",
+      "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/4080",
+      "responsibility": "Airborne energy-session acquisition, interruption and reacquisition lifecycle."
+    },
+    {
+      "system": "symtropy",
+      "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/4115",
+      "responsibility": "Receiver-pose observability and reacquisition evidence."
+    },
+    {
+      "system": "symtropy",
+      "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/4157",
+      "responsibility": "Ground-air energy scheduling and cross-layer evidence composition."
+    },
+    {
+      "system": "mycelix",
+      "issue_url": "https://github.com/Luminous-Dynamics/mycelix/issues/3638",
+      "responsibility": "Airframe, solar-array, battery, receiver and maintenance configuration provenance."
+    }
+  ],
+  "discipline_model_refs": [],
+  "component_refs": [],
+  "closure_receipts": {
+    "mass_properties": null,
+    "cg_inertia": null,
+    "aerodynamics_loads": null,
+    "propulsion": null,
+    "energy_thermal": null,
+    "mission_reserve": null,
+    "maintainability": null
+  },
+  "unknowns": [
+    {
+      "field_path": "mass_properties",
+      "disposition": "unknown",
+      "reason": "No airframe geometry, cell mass, battery mass, transmitter/receiver installation or payload allocation is supplied."
+    },
+    {
+      "field_path": "aerodynamics_loads",
+      "disposition": "unknown",
+      "reason": "No validated stratospheric low-Reynolds aerodynamic, gust, aeroelastic or structural model is bound."
+    },
+    {
+      "field_path": "solar_collection",
+      "disposition": "unknown",
+      "reason": "No as-built PV array geometry, efficiency map, temperature coefficient or source-qualified seasonal irradiance model is bound."
+    },
+    {
+      "field_path": "24h_energy_closure",
+      "disposition": "unknown",
+      "reason": "No 24-hour net energy closure is demonstrated across night, season, latitude, wind, payload and reserve."
+    },
+    {
+      "field_path": "battery_pack",
+      "disposition": "unknown",
+      "reason": "No installed pack specific energy, capacity, aging, cold/thermal limit or end-of-life profile is supplied."
+    },
+    {
+      "field_path": "station_keeping",
+      "disposition": "unknown",
+      "reason": "No wind-relative trajectory, station-keeping policy or propulsion power trace is supplied."
+    },
+    {
+      "field_path": "exportable_power",
+      "disposition": "unknown",
+      "reason": "No net surplus energy is established after own-aircraft propulsion, avionics, payload, thermal management, battery charging and reserve."
+    },
+    {
+      "field_path": "energy_transfer_link",
+      "disposition": "unknown",
+      "reason": "No transmitter, receiver, pointing, path, beam interruption, end-to-end efficiency or motion-matched transfer evidence is bound."
+    },
+    {
+      "field_path": "receiver_aircraft",
+      "disposition": "unknown",
+      "reason": "No recipient aircraft, receiver installation, mass/drag penalty, charging acceptance or mission requirement is specified."
+    },
+    {
+      "field_path": "fleet_reliability",
+      "disposition": "unknown",
+      "reason": "No fleet redundancy, inspection, recovery, maintenance or multi-month service-availability evidence is supplied."
+    },
+    {
+      "field_path": "operations_authority",
+      "disposition": "unknown",
+      "reason": "No HAPS airspace, spectrum, RF/laser exposure, site or operating authority is implied by this conceptual record."
+    }
+  ],
+  "assumptions": [
+    "This is a conceptual solar-electric high-altitude platform identity, not a defined or flyable aircraft.",
+    "The aircraft is electrically propelled for station-keeping; it is not an unpowered glider and its glide capability is not treated as station-keeping energy.",
+    "Months-long persistence is a design target/industry proposition for some HAPS platforms, not a demonstrated result for this candidate.",
+    "Year-long or multi-year single-airframe continuous operation is not assumed or claimed.",
+    "Any power exported to another aircraft is a separate research hypothesis and is unavailable until net export energy and modality-specific link evidence are established.",
+    "Published HAPS dimensions, masses, payloads, endurance intentions and wireless-power demonstrations are source-specific references and are not copied into this synthetic candidate.",
+    "All physical performance, infrastructure, airspace and safety fields remain unknown until supplied by their owning engineering domains."
+  ]
+}
