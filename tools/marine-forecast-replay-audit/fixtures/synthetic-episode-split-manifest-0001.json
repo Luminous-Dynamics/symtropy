@@ -1,0 +1,255 @@
+{
+  "schema_version": "0.1.0",
+  "manifest_id": "MARINE-FORECAST-REPLAY-SPLIT-SYNTHETIC-0001",
+  "record_status": "synthetic",
+  "claim_ceiling": "holdout_partition_integrity_only",
+  "dataset_id": "SYNTHETIC-MARINE-REPLAY-DATASET-0001",
+  "dataset_manifest_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "grouping_unit": "whole_voyage",
+  "split_algorithm": "stratified_group_assignment_v1",
+  "split_seed": "marine-replay-split-seed-2026-11-19",
+  "folds": [
+    "development",
+    "validation",
+    "test"
+  ],
+  "episodes": [
+    {
+      "episode_id": "SYNTH-EP-001",
+      "fold": "development",
+      "voyage_id": "SYNTH-VOYAGE-001",
+      "weather_event_id": "SYNTH-WX-001",
+      "replay_bundle_sha256": "0000000000000000000000000000000000000000000000000000000000000001",
+      "craft_configuration_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+      "start_time": "2026-01-01T00:00:00Z",
+      "end_time": "2026-01-02T00:00:00Z",
+      "environment_strata": [
+        "wind_sea_state:low",
+        "solar_load:high"
+      ],
+      "decision_samples": [
+        {
+          "decision_id": "SYNTH-DEC-001-A",
+          "decision_cutoff": "2026-01-01T01:00:00Z",
+          "target_valid_time": "2026-01-01T02:00:00Z"
+        },
+        {
+          "decision_id": "SYNTH-DEC-001-B",
+          "decision_cutoff": "2026-01-01T04:00:00Z",
+          "target_valid_time": "2026-01-01T05:00:00Z"
+        }
+      ]
+    },
+    {
+      "episode_id": "SYNTH-EP-002",
+      "fold": "development",
+      "voyage_id": "SYNTH-VOYAGE-002",
+      "weather_event_id": "SYNTH-WX-002",
+      "replay_bundle_sha256": "0000000000000000000000000000000000000000000000000000000000000002",
+      "craft_configuration_sha256": "0000000000000000000000000000000000000000000000000000000000000065",
+      "start_time": "2026-01-11T00:00:00Z",
+      "end_time": "2026-01-12T00:00:00Z",
+      "environment_strata": [
+        "wind_sea_state:moderate",
+        "forecast_error:low"
+      ],
+      "decision_samples": [
+        {
+          "decision_id": "SYNTH-DEC-002-A",
+          "decision_cutoff": "2026-01-11T01:00:00Z",
+          "target_valid_time": "2026-01-11T02:00:00Z"
+        },
+        {
+          "decision_id": "SYNTH-DEC-002-B",
+          "decision_cutoff": "2026-01-11T04:00:00Z",
+          "target_valid_time": "2026-01-11T05:00:00Z"
+        }
+      ]
+    },
+    {
+      "episode_id": "SYNTH-EP-003",
+      "fold": "development",
+      "voyage_id": "SYNTH-VOYAGE-003",
+      "weather_event_id": "SYNTH-WX-003",
+      "replay_bundle_sha256": "0000000000000000000000000000000000000000000000000000000000000003",
+      "craft_configuration_sha256": "0000000000000000000000000000000000000000000000000000000000000066",
+      "start_time": "2026-01-21T00:00:00Z",
+      "end_time": "2026-01-22T00:00:00Z",
+      "environment_strata": [
+        "wind_sea_state:high",
+        "solar_load:low"
+      ],
+      "decision_samples": [
+        {
+          "decision_id": "SYNTH-DEC-003-A",
+          "decision_cutoff": "2026-01-21T01:00:00Z",
+          "target_valid_time": "2026-01-21T02:00:00Z"
+        },
+        {
+          "decision_id": "SYNTH-DEC-003-B",
+          "decision_cutoff": "2026-01-21T04:00:00Z",
+          "target_valid_time": "2026-01-21T05:00:00Z"
+        }
+      ]
+    },
+    {
+      "episode_id": "SYNTH-EP-004",
+      "fold": "validation",
+      "voyage_id": "SYNTH-VOYAGE-004",
+      "weather_event_id": "SYNTH-WX-004",
+      "replay_bundle_sha256": "0000000000000000000000000000000000000000000000000000000000000004",
+      "craft_configuration_sha256": "0000000000000000000000000000000000000000000000000000000000000067",
+      "start_time": "2026-02-01T00:00:00Z",
+      "end_time": "2026-02-02T00:00:00Z",
+      "environment_strata": [
+        "wind_sea_state:low",
+        "forecast_error:moderate"
+      ],
+      "decision_samples": [
+        {
+          "decision_id": "SYNTH-DEC-004-A",
+          "decision_cutoff": "2026-02-01T01:00:00Z",
+          "target_valid_time": "2026-02-01T02:00:00Z"
+        },
+        {
+          "decision_id": "SYNTH-DEC-004-B",
+          "decision_cutoff": "2026-02-01T04:00:00Z",
+          "target_valid_time": "2026-02-01T05:00:00Z"
+        }
+      ]
+    },
+    {
+      "episode_id": "SYNTH-EP-005",
+      "fold": "validation",
+      "voyage_id": "SYNTH-VOYAGE-005",
+      "weather_event_id": "SYNTH-WX-005",
+      "replay_bundle_sha256": "0000000000000000000000000000000000000000000000000000000000000005",
+      "craft_configuration_sha256": "0000000000000000000000000000000000000000000000000000000000000068",
+      "start_time": "2026-02-11T00:00:00Z",
+      "end_time": "2026-02-12T00:00:00Z",
+      "environment_strata": [
+        "wind_sea_state:moderate",
+        "solar_load:moderate"
+      ],
+      "decision_samples": [
+        {
+          "decision_id": "SYNTH-DEC-005-A",
+          "decision_cutoff": "2026-02-11T01:00:00Z",
+          "target_valid_time": "2026-02-11T02:00:00Z"
+        },
+        {
+          "decision_id": "SYNTH-DEC-005-B",
+          "decision_cutoff": "2026-02-11T04:00:00Z",
+          "target_valid_time": "2026-02-11T05:00:00Z"
+        }
+      ]
+    },
+    {
+      "episode_id": "SYNTH-EP-006",
+      "fold": "validation",
+      "voyage_id": "SYNTH-VOYAGE-006",
+      "weather_event_id": "SYNTH-WX-006",
+      "replay_bundle_sha256": "0000000000000000000000000000000000000000000000000000000000000006",
+      "craft_configuration_sha256": "0000000000000000000000000000000000000000000000000000000000000069",
+      "start_time": "2026-02-21T00:00:00Z",
+      "end_time": "2026-02-22T00:00:00Z",
+      "environment_strata": [
+        "wind_sea_state:high",
+        "forecast_error:high"
+      ],
+      "decision_samples": [
+        {
+          "decision_id": "SYNTH-DEC-006-A",
+          "decision_cutoff": "2026-02-21T01:00:00Z",
+          "target_valid_time": "2026-02-21T02:00:00Z"
+        },
+        {
+          "decision_id": "SYNTH-DEC-006-B",
+          "decision_cutoff": "2026-02-21T04:00:00Z",
+          "target_valid_time": "2026-02-21T05:00:00Z"
+        }
+      ]
+    },
+    {
+      "episode_id": "SYNTH-EP-007",
+      "fold": "test",
+      "voyage_id": "SYNTH-VOYAGE-007",
+      "weather_event_id": "SYNTH-WX-007",
+      "replay_bundle_sha256": "0000000000000000000000000000000000000000000000000000000000000007",
+      "craft_configuration_sha256": "000000000000000000000000000000000000000000000000000000000000006a",
+      "start_time": "2026-03-01T00:00:00Z",
+      "end_time": "2026-03-02T00:00:00Z",
+      "environment_strata": [
+        "wind_sea_state:low",
+        "solar_load:high",
+        "forecast_error:low"
+      ],
+      "decision_samples": [
+        {
+          "decision_id": "SYNTH-DEC-007-A",
+          "decision_cutoff": "2026-03-01T01:00:00Z",
+          "target_valid_time": "2026-03-01T02:00:00Z"
+        },
+        {
+          "decision_id": "SYNTH-DEC-007-B",
+          "decision_cutoff": "2026-03-01T04:00:00Z",
+          "target_valid_time": "2026-03-01T05:00:00Z"
+        }
+      ]
+    },
+    {
+      "episode_id": "SYNTH-EP-008",
+      "fold": "test",
+      "voyage_id": "SYNTH-VOYAGE-008",
+      "weather_event_id": "SYNTH-WX-008",
+      "replay_bundle_sha256": "0000000000000000000000000000000000000000000000000000000000000008",
+      "craft_configuration_sha256": "000000000000000000000000000000000000000000000000000000000000006b",
+      "start_time": "2026-03-11T00:00:00Z",
+      "end_time": "2026-03-12T00:00:00Z",
+      "environment_strata": [
+        "wind_sea_state:moderate",
+        "solar_load:low",
+        "forecast_error:moderate"
+      ],
+      "decision_samples": [
+        {
+          "decision_id": "SYNTH-DEC-008-A",
+          "decision_cutoff": "2026-03-11T01:00:00Z",
+          "target_valid_time": "2026-03-11T02:00:00Z"
+        },
+        {
+          "decision_id": "SYNTH-DEC-008-B",
+          "decision_cutoff": "2026-03-11T04:00:00Z",
+          "target_valid_time": "2026-03-11T05:00:00Z"
+        }
+      ]
+    },
+    {
+      "episode_id": "SYNTH-EP-009",
+      "fold": "test",
+      "voyage_id": "SYNTH-VOYAGE-009",
+      "weather_event_id": "SYNTH-WX-009",
+      "replay_bundle_sha256": "0000000000000000000000000000000000000000000000000000000000000009",
+      "craft_configuration_sha256": "000000000000000000000000000000000000000000000000000000000000006c",
+      "start_time": "2026-03-21T00:00:00Z",
+      "end_time": "2026-03-22T00:00:00Z",
+      "environment_strata": [
+        "wind_sea_state:high",
+        "solar_load:moderate",
+        "forecast_error:high"
+      ],
+      "decision_samples": [
+        {
+          "decision_id": "SYNTH-DEC-009-A",
+          "decision_cutoff": "2026-03-21T01:00:00Z",
+          "target_valid_time": "2026-03-21T02:00:00Z"
+        },
+        {
+          "decision_id": "SYNTH-DEC-009-B",
+          "decision_cutoff": "2026-03-21T04:00:00Z",
+          "target_valid_time": "2026-03-21T05:00:00Z"
+        }
+      ]
+    }
+  ]
+}
