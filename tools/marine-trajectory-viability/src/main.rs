@@ -342,8 +342,8 @@ fn check_energy_transition(
     if residual.abs() > v[7].max(NUMERIC_TOLERANCE) {
         errors.push(format!("{label} conservation residual {residual:.6} exceeds tolerance {:.6}",v[7]));
     }
-    let from_state = number_at(metric(from,"energy_reserve_kwh")?, "value");
-    let to_state = number_at(metric(to,"energy_reserve_kwh")?, "value");
+    let from_state = metric(from,"energy_reserve_kwh").and_then(|item| number_at(item,"value"));
+    let to_state = metric(to,"energy_reserve_kwh").and_then(|item| number_at(item,"value"));
     if from_state.is_none_or(|state| !close(state,v[0],v[7]))
         || to_state.is_none_or(|state| !close(state,v[6],v[7]))
     {
@@ -488,7 +488,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
         errors.push("scenario_roster must be an array".to_owned());
     }
     roster_classes.sort();
-    if roster_classes.iter().map(String::as_str).collect::<Vec<_>>() != SCENARIO_CLASSES {
+    if roster_classes.iter().map(String::as_str).collect::<Vec<_>>().as_slice() != SCENARIO_CLASSES.as_slice() {
         errors.push("scenario_roster must contain every required disturbance class exactly once".to_owned());
     }
     let roster_canonical = roster_classes.join("\n");
@@ -583,7 +583,6 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             if states.is_none_or(|items| items.len() != times.len()) {
                 errors.push(format!("scenario '{scenario_id}' must have exactly one state per time-grid point"));
             }
-            let mut state_values = Vec::<BTreeMap<String,f64>>::new();
             let mut state_components = Vec::<BTreeMap<String,String>>::new();
             let mut margins = BTreeMap::<String,(f64,String)>::new();
             let mut scenario_breaches = Vec::<Value>::new();
@@ -631,9 +630,6 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                             initial_state_reference = Some(initial);
                         }
                     }
-                    for (metric_id,entry) in &margins {
-                        let _ = (metric_id,entry);
-                    }
                     if let Some(contract_items) = contract.as_array() {
                         for spec in METRICS {
                             let item = metric(state,spec.metric);
@@ -672,19 +668,33 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                             }
                         }
                     }
-                    state_values.push(metrics);
+                    let _ = metrics;
                 }
             }
 
             match scenario_class {
+                "nominal" | "adverse_forecast_error" => {
+                    if state_components.iter().any(|states|
+                        states.get("main_generator").map(String::as_str) != Some("available")
+                        || states.get("watermaker").map(String::as_str) != Some("available"))
+                    {
+                        errors.push(format!("scenario '{scenario_id}' must keep main_generator and watermaker available"));
+                    }
+                }
                 "main_generation_outage" => {
-                    if state_components.iter().any(|states| states.get("main_generator").map(String::as_str) != Some("unavailable")) {
-                        errors.push(format!("scenario '{scenario_id}' must keep main_generator unavailable for the full horizon"));
+                    if state_components.iter().any(|states|
+                        states.get("main_generator").map(String::as_str) != Some("unavailable")
+                        || states.get("watermaker").map(String::as_str) != Some("available"))
+                    {
+                        errors.push(format!("scenario '{scenario_id}' must disable only the main generator for the full horizon"));
                     }
                 }
                 "watermaker_outage" => {
-                    if state_components.iter().any(|states| states.get("watermaker").map(String::as_str) != Some("unavailable")) {
-                        errors.push(format!("scenario '{scenario_id}' must keep watermaker unavailable for the full horizon"));
+                    if state_components.iter().any(|states|
+                        states.get("watermaker").map(String::as_str) != Some("unavailable")
+                        || states.get("main_generator").map(String::as_str) != Some("available"))
+                    {
+                        errors.push(format!("scenario '{scenario_id}' must disable only the watermaker for the full horizon"));
                     }
                 }
                 "common_cause_generation_watermaker_outage" => {
@@ -754,7 +764,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
         }
     }
     let actual_classes = seen_classes.iter().cloned().collect::<Vec<_>>();
-    if actual_classes.iter().map(String::as_str).collect::<Vec<_>>() != SCENARIO_CLASSES {
+    if actual_classes.iter().map(String::as_str).collect::<Vec<_>>().as_slice() != SCENARIO_CLASSES.as_slice() {
         errors.push("scenario records do not exactly cover the mandatory scenario classes".to_owned());
     }
     if initial_digest_observed.as_deref() != string_at(snapshot,"initial_resource_state_sha256") {
