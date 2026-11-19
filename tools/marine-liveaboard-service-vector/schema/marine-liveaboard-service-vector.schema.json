@@ -176,7 +176,8 @@
             "enum": [
               "weather_blind_reference",
               "weather_informed_resource_blind",
-              "integrated_candidate"
+              "integrated_candidate",
+              "authorized_soft_relaxation"
             ]
           },
           "forecast_use": {
