@@ -570,11 +570,18 @@ mod tests {
         assert_eq!(report["disposition"], "SYNTHETIC_ONLY");
         assert_eq!(report["forecast_case_count"], 9);
         assert_eq!(report["mission_pair_count"], 9);
-        assert_eq!(report["forecast_metrics"][0]["sample_count"], 9);
-        assert!(report["forecast_metrics"][0]["ensemble_crps"].as_f64().unwrap() >= 0.0);
-        assert!(report["threshold_metrics"][0]["brier_score"].as_f64().unwrap() >= 0.0);
+        let test_skill = report["forecast_metrics"].as_array().unwrap().iter()
+            .find(|metric| metric["fold"] == "test").expect("test-fold forecast metrics exist");
+        assert_eq!(test_skill["sample_count"], 3);
+        assert!(test_skill["environment_strata"].as_array().unwrap().len() >= 3);
+        assert!(test_skill["ensemble_crps"].as_f64().unwrap() >= 0.0);
+        let test_threshold = report["threshold_metrics"].as_array().unwrap().iter()
+            .find(|metric| metric["fold"] == "test").expect("test-fold threshold metrics exist");
+        assert_eq!(test_threshold["sample_count"], 3);
+        assert!(test_threshold["brier_score"].as_f64().unwrap() >= 0.0);
         assert_eq!(report["decision_metrics"]["statistical_inference"], "NOT_PERFORMED");
-        assert!(report["decision_metrics"]["mean_paired_energy_improvement_pct"].as_f64().unwrap() > 0.0);
+        assert_eq!(report["decision_metrics"]["by_fold"]["test"]["paired_case_count"], 3);
+        assert!(report["decision_metrics"]["by_fold"]["test"]["mean_paired_energy_improvement_pct"].as_f64().unwrap() > 0.0);
     }
 
     #[test]
