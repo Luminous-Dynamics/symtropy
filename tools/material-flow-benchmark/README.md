@@ -320,3 +320,37 @@ The validator does **not** establish axle loads, suspension/tire capability, loa
 
 Broader 3D loading, package access/release-time, pickup/return, locker and en-route resupply benchmark work is tracked by [MFB-CARGO-3D-DYNAMIC-001 #6147](https://github.com/Luminous-Dynamics/symtropy/issues/6147).
 
+
+
+## Demand-adaptive logistics mode options (synthetic exact oracle)
+
+The `mfb-evaluate-mode-options` binary solves a small finite-horizon activation problem for optional aerial capacity. It compares:
+- static truck-only;
+- static aerial-enabled;
+- immediate demand-threshold activation;
+- an exact optimized activation/deactivation policy over the supplied finite scenario tree.
+
+Each region has an independently tracked aerial-capacity option in v1. The solver includes road/aerial capacity, road/aerial service costs, unserved-demand penalties, activation/deactivation costs and active-standby costs. It reports deliveries, unserved units, switching counts and active periods separately.
+
+### Nonanticipativity and hard gates
+
+Policy nodes are derived from the SHA-256 digest of each region's *observed history through the current period*. Scenarios with identical observed histories therefore share the same policy decision; future scenario information is not available to earlier actions.
+
+Aerial service is eligible only when the current observation is both `clear_fresh` and `approved_fresh`. Blocked, stale, unknown, revoked or not-approved states never become eligible because the aerial mode has positive economic value. Enabling or activating a capacity option is not flight authorization.
+
+The exact oracle is deliberately bounded to 16 periods, 8 regions, 32 scenarios and 20 nonanticipative policy nodes (at most 1,048,576 policies). Scenario probabilities use integer basis points and must sum to 10,000. It is a small-instance oracle, not a fleet-scale optimizer.
+
+Run the synthetic two-region, four-period scenario:
+
+```bash
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-evaluate-mode-options -- \
+  tools/material-flow-benchmark/fixtures/synthetic-two-region-mode-options.json
+```
+
+The fixture contains two demand/weather paths and 11 derived policy nodes, so the exact evaluator checks 2,048 policies. The report includes the canonical input digest and explicitly sets `physical_dispatch_authorized=false` and `dispatch_commands_emitted=false`.
+
+### v1 limitations
+
+This is not a calibrated demand forecast or real-options valuation for South Africa. It does not yet model shared aircraft pools across regions, asset relocation, fixed depot hubs, detachable pods, AMR/locker alternatives, depot charging queues, battery degradation, crew constraints or route-level feasibility. It assumes independent per-region aerial capacity and deterministic per-period service capacities/costs. Those are subsequent research increments; do not interpret the synthetic result as operational cost savings or an optimal real fleet configuration.
+
+The broader activation/sharing/repositioning/withdrawal benchmark is tracked by [LOGISTICS-MODE-OPTIONS-001 #6153](https://github.com/Luminous-Dynamics/symtropy/issues/6153). Related SOTA papers include the 2026 stochastic entry/exit model for truck-only versus drone-assisted delivery (https://doi.org/10.1016/j.trc.2026.105807) and the 2026 joint multi-truck/multi-drone fleet-sizing and routing study (https://doi.org/10.3390/drones10090658). Their results and instances must be reproduced under matched assumptions before claiming improvement.
