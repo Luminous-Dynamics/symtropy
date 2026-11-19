@@ -268,6 +268,14 @@ fn sample_metrics(
     result
 }
 
+fn initial_state_digest(metrics: &BTreeMap<String, SampleMetric>) -> String {
+    let canonical = metrics.iter().map(|(metric, item)| format!(
+        "{metric}|{}|{:.17}|{:.17}|{:.17}",
+        item.unit, item.value, item.lower, item.upper
+    )).collect::<Vec<_>>().join("\n");
+    sha256_hex(canonical.as_bytes())
+}
+
 fn endpoint_gap(start: &SampleMetric, end: &SampleMetric) -> f64 {
     (start.lower - end.upper).max(end.lower - start.upper).max(0.0)
 }
@@ -390,9 +398,9 @@ fn validate(raw: &[u8], value: &Value) -> Value {
         errors.push("mission_snapshot_sha256 does not match the canonical snapshot".to_owned());
     }
     for field in [
-        "craft_configuration_sha256", "occupancy_sha256", "service_contract_sha256",
-        "time_grid_sha256", "scenario_roster_sha256", "model_registry_sha256",
-        "operating_envelope_sha256",
+        "craft_configuration_sha256", "occupancy_sha256", "initial_resource_state_sha256",
+        "service_contract_sha256", "time_grid_sha256", "scenario_roster_sha256",
+        "model_registry_sha256", "operating_envelope_sha256",
     ] {
         if !digest_valid(string_at(snapshot, field)) {
             errors.push(format!("mission snapshot has invalid {field}"));
@@ -638,6 +646,14 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     if actual_classes.iter().map(String::as_str).collect::<Vec<_>>().as_slice() != SCENARIO_CLASSES.as_slice() {
         errors.push("scenario records do not cover the exact mandatory roster".to_owned());
     }
+    if let Some(initial) = &initial_state {
+        let calculated = initial_state_digest(initial);
+        if string_at(snapshot, "initial_resource_state_sha256") != Some(calculated.as_str()) {
+            errors.push("initial_resource_state_sha256 does not match canonical first-sample resource values and bounds".to_owned());
+        }
+    } else {
+        errors.push("no canonical initial resource state was available".to_owned());
+    }
 
     let invalid = !errors.is_empty();
     let blocked = !blockers.is_empty()
@@ -831,6 +847,13 @@ mod tests {
     fn scenario_digest_detects_sample_tampering() {
         let mut value = fixture();
         value["scenarios"][0]["samples"][1]["resource_metrics"][0]["value"] = json!(25.0);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn initial_resource_digest_detects_starting_reserve_tampering() {
+        let mut value = fixture();
+        value["scenarios"][0]["samples"][0]["resource_metrics"][0]["value"] = json!(25.0);
         assert_eq!(audit(&value)["disposition"], "INVALID");
     }
 
