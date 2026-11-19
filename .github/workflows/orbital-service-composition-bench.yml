@@ -1,0 +1,79 @@
+name: Orbital Service Composition Reference
+
+on:
+  push:
+    branches: ["research/orbital-service-acceptance-composition-v0-1"]
+    paths:
+      - "tools/orbital-service-composition-bench/**"
+      - ".github/workflows/orbital-service-composition-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/orbital-service-composition-bench/**"
+      - ".github/workflows/orbital-service-composition-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: orbital-service-composition-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  composition-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Resolve standalone dependency graph
+        run: cargo generate-lockfile --manifest-path tools/orbital-service-composition-bench/Cargo.toml
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/orbital-service-composition-bench/Cargo.toml -- --check
+
+      - name: Run composition contract tests
+        run: cargo test --locked --manifest-path tools/orbital-service-composition-bench/Cargo.toml --all-targets
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path tools/orbital-service-composition-bench/Cargo.toml --all-targets -- -D warnings
+
+      - name: Generate exact-input receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --locked --quiet --manifest-path tools/orbital-service-composition-bench/Cargo.toml -- \
+            tools/orbital-service-composition-bench/fixtures/v0.1/cases.json \
+            --source-commit "$source_commit" > orbital-service-composition-receipt.json
+          jq -e '
+            .result == "pass"
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and .report.result == "pass"
+            and .report.evidence_class == "synthetic"
+            and .report.summary.case_count == 14
+            and .report.summary.accepted_for_synthetic_composition == 1
+            and .report.summary.rejected == 7
+            and .report.summary.indeterminate == 6
+            and .report.summary.expected_result_mismatches == 0
+            and .report.summary.operational_authority_grants == 0
+          ' orbital-service-composition-receipt.json
+
+      - name: Retain exact-input receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-service-composition-receipt-${{ github.sha }}
+          path: orbital-service-composition-receipt.json
+          if-no-files-found: error
