@@ -48,6 +48,8 @@ pub struct CoolingCase {
     pub chiller_electric_input_w: f64,
     /// Water-loop pump electric input (W).
     pub water_pump_electric_input_w: f64,
+    /// Other declared cooling-plant auxiliary electric input (W).
+    pub other_cooling_auxiliary_electric_input_w: f64,
     /// Declared fraction of pump electric input ultimately entering the seawater
     /// heat-rejection boundary, in [0, 1].
     pub pump_heat_fraction_to_seawater: f64,
@@ -188,6 +190,7 @@ fn validate(case: &CoolingCase) -> Result<(), VerificationError> {
         ("chiller evaporator heat W", case.chiller_evaporator_heat_w),
         ("chiller electric input W", case.chiller_electric_input_w),
         ("water-pump electric input W", case.water_pump_electric_input_w),
+        ("other cooling auxiliary electric input W", case.other_cooling_auxiliary_electric_input_w),
         ("other heat to seawater W", case.other_heat_to_seawater_w),
         ("heat balance tolerance W", case.heat_balance_tolerance_w),
         ("temperature tolerance C", case.site_limits.temperature_tolerance_c),
@@ -377,7 +380,9 @@ pub fn verify_cooling_balance(
     let it_heat_energy_kwh =
         finite(case.it_heat_load_w * interval_hours / 1000.0, "IT heat energy")?;
     let cooling_electric_energy_kwh = finite(
-        (case.chiller_electric_input_w + case.water_pump_electric_input_w)
+        (case.chiller_electric_input_w
+            + case.water_pump_electric_input_w
+            + case.other_cooling_auxiliary_electric_input_w)
             * interval_hours
             / 1000.0,
         "cooling electric energy",
@@ -445,6 +450,7 @@ mod tests {
             chiller_evaporator_heat_w: evaporator,
             chiller_electric_input_w: chiller_power,
             water_pump_electric_input_w: pump,
+            other_cooling_auxiliary_electric_input_w: 0.0,
             pump_heat_fraction_to_seawater: pump_fraction,
             other_heat_to_seawater_w: other,
             seawater_mass_flow_kg_per_s: flow,
