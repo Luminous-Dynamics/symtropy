@@ -35,7 +35,8 @@
         "source_schema_release": "IFC4X3_ADD2",
         "ids_spec_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "ids_version": "1.0",
-        "ids_engine_build_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        "ids_engine_build_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "coordinate_context_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
       }
     }
   },
@@ -198,7 +199,8 @@
         "source_schema_release": "IFC4X3_ADD2",
         "ids_spec_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "ids_version": "1.0",
-        "ids_engine_build_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        "ids_engine_build_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "coordinate_context_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
       }
     }
   }
