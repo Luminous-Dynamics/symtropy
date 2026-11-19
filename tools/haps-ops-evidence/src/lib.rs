@@ -90,6 +90,7 @@ pub struct OpsEvent {
     pub from_state: String,
     pub to_state: String,
     pub onset_knowledge: String,
+    pub onset_known_at_utc: Option<String>,
     pub onset_interval_earliest_utc: Option<String>,
     pub onset_interval_latest_utc: Option<String>,
     #[serde(default)]
@@ -129,6 +130,7 @@ pub struct ExposureRecord {
     pub start_utc: String,
     pub end_utc: String,
     pub exposure_seconds: f64,
+    pub risk_entry_utc: Option<String>,
     pub failure_observation: String,
     pub censoring_status: String,
     pub event_time_lower_bound_utc: Option<String>,
@@ -309,8 +311,18 @@ fn valid_transition(event: &OpsEvent) -> bool {
         "maintenance_deferred" => {
             event.from_state == "grounded" && event.to_state == "maintenance_queued"
         }
-        "configuration_changed" | "instrument_calibrated" => {
-            event.from_state == event.to_state
+        "configuration_changed" => {
+            matches!(
+                event.from_state.as_str(),
+                "grounded"
+                    | "maintenance_queued"
+                    | "maintenance_in_progress"
+                    | "verification_hold"
+                    | "awaiting_authorized_release"
+            ) && event.to_state == "verification_hold"
+        }
+        "instrument_calibrated" => {
+            event.from_state == "verification_hold" && event.to_state == "verification_hold"
         }
         _ => false,
     }
@@ -342,6 +354,8 @@ fn validate_ledger(ledger: &OpsEvidenceLedger) -> Result<(), LedgerError> {
 
     let mut assets = HashMap::new();
     let mut states = HashMap::new();
+    let mut current_configuration_refs = HashMap::new();
+    let mut known_configuration_refs: HashMap<String, HashSet<String>> = HashMap::new();
     for asset in &ledger.assets {
         if asset.asset_ref.trim().is_empty()
             || asset.configuration_ref.trim().is_empty()
@@ -353,6 +367,12 @@ fn validate_ledger(ledger: &OpsEvidenceLedger) -> Result<(), LedgerError> {
             ));
         }
         states.insert(asset.asset_ref.clone(), asset.initial_state.clone());
+        current_configuration_refs
+            .insert(asset.asset_ref.clone(), asset.configuration_ref.clone());
+        known_configuration_refs
+            .entry(asset.asset_ref.clone())
+            .or_default()
+            .insert(asset.configuration_ref.clone());
     }
 
     let mut event_ids = HashSet::new();
@@ -382,9 +402,12 @@ fn validate_ledger(ledger: &OpsEvidenceLedger) -> Result<(), LedgerError> {
         let asset = assets.get(event.asset_ref.as_str()).ok_or_else(|| {
             LedgerError::InvalidEvent(format!("event {} references unknown asset", event.event_id))
         })?;
-        if event.configuration_ref != asset.configuration_ref {
+        let current_configuration = current_configuration_refs
+            .get(&event.asset_ref)
+            .expect("asset configuration initialized");
+        if &event.configuration_ref != current_configuration {
             return Err(LedgerError::InvalidEvent(format!(
-                "event {} configuration does not match its asset",
+                "event {} configuration does not match the configuration active at this sequence",
                 event.event_id
             )));
         }
@@ -449,42 +472,121 @@ fn validate_ledger(ledger: &OpsEvidenceLedger) -> Result<(), LedgerError> {
         }
         match event.onset_knowledge.as_str() {
             "known" => {
-                if event.occurred_at_utc.is_none()
-                    || event.onset_interval_earliest_utc.is_some()
+                let onset = event.onset_known_at_utc.as_deref().ok_or_else(|| {
+                    LedgerError::InvalidEvent(
+                        "known onset requires onset_known_at_utc".to_owned(),
+                    )
+                })?;
+                let onset = parse_utc_seconds(onset, "onset_known_at_utc")?;
+                if event.onset_interval_earliest_utc.is_some()
                     || event.onset_interval_latest_utc.is_some()
+                    || onset < observation_start
+                    || onset > observation_end
+                    || onset > observed
                 {
                     return Err(LedgerError::InvalidEvent(
-                        "known onset requires occurred_at_utc and must not carry censoring bounds".to_owned(),
+                        "known onset time conflicts with event observation bounds".to_owned(),
                     ));
                 }
             }
             "interval_censored" => {
+                if event.onset_known_at_utc.is_some() {
+                    return Err(LedgerError::InvalidEvent(
+                        "interval-censored onset must not carry an exact onset timestamp".to_owned(),
+                    ));
+                }
                 let lower = event.onset_interval_earliest_utc.as_deref().ok_or_else(|| {
                     LedgerError::InvalidEvent("interval-censored onset needs lower bound".to_owned())
                 })?;
                 let upper = event.onset_interval_latest_utc.as_deref().ok_or_else(|| {
                     LedgerError::InvalidEvent("interval-censored onset needs upper bound".to_owned())
                 })?;
-                if parse_utc_seconds(lower, "onset lower bound")? > parse_utc_seconds(upper, "onset upper bound")? {
+                let lower = parse_utc_seconds(lower, "onset lower bound")?;
+                let upper = parse_utc_seconds(upper, "onset upper bound")?;
+                if lower > upper
+                    || lower < observation_start
+                    || upper > observation_end
+                    || upper > observed
+                {
                     return Err(LedgerError::InvalidEvent(
-                        "onset interval bounds are reversed".to_owned(),
+                        "onset interval bounds are reversed or outside the detection window".to_owned(),
                     ));
                 }
             }
             "unknown" | "not_applicable" => {
-                if event.onset_interval_earliest_utc.is_some() || event.onset_interval_latest_utc.is_some() {
+                if event.onset_known_at_utc.is_some()
+                    || event.onset_interval_earliest_utc.is_some()
+                    || event.onset_interval_latest_utc.is_some()
+                {
                     return Err(LedgerError::InvalidEvent(
-                        "unknown/not-applicable onset must not carry interval bounds".to_owned(),
+                        "unknown/not-applicable onset must not carry exact or interval bounds".to_owned(),
                     ));
                 }
             }
             other => return Err(LedgerError::InvalidEvent(format!("unknown onset_knowledge value {other}"))),
         }
-        if event.source_evidence_refs.is_empty() || event.producer.organization_ref.trim().is_empty()
-            || event.producer.role.trim().is_empty() || event.producer.source_system_ref.trim().is_empty()
+        if event.source_evidence_refs.is_empty()
+            || event.producer.organization_ref.trim().is_empty()
+            || event.producer.role.trim().is_empty()
+            || event.producer.source_system_ref.trim().is_empty()
         {
             return Err(LedgerError::InvalidEvent(format!(
                 "event {} lacks producer or source evidence",
+                event.event_id
+            )));
+        }
+        let mut evidence_ids = HashSet::new();
+        for evidence in &event.source_evidence_refs {
+            if evidence.evidence_ref.trim().is_empty()
+                || evidence.evidence_kind.trim().is_empty()
+                || !evidence_ids.insert(evidence.evidence_ref.as_str())
+            {
+                return Err(LedgerError::InvalidEvent(format!(
+                    "event {} has empty or duplicate source evidence references",
+                    event.event_id
+                )));
+            }
+            if ledger.evidence_class != "synthetic"
+                && evidence.content_digest.as_deref().is_none_or(|value| value.trim().is_empty())
+            {
+                return Err(LedgerError::InvalidEvent(format!(
+                    "measured event {} requires a content digest for each source evidence reference",
+                    event.event_id
+                )));
+            }
+        }
+        if event.event_type == "configuration_changed" {
+            let new_ref = event.payload
+                .get("new_configuration_ref")
+                .and_then(Value::as_str)
+                .filter(|value| !value.trim().is_empty())
+                .ok_or_else(|| LedgerError::InvalidEvent(format!(
+                    "configuration_changed event {} requires payload.new_configuration_ref",
+                    event.event_id
+                )))?;
+            let new_revision = event.payload
+                .get("new_configuration_revision")
+                .and_then(Value::as_str)
+                .filter(|value| !value.trim().is_empty())
+                .ok_or_else(|| LedgerError::InvalidEvent(format!(
+                    "configuration_changed event {} requires payload.new_configuration_revision",
+                    event.event_id
+                )))?;
+            let _ = new_revision;
+            if new_ref == event.configuration_ref {
+                return Err(LedgerError::InvalidEvent(format!(
+                    "configuration_changed event {} must introduce a new configuration reference",
+                    event.event_id
+                )));
+            }
+            current_configuration_refs.insert(event.asset_ref.clone(), new_ref.to_owned());
+            known_configuration_refs
+                .entry(event.asset_ref.clone())
+                .or_default()
+                .insert(new_ref.to_owned());
+        } else if event.payload.get("new_configuration_ref").is_some() {
+            return Err(LedgerError::InvalidEvent(format!(
+                "event {} cannot change configuration outside configuration_changed",
                 event.event_id
             )));
         }
@@ -497,16 +599,25 @@ fn validate_ledger(ledger: &OpsEvidenceLedger) -> Result<(), LedgerError> {
         last_recorded_at = recorded;
     }
 
+    let mut exposure_ids = HashSet::new();
     for exposure in &ledger.exposure_records {
-        let asset = assets.get(exposure.asset_ref.as_str()).ok_or_else(|| {
-            LedgerError::InvalidExposure(format!(
+        if exposure.exposure_id.trim().is_empty() || !exposure_ids.insert(exposure.exposure_id.as_str()) {
+            return Err(LedgerError::InvalidExposure(
+                "exposure IDs must be non-empty and unique".to_owned(),
+            ));
+        }
+        if !assets.contains_key(exposure.asset_ref.as_str()) {
+            return Err(LedgerError::InvalidExposure(format!(
                 "exposure {} references unknown asset",
                 exposure.exposure_id
-            ))
-        })?;
-        if exposure.configuration_ref != asset.configuration_ref {
+            )));
+        }
+        if !known_configuration_refs
+            .get(&exposure.asset_ref)
+            .is_some_and(|refs| refs.contains(&exposure.configuration_ref))
+        {
             return Err(LedgerError::InvalidExposure(format!(
-                "exposure {} configuration does not match asset",
+                "exposure {} references a configuration absent from the asset event history",
                 exposure.exposure_id
             )));
         }
@@ -525,6 +636,13 @@ fn validate_ledger(ledger: &OpsEvidenceLedger) -> Result<(), LedgerError> {
                 "exposure {} duration does not match its timestamps",
                 exposure.exposure_id
             )));
+        }
+        if let Some(risk_entry) = exposure.risk_entry_utc.as_deref() {
+            if parse_utc_seconds(risk_entry, "risk_entry_utc")? >= start {
+                return Err(LedgerError::InvalidExposure(
+                    "risk_entry_utc must precede start_utc for delayed-entry exposure".to_owned(),
+                ));
+            }
         }
         match exposure.censoring_status.as_str() {
             "right_censored" => {
@@ -549,8 +667,12 @@ fn validate_ledger(ledger: &OpsEvidenceLedger) -> Result<(), LedgerError> {
                 let upper = exposure.event_time_upper_bound_utc.as_deref().ok_or_else(|| {
                     LedgerError::InvalidExposure("interval-censored exposure requires an upper bound".to_owned())
                 })?;
-                if parse_utc_seconds(lower, "exposure lower bound")? > parse_utc_seconds(upper, "exposure upper bound")? {
-                    return Err(LedgerError::InvalidExposure("exposure censoring bounds are reversed".to_owned()));
+                let lower = parse_utc_seconds(lower, "exposure lower bound")?;
+                let upper = parse_utc_seconds(upper, "exposure upper bound")?;
+                if lower > upper || lower < observation_start || upper > observation_end {
+                    return Err(LedgerError::InvalidExposure(
+                        "exposure censoring bounds are reversed or outside the observation window".to_owned(),
+                    ));
                 }
             }
             "uncensored_event" => {
@@ -559,9 +681,53 @@ fn validate_ledger(ledger: &OpsEvidenceLedger) -> Result<(), LedgerError> {
                         "uncensored event requires a detected failure/defect".to_owned(),
                     ));
                 }
+                let lower = exposure.event_time_lower_bound_utc.as_deref().ok_or_else(|| {
+                    LedgerError::InvalidExposure("uncensored event requires its exact event time".to_owned())
+                })?;
+                let upper = exposure.event_time_upper_bound_utc.as_deref().ok_or_else(|| {
+                    LedgerError::InvalidExposure("uncensored event requires its exact event time".to_owned())
+                })?;
+                let lower = parse_utc_seconds(lower, "uncensored event time")?;
+                let upper = parse_utc_seconds(upper, "uncensored event time")?;
+                if lower != upper || lower < observation_start || upper > observation_end {
+                    return Err(LedgerError::InvalidExposure(
+                        "uncensored event requires an exact event-time point inside the observation window".to_owned(),
+                    ));
+                }
             }
-            "left_truncated" | "competing_event" | "not_assessed" => {}
-            other => return Err(LedgerError::InvalidExposure(format!("unknown censoring status {other}"))),
+            "competing_event" => {
+                if exposure.failure_observation != "competing_event" {
+                    return Err(LedgerError::InvalidExposure(
+                        "competing-event censoring requires failure_observation=competing_event".to_owned(),
+                    ));
+                }
+                let lower = exposure.event_time_lower_bound_utc.as_deref().ok_or_else(|| {
+                    LedgerError::InvalidExposure("competing event requires a lower time bound".to_owned())
+                })?;
+                let upper = exposure.event_time_upper_bound_utc.as_deref().ok_or_else(|| {
+                    LedgerError::InvalidExposure("competing event requires an upper time bound".to_owned())
+                })?;
+                let lower = parse_utc_seconds(lower, "competing event lower bound")?;
+                let upper = parse_utc_seconds(upper, "competing event upper bound")?;
+                if lower > upper || lower < observation_start || upper > observation_end {
+                    return Err(LedgerError::InvalidExposure(
+                        "competing-event time bounds are reversed or outside the observation window".to_owned(),
+                    ));
+                }
+            }
+            "not_assessed" => {
+                if exposure.failure_observation != "unknown"
+                    || exposure.event_time_lower_bound_utc.is_some()
+                    || exposure.event_time_upper_bound_utc.is_some()
+                {
+                    return Err(LedgerError::InvalidExposure(
+                        "not-assessed exposure must carry unknown failure status and no event bounds".to_owned(),
+                    ));
+                }
+            }
+            other => return Err(LedgerError::InvalidExposure(format!(
+                "unknown censoring status {other}; delayed entry is represented by risk_entry_utc"
+            ))),
         }
         if exposure.source_evidence_refs.is_empty() {
             return Err(LedgerError::InvalidExposure(format!(
