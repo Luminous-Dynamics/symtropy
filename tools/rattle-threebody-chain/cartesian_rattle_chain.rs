@@ -106,8 +106,13 @@ pub struct StepReceipt {
     pub energy_before: f64,
     pub energy_after: f64,
     /// This is a numerical conservative-energy defect, not dissipation.
+    /// Kinetic-energy change over the step.
     pub energy_defect: f64,
     pub relative_energy_defect: f64,
+    /// Work of the constant body-force covectors over the realized displacement.
+    pub external_work: f64,
+    /// Kinetic-energy change minus external work; a numerical work-balance residual.
+    pub work_energy_residual: f64,
     pub link_constraint_residuals: [f64; EDGE_COUNT],
     pub relative_link_constraint_residuals: [f64; EDGE_COUNT],
     pub midpoint_constraint_residuals: [f64; EDGE_COUNT],
@@ -417,11 +422,15 @@ impl CartesianRattleChain {
         &self,
         before: State,
         dt: f64,
+        external_force: [Vec3; BODY_COUNT],
         position_multipliers: [f64; EDGE_COUNT],
     ) -> (State, [f64; EDGE_COUNT], [[f64; EDGE_COUNT]; EDGE_COUNT]) {
         let mut after = before;
         for body in 0..BODY_COUNT {
-            after.q[body] = add(before.q[body], scale(before.v[body], dt));
+            after.q[body] = add(
+                add(before.q[body], scale(before.v[body], dt)),
+                scale(external_force[body], 0.5 * dt * dt / self.masses[body]),
+            );
             after.v[body] = before.v[body];
         }
         for edge in 0..EDGE_COUNT {
@@ -470,6 +479,7 @@ impl CartesianRattleChain {
         &self,
         before: State,
         dt: f64,
+        external_force: [Vec3; BODY_COUNT],
         options: SolverOptions,
     ) -> Result<
         (
@@ -485,7 +495,13 @@ impl CartesianRattleChain {
         let geometry = gram_matrix(before.q, self.masses, [0, 1]);
         let mut rhs = [0.0; EDGE_COUNT];
         for edge in 0..EDGE_COUNT {
-            rhs[edge] = dot(edge_velocity(before, edge), edge_velocity(before, edge));
+            let (from, to) = EDGES[edge];
+            let relative_acceleration = sub(
+                scale(external_force[to], 1.0 / self.masses[to]),
+                scale(external_force[from], 1.0 / self.masses[from]),
+            );
+            rhs[edge] = dot(edge_velocity(before, edge), edge_velocity(before, edge))
+                + dot(edge_vector(before, edge), relative_acceleration);
         }
         let mut multipliers = solve_2x2(
             geometry,
@@ -500,7 +516,8 @@ impl CartesianRattleChain {
         let mut final_jacobian = [[0.0; EDGE_COUNT]; EDGE_COUNT];
 
         for iteration in 0..options.max_iterations {
-            let (candidate_state, residuals, jacobian) = self.shake_trial(before, dt, multipliers);
+            let (candidate_state, residuals, jacobian) =
+                self.shake_trial(before, dt, external_force, multipliers);
             let residual_norm = self.scaled_position_residual(residuals);
             final_after = candidate_state;
             final_jacobian = jacobian;
@@ -524,7 +541,8 @@ impl CartesianRattleChain {
                     multipliers[1] + fraction * delta[1],
                 ];
                 if trial.iter().all(|value| value.is_finite()) {
-                    let (_, trial_residuals, _) = self.shake_trial(before, dt, trial);
+                    let (_, trial_residuals, _) =
+                        self.shake_trial(before, dt, external_force, trial);
                     let trial_norm = self.scaled_position_residual(trial_residuals);
                     if trial_norm < residual_norm || trial_norm <= options.relative_tolerance {
                         multipliers = trial;
@@ -542,7 +560,8 @@ impl CartesianRattleChain {
         }
 
         if !converged {
-            let (candidate_state, residuals, jacobian) = self.shake_trial(before, dt, multipliers);
+            let (candidate_state, residuals, jacobian) =
+                self.shake_trial(before, dt, external_force, multipliers);
             final_after = candidate_state;
             final_jacobian = jacobian;
             converged = self.scaled_position_residual(residuals) <= options.relative_tolerance;
@@ -567,11 +586,15 @@ impl CartesianRattleChain {
         after_positions: [Vec3; BODY_COUNT],
         position_multipliers: [f64; EDGE_COUNT],
         dt: f64,
+        external_force: [Vec3; BODY_COUNT],
         options: SolverOptions,
     ) -> Result<(State, [f64; EDGE_COUNT]), Error> {
         let mut half_momentum = [[0.0; 3]; BODY_COUNT];
         for body in 0..BODY_COUNT {
-            half_momentum[body] = scale(before.v[body], self.masses[body]);
+            half_momentum[body] = add(
+                scale(before.v[body], self.masses[body]),
+                scale(external_force[body], 0.5 * dt),
+            );
         }
         for edge in 0..EDGE_COUNT {
             let r0 = edge_vector(before, edge);
@@ -581,6 +604,11 @@ impl CartesianRattleChain {
             half_momentum[to] = sub(half_momentum[to], impulse);
         }
 
+        // The second half of the constant external-force kick is applied
+        // before the endpoint constraint projection.
+        for body in 0..BODY_COUNT {
+            half_momentum[body] = add(half_momentum[body], scale(external_force[body], 0.5 * dt));
+        }
         let mut after = State {
             q: after_positions,
             v: [[0.0; 3]; BODY_COUNT],
@@ -617,12 +645,28 @@ impl CartesianRattleChain {
         Ok((after, velocity_multipliers))
     }
 
+    /// Force-free compatibility wrapper around the constant-force RATTLE step.
     pub fn step(
         &self,
         before: State,
         dt: f64,
         options: SolverOptions,
     ) -> Result<StepReceipt, Error> {
+        self.step_with_force(before, dt, [[0.0; 3]; BODY_COUNT], options)
+    }
+
+    /// Velocity-Verlet/RATTLE step under constant per-body external force
+    /// covectors. The force acts in both half-kicks and in the SHAKE free drift.
+    pub fn step_with_force(
+        &self,
+        before: State,
+        dt: f64,
+        external_force: [Vec3; BODY_COUNT],
+        options: SolverOptions,
+    ) -> Result<StepReceipt, Error> {
+        if !external_force.iter().flatten().all(|value| value.is_finite()) {
+            return Err(Error::NonFiniteInput);
+        }
         let options = options.validate()?;
         if !dt.is_finite() || dt <= 0.0 {
             return Err(Error::InvalidTimeStep);
@@ -633,12 +677,13 @@ impl CartesianRattleChain {
         let angular_before = self.angular_momentum(before);
 
         let (position_state, position_multipliers, position_jacobian, iterations, backtracks) =
-            self.solve_position_stage(before, dt, options)?;
+            self.solve_position_stage(before, dt, external_force, options)?;
         let (after, velocity_multipliers) = self.project_endpoint_momentum(
             before,
             position_state.q,
             position_multipliers,
             dt,
+            external_force,
             options,
         )?;
         let geometry_after = self.graph_receipt(after, options.rank_policy, 1)?;
@@ -693,6 +738,10 @@ impl CartesianRattleChain {
         let energy_defect = energy_after - energy_before;
         let relative_energy_defect =
             energy_defect.abs() / (1.0 + energy_before.abs() + energy_after.abs());
+        let external_work = (0..BODY_COUNT)
+            .map(|body| dot(external_force[body], sub(after.q[body], before.q[body])))
+            .sum::<f64>();
+        let work_energy_residual = energy_defect - external_work;
         let linear_after = self.linear_momentum(after);
         let linear_residual = sub(linear_after, linear_before);
         let relative_linear_residual =
@@ -705,6 +754,8 @@ impl CartesianRattleChain {
 
         if !energy_defect.is_finite()
             || !relative_energy_defect.is_finite()
+            || !external_work.is_finite()
+            || !work_energy_residual.is_finite()
             || !relative_linear_residual.is_finite()
             || !relative_angular_residual.is_finite()
             || !position_jacobian_rcond.is_finite()
@@ -735,6 +786,8 @@ impl CartesianRattleChain {
             energy_after,
             energy_defect,
             relative_energy_defect,
+            external_work,
+            work_energy_residual,
             link_constraint_residuals: link_residuals,
             relative_link_constraint_residuals: relative_link_residuals,
             midpoint_constraint_residuals: midpoint_residuals,
