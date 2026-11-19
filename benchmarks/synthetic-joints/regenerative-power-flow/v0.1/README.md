@@ -123,7 +123,7 @@ Gross bus-return energy is not net battery-stored energy. Both are useful; they 
 - **M5:** storage aging, resistor thermal cycling, cables/connectors, actuator replacement and requalification.
 
 
-## 7. Dependency-free analytic Rust reference
+## 8. Dependency-free analytic Rust reference
 
 The crate in this directory implements M1 accounting primitives in `src/lib.rs`:
 
@@ -146,7 +146,7 @@ cargo clippy --manifest-path benchmarks/synthetic-joints/regenerative-power-flow
 
 The dedicated workflow is `.github/workflows/regenerative-power-flow-reference.yml`. The current environment does not include a Rust toolchain, so execution status is determined only by exact-head CI; no local test pass is claimed.
 
-## 8. Prospective targets
+## 9. Prospective targets
 
 - Every result names the control volume and included/excluded energy ports.
 - Zero cases where negative mechanical work is labelled regenerated battery energy without a measured electrical/storage path.
@@ -158,7 +158,7 @@ The dedicated workflow is `.github/workflows/regenerative-power-flow-reference.y
 
 These are targets, not achievements.
 
-## 9. Claim ceiling and safety
+## 10. Claim ceiling and safety
 
 The schema and example are source-log transcription and protocol artifacts. They are not an energy-recovery result, independent physical replication or hardware qualification.
 
