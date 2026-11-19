@@ -258,8 +258,11 @@ pub fn verify_source_interval(
 
     let validity = required(evidence, "validity", "evidence envelope")?;
     match string_field(validity, "state", "validity")? {
-        "current" | "not_applicable" => {}
-        "stale" | "unknown" => return Err(VerificationError::EvidenceNotCurrent),
+        "current" => {}
+        "not_applicable" if evidence_class == "synthetic" => {}
+        "stale" | "unknown" | "not_applicable" => {
+            return Err(VerificationError::EvidenceNotCurrent);
+        }
         _ => return Err(VerificationError::InvalidField("validity.state")),
     }
 
@@ -277,6 +280,8 @@ pub fn verify_source_interval(
             return Err(VerificationError::InvalidField("measurement.instrument_ids"));
         }
         string_field(measurement, "calibration_certificate_id", "measurement")?;
+        string_field(measurement, "calibration_valid_from_utc", "measurement")?;
+        string_field(measurement, "calibration_valid_until_utc", "measurement")?;
     }
     if matches!(evidence_class, "calibrated_model" | "independently_validated_model") {
         if string_field(model, "applicability", "model")? != "applicable"
@@ -484,7 +489,7 @@ pub fn verify_source_interval(
 
     let evaluation = required(allocation, "evaluation", "allocation receipt")?;
     let tolerance = number_field(evaluation, "relative_tolerance", "evaluation")?;
-    if tolerance <= 0.0 || tolerance >= 1.0 {
+    if !(0.0..1.0).contains(&tolerance) {
         return Err(VerificationError::InvalidField(
             "evaluation.relative_tolerance",
         ));
