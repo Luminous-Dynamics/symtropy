@@ -36,7 +36,7 @@ The mapping is accepted only when the result is integral and representable as i6
 
 ## Step semantics
 
-- `Accepted`: the FMI call did not set `earlyReturn`. The actual `lastSuccessfulTime` must advance the model clock and must not exceed the requested communication endpoint. It **need not equal** the requested endpoint: FMI 3.0.2 explicitly permits deviation for internal fixed-/variable-step solver reasons. The actual returned time, not the requested endpoint, anchors the next trace interval.
+- `Accepted`: the FMI call did not set `earlyReturn`. The actual `lastSuccessfulTime` must advance the model clock and may differ on either side of the requested communication endpoint. It **need not equal** the requested endpoint: FMI 3.0.2 explicitly permits deviation for internal fixed-/variable-step solver reasons. The actual returned time, not the requested endpoint, anchors the next trace interval.
 - `EarlyReturn`: the importer had enabled `earlyReturnAllowed`, and the returned time is strictly between the current and requested endpoint. All required federates must reach the same master-time barrier before the next communication sequence.
 - An early return at the current communication point is valid FMI behavior in some event situations, but v0.1 has no same-time event-round record. It is classified as `ZERO_PROGRESS_EARLY_RETURN_UNSUPPORTED`, not as an invalid FMI trace.
 - `eventHandlingNeeded` and `terminateSimulation` are explicitly rejected as unsupported trace paths until Event Mode and termination membership transitions are represented. If an event is signalled without Event Mode being enabled, it is rejected as a contract violation.
@@ -55,6 +55,6 @@ cargo clippy --locked --manifest-path research/geofusion-fmi-trace-verifier/Carg
 
 ## Frozen corpus and claim ceiling
 
-The frozen TSV corpus mutates a valid two-federate trace with wrong model identity, clock-map mismatch, rejected-step advancement or state mutation, early return without importer permission, zero-progress early return, unrepresented event/termination paths, invalid retry linkage/start/horizon, unresolved rejection, sequence gaps, barrier membership/time defects, invalid rational clock scales/overflow, stale clock identity, missing state digests and invalid early-return endpoints.
+The frozen TSV corpus mutates a valid two-federate trace with wrong model identity, clock-map mismatch, rejected-step advancement or state mutation, early return without importer permission, zero-progress early return, unrepresented event/termination paths, invalid retry linkage/start/horizon, unresolved rejection, sequence gaps, barrier membership/time defects, invalid rational clock scales/overflow, stale clock identity, missing state digests and invalid early-return endpoints, and a control that rejects an early return beyond the requested endpoint.
 
 All examples are synthetic. Passing tests establish only the declared trace-verification behavior. They do not prove FMI standard conformance, physical model accuracy, energy conservation, geothermal output, fusion performance, grid stability, equipment safety or operational authorization.
