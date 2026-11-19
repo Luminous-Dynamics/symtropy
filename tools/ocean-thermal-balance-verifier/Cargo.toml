@@ -1,0 +1,17 @@
+[package]
+name = "ocean-thermal-balance-verifier"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Standalone 0D thermal and seawater energy-balance verifier for offshore compute research"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "ocean-thermal-balance-verifier"
+path = "src/main.rs"
+
+[workspace]
+resolver = "2"
