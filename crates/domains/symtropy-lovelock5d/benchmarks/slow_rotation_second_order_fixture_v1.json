@@ -56,36 +56,36 @@
     },
     "equation_fingerprints": {
       "b": {
-        "expression_chars": 8805,
-        "sha256": "b7df661c03650bb9eb61522e6c57d3232ba3269c8a4d28c97578c13ef4745e79",
-        "source_chars": 437,
-        "source_sha256": "0d7a711957729ff95509cf4272e890581141258b2365815c7841fedc0ba04dc4",
-        "linear_operator_chars": 9246,
-        "linear_operator_sha256": "0e805826a6529ef80749987968b7916d8df5d81c3c02304e145ab0e8a2538ba3"
+        "expression_chars": 18348,
+        "sha256": "cf3f62d0ea589e3dbfcc2ac4eedce259f5759cb1c372da03d45c2930ebc832ff",
+        "source_chars": 968,
+        "source_sha256": "0506cd211e5a53852efab21fc199e8fa0cc1dbdd81b916c74237433cd24ff9",
+        "linear_operator_chars": 19320,
+        "linear_operator_sha256": "af040d386db5952de41240d98cc10230e8602b806fa12e3d894f0d2d5efb4077"
       },
       "f": {
-        "expression_chars": 7521,
-        "sha256": "b93eb7ab1ac8273736dd22fda41f3f798bc78b67479c4461583c5e8110a257d8",
-        "source_chars": 440,
-        "source_sha256": "6e5d1bb71f88e11ed83d58cf4b644743c8ef070c6c78c55fc024f1848a553c34",
-        "linear_operator_chars": 7965,
-        "linear_operator_sha256": "c296c92db16d4e9ba8c4bc04120517db52d8bdb132b43e6b1cea4ec997957220"
+        "expression_chars": 8174,
+        "sha256": "a564d56086c0ece50305622591f22b27b0028f693f60fa25848c7cf894bc7daa",
+        "source_chars": 1086,
+        "source_sha256": "3951c6e604ffb2c89a365a22dced3d8a6fa3fc0e8bc1e0218b626d60427ef1cf",
+        "linear_operator_chars": 9262,
+        "linear_operator_sha256": "5fd7970e3295e7de5055015c1940cae0e634b14584dca56cb7835b57ea4a3988"
       },
       "g": {
-        "expression_chars": 22985,
-        "sha256": "f96826babf48579e0b406199368c3e69d2fd59118164f0f5b04d43f977fe8b41",
-        "source_chars": 1712,
-        "source_sha256": "94af40e41f9dec39d7f0c9e91868046457a2a0a57107701e4ea9914187f89284",
-        "linear_operator_chars": 24701,
-        "linear_operator_sha256": "20b1af39d33b1d594fae4bbc0ba14b9c0a8551496bdd8738897f9ce1e5680136"
+        "expression_chars": 41842,
+        "sha256": "9a0a56db534806aef37b42c41895d5dd54ab00586ea72e77d6735c64fcba015c",
+        "source_chars": 2385,
+        "source_sha256": "0f92e1e0a48e7f200130344565fd68c446367f71406ab22b114b866cc2917428",
+        "linear_operator_chars": 42754,
+        "linear_operator_sha256": "c379842f3f69a5880b9f649b6f3c44606f5e60cae5e660dc40aed5261a1e57ce"
       },
       "h": {
-        "expression_chars": 17494,
-        "sha256": "d77f1a8a7c797602830c8e4479066a9f8e53650727c12b4ab1c0fcbd64b1c314",
-        "source_chars": 418,
-        "source_sha256": "2fc60780870d998916eb7cea44d19c42a3e9d0e5907b9e12de7f4d2c4212fbb9",
-        "linear_operator_chars": 17915,
-        "linear_operator_sha256": "331fb51dee6f19ae01ace256c44da7c4163a258749d679df61b8f2883927fc1f"
+        "expression_chars": 38349,
+        "sha256": "6b874e5b02dc1a7314242a42ba39275f6ab93f5031d652b516ccc4db8567dc0d",
+        "source_chars": 1230,
+        "source_sha256": "575ec64c6c06ac6773b8c0f9b1ff4ae0f325111a658d9c9eec73efc3d7139a1f",
+        "linear_operator_chars": 39580,
+        "linear_operator_sha256": "af4bdf3d868ff1826f4787505d35ab81ca56b5ec8bc03353a0f5e15e4661322d"
       }
     }
   },
@@ -104,7 +104,18 @@
     "slow_rotation_angular_noether_identity_executed": true,
     "committed_script_clean_checkout_replay": false,
     "rust_equations_or_solver_implemented": false,
-    "finite_alpha_B2_F2_H2_boundary_value_solved": false
+    "finite_alpha_B2_F2_H2_boundary_value_solved": false,
+    "exact_committed_script_blob_replayed_locally": true,
+    "replayed_script_blob_sha1": "c5b30eaf3ee972a0a316d4193f13e2710eb4c677",
+    "replay_sympy_version": "1.14.0",
+    "replay_python_version": "3.13.5",
+    "exact_myers_perry_residuals": {
+      "b": "0",
+      "f": "0",
+      "g": "0",
+      "h": "0"
+    },
+    "rust_execution_claimed": false
   },
   "next_gates": [
     "derive horizon Taylor data for B2,F2,H2 from the O(a^2) equations",
@@ -113,5 +124,51 @@
     "compare perturbative and nonlinear branches in the overlap region",
     "estimate the chi-dependent perturbative error envelope"
   ],
-  "claim_ceiling": "The O(a^2) equations have been symbolically extracted in development, and the exact alpha=0 Myers-Perry coefficients satisfy all four even equations. The finite-alpha inhomogeneous BVP has not been solved; no finite-spin branch, near-extremal uniformity or stability is claimed."
+  "claim_ceiling": "The O(a^2) equations have been symbolically extracted in development, and the exact alpha=0 Myers-Perry coefficients satisfy all four even equations. The finite-alpha inhomogeneous BVP has not been solved; no finite-spin branch, near-extremal uniformity or stability is claimed.",
+  "superseded_development_fingerprints_2026_11_19": {
+    "b": {
+      "expression_chars": 8805,
+      "sha256": "b7df661c03650bb9eb61522e6c57d3232ba3269c8a4d28c97578c13ef4745e79",
+      "source_chars": 437,
+      "source_sha256": "0d7a711957729ff95509cf4272e890581141258b2365815c7841fedc0ba04dc4",
+      "linear_operator_chars": 9246,
+      "linear_operator_sha256": "0e805826a6529ef80749987968b7916d8df5d81c3c02304e145ab0e8a2538ba3"
+    },
+    "f": {
+      "expression_chars": 7521,
+      "sha256": "b93eb7ab1ac8273736dd22fda41f3f798bc78b67479c4461583c5e8110a257d8",
+      "source_chars": 440,
+      "source_sha256": "6e5d1bb71f88e11ed83d58cf4b644743c8ef070c6c78c55fc024f1848a553c34",
+      "linear_operator_chars": 7965,
+      "linear_operator_sha256": "c296c92db16d4e9ba8c4bc04120517db52d8bdb132b43e6b1cea4ec997957220"
+    },
+    "g": {
+      "expression_chars": 22985,
+      "sha256": "f96826babf48579e0b406199368c3e69d2fd59118164f0f5b04d43f977fe8b41",
+      "source_chars": 1712,
+      "source_sha256": "94af40e41f9dec39d7f0c9e91868046457a2a0a57107701e4ea9914187f89284",
+      "linear_operator_chars": 24701,
+      "linear_operator_sha256": "20b1af39d33b1d594fae4bbc0ba14b9c0a8551496bdd8738897f9ce1e5680136"
+    },
+    "h": {
+      "expression_chars": 17494,
+      "sha256": "d77f1a8a7c797602830c8e4479066a9f8e53650727c12b4ab1c0fcbd64b1c314",
+      "source_chars": 418,
+      "source_sha256": "2fc60780870d998916eb7cea44d19c42a3e9d0e5907b9e12de7f4d2c4212fbb9",
+      "linear_operator_chars": 17915,
+      "linear_operator_sha256": "331fb51dee6f19ae01ace256c44da7c4163a258749d679df61b8f2883927fc1f"
+    }
+  },
+  "replay_receipt": {
+    "source_commit": "78275db48deb3b7682927f234918f53be54f1df7",
+    "script_path": "crates/domains/symtropy-lovelock5d/benchmarks/derive_slow_rotation_second_order.py",
+    "script_git_blob_sha1": "c5b30eaf3ee972a0a316d4193f13e2710eb4c677",
+    "script_sha256": "8a9c272fedd86ea934b0b19c9b105987fc86252edf4e8261811eee824a3253ae",
+    "execution": "Exact fetched Git blob replayed locally; not a full git clean-checkout build",
+    "sympy": "1.14.0",
+    "python": "3.13.5",
+    "result": "All four O(a^2) equations vanish exactly on the alpha=0 Myers-Perry coefficient functions; angular Noether identities pass.",
+    "finding": "The prior fixture fingerprints were stale relative to the current committed script. Prior values are retained in superseded_development_fingerprints_2026_11_19.",
+    "claim_ceiling": "Symbolic replay only; no Rust compilation, finite-alpha boundary-value solution, full-domain enclosure, or existence theorem."
+  }
 }
