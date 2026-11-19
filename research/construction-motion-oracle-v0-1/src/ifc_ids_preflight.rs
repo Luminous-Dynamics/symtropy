@@ -57,6 +57,90 @@ pub struct IfcCoordinateContext {
     pub transform_sha256: String,
 }
 
+
+/// A point explicitly tagged with its target site-frame digest and millimetre unit.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SiteFramePointMm {
+    pub frame_sha256: String,
+    pub xyz_mm: [f64; 3],
+}
+
+impl IfcCoordinateContext {
+    /// Transform one already-resolved model-frame point into the declared site
+    /// frame. The input point must already include all IFC product placement,
+    /// representation-map and nested local-placement transforms.
+    ///
+    /// Order is intentional: IFC length-unit conversion, uniform map-conversion
+    /// scale, proper rotation, then site-frame translation. This helper is not
+    /// an IFC parser and does not apply per-object placement trees.
+    pub fn transform_model_point_to_site_mm(
+        &self,
+        model_point: [f64; 3],
+    ) -> Result<SiteFramePointMm, IfcIdsPreflightError> {
+        if !model_point.into_iter().all(f64::is_finite) {
+            return Err(IfcIdsPreflightError::NonFiniteModelPoint);
+        }
+        let Some((unit_numerator, unit_denominator)) =
+            self.length_unit.to_millimetres_ratio()
+        else {
+            return Err(IfcIdsPreflightError::UnsupportedLengthUnit(
+                match &self.length_unit {
+                    IfcLengthUnit::Unsupported(value) => value.clone(),
+                    _ => "unknown".into(),
+                },
+            ));
+        };
+        if !self.map_conversion_scale.is_finite() || self.map_conversion_scale <= 0.0 {
+            return Err(IfcIdsPreflightError::InvalidMapConversionScale);
+        }
+        if !self.model_to_site_translation_mm.into_iter().all(f64::is_finite) {
+            return Err(IfcIdsPreflightError::NonFiniteCoordinateTranslation);
+        }
+        if !is_proper_rotation(
+            self.model_to_site_rotation,
+            COORDINATE_ORTHOGONALITY_TOLERANCE,
+        ) {
+            return Err(IfcIdsPreflightError::InvalidRotationMatrix);
+        }
+        if !is_sha256(&self.frame_sha256) || !is_sha256(&self.transform_sha256) {
+            return Err(IfcIdsPreflightError::CoordinateFrameDigestMismatch);
+        }
+
+        let unit_scale = unit_numerator as f64 / unit_denominator as f64;
+        let model_to_site_scale = unit_scale * self.map_conversion_scale;
+        if !model_to_site_scale.is_finite() || model_to_site_scale <= 0.0 {
+            return Err(IfcIdsPreflightError::InvalidMapConversionScale);
+        }
+        let scaled_model_point = model_point.map(|coordinate| coordinate * model_to_site_scale);
+        if !scaled_model_point.into_iter().all(f64::is_finite) {
+            return Err(IfcIdsPreflightError::TransformedPointOutOfRange);
+        }
+
+        let mut rotated_point = [0.0_f64; 3];
+        for (row, output_coordinate) in rotated_point.iter_mut().enumerate() {
+            *output_coordinate = (0..3)
+                .map(|column| {
+                    self.model_to_site_rotation[row][column] * scaled_model_point[column]
+                })
+                .sum();
+        }
+
+        let xyz_mm = [
+            rotated_point[0] + self.model_to_site_translation_mm[0],
+            rotated_point[1] + self.model_to_site_translation_mm[1],
+            rotated_point[2] + self.model_to_site_translation_mm[2],
+        ];
+        if !xyz_mm.into_iter().all(f64::is_finite) {
+            return Err(IfcIdsPreflightError::TransformedPointOutOfRange);
+        }
+
+        Ok(SiteFramePointMm {
+            frame_sha256: self.frame_sha256.clone(),
+            xyz_mm,
+        })
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct IdsRequirementEvaluation {
     pub requirement_id: String,
@@ -157,6 +241,8 @@ pub enum IfcIdsPreflightError {
     UnsupportedLengthUnit(String),
     InvalidMapConversionScale,
     NonFiniteCoordinateTranslation,
+    NonFiniteModelPoint,
+    TransformedPointOutOfRange,
     InvalidRotationMatrix,
     InvalidEntityManifestDigest,
     InvalidAcceptanceProfileDigest,
@@ -824,6 +910,68 @@ mod tests {
                     }
                 )
         );
+    }
+
+    #[test]
+    fn coordinate_transform_applies_units_scale_rotation_and_translation_in_order() {
+        let mut context = valid_input().coordinate_context;
+        context.length_unit = IfcLengthUnit::Foot;
+        context.map_conversion_scale = 2.0;
+        context.model_to_site_rotation = [
+            [0.0, -1.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0],
+        ];
+        context.model_to_site_translation_mm = [10.0, 20.0, 30.0];
+
+        let transformed = context
+            .transform_model_point_to_site_mm([1.0, 2.0, 3.0])
+            .unwrap();
+        assert_eq!(transformed.frame_sha256, context.frame_sha256);
+        let expected = [-1_209.2, 629.6, 1_858.8];
+        for (actual, expected) in transformed.xyz_mm.into_iter().zip(expected) {
+            assert!((actual - expected).abs() < 1.0e-9);
+        }
+    }
+
+    #[test]
+    fn coordinate_transform_rejects_nonfinite_input_and_output_overflow() {
+        let context = valid_input().coordinate_context;
+        assert_eq!(
+            context.transform_model_point_to_site_mm([f64::NAN, 0.0, 0.0]),
+            Err(IfcIdsPreflightError::NonFiniteModelPoint)
+        );
+
+        let mut overflow = context;
+        overflow.model_to_site_translation_mm[0] = f64::MAX;
+        assert_eq!(
+            overflow.transform_model_point_to_site_mm([f64::MAX, 0.0, 0.0]),
+            Err(IfcIdsPreflightError::TransformedPointOutOfRange)
+        );
+    }
+
+    #[test]
+    fn coordinate_transform_preserves_distances_under_rigid_rotation() {
+        let mut context = valid_input().coordinate_context;
+        context.model_to_site_rotation = [
+            [0.0, -1.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0],
+        ];
+        context.model_to_site_translation_mm = [0.0; 3];
+        let first = context
+            .transform_model_point_to_site_mm([0.0, 0.0, 0.0])
+            .unwrap();
+        let second = context
+            .transform_model_point_to_site_mm([3.0, 4.0, 0.0])
+            .unwrap();
+        let distance = (0..3)
+            .map(|axis| {
+                (second.xyz_mm[axis] - first.xyz_mm[axis]).powi(2)
+            })
+            .sum::<f64>()
+            .sqrt();
+        assert!((distance - 5.0).abs() < 1.0e-9);
     }
 
     #[test]
