@@ -774,6 +774,52 @@ mod tests {
         }
     }
 
+    fn calibration_receipt() -> PredictionCalibrationReceipt {
+        PredictionCalibrationReceipt {
+            report_digest: "calibration-report-sha256-v1".to_owned(),
+            model_digest: "torque-surrogate-model-v1".to_owned(),
+            training_split_digest: "training-specimen-split-v1".to_owned(),
+            calibration_split_digest: "calibration-specimen-split-v1".to_owned(),
+            test_split_digest: "heldout-specimen-split-v1".to_owned(),
+            system_boundary_digest: BOUNDARY.to_owned(),
+            operating_condition_digest: CONDITION.to_owned(),
+            mission_set_digest: MISSIONS.to_owned(),
+            domain_digest: "torque-speed-domain-v1".to_owned(),
+            alpha: 0.25,
+            calibration_specimen_count: 3,
+            order_statistic_rank: 3,
+            correction_q_nm: 1.0,
+            test_specimen_count: 3,
+            in_domain_test_specimen_count: 2,
+            covered_test_specimen_count: 1,
+            uncovered_test_specimen_count: 1,
+            out_of_domain_test_specimen_count: 1,
+            empirical_group_coverage: 0.5,
+            wilson_95_lower: 0.09,
+            wilson_95_upper: 0.91,
+            measurement_evidence_class: EvidenceClass::IndependentPhysical,
+        }
+    }
+
+    fn calibrated_model_candidate(id: &str) -> DesignCandidate {
+        let mut candidate = candidate(
+            id,
+            0.8,
+            70.0,
+            0.95,
+            EvidenceClass::CalibratedModelPrediction,
+        );
+        candidate.model_digest = Some("torque-surrogate-model-v1".to_owned());
+        candidate.prediction_domain_digest = Some("torque-speed-domain-v1".to_owned());
+        for metric in &mut candidate.objectives {
+            metric.calibration_receipt = Some(calibration_receipt());
+        }
+        for constraint in &mut candidate.hard_constraints {
+            constraint.calibration_receipt = Some(calibration_receipt());
+        }
+        candidate
+    }
+
     fn assessment<'a>(report: &'a ParetoReport, id: &str) -> &'a CandidateAssessment {
         report.assessments.iter().find(|candidate| candidate.candidate_id == id).unwrap()
     }
@@ -1015,7 +1061,108 @@ mod tests {
     }
 
     #[test]
-    fn pareto_024_all_candidates_are_retained_as_assessments() {
+    fn pareto_024_calibrated_model_prediction_remains_conditional() {
+        let calibrated = calibrated_model_candidate("calibrated-model");
+        let report = robust_pareto_report(&[calibrated], &objective_defs(), &constraint_defs()).unwrap();
+        assert_eq!(
+            assessment(&report, "calibrated-model").disposition,
+            CandidateDisposition::Feasible(EvidenceLane::Conditional)
+        );
+        assert_eq!(report.fronts.len(), 1);
+        assert_eq!(report.fronts[0].lane, EvidenceLane::Conditional);
+    }
+
+    #[test]
+    fn pareto_025_calibrated_model_prediction_cannot_cross_dominate_independent_measurement() {
+        let calibrated = calibrated_model_candidate("calibrated-model");
+        let independent = candidate(
+            "independent",
+            1.0,
+            90.0,
+            0.85,
+            EvidenceClass::IndependentPhysical,
+        );
+        let report = robust_pareto_report(
+            &[calibrated, independent],
+            &objective_defs(),
+            &constraint_defs(),
+        ).unwrap();
+        assert_eq!(report.fronts.len(), 2);
+        assert!(report.fronts.iter().any(|front| front.lane == EvidenceLane::Conditional));
+        assert!(report.fronts.iter().any(|front| front.lane == EvidenceLane::Independent));
+        assert!(report.assessments.iter().all(|entry| entry.dominated_by.is_empty()));
+    }
+
+    #[test]
+    fn pareto_026_calibrated_model_prediction_requires_receipt_on_every_metric() {
+        let mut candidate = calibrated_model_candidate("missing-receipt");
+        candidate.objectives[1].calibration_receipt = None;
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+
+        let mut candidate = calibrated_model_candidate("missing-constraint-receipt");
+        candidate.hard_constraints[0].calibration_receipt = None;
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_027_calibration_receipt_cannot_be_used_to_launder_an_independent_claim() {
+        let mut candidate = candidate(
+            "laundered",
+            1.0,
+            100.0,
+            0.9,
+            EvidenceClass::IndependentPhysical,
+        );
+        candidate.objectives[0].calibration_receipt = Some(calibration_receipt());
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_028_stale_model_domain_boundary_or_mission_receipt_rejects() {
+        let mut candidate = calibrated_model_candidate("stale-model");
+        candidate.model_digest = Some("different-model".to_owned());
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+
+        let mut candidate = calibrated_model_candidate("stale-domain");
+        candidate.prediction_domain_digest = Some("different-domain".to_owned());
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+
+        let mut candidate = calibrated_model_candidate("stale-mission");
+        candidate.objectives[0].calibration_receipt.as_mut().unwrap().mission_set_digest =
+            "different-mission".to_owned();
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_029_insufficient_or_malformed_calibration_receipt_rejects() {
+        let mut insufficient = calibrated_model_candidate("insufficient-calibration");
+        let receipt = insufficient.objectives[0].calibration_receipt.as_mut().unwrap();
+        receipt.order_statistic_rank = 4;
+        assert!(robust_pareto_report(&[insufficient], &objective_defs(), &constraint_defs()).is_err());
+
+        let mut empty_test = calibrated_model_candidate("empty-calibration-test");
+        let receipt = empty_test.hard_constraints[0].calibration_receipt.as_mut().unwrap();
+        receipt.in_domain_test_specimen_count = 0;
+        receipt.covered_test_specimen_count = 0;
+        receipt.uncovered_test_specimen_count = 0;
+        assert!(robust_pareto_report(&[empty_test], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_030_calibrated_model_violation_receipt_retains_calibration_provenance() {
+        let mut candidate = calibrated_model_candidate("calibrated-violation");
+        candidate.hard_constraints[0].minimum_robust_margin = Some(-0.25);
+        let report = robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).unwrap();
+        let violation = &assessment(&report, "calibrated-violation").known_constraint_violations[0];
+        assert_eq!(violation.evidence_class, EvidenceClass::CalibratedModelPrediction);
+        assert_eq!(
+            violation.calibration_receipt.as_ref().unwrap().report_digest,
+            "calibration-report-sha256-v1"
+        );
+    }
+
+    #[test]
+    fn pareto_031_all_candidates_are_retained_as_assessments() {
         let good = candidate("good", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
         let mut bad = candidate("bad", 0.5, 50.0, 1.0, EvidenceClass::IndependentPhysical);
         bad.hard_constraints[0].minimum_robust_margin = Some(-0.5);
