@@ -55,6 +55,10 @@ cargo clippy --locked --manifest-path research/geofusion-fmi-trace-verifier/Carg
 
 ## Frozen corpus and claim ceiling
 
+The frozen TSV corpus contains **26 unique negative controls**. The test harness asserts unique IDs, three-column rows and the expected disposition for every mutation.
+
+
+
 The frozen TSV corpus mutates a valid two-federate trace with wrong model identity, clock-map mismatch, rejected-step advancement or state mutation, early return without importer permission, zero-progress early return, unrepresented event/termination paths, invalid retry linkage/start/horizon, unresolved rejection, sequence gaps, barrier membership/time defects, invalid rational clock scales/overflow, stale clock identity, missing state digests and invalid early-return endpoints, and a control that rejects an early return beyond the requested endpoint.
 
 All examples are synthetic. Passing tests establish only the declared trace-verification behavior. They do not prove FMI standard conformance, physical model accuracy, energy conservation, geothermal output, fusion performance, grid stability, equipment safety or operational authorization.
