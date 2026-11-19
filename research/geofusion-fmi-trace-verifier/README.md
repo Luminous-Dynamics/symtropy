@@ -49,8 +49,8 @@ FMI source: [FMI 3.0.2, §4.1.3 and §4.2](https://fmi-standard.org/docs/3.0.2/)
 ## Run
 
 ```sh
-cargo test --manifest-path research/geofusion-fmi-trace-verifier/Cargo.toml
-cargo clippy --manifest-path research/geofusion-fmi-trace-verifier/Cargo.toml --all-targets -- -D warnings
+cargo test --locked --manifest-path research/geofusion-fmi-trace-verifier/Cargo.toml
+cargo clippy --locked --manifest-path research/geofusion-fmi-trace-verifier/Cargo.toml --all-targets -- -D warnings
 ```
 
 ## Frozen corpus and claim ceiling
