@@ -24,10 +24,22 @@ pub struct ResourceOutageWindow {
 
 #[derive(Clone, Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ResourceCalendarException {
+    pub exception_id: String,
+    pub start_hour: f64,
+    pub end_hour: f64,
+    pub exception_type: String,
+    pub reason: String,
+}
+
+#[derive(Clone, Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ResourceProfile {
     pub available_units: u32,
     pub calendar_period_hours: f64,
     pub availability_windows: Vec<AvailabilityWindow>,
+    #[serde(default)]
+    pub calendar_exceptions: Vec<ResourceCalendarException>,
     #[serde(default)]
     pub outage_windows: Vec<ResourceOutageWindow>,
 }
@@ -131,6 +143,13 @@ fn earliest_slot_for_resource(
             let mut candidate = ready_hour.max(window_start);
 
             while candidate + duration_hours <= window_end + 1e-9 {
+                if let Some(exception) = profile.calendar_exceptions.iter().find(|exception| {
+                    candidate < exception.end_hour - 1e-9
+                        && candidate + duration_hours > exception.start_hour + 1e-9
+                }) {
+                    candidate = exception.end_hour;
+                    continue;
+                }
                 let mut boundaries = vec![candidate];
                 boundaries.extend(
                     allocations
@@ -274,6 +293,20 @@ pub fn schedule_with_policy(
         {
             errors.push(format!("resource {resource_id} has invalid capacity or calendar"));
             continue;
+        }
+        let mut exception_ids = BTreeSet::new();
+        for exception in &profile.calendar_exceptions {
+            if exception.exception_id.trim().is_empty()
+                || !exception_ids.insert(exception.exception_id.as_str())
+                || !exception.start_hour.is_finite()
+                || !exception.end_hour.is_finite()
+                || exception.start_hour < 0.0
+                || exception.end_hour <= exception.start_hour
+                || exception.exception_type.trim().is_empty()
+                || exception.reason.trim().is_empty()
+            {
+                errors.push(format!("resource {resource_id} has invalid calendar exception"));
+            }
         }
         let mut previous_end = 0.0;
         for window in &profile.availability_windows {
@@ -977,6 +1010,7 @@ mod tests {
                     end_hour: *end_hour,
                 })
                 .collect(),
+            calendar_exceptions: Vec::new(),
             outage_windows: Vec::new(),
         }
     }
@@ -1202,6 +1236,59 @@ mod tests {
         let result = schedule(&[task], &profiles).expect("calendar should have next shift");
         assert_eq!(result[0].start_hour, 32.0);
         assert_eq!(result[0].end_hour, 37.0);
+    }
+
+    #[test]
+    fn handles_weekly_shifts_lunch_breaks_and_public_holiday() {
+        let task = spec("E1", "repair", &[], 112.0, 2.0, Some("crew"), 1);
+        let mut crew = profile(
+            1,
+            168.0,
+            &[
+                (8.0, 12.0), (13.0, 17.0),
+                (32.0, 36.0), (37.0, 41.0),
+                (56.0, 60.0), (61.0, 65.0),
+                (80.0, 84.0), (85.0, 89.0),
+                (104.0, 108.0), (109.0, 113.0),
+            ],
+        );
+        crew.calendar_exceptions.push(ResourceCalendarException {
+            exception_id: "PUBLIC-HOLIDAY-WEEK-2-MONDAY".to_string(),
+            start_hour: 176.0,
+            end_hour: 200.0,
+            exception_type: "public_holiday".to_string(),
+            reason: "Synthetic calendar fixture: full-day statutory holiday".to_string(),
+        });
+        let profiles = BTreeMap::from([("crew".to_string(), crew)]);
+        let result = schedule(&[task], &profiles).expect("next eligible workday should exist");
+        assert_eq!(result[0].start_hour, 200.0);
+        assert_eq!(result[0].end_hour, 202.0);
+    }
+
+    #[test]
+    fn rejects_duplicate_or_empty_calendar_exception_identity() {
+        let task = spec("E1", "repair", &[], 0.0, 2.0, Some("crew"), 1);
+        let mut crew = profile(1, 24.0, &[(8.0, 17.0)]);
+        crew.calendar_exceptions = vec![
+            ResourceCalendarException {
+                exception_id: "HOLIDAY-1".to_string(),
+                start_hour: 24.0,
+                end_hour: 48.0,
+                exception_type: "public_holiday".to_string(),
+                reason: "holiday".to_string(),
+            },
+            ResourceCalendarException {
+                exception_id: "HOLIDAY-1".to_string(),
+                start_hour: 48.0,
+                end_hour: 72.0,
+                exception_type: "public_holiday".to_string(),
+                reason: "holiday".to_string(),
+            },
+        ];
+        let profiles = BTreeMap::from([("crew".to_string(), crew)]);
+        assert!(schedule(&[task], &profiles)
+            .unwrap_err()[0]
+            .contains("invalid calendar exception"));
     }
 
     #[test]
