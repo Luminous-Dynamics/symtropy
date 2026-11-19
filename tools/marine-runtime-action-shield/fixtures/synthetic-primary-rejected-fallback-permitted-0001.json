@@ -9,7 +9,8 @@
     "operating_domain_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
     "shield_version_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
     "max_state_age_ms": 2000,
-    "permit_ttl_ms": 500
+    "permit_ttl_ms": 500,
+    "scenario_manifest_sha256": "3544bf7461eb4f9fb70fe6e8c3cbf6bc217556fb5a69b557d864e29c35392d5d"
   },
   "mission_snapshot": {
     "mission_id": "SYNTHETIC-TRAJECTORY-MISSION-0001",
@@ -28,7 +29,7 @@
   "current_state": {
     "sequence": 42,
     "timestamp": "2026-03-01T11:59:59.500Z",
-    "state_sha256": "9219b03ec9eae1805897083177f6b61ae90e6c6e9babce695efc29fb5734b79a",
+    "state_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
     "telemetry_evidence_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
   },
   "service_contract": [
@@ -151,7 +152,7 @@
         "nonessential_load_shed": false
       },
       "action_sha256": "73cf80611a3fc0113955ecb28f527d70ce35381725a68673aad8ec7cc880a1fe",
-      "source_current_state_sha256": "9219b03ec9eae1805897083177f6b61ae90e6c6e9babce695efc29fb5734b79a",
+      "source_current_state_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
       "model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "operating_domain_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
       "permit_expires_at": "2026-03-01T12:00:00.500Z",
@@ -281,7 +282,9 @@
               "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
             }
           ],
-          "successor_state_sha256": "08b57bb153fc106f0ed538a63391c54795807d49a2bff3f5c8c0ef474b2628c7"
+          "successor_state_sha256": "673f594f180224d434c28a947a99892a1a386a7777b7eed64aa83789fe57ad67",
+          "scenario_sha256": "f90293866063faf0180279ea3896633d1d5b314fb29c4e15f7150c518ab3ebd9",
+          "disturbance_sha256": "64324037075d06bc0577a8bbfa508e49a9c5286860f2c19e6e442e2fbb5c2907"
         },
         {
           "scenario_class": "adverse_forecast_error",
@@ -408,7 +411,9 @@
               "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
             }
           ],
-          "successor_state_sha256": "6aa51a4af511535d8b99456edece3acd39c3df94f88941eecad86a71da45aa2a"
+          "successor_state_sha256": "538a03379606ab3f5e609892f953c4a167e7604bb5701994a02f418fca5b6888",
+          "scenario_sha256": "513719a23a76d4542c38e9022384a2e609b32f64045e2631da861b58c98be7a4",
+          "disturbance_sha256": "b2fafe7790f0783147bffb866135463a9a1928b3e59a420a93df9aa98e949c76"
         },
         {
           "scenario_class": "main_generation_outage",
@@ -535,7 +540,9 @@
               "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
             }
           ],
-          "successor_state_sha256": "61422feb8e27b7f0aa768786440e224396a04c320f2440088c883aba48b7d7f8"
+          "successor_state_sha256": "06a232c184663bae38171c79910c5a0a5f0c169e9f37e98d37db3a291d069369",
+          "scenario_sha256": "428d83969847caf5a7d3903a0aaa3ee7dba37118eb414eb690556e09b9828a66",
+          "disturbance_sha256": "ac639dcddd176d6f9d441397f8edafbfe4756d5d36301078c0b9fb5427e6bcde"
         },
         {
           "scenario_class": "watermaker_outage",
@@ -662,7 +669,9 @@
               "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
             }
           ],
-          "successor_state_sha256": "3c3c03933fbb890dd04950cf3edb6cd28f7c060a9cde4b8b3f8bb898cf19a228"
+          "successor_state_sha256": "9c93a7b220143d500330fee7bed70bece37c5a2d2b8e99d4464a0b263bc490f1",
+          "scenario_sha256": "b67b1d3782aa479952e79655d77155ba3c5927bd9e44894e59aa8392a088ba04",
+          "disturbance_sha256": "980ab0a98d0471462a04fea35941a4e810a4747158e058b2c09f26de0a88344d"
         },
         {
           "scenario_class": "common_cause_generation_watermaker_outage",
@@ -789,7 +798,9 @@
               "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
             }
           ],
-          "successor_state_sha256": "ba31c802a8b29ec508ffa1f9d18bfc1713f999b69a08266db83c5eb5f1b9d197"
+          "successor_state_sha256": "5d9c03fc07a8e70b7cc582e0c25ba4089d566e887229560912a632c70299642d",
+          "scenario_sha256": "f14321b00888fa7763df518a166d8b9049d5338823c49fe1b24f82f370e250f6",
+          "disturbance_sha256": "e1ac111c920bb654f0d9f5f17a8d3834543c4be794fca4362373f50878b30033"
         }
       ]
     },
@@ -806,7 +817,7 @@
         "nonessential_load_shed": true
       },
       "action_sha256": "6afe071753fa5c512c142cd13db9e6e827b31d8c523327348206515af7497ba6",
-      "source_current_state_sha256": "9219b03ec9eae1805897083177f6b61ae90e6c6e9babce695efc29fb5734b79a",
+      "source_current_state_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
       "model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "operating_domain_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
       "permit_expires_at": "2026-03-01T12:00:00.500Z",
@@ -936,7 +947,9 @@
               "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
             }
           ],
-          "successor_state_sha256": "56c805357390c6d177dea632d5be25907eb4164053ee32b857616a5126ea197e"
+          "successor_state_sha256": "a16b5b6561c9248b45f1e81d4039c12cd51b4969344452b21e9ce1f522bd7bf2",
+          "scenario_sha256": "f90293866063faf0180279ea3896633d1d5b314fb29c4e15f7150c518ab3ebd9",
+          "disturbance_sha256": "64324037075d06bc0577a8bbfa508e49a9c5286860f2c19e6e442e2fbb5c2907"
         },
         {
           "scenario_class": "adverse_forecast_error",
@@ -1063,7 +1076,9 @@
               "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
             }
           ],
-          "successor_state_sha256": "a77e34df569079a793fa4e3586007b8c237419dccbc7d1f62e48d7d59fd1f342"
+          "successor_state_sha256": "2203e516cf46fab5264f352bc46cca28603f01a7a97ca49294a12bb93b080ff3",
+          "scenario_sha256": "513719a23a76d4542c38e9022384a2e609b32f64045e2631da861b58c98be7a4",
+          "disturbance_sha256": "b2fafe7790f0783147bffb866135463a9a1928b3e59a420a93df9aa98e949c76"
         },
         {
           "scenario_class": "main_generation_outage",
@@ -1190,7 +1205,9 @@
               "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
             }
           ],
-          "successor_state_sha256": "91f35219d17ff5b026773da827965f5ac8879a38821255032826aa7b55dcd944"
+          "successor_state_sha256": "8c63376ccbc320045ca95cc484cb558836ec7867fd033155be2902910e2ceb43",
+          "scenario_sha256": "428d83969847caf5a7d3903a0aaa3ee7dba37118eb414eb690556e09b9828a66",
+          "disturbance_sha256": "ac639dcddd176d6f9d441397f8edafbfe4756d5d36301078c0b9fb5427e6bcde"
         },
         {
           "scenario_class": "watermaker_outage",
@@ -1317,7 +1334,9 @@
               "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
             }
           ],
-          "successor_state_sha256": "63188eee2da4ba8cd95a43b697f249f54e03cf65197d60e285b134f56e68dce1"
+          "successor_state_sha256": "20030e201751f735142fe6e05b71137bbd0ffac7d8512b4ecf92bedfaab090d1",
+          "scenario_sha256": "b67b1d3782aa479952e79655d77155ba3c5927bd9e44894e59aa8392a088ba04",
+          "disturbance_sha256": "980ab0a98d0471462a04fea35941a4e810a4747158e058b2c09f26de0a88344d"
         },
         {
           "scenario_class": "common_cause_generation_watermaker_outage",
@@ -1444,7 +1463,9 @@
               "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
             }
           ],
-          "successor_state_sha256": "c38b6215c6b4a25c6f9adfe51779f577d952ec0d4da86a19fa4cda79a2193a45"
+          "successor_state_sha256": "721168125286579f8afaf4119eaa4377f8898edd904112d4f9f506ec66d1864e",
+          "scenario_sha256": "f14321b00888fa7763df518a166d8b9049d5338823c49fe1b24f82f370e250f6",
+          "disturbance_sha256": "e1ac111c920bb654f0d9f5f17a8d3834543c4be794fca4362373f50878b30033"
         }
       ]
     }
