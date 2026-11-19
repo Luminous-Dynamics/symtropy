@@ -847,7 +847,51 @@
         "rust_tests_executed": false
       },
       "owner_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6169",
-      "claim_ceiling": "This is the published first-order slow-rotation solution and analytic angular flux. It does not provide the O(a^2) metric backreaction, prove a finite-spin nonzero-alpha solution, or claim uniform validity near extremality."
+      "claim_ceiling": "This is the published first-order slow-rotation solution and analytic angular flux. It does not provide the O(a^2) metric backreaction, prove a finite-spin nonzero-alpha solution, or claim uniform validity near extremality.",
+      "second_order_spin_expansion": {
+        "owner_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6169",
+        "script": "crates/domains/symtropy-lovelock5d/benchmarks/derive_slow_rotation_second_order.py",
+        "fixture": "crates/domains/symtropy-lovelock5d/benchmarks/slow_rotation_second_order_fixture_v1.json",
+        "derivation_doc": "crates/domains/symtropy-lovelock5d/benchmarks/slow_rotation_second_order_derivation_v1.md",
+        "ansatz": {
+          "b": "F+a^2*B2+O(a^4)",
+          "f": "F+a^2*F2+O(a^4)",
+          "h": "r^2+a^2*H2+O(a^4)",
+          "w": "a*W1+O(a^3)",
+          "g": "r^2"
+        },
+        "equation_system": {
+          "equations": [
+            "E_b^(2)",
+            "E_f^(2)",
+            "E_g^(2)",
+            "E_h^(2)"
+          ],
+          "source_split": "linear operator on B2,F2,H2 plus W1^2 source",
+          "radial_constraint_retained": "E_g^(2)",
+          "coefficient_extraction": "0.5*d^2/d(epsilon)^2 at epsilon=0 after full variation and gauge substitution"
+        },
+        "exact_mp_alpha_zero_control": {
+          "u": "r_H^2/r^2",
+          "B2": "-u*(1-u^2)/r_H^2",
+          "F2": "-u*(1-u)/r_H^2",
+          "H2": "u",
+          "residuals": {
+            "b": "0",
+            "f": "0",
+            "g": "0",
+            "h": "0"
+          },
+          "all_four_equations_passed_in_development_sympy": true
+        },
+        "equation_fingerprints": {
+          "b": "b7df661c03650bb9eb61522e6c57d3232ba3269c8a4d28c97578c13ef4745e79",
+          "f": "b93eb7ab1ac8273736dd22fda41f3f798bc78b67479c4461583c5e8110a257d8",
+          "g": "f96826babf48579e0b406199368c3e69d2fd59118164f0f5b04d43f977fe8b41",
+          "h": "d77f1a8a7c797602830c8e4479066a9f8e53650727c12b4ab1c0fcbd64b1c314"
+        },
+        "status": "O(a^2) equations derived symbolically; exact MP control passes; committed replay script pending clean checkout; finite-alpha BVP unsolved"
+      }
     }
   ],
   "fairness_rules": [
@@ -881,6 +925,8 @@
     "Symtropy is not considered superior until it reproduces 2010 observables and demonstrates a matched work-precision advantage plus independent residual/domain qualification.",
     "Lam-Chung-Yunes 2026 arbitrary-spin spectral metrics are a methodological high-spin comparator only: their 4D leading-coupling EFT equations differ from the 5D pure EGB target.",
     "Map the accuracy-vs-spin envelope for each perturbative order and observable; do not claim a universal slow-rotation breakdown spin.",
-    "Reproduce the 2010 two-gauge cross-check by comparing invariant physical observables and transformed field residuals."
+    "Reproduce the 2010 two-gauge cross-check by comparing invariant physical observables and transformed field residuals.",
+    "The derived O(a^2) even-sector E_b,E_f,E_g,E_h system must recover exact Myers-Perry B2,F2,H2 at alpha=0; retain E_g as radial constraint.",
+    "Do not claim finite-alpha spin-squared backreaction until the inhomogeneous BVP is solved with independent horizon, infinity, spectral and first-law checks."
   ]
 }
