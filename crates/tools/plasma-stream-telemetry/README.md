@@ -25,6 +25,7 @@ Each stream trace is replayed in observed receive order. Events are never sorted
 ## Metrics
 
 The report separates:
+- source-to-acquisition latency = acquisition - source;
 - transport latency = receive - acquisition;
 - queue wait = processing start - receive;
 - processing latency = processing end - processing start;
@@ -33,7 +34,7 @@ The report separates:
 - acquisition-relative deadline status;
 - source sample period, clock uncertainty, queue depth, sequence gaps and optional downstream acknowledgement state.
 
-A late historical sample can remain valid evidence while being stale for the live decision. Model identity is independently qualified. An unknown downstream acknowledgement remains unknown and never becomes success.
+A late historical sample can remain valid evidence while being stale for the live decision. Model identity requires an artifact digest and a digest reference to separately retained verification evidence; a caller-supplied boolean cannot certify itself. The evidence digest is an integrity reference, not a signature or proof that the verifier is trusted. An unknown downstream acknowledgement remains unknown and never becomes success.
 
 ## Boundaries
 
