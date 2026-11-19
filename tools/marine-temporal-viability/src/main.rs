@@ -402,7 +402,7 @@ fn validate_path(
             errors.push(format!("{point_context} does not end at mission_window.end"));
         }
         if let Some(previous) = point_times.get(index.wrapping_sub(1)) {
-            if time <= *previous {
+            if time <= previous.clone() {
                 errors.push(format!("{point_context} timestamp is not strictly increasing"));
             }
             let gap = time.signed_duration_since(previous.clone()).num_milliseconds() as f64 / 3_600_000.0;
@@ -759,6 +759,17 @@ mod tests {
         let report = audit(&value);
         assert_eq!(report["disposition"], "BLOCKED");
         assert_eq!(report["arrival_only_false_feasible_path_count"], 1);
+    }
+
+    #[test]
+    fn point_estimate_pass_does_not_hide_conservative_reserve_bound_failure() {
+        let mut value = fixture();
+        let metrics = value["policies"][2]["paths"][0]["timepoints"][1]["metrics"].as_array_mut().unwrap();
+        let freshwater = metrics.iter_mut().find(|metric| metric["metric"] == "freshwater_reserve_days").unwrap();
+        freshwater["value"] = json!(3.1);
+        freshwater["lower_bound"] = json!(2.9);
+        freshwater["upper_bound"] = json!(3.3);
+        assert_eq!(audit(&value)["disposition"], "BLOCKED");
     }
 
     #[test]
