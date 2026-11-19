@@ -22,6 +22,9 @@ pub enum EvidenceClass {
     SourceAuthorPhysical,
     VendorPhysical,
     ModelDerived,
+    /// A model prediction accompanied by a valid specimen-group calibration
+    /// receipt. It remains Conditional evidence, never independent physical.
+    CalibratedModelPrediction,
     Unknown,
 }
 
@@ -55,6 +58,32 @@ pub struct HardConstraintDefinition {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct PredictionCalibrationReceipt {
+    pub report_digest: String,
+    pub model_digest: String,
+    pub training_split_digest: String,
+    pub calibration_split_digest: String,
+    pub test_split_digest: String,
+    pub system_boundary_digest: String,
+    pub operating_condition_digest: String,
+    pub mission_set_digest: String,
+    pub domain_digest: String,
+    pub alpha: f64,
+    pub calibration_specimen_count: usize,
+    pub order_statistic_rank: usize,
+    pub correction_q_nm: f64,
+    pub test_specimen_count: usize,
+    pub in_domain_test_specimen_count: usize,
+    pub covered_test_specimen_count: usize,
+    pub uncovered_test_specimen_count: usize,
+    pub out_of_domain_test_specimen_count: usize,
+    pub empirical_group_coverage: f64,
+    pub wilson_95_lower: f64,
+    pub wilson_95_upper: f64,
+    pub measurement_evidence_class: EvidenceClass,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct MetricEvidence {
     pub name: String,
     pub value: Option<f64>,
@@ -67,6 +96,7 @@ pub struct MetricEvidence {
     pub operating_condition_digest: String,
     pub mission_set_digest: String,
     pub stress_set_digest: String,
+    pub calibration_receipt: Option<PredictionCalibrationReceipt>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -83,6 +113,7 @@ pub struct ConstraintEvidence {
     pub operating_condition_digest: String,
     pub mission_set_digest: String,
     pub stress_set_digest: String,
+    pub calibration_receipt: Option<PredictionCalibrationReceipt>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -93,6 +124,9 @@ pub struct DesignCandidate {
     pub operating_condition_digest: String,
     pub mission_set_digest: String,
     pub stress_set_digest: String,
+    /// Required when any objective/constraint is a calibrated model prediction.
+    pub model_digest: Option<String>,
+    pub prediction_domain_digest: Option<String>,
     pub objectives: Vec<MetricEvidence>,
     pub hard_constraints: Vec<ConstraintEvidence>,
 }
@@ -106,6 +140,7 @@ pub struct KnownConstraintViolation {
     pub source_reference: Option<String>,
     pub method: Option<String>,
     pub stress_set_digest: String,
+    pub calibration_receipt: Option<PredictionCalibrationReceipt>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -174,6 +209,97 @@ fn validate_evidence(
     Ok(())
 }
 
+fn validate_prediction_calibration(
+    evidence_class: EvidenceClass,
+    receipt: &Option<PredictionCalibrationReceipt>,
+    candidate: &DesignCandidate,
+    label: &str,
+) -> Result<(), String> {
+    if evidence_class != EvidenceClass::CalibratedModelPrediction {
+        if receipt.is_some() {
+            return Err(format!(
+                "{label} has a calibration receipt but is not classified as CalibratedModelPrediction"
+            ));
+        }
+        return Ok(());
+    }
+
+    let receipt = receipt.as_ref().ok_or_else(|| {
+        format!("{label} is CalibratedModelPrediction but has no calibration receipt")
+    })?;
+    if !nonempty(&receipt.report_digest) || !nonempty(&receipt.model_digest) {
+        return Err(format!("{label} calibration report/model digest is missing"));
+    }
+    if candidate.model_digest.as_deref() != Some(receipt.model_digest.as_str())
+        || candidate.prediction_domain_digest.as_deref() != Some(receipt.domain_digest.as_str())
+    {
+        return Err(format!("{label} calibration model/domain digest does not match the candidate"));
+    }
+    if receipt.system_boundary_digest != candidate.system_boundary_digest
+        || receipt.operating_condition_digest != candidate.operating_condition_digest
+        || receipt.mission_set_digest != candidate.mission_set_digest
+    {
+        return Err(format!("{label} calibration receipt belongs to a different boundary, condition or mission set"));
+    }
+
+    let split_digests = [
+        receipt.training_split_digest.as_str(),
+        receipt.calibration_split_digest.as_str(),
+        receipt.test_split_digest.as_str(),
+    ];
+    if split_digests.iter().any(|digest| !nonempty(digest))
+        || split_digests[0] == split_digests[1]
+        || split_digests[0] == split_digests[2]
+        || split_digests[1] == split_digests[2]
+    {
+        return Err(format!("{label} calibration receipt has invalid or overlapping split identities"));
+    }
+    if !receipt.alpha.is_finite()
+        || !(0.0..1.0).contains(&receipt.alpha)
+        || receipt.calibration_specimen_count == 0
+        || receipt.order_statistic_rank == 0
+        || receipt.order_statistic_rank > receipt.calibration_specimen_count
+        || !receipt.correction_q_nm.is_finite()
+        || receipt.correction_q_nm < 0.0
+    {
+        return Err(format!("{label} calibration receipt has invalid finite-sample rank or correction"));
+    }
+    if receipt.test_specimen_count == 0
+        || receipt.in_domain_test_specimen_count == 0
+        || receipt.covered_test_specimen_count + receipt.uncovered_test_specimen_count
+            != receipt.in_domain_test_specimen_count
+        || receipt.in_domain_test_specimen_count + receipt.out_of_domain_test_specimen_count
+            != receipt.test_specimen_count
+    {
+        return Err(format!("{label} calibration receipt has inconsistent or empty held-out test counts"));
+    }
+    let expected_coverage = receipt.covered_test_specimen_count as f64
+        / receipt.in_domain_test_specimen_count as f64;
+    if !receipt.empirical_group_coverage.is_finite()
+        || !(0.0..=1.0).contains(&receipt.empirical_group_coverage)
+        || (receipt.empirical_group_coverage - expected_coverage).abs() > 1.0e-9
+        || !receipt.wilson_95_lower.is_finite()
+        || !receipt.wilson_95_upper.is_finite()
+        || !(0.0..=1.0).contains(&receipt.wilson_95_lower)
+        || !(0.0..=1.0).contains(&receipt.wilson_95_upper)
+        || receipt.wilson_95_lower > receipt.empirical_group_coverage
+        || receipt.empirical_group_coverage > receipt.wilson_95_upper
+        || receipt.wilson_95_lower > receipt.wilson_95_upper
+    {
+        return Err(format!("{label} calibration receipt has invalid held-out coverage statistics"));
+    }
+    if !matches!(
+        receipt.measurement_evidence_class,
+        EvidenceClass::IndependentPhysical
+            | EvidenceClass::SourceAuthorPhysical
+            | EvidenceClass::VendorPhysical
+    ) {
+        return Err(format!("{label} calibration receipt has invalid underlying measurement evidence class"));
+    }
+
+    Ok(())
+}
+
 fn lane_for_evidence(classes: &[EvidenceClass]) -> Option<EvidenceLane> {
     if classes.is_empty() || classes.contains(&EvidenceClass::Unknown) {
         return None;
@@ -236,6 +362,8 @@ fn assess_candidate(
         || !nonempty(&candidate.operating_condition_digest)
         || !nonempty(&candidate.mission_set_digest)
         || !nonempty(&candidate.stress_set_digest)
+        || candidate.model_digest.as_deref().is_some_and(|digest| !nonempty(digest))
+        || candidate.prediction_domain_digest.as_deref().is_some_and(|digest| !nonempty(digest))
     {
         return Err("candidate, configuration, condition and mission-set identities are required".to_owned());
     }
@@ -298,6 +426,12 @@ fn assess_candidate(
                 candidate.candidate_id, definition.name
             ));
         }
+        validate_prediction_calibration(
+            observation.evidence_class,
+            &observation.calibration_receipt,
+            candidate,
+            &format!("objective {:?}", definition.name),
+        )?;
         if observation.value.is_some_and(|value| !value.is_finite()) {
             return Err(format!("candidate {:?} objective {} is non-finite", candidate.candidate_id, definition.name));
         }
@@ -344,6 +478,12 @@ fn assess_candidate(
                 candidate.candidate_id, definition.name
             ));
         }
+        validate_prediction_calibration(
+            observation.evidence_class,
+            &observation.calibration_receipt,
+            candidate,
+            &format!("constraint {:?}", definition.name),
+        )?;
         if observation.minimum_robust_margin.is_some_and(|margin| !margin.is_finite()) {
             return Err(format!("candidate {:?} constraint {} has non-finite margin", candidate.candidate_id, definition.name));
         }
@@ -358,6 +498,7 @@ fn assess_candidate(
                     source_reference: observation.source_reference.clone(),
                     method: observation.method.clone(),
                     stress_set_digest: observation.stress_set_digest.clone(),
+                    calibration_receipt: observation.calibration_receipt.clone(),
                 });
             }
             None => unknown_fields.push(format!("constraint[{index}]={}", definition.name)),
@@ -584,6 +725,7 @@ mod tests {
             operating_condition_digest: CONDITION.to_owned(),
             mission_set_digest: MISSIONS.to_owned(),
             stress_set_digest: STRESS_SET.to_owned(),
+            calibration_receipt: None,
         }
     }
 
@@ -600,6 +742,7 @@ mod tests {
             operating_condition_digest: CONDITION.to_owned(),
             mission_set_digest: MISSIONS.to_owned(),
             stress_set_digest: STRESS_SET.to_owned(),
+            calibration_receipt: None,
         }
     }
 
@@ -617,6 +760,8 @@ mod tests {
             operating_condition_digest: CONDITION.to_owned(),
             mission_set_digest: MISSIONS.to_owned(),
             stress_set_digest: STRESS_SET.to_owned(),
+            model_digest: None,
+            prediction_domain_digest: None,
             objectives: vec![
                 MetricEvidence { name: "installed_mass".to_owned(), ..metric(mass, "kg", class) },
                 MetricEvidence { name: "task_energy".to_owned(), ..metric(energy, "J", class) },
