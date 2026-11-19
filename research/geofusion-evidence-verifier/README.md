@@ -38,6 +38,9 @@ cargo run --locked --package geofusion-evidence-verifier -- \
   docs/research/geothermal-fusion/evidence/fixtures/synthetic-geothermal-source-interval.v0.1.json \
   docs/research/geothermal-fusion/evidence/fixtures/synthetic-source-interval-evidence.v0.1.json \
   docs/research/geothermal-fusion/evidence/fixtures/synthetic-source-allocation-receipt.v0.1.json
+
+cargo run --locked --package geofusion-evidence-verifier -- --batch \
+  docs/research/geothermal-fusion/evidence/fixtures/source-interval-batch-manifest.v0.1.json
 ```
 
 Exit codes:
