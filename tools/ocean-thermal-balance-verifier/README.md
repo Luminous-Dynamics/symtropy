@@ -35,4 +35,6 @@ Cooling electricity includes chiller, water-loop pump and separately declared ot
 
 A PASS establishes only 0D arithmetic consistency under caller-supplied values and declared boundaries. It is not a heat-exchanger design, seawater intake/outfall design, CFD or hydrodynamic plume model, ecological risk model, WUE/PUE certification, environmental authorization, or field validation. The site limits must come from the applicable authority and environmental baseline.
 
+Frozen known-answer inputs and expected outputs are also stored in `docs/research/port-energy-compute/OCEAN_THERMAL_BALANCE_GOLDEN_FIXTURE_V0_1.json`. An independent JSON arithmetic check reproduced all three valid-mode balances to floating-point rounding, with zero IT-side residual and approximately 1.5e-11 W maximum seawater residual.
+
 The synthetic cases in the demo are mechanism tests, not a real site or commercial performance result.
