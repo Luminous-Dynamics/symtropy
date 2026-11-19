@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "scenario_id": "synthetic-carrier-uav-coavailability-v1",
+  "carrier": {
+    "carrier_id": "carrier-01",
+    "route_stops": [
+      {
+        "stop_id": "stop-01",
+        "node_id": "synthetic-depot",
+        "arrival_earliest_ms": 0,
+        "departure_latest_ms": 1000000,
+        "arrival_latest_ms": 0,
+        "departure_earliest_ms": 1000000,
+        "available_pad_resource_ids": [
+          "pad-depot-01"
+        ]
+      },
+      {
+        "stop_id": "stop-02",
+        "node_id": "synthetic-hub-b",
+        "arrival_earliest_ms": 1300000,
+        "departure_latest_ms": 1900000,
+        "arrival_latest_ms": 1300000,
+        "departure_earliest_ms": 1900000,
+        "available_pad_resource_ids": [
+          "pad-hub-b-01"
+        ]
+      }
+    ],
+    "route_timing_evidence": "fresh_in_domain",
+    "site_resource_evidence": "fresh_in_domain"
+  },
+  "aircraft": {
+    "aircraft_id": "synthetic-uav-01",
+    "capability_evidence": "fresh_in_domain",
+    "maximum_payload_mass_g": 2000,
+    "usable_energy_wh": 500,
+    "reserve_energy_wh": 100,
+    "maximum_peak_power_w": 1500,
+    "maximum_continuous_power_w": 800
+  },
+  "sortie": {
+    "sortie_id": "synthetic-sortie-01",
+    "payload_mass_g": 1000,
+    "launch_stop_id": "stop-01",
+    "recovery_stop_id": "stop-02",
+    "launch_pad_resource_id": "pad-depot-01",
+    "recovery_pad_resource_id": "pad-hub-b-01",
+    "launch_window_open_ms": 100000,
+    "launch_window_close_ms": 300000,
+    "recovery_window_open_ms": 1300000,
+    "recovery_window_close_ms": 1700000,
+    "launch_service_ms": 60000,
+    "recovery_service_ms": 60000,
+    "flight_duration_ms": 1200000,
+    "flight_energy_wh": 300,
+    "peak_power_w": 1200,
+    "continuous_power_w": 600
+  },
+  "operating_domain": {
+    "permission": "approved",
+    "weather_evidence": "fresh_in_domain",
+    "permission_evidence": "fresh_in_domain"
+  },
+  "existing_reservations": []
+}
