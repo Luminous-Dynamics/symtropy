@@ -14,17 +14,17 @@ This is a deliberately bounded Rust runtime slice. It is not a full Draft 2020-1
 
 1. Parses the raw payload, evidence envelope and allocation receipt.
 2. Recomputes SHA-256 over the **exact raw payload bytes**; it never hashes a parsed-and-reserialized JSON object.
-3. Recomputes and checks payload byte length.
-4. Joins evidence class, source asset, measurement boundary, explicit source interval ID, carrier and bounded time window across all three records.
-5. Joins the allocation receipt to the exact evidence ID and recomputed payload digest.
-6. Rejects duplicate allocation edge IDs, invalid energy terms and service/carrier mismatches.
-7. Recomputes allocated energy, curtailment, residual and normalized absolute residual using the same scale-normalized formula as the GeoFusion Rust source-allocation ledger.
-8. Compares the recomputed result to the declared evaluation instead of trusting a prefilled `within_tolerance: true`.
-9. Reports byte integrity and allocation closure as separate outputs. A byte-integrity pass with an unbalanced allocation is not a qualified receipt.
+3. Recomputes and checks payload byte length.\n4. For the thermal profile, recomputes `average_thermal_power_mw × duration_ns / 3.6e12` and rejects a source payload whose energy value does not agree with its power and interval duration.
+5. Joins evidence class, source asset, measurement boundary, explicit source interval ID, carrier and bounded time window across all three records.
+6. Joins the allocation receipt to the exact evidence ID and recomputed payload digest.
+7. Rejects duplicate allocation edge IDs, invalid energy terms and service/carrier mismatches.
+8. Recomputes allocated energy, curtailment, residual and normalized absolute residual using the same scale-normalized formula as the GeoFusion Rust source-allocation ledger.
+9. Compares the recomputed result to the declared evaluation instead of trusting a prefilled `within_tolerance: true`.
+10. Reports byte integrity and allocation closure as separate outputs. A byte-integrity pass with an unbalanced allocation is not a qualified receipt.
 
 ## Schema validation
 
-The CI workflow uses `check-jsonschema==0.39.0` **as a CI-only tool** to validate the three Draft 2020-12 schemas against their declared metaschemas, check the positive source/evidence/allocation fixtures, and assert that the null-asset negative control is rejected. The runtime library and CLI remain Rust-only; the external CLI is not a production dependency.
+The CI workflow uses `check-jsonschema==0.39.0` **as a CI-only tool** to validate the three Draft 2020-12 schemas against their declared metaschemas, check the positive source/evidence/allocation fixtures, and assert that the null-asset negative control is rejected. The runtime library and CLI remain Rust-only; the external CLI is not a production dependency. The raw payload schema is currently the first heat-only profile; it is not yet an electrical source-payload schema.
 
 ## Run
 
@@ -47,7 +47,7 @@ Exit codes:
 
 ## Adversarial and positive test coverage
 
-The 22 current unit tests cover exact fixture success, byte tampering, declared byte-length mismatch, interval-ID mismatch, boundary mismatch, synthetic-to-measured evidence-class promotion, duplicate allocation IDs, service/carrier mismatch, over-allocation and negative residual, forged reported balance, allocation digest mismatch, rejected integrity state, zero tolerance, stale/unknown validity, mismatched time windows, unsupported digest algorithms and malformed digests.
+The 24 current unit tests cover exact fixture success, byte tampering, declared byte-length mismatch, interval-ID mismatch, boundary mismatch, synthetic-to-measured evidence-class promotion, duplicate allocation IDs, service/carrier mismatch, over-allocation and negative residual, forged reported balance, allocation digest mismatch, rejected integrity state, zero tolerance, stale/unknown validity, mismatched time windows, unsupported digest algorithms, malformed digests, duplicate source intervals across batches, duplicate evidence/receipt IDs, source power-duration mismatch and zero-duration rejection.
 
 ## Batch uniqueness
 
