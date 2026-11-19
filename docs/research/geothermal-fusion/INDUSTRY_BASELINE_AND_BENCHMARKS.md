@@ -47,6 +47,31 @@
 - Fervo Cape Station first GeoBlock commercial operation (1 October 2026): https://www.sec.gov/Archives/edgar/data/1853868/000162828026064103/exhibit991pressrelease10126.htm
 - ASHRAE Handbook, Chapter 18, absorption equipment (single/double-effect operating conditions): https://handbook.ashrae.org/handbooks/R18/SI/R18_Ch18/r18_ch18_si.aspx
 
+## Rust thermophysical-property provider reconnaissance
+
+This is a candidate shortlist for an independent provider bake-off, **not a production dependency decision**. The machine-readable record is [rust-property-provider-candidates.json](../../benchmarks/geothermal-fusion/v0.1/fixtures/rust-property-provider-candidates.json). The current known-answer corpus is the 19-point official [IAPWS IF97 fixture](../../benchmarks/geothermal-fusion/v0.1/fixtures/iapws-if97-official-known-answer.json).
+
+| Candidate | Source-pinned evidence | Why it is worth testing | Main qualification risks |
+|---|---|---|---|
+| `vle-steam` | MIT upstream repository; signed release tag `v0.20.1` points to commit `74cafc927e27026c5d41ff2411a56f765031f724`. Release workflow CI run `43733986531` has successful separate `cargo test` and `fmt + clippy` jobs. Upstream source has direct R7-97(2012) Table 5/15/33/35/36/42 tests plus internal thermodynamic identities, inverse state and solver comparisons. | Best first adapter candidate: IF97 Regions 1–5, saturation, backward equations and no mandatory dependencies are documented. | API takes pressure in kPa absolute (not Symtropy Pa); water/steam only; region-3 critical behavior; confirm packaged registry source matches the pinned tag; limited adoption / single maintainer increases maintenance risk. |
+| `seuif97 2.3.8` | MIT crate, Rust 2021, docs.rs package and public source; exposes 12 state input pairs and 36 properties. | Independent IF97 implementation for differential testing; offers transport/process functions and performance-oriented API. | Verify units/region selection, optional native/FFI features, unsafe surface, and source-level test coverage; treat upstream speed claims as hypotheses until matched benchmarking. |
+| `iapws95 0.2.5` | Rust implementation of the IAPWS-95 scientific formulation. | Independent formulation cross-check in the critical neighborhood and where IF97/95 are expected to agree within published formulation tolerances. | Not a drop-in IF97 replacement; verify units, validity envelope, license and numerical domain before use. |
+
+The `vle-steam` v0.20.1 release workflow's successful CI is useful upstream evidence, but it does not qualify our adapter. The provider's own verification tests are not a substitute for our independently pinned IAPWS fixture set, and provider-to-provider agreement is not a substitute for agreement to the IAPWS reference.
+
+**Important unit boundary:** `vle-steam` documents temperature in K and pressure in kPa absolute, returning mass-specific SI/engineering properties (for example density kg/m³, enthalpy kJ/kg). The Symtropy wellhead contract uses pressure in Pa. The adapter must accept SI at its public boundary, perform checked Pa↔kPa conversion internally, and test conversion at low pressure, high pressure, and near-critical points. Never pass Pa directly to a kPa API.
+
+**Recommended sequence:** pin the signed `v0.20.1` source tag for the first conformance study; run the 19 official known-answer points and edge/hostile cases; run the same cases through `seuif97`; then use IAPWS-95 as a distinct-formulation cross-check near criticality. Keep all providers out of production dependencies until licensing, source, units, domains, tests, error semantics and exact package provenance are reviewed. IF97 is for ordinary water/steam; saline-brine properties require a separate, composition-aware model.
+
+Sources:
+- `vle-steam` upstream repo: https://github.com/miguelju/vle
+- Signed release tag: https://github.com/miguelju/vle/releases/tag/v0.20.1
+- Upstream release CI: https://github.com/miguelju/vle/actions/runs/43733986531
+- `vle-steam` crate docs: https://docs.rs/vle-steam/
+- `seuif97 2.3.8`: https://docs.rs/seuif97/2.3.8/seuif97/
+- `iapws95 0.2.5`: https://docs.rs/iapws95/0.2.5/iapws95/
+- Official IAPWS-IF97 release: https://iapws.org/technical-guidance/release/IF97-Rev
+
 ## 2. What is actually novel in our target
 
 We should not claim to beat NREL SAM / GETEM, GEOPHIRES-X or OpenGeoSys on their native geothermal equations; nor claim to beat PROCESS on plasma and fusion systems calculations. Those are domain specialists with substantial validation histories.
