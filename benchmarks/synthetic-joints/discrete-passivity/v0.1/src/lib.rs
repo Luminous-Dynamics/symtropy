@@ -34,6 +34,11 @@ pub struct TankReceipt {
     pub mechanical_port_work_j: f64,
     pub energy_debited_j: f64,
     pub energy_captured_j: f64,
+    /// Portion of absorbed mechanical work not routed toward the tank because
+    /// of conversion loss or another declared path.
+    pub energy_not_routed_j: f64,
+    /// Portion that was routed toward the tank but could not be accepted
+    /// because the tank was at its declared maximum.
     pub energy_spilled_j: f64,
 }
 
@@ -132,6 +137,7 @@ impl EnergyTank {
         let before = self.energy_j;
         let mut debited = 0.0;
         let mut captured = 0.0;
+        let mut not_routed = 0.0;
         let mut spilled = 0.0;
 
         if work_j > 0.0 {
@@ -144,7 +150,9 @@ impl EnergyTank {
             debited = work_j;
             self.energy_j -= debited;
         } else if work_j < 0.0 {
-            let routed_energy = -work_j * self.capture_efficiency;
+            let absorbed_mechanical_energy = -work_j;
+            let routed_energy = absorbed_mechanical_energy * self.capture_efficiency;
+            not_routed = absorbed_mechanical_energy - routed_energy;
             let capacity = self.remaining_capacity_j();
             captured = routed_energy.min(capacity);
             spilled = routed_energy - captured;
@@ -165,6 +173,7 @@ impl EnergyTank {
             mechanical_port_work_j: work_j,
             energy_debited_j: debited,
             energy_captured_j: captured,
+            energy_not_routed_j: not_routed,
             energy_spilled_j: spilled,
         })
     }
@@ -504,8 +513,15 @@ mod tests {
 
         let capture = tank.book_mechanical_work(-4.0).unwrap();
         close(capture.energy_captured_j, 2.0, 1.0e-12, "captured fraction");
+        close(capture.energy_not_routed_j, 2.0, 1.0e-12, "not routed");
         close(capture.energy_after_j, 9.0, 1.0e-12, "tank after capture");
         close(capture.energy_spilled_j, 0.0, 1.0e-12, "spilled");
+        close(
+            capture.energy_captured_j + capture.energy_not_routed_j + capture.energy_spilled_j,
+            4.0,
+            1.0e-12,
+            "absorbed work accounting",
+        );
     }
 
     #[test]
@@ -513,6 +529,7 @@ mod tests {
         let mut tank = EnergyTank::new(11.0, 1.0, 12.0, 1.0).unwrap();
         let capture = tank.book_mechanical_work(-5.0).unwrap();
         close(capture.energy_captured_j, 1.0, 1.0e-12, "capacity limited capture");
+        close(capture.energy_not_routed_j, 0.0, 1.0e-12, "not routed energy");
         close(capture.energy_spilled_j, 4.0, 1.0e-12, "spilled energy");
 
         let before = tank.energy_j();
