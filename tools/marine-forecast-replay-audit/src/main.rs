@@ -599,17 +599,19 @@ fn validate_split_manifest(raw: &[u8], manifest: &Value) -> Value {
     }
 
     let expected_folds = ["development", "validation", "test"];
-    let declared_folds: BTreeSet<String> = manifest.get("folds").and_then(Value::as_array)
-        .into_iter().flatten().filter_map(Value::as_str).map(str::to_owned).collect();
-    if expected_folds.iter().any(|fold| !declared_folds.contains(*fold))
+    let fold_values = manifest.get("folds").and_then(Value::as_array);
+    let declared_folds: BTreeSet<String> = fold_values.into_iter().flatten()
+        .filter_map(Value::as_str).map(str::to_owned).collect();
+    if fold_values.is_none_or(|items| items.len() != 3)
+        || expected_folds.iter().any(|fold| !declared_folds.contains(*fold))
         || declared_folds.len() != 3
     {
         add(&mut findings, "SPLIT_FOLD_ROSTER_INVALID", "ERROR",
             "Exactly the development, validation and test folds must be declared.");
     }
 
-    let episodes = match manifest.get("episodes").and_then(Value::as_array) {
-        Some(items) if !items.is_empty() => items,
+    let episodes: &[Value] = match manifest.get("episodes").and_then(Value::as_array) {
+        Some(items) if !items.is_empty() => items.as_slice(),
         _ => {
             add(&mut findings, "SPLIT_EPISODES_MISSING", "ERROR",
                 "At least one grouped episode is required.");
@@ -647,18 +649,21 @@ fn validate_split_manifest(raw: &[u8], manifest: &Value) -> Value {
             add(&mut findings, "SPLIT_GROUP_ID_MISSING", "ERROR",
                 &format!("episode '{episode_id}' requires both voyage_id and weather_event_id."));
         } else {
-            for (label, key, map) in [
-                ("voyage", voyage_id, &mut voyage_fold),
-                ("weather event", weather_event_id, &mut event_fold),
-            ] {
-                if let Some(existing_fold) = map.get(key) {
-                    if existing_fold != fold {
-                        add(&mut findings, "CROSS_FOLD_GROUP_LEAKAGE", "BLOCKER",
-                            &format!("{label} '{key}' appears in both '{existing_fold}' and '{fold}' folds."));
-                    }
-                } else {
-                    map.insert(key.to_owned(), fold.to_owned());
-                }
+            match voyage_fold.get(voyage_id) {
+                Some(existing_fold) if existing_fold != fold => add(
+                    &mut findings, "CROSS_FOLD_GROUP_LEAKAGE", "BLOCKER",
+                    &format!("voyage '{voyage_id}' appears in both '{existing_fold}' and '{fold}' folds.")
+                ),
+                None => { voyage_fold.insert(voyage_id.to_owned(), fold.to_owned()); }
+                _ => {}
+            }
+            match event_fold.get(weather_event_id) {
+                Some(existing_fold) if existing_fold != fold => add(
+                    &mut findings, "CROSS_FOLD_GROUP_LEAKAGE", "BLOCKER",
+                    &format!("weather event '{weather_event_id}' appears in both '{existing_fold}' and '{fold}' folds.")
+                ),
+                None => { event_fold.insert(weather_event_id.to_owned(), fold.to_owned()); }
+                _ => {}
             }
         }
 
@@ -691,7 +696,17 @@ fn validate_split_manifest(raw: &[u8], manifest: &Value) -> Value {
         let strata = episode.get("environment_strata").and_then(Value::as_array);
         match strata {
             Some(items) if !items.is_empty() => {
-                for stratum in items.iter().filter_map(Value::as_str) {
+                let mut seen_episode_strata = BTreeSet::new();
+                for stratum in items {
+                    let Some(stratum) = stratum.as_str() else {
+                        add(&mut findings, "SPLIT_STRATUM_INVALID", "ERROR",
+                            &format!("episode '{episode_id}' contains a non-string environment stratum."));
+                        continue;
+                    };
+                    if stratum.is_empty() || !seen_episode_strata.insert(stratum.to_owned()) {
+                        add(&mut findings, "SPLIT_STRATUM_INVALID", "ERROR",
+                            &format!("episode '{episode_id}' contains an empty or duplicated stratum."));
+                    }
                     if fold == "test" {
                         test_strata.insert(stratum.to_owned());
                     }
@@ -729,7 +744,7 @@ fn validate_split_manifest(raw: &[u8], manifest: &Value) -> Value {
                 }
             }
             if let Some(cutoff) = cutoff {
-                if previous_cutoff.as_ref().is_some_and(|prior| cutoff < *prior) {
+                if previous_cutoff.as_ref().is_some_and(|prior| &cutoff < prior) {
                     add(&mut findings, "SPLIT_DECISION_ORDER_NONMONOTONIC", "ERROR",
                         &format!("decision cutoffs in episode '{episode_id}' must be nondecreasing."));
                 }
@@ -738,8 +753,9 @@ fn validate_split_manifest(raw: &[u8], manifest: &Value) -> Value {
         }
     }
 
-    for voyage in voyage_windows.keys() {
-        if let Some(windows) = voyage_windows.get_mut(voyage) {
+    let voyages = voyage_windows.keys().cloned().collect::<Vec<_>>();
+    for voyage in voyages {
+        if let Some(windows) = voyage_windows.get_mut(&voyage) {
             windows.sort_by(|left, right| left.0.cmp(&right.0));
             for pair in windows.windows(2) {
                 if pair[1].0 < pair[0].1 {
