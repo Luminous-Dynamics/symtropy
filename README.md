@@ -4,7 +4,7 @@ Deterministic, state-coupled N-dimensional rigid-body physics and simulation sub
 
 The PhysicsCallback extension point enables application-defined state coupling, including experimental energy budgets and metric-gated actuator behavior. Such callbacks define model or policy behavior; they do not make arbitrary metrics intrinsic physical laws. Phi-related mechanics remain research experiments, not an established universal law of nature or a claim about subjective experience.
 
-**827 tests | 5 shapes | 5 joints | CCD | raycasting | warm-starting | island sleeping | 11 crates on crates.io**
+**Core feature snapshot:** 5 documented collision-shape families | 5 documented joint/constraint types | CCD | raycasting | warm-starting | island sleeping. Run the current repository workflows for live test status.
 
 ## The Symtropy Adoption Story
 
@@ -172,8 +172,8 @@ Zero heap allocation in the physics hot path. All types use `const D: usize` gen
 
 | Flag | What it enables |
 |------|----------------|
-| `consciousness-curvature` | Conformal geometry: Phi curves space, agents follow geodesics |
-| `consciousness-hdc` | 16,384D hyperdimensional computing substrate for Phi |
+| `consciousness-curvature` | Experimental conformal-geometry and geodesic research model |
+| `consciousness-hdc` | 16,384D hyperdimensional substrate used in Phi-related research experiments |
 | `mycelix` | Governance/economy/crypto integration (game-specific) |
 | `atlas` | Sol Atlas planetary globe view (game-specific) |
 | `live-audio` | Real-time Phi-driven music synthesis (requires ALSA) |
@@ -184,10 +184,10 @@ Zero heap allocation in the physics hot path. All types use `const D: usize` gen
 68 experiments in `crates/domains/symtropy-consciousness-physics/examples/`:
 
 ```bash
-# Core cooperation emergence (the definitive experiment)
+# Primary cooperative-dynamics research example
 cargo run --example cooperation_emergence
 
-# J/Phi convergence (novel thermodynamic metric)
+# J/Phi model-specific diagnostic experiment
 cargo run --example jphi_convergence
 
 # All examples
