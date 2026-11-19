@@ -130,7 +130,7 @@ The record separates:
 
 Unknown measurements remain null with reasons. Excluded runs remain visible. The schema cannot certify the truth of the source or quality of the instruments.
 
-## 5. Observation model and identifiability
+## 6. Observation model and identifiability
 
 A simplified per-drive relation is:
 
@@ -159,7 +159,7 @@ For every experiment design, evaluate:
 
 Calibration fit residual is not held-out validation.
 
-## 6. M0–M5 qualification
+## 7. M0–M5 qualification
 
 ### M0 — source and boundary traceability
 Exact actuator/model/firmware, gear ratio, common-shaft geometry, controller synchronization, voltage/current limits, thermal boundary, test method, calibration and all run exclusions.
@@ -179,7 +179,7 @@ Measure first-to-derate, joint task success, loaded speed, energy and thermal bu
 ### M5 — lifecycle and replacement
 Repeat across multiple actuator pairs, after service/replacement, remount, gear/preload changes and cooling changes. Requalification follows changes that invalidate transfer of the original model.
 
-## 7. Prospective benchmarks
+## 8. Prospective benchmarks
 
 These are targets, not achievements:
 - Zero equal-sharing claims based only on equal current commands or actuator count.
@@ -190,7 +190,7 @@ These are targets, not achievements:
 - Include all attempts, exclusions, aborts, derating events, partial logs and censored runs.
 - Requalification after actuator, controller, current-limit, gear/preload, or cooling-boundary changes unless equivalence is demonstrated.
 
-## 8. Claim ceiling and safety
+## 9. Claim ceiling and safety
 
 This source record and protocol do not authorize energized tests, deliberate thermal-limit trips, stall testing, fabrication or human-contact use. Physical work requires a separately approved guarded rig, qualified operators, interlocks, manufacturer limits, hazard analysis and independent instrumentation.
 
