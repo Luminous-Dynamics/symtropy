@@ -43,8 +43,7 @@
           "incremental_external_site_peak_power_kw",
           "incremental_external_site_charging_window_hours",
           "external_site_peak_coincident_with_vehicle_charging",
-          "notes",
-          "incremental_external_site_charging_window_hours"
+          "notes"
         ],
         "properties": {
           "config_id": {
