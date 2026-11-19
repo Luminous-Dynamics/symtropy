@@ -116,16 +116,14 @@ fn check_common_source_fields(source: &Value, id: &str, findings: &mut Vec<Findi
             &format!("source '{id}' has no immutable artifact digest.")),
     }
 
-    let retrieved = match string_at(source, &["retrieved_at"]).and_then(parse_time) {
-        Some(value) => Some(value),
-        None => None,
-    };
+    let retrieved = string_at(source, &["retrieved_at"]).and_then(parse_time);
     if string_at(source, &["retrieved_at"]).is_some() && retrieved.is_none() {
         add(findings, "INVALID_TIMESTAMP", "ERROR",
             &format!("source '{id}' retrieved_at must be RFC 3339."));
     }
 
-    let rights = source.get("rights").unwrap_or(&Value::Null);
+    let empty_rights = Value::Null;
+    let rights = source.get("rights").unwrap_or(&empty_rights);
     match string_at(rights, &["status"]).unwrap_or("unknown") {
         "reviewed_research_use" | "permissioned_research_use" => {
             if rights.get("research_use_allowed").and_then(Value::as_bool) != Some(true) {
@@ -180,8 +178,8 @@ fn check_forecast_source(
         }
     }
 
-    if let Some(valid) = valid {
-        if valid != *target_valid_time {
+    if let Some(valid_time) = valid.as_ref() {
+        if valid_time != target_valid_time {
             add(findings, "FORECAST_VALID_TIME_MISMATCH", "BLOCKER",
                 &format!("source '{id}' is valid at a different instant than this decision's target time."));
         }
@@ -210,11 +208,17 @@ fn check_forecast_source(
     if let (Some(issue), Some(valid), Some(lead)) = (
         issue.as_ref(), valid.as_ref(), lead_hours
     ) {
-        if *issue + Duration::hours(lead as i64) != *valid {
-            add(findings, "FORECAST_LEAD_VALID_TIME_MISMATCH", "ERROR",
-                &format!("source '{id}' cycle issue time + forecast lead does not equal valid_time."));
+        if let Ok(hours) = i64::try_from(lead) {
+            if *issue + Duration::hours(hours) != *valid {
+                add(findings, "FORECAST_LEAD_VALID_TIME_MISMATCH", "ERROR",
+                    &format!("source '{id}' cycle issue time + forecast lead does not equal valid_time."));
+            }
+        } else {
+            add(findings, "FORECAST_LEAD_OUT_OF_RANGE", "ERROR",
+                &format!("source '{id}' forecast lead is outside supported integer-hour range."));
         }
     }
+    let retrieved = string_at(source, &["retrieved_at"]).and_then(parse_time);
     if let (Some(retrieved), Some(available)) = (
         retrieved.as_ref(), available.as_ref()
     ) {
@@ -224,7 +228,8 @@ fn check_forecast_source(
         }
     }
 
-    let grid = source.get("grid").unwrap_or(&Value::Null);
+    let empty_grid = Value::Null;
+    let grid = source.get("grid").unwrap_or(&empty_grid);
     for key in ["grid_id", "coordinate_reference", "axis_order"] {
         if string_at(grid, &[key]).is_none_or(str::is_empty) {
             add(findings, "GRID_METADATA_INCOMPLETE", "INCOMPLETE",
