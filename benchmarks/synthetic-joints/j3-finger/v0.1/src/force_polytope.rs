@@ -292,22 +292,34 @@ fn force_set_halfspaces(
     });
 
     // Fourier–Motzkin elimination of the scalar auxiliary torque.
+    // Classify coefficients relative to this problem's scale; an absolute
+    // epsilon would silently erase a physically small but meaningful channel.
     // For p with b_p > 0 and n with b_n < 0:
     // (A_p/b_p - A_n/b_n) f <= c_p/b_p - c_n/b_n.
+    let auxiliary_scale = inequalities
+        .iter()
+        .fold(0.0_f64, |maximum, constraint| {
+            maximum.max(constraint.auxiliary_torque.abs())
+        });
+    if !auxiliary_scale.is_finite() || auxiliary_scale == 0.0 {
+        return None;
+    }
+    let auxiliary_tolerance = RELATIVE_PIVOT_EPSILON * auxiliary_scale;
+
     let positive: Vec<Inequality4> = inequalities
         .iter()
         .copied()
-        .filter(|constraint| constraint.auxiliary_torque > RELATIVE_PIVOT_EPSILON)
+        .filter(|constraint| constraint.auxiliary_torque > auxiliary_tolerance)
         .collect();
     let negative: Vec<Inequality4> = inequalities
         .iter()
         .copied()
-        .filter(|constraint| constraint.auxiliary_torque < -RELATIVE_PIVOT_EPSILON)
+        .filter(|constraint| constraint.auxiliary_torque < -auxiliary_tolerance)
         .collect();
     let zero: Vec<Inequality4> = inequalities
         .iter()
         .copied()
-        .filter(|constraint| constraint.auxiliary_torque.abs() <= RELATIVE_PIVOT_EPSILON)
+        .filter(|constraint| constraint.auxiliary_torque.abs() <= auxiliary_tolerance)
         .collect();
 
     if positive.is_empty() || negative.is_empty() {
@@ -722,3 +734,23 @@ fn force_poly_007_invalid_or_unbounded_required_region_is_rejected() {
     ];
     assert!(force_region_coverage(&zero_volume, &zero_volume).is_none());
 }
+#[test]
+fn force_poly_008_minimum_tendon_tension_is_preserved_as_pretension() {
+    let force_set = force_set_halfspaces(
+        identity_jacobian(),
+        identity4(),
+        [0.25, 0.25, 0.25, 0.0],
+        [1.0; 4],
+        0.0,
+    )
+    .expect("compatible positive pretension bounds must remain feasible");
+    let required = required_box_halfspaces([0.0; 3], [1.0; 3]).unwrap();
+
+    // The feasible set is [0.25,1]^3, volume 0.75^3.
+    assert_close(
+        force_region_coverage(&force_set, &required).unwrap(),
+        0.421875,
+        "coverage with nonzero minimum tendon tensions",
+    );
+}
+
