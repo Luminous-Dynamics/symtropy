@@ -1,6 +1,6 @@
 mod scheduler;
 
-use scheduler::{AvailabilityWindow, ResourceOutageWindow, ResourceProfile, ResourceRequirement, SchedulePolicy, ScheduledTask, TaskSpec, exact_small_schedule, exact_small_service_schedule, schedule_with_policy, weighted_unserved_energy_mwh};
+use scheduler::{AvailabilityWindow, ResourceCalendarException, ResourceOutageWindow, ResourceProfile, ResourceRequirement, SchedulePolicy, ScheduledTask, TaskSpec, exact_small_schedule, exact_small_service_schedule, schedule_with_policy, weighted_unserved_energy_mwh};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -76,6 +76,8 @@ struct Resource {
     available_units: u32,
     calendar_period_hours: f64,
     availability_windows: Vec<AvailabilityWindow>,
+    #[serde(default)]
+    calendar_exceptions: Vec<ResourceCalendarException>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -634,6 +636,23 @@ fn validate(case: &Case, policy: SchedulePolicy) -> Vec<String> {
         {
             errors.push(format!("{} has invalid resource type, capacity or calendar", resource.resource_id));
         }
+        let mut exception_ids = BTreeSet::new();
+        for exception in &resource.calendar_exceptions {
+            if exception.exception_id.trim().is_empty()
+                || !exception_ids.insert(exception.exception_id.as_str())
+                || !exception.start_hour.is_finite()
+                || !exception.end_hour.is_finite()
+                || exception.start_hour < 0.0
+                || exception.end_hour <= exception.start_hour
+                || exception.exception_type.trim().is_empty()
+                || exception.reason.trim().is_empty()
+            {
+                errors.push(format!(
+                    "{} has invalid or duplicate calendar exception",
+                    resource.resource_id
+                ));
+            }
+        }
     }
     for route in &case.logistics_routes {
         if !route.transit_hours.is_finite()
@@ -746,6 +765,7 @@ fn resource_capacities(case: &Case) -> BTreeMap<String, ResourceProfile> {
                     available_units: resource.available_units,
                     calendar_period_hours: resource.calendar_period_hours,
                     availability_windows: resource.availability_windows.clone(),
+                    calendar_exceptions: resource.calendar_exceptions.clone(),
                     outage_windows: Vec::new(),
                 },
             )
