@@ -134,6 +134,7 @@ struct PolicyReport {
 fn policy_report(
     policy: &Value,
     contract: &Value,
+    record_status: &str,
     base_operating_envelope: &str,
     errors: &mut Vec<String>,
     blockers: &mut Vec<String>,
@@ -171,8 +172,8 @@ fn policy_report(
     if gate_disposition == "pass" && gate_violations != Some(0) {
         errors.push(format!("policy '{policy_id}' says hard gates pass but reports violations"));
     }
-    if ["fail", "infeasible", "abstain"].contains(&gate_disposition) && gate_violations == Some(0) {
-        errors.push(format!("policy '{policy_id}' has a non-pass gate disposition without any recorded violation"));
+    if ["fail", "infeasible"].contains(&gate_disposition) && gate_violations == Some(0) {
+        errors.push(format!("policy '{policy_id}' has a failed/infeasible gate disposition without a recorded violation"));
     }
 
     let relaxations = policy.get("soft_constraint_relaxations").and_then(Value::as_array);
@@ -249,6 +250,8 @@ fn policy_report(
                 || coverage.is_none_or(|coverage| !(0.0..=1.0).contains(&coverage))
                 || measurement_method.is_empty()
                 || !["measured", "modeled", "derived", "synthetic"].contains(&measurement_class)
+                || (record_status == "synthetic" && measurement_class != "synthetic")
+                || (record_status != "synthetic" && measurement_class == "synthetic")
                 || !valid_window
             {
                 errors.push(format!("policy '{policy_id}' axis '{metric}' has invalid value, uncertainty, measurement coverage, class, method or time window"));
@@ -288,7 +291,7 @@ fn policy_report(
                 if !passes {
                     feasible = false;
                     if role == "integrated_candidate" || role == "authorized_soft_relaxation" {
-                        blockers.push(format!("policy '{policy_id}' axis '{metric}' breaches its non-compensatory floor"));
+                        blockers.push(format!("policy '{policy_id}' axis '{metric}' conservative uncertainty bound breaches its non-compensatory floor"));
                     }
                 }
             }
@@ -413,7 +416,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             if string_at(policy, "mission_snapshot_sha256") != string_at(snapshot, "mission_snapshot_sha256") {
                 errors.push(format!("policy '{policy_id}' does not share the exact frozen mission snapshot"));
             }
-            if let Some(report) = policy_report(policy, contract, base_envelope, &mut errors, &mut blockers) {
+            if let Some(report) = policy_report(policy, contract, status, base_envelope, &mut errors, &mut blockers) {
                 if policy_reports.insert(report.policy_id.clone(), report).is_some() {
                     errors.push(format!("policy ID '{policy_id}' is duplicated"));
                 }
@@ -433,6 +436,12 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     let candidate = policy_reports.get(candidate_id);
     if baseline.is_none() || candidate.is_none() {
         errors.push("comparison baseline/candidate IDs must reference declared policies".to_owned());
+    }
+    if baseline.is_some_and(|policy| policy.role != "weather_informed_resource_blind") {
+        errors.push("comparison baseline must be the weather-informed/resource-blind reference arm".to_owned());
+    }
+    if candidate.is_some_and(|policy| policy.role != "integrated_candidate") {
+        errors.push("comparison candidate must be the integrated mission policy arm".to_owned());
     }
     let mut axis_deltas = Vec::<Value>::new();
     let mut candidate_dominates = false;
@@ -561,7 +570,33 @@ mod tests {
     fn candidate_below_freshwater_floor_is_blocked() {
         let mut value = fixture();
         value["policies"][2]["resource_metrics"][2]["value"] = json!(2.0);
+        value["policies"][2]["resource_metrics"][2]["lower_bound"] = json!(1.9);
+        value["policies"][2]["resource_metrics"][2]["upper_bound"] = json!(2.1);
         assert_eq!(audit(&value)["disposition"], "BLOCKED");
+    }
+
+    #[test]
+    fn candidate_expected_value_pass_does_not_hide_conservative_bound_failure() {
+        let mut value = fixture();
+        value["policies"][2]["resource_metrics"][2]["value"] = json!(3.1);
+        value["policies"][2]["resource_metrics"][2]["lower_bound"] = json!(2.9);
+        value["policies"][2]["resource_metrics"][2]["upper_bound"] = json!(3.2);
+        assert_eq!(audit(&value)["disposition"], "BLOCKED");
+    }
+
+    #[test]
+    fn measurement_window_must_be_chronological() {
+        let mut value = fixture();
+        value["policies"][2]["resource_metrics"][2]["measurement_window_start"] = json!("2025-03-03T00:00:00Z");
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn synthetic_measurement_cannot_be_promoted_to_measured_campaign() {
+        let mut value = fixture();
+        value["record_status"] = json!("measured_campaign");
+        value["policies"][2]["resource_metrics"][2]["measurement_class"] = json!("synthetic");
+        assert_eq!(audit(&value)["disposition"], "INVALID");
     }
 
     #[test]
