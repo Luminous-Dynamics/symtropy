@@ -25,7 +25,7 @@ cargo run --quiet --manifest-path tools/orbital-service-composition-bench/Cargo.
 
 ## Frozen corpus
 
-The v0.1 corpus contains 14 synthetic cases: one complete contract control, seven hard-negative controls and six missing/insufficient-evidence controls. The expected dispositions are frozen in `cases.json`. The target is 100% expected-result agreement and zero operational-authority grants.
+The v0.1 corpus contains 17 synthetic cases: one complete contract control, eight hard-negative controls and eight missing/insufficient-evidence controls. The expected dispositions are frozen in `cases.json`. The target is 100% expected-result agreement and zero operational-authority grants.
 
 ## Current integration gap
 
@@ -37,7 +37,7 @@ The three source contracts are deliberately separate:
 
 Symtropy [#6168 reusable-launch-production](https://github.com/Luminous-Dynamics/symtropy/pull/6168) remains an important separate fleet/manufacturing/maintenance owner; it is not treated as proof of a particular payload's target-orbit delivery.
 
-The v0.1 fixture pins those source commits to make version assumptions explicit. Its `synthetic://` evidence references are adapter-contract test values, not actual source receipt digests. The current chain crate exposes a domain report but not a canonical signed serialized receipt. The evaluator checks the declared event contract and source-pin consistency; it does not fetch, authenticate or independently recompute source receipts.
+The v0.1 fixture pins those source commits to make version assumptions explicit. Each evidence envelope declares an artifact SHA-256, producer ID, authority scope, context of use and claim ceiling. The evaluator checks required field presence and digest shape, but the `synthetic://` references and digest values are deterministic placeholders—not actual source artifact references or hashes. The Earth-to-orbit owner now exposes a Serde-serializable domain report, but not a signed/authenticated receipt envelope. The evaluator does not fetch source bytes, hash them, verify signatures or authenticate producer identity.
 
 Consequently, the complete positive control is a *hypothetical adapter-shape test*. It is not evidence that the three current PRs already integrate. A cargo aggregate without a per-cargo qualified delivery record, a proximity-only result, a storage-only cryogenic record or a receiver transfer without the matching capture/interface lineage correctly remains Indeterminate.
 
@@ -55,7 +55,7 @@ The v0.1 contract is not a launch-vehicle performance comparison. The current pu
 Do not claim to outperform SpaceX, NASA, DARPA or a solver suite on one aggregate score. Demonstrate superiority on aligned, independently checked subproblems:
 
 1. **Acceptance correctness:** 100% agreement with the independent oracle on bounded exact cases; zero false acceptance across all frozen critical negative controls; report false rejection and indeterminate rates separately.
-2. **Identity and evidence continuity:** 100% exact payload/cargo, destination orbit, receiver, interface revision, fluid/batch and source-receipt lineage across every required handoff. Missing identity or an unauthenticated receipt stays Indeterminate.
+2. **Identity and evidence continuity:** 100% exact payload/cargo, destination orbit, receiver, interface revision, fluid/batch and source-receipt lineage across every required handoff. Missing identity or envelope fields stays Indeterminate; malformed digests or conflicting claims are Rejected. A structurally complete envelope still does not authenticate its producer.
 3. **Planning quality:** on small instances, match exhaustive enumeration exactly. On larger cases, compare the same input against a transparent greedy baseline and MILP/CP-SAT or time-expanded flow. Publish optimality gap, wall time, memory, hardware and constraint feasibility under equal budgets.
 4. **Service economics:** compare lifecycle cost, time, energy and unserved demand per receiver-accepted service unit—not cost per launch or gross kg. Keep safety, service quality, reliability and environmental limits as hard constraints, not weighted penalties.
 5. **Resilience:** publish N-1 and common-cause fault outcomes, recovery time, stranded mass and lower-tail service. Do not invent failure probabilities; use measured distributions only when their source population and censoring are declared.
