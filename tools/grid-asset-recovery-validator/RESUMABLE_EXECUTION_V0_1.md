@@ -56,7 +56,7 @@ Execution events bind:
 
 Exact duplicate deliveries with the same event identity and content are deduplicated. Reuse of an event ID or idempotency key with conflicting content is rejected. Superseded progress snapshots remain in the ledger but are reconciled against a later completed segment; all snapshots for one segment must preserve the same task, event, sequence and start identity. Stale, conflicted or unknown records block the evaluation. A new snapshot is a commitment change and requires a version increment plus `progress_recorded`; transitions to paused/in-progress/completed require `pause_confirmed`, `resume_authorized` or `completion_confirmed` respectively.
 
-The proposal retains all baseline commitment identities and frozen event IDs. A new progress snapshot must be appended to the proposed event ledger and bound by an explicit version increment and reconciliation action. Supported actions are `progress_recorded` (in-progress to in-progress), `pause_confirmed` (in-progress to paused), `resume_authorized` (paused to in-progress), and `completion_confirmed` (paused/in-progress to completed). Changing commitment state, version, active segment, frozen event set or source evidence reference requires an explicit current reconciliation event binding the old/new versions, action, authority and evidence. Completed commitments cannot be changed. The schema and validator check consistency, not cryptographic signatures, legal authority or field truth.
+The proposal retains all baseline commitment identities and frozen event IDs. A new progress snapshot must be appended to the proposed event ledger and bound by an explicit version increment and reconciliation action. The reconciliation observation time must be at or after every newly admitted event's observed/effective time. Supported actions are `progress_recorded` (in-progress to in-progress), `pause_confirmed` (in-progress to paused), `resume_authorized` (paused to in-progress), and `completion_confirmed` (paused/in-progress to completed). Changing commitment state, version, active segment, frozen event set or source evidence reference requires an explicit current reconciliation event binding the old/new versions, action, authority and evidence. Completion requires a closed work-segment event for all required effort; a current progress snapshot alone is not a completion record. Completed commitments cannot be changed. The schema and validator check consistency, not cryptographic signatures, legal authority or field truth.
 
 ## Benchmark and industry comparison
 
@@ -119,6 +119,8 @@ Do not combine interruption count, restoration time, service loss and resource c
 - 100% work-effort conservation in all frozen cases.
 - Zero duplicate progress from event replay.
 - Zero completed/in-progress commitment mutation without explicit reconciliation.
+- Zero completion records whose final effort exists only in an open progress snapshot.
+- Zero reconciliations timestamped before any event they admit.
 - Zero unauthorized segment split for non-preemptible tasks.
 - 100% agreement with hand-calculated tiny execution fixtures.
 - 100% agreement with bounded exhaustive calendar/resource oracle on supported tiny cases.
