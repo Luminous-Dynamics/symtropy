@@ -134,6 +134,7 @@ pub struct EnergyBalanceReport {
 struct PortTermSpec {
     name: &'static str,
     coefficient: i8,
+    nonnegative: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -143,25 +144,25 @@ struct BalanceSpec {
 }
 
 const ACTUATOR_PORTS: [PortTermSpec; 4] = [
-    PortTermSpec { name: "dc_terminal_in", coefficient: 1 },
-    PortTermSpec { name: "mechanical_output", coefficient: -1 },
-    PortTermSpec { name: "thermal_dissipated", coefficient: -1 },
-    PortTermSpec { name: "delta_internal_stored", coefficient: -1 },
+    PortTermSpec { name: "dc_terminal_in", coefficient: 1, nonnegative: false },
+    PortTermSpec { name: "mechanical_output", coefficient: -1, nonnegative: false },
+    PortTermSpec { name: "thermal_dissipated", coefficient: -1, nonnegative: true },
+    PortTermSpec { name: "delta_internal_stored", coefficient: -1, nonnegative: false },
 ];
 
 const BUS_PORTS: [PortTermSpec; 6] = [
-    PortTermSpec { name: "external_source_in", coefficient: 1 },
-    PortTermSpec { name: "drive_draw_signed", coefficient: -1 },
-    PortTermSpec { name: "storage_draw_signed", coefficient: -1 },
-    PortTermSpec { name: "other_loads", coefficient: -1 },
-    PortTermSpec { name: "brake_dissipated", coefficient: -1 },
-    PortTermSpec { name: "delta_bus_cap", coefficient: -1 },
+    PortTermSpec { name: "external_source_in", coefficient: 1, nonnegative: false },
+    PortTermSpec { name: "drive_draw_signed", coefficient: -1, nonnegative: false },
+    PortTermSpec { name: "storage_draw_signed", coefficient: -1, nonnegative: false },
+    PortTermSpec { name: "other_loads", coefficient: -1, nonnegative: true },
+    PortTermSpec { name: "brake_dissipated", coefficient: -1, nonnegative: true },
+    PortTermSpec { name: "delta_bus_cap", coefficient: -1, nonnegative: false },
 ];
 
 const STORAGE_PORTS: [PortTermSpec; 3] = [
-    PortTermSpec { name: "storage_terminal_in", coefficient: 1 },
-    PortTermSpec { name: "delta_stored_energy", coefficient: -1 },
-    PortTermSpec { name: "storage_losses", coefficient: -1 },
+    PortTermSpec { name: "storage_terminal_in", coefficient: 1, nonnegative: false },
+    PortTermSpec { name: "delta_stored_energy", coefficient: -1, nonnegative: false },
+    PortTermSpec { name: "storage_losses", coefficient: -1, nonnegative: true },
 ];
 
 fn nonempty(value: &str) -> bool {
@@ -198,24 +199,23 @@ fn unknown_report(
 
 fn validate_and_expand_term(
     term: &IntegratedEnergyTerm,
+    nonnegative: bool,
 ) -> Result<Result<EnergyTermReceipt, String>, String> {
     if !finite_interval(term.energy_j) {
         return Err(format!("port {} has a non-finite or inverted energy interval", term.port_id));
+    }
+    if nonnegative && term.energy_j.upper < 0.0 {
+        return Err(format!("port {} is defined as nonnegative but its interval is entirely negative", term.port_id));
     }
     if term.unit != "J" {
         return Err(format!("port {} unit {:?} is not the required joule unit", term.port_id, term.unit));
     }
     if !term.start_time_s.is_finite()
         || !term.end_time_s.is_finite()
-        || term.start_time_s < 0.0
         || term.end_time_s <= term.start_time_s
     {
         return Err(format!("port {} has an invalid mission interval", term.port_id));
     }
-    if term.energy_j.lower.abs() > f64::MAX || term.energy_j.upper.abs() > f64::MAX {
-        return Err(format!("port {} has an invalid energy value", term.port_id));
-    }
-
     if term.bound_representation != BoundRepresentation::ValidatedBound {
         return Ok(Err(format!(
             "port {} energy interval is not an externally validated deterministic bound",
@@ -264,9 +264,13 @@ fn validate_and_expand_term(
         return Ok(Err("one or more energy-term provenance fields are missing".to_owned()));
     }
 
+    let expanded_lower = term.energy_j.lower - integration_error_bound_j;
+    let expanded_upper = term.energy_j.upper + integration_error_bound_j;
     let qualified_energy_j = NumericInterval {
-        lower: term.energy_j.lower - integration_error_bound_j,
-        upper: term.energy_j.upper + integration_error_bound_j,
+        // Dissipative/load terms have a known nonnegative physical domain;
+        // intersect the symmetric integration expansion with that domain.
+        lower: if nonnegative { expanded_lower.max(0.0) } else { expanded_lower },
+        upper: expanded_upper,
     };
     if !finite_interval(qualified_energy_j) {
         return Err(format!("port {} integration expansion overflowed", term.port_id));
@@ -334,7 +338,7 @@ fn assess(
     let mut receipts = Vec::with_capacity(spec.ports.len());
     for expected in spec.ports {
         let term = by_port.get(expected.name).expect("required port checked");
-        match validate_and_expand_term(term)? {
+        match validate_and_expand_term(term, expected.nonnegative)? {
             Ok(receipt) => receipts.push(receipt),
             Err(reason) => return Ok(unknown_report(spec.kind, reason, receipts)),
         }
@@ -390,6 +394,11 @@ fn assess(
     } else {
         Some(maximum_absolute_residual_j / maximum_absolute_term_energy_j)
     };
+    if !residual_interval_width_j.is_finite()
+        || relative_residual_bound.is_some_and(|value| !value.is_finite())
+    {
+        return Err("energy residual width or normalized residual is non-finite".to_owned());
+    }
 
     Ok(EnergyBalanceReport {
         kind: spec.kind,
@@ -697,7 +706,33 @@ mod tests {
     }
 
     #[test]
-    fn ledger_021_unknown_evidence_is_unknown_not_a_balance_pass() {
+    fn ledger_021_dissipative_and_load_terms_cannot_be_negative() {
+        let mut terms = actuator_motoring();
+        terms[2].energy_j = NumericInterval { lower: -1.0, upper: -0.5 };
+        assert!(assess_actuator_module_balance(&terms).is_err());
+
+        let mut bus = bus_flow();
+        bus[4].energy_j = NumericInterval { lower: -2.0, upper: -1.0 };
+        assert!(assess_shared_dc_bus_balance(&bus).is_err());
+
+        let mut storage = storage_flow();
+        storage[2].energy_j = NumericInterval { lower: -1.0, upper: -0.5 };
+        assert!(assess_storage_balance(&storage).is_err());
+    }
+
+    #[test]
+    fn ledger_022_uncertainty_expansion_respects_nonnegative_loss_domain() {
+        let mut terms = actuator_motoring();
+        terms[2].energy_j = NumericInterval { lower: 0.0, upper: 0.0 };
+        terms[2].integration_error_bound_j = Some(0.5);
+        let report = assess_actuator_module_balance(&terms).unwrap();
+        let heat = report.term_receipts.iter().find(|term| term.port_id == "thermal_dissipated").unwrap();
+        assert_eq!(heat.qualified_energy_j.lower, 0.0);
+        assert_eq!(heat.qualified_energy_j.upper, 0.5);
+    }
+
+    #[test]
+    fn ledger_023_unknown_evidence_is_unknown_not_a_balance_pass() {
         let mut terms = actuator_motoring();
         terms[0].evidence_class = EvidenceClass::Unknown;
         let report = assess_actuator_module_balance(&terms).unwrap();
