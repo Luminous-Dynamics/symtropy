@@ -19,7 +19,8 @@
           "footprint_sqm_per_cell": 50,
           "operators_per_cell_per_shift": 3,
           "energy_kwh_per_attempt": 5,
-          "thermal_energy_kwh_per_attempt": 0
+          "thermal_energy_kwh_per_attempt": 0,
+          "maximum_parallel_cells_available": 128
         },
         {
           "process_id": "hv-lv-harness-and-charger",
@@ -29,7 +30,8 @@
           "footprint_sqm_per_cell": 35,
           "operators_per_cell_per_shift": 2,
           "energy_kwh_per_attempt": 4,
-          "thermal_energy_kwh_per_attempt": 0
+          "thermal_energy_kwh_per_attempt": 0,
+          "maximum_parallel_cells_available": 128
         },
         {
           "process_id": "aircraft-restraint-and-dock",
@@ -39,7 +41,8 @@
           "footprint_sqm_per_cell": 32,
           "operators_per_cell_per_shift": 2,
           "energy_kwh_per_attempt": 2,
-          "thermal_energy_kwh_per_attempt": 0
+          "thermal_energy_kwh_per_attempt": 0,
+          "maximum_parallel_cells_available": 128
         },
         {
           "process_id": "electrical-fire-and-eol-test",
@@ -49,7 +52,8 @@
           "footprint_sqm_per_cell": 40,
           "operators_per_cell_per_shift": 2,
           "energy_kwh_per_attempt": 6,
-          "thermal_energy_kwh_per_attempt": 0
+          "thermal_energy_kwh_per_attempt": 0,
+          "maximum_parallel_cells_available": 128
         }
       ],
       "notes": [
@@ -73,7 +77,8 @@
           "footprint_sqm_per_cell": 42,
           "operators_per_cell_per_shift": 2,
           "energy_kwh_per_attempt": 3,
-          "thermal_energy_kwh_per_attempt": 0
+          "thermal_energy_kwh_per_attempt": 0,
+          "maximum_parallel_cells_available": 128
         },
         {
           "process_id": "cargo-interface-and-sensors",
@@ -83,7 +88,8 @@
           "footprint_sqm_per_cell": 34,
           "operators_per_cell_per_shift": 2,
           "energy_kwh_per_attempt": 2,
-          "thermal_energy_kwh_per_attempt": 0
+          "thermal_energy_kwh_per_attempt": 0,
+          "maximum_parallel_cells_available": 128
         },
         {
           "process_id": "amr-eol-test",
@@ -93,7 +99,8 @@
           "footprint_sqm_per_cell": 36,
           "operators_per_cell_per_shift": 1,
           "energy_kwh_per_attempt": 3,
-          "thermal_energy_kwh_per_attempt": 0
+          "thermal_energy_kwh_per_attempt": 0,
+          "maximum_parallel_cells_available": 128
         }
       ],
       "notes": [
@@ -117,7 +124,8 @@
           "footprint_sqm_per_cell": null,
           "operators_per_cell_per_shift": null,
           "energy_kwh_per_attempt": null,
-          "thermal_energy_kwh_per_attempt": null
+          "thermal_energy_kwh_per_attempt": null,
+          "maximum_parallel_cells_available": null
         },
         {
           "process_id": "high-voltage-and-thermal-integration",
@@ -127,7 +135,8 @@
           "footprint_sqm_per_cell": null,
           "operators_per_cell_per_shift": null,
           "energy_kwh_per_attempt": null,
-          "thermal_energy_kwh_per_attempt": null
+          "thermal_energy_kwh_per_attempt": null,
+          "maximum_parallel_cells_available": null
         },
         {
           "process_id": "aircraft-retention-and-eol",
@@ -137,7 +146,8 @@
           "footprint_sqm_per_cell": null,
           "operators_per_cell_per_shift": null,
           "energy_kwh_per_attempt": null,
-          "thermal_energy_kwh_per_attempt": null
+          "thermal_energy_kwh_per_attempt": null,
+          "maximum_parallel_cells_available": null
         }
       ],
       "notes": [
