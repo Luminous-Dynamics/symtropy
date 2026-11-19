@@ -161,7 +161,7 @@
     "actor_role": "robot",
     "payload": {
       "kind": "robot_protocol_observation_recorded",
-      "package_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "entity_id": "ifc:2XQ$n5SLP5MBCLz4P3d4W",
       "attempt_id": "robot-01-attempt-0042",
       "observation": {
