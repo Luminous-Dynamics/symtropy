@@ -150,5 +150,7 @@
       "evidenceRef": "synthetic://segment/repair-pump/0",
       "interruptionCause": "crew-shift-end"
     }
-  ]
+  ],
+  "baselineEventManifestRef": "synthetic://baseline-event-manifest/multi-shift-recovery-001/v1",
+  "baselineEventManifestSha256": "f179e884fc445b1146d1b096bd9e0835822a330629c3cdcd90361f9aebcef8f3"
 }
