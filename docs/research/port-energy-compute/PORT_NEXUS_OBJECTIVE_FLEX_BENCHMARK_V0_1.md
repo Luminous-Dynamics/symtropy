@@ -116,3 +116,18 @@ Sources: [Shanghai Government / China Daily, 1 June 2026](https://english.shangh
 5. **Separate proposed standards from approved obligations.** Maintain explicit jurisdiction and status for each requirement. NERC CLO is a U.S. pending filing as of this snapshot; it is not a South African approval or certification.
 
 The new Rust verifier in `tools/port-nexus-flex-verifier/` covers only schedule identity, whole-horizon PCC no-new-peak, declared PCC import/ramp and declared feeder import envelopes. It is the first admission layer, not the coupled logistics/energy/compute optimiser, a network power-flow solver or a standards-conformity assessment.
+
+
+### Ownership correction — compose the canonical port schedule verifier
+
+Symtropy already has [PORT-ENERGY-SCHEDULE-VERIFIER-001 #4582](https://github.com/Luminous-Dynamics/symtropy/issues/4582), which owns the full joint berth/terminal/shore-energy proposal verifier and exact tiny-instance oracle. It explicitly separates instantaneous power capacity (W), cumulative energy allocation (Wh), and connection readiness/owner commitment.
+
+This programme must not create a second full port schedule verifier. The boundary is:
+- **#4582:** canonical port/vessel/berth/terminal/shore-power schedule feasibility, physical resource IDs, concurrent W limits, cumulative Wh windows, readiness and the finite exact oracle.
+- **#6211:** AI workload identity, objective-specific candidate placements, deadline/useful-work preservation, full-horizon rebound and the no-new-peak/aggregate grid-impact research gate.
+- **#3734:** shared semantic distinction between instantaneous W and cumulative Wh.
+- **#4448 / Symthaea #11572:** ship/berth electrical compatibility, connection readiness and deliverable shore-power service.
+- **#5974 / Mycelix:** owner-authorized reservation, commitment, source lineage, meter evidence, reconciliation and action receipts.
+
+The std-only verifier added in this research branch is a **compute-workload-specific companion prototype**. Its PCC/feeder checks are a simplified local screening guard; they are not a second source of truth for port capacity, energy quotas, shore-power readiness or exact port schedule optimality. The integrated benchmark should eventually project workload jobs into #4582's canonical case and use that owner's W/Wh and connection-readiness oracle.
+
