@@ -86,7 +86,8 @@
         "vendor_physical",
         "model_derived",
         "synthetic_fixture",
-        "unknown"
+        "unknown",
+        "synthetic_fixture"
       ]
     },
     "energy_term": {
