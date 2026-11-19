@@ -180,6 +180,7 @@ pub enum DispatchReadinessFailure {
     ClockEpochMismatch,
     ClockMappingMismatch,
     ClockUncertaintyExceedsPolicy,
+    ClockUncertaintyPolicyMismatch,
     ClockQualificationExpired,
     ClockUncertaintyStraddlesBoundary,
     ClockIntervalOverflow,
@@ -338,9 +339,7 @@ pub fn check_dispatch_readiness(
         None => return Err(DispatchReadinessFailure::UnknownDesignEntity),
     }
 
-    if envelope.valid_until_tick <= envelope.generated_at_tick
-        || envelope.generated_at_uncertainty_ticks >= envelope.valid_until_tick
-    {
+    if envelope.valid_until_tick <= envelope.generated_at_tick {
         return Err(DispatchReadinessFailure::EnvelopeTimeWindowInvalid);
     }
     let (envelope_generated_lower, envelope_generated_upper) = uncertainty_interval(
@@ -381,9 +380,7 @@ pub fn check_dispatch_readiness(
     if ledger.last_event_sha256() != Some(occupancy.site_ledger_event_sha256.as_str()) {
         return Err(DispatchReadinessFailure::SiteSnapshotHeadMismatch);
     }
-    if occupancy.valid_until_tick <= occupancy.checked_at_tick
-        || occupancy.checked_at_uncertainty_ticks >= occupancy.valid_until_tick
-    {
+    if occupancy.valid_until_tick <= occupancy.checked_at_tick {
         return Err(DispatchReadinessFailure::OccupancyTimeWindowInvalid);
     }
     let (occupancy_checked_lower, occupancy_checked_upper) =
@@ -620,7 +617,7 @@ pub fn verify_dispatch_readiness_receipt_current(
     if receipt.clock_uncertainty_policy_sha256 != policy.clock_uncertainty_policy_sha256
         || receipt.max_clock_uncertainty_ticks != policy.max_clock_uncertainty_ticks
     {
-        return Err(DispatchReadinessFailure::ClockUncertaintyExceedsPolicy);
+        return Err(DispatchReadinessFailure::ClockUncertaintyPolicyMismatch);
     }
     if ledger.active_package_sha256() != Some(receipt.package_sha256.as_str())
         || ledger.package_is_current(&receipt.package_sha256) != Some(true)
@@ -1044,7 +1041,7 @@ mod tests {
     #[test]
     fn unapproved_occupancy_engine_or_clearance_policy_blocks_readiness() {
         let ledger = site_ledger();
-        let mut request = make_request(&ledger);
+        let request = make_request(&ledger);
         let mut untrusted_engine = policy();
         untrusted_engine.occupancy_engine_build_sha256 = digest('0');
         assert_eq!(
@@ -1475,6 +1472,56 @@ mod tests {
                 &too_uncertain
             ),
             Err(DispatchReadinessFailure::ClockUncertaintyExceedsPolicy)
+        );
+    }
+
+
+    #[test]
+    fn envelope_and_occupancy_uncertainty_are_checked_against_owner_policy() {
+        let ledger = site_ledger();
+        let mut envelope_uncertain = make_request(&ledger);
+        envelope_uncertain.envelope.generated_at_uncertainty_ticks = 3;
+        assert_eq!(
+            check_dispatch_readiness(&ledger, &envelope_uncertain, &policy()),
+            Err(DispatchReadinessFailure::ClockUncertaintyExceedsPolicy)
+        );
+
+        let mut occupancy_uncertain = make_request(&ledger);
+        occupancy_uncertain.occupancy.checked_at_uncertainty_ticks = 3;
+        assert_eq!(
+            check_dispatch_readiness(&ledger, &occupancy_uncertain, &policy()),
+            Err(DispatchReadinessFailure::ClockUncertaintyExceedsPolicy)
+        );
+    }
+
+    #[test]
+    fn source_or_authority_change_invalidates_clock_receipt_consumption() {
+        let ledger = site_ledger();
+        let request = make_request(&ledger);
+        let receipt = check_dispatch_readiness(&ledger, &request, &policy()).unwrap();
+
+        let mut changed_source = clock_sample(2, 130);
+        changed_source.source_id = "different-grandmaster".into();
+        assert_eq!(
+            verify_dispatch_readiness_receipt_current(
+                &ledger,
+                &receipt,
+                &policy(),
+                &changed_source
+            ),
+            Err(DispatchReadinessFailure::InvalidClockEvidence)
+        );
+
+        let mut changed_authority = clock_sample(2, 130);
+        changed_authority.authority_id = "surveyor".into();
+        assert_eq!(
+            verify_dispatch_readiness_receipt_current(
+                &ledger,
+                &receipt,
+                &policy(),
+                &changed_authority
+            ),
+            Err(DispatchReadinessFailure::InvalidClockEvidence)
         );
     }
 
