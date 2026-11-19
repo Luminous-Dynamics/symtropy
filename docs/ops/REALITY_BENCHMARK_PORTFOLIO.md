@@ -26,7 +26,7 @@ Do not create a parallel engine, validator, reference runner, scenario identity 
 - [#4366 — semantic equivalence before cross-backend comparison](https://github.com/Luminous-Dynamics/symtropy/issues/4366);
 - [#4446 — differential fuzzing and counterexample minimization](https://github.com/Luminous-Dynamics/symtropy/issues/4446);
 - [#4487 — multi-fidelity admission and escalation](https://github.com/Luminous-Dynamics/symtropy/issues/4487);
-- [#1472 — engine capability/model-path census](https://github.com/Luminous-Dynamics/symtropy/issues/1472);
+- [#1472 — engine capability/model-path census](https://github.com/Luminous-Dynamics/symtropy/issues/1472), with the refreshed 25-blob/30-case source reference and independent qualifier in [PR #6248](https://github.com/Luminous-Dynamics/symtropy/pull/6248);
 - [#1467 — twin projection, counterfactual and synthetic boundary](https://github.com/Luminous-Dynamics/symtropy/issues/1467);
 - [#4275 — fluid-structure coupling and rollback](https://github.com/Luminous-Dynamics/symtropy/issues/4275);
 - [#5779 — typed ports, units, clocks and conservation semantics](https://github.com/Luminous-Dynamics/symtropy/issues/5779);
