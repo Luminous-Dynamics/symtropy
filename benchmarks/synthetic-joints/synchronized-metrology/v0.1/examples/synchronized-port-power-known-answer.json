@@ -40,7 +40,8 @@
     "filter_delay_uncertainty_s": 0.001,
     "absolute_slew_bound_per_s": 2,
     "slew_bound_provenance_digest": "slew-proof-torque-sensor-01-v1",
-    "slew_bound_source_reference": "https://example.invalid/slew-bounds/synthetic"
+    "slew_bound_source_reference": "https://example.invalid/slew-bounds/synthetic",
+    "raw_trace_digest": "raw-torque-trace-sha256-0001"
   },
   "angular_velocity_channel": {
     "kind": "angular_velocity",
@@ -81,7 +82,8 @@
     "filter_delay_uncertainty_s": 0.0005,
     "absolute_slew_bound_per_s": 3,
     "slew_bound_provenance_digest": "slew-proof-encoder-01-v1",
-    "slew_bound_source_reference": "https://example.invalid/slew-bounds/synthetic"
+    "slew_bound_source_reference": "https://example.invalid/slew-bounds/synthetic",
+    "raw_trace_digest": "raw-encoder-trace-sha256-0001"
   },
   "claim_ceiling": "Synthetic known-answer input only. It validates interval and timing arithmetic; it is not an actuator measurement, instrument calibration, traceability claim, power/energy test or electrical regeneration result.",
   "notes": [
