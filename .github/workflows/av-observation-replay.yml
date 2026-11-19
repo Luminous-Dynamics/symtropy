@@ -55,7 +55,7 @@ jobs:
         run: cargo fmt --manifest-path research/av-observation-replay-v0/Cargo.toml --all -- --check
 
       - name: Run unit and fixture-integrity tests
-        run: cargo test --manifest-path research/av-observation-replay-v0/Cargo.toml
+        run: cargo test --locked --manifest-path research/av-observation-replay-v0/Cargo.toml
 
       - name: Run strict Clippy
-        run: cargo clippy --manifest-path research/av-observation-replay-v0/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --locked --manifest-path research/av-observation-replay-v0/Cargo.toml --all-targets -- -D warnings
