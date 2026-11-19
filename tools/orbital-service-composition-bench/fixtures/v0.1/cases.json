@@ -12,12 +12,12 @@
     {
       "component": "orbital_capture",
       "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-      "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c"
+      "source_commit": "df2d878519acdbed6df3b15c1ff637ad3bc295c5"
     },
     {
       "component": "orbital_fluid",
       "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-      "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df"
+      "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8"
     }
   ],
   "cases": [
@@ -63,7 +63,7 @@
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
+            "source_commit": "df2d878519acdbed6df3b15c1ff637ad3bc295c5",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -86,7 +86,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
+            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -200,7 +200,7 @@
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
+            "source_commit": "df2d878519acdbed6df3b15c1ff637ad3bc295c5",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -223,7 +223,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
+            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -279,7 +279,7 @@
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
+            "source_commit": "df2d878519acdbed6df3b15c1ff637ad3bc295c5",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -302,7 +302,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
+            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -358,7 +358,7 @@
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
+            "source_commit": "df2d878519acdbed6df3b15c1ff637ad3bc295c5",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -381,7 +381,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
+            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "storage_only_not_transfer_evidence",
             "evidence_class": "synthetic",
@@ -437,7 +437,7 @@
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
+            "source_commit": "df2d878519acdbed6df3b15c1ff637ad3bc295c5",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -460,7 +460,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
+            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -516,7 +516,7 @@
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
+            "source_commit": "df2d878519acdbed6df3b15c1ff637ad3bc295c5",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -539,7 +539,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "0000000000000000000000000000000000000000",
+            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
             "reference": "synthetic://orbital_fluid/fluid-old",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -595,7 +595,7 @@
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
+            "source_commit": "df2d878519acdbed6df3b15c1ff637ad3bc295c5",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -618,7 +618,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
+            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -695,7 +695,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
+            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -717,7 +717,7 @@
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
+            "source_commit": "df2d878519acdbed6df3b15c1ff637ad3bc295c5",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -772,7 +772,7 @@
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
+            "source_commit": "df2d878519acdbed6df3b15c1ff637ad3bc295c5",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -838,7 +838,7 @@
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
+            "source_commit": "df2d878519acdbed6df3b15c1ff637ad3bc295c5",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -861,7 +861,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
+            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -902,7 +902,7 @@
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
+            "source_commit": "df2d878519acdbed6df3b15c1ff637ad3bc295c5",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -925,7 +925,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
+            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -981,7 +981,7 @@
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
+            "source_commit": "df2d878519acdbed6df3b15c1ff637ad3bc295c5",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -1004,7 +1004,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
+            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -1060,7 +1060,7 @@
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
+            "source_commit": "df2d878519acdbed6df3b15c1ff637ad3bc295c5",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -1083,7 +1083,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
+            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -1139,7 +1139,7 @@
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
+            "source_commit": "df2d878519acdbed6df3b15c1ff637ad3bc295c5",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -1162,7 +1162,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
+            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -1218,7 +1218,7 @@
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
+            "source_commit": "df2d878519acdbed6df3b15c1ff637ad3bc295c5",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -1241,7 +1241,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
+            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -1297,7 +1297,7 @@
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
+            "source_commit": "df2d878519acdbed6df3b15c1ff637ad3bc295c5",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -1320,7 +1320,7 @@
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
+            "source_commit": "91f21314ca3af86a9517d97abfee104e3bb9ffc8",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
