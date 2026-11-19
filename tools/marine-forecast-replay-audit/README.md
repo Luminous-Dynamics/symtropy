@@ -28,6 +28,6 @@ The fixture is synthetic and must remain SYNTHETIC_ONLY. No real NOAA/ECMWF/Cope
 
 ## Grouped holdout splits
 
-The validate-splits command checks a preregistered episode manifest before any benchmark score is calculated. It keeps joint voyage and weather-event groups within one fold, rejects reused replay-bundle digests across folds, rejects overlapping episodes within a voyage, requires unique decision IDs and chronological samples, and requires at least three declared strata in the held-out test fold.
+The validate-splits command checks a preregistered episode manifest before any benchmark score is calculated. It keeps joint voyage and weather-event groups within one fold, rejects reused replay-bundle digests across folds, rejects overlapping episodes within a voyage, requires chronological fold boundaries and decision samples, unique decision IDs, and at least three declared strata in the held-out test fold.
 
 Random row-level or adjacent-timestep splits are not admissible for claims about forecast-regret or generalization. A valid split manifest proves only partition integrity; it does not establish statistical power, environmental independence or benchmark superiority. The included nine-episode fixture has three episodes per fold and eighteen decision samples, all synthetic and therefore SYNTHETIC_ONLY.
