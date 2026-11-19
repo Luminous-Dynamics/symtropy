@@ -63,8 +63,14 @@ The current model does not authenticate a signature, prove that an observation c
 
 The committed fixture has two regions, three periods and two stochastic scenarios with a shared initial observation prefix. It creates five nonanticipative policy nodes and enumerates (3^5=243) policies (urban, rural, idle at each node).
 
-It reports:
-- exact expected-cost policy and decision digest;
+It reports three independently optimized policies over the same exact feasible policy set:
+- **expected-cost optimal**: minimizes probability-weighted total cost;
+- **CVaR90 optimal**: minimizes the mean cost in the worst 10% probability tail;
+- **worst-case optimal**: minimizes the maximum scenario cost.
+
+Each policy includes its own nonanticipative decisions. Every outcome, including truck-only and fixed-initial-region baselines, reports expected cost, CVaR90 and worst-case cost. CVaR uses fractional probability mass at the 90th-percentile boundary rather than simply taking the most expensive whole scenario. Risk objectives change economic preference only; they never relax the weather, permission, reposition-evidence or protected-reserve hard gates.
+
+It also reports:
 - truck-only baseline;
 - fixed-initial-region aircraft baseline;
 - aerial/road/unserved units;
@@ -136,3 +142,28 @@ Do not treat algorithm labels as evidence of superiority. Reproduce the original
 ## Non-claims
 
 The fixture contains synthetic assumptions and does not model a physical aircraft, flight envelope, route/airspace, takeoff/landing, return/recovery, payload-induced propulsion energy, battery degradation, actual charger, crew, traffic, customer time windows, legal permission or commercial cost. It is not a fleet recommendation, flight approval, dispatch command or SOTA superiority claim.
+
+
+## Risk-aware policy comparison
+
+The first exact oracle minimized expected cost only. That can hide low-probability, high-impact service failures. The current increment solves three separate exact objectives over the identical admissible policy set:
+
+[
+min_pi mathbb{E}[C(pi)]
+]
+
+[
+min_pi operatorname{CVaR}_{0.90}(C(pi))
+]
+
+[
+min_pi max_{omega in Omega} C_omega(pi)
+]
+
+For CVaR90, the algorithm sorts scenario costs from highest to lowest and consumes exactly 1,000 probability basis points, splitting a scenario's probability mass if the 90th-percentile boundary falls inside it. This is important: choosing the worst whole scenario is not generally equivalent to CVaR when scenarios have unequal probabilities.
+
+The report now includes the expected-cost-optimal policy, CVaR90-optimal policy and minimax policy, with a separate nonanticipative decision map for each. The truck-only and fixed-assignment baselines include the same distribution metrics, allowing matched comparisons.
+
+A unit test pins the fractional-tail arithmetic: a 5% scenario costing 100 and a 95% scenario costing 20 produces CVaR90 of 60, not 100 or 20. The frozen two-scenario fleet fixture also checks that the risk-optimal policies are no worse on their own objective than the expected-cost-optimal policy.
+
+This remains a finite-scenario risk measure, not a calibrated probability forecast or a tail-risk guarantee outside the supplied scenario set. Next steps are to add stress/adversarial scenarios with probability provenance, distributionally robust ambiguity sets, chance constraints for service-level requirements, and out-of-sample calibration. Hard safety/permission constraints remain outside all three economic objectives.
