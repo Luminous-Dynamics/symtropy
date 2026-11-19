@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "0.1.0",
+  "manifestId": "synthetic-hazard-manifest-municipal-feeder-17-v1",
+  "sourceClass": "synthetic_fixture",
+  "scenarios": [
+    {
+      "scenarioRef": "synthetic://hazard/flood/medium-2030",
+      "hazardType": "flood",
+      "severityClass": "medium",
+      "probabilityStatus": "not_assigned",
+      "assumptionsRef": "synthetic://assumption/flood-medium"
+    },
+    {
+      "scenarioRef": "synthetic://hazard/flood/extreme-2030",
+      "hazardType": "flood",
+      "severityClass": "extreme",
+      "probabilityStatus": "not_assigned",
+      "assumptionsRef": "synthetic://assumption/flood-extreme"
+    },
+    {
+      "scenarioRef": "synthetic://hazard/heat/compound-2030",
+      "hazardType": "heat",
+      "severityClass": "compound",
+      "probabilityStatus": "not_assigned",
+      "assumptionsRef": "synthetic://assumption/heat-compound"
+    }
+  ]
+}
