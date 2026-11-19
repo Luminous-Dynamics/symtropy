@@ -1,0 +1,1042 @@
+{
+  "schema_version": "haps-fleet-service-case/v1",
+  "case_id": "synthetic.haps.fleet.rotation.common-cause.72h.001",
+  "revision": 1,
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_fleet_availability_oracle",
+  "service_window": {
+    "duration_s": 259200,
+    "interval_partition_required": true,
+    "service_availability_threshold_fraction": 0.9,
+    "initial_target_availability_fraction": 0.995,
+    "stretch_target_availability_fraction": 0.999,
+    "target_window_s": 2592000,
+    "time_basis": "elapsed_wall_clock"
+  },
+  "service_zones": [
+    {
+      "zone_id": "zone-north",
+      "required_capacity_units": 1,
+      "demand_weight": 1,
+      "criticality": "emergency_critical"
+    },
+    {
+      "zone_id": "zone-south",
+      "required_capacity_units": 1,
+      "demand_weight": 1,
+      "criticality": "mission_critical"
+    }
+  ],
+  "platform_inventory": [
+    {
+      "platform_id": "haps-01",
+      "lift_class": "buoyant_airship",
+      "service_capacity_units": 1,
+      "evidence_class": "synthetic",
+      "configuration_ref": null
+    },
+    {
+      "platform_id": "haps-02",
+      "lift_class": "buoyant_airship",
+      "service_capacity_units": 1,
+      "evidence_class": "synthetic",
+      "configuration_ref": null
+    },
+    {
+      "platform_id": "haps-03",
+      "lift_class": "buoyant_airship",
+      "service_capacity_units": 1,
+      "evidence_class": "synthetic",
+      "configuration_ref": null
+    },
+    {
+      "platform_id": "haps-04",
+      "lift_class": "buoyant_airship",
+      "service_capacity_units": 1,
+      "evidence_class": "synthetic",
+      "configuration_ref": null
+    }
+  ],
+  "policies": [
+    {
+      "policy_id": "two_haps_no_spare",
+      "policy_class": "no_spare",
+      "fleet_platform_ids": [
+        "haps-01",
+        "haps-02"
+      ],
+      "required_active_capacity_units": 2,
+      "reserve_platform_ids": [],
+      "intervals": [
+        {
+          "start_s": 0,
+          "duration_s": 28800,
+          "event_class": "normal_operations",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 28800,
+          "duration_s": 21600,
+          "event_class": "scheduled_maintenance",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "scheduled_maintenance",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 50400,
+          "duration_s": 21600,
+          "event_class": "normal_operations",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 72000,
+          "duration_s": 36000,
+          "event_class": "corrective_repair",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "corrective_maintenance",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 108000,
+          "duration_s": 36000,
+          "event_class": "normal_operations",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 144000,
+          "duration_s": 21600,
+          "event_class": "common_cause_weather",
+          "common_cause_event_id": "weather-system-001",
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "grounded_weather",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "grounded_weather",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 165600,
+          "duration_s": 93600,
+          "event_class": "normal_operations",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            }
+          ],
+          "alternate_service_by_zone": []
+        }
+      ],
+      "expected_metrics": {
+        "service_availability_fraction": 0.6944444444444444,
+        "time_weighted_demand_satisfaction_fraction": 0.8055555555555556,
+        "available_hours": 50,
+        "below_threshold_hours": 22,
+        "maximum_contiguous_service_gap_hours": 10,
+        "planned_maintenance_platform_hours": 6,
+        "corrective_repair_platform_hours": 10,
+        "common_cause_grounded_platform_hours": 12,
+        "reserve_platform_hours": 0,
+        "handover_count": 0,
+        "alternate_layer_service_zone_hours": 0,
+        "launch_recovery_platform_hours": 0
+      }
+    },
+    {
+      "policy_id": "four_haps_rotating_reserve",
+      "policy_class": "rotating_spares",
+      "fleet_platform_ids": [
+        "haps-01",
+        "haps-02",
+        "haps-03",
+        "haps-04"
+      ],
+      "required_active_capacity_units": 2,
+      "reserve_platform_ids": [
+        "haps-03",
+        "haps-04"
+      ],
+      "intervals": [
+        {
+          "start_s": 0,
+          "duration_s": 28800,
+          "event_class": "normal_operations",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "ready_reserve",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "ready_reserve",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 28800,
+          "duration_s": 21600,
+          "event_class": "scheduled_maintenance",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "scheduled_maintenance",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "ready_reserve",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 50400,
+          "duration_s": 21600,
+          "event_class": "normal_operations",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "ready_reserve",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "ready_reserve",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 72000,
+          "duration_s": 36000,
+          "event_class": "corrective_repair",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "corrective_maintenance",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "ready_reserve",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "active",
+              "zone_id": "zone-south"
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 108000,
+          "duration_s": 36000,
+          "event_class": "normal_operations",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "ready_reserve",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "ready_reserve",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 144000,
+          "duration_s": 21600,
+          "event_class": "common_cause_weather",
+          "common_cause_event_id": "weather-system-001",
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "grounded_weather",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "grounded_weather",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "grounded_weather",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "grounded_weather",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 165600,
+          "duration_s": 93600,
+          "event_class": "normal_operations",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "ready_reserve",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "ready_reserve",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        }
+      ],
+      "expected_metrics": {
+        "service_availability_fraction": 0.9166666666666666,
+        "time_weighted_demand_satisfaction_fraction": 0.9166666666666666,
+        "available_hours": 66,
+        "below_threshold_hours": 6,
+        "maximum_contiguous_service_gap_hours": 6,
+        "planned_maintenance_platform_hours": 6,
+        "corrective_repair_platform_hours": 10,
+        "common_cause_grounded_platform_hours": 24,
+        "reserve_platform_hours": 116,
+        "handover_count": 4,
+        "alternate_layer_service_zone_hours": 0,
+        "launch_recovery_platform_hours": 0
+      }
+    },
+    {
+      "policy_id": "four_haps_rotation_plus_independent_satellite",
+      "policy_class": "rotating_spares_plus_independent_fallback",
+      "fleet_platform_ids": [
+        "haps-01",
+        "haps-02",
+        "haps-03",
+        "haps-04"
+      ],
+      "required_active_capacity_units": 2,
+      "reserve_platform_ids": [
+        "haps-03",
+        "haps-04"
+      ],
+      "intervals": [
+        {
+          "start_s": 0,
+          "duration_s": 28800,
+          "event_class": "normal_operations",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "ready_reserve",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "ready_reserve",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 28800,
+          "duration_s": 21600,
+          "event_class": "scheduled_maintenance",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "scheduled_maintenance",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "ready_reserve",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 50400,
+          "duration_s": 21600,
+          "event_class": "normal_operations",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "ready_reserve",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "ready_reserve",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 72000,
+          "duration_s": 36000,
+          "event_class": "corrective_repair",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "corrective_maintenance",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "ready_reserve",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "active",
+              "zone_id": "zone-south"
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 108000,
+          "duration_s": 36000,
+          "event_class": "normal_operations",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "ready_reserve",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "ready_reserve",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 144000,
+          "duration_s": 21600,
+          "event_class": "common_cause_weather",
+          "common_cause_event_id": "weather-system-001",
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "grounded_weather",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "grounded_weather",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "grounded_weather",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "grounded_weather",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": [
+            {
+              "zone_id": "zone-north",
+              "capacity_units": 0.95,
+              "source_layer": "satellite",
+              "common_cause_independence": "independent_for_this_event"
+            },
+            {
+              "zone_id": "zone-south",
+              "capacity_units": 0.95,
+              "source_layer": "satellite",
+              "common_cause_independence": "independent_for_this_event"
+            }
+          ]
+        },
+        {
+          "start_s": 165600,
+          "duration_s": 93600,
+          "event_class": "normal_operations",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "ready_reserve",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "ready_reserve",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        }
+      ],
+      "expected_metrics": {
+        "service_availability_fraction": 1,
+        "time_weighted_demand_satisfaction_fraction": 0.9958333333333333,
+        "available_hours": 72,
+        "below_threshold_hours": 0,
+        "maximum_contiguous_service_gap_hours": 0,
+        "planned_maintenance_platform_hours": 6,
+        "corrective_repair_platform_hours": 10,
+        "common_cause_grounded_platform_hours": 24,
+        "reserve_platform_hours": 116,
+        "handover_count": 4,
+        "alternate_layer_service_zone_hours": 11.399999999999999,
+        "launch_recovery_platform_hours": 0
+      }
+    },
+    {
+      "policy_id": "four_haps_rotating_reserve_with_delayed_launch",
+      "policy_class": "rotating_spares_with_delayed_deployment",
+      "fleet_platform_ids": [
+        "haps-01",
+        "haps-02",
+        "haps-03",
+        "haps-04"
+      ],
+      "required_active_capacity_units": 2,
+      "reserve_platform_ids": [
+        "haps-03",
+        "haps-04"
+      ],
+      "intervals": [
+        {
+          "start_s": 0,
+          "duration_s": 28800,
+          "event_class": "normal_operations",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "ready_reserve",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "ready_reserve",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 28800,
+          "duration_s": 7200,
+          "event_class": "scheduled_maintenance",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "scheduled_maintenance",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "launch_recovery",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "ready_reserve",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 36000,
+          "duration_s": 14400,
+          "event_class": "scheduled_maintenance",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "scheduled_maintenance",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "ready_reserve",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 50400,
+          "duration_s": 21600,
+          "event_class": "normal_operations",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "ready_reserve",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "ready_reserve",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 72000,
+          "duration_s": 10800,
+          "event_class": "corrective_repair",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "corrective_maintenance",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "ready_reserve",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "launch_recovery",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 82800,
+          "duration_s": 25200,
+          "event_class": "corrective_repair",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "corrective_maintenance",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "ready_reserve",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "active",
+              "zone_id": "zone-south"
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 108000,
+          "duration_s": 36000,
+          "event_class": "normal_operations",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "ready_reserve",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "ready_reserve",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 144000,
+          "duration_s": 21600,
+          "event_class": "common_cause_weather",
+          "common_cause_event_id": "weather-system-001",
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "grounded_weather",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "grounded_weather",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "grounded_weather",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "grounded_weather",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        },
+        {
+          "start_s": 165600,
+          "duration_s": 93600,
+          "event_class": "normal_operations",
+          "common_cause_event_id": null,
+          "platform_states": [
+            {
+              "platform_id": "haps-01",
+              "state": "active",
+              "zone_id": "zone-north"
+            },
+            {
+              "platform_id": "haps-02",
+              "state": "active",
+              "zone_id": "zone-south"
+            },
+            {
+              "platform_id": "haps-03",
+              "state": "ready_reserve",
+              "zone_id": null
+            },
+            {
+              "platform_id": "haps-04",
+              "state": "ready_reserve",
+              "zone_id": null
+            }
+          ],
+          "alternate_service_by_zone": []
+        }
+      ],
+      "expected_metrics": {
+        "service_availability_fraction": 0.8472222222222222,
+        "time_weighted_demand_satisfaction_fraction": 0.8819444444444444,
+        "available_hours": 61,
+        "below_threshold_hours": 11,
+        "maximum_contiguous_service_gap_hours": 6,
+        "planned_maintenance_platform_hours": 6,
+        "corrective_repair_platform_hours": 10,
+        "common_cause_grounded_platform_hours": 24,
+        "reserve_platform_hours": 116,
+        "handover_count": 2,
+        "alternate_layer_service_zone_hours": 0,
+        "launch_recovery_platform_hours": 5
+      }
+    }
+  ],
+  "expected_oracle": {
+    "oracle_status": "independently_calculated",
+    "policy_rankings": [
+      {
+        "policy_id": "two_haps_no_spare",
+        "service_availability_fraction": 0.6944444444444444,
+        "time_weighted_demand_satisfaction_fraction": 0.8055555555555556
+      },
+      {
+        "policy_id": "four_haps_rotating_reserve",
+        "service_availability_fraction": 0.9166666666666666,
+        "time_weighted_demand_satisfaction_fraction": 0.9166666666666666
+      },
+      {
+        "policy_id": "four_haps_rotation_plus_independent_satellite",
+        "service_availability_fraction": 1,
+        "time_weighted_demand_satisfaction_fraction": 0.9958333333333333
+      },
+      {
+        "policy_id": "four_haps_rotating_reserve_with_delayed_launch",
+        "service_availability_fraction": 0.8472222222222222,
+        "time_weighted_demand_satisfaction_fraction": 0.8819444444444444
+      }
+    ],
+    "computed_from_interval_partition": true
+  },
+  "source_evidence_refs": [
+    "https://www.softbank.jp/en/sbnews/entry/20261027_01",
+    "https://sceye.com/press-releases/sceye-softbank-sign-agreement-for-fleet-of-stratospheric-platforms/",
+    "https://doi.org/10.1016/j.ress.2025.111450",
+    "https://doi.org/10.1016/j.ress.2024.110419",
+    "https://doi.org/10.1016/j.paerosci.2026.101243"
+  ],
+  "assumptions": [
+    "Every platform, event duration, capacity unit, repair duration and alternate-layer value in this fixture is synthetic; none is an empirical HAPS MTBF, MTTR, maintenance or service-capacity measurement.",
+    "The 72-hour scenario is an event-trace oracle, not a statistical reliability model or 30-day service trial.",
+    "Two service zones each require one unit of capacity and have equal demand weight; the service is available when demand-weighted delivery is at least 90%.",
+    "A single active HAPS supplies one capacity unit to one named zone. A platform cannot supply two zones simultaneously.",
+    "The planned-maintenance event affects haps-01 for six hours; the corrective-repair event affects haps-02 for ten hours.",
+    "The common-cause weather event from hour 40 to hour 46 grounds all HAPS in the declared footprint; the event is correlated across the fleet, not independent platform failures.",
+    "The two-spare rotation policy prepositions haps-03 for the planned maintenance interval and haps-04 for corrective repair; the fixture assumes handover is immediate at the interval boundary and does not model launch/transition lag.",
+    "In the independent-fallback policy, a satellite layer supplies 0.95 capacity units to each zone during the common-cause weather interval; independence is an explicit synthetic scenario assumption, not measured availability or guaranteed atmospheric/space-network resilience.",
+    "No alternate capacity is available in the no-spare and rotating-reserve-only policies during the common-cause event.",
+    "Availability is elapsed time during which the total demand-weighted delivered fraction meets the threshold; time-weighted demand satisfaction is a separate integral metric.",
+    "The 99.5% initial and 99.9% stretch targets refer to a separate 30-day service window and are Luminous research targets, not published industry commitments or achieved values.",
+    "Maintenance/repair platform-hours are summed across assets; common-cause grounded platform-hours count each affected fleet platform for the full event duration.",
+    "The fixture excludes stochastic failure/repair distributions, maintenance queueing, launch/recovery capacity, reserve readiness failure, crew/spares constraints, flight energy, thermal limits, wind, radio link quality, throughput, regulatory authority and physical operations."
+  ]
+}

@@ -1,0 +1,33 @@
+name: HAPS Fleet Service Oracle
+on:
+  pull_request:
+    paths:
+      - 'tools/haps-fleet-service/**'
+      - 'docs/research/aviation/schemas/haps_fleet_service_case_v1.schema.json'
+      - 'docs/research/aviation/examples/synthetic_haps_fleet_rotation_common_cause_v1.json'
+      - '.github/workflows/haps-fleet-service.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'tools/haps-fleet-service/**'
+      - 'docs/research/aviation/schemas/haps_fleet_service_case_v1.schema.json'
+      - 'docs/research/aviation/examples/synthetic_haps_fleet_rotation_common_cause_v1.json'
+      - '.github/workflows/haps-fleet-service.yml'
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/haps-fleet-service/Cargo.toml --all -- --check
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/haps-fleet-service/Cargo.toml --all-targets -- -D warnings
+      - name: Run oracle tests
+        run: cargo test --manifest-path tools/haps-fleet-service/Cargo.toml --all-targets
+      - name: Replay checked-in fixture
+        run: cargo run --quiet --manifest-path tools/haps-fleet-service/Cargo.toml -- docs/research/aviation/examples/synthetic_haps_fleet_rotation_common_cause_v1.json

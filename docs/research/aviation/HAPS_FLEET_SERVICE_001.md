@@ -8,7 +8,7 @@
 
 Sceye ST1 completed a 30-day trans-Pacific flight, then delivered a limited communications trial over Japan. SoftBank's October 27, 2026 briefing states that recovered-aircraft hardware analysis was still underway, Japan-based storage/operation facilities were planned within two years, and the commercial service ambition was from 2027. SoftBank also explicitly says regional disaster response at scale would require multiple HAPS. This is evidence that maintenance, local operations and fleet scale are now operational design issues, but it does **not** publish MTBF, MTTR, fleet availability or a commercial service SLA. [SoftBank operational outlook, 27 October 2026](https://www.softbank.jp/en/sbnews/entry/20261027_01).
 
-Sceye's November 3, 2026 five-year MSA with SoftBank covers manufacturing, launch and operation of a fleet targeting nationwide Japan coverage. It represents a move toward deployment, not proof that a nationwide fleet is already operational. [Sceye / SoftBank MSA](https://sceye.com/press-releases/sceye-softbank-sign-agreement-for-fleet-of-stratospheric-platforms/).
+Sceye's November 3, 2026 five-year MSA with SoftBank covers manufacturing, launch and operation of a fleet targeting nationwide Japan coverage. It represents a move toward deployment, not proof that a nationwide fleet is already operational. [Sceye / SoftBank MSA](https://sceye.com/press-releases/sceye-softbank-sign-agreement-for-fleet-of-stratospheric-platforms/). SoftBank also reported that 100 out of 100 call attempts connected during its trial. That is a useful functional call-setup result under the test conditions, but the same source describes limited durations, areas and devices; it is not a time-based monthly/annual availability statistic, a p95/p99 outage measure or a fleet-level SLA. [SoftBank HAPS trial service, 2 September 2026](https://www.softbank.jp/en/corp/news/press/sbkk/2026/20260902_01/).
 
 ### Reliability SOTA
 
@@ -65,8 +65,9 @@ Three policies use the same service demand and event trace:
 | Two HAPS, no spare | 69.44% | 80.56% | 22 h | 10 h |
 | Four HAPS, rotating reserves | 91.67% | 91.67% | 6 h | 6 h |
 | Four HAPS + independent fallback | 100.00% | 99.58% | 0 h | 0 h |
+| Four HAPS + 2 h / 3 h reserve deployment lag | 84.72% | 88.19% | 11 h | 6 h |
 
-The exact replay also records 4 handovers for each rotating policy, 6 platform-hours of planned maintenance, 10 platform-hours of corrective repair, and 24 common-cause grounded platform-hours for the four-platform fleet. The no-spare policy accumulates 12 common-cause grounded platform-hours across its two assets.
+The exact replay also records 4 handovers for each rotating policy, 6 platform-hours of planned maintenance, 10 platform-hours of corrective repair, and 24 common-cause grounded platform-hours for the four-platform fleet. The no-spare policy accumulates 12 common-cause grounded platform-hours across its two assets. The delayed-deployment policy also records five launch/recovery platform-hours (two hours for planned maintenance replacement and three hours for repair replacement) and falls from 91.67% to 84.72% availability compared with immediate reserve activation.
 
 ### What this proves—and what it does not
 
@@ -74,7 +75,7 @@ The arithmetic demonstrates two independent reliability levers:
 - a reserve pool protects service against **idiosyncratic** maintenance and repair;
 - an independently available alternate layer protects against a **common-cause** event that grounds the whole HAPS fleet.
 
-Adding more HAPS alone cannot eliminate an event that disables every HAPS in the footprint. The fallback must actually be independent of the common cause and have enough capacity to meet the service threshold. The fixture's 95% satellite capacity and independence label are synthetic assumptions, not measured satellite availability or guaranteed weather independence.
+Adding more HAPS alone cannot eliminate an event that disables every HAPS in the footprint. The fallback must actually be independent of the common cause and have enough capacity to meet the service threshold. The fixture's 95% satellite capacity and independence label are synthetic assumptions, not measured satellite availability or guaranteed weather independence. The delayed-reserve case is a separate counterexample: the reserve inventory is unchanged, but deployment lead time creates five hours of partial service and reduces availability. This prevents the benchmark from equating 'spare aircraft exists' with 'spare capacity is immediately serviceable'.
 
 This is a deterministic 72-hour control fixture. It is not a statistical Semi-Markov result, a 30-day service trial, an empirically supported maintenance model or an achieved fleet-availability result.
 
