@@ -1,0 +1,56 @@
+name: Marine Temporal Mission Viability Audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/marine-temporal-viability/**"
+      - ".github/workflows/marine-temporal-viability.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marine-temporal-viability-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  temporal-viability-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/marine-temporal-viability/Cargo.toml -- --check
+
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/marine-temporal-viability/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run temporal integrity and adversarial negative controls
+        run: cargo test --manifest-path tools/marine-temporal-viability/Cargo.toml
+
+      - name: Validate schemas and fixture structure
+        run: |
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.mission_window.required == ["start","end","max_sample_gap_hours"] and .properties.policies.items.properties.paths.items.required == ["scenario_member_id","source_member_sha256","path_result_sha256","events","timepoints","segments"] and .properties.policies.items.properties.paths.items.properties.segments.minItems >= 2' tools/marine-temporal-viability/schema/marine-temporal-viability.schema.json
+          jq -e '.record_status == "synthetic" and .claim_ceiling == "trajectory_viability_audit_only" and (.policies | length == 3) and ([.policies[].paths[]] | length == 6) and all(.policies[].paths[]; (.timepoints | length == 3) and (.segments | length == 2))' tools/marine-temporal-viability/fixtures/synthetic-temporal-viability-good-0001.json
+          jq -e '.record_status == "synthetic" and (.policies[2].paths[0].timepoints[1].metrics[] | select(.metric == "freshwater_reserve_days") | .value) == 2 and (.policies[2].paths[0].timepoints[2].metrics[] | select(.metric == "freshwater_reserve_days") | .value) == 5 and ([.policies[2].paths[0].events[].event_type] | sort) == ["freshwater_consumption","freshwater_replenishment"]' tools/marine-temporal-viability/fixtures/synthetic-arrival-only-trap-0001.json
+
+      - name: Positive trajectory must remain synthetic-only
+        run: |
+          cargo run --quiet --manifest-path tools/marine-temporal-viability/Cargo.toml -- audit-trajectory tools/marine-temporal-viability/fixtures/synthetic-temporal-viability-good-0001.json > /tmp/temporal-good.json
+          jq -e '.disposition == "SYNTHETIC_ONLY" and .candidate_viable_across_all_scenarios == true and .arrival_only_false_feasible_path_count == 0 and .scenario_member_count == 2' /tmp/temporal-good.json
+
+      - name: Arrival-only trap must fail closed after later replenishment
+        run: |
+          set +e
+          cargo run --quiet --manifest-path tools/marine-temporal-viability/Cargo.toml -- audit-trajectory tools/marine-temporal-viability/fixtures/synthetic-arrival-only-trap-0001.json > /tmp/temporal-trap.json
+          status=$?
+          set -e
+          test "$status" -eq 2
+          jq -e '.disposition == "BLOCKED" and .candidate_viable_across_all_scenarios == false and .arrival_only_false_feasible_path_count == 1' /tmp/temporal-trap.json
