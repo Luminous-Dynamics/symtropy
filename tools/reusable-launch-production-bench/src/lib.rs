@@ -710,6 +710,16 @@ mod tests {
     }
 
     #[test]
+    fn failed_vehicle_is_not_counted_as_a_lost_stage() {
+        let mut data = fixture();
+        data.assets[2].events[5].to_state = AssetState::Failed;
+        let report = evaluate(&data).expect("failed-flight fixture should pass");
+        assert_eq!(report.metrics.failed_flights, 1);
+        assert_eq!(report.metrics.lost_stages, 0);
+        assert_eq!(report.metrics.costs.loss_scu, 0);
+    }
+
+    #[test]
     fn missing_station_capacity_is_rejected() {
         let mut data = fixture();
         data.station_capacities.pop();
