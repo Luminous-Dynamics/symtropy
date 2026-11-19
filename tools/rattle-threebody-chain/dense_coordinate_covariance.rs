@@ -819,7 +819,14 @@ mod tests {
                     dense_velocity_lambda,
                     residuals,
                 ) = dense_coordinate_rattle_step(
-                    &basis, &inverse, masses, lengths, &dense_q, &dense_v, dt,
+                    &basis,
+                    &inverse,
+                    masses,
+                    lengths,
+                    &dense_q,
+                    &dense_v,
+                    &[0.0; N],
+                    dt,
                 );
                 let (reference_q, reference_v) = flatten_state(&reference_step.after);
                 maximum_position_error =
