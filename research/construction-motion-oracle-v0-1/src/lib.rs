@@ -7,7 +7,8 @@
 pub mod field_layout_acceptance;
 pub mod ifc_ids_preflight;
 pub use ifc_ids_preflight::{
-    GeometryPreflightEvaluation, IfcIdsPreflightError, IfcIdsPreflightReport,
+    GeometryPreflightEvaluation, IfcCoordinateContext, IfcIdsPreflightError, IfcIdsPreflightReport,
+    IfcLengthUnit,
     IfcIdsWorkPackageInput, IfcSourceEntity, IdsRequirementEvaluation, SourceEntityBinding,
     preflight_ifc_ids_work_package,
 };
@@ -20,6 +21,7 @@ pub use field_layout_acceptance::{
 };
 pub use site_state_ledger::{
     RobotExecutionDisposition, SiteActorRole, SiteApplyOutcome, SiteEntityState, SiteEventEnvelope,
+    SiteLedgerTip,
     SiteActorRegistry, SiteEventPayload, SiteLedgerError, SiteRefereeAssessment,
     SiteRejectionReason, SiteStateLedger, SiteWorkPackage,
 };
