@@ -80,12 +80,12 @@
       "publisher": "ENTSO-E",
       "publicationDate": "2026-11-03",
       "status": "published",
-      "reportedScope": "Survey of 27 European TSOs, seven asset categories and 2026–2035 investment pipeline; includes supply-chain and skilled-workforce constraints.",
-      "benchmarkRole": "Operational context for long-lead equipment, supplier concentration, vessel/port constraints, workforce availability and manufacturing throughput.",
+      "reportedScope": "European TSO investment pipeline survey 2026–2035 plus a parallel skilled-workforce survey. Reports at least 36 months for 245–420 kV transformer procurement; PST customization lead times above four years; HVDC supplier bookings through 2030; 3–5+ year lead times across raw materials, factories, vessels, ports and installation crews; nine of twelve workforce survey submissions identify skilled workforce availability as a key challenge.",
+      "benchmarkRole": "Operational context for long-lead equipment, supplier concentration, manufacturing, port/vessel bottlenecks and specialist workforce capacity. Use only as a European survey profile; do not generalise to South Africa or treat as an algorithmic benchmark.",
       "importStatus": "document_registered_not_structured_dataset",
       "licenseStatus": "document_access_and_reuse_review_required",
       "primarySource": "https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Position%20papers%20and%20reports/2026/entso-e_report_investment_supply_chain_assessment_2026_261030.pdf",
-      "limitations": "European TSO survey context; should not be generalized as South African or global lead-time distributions. Industry survey is not an algorithmic solver benchmark."
+      "limitations": "Survey scope is participating European TSOs and a small parallel workforce survey (12 submissions). The aggregate constraints do not provide per-supplier lead-time distributions, factory capacity datasets, or South African procurement distributions. Do not fabricate probabilities from these values."
     }
   ]
 }
