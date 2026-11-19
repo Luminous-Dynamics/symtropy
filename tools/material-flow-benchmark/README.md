@@ -367,7 +367,7 @@ cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bi
   tools/material-flow-benchmark/fixtures/synthetic-two-region-shared-aircraft.json
 ```
 
-The v0.1 fixture has two regions, three periods, two scenarios, five observed-history decision nodes and 243 policies. A transfer consumes a complete decision period and is limited to exactly one period in v0.1; longer transfers are rejected until an explicit in-transit state with time-varying route evidence is implemented. Each weather and permission observation, and each reposition link, carries an evidence reference. Dispatch is never authorized and the binary emits no commands.
+The v0.1 fixture has two regions, three periods, two scenarios, five observed-history decision nodes and 243 policies. It solves three exact objectives over the same feasible policy set: minimum expected cost, minimum CVaR90 (mean of the worst 10% probability tail), and minimum worst-case cost. Every objective returns its own nonanticipative decision map; baselines report the same risk metrics. CVaR90 splits probability mass at the tail boundary rather than treating whole scenarios as equal. A transfer consumes a complete decision period and is limited to exactly one period in v0.1; longer transfers are rejected until an explicit in-transit state with time-varying route evidence is implemented. Each weather and permission observation, and each reposition link, carries an evidence reference. Dispatch is never authorized and the binary emits no commands.
 
 Detailed formulation, independent fixture replay, limits, target benchmarks and current literature comparators: [Shared aircraft repositioning v0.1](../../docs/research/MFB_SHARED_AIRCRAFT_REPOSITIONING_V0_1.md).
 
