@@ -60,18 +60,18 @@
       "limitations": "Paper is open access, but dataset license, exact downloadable files, model/tool versions and redistribution rights must be checked independently. It is a physical restoration comparator, not a direct RCPSP scheduling leaderboard."
     },
     {
-      "recordId": "ROLLING-HORIZON-DN-RESTORATION-2026",
+      "recordId": "ROLLING-HORIZON-DN-RESTORATION-2027",
       "title": "Resilience-oriented restoration of distribution networks under typhoon-induced uncertainties with rolling-horizon co-optimization",
       "category": "restoration_method_paper",
       "publisher": "Reliability Engineering & System Safety",
-      "publicationDate": "2026",
-      "status": "published",
-      "reportedScope": "Modified IEEE 33-node and 123-node feeders; rolling-horizon co-optimization with feedback-driven repair and operating actions; paper reports 23.7% and 15.1% restoration-time reductions against its selected baselines.",
-      "benchmarkRole": "Methodological comparator for decision-dependent uncertainty, feedback and rolling-horizon restoration. Reproduce the paper's exact feeder variants, objective, uncertainty, baselines and compute budget before comparative claims.",
+      "publicationDate": "2027-02",
+      "status": "forthcoming_issue_assignment_as_of_2026-11-19",
+      "reportedScope": "Publisher assigns the article to Reliability Engineering & System Safety, Volume 278 Part 2, February 2027. Its DOI is 10.1016/j.ress.2026.113531. The abstract reports results on modified IEEE 33-node and 123-node feeders and restoration-time reductions of 23.7% and 15.1% against its own best-performing benchmark.",
+      "benchmarkRole": "Forthcoming methodological comparator for decision-dependent uncertainty, feedback and rolling-horizon restoration. Use the published abstract for early planning only; reproduce the exact feeder variants, objective, uncertainty, baselines and compute budget after full method/data access.",
       "importStatus": "not_a_dataset",
       "licenseStatus": "documentation_only",
       "primarySource": "https://www.sciencedirect.com/science/article/pii/S0951832026013347",
-      "limitations": "Published performance figures are specific to the paper's test setup and selected baselines; they are not directly comparable to synthetic asset-repair cases or field restoration."
+      "limitations": "As of the 2026-11-19 snapshot, the publisher lists this article in Volume 278 Part 2, February 2027. Do not describe it as a formally published 2026 issue article. Its DOI year is 2026. The reported improvements are specific to the paper's test setup and selected baselines; they are not directly comparable to synthetic asset-repair cases or field restoration."
     },
     {
       "recordId": "ENTSOE-TRANSMISSION-SUPPLY-CHAIN-2026",
