@@ -122,6 +122,30 @@ Gross bus-return energy is not net battery-stored energy. Both are useful; they 
 - **M4:** multi-joint mission, concurrent motoring/braking and actual energy reuse.
 - **M5:** storage aging, resistor thermal cycling, cables/connectors, actuator replacement and requalification.
 
+
+## 7. Dependency-free analytic Rust reference
+
+The crate in this directory implements M1 accounting primitives in `src/lib.rs`:
+
+- Four-quadrant classification from the signs of motor torque and speed.
+- Signed trapezoidal integration of sampled port power into joules.
+- Ideal DC-link capacitor stored energy and signed energy change.
+- DC-bus threshold excursion counts without falsely inferring energy or dwell time.
+- Declared-control-volume energy-balance residual.
+- Fail-closed checks for non-finite values, negative capacitance/voltage, duplicate/non-monotonic timestamps and undersampled data.
+
+Twelve Rust tests provide known-answer and negative-control coverage. They are analytic software tests, not tests on energized hardware or a validated inverter/battery model.
+
+Run the package checks with Rust 1.96:
+
+```bash
+cargo fmt --manifest-path benchmarks/synthetic-joints/regenerative-power-flow/v0.1/Cargo.toml -- --check
+cargo test --manifest-path benchmarks/synthetic-joints/regenerative-power-flow/v0.1/Cargo.toml --locked
+cargo clippy --manifest-path benchmarks/synthetic-joints/regenerative-power-flow/v0.1/Cargo.toml --all-targets --locked -- -D warnings
+```
+
+The dedicated workflow is `.github/workflows/regenerative-power-flow-reference.yml`. The current environment does not include a Rust toolchain, so execution status is determined only by exact-head CI; no local test pass is claimed.
+
 ## 8. Prospective targets
 
 - Every result names the control volume and included/excluded energy ports.
