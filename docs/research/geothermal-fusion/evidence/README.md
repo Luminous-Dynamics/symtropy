@@ -29,7 +29,7 @@ Bind every geothermal / fusion / storage energy stream to exact raw source bytes
 ## Ownership
 
 - Symtropy's Rust contracts own arithmetic and carrier/service/source-allocation validation.
-- This evidence envelope owns the interchange shape and source artifact references; a future evidence adapter must recompute hashes over fetched bytes.
+- This evidence envelope owns the interchange shape and source artifact references; the runtime verifier in `research/geofusion-evidence-verifier/` recomputes SHA-256 over exact raw payload bytes and checks source/allocation joins.
 - Symtropy #1703 owns plasma solver-run capability/state receipts.
 - Symtropy #5400/#5333 own covariance and dependence; link their exact receipts instead of implementing another covariance engine.
 - Sol-Atlas owns resource and spatial evidence. Mycelix owns provenance and approvals. Symthaea consumes receipts read-only and must preserve stale / UNKNOWN / OOD states.
@@ -50,6 +50,9 @@ Those are runtime verifier / independent arithmetic duties. Do not treat `format
 - Both schema files and all three fixtures were fetched back from the exact branch and parsed as JSON.
 - The raw payload fixture is 523 bytes. SHA-256 was recomputed over the exact fetched payload bytes and matched the evidence envelope and allocation receipt: `0cdcab2b9625b3669918761b7a4da378e9d344321301f2dd0bb48feb67b788c8`.
 - Manually checked required time-window, artifact, uncertainty, lineage and claim-ceiling fields, plus source digest linkage and the 10 MWh allocation total.
-- A full Draft 2020-12 JSON Schema validator and a runtime receipt verifier have **not** yet been run or implemented. The schemas are v0.1 drafts and must receive validator-backed tests before production use.
+- The Rust runtime verifier now implements exact-byte hashing, source asset/boundary/interval/carrier/time joins, allocation identity checks and source-allocation arithmetic replay. It has 13 authored unit tests and a path-scoped Rust 1.96 CI workflow; these have not yet been executed in this environment. A full Draft 2020-12 JSON Schema validator has not yet been run. The schemas remain v0.1 drafts and must receive validator-backed tests before production use.
 
 A PASS in this fixture means only that the synthetic artifact can be bound to the declared bytes and arithmetic. No source values represent a real geothermal site or fusion plant.
+
+
+Runtime verifier: [research/geofusion-evidence-verifier/README.md](../../../../research/geofusion-evidence-verifier/README.md). It is a bounded source-interval verifier, not a full schema engine or batch registry.
