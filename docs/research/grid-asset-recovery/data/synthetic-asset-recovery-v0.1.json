@@ -99,6 +99,15 @@
           "startHour": 8,
           "endHour": 22
         }
+      ],
+      "calendarExceptions": [
+        {
+          "exceptionId": "SYNTHETIC-CRANE-CALIBRATION-01",
+          "startHour": 2500,
+          "endHour": 2524,
+          "exceptionType": "planned_maintenance",
+          "reason": "Synthetic integration fixture: one-day calibration closure placed beyond all current scenario schedules"
+        }
       ]
     },
     {
