@@ -121,3 +121,40 @@ Each mutation must fail or yield inconclusive.
 - 22 Rust tests are authored; none has been compiled or executed because this environment has no Rust toolchain.
 - The committed SymPy scripts have not yet been replayed from a clean checkout.
 - The fully nonlinear finite-alpha rotating EGB solver and interval/existence certificate are not implemented.
+
+
+## 9. Additional 2026 spectral comparator: arbitrary-spin EFT metrics
+
+Lam, Chung and Yunes, *Phys. Rev. D* 113, 024030 (15 January 2026), present a spectral/pseudospectral method for stationary, axisymmetric black-hole metrics in leading-coupling EFT extensions of GR. Their approach expands radial and polar deformations spectrally, solves algebraic systems at fixed spin, and fits the coefficients as functions of spin. The paper reports errors below machine precision for \(a\le0.9\) and \(\lesssim10^{-8}\) for \(a\le0.999\), and shows that slow-rotation approximations can break down around \(a\sim0.2\)–\(0.6\), depending on perturbative order and requested accuracy. This is a high-value methodological comparator, but it is **not a matched 5D pure EGB theory benchmark**: it treats 4D Kerr-based quadratic-gravity EFTs at leading order in couplings.
+
+Implications for our programme:
+- Do not let the \(O(a^2)\) or \(O(a^3)\) expansion become the production solution at moderate/high spin.
+- Measure the perturbative truncation error against a direct spectral/nonlinear solution as a function of \(\chi=a/r_H^2\), coupling \(\lambda=\alpha/r_H^2\), and requested observable tolerance.
+- Build an adaptive-order handoff: use the lowest perturbative order that meets a declared error budget; switch to direct spectral continuation when the next-order remainder fails the budget.
+- Use the overlap region to cross-check the direct solver against the perturbative series. Do not extrapolate the slow-spin series beyond a validated overlap.
+- For any-spin results, report separate field residuals and observable errors; an accurate fitted metric is not automatically a rigorous solution of the exact field equations.
+
+Akribeia remains the closer discovery-method comparator for nonlinear higher-curvature rotating branches, while the Lam–Chung–Yunes paper is the strongest comparator here for high-spin spectral representation and explicit slow-rotation breakdown analysis.
+
+## 10. Gauge and representation cross-checks
+
+The original 2010 EGB study reports that selected physical parameters were recalculated in two different gauges and agreed excellently. Reproduce this as a mandatory cross-gauge test, not just a code-implementation detail:
+- choose two independently derived radial gauge formulations;
+- transform the same physical solution between them;
+- compare invariant quantities \(E,J,T_H,A_H,S_{\rm Wald},r_e\);
+- compare field residuals after transforming each solution into the same invariant frame;
+- require agreement under radial remeshing and increased spectral order.
+
+This is especially important because the areal-base gauge \(g=r^2\) is only valid in its declared exterior region and should not be silently extrapolated through coordinate degeneracies.
+
+## 11. Adaptive spin-order / spectral handoff benchmark
+
+For \(\chi\) on a frozen grid from the slow-spin regime toward the branch endpoint:
+1. evaluate first- and second-order perturbative models;
+2. estimate the next omitted coefficient using an independently computed higher-order term or nonlinear overlap data;
+3. compare observable error and normalized equation residual against direct spectral refinement;
+4. determine the largest \(\chi\) at which each perturbative order satisfies each declared tolerance;
+5. switch to the direct solver before the perturbative truncation loses accuracy;
+6. near extremality, use a horizon-adapted coordinate and pseudo-arclength continuation; return unresolved at a singular gauge or failed regularity condition.
+
+The benchmark target is a calibrated *accuracy-versus-spin envelope* rather than a single claimed “valid up to spin X” threshold. The threshold depends on coupling, observable and tolerance.
