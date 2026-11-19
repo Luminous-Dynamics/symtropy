@@ -1,0 +1,255 @@
+{
+  "schema_version": "0.1.0",
+  "fixture_set_id": "IAPWS-IF97-OFFICIAL-COMPUTER-VERIFICATION-001",
+  "evidence_class": "standard_reference_known_answer",
+  "claim_ceiling": "reference_table_conformance_only",
+  "standard": {
+    "publisher": "International Association for the Properties of Water and Steam",
+    "formulation": "IAPWS Industrial Formulation 1997",
+    "release": "R7-97(2012)",
+    "official_release_url": "https://iapws.org/technical-guidance/release/IF97-Rev",
+    "pdf_url": "https://iapws.org/technical-guidance/release/IF97-Rev.download",
+    "pdf_internal_revision_note": "The downloadable release identifies the 2007 revision extending Region 5 to 50 MPa and notes subsequent editorial revisions through 2012; cite it as R7-97(2012).",
+    "license_note": "The release states that publication in whole or in part is permitted in all countries when attribution is given to IAPWS.",
+    "unit_system": "SI with pressure MPa, temperature K, specific volume m3/kg, specific energy kJ/kg, specific entropy and heat capacity kJ/(kg K), speed of sound m/s",
+    "validity_summary": {
+      "regions_1_to_4_temperature_k": [273.15, 1073.15],
+      "regions_1_to_4_pressure_mpa_max": 100.0,
+      "region_5_temperature_k": [1073.15, 2273.15],
+      "region_5_pressure_mpa_max": 50.0,
+      "critical_temperature_k": 647.096,
+      "critical_pressure_mpa": 22.064,
+      "saline_brine_supported": false
+    }
+  },
+  "transcription_policy": {
+    "source_tables": [
+      {"table": 5, "printed_page": 9, "region": 1, "pdf_page_index": 8},
+      {"table": 15, "printed_page": 17, "region": 2, "pdf_page_index": 16},
+      {"table": 33, "printed_page": 32, "region": 3, "pdf_page_index": 31},
+      {"table": 35, "printed_page": 34, "region": 4, "pdf_page_index": 33},
+      {"table": 42, "printed_page": 40, "region": 5, "pdf_page_index": 39}
+    ],
+    "rounding": "Values are transcribed exactly to the decimal precision printed in the official verification tables. A provider must be compared to the published rounded reference using a predeclared tolerance consistent with the printed precision and relevant IAPWS consistency requirements.",
+    "not_a_claim": "Passing these points is conformance to selected official IF97 verification points, not proof of complete region coverage, independent physical validation, brine validity, or geothermal well prediction."
+  },
+  "fixtures": [
+    {
+      "fixture_id": "IF97-R1-300K-3MPA",
+      "region": 1,
+      "input": {"temperature_k": 300.0, "pressure_mpa": 3.0},
+      "expected": {
+        "specific_volume_m3_kg": 0.00100215168,
+        "enthalpy_kj_kg": 115.331273,
+        "internal_energy_kj_kg": 112.324818,
+        "entropy_kj_kg_k": 0.392294792,
+        "cp_kj_kg_k": 4.17301218,
+        "speed_of_sound_m_s": 1507.73921
+      },
+      "source": {"table": 5, "printed_page": 9}
+    },
+    {
+      "fixture_id": "IF97-R1-300K-80MPA",
+      "region": 1,
+      "input": {"temperature_k": 300.0, "pressure_mpa": 80.0},
+      "expected": {
+        "specific_volume_m3_kg": 0.000971180894,
+        "enthalpy_kj_kg": 184.142828,
+        "internal_energy_kj_kg": 106.448356,
+        "entropy_kj_kg_k": 0.368563852,
+        "cp_kj_kg_k": 4.01008987,
+        "speed_of_sound_m_s": 1634.69054
+      },
+      "source": {"table": 5, "printed_page": 9}
+    },
+    {
+      "fixture_id": "IF97-R1-500K-3MPA",
+      "region": 1,
+      "input": {"temperature_k": 500.0, "pressure_mpa": 3.0},
+      "expected": {
+        "specific_volume_m3_kg": 0.00120241800,
+        "enthalpy_kj_kg": 975.542239,
+        "internal_energy_kj_kg": 971.934985,
+        "entropy_kj_kg_k": 2.58041912,
+        "cp_kj_kg_k": 4.65580682,
+        "speed_of_sound_m_s": 1240.71337
+      },
+      "source": {"table": 5, "printed_page": 9}
+    },
+    {
+      "fixture_id": "IF97-R2-300K-0P0035MPA",
+      "region": 2,
+      "input": {"temperature_k": 300.0, "pressure_mpa": 0.0035},
+      "expected": {
+        "specific_volume_m3_kg": 39.4913866,
+        "enthalpy_kj_kg": 2549.91145,
+        "internal_energy_kj_kg": 2411.69160,
+        "entropy_kj_kg_k": 8.52238967,
+        "cp_kj_kg_k": 1.91300162,
+        "speed_of_sound_m_s": 427.920172
+      },
+      "source": {"table": 15, "printed_page": 17}
+    },
+    {
+      "fixture_id": "IF97-R2-700K-0P0035MPA",
+      "region": 2,
+      "input": {"temperature_k": 700.0, "pressure_mpa": 0.0035},
+      "expected": {
+        "specific_volume_m3_kg": 92.3015898,
+        "enthalpy_kj_kg": 3335.68375,
+        "internal_energy_kj_kg": 3012.62819,
+        "entropy_kj_kg_k": 10.1749996,
+        "cp_kj_kg_k": 2.08141274,
+        "speed_of_sound_m_s": 644.289068
+      },
+      "source": {"table": 15, "printed_page": 17}
+    },
+    {
+      "fixture_id": "IF97-R2-700K-30MPA",
+      "region": 2,
+      "input": {"temperature_k": 700.0, "pressure_mpa": 30.0},
+      "expected": {
+        "specific_volume_m3_kg": 0.00542946619,
+        "enthalpy_kj_kg": 2631.49474,
+        "internal_energy_kj_kg": 2468.61076,
+        "entropy_kj_kg_k": 5.17540298,
+        "cp_kj_kg_k": 10.3505092,
+        "speed_of_sound_m_s": 480.386523
+      },
+      "source": {"table": 15, "printed_page": 17}
+    },
+    {
+      "fixture_id": "IF97-R3-650K-500KG_M3",
+      "region": 3,
+      "input": {"temperature_k": 650.0, "density_kg_m3": 500.0},
+      "expected": {
+        "pressure_mpa": 25.5837018,
+        "enthalpy_kj_kg": 1863.43019,
+        "internal_energy_kj_kg": 1812.26279,
+        "entropy_kj_kg_k": 4.05427273,
+        "cp_kj_kg_k": 13.8935717,
+        "speed_of_sound_m_s": 502.005554
+      },
+      "source": {"table": 33, "printed_page": 32}
+    },
+    {
+      "fixture_id": "IF97-R3-650K-200KG_M3",
+      "region": 3,
+      "input": {"temperature_k": 650.0, "density_kg_m3": 200.0},
+      "expected": {
+        "pressure_mpa": 22.2930643,
+        "enthalpy_kj_kg": 2375.12401,
+        "internal_energy_kj_kg": 2263.65868,
+        "entropy_kj_kg_k": 4.85438792,
+        "cp_kj_kg_k": 44.6579342,
+        "speed_of_sound_m_s": 383.444594
+      },
+      "source": {"table": 33, "printed_page": 32}
+    },
+    {
+      "fixture_id": "IF97-R3-750K-500KG_M3",
+      "region": 3,
+      "input": {"temperature_k": 750.0, "density_kg_m3": 500.0},
+      "expected": {
+        "pressure_mpa": 78.3095639,
+        "enthalpy_kj_kg": 2258.68845,
+        "internal_energy_kj_kg": 2102.06932,
+        "entropy_kj_kg_k": 4.46971906,
+        "cp_kj_kg_k": 6.34165359,
+        "speed_of_sound_m_s": 760.696041
+      },
+      "source": {"table": 33, "printed_page": 32}
+    },
+    {
+      "fixture_id": "IF97-R4-SAT-300K",
+      "region": 4,
+      "input": {"temperature_k": 300.0},
+      "expected": {"saturation_pressure_mpa": 0.00353658941},
+      "source": {"table": 35, "printed_page": 34}
+    },
+    {
+      "fixture_id": "IF97-R4-SAT-500K",
+      "region": 4,
+      "input": {"temperature_k": 500.0},
+      "expected": {"saturation_pressure_mpa": 2.63889776},
+      "source": {"table": 35, "printed_page": 34}
+    },
+    {
+      "fixture_id": "IF97-R4-SAT-600K",
+      "region": 4,
+      "input": {"temperature_k": 600.0},
+      "expected": {"saturation_pressure_mpa": 12.3443146},
+      "source": {"table": 35, "printed_page": 34}
+    },
+    {
+      "fixture_id": "IF97-R4-SAT-P-0P1MPA",
+      "region": 4,
+      "input": {"pressure_mpa": 0.1},
+      "expected": {"saturation_temperature_k": 372.755919},
+      "source": {"table": 36, "printed_page": 36}
+    },
+    {
+      "fixture_id": "IF97-R4-SAT-P-1MPA",
+      "region": 4,
+      "input": {"pressure_mpa": 1.0},
+      "expected": {"saturation_temperature_k": 453.035632},
+      "source": {"table": 36, "printed_page": 36}
+    },
+    {
+      "fixture_id": "IF97-R4-SAT-P-10MPA",
+      "region": 4,
+      "input": {"pressure_mpa": 10.0},
+      "expected": {"saturation_temperature_k": 584.149488},
+      "source": {"table": 36, "printed_page": 36}
+    },
+    {
+      "fixture_id": "IF97-B23-BOUNDARY-CHECK",
+      "region_boundary": "B23",
+      "input": {"temperature_k": 623.15},
+      "expected": {"pressure_mpa": 16.5291643},
+      "source": {"equation": 5, "printed_page": 5}
+    },
+    {
+      "fixture_id": "IF97-R5-1500K-0P5MPA",
+      "region": 5,
+      "input": {"temperature_k": 1500.0, "pressure_mpa": 0.5},
+      "expected": {
+        "specific_volume_m3_kg": 1.38455090,
+        "enthalpy_kj_kg": 5219.76855,
+        "internal_energy_kj_kg": 4527.49310,
+        "entropy_kj_kg_k": 9.65408875,
+        "cp_kj_kg_k": 2.61609445,
+        "speed_of_sound_m_s": 917.068690
+      },
+      "source": {"table": 42, "printed_page": 40}
+    },
+    {
+      "fixture_id": "IF97-R5-1500K-30MPA",
+      "region": 5,
+      "input": {"temperature_k": 1500.0, "pressure_mpa": 30.0},
+      "expected": {
+        "specific_volume_m3_kg": 0.0230761299,
+        "enthalpy_kj_kg": 5167.23514,
+        "internal_energy_kj_kg": 4474.95124,
+        "entropy_kj_kg_k": 7.72970133,
+        "cp_kj_kg_k": 2.72724317,
+        "speed_of_sound_m_s": 928.548002
+      },
+      "source": {"table": 42, "printed_page": 40}
+    },
+    {
+      "fixture_id": "IF97-R5-2000K-30MPA",
+      "region": 5,
+      "input": {"temperature_k": 2000.0, "pressure_mpa": 30.0},
+      "expected": {
+        "specific_volume_m3_kg": 0.0311385219,
+        "enthalpy_kj_kg": 6577.22064,
+        "internal_energy_kj_kg": 5630.70838,
+        "entropy_kj_kg_k": 8.53640523,
+        "cp_kj_kg_k": 2.88569882,
+        "speed_of_sound_m_s": 1067.36948
+      },
+      "source": {"table": 42, "printed_page": 40}
+    }
+  ]
+}
