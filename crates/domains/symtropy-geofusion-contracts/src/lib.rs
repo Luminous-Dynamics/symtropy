@@ -43,6 +43,7 @@ pub enum ServiceKind {
     FacilityHeat,
     GridExport,
     ThermalStorageCharge,
+    PowerCycleThermalInput,
     AbsorptionChillerDriveHeat,
     ThermalDesalinationHeat,
     ReverseOsmosisElectricalLoad,
@@ -231,6 +232,7 @@ impl EnergyStream {
             ServiceKind::IndustrialProcessHeat
             | ServiceKind::FacilityHeat
             | ServiceKind::ThermalStorageCharge
+            | ServiceKind::PowerCycleThermalInput
             | ServiceKind::AbsorptionChillerDriveHeat
             | ServiceKind::ThermalDesalinationHeat => {
                 if self.carrier != EnergyCarrier::Heat {
@@ -500,6 +502,7 @@ impl SourceAllocationLedger {
                 ServiceKind::IndustrialProcessHeat
                     | ServiceKind::FacilityHeat
                     | ServiceKind::ThermalStorageCharge
+                    | ServiceKind::PowerCycleThermalInput
                     | ServiceKind::AbsorptionChillerDriveHeat
                     | ServiceKind::ThermalDesalinationHeat
             );
@@ -635,10 +638,13 @@ mod tests {
 
     #[test]
     fn source_energy_can_be_split_across_heat_services_without_double_counting() {
+        let mut power_cycle_allocation =
+            heat_allocation("power-cycle-edge", "orc-evaporator", 3.0);
+        power_cycle_allocation.service = ServiceKind::PowerCycleThermalInput;
         let ledger = allocation_ledger(
             vec![
                 heat_allocation("direct-heat-edge", "process-plant", 6.0),
-                heat_allocation("power-cycle-edge", "orc-evaporator", 3.0),
+                power_cycle_allocation,
             ],
             1.0,
         );
