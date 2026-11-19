@@ -382,16 +382,14 @@ fn build_trajectory(
         )));
     }
 
-    let mut seen = BTreeSet::new();
-    let mut pcc = contract.base_pcc_net_import_kw.clone();
-    let mut feeders: BTreeMap<String, Vec<f64>> = contract
-        .feeders
-        .iter()
-        .map(|feeder| (feeder.feeder_id.clone(), feeder.base_net_import_kw.clone()))
-        .collect();
-
+    // Canonicalize schedule identity before floating-point accumulation.
+    // A caller's placement vector order must not change the resulting receipt.
+    let mut starts_by_job = BTreeMap::<String, usize>::new();
     for placement in placements {
-        if !seen.insert(placement.job_id.clone()) {
+        if starts_by_job
+            .insert(placement.job_id.clone(), placement.start_slot)
+            .is_some()
+        {
             return Err(VerificationError::InvalidSchedule(format!(
                 "job {} appears more than once",
                 placement.job_id
@@ -421,7 +419,34 @@ fn build_trajectory(
                 job.deadline_exclusive
             )));
         }
+    }
 
+    if starts_by_job.len() != jobs.len() {
+        let missing: Vec<_> = jobs
+            .keys()
+            .filter(|job_id| !starts_by_job.contains_key(*job_id))
+            .cloned()
+            .collect();
+        return Err(VerificationError::InvalidSchedule(format!(
+            "missing workload placements: {missing:?}"
+        )));
+    }
+
+    let mut pcc = contract.base_pcc_net_import_kw.clone();
+    let mut feeders: BTreeMap<String, Vec<f64>> = contract
+        .feeders
+        .iter()
+        .map(|feeder| (feeder.feeder_id.clone(), feeder.base_net_import_kw.clone()))
+        .collect();
+
+    // BTreeMap iteration fixes the summation order by job ID.
+    for (job_id, job) in jobs {
+        let start_slot = *starts_by_job.get(job_id).ok_or_else(|| {
+            VerificationError::InvalidSchedule(format!("missing workload {job_id}"))
+        })?;
+        let end_slot = start_slot
+            .checked_add(job.duration_slots)
+            .ok_or(VerificationError::NumericalOverflow("job end slot"))?;
         let feeder_profile = feeders.get_mut(&job.feeder_id).ok_or_else(|| {
             VerificationError::UnknownFeeder {
                 job_id: job.job_id.clone(),
@@ -429,22 +454,11 @@ fn build_trajectory(
             }
         })?;
 
-        for slot in placement.start_slot..end_slot {
+        for slot in start_slot..end_slot {
             pcc[slot] = add_finite(pcc[slot], job.power_kw, "PCC trajectory")?;
             feeder_profile[slot] =
                 add_finite(feeder_profile[slot], job.power_kw, "feeder trajectory")?;
         }
-    }
-
-    if seen.len() != jobs.len() {
-        let missing: Vec<_> = jobs
-            .keys()
-            .filter(|job_id| !seen.contains(*job_id))
-            .cloned()
-            .collect();
-        return Err(VerificationError::InvalidSchedule(format!(
-            "missing workload placements: {missing:?}"
-        )));
     }
 
     Ok(Trajectory { pcc, feeders })
@@ -813,6 +827,26 @@ mod tests {
             verify_admission(&contract, &jobs, &baseline, &duplicate),
             Err(VerificationError::InvalidSchedule(_))
         ));
+    }
+
+    #[test]
+    fn placement_input_order_does_not_change_trajectory() {
+        let (contract, mut jobs, baseline) = fixture();
+        jobs[0].power_kw = 0.1;
+        jobs[1].power_kw = 0.2;
+        jobs[2].power_kw = 0.3;
+        jobs[3].power_kw = 0.4;
+        let mut candidate = placements([0, 0, 0, 0]);
+        let forward = verify_admission(&contract, &jobs, &baseline, &candidate)
+            .expect("forward order is valid");
+        candidate.reverse();
+        let reverse = verify_admission(&contract, &jobs, &baseline, &candidate)
+            .expect("reverse order is valid");
+        assert_eq!(
+            forward.candidate_pcc_net_import_kw,
+            reverse.candidate_pcc_net_import_kw
+        );
+        assert_eq!(forward.violations, reverse.violations);
     }
 
     #[test]
