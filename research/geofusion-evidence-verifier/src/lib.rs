@@ -650,19 +650,19 @@ pub fn verify_source_interval_batch(
         )?;
 
         let source_key = (
-            report.source_asset_id.as_str(),
-            report.source_boundary_id.as_str(),
-            report.carrier.as_str(),
-            report.source_interval_start_utc.as_str(),
+            report.source_asset_id.clone(),
+            report.source_boundary_id.clone(),
+            report.carrier.clone(),
+            report.source_interval_start_utc.clone(),
             report.source_interval_duration_ns,
         );
         if !source_intervals.insert(source_key) {
             return Err(VerificationError::DuplicateSourceInterval);
         }
-        if !evidence_ids.insert(report.evidence_id.as_str()) {
+        if !evidence_ids.insert(report.evidence_id.clone()) {
             return Err(VerificationError::DuplicateEvidenceId);
         }
-        if !receipt_ids.insert(report.allocation_receipt_id.as_str()) {
+        if !receipt_ids.insert(report.allocation_receipt_id.clone()) {
             return Err(VerificationError::DuplicateAllocationReceiptId);
         }
         reports.push(report);
