@@ -29,7 +29,7 @@ use crate::robust_capacity_profile::{
     RobustCumulativeCapacityReport, evaluate_robust_cumulative_resource_capacity,
 };
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SiteActorRole {
     DesignAuthority,
     Surveyor,
@@ -2594,24 +2594,10 @@ mod tests {
     #[test]
     fn adverse_capacity_snapshot_is_recorded_without_auto_releasing_existing_claims() {
         let mut ledger = setup_capacity_ledger();
-        ledger
-            .apply(capacity_reservation_event(
-                &ledger,
-                "capacity-res-1",
-                1,
-                20,
-                50,
-            ))
-            .unwrap();
-        ledger
-            .apply(capacity_reservation_event(
-                &ledger,
-                "capacity-res-2",
-                1,
-                20,
-                50,
-            ))
-            .unwrap();
+        let first = capacity_reservation_event(&ledger, "capacity-res-1", 1, 20, 50);
+        ledger.apply(first).unwrap();
+        let second = capacity_reservation_event(&ledger, "capacity-res-2", 1, 20, 50);
+        ledger.apply(second).unwrap();
 
         // The owner reports a capacity reduction below existing active load.
         // This adverse fact must be appended; rejecting it would hide the
@@ -2760,7 +2746,11 @@ mod tests {
             Err(SiteLedgerError::CapacityResourceCatalogWouldOrphanReservation(_))
         ));
         assert_eq!(ledger.active_capacity_reservation_count(), 1);
-        assert_eq!(ledger.capacity_resource_catalog_sha256(), Some(digest('2').as_str()));
+        let expected_catalog = digest('2');
+        assert_eq!(
+            ledger.capacity_resource_catalog_sha256(),
+            Some(expected_catalog.as_str())
+        );
     }
 
     #[test]
