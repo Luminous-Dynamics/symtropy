@@ -12,7 +12,7 @@ A second asset contributes five days of operating exposure with no failure obser
 
 The return-to-service boundary is deliberately stricter than a boolean status. A valid release requires an external authority record that is bound consistently in three places: the ledger boundary, a `return_to_service_authorized` event, and the exact asset/configuration active at that event sequence. The event must also include a source evidence item of kind `release_authority_record` with the same authority reference. A release for an earlier configuration does not authorize a later configuration.
 
-Four new negative/positive controls exercise this rule: exact scoped authorization passes; a mismatched authority reference, mismatched asset/configuration, or non-authority evidence kind fails closed. The synthetic example remains unreleased and ends in `awaiting_authorized_release`.
+Four new negative/positive controls exercise this rule: exact scoped authorization passes; a mismatched authority reference, mismatched asset/configuration, or non-authority evidence kind fails closed. The synthetic example remains unreleased and ends in `awaiting_authorized_release`. The active-configuration guard also means that a later `configuration_changed` event makes an earlier release receipt stale; a new configuration must complete its own verification and receive its own exact external release.
 
 The Rust validator checks:
 - event sequence and previous-event linkage;
