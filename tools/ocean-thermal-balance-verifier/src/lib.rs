@@ -55,6 +55,19 @@ pub struct CoolingCase {
     pub pump_heat_fraction_to_seawater: f64,
     /// Other declared heat entering the seawater boundary (W); no default is inferred.
     pub other_heat_to_seawater_w: f64,
+    /// IT-loop heat diverted to a qualified external heat-recovery path (W).
+    /// This is a direct heat-exchanger path, not a heat pump or ORC.
+    pub recovered_heat_source_w: f64,
+    /// Useful heat actually delivered at the named sink boundary (W).
+    pub useful_heat_delivered_w: f64,
+    /// Recovery-path loss entering the seawater rejection boundary (W).
+    pub recovery_loss_to_seawater_w: f64,
+    /// Recovery-path loss entering an explicitly separate ambient boundary (W).
+    pub recovery_loss_to_ambient_w: f64,
+    /// Required when recovered_heat_source_w is positive.
+    pub heat_sink_id: Option<String>,
+    /// Required when recovered_heat_source_w is positive; caller-supplied meter/evidence reference.
+    pub heat_delivery_observation_id: Option<String>,
     pub seawater_mass_flow_kg_per_s: f64,
     pub seawater_specific_heat_j_per_kg_k: f64,
     pub seawater_intake_temperature_c: f64,
@@ -68,6 +81,7 @@ pub struct CoolingCase {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CoolingViolationCode {
     ItHeatBalance,
+    RecoveryHeatBalance,
     SeawaterHeatBalance,
     MaximumDischargeTemperature,
     MaximumTemperatureRise,
@@ -77,6 +91,7 @@ impl fmt::Display for CoolingViolationCode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::ItHeatBalance => write!(f, "IT_HEAT_BALANCE"),
+            Self::RecoveryHeatBalance => write!(f, "RECOVERY_HEAT_BALANCE"),
             Self::SeawaterHeatBalance => write!(f, "SEAWATER_HEAT_BALANCE"),
             Self::MaximumDischargeTemperature => write!(f, "MAX_DISCHARGE_TEMPERATURE"),
             Self::MaximumTemperatureRise => write!(f, "MAX_TEMPERATURE_RISE"),
@@ -100,7 +115,18 @@ pub struct CoolingBalanceReport {
     pub mode: CoolingMode,
     pub passed: bool,
     pub it_heat_balance_residual_w: f64,
+    pub recovery_heat_balance_residual_w: f64,
     pub seawater_heat_balance_residual_w: f64,
+    pub recovered_heat_source_w: f64,
+    pub useful_heat_delivered_w: f64,
+    pub recovery_loss_to_seawater_w: f64,
+    pub recovery_loss_to_ambient_w: f64,
+    pub heat_sink_id: Option<String>,
+    pub heat_delivery_observation_id: Option<String>,
+    pub recovered_heat_source_energy_kwh: f64,
+    pub useful_heat_delivered_energy_kwh: f64,
+    pub recovery_loss_to_seawater_energy_kwh: f64,
+    pub recovery_loss_to_ambient_energy_kwh: f64,
     pub it_heat_energy_kwh: f64,
     pub cooling_electric_energy_kwh: f64,
     pub seawater_heat_rejected_energy_kwh: f64,
@@ -117,6 +143,7 @@ pub enum VerificationError {
     MissingIdentity(&'static str),
     InvalidQuantity { field: &'static str, value: f64 },
     InvalidCoolingMode { mode: CoolingMode, reason: &'static str },
+    InvalidRecovery { reason: &'static str },
     NumericalOverflow(&'static str),
 }
 
@@ -129,6 +156,9 @@ impl fmt::Display for VerificationError {
             }
             Self::InvalidCoolingMode { mode, reason } => {
                 write!(f, "cooling mode {mode:?} is inconsistent: {reason}")
+            }
+            Self::InvalidRecovery { reason } => {
+                write!(f, "heat recovery is inconsistent: {reason}")
             }
             Self::NumericalOverflow(operation) => {
                 write!(f, "non-finite arithmetic during {operation}")
@@ -192,6 +222,10 @@ fn validate(case: &CoolingCase) -> Result<(), VerificationError> {
         ("water-pump electric input W", case.water_pump_electric_input_w),
         ("other cooling auxiliary electric input W", case.other_cooling_auxiliary_electric_input_w),
         ("other heat to seawater W", case.other_heat_to_seawater_w),
+        ("recovered heat source W", case.recovered_heat_source_w),
+        ("useful heat delivered W", case.useful_heat_delivered_w),
+        ("recovery loss to seawater W", case.recovery_loss_to_seawater_w),
+        ("recovery loss to ambient W", case.recovery_loss_to_ambient_w),
         ("heat balance tolerance W", case.heat_balance_tolerance_w),
         ("temperature tolerance C", case.site_limits.temperature_tolerance_c),
     ] {
@@ -278,17 +312,42 @@ fn validate(case: &CoolingCase) -> Result<(), VerificationError> {
         });
     }
 
+    if case.recovered_heat_source_w > 0.0 {
+        require_positive("recovered heat source W", case.recovered_heat_source_w)?;
+        require_positive("useful heat delivered W", case.useful_heat_delivered_w)?;
+        require_id(
+            "heat sink ID",
+            case.heat_sink_id.as_deref().unwrap_or(""),
+        )?;
+        require_id(
+            "heat delivery observation ID",
+            case.heat_delivery_observation_id.as_deref().unwrap_or(""),
+        )?;
+    } else if case.useful_heat_delivered_w > 0.0
+        || case.recovery_loss_to_seawater_w > 0.0
+        || case.recovery_loss_to_ambient_w > 0.0
+        || case.heat_sink_id.is_some()
+        || case.heat_delivery_observation_id.is_some()
+    {
+        return Err(VerificationError::InvalidRecovery {
+            reason: "recovery outputs or sink evidence are present without a positive recovered heat source",
+        });
+    }
+
     Ok(())
 }
 
 /// Verify one steady-state interval against a declared cooling boundary.
 ///
 /// IT-side balance:
-/// IT heat load = direct heat transfer + chiller evaporator heat.
+/// IT heat load = direct heat transfer + chiller evaporator heat + recovered heat source.
+///
+/// Recovery-side balance:
+/// recovered source heat = useful sink heat + losses to seawater + losses to ambient.
 ///
 /// Seawater-side balance:
-/// m_dot * cp * (T_out - T_in) = direct heat + chiller evaporator heat
-/// + chiller electric input + declared pump heat fraction + other heat.
+/// m_dot * cp * (T_out - T_in) = direct heat + recovery loss to seawater
+/// + chiller evaporator heat + chiller electric input + pump heat + other heat.
 ///
 /// This assumes no thermal storage change within the interval, no unlisted
 /// heat path, and that all supplied measurements refer to compatible
@@ -300,12 +359,24 @@ pub fn verify_cooling_balance(
     validate(case)?;
 
     let it_removed_w = finite(
-        case.direct_heat_to_seawater_w + case.chiller_evaporator_heat_w,
-        "IT heat removal sum",
+        case.direct_heat_to_seawater_w
+            + case.chiller_evaporator_heat_w
+            + case.recovered_heat_source_w,
+        "IT heat removal and recovery sum",
     )?;
     let it_heat_balance_residual_w = finite(
         it_removed_w - case.it_heat_load_w,
         "IT heat balance residual",
+    )?;
+    let recovery_accounted_w = finite(
+        case.useful_heat_delivered_w
+            + case.recovery_loss_to_seawater_w
+            + case.recovery_loss_to_ambient_w,
+        "recovery heat accounting sum",
+    )?;
+    let recovery_heat_balance_residual_w = finite(
+        case.recovered_heat_source_w - recovery_accounted_w,
+        "recovery heat balance residual",
     )?;
 
     let pump_heat_to_seawater_w = finite(
@@ -314,6 +385,7 @@ pub fn verify_cooling_balance(
     )?;
     let expected_seawater_heat_rejection_w = finite(
         case.direct_heat_to_seawater_w
+            + case.recovery_loss_to_seawater_w
             + case.chiller_evaporator_heat_w
             + case.chiller_electric_input_w
             + pump_heat_to_seawater_w
@@ -342,6 +414,14 @@ pub fn verify_cooling_balance(
             code: CoolingViolationCode::ItHeatBalance,
             observed: it_removed_w,
             allowed: case.it_heat_load_w,
+            unit: "W",
+        });
+    }
+    if recovery_heat_balance_residual_w.abs() > case.heat_balance_tolerance_w {
+        violations.push(CoolingViolation {
+            code: CoolingViolationCode::RecoveryHeatBalance,
+            observed: case.recovered_heat_source_w,
+            allowed: recovery_accounted_w,
             unit: "W",
         });
     }
@@ -377,6 +457,22 @@ pub fn verify_cooling_balance(
     }
 
     let interval_hours = case.interval_duration_seconds / 3600.0;
+    let recovered_heat_source_energy_kwh = finite(
+        case.recovered_heat_source_w * interval_hours / 1000.0,
+        "recovered heat source energy",
+    )?;
+    let useful_heat_delivered_energy_kwh = finite(
+        case.useful_heat_delivered_w * interval_hours / 1000.0,
+        "useful heat delivered energy",
+    )?;
+    let recovery_loss_to_seawater_energy_kwh = finite(
+        case.recovery_loss_to_seawater_w * interval_hours / 1000.0,
+        "recovery loss to seawater energy",
+    )?;
+    let recovery_loss_to_ambient_energy_kwh = finite(
+        case.recovery_loss_to_ambient_w * interval_hours / 1000.0,
+        "recovery loss to ambient energy",
+    )?;
     let it_heat_energy_kwh =
         finite(case.it_heat_load_w * interval_hours / 1000.0, "IT heat energy")?;
     let cooling_electric_energy_kwh = finite(
@@ -407,7 +503,18 @@ pub fn verify_cooling_balance(
         mode: case.mode,
         passed: violations.is_empty(),
         it_heat_balance_residual_w,
+        recovery_heat_balance_residual_w,
         seawater_heat_balance_residual_w,
+        recovered_heat_source_w: case.recovered_heat_source_w,
+        useful_heat_delivered_w: case.useful_heat_delivered_w,
+        recovery_loss_to_seawater_w: case.recovery_loss_to_seawater_w,
+        recovery_loss_to_ambient_w: case.recovery_loss_to_ambient_w,
+        heat_sink_id: case.heat_sink_id.clone(),
+        heat_delivery_observation_id: case.heat_delivery_observation_id.clone(),
+        recovered_heat_source_energy_kwh,
+        useful_heat_delivered_energy_kwh,
+        recovery_loss_to_seawater_energy_kwh,
+        recovery_loss_to_ambient_energy_kwh,
         it_heat_energy_kwh,
         cooling_electric_energy_kwh,
         seawater_heat_rejected_energy_kwh,
@@ -451,6 +558,12 @@ mod tests {
             chiller_electric_input_w: chiller_power,
             water_pump_electric_input_w: pump,
             other_cooling_auxiliary_electric_input_w: 0.0,
+            recovered_heat_source_w: 0.0,
+            useful_heat_delivered_w: 0.0,
+            recovery_loss_to_seawater_w: 0.0,
+            recovery_loss_to_ambient_w: 0.0,
+            heat_sink_id: None,
+            heat_delivery_observation_id: None,
             pump_heat_fraction_to_seawater: pump_fraction,
             other_heat_to_seawater_w: other,
             seawater_mass_flow_kg_per_s: flow,
@@ -610,6 +723,93 @@ mod tests {
             verify_cooling_balance(&case),
             Err(VerificationError::InvalidQuantity { .. })
         ));
+    }
+
+    fn heat_recovery_case() -> CoolingCase {
+        let mut case = balanced_case(CoolingMode::DirectSeawater);
+        case.case_id = "synthetic-compute-ro-feed-preheat".to_owned();
+        case.configuration_id = "synthetic-heat-recovery-v0".to_owned();
+        case.it_heat_load_w = 10_000_000.0;
+        case.direct_heat_to_seawater_w = 2_162_500.0;
+        case.chiller_evaporator_heat_w = 0.0;
+        case.chiller_electric_input_w = 0.0;
+        case.water_pump_electric_input_w = 0.0;
+        case.other_cooling_auxiliary_electric_input_w = 0.0;
+        case.pump_heat_fraction_to_seawater = 0.0;
+        case.other_heat_to_seawater_w = 0.0;
+        case.recovered_heat_source_w = 7_837_500.0;
+        case.useful_heat_delivered_w = 6_270_000.0;
+        case.recovery_loss_to_seawater_w = 1_567_500.0;
+        case.recovery_loss_to_ambient_w = 0.0;
+        case.heat_sink_id = Some("synthetic-ro-feed-sink".to_owned());
+        case.heat_delivery_observation_id = Some("synthetic-ro-feed-heat-meter".to_owned());
+        case.seawater_mass_flow_kg_per_s = 500.0;
+        case.seawater_specific_heat_j_per_kg_k = 4180.0;
+        case.seawater_intake_temperature_c = 20.0;
+        case.seawater_discharge_temperature_c =
+            20.0 + 3_730_000.0 / (500.0 * 4180.0);
+        case.interval_duration_seconds = 900.0;
+        case
+    }
+
+    #[test]
+    fn recovered_heat_is_separated_from_seawater_rejection() {
+        let report = verify_cooling_balance(&heat_recovery_case()).unwrap();
+        assert!(report.passed, "{:?}", report.violations);
+        assert_eq!(report.it_heat_balance_residual_w, 0.0);
+        assert_eq!(report.recovery_heat_balance_residual_w, 0.0);
+        assert!(report.seawater_heat_balance_residual_w.abs() < 1e-6);
+        assert_eq!(report.useful_heat_delivered_w, 6_270_000.0);
+        assert_eq!(report.expected_seawater_heat_rejection_w, 3_730_000.0);
+        assert_eq!(report.heat_sink_id.as_deref(), Some("synthetic-ro-feed-sink"));
+        assert!((report.useful_heat_delivered_energy_kwh - 1_567.5).abs() < 1e-9);
+    }
+
+    #[test]
+    fn recovery_path_must_balance_useful_heat_and_losses() {
+        let mut case = heat_recovery_case();
+        case.recovery_loss_to_seawater_w = 1_500_000.0;
+        let report = verify_cooling_balance(&case).unwrap();
+        assert!(!report.passed);
+        assert!(report.violations.iter().any(|v| {
+            v.code == CoolingViolationCode::RecoveryHeatBalance
+        }));
+    }
+
+    #[test]
+    fn recovered_heat_requires_a_named_sink_and_delivery_observation() {
+        let mut case = heat_recovery_case();
+        case.heat_delivery_observation_id = None;
+        assert!(matches!(
+            verify_cooling_balance(&case),
+            Err(VerificationError::MissingIdentity("heat delivery observation ID"))
+        ));
+    }
+
+    #[test]
+    fn recovery_outputs_without_a_source_are_invalid() {
+        let mut case = balanced_case(CoolingMode::DirectSeawater);
+        case.useful_heat_delivered_w = 1_000.0;
+        assert!(matches!(
+            verify_cooling_balance(&case),
+            Err(VerificationError::InvalidRecovery { .. })
+        ));
+    }
+
+    #[test]
+    fn recovered_heat_loss_to_seawater_is_included_exactly_once() {
+        let mut case = heat_recovery_case();
+        case.recovery_loss_to_seawater_w = 0.0;
+        case.seawater_discharge_temperature_c =
+            20.0 + 2_162_500.0 / (500.0 * 4180.0);
+        let report = verify_cooling_balance(&case).unwrap();
+        assert!(!report.passed);
+        assert!(report.violations.iter().any(|v| {
+            v.code == CoolingViolationCode::RecoveryHeatBalance
+        }));
+        assert!(report.violations.iter().any(|v| {
+            v.code == CoolingViolationCode::SeawaterHeatBalance
+        }));
     }
 
     #[test]
