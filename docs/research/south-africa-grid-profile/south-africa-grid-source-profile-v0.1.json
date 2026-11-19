@@ -1,0 +1,205 @@
+{
+  "schemaVersion": "0.1.0",
+  "profileId": "south-africa-grid-restoration-source-profile-001",
+  "asOfDate": "2026-11-19",
+  "jurisdiction": {
+    "country": "South Africa",
+    "systemScope": "national interconnected power system",
+    "localityScope": "not yet populated with municipality or feeder-level data"
+  },
+  "scopeSeparation": [
+    "generation_adequacy",
+    "transmission_network_and_projects",
+    "distribution_and_municipal_reliability",
+    "household_organization_town_city_service"
+  ],
+  "sources": [
+    {
+      "sourceId": "ntcsa-mtsao-2027-2036-refined-draft",
+      "publisher": "National Transmission Company South Africa / Eskom System Operator",
+      "title": "Medium-Term System Adequacy Outlook 2027–2036 (Refined Draft)",
+      "publicationDate": "2026-10-30",
+      "reportingPeriod": "Study horizon 2027–2036; information base stated as September 2026 unless otherwise noted",
+      "sourceUrl": "https://www.ntcsa.co.za/wp-content/uploads/2026/10/Medium-Term-System-Adequacy-Outlook-2027-2036.pdf",
+      "sourceClass": "system_operator_assessment",
+      "sourceStatus": "reference_only_unfrozen",
+      "sourceSha256": null,
+      "hashStatus": "not_frozen",
+      "scope": "Hourly chronological network-constrained production-cost adequacy assessment with regional nodes/transmission corridors and 200 Monte Carlo samples per study year",
+      "claimCeiling": "Refined draft and conditional model outcomes, not a firm forecast, investment recommendation, operational plan, municipal feeder reliability dataset or delivery commitment"
+    },
+    {
+      "sourceId": "ntcsa-tdp-2025-2034-public-report",
+      "publisher": "National Transmission Company South Africa",
+      "title": "Transmission Development Plan 2025–2034 Public Report",
+      "publicationDate": null,
+      "reportingPeriod": "2025–2034 planning horizon",
+      "sourceUrl": "https://www.ntcsa.co.za/tdp/transmission-development-plan-2025-2034-public-report/",
+      "sourceClass": "transmission_plan",
+      "sourceStatus": "reference_only_unfrozen",
+      "sourceSha256": null,
+      "hashStatus": "not_frozen",
+      "scope": "Public transmission development plan and project/corridor planning context",
+      "claimCeiling": "Planned projects and kilometres are not commissioned capacity, approved workfronts or available transfer capability"
+    },
+    {
+      "sourceId": "eskom-eaf-fytd-2026-11-13",
+      "publisher": "Eskom",
+      "title": "Eskom continues to deliver sustained gains as EAF reaches 68.2% and 1.6 million customers exit load reduction",
+      "publicationDate": "2026-11-13",
+      "reportingPeriod": "FYTD 1 April–12 November 2026",
+      "sourceUrl": "https://www.eskom.co.za/eskom-continues-to-deliver-sustained-gains-as-eaf-reaches-68-2-and-1-6-million-customers-exit-load-reduction/",
+      "sourceClass": "operator_report",
+      "sourceStatus": "reference_only_unfrozen",
+      "sourceSha256": null,
+      "hashStatus": "not_frozen",
+      "scope": "Operator-reported generation fleet availability and load-reduction programme context",
+      "claimCeiling": "National generation fleet indicator only; not local outage frequency, feeder availability, customer minutes lost, municipal service quality or independently audited measurement"
+    },
+    {
+      "sourceId": "gov-itp-phase-one-2026-10-01",
+      "publisher": "Department of Electricity and Energy / National Treasury, Government of South Africa",
+      "title": "Government reaffirms commitment to landmark Independent Transmission Projects",
+      "publicationDate": "2026-10-01",
+      "reportingPeriod": "Independent Transmission Projects Programme Phase I",
+      "sourceUrl": "https://www.gov.za/news/media-statements/government-reaffirms-commitment-landmark-independent-transmission-projects",
+      "sourceClass": "government_programme_statement",
+      "sourceStatus": "reference_only_unfrozen",
+      "sourceSha256": null,
+      "hashStatus": "not_frozen",
+      "scope": "Government-announced programme scope of approximately 1,164 km of new transmission infrastructure",
+      "claimCeiling": "Programme scope is not proof of construction, commissioning, transfer capacity, private financing close or operational readiness"
+    }
+  ],
+  "reportedFindings": [
+    {
+      "findingId": "mtsao-reference-case-ue-2027-2028",
+      "sourceId": "ntcsa-mtsao-2027-2036-refined-draft",
+      "metric": "annual unserved energy exceeds the 20 GWh assessment criterion in Reference Case",
+      "valueStatus": "exceeds_threshold",
+      "value": "above threshold in 2027 and 2028",
+      "unit": "GWh per year",
+      "threshold": 20,
+      "period": "2027–2028",
+      "geographicLevel": "regional_transmission",
+      "scenario": "Reference Case",
+      "evidenceClass": "system_operator_modelled",
+      "interpretationLimit": "The report attributes the main shortfall driver to a local transmission constraint at one substation; this is not a distribution feeder/customer outage measure"
+    },
+    {
+      "findingId": "mtsao-reference-case-transformer-relief-2029",
+      "sourceId": "ntcsa-mtsao-2027-2036-refined-draft",
+      "metric": "fourth 315 MVA transformer assumed to relieve identified local transmission constraint",
+      "valueStatus": "assumed_in_model",
+      "value": 315,
+      "unit": "MVA",
+      "threshold": null,
+      "period": "assumed for 2029",
+      "geographicLevel": "regional_transmission",
+      "scenario": "Reference Case",
+      "evidenceClass": "system_operator_modelled",
+      "interpretationLimit": "A model assumption, not proof of procurement, installation, commissioning, approval or actual bottleneck relief"
+    },
+    {
+      "findingId": "mtsao-second-substation-load-risk-2033",
+      "sourceId": "ntcsa-mtsao-2027-2036-refined-draft",
+      "metric": "load at risk from a second local substation constraint",
+      "value": 102,
+      "unit": "MW",
+      "threshold": null,
+      "period": "from 2033",
+      "geographicLevel": "regional_transmission",
+      "scenario": "Reference Case",
+      "evidenceClass": "system_operator_modelled",
+      "interpretationLimit": "Modelled load exposure at a substation; not a measured customer interruption or municipality-specific reliability statistic"
+    },
+    {
+      "findingId": "mtsao-perfect-storm-ue-2036",
+      "sourceId": "ntcsa-mtsao-2027-2036-refined-draft",
+      "metric": "annual unserved energy exceeds 900 GWh in Perfect Storm scenario",
+      "valueStatus": "exceeds_threshold",
+      "value": "above 900",
+      "unit": "GWh per year",
+      "threshold": 900,
+      "period": "2036",
+      "geographicLevel": "regional_transmission",
+      "scenario": "Perfect Storm (65% EAF, no new gas capacity, high demand, lower SSEG)",
+      "evidenceClass": "system_operator_modelled",
+      "interpretationLimit": "Conditional scenario result, not forecast or probability-weighted expectation; scenario is explicitly not assigned a probability"
+    },
+    {
+      "findingId": "mtsao-perfect-storm-cvar-2036",
+      "sourceId": "ntcsa-mtsao-2027-2036-refined-draft",
+      "metric": "conditional value at risk exceeds 2,000 MW in Perfect Storm scenario",
+      "valueStatus": "exceeds_threshold",
+      "value": "above 2,000",
+      "unit": "MW",
+      "threshold": 2000,
+      "period": "2036",
+      "geographicLevel": "regional_transmission",
+      "scenario": "Perfect Storm",
+      "evidenceClass": "system_operator_modelled",
+      "interpretationLimit": "Tail-severity output of NTCSA's own model; do not transfer as calibrated probability or local asset risk"
+    },
+    {
+      "findingId": "eskom-eaf-2026-fytd",
+      "sourceId": "eskom-eaf-fytd-2026-11-13",
+      "metric": "Energy Availability Factor",
+      "valueStatus": "reported_value",
+      "value": 68.2,
+      "unit": "percent",
+      "threshold": null,
+      "period": "FYTD 1 April–12 November 2026",
+      "geographicLevel": "national_generation",
+      "scenario": null,
+      "evidenceClass": "operator_reported",
+      "interpretationLimit": "Eskom-reported national fleet availability; not distribution reliability or customer service restoration"
+    },
+    {
+      "findingId": "itp-phase-one-announced-kilometres",
+      "sourceId": "gov-itp-phase-one-2026-10-01",
+      "metric": "Phase I Independent Transmission Projects programme infrastructure scope",
+      "valueStatus": "programme_scope",
+      "value": 1164,
+      "unit": "km",
+      "threshold": null,
+      "period": "programme announcement dated 1 October 2026",
+      "geographicLevel": "national_programme",
+      "scenario": null,
+      "evidenceClass": "government_announced",
+      "interpretationLimit": "Announced programme scope, not built or commissioned transmission infrastructure"
+    }
+  ],
+  "dataGaps": [
+    {
+      "gapId": "municipal-feeder-outage-data",
+      "requiredData": "Rights-cleared, versioned municipal or Eskom distribution interruption chronology with coverage and denominator",
+      "status": "not_available_in_sources_examined",
+      "doNotInfer": "Do not derive local feeder SAIDI, SAIFI, outage frequency or customer minutes from national EAF or transmission adequacy model output"
+    },
+    {
+      "gapId": "customer-energy-not-supplied",
+      "requiredData": "Customer- or feeder-level energy not supplied/load restoration traces",
+      "status": "not_available_in_sources_examined",
+      "doNotInfer": "Do not assign customer ENS from national annual UE without an approved downscaling/model interface"
+    },
+    {
+      "gapId": "local-hazard-fragility",
+      "requiredData": "Applicable local asset exposure/fragility data and event provenance",
+      "status": "not_yet_collected",
+      "doNotInfer": "Do not create flood, fire, heat, wind or seismic probabilities from an enumerated scenario catalogue"
+    },
+    {
+      "gapId": "municipal-load-reduction",
+      "requiredData": "Municipality/feeder-resolved customer load reduction definitions, population coverage and time series",
+      "status": "not_available_in_sources_examined",
+      "doNotInfer": "Do not equate load reduction with national load-shedding or with a network outage"
+    },
+    {
+      "gapId": "source-pdf-sha256",
+      "requiredData": "Exact downloaded PDF bytes, SHA-256, extraction version and permitted reuse review for each public source",
+      "status": "rights_or_access_pending",
+      "doNotInfer": "These web references are not yet a frozen source corpus; no reproducibility claim may rely on unpinned PDF content"
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+name: South Africa grid source profile contract
+
+on:
+  pull_request:
+    paths:
+      - "docs/research/south-africa-grid-profile/**"
+      - ".github/workflows/south-africa-grid-profile.yml"
+  push:
+    paths:
+      - "docs/research/south-africa-grid-profile/**"
+      - ".github/workflows/south-africa-grid-profile.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-register:
+    name: Validate source provenance and scope ceilings
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate source register and forbid unsupported distribution claims
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("docs/research/south-africa-grid-profile")
+          schema = json.loads((root / "source-register-v0.1.schema.json").read_text())
+          profile = json.loads((root / "south-africa-grid-source-profile-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER)
+          errors = sorted(validator.iter_errors(profile), key=lambda error: list(error.path))
+          assert not errors, "\\n".join(f"{list(error.path)}: {error.message}" for error in errors)
+
+          source_ids = {item["sourceId"] for item in profile["sources"]}
+          assert len(source_ids) == len(profile["sources"])
+          assert all(item["sourceStatus"] == "reference_only_unfrozen" and item["sourceSha256"] is None and item["hashStatus"] == "not_frozen" for item in profile["sources"])
+          assert all(finding["sourceId"] in source_ids for finding in profile["reportedFindings"])
+          assert all(finding["geographicLevel"] != "not_local_distribution" or "not" in finding["interpretationLimit"].lower() for finding in profile["reportedFindings"])
+          assert any(item["sourceId"] == "ntcsa-mtsao-2027-2036-refined-draft" for item in profile["sources"])
+          assert any(item["findingId"] == "mtsao-reference-case-ue-2027-2028" for item in profile["reportedFindings"])
+          assert any(item["findingId"] == "eskom-eaf-2026-fytd" for item in profile["reportedFindings"])
+          assert any(item["gapId"] == "municipal-feeder-outage-data" for item in profile["dataGaps"])
+          print("PASS: source metadata, explicit unfrozen status, claim ceilings and distribution-data gaps")
+          PY

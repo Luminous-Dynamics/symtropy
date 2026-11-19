@@ -1,0 +1,319 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:south-africa-grid-profile:source-register:0.1.0",
+  "title": "South African Grid Profile Source Register",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "profileId",
+    "asOfDate",
+    "jurisdiction",
+    "scopeSeparation",
+    "sources",
+    "reportedFindings",
+    "dataGaps"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "profileId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "asOfDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "jurisdiction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "country",
+        "systemScope",
+        "localityScope"
+      ],
+      "properties": {
+        "country": {
+          "const": "South Africa"
+        },
+        "systemScope": {
+          "const": "national interconnected power system"
+        },
+        "localityScope": {
+          "const": "not yet populated with municipality or feeder-level data"
+        }
+      }
+    },
+    "scopeSeparation": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "enum": [
+          "generation_adequacy",
+          "transmission_network_and_projects",
+          "distribution_and_municipal_reliability",
+          "household_organization_town_city_service"
+        ]
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sourceId",
+          "publisher",
+          "title",
+          "publicationDate",
+          "reportingPeriod",
+          "sourceUrl",
+          "sourceClass",
+          "sourceStatus",
+          "sourceSha256",
+          "hashStatus",
+          "scope",
+          "claimCeiling"
+        ],
+        "properties": {
+          "sourceId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "publisher": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "publicationDate": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "reportingPeriod": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sourceUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "sourceClass": {
+            "enum": [
+              "operator_report",
+              "system_operator_assessment",
+              "government_programme_statement",
+              "transmission_plan"
+            ]
+          },
+          "sourceStatus": {
+            "enum": [
+              "reference_only_unfrozen",
+              "document_bytes_frozen"
+            ]
+          },
+          "sourceSha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "hashStatus": {
+            "enum": [
+              "not_frozen",
+              "verified_sha256"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "minLength": 1
+          },
+          "claimCeiling": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "hashStatus": {
+                  "const": "not_frozen"
+                }
+              },
+              "required": [
+                "hashStatus"
+              ]
+            },
+            "then": {
+              "properties": {
+                "sourceSha256": {
+                  "type": "null"
+                },
+                "sourceStatus": {
+                  "const": "reference_only_unfrozen"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "hashStatus": {
+                  "const": "verified_sha256"
+                }
+              },
+              "required": [
+                "hashStatus"
+              ]
+            },
+            "then": {
+              "properties": {
+                "sourceSha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "sourceStatus": {
+                  "const": "document_bytes_frozen"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "reportedFindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "findingId",
+          "sourceId",
+          "metric",
+          "valueStatus",
+          "value",
+          "unit",
+          "period",
+          "geographicLevel",
+          "evidenceClass",
+          "interpretationLimit"
+        ],
+        "properties": {
+          "findingId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "metric": {
+            "type": "string",
+            "minLength": 1
+          },
+          "valueStatus": {
+            "enum": [
+              "reported_value",
+              "exceeds_threshold",
+              "assumed_in_model",
+              "scenario_result",
+              "programme_scope"
+            ]
+          },
+          "value": {
+            "type": [
+              "number",
+              "string"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "threshold": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "period": {
+            "type": "string",
+            "minLength": 1
+          },
+          "geographicLevel": {
+            "enum": [
+              "national_generation",
+              "regional_transmission",
+              "national_programme",
+              "not_local_distribution"
+            ]
+          },
+          "scenario": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidenceClass": {
+            "enum": [
+              "operator_reported",
+              "system_operator_modelled",
+              "government_announced",
+              "plan_document"
+            ]
+          },
+          "interpretationLimit": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "dataGaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "gapId",
+          "requiredData",
+          "status",
+          "doNotInfer"
+        ],
+        "properties": {
+          "gapId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "requiredData": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "not_available_in_sources_examined",
+              "rights_or_access_pending",
+              "not_yet_collected"
+            ]
+          },
+          "doNotInfer": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
