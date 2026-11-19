@@ -295,8 +295,11 @@ pub fn check_dispatch_readiness(
 
     let (now_lower_tick, now_upper_tick) =
         uncertainty_interval(clock.current_tick, clock.uncertainty_bound_ticks)?;
-    if now_upper_tick >= clock.valid_until_tick {
+    if now_lower_tick >= clock.valid_until_tick {
         return Err(DispatchReadinessFailure::ClockQualificationExpired);
+    }
+    if now_upper_tick >= clock.valid_until_tick {
+        return Err(DispatchReadinessFailure::ClockUncertaintyStraddlesBoundary);
     }
 
     if ledger.active_package_sha256() != Some(envelope.package_sha256.as_str())
@@ -336,18 +339,24 @@ pub fn check_dispatch_readiness(
     {
         return Err(DispatchReadinessFailure::EnvelopeTimeWindowInvalid);
     }
-    let (_, envelope_generated_upper) = uncertainty_interval(
+    let (envelope_generated_lower, envelope_generated_upper) = uncertainty_interval(
         envelope.generated_at_tick,
         envelope.generated_at_uncertainty_ticks,
     )?;
-    if now_upper_tick < envelope.generated_at_tick.saturating_sub(envelope.generated_at_uncertainty_ticks) {
+    if now_upper_tick < envelope_generated_lower {
         return Err(DispatchReadinessFailure::EnvelopeNotYetValid);
     }
     if now_lower_tick < envelope_generated_upper {
         return Err(DispatchReadinessFailure::ClockUncertaintyStraddlesBoundary);
     }
-    if now_upper_tick >= envelope.valid_until_tick {
+    if now_lower_tick >= envelope.valid_until_tick {
         return Err(DispatchReadinessFailure::EnvelopeExpired);
+    }
+    if now_upper_tick >= envelope.valid_until_tick {
+        return Err(DispatchReadinessFailure::ClockUncertaintyStraddlesBoundary);
+    }
+    if envelope_generated_upper >= envelope.valid_until_tick {
+        return Err(DispatchReadinessFailure::EnvelopeTimeWindowInvalid);
     }
 
     if occupancy.assessed_envelope_sha256 != envelope.envelope_sha256 {
@@ -378,14 +387,20 @@ pub fn check_dispatch_readiness(
     if occupancy_checked_lower < envelope_generated_upper {
         return Err(DispatchReadinessFailure::OccupancyAssessmentPredatesEnvelope);
     }
-    if now_upper_tick < occupancy.checked_at_tick.saturating_sub(occupancy.checked_at_uncertainty_ticks) {
+    if now_upper_tick < occupancy_checked_lower {
         return Err(DispatchReadinessFailure::OccupancyAssessmentFromFuture);
+    }
+    if occupancy_checked_upper >= occupancy.valid_until_tick {
+        return Err(DispatchReadinessFailure::OccupancyTimeWindowInvalid);
     }
     if now_lower_tick < occupancy_checked_upper {
         return Err(DispatchReadinessFailure::ClockUncertaintyStraddlesBoundary);
     }
-    if now_upper_tick >= occupancy.valid_until_tick {
+    if now_lower_tick >= occupancy.valid_until_tick {
         return Err(DispatchReadinessFailure::OccupancyAssessmentExpired);
+    }
+    if now_upper_tick >= occupancy.valid_until_tick {
+        return Err(DispatchReadinessFailure::ClockUncertaintyStraddlesBoundary);
     }
     if !occupancy.primitive_coverage_complete {
         return Err(DispatchReadinessFailure::IncompletePrimitiveCoverage);
@@ -566,7 +581,7 @@ pub fn verify_dispatch_readiness_receipt_current(
         uncertainty_interval(qualified_clock.current_tick, qualified_clock.uncertainty_bound_ticks)?;
     let (receipt_checked_lower, receipt_checked_upper) =
         uncertainty_interval(receipt.checked_at_tick, receipt.checked_at_uncertainty_ticks)?;
-    if now_lower_tick <= receipt_checked_upper || now_lower_tick < receipt_checked_lower {
+    if now_lower_tick <= receipt_checked_upper {
         return Err(DispatchReadinessFailure::ClockUncertaintyStraddlesBoundary);
     }
     if now_upper_tick >= qualified_clock.valid_until_tick
@@ -888,7 +903,7 @@ mod tests {
             check_dispatch_readiness(&ledger, &request, &policy()),
             Err(DispatchReadinessFailure::EnvelopeExpired)
         );
-        request.now_tick = 120;
+        request.qualified_clock.current_tick = 120;
         request.occupancy.site_clock_domain_id = "robot-clock".into();
         assert_eq!(
             check_dispatch_readiness(&ledger, &request, &policy()),
