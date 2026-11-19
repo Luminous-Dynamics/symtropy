@@ -1116,7 +1116,8 @@ impl SiteStateLedger {
                     ));
                 }
                 if site_clock_domain_id != &record.commit.reservation.site_clock_domain_id
-                    || site_clock_domain_id != self.capacity_site_clock_domain_id.as_ref().unwrap_or(&String::new())
+                    || self.capacity_site_clock_domain_id.as_deref()
+                        != Some(site_clock_domain_id.as_str())
                     || *cleared_at_tick < record.commit.committed_at_tick
                 {
                     return Err(
@@ -1934,6 +1935,108 @@ fn ensure_attempt_is_awaiting_measurement(
     }
 }
 
+
+fn validate_capacity_reservation_commit(
+    ledger: &SiteStateLedger,
+    commit: &CapacityReservationCommit,
+) -> Result<(), SiteLedgerError> {
+    let reservation = &commit.reservation;
+    if [
+        reservation.reservation_receipt_sha256.as_str(),
+        commit.package_sha256.as_str(),
+        commit.design_revision_sha256.as_str(),
+        commit.readiness_receipt_sha256.as_str(),
+        commit.occupancy_assessment_receipt_sha256.as_str(),
+        commit.occupancy_engine_build_sha256.as_str(),
+        commit.clearance_policy_sha256.as_str(),
+        commit.resource_catalog_sha256.as_str(),
+        commit.availability_snapshot_sha256.as_str(),
+        commit.site_snapshot_sha256.as_str(),
+        commit.site_ledger_event_sha256.as_str(),
+    ]
+    .into_iter()
+    .any(|digest| !is_sha256(digest))
+    {
+        return Err(SiteLedgerError::InvalidCapacityReservation(
+            reservation.reservation_id.clone(),
+        ));
+    }
+    if reservation.reservation_id.trim().is_empty()
+        || reservation.site_clock_domain_id.trim().is_empty()
+        || commit.entity_id.trim().is_empty()
+        || commit.robot_id.trim().is_empty()
+        || reservation.claims.is_empty()
+        || commit.checked_at_tick > commit.committed_at_tick
+        || commit.valid_until_tick <= commit.checked_at_tick
+        || commit.committed_at_tick >= commit.valid_until_tick
+        || commit.lease_valid_until_tick <= commit.committed_at_tick
+        || commit.committed_at_tick > commit.valid_until_tick
+    {
+        return Err(SiteLedgerError::InvalidCapacityReservation(
+            reservation.reservation_id.clone(),
+        ));
+    }
+
+    if ledger.capacity_resource_catalog_sha256.as_deref()
+        != Some(commit.resource_catalog_sha256.as_str())
+    {
+        return Err(SiteLedgerError::CapacityResourceCatalogMismatch);
+    }
+    if ledger.capacity_availability_snapshot_sha256.as_deref()
+        != Some(commit.availability_snapshot_sha256.as_str())
+        || ledger.capacity_site_snapshot_sha256.as_deref()
+            != Some(commit.site_snapshot_sha256.as_str())
+        || ledger.capacity_site_clock_domain_id.as_deref()
+            != Some(reservation.site_clock_domain_id.as_str())
+    {
+        return Err(SiteLedgerError::CapacityAvailabilitySnapshotMismatch);
+    }
+
+    if commit.site_ledger_sequence != ledger.last_sequence
+        || ledger.last_event_sha256.as_deref()
+            != Some(commit.site_ledger_event_sha256.as_str())
+    {
+        return Err(SiteLedgerError::CapacityReservationSnapshotMismatch);
+    }
+
+    let package = ledger.current_package(&commit.package_sha256)?;
+    if package.package.design_revision_sha256 != commit.design_revision_sha256 {
+        return Err(SiteLedgerError::InactivePackage(commit.package_sha256.clone()));
+    }
+    match package.entity_states.get(&commit.entity_id) {
+        Some(SiteEntityState::NotAttempted | SiteEntityState::PhysicallyAbsent { .. }) => {}
+        _ => {
+            return Err(SiteLedgerError::EntityTransitionDenied(
+                commit.entity_id.clone(),
+            ));
+        }
+    }
+
+    for claim in &reservation.claims {
+        if claim.resource_id.trim().is_empty()
+            || !is_sha256(&claim.resource_definition_sha256)
+            || claim.start_tick < commit.committed_at_tick
+            || claim.end_tick <= claim.start_tick
+            || claim.demand_units == 0
+        {
+            return Err(SiteLedgerError::InvalidCapacityReservation(
+                reservation.reservation_id.clone(),
+            ));
+        }
+        let Some(definition) = ledger.capacity_resources.get(&claim.resource_id) else {
+            return Err(SiteLedgerError::UnknownCapacityReservationResource(
+                claim.resource_id.clone(),
+            ));
+        };
+        if definition.definition_sha256 != claim.resource_definition_sha256 {
+            return Err(SiteLedgerError::CapacityResourceDefinitionMismatch(
+                claim.resource_id.clone(),
+            ));
+        }
+    }
+
+    Ok(())
+}
 
 fn validate_space_time_reservation(
     ledger: &SiteStateLedger,
