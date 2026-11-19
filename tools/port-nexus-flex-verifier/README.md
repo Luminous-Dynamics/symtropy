@@ -19,6 +19,8 @@ cargo run --manifest-path tools/port-nexus-flex-verifier/Cargo.toml
 
 The tool is std-only and has its own nested Cargo workspace so it does not alter the main Symtropy workspace membership or dependency graph.
 
+The package has no third-party Rust dependencies. A minimal Cargo.lock is committed for the standalone executable.
+
 ## v0.1 checks
 
 - Exact job identity set: each job appears exactly once.
