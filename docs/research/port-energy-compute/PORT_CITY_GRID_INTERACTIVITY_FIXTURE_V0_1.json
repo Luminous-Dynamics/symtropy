@@ -227,6 +227,54 @@
       "category": "Unknown",
       "mutation": "No grid-owner or OEM dynamic limit is supplied for exact configuration.",
       "expected_disposition": "NOT_EVALUABLE_NO_INVENTED_LIMIT"
+    },
+    {
+      "case_id": "eskom_idr_six_second_response_met",
+      "category": "Positive",
+      "mutation": "Declared contracted 10 MW resource responds fully within 6 seconds and sustains the declared reduction for 10 minutes, with special metering evidence.",
+      "expected_disposition": "PASS_PROGRAM_PROFILE_ONLY"
+    },
+    {
+      "case_id": "eskom_idr_response_late",
+      "category": "Negative",
+      "mutation": "Candidate response completes after 6 seconds for the Eskom IDR profile.",
+      "expected_disposition": "REJECT_IDR_RESPONSE_DEADLINE"
+    },
+    {
+      "case_id": "sawem_instantaneous_reserve_ten_second_response",
+      "category": "Positive",
+      "mutation": "Declared demand-side reserve resource meets the published SAWEM 10-second full-response definition and 10-minute sustain duration, with Trading Unit/registration evidence.",
+      "expected_disposition": "PASS_CODE_PROFILE_ONLY"
+    },
+    {
+      "case_id": "six_second_idr_confused_with_sawem_ten_second_definition",
+      "category": "Negative",
+      "mutation": "Treat the Eskom six-second programme and the SAWEM ten-second definition as the same contract/profile.",
+      "expected_disposition": "REJECT_PROGRAM_PROFILE_MISMATCH"
+    },
+    {
+      "case_id": "supplemental_dr_two_hour_sustain_missed",
+      "category": "Negative",
+      "mutation": "A resource meets a 30-minute notice but can sustain only 90 minutes where the programme requires at least two hours.",
+      "expected_disposition": "REJECT_SUPPLEMENTAL_DURATION"
+    },
+    {
+      "case_id": "thirty_minute_meter_used_for_six_second_idr",
+      "category": "Unknown",
+      "mutation": "Use 30-minute interval metering as the sole evidence for a six-second IDR response.",
+      "expected_disposition": "METERING_NOT_EVIDENT_FOR_FAST_PRODUCT"
+    },
+    {
+      "case_id": "port_spare_capacity_claimed_as_flexible_load",
+      "category": "Negative",
+      "mutation": "Promote published pre-feasibility spare substation capacity into contracted, qualified and available demand-response MW.",
+      "expected_disposition": "REJECT_CAPACITY_EVIDENCE_CATEGORY"
+    },
+    {
+      "case_id": "emergency_load_reduction_mislabeled_voluntary_dr",
+      "category": "Negative",
+      "mutation": "Treat mandatory emergency load reduction under NRS 048-9 as a voluntary contracted DR product.",
+      "expected_disposition": "REJECT_AUTHORITY_AND_PRODUCT_CATEGORY"
     }
   ],
   "target_hypotheses": {
@@ -236,5 +284,81 @@
     "zero_event_observability_loss_without_incomplete_disposition": true,
     "one_hundred_percent_replay_of_identical_synthetic_sample_bytes": true,
     "caveat": "Synthetic corpus targets only. Not measured performance, grid-code compliance or equipment qualification."
-  }
+  },
+  "south_africa_reference_programmes": [
+    {
+      "program_id": "eskom-instantaneous-demand-response",
+      "provider": "Eskom Distribution",
+      "source": "https://www.eskom.co.za/distribution/instantaneous-demand-response-programme/",
+      "evidence_class": "published_programme_description_current_page",
+      "declared_terms": {
+        "minimum_entry_mw": 10,
+        "full_response_deadline_seconds": 6,
+        "minimum_sustain_seconds": 600,
+        "maximum_events_per_day": 3,
+        "scheduling": "scheduled day-ahead; dispatched on day when frequency reaches a preset level",
+        "metering": "special metering requirements",
+        "payment": "standby payment; no energy payment"
+      },
+      "limitations": [
+        "Eligibility, connection, aggregation, telemetry, contractual availability and current procurement must be confirmed directly with Eskom.",
+        "10 MW programme minimum is not inferred from a port's reported spare grid headroom.",
+        "Do not treat the six-second response programme as the same product as the SAWEM instantaneous reserve definition."
+      ]
+    },
+    {
+      "program_id": "sawem-instantaneous-reserve-demand-side",
+      "provider": "NTCSA / SAWEM Market Code",
+      "source": "https://www.ntcsa.co.za/wp-content/uploads/2026/02/Market-Code-v2.3.pdf",
+      "evidence_class": "published_market_code_rev_2_3_february_2026_definition",
+      "declared_terms": {
+        "full_response_deadline_seconds": 10,
+        "minimum_sustain_seconds": 600,
+        "resource_type": "generating capacity or demand-side managed load",
+        "scheduling": "day-ahead reserve category and real-time dispatch framework",
+        "payment": "capacity qualifying and performance adjustment provisions exist in the code"
+      },
+      "limitations": [
+        "Market Code Rev2.3 publication does not by itself establish that a particular port participant is registered, qualified or currently eligible.",
+        "NERSA's September 2026 regulatory tracker listed the Market Code approval workstream as finalisation with a target completion of 31 October 2026; the tracker snapshot is not evidence of the subsequent final regulatory decision.",
+        "The 10-second definition is distinct from Eskom Distribution's published 6-second IDR product."
+      ]
+    },
+    {
+      "program_id": "ntcsa-supplemental-demand-response",
+      "provider": "NTCSA / Eskom programme page",
+      "source": "https://www.ntcsa.co.za/supplemental-demand-response-programme-2/",
+      "evidence_class": "published_programme_description_current_page",
+      "declared_terms": {
+        "notice_period_minutes": [
+          30,
+          360
+        ],
+        "minimum_entry_rule": "max(500 kW, 15% of average plant demand)",
+        "minimum_response_duration_minutes": 120,
+        "maximum_frequency": "once per day under the published description",
+        "metering": "30-minute interval remote metering prerequisite",
+        "payment": "standby payment plus energy payment"
+      },
+      "limitations": [
+        "Participant-specific contracted duration, activation, telemetry, settlement, aggregation and current availability must be confirmed with NTCSA/Eskom.",
+        "A 30-minute interval meter cannot alone demonstrate the separate six-second IDR performance requirement.",
+        "This is a slower supplemental product, not instantaneous reserve."
+      ]
+    },
+    {
+      "program_id": "nrs-048-9-emergency-load-reduction",
+      "provider": "NERSA-approved NRS 048-9 code of practice",
+      "source": "https://www.kaya959.co.za/wp-content/uploads/2024/04/NERSA-Approved-Version-of-NRS-048-9-2023-Edition-3.pdf",
+      "evidence_class": "published_code_of_practice",
+      "declared_terms": {
+        "subject": "emergency load reduction, load shedding, load curtailment and restoration"
+      },
+      "limitations": [
+        "Emergency mandatory load reduction is not the same as a voluntary/contracted demand-response service.",
+        "Emergency instructions and authority remain with the relevant System Operator/utility; a scheduler cannot self-declare or override an emergency."
+      ]
+    }
+  ],
+  "case_count": 22
 }
