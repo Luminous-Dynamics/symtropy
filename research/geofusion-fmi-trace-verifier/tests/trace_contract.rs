@@ -297,6 +297,10 @@ fn frozen_adversarial_corpus() {
                 trace.attempts[2].local_returned_end_tick = 3;
                 trace.attempts[2].master_returned_end_ns = 3_000_000_000;
             }
+            "early_return_beyond_requested_endpoint" => {
+                trace.attempts[2].local_returned_end_tick = 4;
+                trace.attempts[2].master_returned_end_ns = 4_000_000_000;
+            }
             "clock_binding_identity_mismatch" => {
                 trace.attempts[0].clock_binding_id = "stale-clock-binding".to_owned();
             }
@@ -320,5 +324,5 @@ fn frozen_adversarial_corpus() {
         assert_code(&trace, expected);
     }
 
-    assert_eq!(seen.len(), 25);
+    assert_eq!(seen.len(), 26);
 }
