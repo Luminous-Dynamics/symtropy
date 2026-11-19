@@ -10,6 +10,7 @@
     "asOfHour",
     "resourceManifestRef",
     "resourceManifestSha256",
+    "policyCertificateSha256",
     "resourceManifest",
     "inspectionCatalog",
     "recoveryActionCatalog",
@@ -294,6 +295,10 @@
           }
         }
       }
+    },
+    "policyCertificateSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
     }
   },
   "$defs": {
