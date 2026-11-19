@@ -244,7 +244,9 @@ fn service_matches_carrier(service: &str, carrier: &str) -> bool {
 }
 
 fn parse_utc_timestamp_ns(value: &str) -> Result<i128, VerificationError> {
-    let invalid = || VerificationError::TimeWindowMismatch("start_utc must be canonical RFC 3339 UTC");
+    let invalid = || {
+        VerificationError::TimeWindowMismatch("start_utc must be canonical RFC 3339 UTC")
+    };
     let bytes = value.as_bytes();
     if bytes.len() < 20 || bytes.last() != Some(&b'Z') {
         return Err(invalid());
@@ -279,7 +281,7 @@ fn parse_utc_timestamp_ns(value: &str) -> Result<i128, VerificationError> {
         2 => 28,
         _ => return Err(invalid()),
     };
-    if day < 1 || day > days_in_month || hour > 23 || minute > 59 || second > 59 {
+    if !(1..=days_in_month).contains(&day) || hour > 23 || minute > 59 || second > 59 {
         return Err(invalid());
     }
 
@@ -750,7 +752,8 @@ pub fn verify_source_interval_batch(
     }
 
     let mut source_intervals = BTreeSet::new();
-    let mut intervals_by_source = std::collections::BTreeMap::<(String, String, String), Vec<(i128, i128)>>::new();
+    let mut intervals_by_source =
+        std::collections::BTreeMap::<(String, String, String), Vec<(i128, i128)>>::new();
     let mut evidence_ids = BTreeSet::new();
     let mut receipt_ids = BTreeSet::new();
     let mut reports = Vec::with_capacity(inputs.len());
@@ -854,6 +857,12 @@ mod tests {
 
     fn allocation() -> Value {
         serde_json::from_str(ALLOCATION).expect("allocation fixture JSON")
+    }
+
+    #[test]
+    fn numeric_comparison_remains_relative_at_tiny_energy_scales() {
+        assert!(!same_number(1e-300, 2e-300));
+        assert!(same_number(1e-300, 1e-300 + 1e-315));
     }
 
     #[test]
