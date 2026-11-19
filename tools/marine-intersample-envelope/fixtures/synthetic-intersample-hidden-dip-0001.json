@@ -7,12 +7,12 @@
     "mission_id": "SYNTHETIC-INTERSAMPLE-MISSION-0001",
     "craft_configuration_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     "occupancy_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-    "service_contract_sha256": "53422d576b38c6b1b4f486dc704b9b9cb2a81e30ccbae2d6dbe6e87c226ab36c",
+    "service_contract_sha256": "9c7f265da63a7e9f79b3f1bc93b336a82f5e9df82dce32f6499eab84b59232fe",
     "time_grid_sha256": "34723262ab77ecd96811217b70fda89da7c62746416f106781a29a7b1a8fdfe4",
     "scenario_roster_sha256": "8e7e650c658c1cbfb64ab325f86cbe793f3b8bd06501fa9a78aad07a21dc2cfd",
     "model_registry_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
     "operating_envelope_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-    "mission_snapshot_sha256": "e6238cb4bdf073ccf7ad73168619c01a025ab23d6a14b7633cf225d475361435",
+    "mission_snapshot_sha256": "5812189199ef862193f7de0f29510bb5677c983200b749b771833f5f2424cf80",
     "initial_resource_state_sha256": "b7a1446cdf21ba1c717657effd3aaa3a85fe9278134378e69b37b5864b0cd59e"
   },
   "service_contract": [
@@ -33,7 +33,7 @@
       "operator": "gte",
       "floor_value": 80,
       "minimum_coverage_fraction": 0.95,
-      "max_abs_rate_per_hour": 4,
+      "max_abs_rate_per_hour": 12,
       "rate_bound_method": "declared-maximum-absolute-rate-under-registered-operating-envelope-v1",
       "rate_bound_class": "synthetic",
       "rate_bound_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -715,9 +715,9 @@
             {
               "metric": "freshwater_usable_l",
               "unit": "L",
-              "value": 90,
-              "lower_bound": 89.9,
-              "upper_bound": 90.1,
+              "value": 150,
+              "lower_bound": 149.9,
+              "upper_bound": 150.1,
               "coverage_fraction": 1,
               "measurement_class": "synthetic",
               "measurement_method": "synthetic-endpoint-measurement-v1",
@@ -842,9 +842,9 @@
             {
               "metric": "freshwater_usable_l",
               "unit": "L",
-              "value": 90,
-              "lower_bound": 89.9,
-              "upper_bound": 90.1,
+              "value": 140,
+              "lower_bound": 139.9,
+              "upper_bound": 140.1,
               "coverage_fraction": 1,
               "measurement_class": "synthetic",
               "measurement_method": "synthetic-endpoint-measurement-v1",
@@ -952,7 +952,7 @@
           ]
         }
       ],
-      "scenario_sha256": "32bbef790b3aa0e85f2b93ec073cf09f167af46b768d31aff825f397c03e89ac"
+      "scenario_sha256": "de5e5252de717eae1a30b9e2b58a89a89114ced9b881b04baab1d0787e85efee"
     },
     {
       "scenario_id": "scenario-main-generation-outage",
@@ -1113,9 +1113,9 @@
             {
               "metric": "freshwater_usable_l",
               "unit": "L",
-              "value": 90,
-              "lower_bound": 89.9,
-              "upper_bound": 90.1,
+              "value": 150,
+              "lower_bound": 149.9,
+              "upper_bound": 150.1,
               "coverage_fraction": 1,
               "measurement_class": "synthetic",
               "measurement_method": "synthetic-endpoint-measurement-v1",
@@ -1240,9 +1240,9 @@
             {
               "metric": "freshwater_usable_l",
               "unit": "L",
-              "value": 90,
-              "lower_bound": 89.9,
-              "upper_bound": 90.1,
+              "value": 140,
+              "lower_bound": 139.9,
+              "upper_bound": 140.1,
               "coverage_fraction": 1,
               "measurement_class": "synthetic",
               "measurement_method": "synthetic-endpoint-measurement-v1",
@@ -1350,7 +1350,7 @@
           ]
         }
       ],
-      "scenario_sha256": "f74dc0af08be274b405753349cbf499258d4841c18e953bd076078171af2331d"
+      "scenario_sha256": "0befcd3ad08ace87f5a704a77bad72b05b0b36c3ee6aafd18bbdb8276df84bf7"
     },
     {
       "scenario_id": "scenario-nominal",
@@ -1504,9 +1504,9 @@
             {
               "metric": "freshwater_usable_l",
               "unit": "L",
-              "value": 90,
-              "lower_bound": 89.9,
-              "upper_bound": 90.1,
+              "value": 150,
+              "lower_bound": 149.9,
+              "upper_bound": 150.1,
               "coverage_fraction": 1,
               "measurement_class": "synthetic",
               "measurement_method": "synthetic-endpoint-measurement-v1",
@@ -1631,9 +1631,9 @@
             {
               "metric": "freshwater_usable_l",
               "unit": "L",
-              "value": 90,
-              "lower_bound": 89.9,
-              "upper_bound": 90.1,
+              "value": 140,
+              "lower_bound": 139.9,
+              "upper_bound": 140.1,
               "coverage_fraction": 1,
               "measurement_class": "synthetic",
               "measurement_method": "synthetic-endpoint-measurement-v1",
@@ -1741,7 +1741,7 @@
           ]
         }
       ],
-      "scenario_sha256": "302bc7a072d4c8baad5c23a6a237696ff506c615c559b932b51bcd045b302ccc"
+      "scenario_sha256": "2f6a6667307cf36b2e962c2435d1e620362c8c1ddc04d3ed7b8e6aa21c4cc87c"
     },
     {
       "scenario_id": "scenario-watermaker-outage",
@@ -1902,9 +1902,9 @@
             {
               "metric": "freshwater_usable_l",
               "unit": "L",
-              "value": 90,
-              "lower_bound": 89.9,
-              "upper_bound": 90.1,
+              "value": 150,
+              "lower_bound": 149.9,
+              "upper_bound": 150.1,
               "coverage_fraction": 1,
               "measurement_class": "synthetic",
               "measurement_method": "synthetic-endpoint-measurement-v1",
@@ -2029,9 +2029,9 @@
             {
               "metric": "freshwater_usable_l",
               "unit": "L",
-              "value": 90,
-              "lower_bound": 89.9,
-              "upper_bound": 90.1,
+              "value": 140,
+              "lower_bound": 139.9,
+              "upper_bound": 140.1,
               "coverage_fraction": 1,
               "measurement_class": "synthetic",
               "measurement_method": "synthetic-endpoint-measurement-v1",
@@ -2139,7 +2139,7 @@
           ]
         }
       ],
-      "scenario_sha256": "08e96b93d65b37c2797ead25cad0bf4e83afa14d7cff71b0f95a69346646987d"
+      "scenario_sha256": "781c10c7546bc356438d7ff64996efb7889b3d5952066e543ae862a99f3aaf53"
     }
   ]
 }
