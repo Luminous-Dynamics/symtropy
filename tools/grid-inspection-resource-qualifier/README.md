@@ -13,7 +13,7 @@ It does **not** compute diagnoses, posteriors, likelihoods, probabilities, infor
 
 ## What is verified
 
-- Canonical SHA-256 of a separately referenced resource manifest and the complete upstream policy-certificate payload. CI independently recomputes both digests in Python; Rust independently recomputes them from typed case records.
+- Canonical SHA-256 of a separately referenced resource manifest and the complete upstream policy-certificate payload. CI independently recomputes both digests in Python; it normalizes all Rust `f64` manifest fields to floating-point JSON before hashing, while Rust recomputes the digest from typed case records. The digest binds the supplied payload only; a trusted upstream signature or immutable receipt is still needed to authenticate who issued it.
 - Resource identity, freshness and status.
 - Capacity windows, confirmed reservations and unknown reservations.
 - Common simultaneous availability for every resource required by one activity.
