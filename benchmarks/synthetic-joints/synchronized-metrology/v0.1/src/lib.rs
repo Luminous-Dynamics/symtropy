@@ -92,6 +92,7 @@ pub struct ChannelMeasurement {
     pub operating_condition_digest: String,
     pub source_reference: String,
     pub measurement_method: String,
+    pub raw_trace_digest: String,
 
     /// All local timestamps have been mapped to this common reference clock.
     pub reference_clock_id: String,
@@ -243,7 +244,10 @@ fn validate_channel_provenance(channel: &ChannelMeasurement) -> Option<String> {
     {
         return Some("calibration certificate, reference standard or traceability-chain digest is missing".to_owned());
     }
-    if !nonempty(&channel.source_reference) || !nonempty(&channel.measurement_method) {
+    if !nonempty(&channel.source_reference)
+        || !nonempty(&channel.measurement_method)
+        || !nonempty(&channel.raw_trace_digest)
+    {
         return Some("measurement source or method is missing".to_owned());
     }
     if !nonempty(&channel.system_boundary_digest)
@@ -329,8 +333,17 @@ fn align_channel(channel: &ChannelMeasurement) -> Result<Option<ChannelAlignment
         evidence_class: channel.evidence_class,
         sensor_serial: channel.sensor_serial.clone(),
         calibration_digest: channel.calibration_digest.clone(),
+        calibration_certificate_reference: channel.calibration_certificate_reference.clone(),
+        reference_standard_reference: channel.reference_standard_reference.clone(),
         calibration_chain_digest: channel.calibration_chain_digest.clone(),
         clock_mapping_digest: channel.clock_mapping_digest.clone(),
+        reference_clock_id: channel.reference_clock_id.clone(),
+        reference_instant_s: channel.reference_instant_s,
+        raw_trace_digest: channel.raw_trace_digest.clone(),
+        source_reference: channel.source_reference.clone(),
+        measurement_method: channel.measurement_method.clone(),
+        slew_bound_provenance_digest: channel.slew_bound_provenance_digest.clone(),
+        slew_bound_source_reference: channel.slew_bound_source_reference.clone(),
         system_boundary_digest: channel.system_boundary_digest.clone(),
         operating_condition_digest: channel.operating_condition_digest.clone(),
     }))
@@ -402,6 +415,9 @@ pub fn evaluate_mechanical_port_power(
     let added_timing_power_bound_w = (pre_timing_power.lower - aligned_power.lower)
         .max(aligned_power.upper - pre_timing_power.upper)
         .max(0.0);
+    if !added_timing_power_bound_w.is_finite() {
+        return Err("timing-induced power expansion is non-finite".to_owned());
+    }
 
     Ok(PortPowerAssessment {
         disposition: MeasurementDisposition::QualifiedBoundedEstimate,
@@ -450,6 +466,7 @@ mod tests {
             operating_condition_digest: "48V-25C-cooling-A-01".to_owned(),
             source_reference: "https://example.invalid/measurement/run-01".to_owned(),
             measurement_method: "Synthetic known-answer bounded calibration fixture".to_owned(),
+            raw_trace_digest: "raw-trace-digest-01".to_owned(),
             reference_clock_id: "ptp-clock-domain-01".to_owned(),
             clock_mapping_digest: "clock-map-digest-01".to_owned(),
             reference_instant_s: 1.0,
@@ -678,7 +695,46 @@ mod tests {
     }
 
     #[test]
-    fn metrology_020_nonfinite_combined_skew_rejects() {
+    fn metrology_020_traceability_not_established_is_unknown() {
+        let (mut torque, speed) = pair();
+        torque.traceability_status = TraceabilityStatus::Partial;
+        let report = evaluate_mechanical_port_power(&torque, &speed).unwrap();
+        assert_eq!(report.disposition, MeasurementDisposition::Unknown);
+        assert!(report.reason.as_ref().unwrap().contains("traceability status"));
+    }
+
+    #[test]
+    fn metrology_021_missing_clock_mapping_digest_is_unknown() {
+        let (mut torque, speed) = pair();
+        torque.clock_mapping_digest.clear();
+        let report = evaluate_mechanical_port_power(&torque, &speed).unwrap();
+        assert_eq!(report.disposition, MeasurementDisposition::Unknown);
+        assert!(report.reason.as_ref().unwrap().contains("clock-mapping digest"));
+    }
+
+    #[test]
+    fn metrology_022_result_receipts_preserve_raw_trace_and_calibration_chain() {
+        let (torque, speed) = pair();
+        let report = evaluate_mechanical_port_power(&torque, &speed).unwrap();
+        let torque_result = report.torque_alignment.unwrap();
+        assert_eq!(torque_result.raw_trace_digest, "raw-trace-digest-01");
+        assert_eq!(torque_result.reference_clock_id, "ptp-clock-domain-01");
+        assert_eq!(
+            torque_result.calibration_certificate_reference,
+            "https://example.invalid/calibration/cert-01"
+        );
+        assert_eq!(
+            torque_result.slew_bound_provenance_digest,
+            "slew-bound-digest-01"
+        );
+        assert_eq!(torque_result.source_reference, "https://example.invalid/measurement/run-01");
+        assert_eq!(torque_result.measurement_method, "Synthetic known-answer bounded calibration fixture");
+        assert_eq!(report.angular_velocity_alignment.unwrap().raw_trace_digest, "raw-trace-digest-01");
+        let _ = speed;
+    }
+
+    #[test]
+    fn metrology_023_nonfinite_combined_skew_rejects() {
         let (mut torque, speed) = pair();
         torque.sample_time_offset_s = f64::MAX;
         torque.clock_offset_uncertainty_s = f64::MAX;
