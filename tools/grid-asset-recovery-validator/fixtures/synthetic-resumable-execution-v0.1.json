@@ -129,5 +129,6 @@
       "interruptionCause": null
     }
   ],
-  "reconciliations": []
+  "reconciliations": [],
+  "caseMaturity": "synthetic_fixture"
 }
