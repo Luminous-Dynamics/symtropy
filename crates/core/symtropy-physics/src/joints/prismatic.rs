@@ -143,7 +143,10 @@ impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
 
         let inverse_mass_a = if body_a.is_dynamic() { body_a.inv_mass } else { 0.0 };
         let inverse_mass_b = if body_b.is_dynamic() { body_b.inv_mass } else { 0.0 };
-        if inverse_mass_a + inverse_mass_b <= 0.0 {
+        if !inverse_mass_a.is_finite()
+            || !inverse_mass_b.is_finite()
+            || inverse_mass_a + inverse_mass_b <= 0.0
+        {
             return;
         }
 
