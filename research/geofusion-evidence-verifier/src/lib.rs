@@ -32,6 +32,7 @@ pub enum VerificationError {
     ByteLengthMismatch,
     SourceIdentityMismatch(&'static str),
     TimeWindowMismatch(&'static str),
+    TimeQualityInsufficient,
     SourcePowerEnergyMismatch,
     UnsupportedCarrier,
     InvalidEnergy(&'static str),
@@ -63,6 +64,7 @@ impl VerificationError {
             Self::ByteLengthMismatch => "BYTE_LENGTH_MISMATCH",
             Self::SourceIdentityMismatch(_) => "SOURCE_IDENTITY_MISMATCH",
             Self::TimeWindowMismatch(_) => "TIME_WINDOW_MISMATCH",
+            Self::TimeQualityInsufficient => "TIME_QUALITY_INSUFFICIENT",
             Self::SourcePowerEnergyMismatch => "SOURCE_POWER_ENERGY_MISMATCH",
             Self::UnsupportedCarrier => "UNSUPPORTED_CARRIER",
             Self::InvalidEnergy(_) => "INVALID_ENERGY",
@@ -282,7 +284,7 @@ fn parse_utc_timestamp_ns(value: &str) -> Result<i128, VerificationError> {
     }
 
     // Proleptic Gregorian civil date to days since 1970-01-01.
-    let adjusted_year = year - i64::from(month <= 2);
+    let adjusted_year = year - if month <= 2 { 1 } else { 0 };
     let era = adjusted_year.div_euclid(400);
     let year_of_era = adjusted_year - era * 400;
     let shifted_month = month + if month > 2 { -3 } else { 9 };
@@ -293,23 +295,23 @@ fn parse_utc_timestamp_ns(value: &str) -> Result<i128, VerificationError> {
     let seconds = days_since_epoch * 86_400
         + i128::from(hour * 3_600 + minute * 60 + second);
 
-    let fraction_ns = match bytes.get(19) {
-        None => 0_i128,
-        Some(b'.') => {
-            let fractional_digits = &bytes[20..bytes.len() - 1];
-            if fractional_digits.is_empty()
-                || fractional_digits.len() > 9
-                || !fractional_digits.iter().all(u8::is_ascii_digit)
-            {
-                return Err(invalid());
-            }
-            let digits = std::str::from_utf8(fractional_digits)
-                .map_err(|_| invalid())?
-                .parse::<i128>()
-                .map_err(|_| invalid())?;
-            digits * 10_i128.pow((9 - fractional_digits.len()) as u32)
+    let fraction_ns = if bytes.len() == 20 {
+        0_i128
+    } else if bytes.get(19) == Some(&b'.') {
+        let fractional_digits = &bytes[20..bytes.len() - 1];
+        if fractional_digits.is_empty()
+            || fractional_digits.len() > 9
+            || !fractional_digits.iter().all(u8::is_ascii_digit)
+        {
+            return Err(invalid());
         }
-        _ => return Err(invalid()),
+        let digits = std::str::from_utf8(fractional_digits)
+            .map_err(|_| invalid())?
+            .parse::<i128>()
+            .map_err(|_| invalid())?;
+        digits * 10_i128.pow((9 - fractional_digits.len()) as u32)
+    } else {
+        return Err(invalid());
     };
     Ok(seconds * 1_000_000_000 + fraction_ns)
 }
@@ -493,9 +495,7 @@ pub fn verify_source_interval(
         _ => matches!(clock_quality, "synchronized" | "estimated"),
     };
     if !clock_quality_allowed {
-        return Err(VerificationError::TimeWindowMismatch(
-            "clock quality is insufficient for this evidence class",
-        ));
+        return Err(VerificationError::TimeQualityInsufficient);
     }
     let _clock_uncertainty_ns = unsigned_field(
         time_window,
@@ -1013,6 +1013,26 @@ mod tests {
         e["artifact"]["digest"]["value"] = json!("z".repeat(64));
         let error = verify_source_interval(PAYLOAD, &e, &allocation()).unwrap_err();
         assert_eq!(error.code(), "MALFORMED_DIGEST");
+    }
+
+    #[test]
+    fn synthetic_interval_requires_synthetic_clock_quality() {
+        let mut e = evidence();
+        e["time_window"]["clock_quality"] = json!("unknown");
+        let error = verify_source_interval(PAYLOAD, &e, &allocation()).unwrap_err();
+        assert_eq!(error.code(), "TIME_QUALITY_INSUFFICIENT");
+    }
+
+    #[test]
+    fn source_interval_timestamp_must_be_utc_zulu() {
+        let (bytes, e, a) = interval_fixture(
+            "offset-spelling",
+            "2026-01-01T00:00:00+00:00",
+            "GF-OFFSET-EVIDENCE",
+            "GF-OFFSET-ALLOCATION",
+        );
+        let error = verify_source_interval(&bytes, &e, &a).unwrap_err();
+        assert_eq!(error.code(), "TIME_WINDOW_MISMATCH");
     }
 
     #[test]
