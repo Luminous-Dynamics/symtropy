@@ -435,6 +435,15 @@
       "required_diagnostic_codes": [],
       "assertion": "Receipt bytes include canonical sorted source-record and versioned-subject dependency lists.",
       "synthetic_only": true
+    },
+    {
+      "id": "LEV-META-006",
+      "mode": "metamorphic",
+      "test_name": "no_op_dependency_events_do_not_invalidate_receipts",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Evidence-state, evidence-digest, subject-revision, operation-window and clock-domain events that repeat the exact current dependency value do not invalidate the preflight receipt.",
+      "synthetic_only": true
     }
   ]
 }
