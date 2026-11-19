@@ -268,27 +268,38 @@ pub fn verify_source_interval(
 
     let measurement = required(evidence, "measurement", "evidence envelope")?;
     let model = required(evidence, "model", "evidence envelope")?;
+    if matches!(evidence_class, "measured" | "audited_operation")
+        && string_field(measurement, "applicability", "measurement")? != "applicable"
+    {
+        return Err(VerificationError::InvalidField("measurement.applicability"));
+    }
     if matches!(evidence_class, "measured" | "audited_operation") {
-        if string_field(measurement, "applicability", "measurement")? != "applicable" {
-            return Err(VerificationError::InvalidField("measurement.applicability"));
-        }
         let instruments = required(measurement, "instrument_ids", "measurement")?
             .as_array()
             .filter(|items| !items.is_empty())
             .ok_or(VerificationError::InvalidField("measurement.instrument_ids"))?;
-        if instruments.iter().any(|item| item.as_str().is_none_or(|id| id.trim().is_empty())) {
+        let invalid_instrument = instruments
+            .iter()
+            .any(|item| item.as_str().is_none_or(|id| id.trim().is_empty()));
+        if invalid_instrument {
             return Err(VerificationError::InvalidField("measurement.instrument_ids"));
         }
         string_field(measurement, "calibration_certificate_id", "measurement")?;
         string_field(measurement, "calibration_valid_from_utc", "measurement")?;
         string_field(measurement, "calibration_valid_until_utc", "measurement")?;
     }
-    if matches!(evidence_class, "calibrated_model" | "independently_validated_model") {
-        if string_field(model, "applicability", "model")? != "applicable"
-            || string_field(model, "convergence_state", "model")? != "converged"
-        {
-            return Err(VerificationError::InvalidField("model.convergence_state"));
-        }
+    if matches!(
+        evidence_class,
+        "calibrated_model" | "independently_validated_model"
+    ) && (string_field(model, "applicability", "model")? != "applicable"
+        || string_field(model, "convergence_state", "model")? != "converged")
+    {
+        return Err(VerificationError::InvalidField("model.convergence_state"));
+    }
+    if matches!(
+        evidence_class,
+        "calibrated_model" | "independently_validated_model"
+    ) {
         string_field(model, "solver_id", "model")?;
         string_field(model, "solver_version", "model")?;
     }
