@@ -20,6 +20,25 @@ pub trait Constraint<const D: usize>: Send + Sync + std::any::Any {
     /// Called multiple times per frame for iterative convergence.
     fn solve(&self, body_a: &mut RigidBody<D>, body_b: &mut RigidBody<D>, dt: f64);
 
+    /// Apply an actuator command once for the current world-step interval.
+    ///
+    /// This hook is deliberately separate from solve_velocity, which may be
+    /// called many times by the iterative constraint solver. Implementations
+    /// must integrate the declared actuator effort over dt exactly once and
+    /// emit at most one authoritative mechanical-work receipt for this step.
+    ///
+    /// Passive constraints leave the default no-op in place. Motorized joints
+    /// apply one generalized impulse and calculate its discrete work using
+    /// the midpoint relative flow across that impulse.
+    fn solve_actuator_step(
+        &self,
+        _body_a: &mut RigidBody<D>,
+        _body_b: &mut RigidBody<D>,
+        _dt: f64,
+        _callback: &mut dyn crate::world::PhysicsCallback<D>,
+    ) {
+    }
+
     /// Optional velocity-level correction (impulse-based, Fix 7).
     /// Called after position solve for hybrid PBD+impulse dynamics.
     /// Default: no-op (pure PBD).

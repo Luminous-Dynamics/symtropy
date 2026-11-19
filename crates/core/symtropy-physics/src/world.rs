@@ -79,9 +79,11 @@ pub trait PhysicsCallback<const D: usize> {
     /// Called after each physics step to record energy dissipated.
     fn record_dissipation(&mut self, energy: f64);
 
-    /// Record mechanical work performed (or energy recovered) by an actuator.
-    /// Positive work = energy consumed (motor driving motion).
-    /// Negative work = energy recovered (regenerative braking).
+    /// Record signed mechanical-port work performed by an actuator.
+    /// Positive work means the actuator delivered mechanical energy to the
+    /// joint; negative work means the joint mechanically absorbed energy.
+    /// Negative mechanical work is not, by itself, proof that electrical
+    /// energy was captured by a DC bus or battery.
     fn record_work(&mut self, body: BodyHandle, work_joules: f64);
 
     /// Calculates and applies the long-term effect of a collision event
@@ -693,7 +695,39 @@ impl<const D: usize> PhysicsWorld<D> {
             }
         }
 
+        // 6a. Execute actuator commands once for this elapsed world step.
+        // Motorized joints must not integrate the full frame dt inside the
+        // iterative velocity-constraint relaxation loop below.
+        for &ci in &active_constraint_indices {
+            if ci >= self.constraints.len() {
+                continue;
+            }
+            let (ha, hb) = self.constraints[ci].bodies();
+            let (idx_a, idx_b) = self.find_body_indices(ha, hb);
+            if let (Some(a), Some(b)) = (idx_a, idx_b) {
+                if a < b {
+                    let (left, right) = self.bodies.split_at_mut(b);
+                    self.constraints[ci].solve_actuator_step(
+                        &mut left[a],
+                        &mut right[0],
+                        dt,
+                        callback,
+                    );
+                } else {
+                    let (left, right) = self.bodies.split_at_mut(a);
+                    self.constraints[ci].solve_actuator_step(
+                        &mut right[0],
+                        &mut left[b],
+                        dt,
+                        callback,
+                    );
+                }
+            }
+        }
+
         // 6b. Velocity-level constraint solve (active islands only)
+        // This is a relaxation loop: it may run multiple times, but it must
+        // not advance actuator time or emit additional actuator work receipts.
         for _ in 0..self.solver_iterations {
             for &ci in &active_constraint_indices {
                 if ci >= self.constraints.len() {
@@ -2559,5 +2593,273 @@ mod transformed_halfspace_tests {
             .rotation = Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2);
 
         assert!(world.static_tree_dirty);
+    }
+}
+
+#[cfg(test)]
+mod actuator_once_per_step_regression_tests {
+    use super::*;
+    use crate::joints::{HingeJoint, MotorDrive, PrismaticJoint};
+
+    #[derive(Default)]
+    struct WorkRecorder {
+        receipts: Vec<(BodyHandle, f64)>,
+    }
+
+    impl<const D: usize> PhysicsCallback<D> for WorkRecorder {
+        fn modulate_force(&self, _: BodyHandle, force: &SVector<f64, D>) -> SVector<f64, D> {
+            *force
+        }
+
+        fn modulate_impulse(&self, impulse: f64, _: &SVector<f64, D>) -> f64 {
+            impulse
+        }
+
+        fn friction_multiplier(&self, _: &SVector<f64, D>, _: BodyHandle) -> f64 {
+            1.0
+        }
+
+        fn on_collision(&mut self, _: &CollisionEvent<D>) {}
+
+        fn record_dissipation(&mut self, _: f64) {}
+
+        fn record_work(&mut self, body: BodyHandle, work_joules: f64) {
+            self.receipts.push((body, work_joules));
+        }
+
+        fn apply_trauma(&mut self, _: &CollisionEvent<D>) {}
+    }
+
+    fn assert_close(actual: f64, expected: f64, tolerance: f64, label: &str) {
+        assert!(
+            (actual - expected).abs() <= tolerance,
+            "{label}: expected {expected:.12e}, got {actual:.12e}, tolerance {tolerance:.3e}"
+        );
+    }
+
+    fn run_hinge_motor(iterations: usize) -> (f64, Vec<(BodyHandle, f64)>) {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        world.solver_iterations = iterations;
+        let base = world.add_body(RigidBody::<2>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(Sphere::new(Point::origin(), 0.1)),
+        ));
+        let link = world.add_body(RigidBody::<2>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            0.5,
+            1.0,
+        ));
+        let mut motor = MotorDrive::new(0.0, 1.0).with_gains(1.0, 0.0);
+        motor.target_vel = 1.0;
+        world.add_constraint(Box::new(
+            HingeJoint::new(base, link, 0, 1).with_motor(motor),
+        ));
+
+        let mut recorder = WorkRecorder::default();
+        world.step_with_callback(0.1, &mut recorder);
+        (world.body(link).unwrap().angular_velocity.get(0, 1), recorder.receipts)
+    }
+
+    fn run_prismatic_motor(iterations: usize) -> (f64, Vec<(BodyHandle, f64)>) {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.solver_iterations = iterations;
+        let base = world.add_body(RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(Sphere::new(Point::origin(), 0.1)),
+        ));
+        let slider = world.add_body(RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            0.5,
+            1.0,
+        ));
+        let motor = MotorDrive::new(0.5, 2.0).with_gains(10.0, 0.0);
+        world.add_constraint(Box::new(
+            PrismaticJoint::new(base, slider, 0).with_motor(motor),
+        ));
+
+        let mut recorder = WorkRecorder::default();
+        world.step_with_callback(0.1, &mut recorder);
+        (world.body(slider).unwrap().linear_velocity[0], recorder.receipts)
+    }
+
+    #[test]
+    fn hinge_motor_impulse_and_work_are_invariant_to_solver_iterations() {
+        let mut reference_velocity = None;
+        let mut reference_work = None;
+        for iterations in [1, 2, 4, 8] {
+            let (angular_velocity, receipts) = run_hinge_motor(iterations);
+            assert_eq!(
+                receipts.len(),
+                1,
+                "one motorized hinge must emit one work receipt at {iterations} solver iterations"
+            );
+            assert_close(angular_velocity, 1.0, 1.0e-12, "hinge angular velocity");
+            assert_close(receipts[0].1, 0.05, 1.0e-12, "hinge midpoint impulse work");
+            if let Some(reference) = reference_velocity {
+                assert_close(angular_velocity, reference, 1.0e-12, "iteration-invariant hinge state");
+            } else {
+                reference_velocity = Some(angular_velocity);
+            }
+            if let Some(reference) = reference_work {
+                assert_close(receipts[0].1, reference, 1.0e-12, "iteration-invariant hinge work");
+            } else {
+                reference_work = Some(receipts[0].1);
+            }
+        }
+    }
+
+    #[test]
+    fn static_base_hinge_receives_the_full_generalized_impulse() {
+        let (angular_velocity, receipts) = run_hinge_motor(4);
+        assert_close(
+            angular_velocity,
+            1.0,
+            1.0e-12,
+            "static-base hinge angular response",
+        );
+        assert_eq!(receipts.len(), 1);
+        assert_close(receipts[0].1, 0.05, 1.0e-12, "static-base hinge work");
+    }
+
+    #[test]
+    fn prismatic_motor_impulse_and_work_are_invariant_to_solver_iterations() {
+        let mut reference_velocity = None;
+        let mut reference_work = None;
+        for iterations in [1, 2, 4, 8] {
+            let (linear_velocity, receipts) = run_prismatic_motor(iterations);
+            assert_eq!(
+                receipts.len(),
+                1,
+                "one motorized prismatic joint must emit one work receipt at {iterations} solver iterations"
+            );
+            assert_close(linear_velocity, 0.2, 1.0e-12, "prismatic linear velocity");
+            assert_close(receipts[0].1, 0.02, 1.0e-12, "prismatic midpoint impulse work");
+            if let Some(reference) = reference_velocity {
+                assert_close(linear_velocity, reference, 1.0e-12, "iteration-invariant prismatic state");
+            } else {
+                reference_velocity = Some(linear_velocity);
+            }
+            if let Some(reference) = reference_work {
+                assert_close(receipts[0].1, reference, 1.0e-12, "iteration-invariant prismatic work");
+            } else {
+                reference_work = Some(receipts[0].1);
+            }
+        }
+    }
+
+    #[test]
+    fn prismatic_static_base_receives_the_full_generalized_impulse() {
+        let (linear_velocity, receipts) = run_prismatic_motor(4);
+        assert_close(linear_velocity, 0.2, 1.0e-12, "static-base prismatic response");
+        assert_eq!(receipts.len(), 1);
+        assert_close(receipts[0].1, 0.02, 1.0e-12, "static-base prismatic work");
+    }
+
+    fn run_unequal_inertia_hinge() -> (f64, f64, Vec<(BodyHandle, f64)>) {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        world.solver_iterations = 4;
+        let body_a = world.add_body(RigidBody::<2>::dynamic_sphere(
+            BodyHandle(0),
+            Point::origin(),
+            0.5,
+            1.0,
+        ));
+        let body_b = world.add_body(RigidBody::<2>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            1.0,
+            2.0,
+        ));
+        let mut motor = MotorDrive::new(0.0, 1.0).with_gains(1.0, 0.0);
+        motor.target_vel = 1.0;
+        world.add_constraint(Box::new(
+            HingeJoint::new(body_a, body_b, 0, 1).with_motor(motor),
+        ));
+        let mut recorder = WorkRecorder::default();
+        world.step_with_callback(0.1, &mut recorder);
+        (
+            world.body(body_a).unwrap().angular_velocity.get(0, 1),
+            world.body(body_b).unwrap().angular_velocity.get(0, 1),
+            recorder.receipts,
+        )
+    }
+
+    fn run_unequal_mass_prismatic() -> (f64, f64, Vec<(BodyHandle, f64)>) {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.solver_iterations = 4;
+        let body_a = world.add_body(RigidBody::<3>::dynamic_sphere(
+            BodyHandle(0),
+            Point::origin(),
+            0.5,
+            2.0,
+        ));
+        let body_b = world.add_body(RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            0.5,
+            1.0,
+        ));
+        let motor = MotorDrive::new(0.5, 2.0).with_gains(10.0, 0.0);
+        world.add_constraint(Box::new(
+            PrismaticJoint::new(body_a, body_b, 0).with_motor(motor),
+        ));
+        let mut recorder = WorkRecorder::default();
+        world.step_with_callback(0.1, &mut recorder);
+        (
+            world.body(body_a).unwrap().linear_velocity[0],
+            world.body(body_b).unwrap().linear_velocity[0],
+            recorder.receipts,
+        )
+    }
+
+    #[test]
+    fn unequal_inertia_hinge_distributes_impulse_by_inverse_inertia() {
+        let (omega_a, omega_b, receipts) = run_unequal_inertia_hinge();
+        assert_close(omega_a, -1.0, 1.0e-12, "hinge body A angular delta");
+        assert_close(omega_b, 0.125, 1.0e-12, "hinge body B angular delta");
+        assert_close(omega_b - omega_a, 1.125, 1.0e-12, "hinge relative angular delta");
+        assert_eq!(receipts.len(), 1);
+        assert_close(receipts[0].1, 0.05625, 1.0e-12, "unequal-inertia hinge work");
+
+        // I_A=0.1 and I_B=0.8 for the two sphere fixtures.
+        let delta_kinetic = 0.5 * 0.1 * omega_a.powi(2) + 0.5 * 0.8 * omega_b.powi(2);
+        assert_close(receipts[0].1, delta_kinetic, 1.0e-12, "unequal-inertia hinge energy balance");
+    }
+
+    #[test]
+    fn unequal_mass_prismatic_distributes_impulse_by_inverse_mass() {
+        let (velocity_a, velocity_b, receipts) = run_unequal_mass_prismatic();
+        assert_close(velocity_a, -0.1, 1.0e-12, "prismatic body A velocity");
+        assert_close(velocity_b, 0.2, 1.0e-12, "prismatic body B velocity");
+        assert_close(velocity_b - velocity_a, 0.3, 1.0e-12, "prismatic relative velocity");
+        assert_eq!(receipts.len(), 1);
+        assert_close(receipts[0].1, 0.03, 1.0e-12, "unequal-mass prismatic work");
+        let delta_kinetic = 0.5 * 2.0 * velocity_a.powi(2) + 0.5 * velocity_b.powi(2);
+        assert_close(receipts[0].1, delta_kinetic, 1.0e-12, "unequal-mass prismatic energy balance");
+    }
+
+    #[test]
+    fn actuator_mechanical_work_receipt_matches_kinetic_energy_change() {
+        let (hinge_velocity, hinge_receipts) = run_hinge_motor(4);
+        let hinge_kinetic_energy = 0.5 * 0.1 * hinge_velocity * hinge_velocity;
+        assert_close(
+            hinge_receipts[0].1,
+            hinge_kinetic_energy,
+            1.0e-12,
+            "hinge work versus kinetic-energy change",
+        );
+
+        let (slider_velocity, slider_receipts) = run_prismatic_motor(4);
+        let slider_kinetic_energy = 0.5 * slider_velocity * slider_velocity;
+        assert_close(
+            slider_receipts[0].1,
+            slider_kinetic_energy,
+            1.0e-12,
+            "prismatic work versus kinetic-energy change",
+        );
     }
 }
