@@ -30,6 +30,18 @@ cargo clippy -p symtropy-geofusion-contracts --all-targets -- -D warnings
 
 The crate is part of the public Symtropy workspace. See the [system architecture and 27-case benchmark documentation](https://github.com/Luminous-Dynamics/symtropy/pull/6143) and [GEOFUSION-INTEGRATION-001](https://github.com/Luminous-Dynamics/symtropy/issues/6142).
 
+## Explicit IF97 provider input boundary
+
+The `provider_units` module is an adapter contract, not an IF97 implementation:
+
+- Accepts pressure in Pa and temperature in K at a named state boundary.
+- Converts absolute pressure Pa ↔ kPa with finite/positive/underflow/overflow checks.
+- Requires an explicit `PureWater` composition class before producing provider inputs.
+- Rejects saline brine, non-condensable-gas mixtures and unknown compositions before any water/steam provider call.
+- Preserves fluid-composition and state-boundary identity.
+
+The first candidate `vle-steam` v0.20.1 uses K and kPa absolute; no third-party property crate is a production dependency in this PR. See [property-provider reconnaissance #6172](https://github.com/Luminous-Dynamics/symtropy/issues/6172) and the machine-readable comparison record in the benchmark documentation PR.
+
 ## Superhot wellhead state boundary
 
 The `superhot_well` module adds a source-bounded reservoir-to-wellhead case contract:
