@@ -40,7 +40,7 @@ The mapping is accepted only when the result is integral and representable as i6
 - `EarlyReturn`: the importer had enabled `earlyReturnAllowed`, and the returned time is strictly between the current and requested endpoint. All required federates must reach the same master-time barrier before the next communication sequence.
 - An early return at the current communication point is valid FMI behavior in some event situations, but v0.1 has no same-time event-round record. It is classified as `ZERO_PROGRESS_EARLY_RETURN_UNSUPPORTED`, not as an invalid FMI trace.
 - `eventHandlingNeeded` and `terminateSimulation` are explicitly rejected as unsupported trace paths until Event Mode and termination membership transitions are represented. If an event is signalled without Event Mode being enabled, it is rejected as a contract violation.
-- `Rejected`: a normalized no-advance/discard disposition. Caller-supplied before/after state digests must match. The verifier does not trust undefined outputs from an FMI `fmi3Discard` call as a successful time advance.
+- `Rejected`: a normalized no-advance/discard disposition. Caller-supplied before/after state digests must match. Its trace end-time field is set to the canonical start time; it is not copied from the undefined output arguments of an FMI `fmi3Discard` call.
 - A retry must have a new attempt ID, reference the immediately preceding rejected attempt, preserve its start state and not widen its requested horizon.
 - Every commit barrier must contain exactly one terminal accepted/early-return attempt per required federate.
 
