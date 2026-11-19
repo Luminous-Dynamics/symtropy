@@ -1,6 +1,6 @@
 mod scheduler;
 
-use scheduler::{AvailabilityWindow, ResourceProfile, ResourceRequirement, SchedulePolicy, ScheduledTask, TaskSpec, exact_small_schedule, exact_small_service_schedule, schedule_with_policy, weighted_unserved_energy_mwh};
+use scheduler::{AvailabilityWindow, ResourceOutageWindow, ResourceProfile, ResourceRequirement, SchedulePolicy, ScheduledTask, TaskSpec, exact_small_schedule, exact_small_service_schedule, schedule_with_policy, weighted_unserved_energy_mwh};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -149,6 +149,57 @@ struct Task {
     duration_hours: f64,
     #[serde(default)]
     resource_requirements: Vec<ResourceRequirement>,
+}
+
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RecoveryScenarioSet {
+    schema_version: String,
+    scenario_set_id: String,
+    base_case_id: String,
+    scenarios: Vec<RecoveryScenario>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RecoveryScenario {
+    scenario_id: String,
+    description: String,
+    probability: f64,
+    #[serde(default)]
+    task_duration_overrides: Vec<TaskDurationOverride>,
+    #[serde(default)]
+    task_release_delays: Vec<TaskReleaseDelay>,
+    #[serde(default)]
+    resource_outages: Vec<ScenarioResourceOutage>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct TaskDurationOverride {
+    event_id: String,
+    task_id: String,
+    duration_hours: f64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct TaskReleaseDelay {
+    event_id: String,
+    task_id: String,
+    delay_hours: f64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ScenarioResourceOutage {
+    resource_id: String,
+    start_hour: f64,
+    end_hour: f64,
+    units_unavailable: u32,
+    cause_id: String,
+    correlation_group_id: String,
 }
 
 fn unique_ids<'a>(ids: impl Iterator<Item = &'a str>, label: &str, errors: &mut Vec<String>) {
@@ -638,6 +689,32 @@ struct ExactSmallServiceComparison {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+struct ScenarioOutcome {
+    scenario_id: String,
+    description: String,
+    probability: f64,
+    makespan_hours: f64,
+    weighted_unserved_energy_mwh: f64,
+    correlated_cause_groups: Vec<String>,
+    schedule: Vec<ScheduledTask>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ScenarioSetReport {
+    scenario_set_id: String,
+    scenario_count: usize,
+    probability_sum: f64,
+    expected_weighted_unserved_energy_mwh: f64,
+    p50_weighted_unserved_energy_mwh: f64,
+    p95_weighted_unserved_energy_mwh: f64,
+    worst_case_weighted_unserved_energy_mwh: f64,
+    worst_case_scenario_id: String,
+    outcomes: Vec<ScenarioOutcome>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 struct ScheduleReport {
     case_id: String,
     case_maturity: String,
@@ -646,6 +723,7 @@ struct ScheduleReport {
     primary_schedule_is_proven_optimal: bool,
     exact_small_comparison: Option<ExactSmallComparison>,
     exact_small_service_comparison: Option<ExactSmallServiceComparison>,
+    scenario_set_report: Option<ScenarioSetReport>,
     total_calculated_unserved_energy_mwh: f64,
     events: Vec<EventScheduleReport>,
     scheduled_tasks: Vec<ScheduledTask>,
@@ -661,6 +739,7 @@ fn resource_capacities(case: &Case) -> BTreeMap<String, ResourceProfile> {
                     available_units: resource.available_units,
                     calendar_period_hours: resource.calendar_period_hours,
                     availability_windows: resource.availability_windows.clone(),
+                    outage_windows: Vec::new(),
                 },
             )
         })
@@ -702,6 +781,7 @@ fn build_report(
     mut scheduled_tasks: Vec<ScheduledTask>,
     exact_small_comparison: Option<ExactSmallComparison>,
     exact_small_service_comparison: Option<ExactSmallServiceComparison>,
+    scenario_set_report: Option<ScenarioSetReport>,
     policy: SchedulePolicy,
 ) -> ScheduleReport {
     scheduled_tasks.sort_by(|left, right| {
@@ -755,10 +835,232 @@ fn build_report(
         primary_schedule_is_proven_optimal: false,
         exact_small_comparison,
         exact_small_service_comparison,
+        scenario_set_report,
         total_calculated_unserved_energy_mwh,
         events,
         scheduled_tasks,
     }
+}
+
+
+fn weighted_quantile(values: &[(f64, f64)], quantile: f64) -> f64 {
+    let mut ordered = values.to_vec();
+    ordered.sort_by(|left, right| left.0.total_cmp(&right.0));
+    let mut cumulative = 0.0;
+    for (value, probability) in &ordered {
+        cumulative += probability;
+        if cumulative + 1e-12 >= quantile {
+            return *value;
+        }
+    }
+    ordered.last().map(|item| item.0).unwrap_or(0.0)
+}
+
+fn evaluate_scenario_set(
+    case: &Case,
+    scenario_set_input: &str,
+    policy: SchedulePolicy,
+) -> Result<ScenarioSetReport, Vec<String>> {
+    let scenario_set: RecoveryScenarioSet = serde_json::from_str(scenario_set_input)
+        .map_err(|error| vec![format!("scenario-set JSON decode error: {error}")])?;
+    if scenario_set.schema_version != "0.1.0" {
+        return Err(vec!["unsupported scenarioSet schemaVersion".to_string()]);
+    }
+    if scenario_set.scenario_set_id.trim().is_empty() {
+        return Err(vec!["scenarioSetId must not be empty".to_string()]);
+    }
+    if scenario_set.base_case_id != case.case_id {
+        return Err(vec![format!(
+            "scenario set baseCaseId {} does not match caseId {}",
+            scenario_set.base_case_id, case.case_id
+        )]);
+    }
+    if scenario_set.scenarios.is_empty() {
+        return Err(vec!["scenario set must contain at least one scenario".to_string()]);
+    }
+
+    let profiles_base = resource_capacities(case);
+    let base_tasks = task_specs_for_case(case);
+    let task_keys: BTreeSet<String> = base_tasks
+        .iter()
+        .map(|task| format!("{}::{}", task.event_id, task.task_id))
+        .collect();
+    let mut scenario_ids = BTreeSet::new();
+    let mut probability_sum = 0.0;
+    let mut outcomes = Vec::new();
+
+    for scenario in &scenario_set.scenarios {
+        if scenario.scenario_id.trim().is_empty()
+            || !scenario_ids.insert(scenario.scenario_id.clone())
+        {
+            return Err(vec![format!(
+                "scenario has empty or duplicate scenarioId {}",
+                scenario.scenario_id
+            )]);
+        }
+        if !scenario.probability.is_finite() || scenario.probability < 0.0 {
+            return Err(vec![format!(
+                "scenario {} has invalid probability",
+                scenario.scenario_id
+            )]);
+        }
+        probability_sum += scenario.probability;
+
+        let mut tasks = base_tasks.clone();
+        let mut changed_durations = BTreeSet::new();
+        for adjustment in &scenario.task_duration_overrides {
+            let key = format!("{}::{}", adjustment.event_id, adjustment.task_id);
+            if !task_keys.contains(&key)
+                || !changed_durations.insert(key.clone())
+                || !adjustment.duration_hours.is_finite()
+                || adjustment.duration_hours <= 0.0
+            {
+                return Err(vec![format!(
+                    "scenario {} has invalid or duplicate task-duration override {}",
+                    scenario.scenario_id, key
+                )]);
+            }
+            let task = tasks
+                .iter_mut()
+                .find(|task| task.event_id == adjustment.event_id && task.task_id == adjustment.task_id)
+                .expect("validated task key exists");
+            task.duration_hours = adjustment.duration_hours;
+        }
+
+        let mut changed_releases = BTreeSet::new();
+        for delay in &scenario.task_release_delays {
+            let key = format!("{}::{}", delay.event_id, delay.task_id);
+            if !task_keys.contains(&key)
+                || !changed_releases.insert(key.clone())
+                || !delay.delay_hours.is_finite()
+                || delay.delay_hours < 0.0
+            {
+                return Err(vec![format!(
+                    "scenario {} has invalid or duplicate task-release delay {}",
+                    scenario.scenario_id, key
+                )]);
+            }
+            let task = tasks
+                .iter_mut()
+                .find(|task| task.event_id == delay.event_id && task.task_id == delay.task_id)
+                .expect("validated task key exists");
+            task.release_hour += delay.delay_hours;
+        }
+
+        let mut profiles = profiles_base.clone();
+        let mut affected_resources = BTreeSet::new();
+        let mut cause_groups = BTreeSet::new();
+        let mut outage_boundaries: BTreeMap<String, Vec<f64>> = BTreeMap::new();
+        for outage in &scenario.resource_outages {
+            let Some(profile) = profiles.get_mut(&outage.resource_id) else {
+                return Err(vec![format!(
+                    "scenario {} references unknown resource {}",
+                    scenario.scenario_id, outage.resource_id
+                )]);
+            };
+            if !outage.start_hour.is_finite()
+                || !outage.end_hour.is_finite()
+                || outage.start_hour < 0.0
+                || outage.end_hour <= outage.start_hour
+                || outage.units_unavailable == 0
+                || outage.units_unavailable > profile.available_units
+                || outage.cause_id.trim().is_empty()
+                || outage.correlation_group_id.trim().is_empty()
+            {
+                return Err(vec![format!(
+                    "scenario {} has invalid outage on {}",
+                    scenario.scenario_id, outage.resource_id
+                )]);
+            }
+            affected_resources.insert(outage.resource_id.clone());
+            cause_groups.insert(outage.correlation_group_id.clone());
+            let boundaries = outage_boundaries.entry(outage.resource_id.clone()).or_default();
+            boundaries.push(outage.start_hour);
+            boundaries.push(outage.end_hour);
+            profile.outage_windows.push(ResourceOutageWindow {
+                start_hour: outage.start_hour,
+                end_hour: outage.end_hour,
+                units_unavailable: outage.units_unavailable,
+            });
+        }
+        for (resource_id, profile) in &profiles {
+            let mut boundaries = outage_boundaries.get(resource_id).cloned().unwrap_or_default();
+            boundaries.sort_by(f64::total_cmp);
+            boundaries.dedup_by(|left, right| (*left - *right).abs() <= 1e-9);
+            for boundary in boundaries {
+                let unavailable: u32 = profile
+                    .outage_windows
+                    .iter()
+                    .filter(|outage| outage.start_hour <= boundary && outage.end_hour > boundary)
+                    .map(|outage| outage.units_unavailable)
+                    .sum();
+                if unavailable > profile.available_units {
+                    return Err(vec![format!(
+                        "scenario {} has overlapping outages above capacity on {}",
+                        scenario.scenario_id, resource_id
+                    )]);
+                }
+            }
+        }
+
+        let scheduled = schedule_with_policy(&tasks, &profiles, policy).map_err(|errors| {
+            errors
+                .into_iter()
+                .map(|error| format!("scenario {}: {error}", scenario.scenario_id))
+                .collect::<Vec<_>>()
+        })?;
+        let weighted_unserved =
+            weighted_unserved_energy_mwh(&tasks, &scheduled).map_err(|errors| {
+                errors
+                    .into_iter()
+                    .map(|error| format!("scenario {}: {error}", scenario.scenario_id))
+                    .collect::<Vec<_>>()
+            })?;
+        let makespan = scheduled
+            .iter()
+            .map(|task| task.end_hour)
+            .fold(0.0, f64::max);
+        outcomes.push(ScenarioOutcome {
+            scenario_id: scenario.scenario_id.clone(),
+            description: scenario.description.clone(),
+            probability: scenario.probability,
+            makespan_hours: makespan,
+            weighted_unserved_energy_mwh: weighted_unserved,
+            correlated_cause_groups: cause_groups.into_iter().collect(),
+            schedule: scheduled,
+        });
+    }
+
+    if (probability_sum - 1.0).abs() > 1e-6 {
+        return Err(vec![format!(
+            "scenario probabilities sum to {probability_sum}, expected 1.0"
+        )]);
+    }
+
+    let distribution: Vec<(f64, f64)> = outcomes
+        .iter()
+        .map(|outcome| (outcome.weighted_unserved_energy_mwh, outcome.probability))
+        .collect();
+    let expected = distribution
+        .iter()
+        .map(|(value, probability)| value * probability)
+        .sum();
+    let worst = outcomes
+        .iter()
+        .max_by(|left, right| left.weighted_unserved_energy_mwh.total_cmp(&right.weighted_unserved_energy_mwh))
+        .expect("scenario set is non-empty");
+
+    Ok(ScenarioSetReport {
+        scenario_set_id: scenario_set.scenario_set_id,
+        scenario_count: outcomes.len(),
+        probability_sum,
+        expected_weighted_unserved_energy_mwh: expected,
+        p50_weighted_unserved_energy_mwh: weighted_quantile(&distribution, 0.50),
+        p95_weighted_unserved_energy_mwh: weighted_quantile(&distribution, 0.95),
+        worst_case_weighted_unserved_energy_mwh: worst.weighted_unserved_energy_mwh,
+        worst_case_scenario_id: worst.scenario_id.clone(),
+        outcomes,
+    })
 }
 
 fn run_with_policy(
