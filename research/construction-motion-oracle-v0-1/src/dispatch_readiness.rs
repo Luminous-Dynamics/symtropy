@@ -579,7 +579,7 @@ mod tests {
     #[test]
     fn any_ledger_change_invalidates_the_previous_occupancy_snapshot() {
         let mut ledger = site_ledger();
-        let mut request = make_request(&ledger);
+        let request = make_request(&ledger);
         let package_sha256 = request.envelope.package_sha256.clone();
         ledger
             .apply(SiteEventEnvelope {
