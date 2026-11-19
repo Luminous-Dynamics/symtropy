@@ -16,8 +16,13 @@ fn is_valid_source_commit(value: &str) -> bool {
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
+    use std::fmt::Write as _;
     let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+    let mut output = String::with_capacity(64);
+    for byte in digest {
+        write!(&mut output, "{byte:02x}").expect("writing to String is infallible");
+    }
+    output
 }
 
 fn run() -> Result<ExitCode, String> {
