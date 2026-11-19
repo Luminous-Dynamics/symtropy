@@ -1,0 +1,175 @@
+{
+  "contract_version": "shipyard-crane-readiness-v0.1",
+  "vector_set_id": "SHIPYARD-CRANE-READINESS-CONFORMANCE-V0.1",
+  "status": "FROZEN_SYNTHETIC_TEST_CONTRACT_NOT_OPERATIONAL_QUALIFICATION",
+  "description": "Machine-readable mapping of deterministic crane-readiness tests to expected dispositions and diagnostic controls.",
+  "claim_ceiling": "No vector establishes crane fitness, competence in fact, standards conformity, permit status or permission to lift.",
+  "vectors": [
+    {
+      "id": "CRR-VERSION-001",
+      "mode": "evaluation",
+      "test_name": "unsupported_readiness_contract_version_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "READINESS_CONTRACT_VERSION_MISMATCH"
+      ],
+      "assertion": "Unsupported input contract versions abstain.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-BASE-001",
+      "mode": "evaluation",
+      "test_name": "complete_current_evidence_is_ready_for_human_review_only",
+      "expected_disposition": "ready_for_human_review",
+      "required_diagnostic_codes": [],
+      "assertion": "All required synthetic evidence and role/device controls are current.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-INSP-001",
+      "mode": "evaluation",
+      "test_name": "missing_crane_inspection_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "REQUIRED_EVIDENCE_MISSING"
+      ],
+      "assertion": "Missing crane inspection evidence is not a pass.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-INSP-002",
+      "mode": "evaluation",
+      "test_name": "revoked_crane_inspection_is_rejected",
+      "expected_disposition": "rejected",
+      "required_diagnostic_codes": [
+        "EVIDENCE_REVOKED"
+      ],
+      "assertion": "Revoked crane inspection evidence rejects readiness.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-DEVICE-001",
+      "mode": "evaluation",
+      "test_name": "bypassed_required_limiter_is_rejected",
+      "expected_disposition": "rejected",
+      "required_diagnostic_codes": [
+        "REQUIRED_DEVICE_BYPASSED"
+      ],
+      "assertion": "A bypassed required limiter rejects readiness.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-DUTY-001",
+      "mode": "evaluation",
+      "test_name": "stale_duty_monitoring_evidence_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_NOT_VALID_FOR_OPERATION"
+      ],
+      "assertion": "Stale duty-monitoring evidence abstains.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-PEOPLE-001",
+      "mode": "evaluation",
+      "test_name": "missing_required_personnel_role_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "ROLE_ASSIGNMENT_MISSING_OR_AMBIGUOUS"
+      ],
+      "assertion": "A missing required personnel role abstains.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-BRIEF-001",
+      "mode": "evaluation",
+      "test_name": "briefing_without_all_required_role_acknowledgements_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "BRIEFING_ACK_MISSING"
+      ],
+      "assertion": "Every required role must acknowledge the exact briefing.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-BRIEF-002",
+      "mode": "evaluation",
+      "test_name": "acknowledgement_for_another_method_statement_revision_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "BRIEFING_ACK_SUBJECT_OR_TIME_MISMATCH"
+      ],
+      "assertion": "An acknowledgement for another method-statement revision is not reusable.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-INSP-003",
+      "mode": "evaluation",
+      "test_name": "duplicate_matching_inspection_records_are_ambiguous",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "REQUIRED_EVIDENCE_AMBIGUOUS"
+      ],
+      "assertion": "Multiple records matching one required inspection subject are ambiguous.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-ZONE-001",
+      "mode": "evaluation",
+      "test_name": "unenforced_exclusion_zone_is_rejected",
+      "expected_disposition": "rejected",
+      "required_diagnostic_codes": [
+        "EXCLUSION_ZONE_NOT_ENFORCED"
+      ],
+      "assertion": "A declared unenforced exclusion zone rejects readiness.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-PREFLIGHT-001",
+      "mode": "multi_case",
+      "test_name": "invalidated_or_wrong_crane_lift_receipt_is_indeterminate",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [
+        "LIFT_PREFLIGHT_RECEIPT_INVALIDATED",
+        "LIFT_PREFLIGHT_CONTEXT_MISMATCH"
+      ],
+      "assertion": "Invalidated or mismatched lift preflight receipt abstains.",
+      "synthetic_only": true,
+      "expected_dispositions": [
+        "indeterminate",
+        "indeterminate"
+      ]
+    },
+    {
+      "id": "CRR-META-001",
+      "mode": "metamorphic",
+      "test_name": "evidence_input_permutation_preserves_canonical_report_value",
+      "expected_disposition": null,
+      "required_diagnostic_codes": [],
+      "assertion": "Input collection permutations produce the same deterministic report.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-DEVICE-002",
+      "mode": "evaluation",
+      "test_name": "unknown_limiter_state_is_indeterminate_not_a_pass",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "REQUIRED_DEVICE_STATE_UNKNOWN"
+      ],
+      "assertion": "Unknown protective-device state is never a pass.",
+      "synthetic_only": true
+    },
+    {
+      "id": "CRR-EVID-001",
+      "mode": "evaluation",
+      "test_name": "evidence_record_id_conflict_is_indeterminate",
+      "expected_disposition": "indeterminate",
+      "required_diagnostic_codes": [
+        "EVIDENCE_RECORD_ID_CONFLICT"
+      ],
+      "assertion": "Conflicting metadata under one source record ID is indeterminate.",
+      "synthetic_only": true
+    }
+  ]
+}
