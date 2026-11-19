@@ -34,6 +34,9 @@ pub enum VerificationError {
     SourceIdentityMismatch(&'static str),
     TimeWindowMismatch(&'static str),
     TimeQualityInsufficient,
+    CalibrationWindowInvalid,
+    CalibrationDoesNotCoverSourceInterval,
+    DuplicateInstrumentId,
     SourcePowerEnergyMismatch,
     UnsupportedCarrier,
     InvalidEnergy(&'static str),
@@ -67,6 +70,9 @@ impl VerificationError {
             Self::SourceIdentityMismatch(_) => "SOURCE_IDENTITY_MISMATCH",
             Self::TimeWindowMismatch(_) => "TIME_WINDOW_MISMATCH",
             Self::TimeQualityInsufficient => "TIME_QUALITY_INSUFFICIENT",
+            Self::CalibrationWindowInvalid => "CALIBRATION_WINDOW_INVALID",
+            Self::CalibrationDoesNotCoverSourceInterval => "CALIBRATION_DOES_NOT_COVER_INTERVAL",
+            Self::DuplicateInstrumentId => "DUPLICATE_INSTRUMENT_ID",
             Self::SourcePowerEnergyMismatch => "SOURCE_POWER_ENERGY_MISMATCH",
             Self::UnsupportedCarrier => "UNSUPPORTED_CARRIER",
             Self::InvalidEnergy(_) => "INVALID_ENERGY",
@@ -372,6 +378,7 @@ pub fn verify_source_interval(
 
     let measurement = required(evidence, "measurement", "evidence envelope")?;
     let model = required(evidence, "model", "evidence envelope")?;
+    let mut calibration_window_utc: Option<(String, String)> = None;
     if matches!(evidence_class, "measured" | "audited_operation")
         && string_field(measurement, "applicability", "measurement")? != "applicable"
     {
@@ -382,15 +389,30 @@ pub fn verify_source_interval(
             .as_array()
             .filter(|items| !items.is_empty())
             .ok_or(VerificationError::InvalidField("measurement.instrument_ids"))?;
-        let invalid_instrument = instruments
-            .iter()
-            .any(|item| item.as_str().is_none_or(|id| id.trim().is_empty()));
-        if invalid_instrument {
-            return Err(VerificationError::InvalidField("measurement.instrument_ids"));
+        let mut instrument_ids = BTreeSet::new();
+        for item in instruments {
+            let instrument_id = item
+                .as_str()
+                .filter(|id| !id.trim().is_empty())
+                .ok_or(VerificationError::InvalidField("measurement.instrument_ids"))?;
+            if !instrument_ids.insert(instrument_id) {
+                return Err(VerificationError::DuplicateInstrumentId);
+            }
         }
         string_field(measurement, "calibration_certificate_id", "measurement")?;
-        string_field(measurement, "calibration_valid_from_utc", "measurement")?;
-        string_field(measurement, "calibration_valid_until_utc", "measurement")?;
+        let valid_from = string_field(
+            measurement,
+            "calibration_valid_from_utc",
+            "measurement",
+        )?
+        .to_owned();
+        let valid_until = string_field(
+            measurement,
+            "calibration_valid_until_utc",
+            "measurement",
+        )?
+        .to_owned();
+        calibration_window_utc = Some((valid_from, valid_until));
     }
     if matches!(
         evidence_class,
@@ -528,6 +550,23 @@ pub fn verify_source_interval(
         != source_interval_duration_ns
     {
         return Err(VerificationError::TimeWindowMismatch("duration_ns"));
+    }
+    let source_interval_end_unix_ns = source_interval_start_unix_ns
+        .checked_add(i128::from(source_interval_duration_ns))
+        .ok_or(VerificationError::ArithmeticOverflow)?;
+    if let Some((valid_from_utc, valid_until_utc)) = calibration_window_utc {
+        let calibration_start_ns = parse_utc_timestamp_ns(&valid_from_utc)
+            .map_err(|_| VerificationError::CalibrationWindowInvalid)?;
+        let calibration_end_ns = parse_utc_timestamp_ns(&valid_until_utc)
+            .map_err(|_| VerificationError::CalibrationWindowInvalid)?;
+        if calibration_end_ns <= calibration_start_ns {
+            return Err(VerificationError::CalibrationWindowInvalid);
+        }
+        if calibration_start_ns > source_interval_start_unix_ns
+            || calibration_end_ns < source_interval_end_unix_ns
+        {
+            return Err(VerificationError::CalibrationDoesNotCoverSourceInterval);
+        }
     }
 
     let evidence_id = string_field(evidence, "evidence_id", "evidence envelope")?;
@@ -998,6 +1037,94 @@ mod tests {
         e["artifact"]["integrity_state"] = json!("mismatch");
         let error = verify_source_interval(PAYLOAD, &e, &allocation()).unwrap_err();
         assert_eq!(error.code(), "ARTIFACT_INTEGRITY_STATE_REJECTED");
+    }
+
+    fn measured_fixture(
+        calibration_from_utc: &str,
+        calibration_until_utc: &str,
+    ) -> (Vec<u8>, Value, Value) {
+        let mut payload: Value = serde_json::from_slice(PAYLOAD).unwrap();
+        payload["evidence_class"] = json!("measured");
+        let bytes = serde_json::to_vec(&payload).unwrap();
+        let digest = digest_hex(&bytes);
+
+        let mut e = evidence();
+        e["evidence_class"] = json!("measured");
+        e["validity"]["state"] = json!("current");
+        e["time_window"]["clock_quality"] = json!("synchronized");
+        e["measurement"]["applicability"] = json!("applicable");
+        e["measurement"]["instrument_ids"] = json!(["meter-a"]);
+        e["measurement"]["calibration_certificate_id"] = json!("CAL-001");
+        e["measurement"]["calibration_valid_from_utc"] = json!(calibration_from_utc);
+        e["measurement"]["calibration_valid_until_utc"] = json!(calibration_until_utc);
+        e["artifact"]["byte_length"] = json!(bytes.len());
+        e["artifact"]["digest"]["value"] = json!(digest);
+
+        let mut a = allocation();
+        a["source_payload_digest"]["value"] = json!(digest);
+        (bytes, e, a)
+    }
+
+    #[test]
+    fn measured_receipt_requires_calibration_to_cover_the_entire_interval() {
+        let (bytes, e, a) = measured_fixture(
+            "2025-12-01T00:00:00Z",
+            "2026-02-01T00:00:00Z",
+        );
+        let report = verify_source_interval(&bytes, &e, &a).unwrap();
+        assert!(report.qualified);
+        assert!(report.integrity_verified);
+    }
+
+    #[test]
+    fn expired_calibration_is_rejected_for_source_interval() {
+        let (bytes, e, a) = measured_fixture(
+            "2025-12-01T00:00:00Z",
+            "2025-12-31T23:59:59Z",
+        );
+        let error = verify_source_interval(&bytes, &e, &a).unwrap_err();
+        assert_eq!(error.code(), "CALIBRATION_DOES_NOT_COVER_INTERVAL");
+    }
+
+    #[test]
+    fn calibration_start_after_source_interval_start_is_rejected() {
+        let (bytes, e, a) = measured_fixture(
+            "2026-01-01T00:01:00Z",
+            "2026-02-01T00:00:00Z",
+        );
+        let error = verify_source_interval(&bytes, &e, &a).unwrap_err();
+        assert_eq!(error.code(), "CALIBRATION_DOES_NOT_COVER_INTERVAL");
+    }
+
+    #[test]
+    fn calibration_expiring_before_source_interval_end_is_rejected() {
+        let (bytes, e, a) = measured_fixture(
+            "2025-12-01T00:00:00Z",
+            "2026-01-01T00:59:59Z",
+        );
+        let error = verify_source_interval(&bytes, &e, &a).unwrap_err();
+        assert_eq!(error.code(), "CALIBRATION_DOES_NOT_COVER_INTERVAL");
+    }
+
+    #[test]
+    fn malformed_calibration_timestamp_is_rejected() {
+        let (bytes, e, a) = measured_fixture(
+            "2026-02-30T00:00:00Z",
+            "2026-03-01T00:00:00Z",
+        );
+        let error = verify_source_interval(&bytes, &e, &a).unwrap_err();
+        assert_eq!(error.code(), "CALIBRATION_WINDOW_INVALID");
+    }
+
+    #[test]
+    fn duplicate_measurement_instrument_ids_are_rejected() {
+        let (bytes, mut e, a) = measured_fixture(
+            "2025-12-01T00:00:00Z",
+            "2026-02-01T00:00:00Z",
+        );
+        e["measurement"]["instrument_ids"] = json!(["meter-a", "meter-a"]);
+        let error = verify_source_interval(&bytes, &e, &a).unwrap_err();
+        assert_eq!(error.code(), "DUPLICATE_INSTRUMENT_ID");
     }
 
     #[test]
