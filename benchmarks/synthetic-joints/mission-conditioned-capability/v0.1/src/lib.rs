@@ -424,7 +424,7 @@ pub fn evaluate_mission(
                     SampleAssessment {
                         sample_index: index,
                         time_s: sample.time_s,
-                        regime,
+                        regime: regime.unwrap(),
                         decision,
                         required_torque_upper_nm: required_upper,
                         continuous_torque_lower_nm: Some(continuous_lower),
@@ -438,7 +438,7 @@ pub fn evaluate_mission(
                 _ => SampleAssessment {
                     sample_index: index,
                     time_s: sample.time_s,
-                    regime,
+                    regime: regime.unwrap(),
                     decision: SampleDecision::Unknown,
                     required_torque_upper_nm: required_upper,
                     continuous_torque_lower_nm: None,
