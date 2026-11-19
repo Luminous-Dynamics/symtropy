@@ -182,8 +182,12 @@ fn weighted_average(value: u128, label: &str) -> Result<u64, String> {
 
 fn canonical_input_digest(input: &ModeOptionsInput) -> Result<String, String> {
     let mut canonical = input.clone();
-    canonical.regions.sort_by(|left, right| left.region_id.cmp(&right.region_id));
-    canonical.scenarios.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
+    canonical
+        .regions
+        .sort_by(|left, right| left.region_id.cmp(&right.region_id));
+    canonical
+        .scenarios
+        .sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
     for scenario in &mut canonical.scenarios {
         for period in &mut scenario.periods {
             period
@@ -226,15 +230,23 @@ fn validate_input(input: &ModeOptionsInput) -> Result<(), Vec<String>> {
             || region.aerial_capacity_units > MAX_UNITS_PER_PERIOD
             || region.aerial_activation_threshold_units > MAX_UNITS_PER_PERIOD
         {
-            errors.push(format!("regions[{index}]: capacity and threshold exceed v1 limits"));
+            errors.push(format!(
+                "regions[{index}]: capacity and threshold exceed v1 limits"
+            ));
         }
         for (field, value) in [
             ("road_cost_per_unit", region.road_cost_per_unit),
             ("aerial_cost_per_unit", region.aerial_cost_per_unit),
-            ("unserved_penalty_per_unit", region.unserved_penalty_per_unit),
+            (
+                "unserved_penalty_per_unit",
+                region.unserved_penalty_per_unit,
+            ),
             ("aerial_activation_cost", region.aerial_activation_cost),
             ("aerial_deactivation_cost", region.aerial_deactivation_cost),
-            ("aerial_standby_cost_per_period", region.aerial_standby_cost_per_period),
+            (
+                "aerial_standby_cost_per_period",
+                region.aerial_standby_cost_per_period,
+            ),
         ] {
             if value > MAX_COST_PER_UNIT {
                 errors.push(format!("regions[{index}].{field}: exceeds v1 cost ceiling"));
@@ -246,13 +258,19 @@ fn validate_input(input: &ModeOptionsInput) -> Result<(), Vec<String>> {
     let mut probability_sum = 0_u32;
     for (scenario_index, scenario) in input.scenarios.iter().enumerate() {
         if scenario.scenario_id.trim().is_empty() {
-            errors.push(format!("scenarios[{scenario_index}].scenario_id: must be non-empty"));
+            errors.push(format!(
+                "scenarios[{scenario_index}].scenario_id: must be non-empty"
+            ));
         }
         if !scenario_ids.insert(scenario.scenario_id.as_str()) {
-            errors.push(format!("scenarios[{scenario_index}].scenario_id: duplicate identity"));
+            errors.push(format!(
+                "scenarios[{scenario_index}].scenario_id: duplicate identity"
+            ));
         }
         if scenario.probability_bps == 0 {
-            errors.push(format!("scenarios[{scenario_index}].probability_bps: must be positive"));
+            errors.push(format!(
+                "scenarios[{scenario_index}].probability_bps: must be positive"
+            ));
         }
         probability_sum += u32::from(scenario.probability_bps);
         if scenario.periods.len() != usize::from(input.period_count) {
@@ -350,7 +368,10 @@ fn build_decision_nodes(
                 let key = history_key(period_index, &region.region_id, &history)?;
                 if let Some(previous) = nodes_by_key.get(&key) {
                     if previous != &observation {
-                        return Err("identical observation history produced conflicting decision state".into());
+                        return Err(
+                            "identical observation history produced conflicting decision state"
+                                .into(),
+                        );
                     }
                 } else {
                     nodes_by_key.insert(key, observation);
@@ -424,17 +445,9 @@ fn evaluate_policy_mask(
                         .checked_add(u128::from(switching_cost))
                         .ok_or_else(|| "switching cost overflow".to_string())?;
                     if aerial_enabled {
-                        checked_add(
-                            &mut scenario_metrics.activations,
-                            1,
-                            "activation count",
-                        )?;
+                        checked_add(&mut scenario_metrics.activations, 1, "activation count")?;
                     } else {
-                        checked_add(
-                            &mut scenario_metrics.deactivations,
-                            1,
-                            "deactivation count",
-                        )?;
+                        checked_add(&mut scenario_metrics.deactivations, 1, "deactivation count")?;
                     }
                 }
                 aerial_active = aerial_enabled;
@@ -516,56 +529,64 @@ fn evaluate_policy_mask(
         let probability = u128::from(scenario.probability_bps);
         checked_add(
             &mut weighted.total_cost,
-            scenario_metrics.total_cost
+            scenario_metrics
+                .total_cost
                 .checked_mul(probability)
                 .ok_or_else(|| "weighted total cost overflow".to_string())?,
             "expected total cost",
         )?;
         checked_add(
             &mut weighted.road_deliveries,
-            scenario_metrics.road_deliveries
+            scenario_metrics
+                .road_deliveries
                 .checked_mul(probability)
                 .ok_or_else(|| "weighted road deliveries overflow".to_string())?,
             "expected road deliveries",
         )?;
         checked_add(
             &mut weighted.aerial_deliveries,
-            scenario_metrics.aerial_deliveries
+            scenario_metrics
+                .aerial_deliveries
                 .checked_mul(probability)
                 .ok_or_else(|| "weighted aerial deliveries overflow".to_string())?,
             "expected aerial deliveries",
         )?;
         checked_add(
             &mut weighted.unserved_units,
-            scenario_metrics.unserved_units
+            scenario_metrics
+                .unserved_units
                 .checked_mul(probability)
                 .ok_or_else(|| "weighted unserved units overflow".to_string())?,
             "expected unserved units",
         )?;
         checked_add(
             &mut weighted.activations,
-            scenario_metrics.activations
+            scenario_metrics
+                .activations
                 .checked_mul(probability)
                 .ok_or_else(|| "weighted activation count overflow".to_string())?,
             "expected activation count",
         )?;
         checked_add(
             &mut weighted.deactivations,
-            scenario_metrics.deactivations
+            scenario_metrics
+                .deactivations
                 .checked_mul(probability)
                 .ok_or_else(|| "weighted deactivation count overflow".to_string())?,
             "expected deactivation count",
         )?;
         checked_add(
             &mut weighted.active_periods,
-            scenario_metrics.active_periods
+            scenario_metrics
+                .active_periods
                 .checked_mul(probability)
                 .ok_or_else(|| "weighted active-period count overflow".to_string())?,
             "expected active-period count",
         )?;
         checked_add(
             &mut weighted.unauthorized_dispatches,
-            scenario_metrics.unauthorized_dispatches
+            scenario_metrics
+                .unauthorized_dispatches
                 .checked_mul(probability)
                 .ok_or_else(|| "weighted unauthorized dispatch count overflow".to_string())?,
             "expected unauthorized dispatch count",
@@ -578,12 +599,27 @@ fn evaluate_policy_mask(
 fn public_outcome(metrics: WeightedMetrics) -> Result<ModePolicyOutcome, String> {
     Ok(ModePolicyOutcome {
         expected_total_cost_units: weighted_average(metrics.total_cost, "expected cost")?,
-        expected_road_deliveries: weighted_average(metrics.road_deliveries, "expected road deliveries")?,
-        expected_aerial_deliveries: weighted_average(metrics.aerial_deliveries, "expected aerial deliveries")?,
-        expected_unserved_units: weighted_average(metrics.unserved_units, "expected unserved units")?,
+        expected_road_deliveries: weighted_average(
+            metrics.road_deliveries,
+            "expected road deliveries",
+        )?,
+        expected_aerial_deliveries: weighted_average(
+            metrics.aerial_deliveries,
+            "expected aerial deliveries",
+        )?,
+        expected_unserved_units: weighted_average(
+            metrics.unserved_units,
+            "expected unserved units",
+        )?,
         expected_aerial_activations: weighted_average(metrics.activations, "expected activations")?,
-        expected_aerial_deactivations: weighted_average(metrics.deactivations, "expected deactivations")?,
-        expected_aerial_active_periods: weighted_average(metrics.active_periods, "expected active periods")?,
+        expected_aerial_deactivations: weighted_average(
+            metrics.deactivations,
+            "expected deactivations",
+        )?,
+        expected_aerial_active_periods: weighted_average(
+            metrics.active_periods,
+            "expected active periods",
+        )?,
         unauthorized_aerial_dispatches: weighted_average(
             metrics.unauthorized_dispatches,
             "unauthorized dispatches",
@@ -594,23 +630,23 @@ fn public_outcome(metrics: WeightedMetrics) -> Result<ModePolicyOutcome, String>
 /// Exhaustively optimize activation decisions on a small finite scenario tree.
 /// Hard flight eligibility is outside the economic objective: only fresh,
 /// approved and weather-clear observations permit aerial service.
-pub fn evaluate_mode_options(
-    input: &ModeOptionsInput,
-) -> Result<ModeOptionsReport, Vec<String>> {
+pub fn evaluate_mode_options(input: &ModeOptionsInput) -> Result<ModeOptionsReport, Vec<String>> {
     validate_input(input)?;
     let input_digest_sha256 = canonical_input_digest(input).map_err(|error| vec![error])?;
     let (nodes, indices) = build_decision_nodes(input).map_err(|error| vec![error])?;
 
     let policy_count = 1_u64
-        .checked_shl(u32::try_from(nodes.len()).map_err(|_| vec!["policy node count exceeds u32".into()])?)
+        .checked_shl(
+            u32::try_from(nodes.len()).map_err(|_| vec!["policy node count exceeds u32".into()])?,
+        )
         .ok_or_else(|| vec!["policy count overflows".into()])?;
     let mut best_mask = 0_u64;
-    let mut best_metrics = evaluate_policy_mask(input, &nodes, &indices, 0)
-        .map_err(|error| vec![error])?;
+    let mut best_metrics =
+        evaluate_policy_mask(input, &nodes, &indices, 0).map_err(|error| vec![error])?;
 
     for mask in 1..policy_count {
-        let metrics = evaluate_policy_mask(input, &nodes, &indices, mask)
-            .map_err(|error| vec![error])?;
+        let metrics =
+            evaluate_policy_mask(input, &nodes, &indices, mask).map_err(|error| vec![error])?;
         if metrics.total_cost < best_metrics.total_cost {
             best_mask = mask;
             best_metrics = metrics;
@@ -790,7 +826,10 @@ mod tests {
         }
         let report = evaluate_mode_options(&test).expect("valid input");
         assert_eq!(report.static_aerial_enabled.expected_aerial_deliveries, 0);
-        assert_eq!(report.static_aerial_enabled.unauthorized_aerial_dispatches, 0);
+        assert_eq!(
+            report.static_aerial_enabled.unauthorized_aerial_dispatches,
+            0
+        );
     }
 
     #[test]
@@ -800,7 +839,10 @@ mod tests {
         test.scenarios[0].periods[1].observations[0].permission = PermissionState::Stale;
         let report = evaluate_mode_options(&test).expect("valid input");
         assert_eq!(report.static_aerial_enabled.expected_aerial_deliveries, 0);
-        assert_eq!(report.static_aerial_enabled.unauthorized_aerial_dispatches, 0);
+        assert_eq!(
+            report.static_aerial_enabled.unauthorized_aerial_dispatches,
+            0
+        );
     }
 
     #[test]
@@ -832,7 +874,10 @@ mod tests {
         let (nodes, _) = build_decision_nodes(&test).expect("build scenario tree");
         assert_eq!(nodes.len(), 3);
         assert_eq!(
-            nodes.iter().filter(|node| node.key.period_index == 0).count(),
+            nodes
+                .iter()
+                .filter(|node| node.key.period_index == 0)
+                .count(),
             1
         );
     }
@@ -874,7 +919,11 @@ mod tests {
         let mut test = simple_input();
         test.scenarios[0].probability_bps = 9_999;
         let errors = evaluate_mode_options(&test).expect_err("invalid probability sum");
-        assert!(errors.iter().any(|error| error.contains("expected sum 10000")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("expected sum 10000"))
+        );
     }
 
     #[test]
@@ -882,7 +931,11 @@ mod tests {
         let mut test = simple_input();
         test.regions.push(region("rural"));
         let errors = evaluate_mode_options(&test).expect_err("missing rural observation");
-        assert!(errors.iter().any(|error| error.contains("missing region rural")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("missing region rural"))
+        );
     }
 
     #[test]
