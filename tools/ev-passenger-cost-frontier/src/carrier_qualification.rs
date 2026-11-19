@@ -230,6 +230,13 @@ fn validate_inputs(
     if factory.scenario_count != factory.results.len() || factory.results.is_empty() {
         errors.push("module factory report scenario_count does not match its result rows".into());
     }
+    let factory_config_count = factory.results.iter()
+        .map(|row| row.config_id.as_str())
+        .collect::<BTreeSet<_>>()
+        .len();
+    if factory_config_count == 0 || factory.results.len() % factory_config_count != 0 {
+        errors.push("module factory report does not form a complete rectangular scenario matrix".into());
+    }
 
     let mut carrier_ids = BTreeSet::new();
     for row in &carrier.results {
@@ -406,10 +413,23 @@ fn evaluate_case(
                 findings.push("required_module_process_route_not_modelled".into());
             }
             Some(process_config_id) => {
+                module_release_ready = true;
                 matching_factory_rows = factory_report.results.iter()
                     .filter(|row| row.config_id == process_config_id)
                     .collect();
                 module_scenario_count = matching_factory_rows.len();
+                let expected_scenarios_per_config = {
+                    let config_count = factory_report.results.iter()
+                        .map(|row| row.config_id.as_str())
+                        .collect::<BTreeSet<_>>()
+                        .len();
+                    if config_count == 0 { 0 } else { factory_report.scenario_count / config_count }
+                };
+                if matching_factory_rows.len() != expected_scenarios_per_config {
+                    indeterminate = true;
+                    module_process_status = "incomplete_factory_scenario_matrix".into();
+                    findings.push("module_factory_scenario_matrix_incomplete".into());
+                }
                 if matching_factory_rows.is_empty() {
                     indeterminate = true;
                     module_process_status = "route_missing_from_factory_report".into();
