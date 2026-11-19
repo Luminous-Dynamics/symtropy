@@ -65,8 +65,9 @@ Three policies use the same service demand and event trace:
 | Two HAPS, no spare | 69.44% | 80.56% | 22 h | 10 h |
 | Four HAPS, rotating reserves | 91.67% | 91.67% | 6 h | 6 h |
 | Four HAPS + independent fallback | 100.00% | 99.58% | 0 h | 0 h |
+| Four HAPS + 2 h / 3 h reserve deployment lag | 84.72% | 88.19% | 11 h | 6 h |
 
-The exact replay also records 4 handovers for each rotating policy, 6 platform-hours of planned maintenance, 10 platform-hours of corrective repair, and 24 common-cause grounded platform-hours for the four-platform fleet. The no-spare policy accumulates 12 common-cause grounded platform-hours across its two assets.
+The exact replay also records 4 handovers for each rotating policy, 6 platform-hours of planned maintenance, 10 platform-hours of corrective repair, and 24 common-cause grounded platform-hours for the four-platform fleet. The no-spare policy accumulates 12 common-cause grounded platform-hours across its two assets. The delayed-deployment policy also records five launch/recovery platform-hours (two hours for planned maintenance replacement and three hours for repair replacement) and falls from 91.67% to 84.72% availability compared with immediate reserve activation.
 
 ### What this proves—and what it does not
 
@@ -74,7 +75,7 @@ The arithmetic demonstrates two independent reliability levers:
 - a reserve pool protects service against **idiosyncratic** maintenance and repair;
 - an independently available alternate layer protects against a **common-cause** event that grounds the whole HAPS fleet.
 
-Adding more HAPS alone cannot eliminate an event that disables every HAPS in the footprint. The fallback must actually be independent of the common cause and have enough capacity to meet the service threshold. The fixture's 95% satellite capacity and independence label are synthetic assumptions, not measured satellite availability or guaranteed weather independence.
+Adding more HAPS alone cannot eliminate an event that disables every HAPS in the footprint. The fallback must actually be independent of the common cause and have enough capacity to meet the service threshold. The fixture's 95% satellite capacity and independence label are synthetic assumptions, not measured satellite availability or guaranteed weather independence. The delayed-reserve case is a separate counterexample: the reserve inventory is unchanged, but deployment lead time creates five hours of partial service and reduces availability. This prevents the benchmark from equating 'spare aircraft exists' with 'spare capacity is immediately serviceable'.
 
 This is a deterministic 72-hour control fixture. It is not a statistical Semi-Markov result, a 30-day service trial, an empirically supported maintenance model or an achieved fleet-availability result.
 
