@@ -1,0 +1,889 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-decision-sufficient-observation-v0",
+  "episodes": [
+    {
+      "episode_id": "av-dso-001-high-eig-zero-evsi-vs-lower-eig-positive-evsi",
+      "task": {
+        "task_id": "event-response-under-uncertainty",
+        "decision_deadline_tick": 20,
+        "terminal_decisions": [
+          "warn",
+          "stay_silent"
+        ]
+      },
+      "public_belief": {
+        "hypotheses": [
+          {
+            "id": "H1",
+            "prior": 0.25
+          },
+          {
+            "id": "H2",
+            "prior": 0.25
+          },
+          {
+            "id": "H3",
+            "prior": 0.25
+          },
+          {
+            "id": "H4",
+            "prior": 0.25
+          }
+        ]
+      },
+      "decision_loss": [
+        {
+          "hypothesis_id": "H1",
+          "decision_id": "warn",
+          "loss": 0
+        },
+        {
+          "hypothesis_id": "H1",
+          "decision_id": "stay_silent",
+          "loss": 100
+        },
+        {
+          "hypothesis_id": "H2",
+          "decision_id": "warn",
+          "loss": 0
+        },
+        {
+          "hypothesis_id": "H2",
+          "decision_id": "stay_silent",
+          "loss": 100
+        },
+        {
+          "hypothesis_id": "H3",
+          "decision_id": "warn",
+          "loss": 40
+        },
+        {
+          "hypothesis_id": "H3",
+          "decision_id": "stay_silent",
+          "loss": 0
+        },
+        {
+          "hypothesis_id": "H4",
+          "decision_id": "warn",
+          "loss": 40
+        },
+        {
+          "hypothesis_id": "H4",
+          "decision_id": "stay_silent",
+          "loss": 0
+        }
+      ],
+      "current_evidence": [
+        {
+          "evidence_ref": "obs:camera-front:frame-100",
+          "modality": "video",
+          "epistemic_origin": "Observed",
+          "available_tick": 4,
+          "clock_domain": {
+            "domain_id": "camera-clock",
+            "generation": 0,
+            "time_scale_id": "cam-v1"
+          }
+        }
+      ],
+      "current_best_decision": "warn",
+      "current_expected_loss": 20,
+      "request_budget": {
+        "max_latency_ticks": 8,
+        "max_bytes": 4096,
+        "max_energy_units": 5,
+        "privacy_scope": "ambient-permitted"
+      },
+      "candidate_requests": [
+        {
+          "request_id": "subtype_detail",
+          "modality": "audio",
+          "request_kind": "bounded_acoustic_feature_window",
+          "description": "Request a short spatial/prosodic detail window that separates within-class source subtypes but not hazard from benign.",
+          "predicted_observation_model": [
+            {
+              "hypothesis_id": "H1",
+              "outcomes": [
+                {
+                  "outcome": "signature_a",
+                  "probability": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "H2",
+              "outcomes": [
+                {
+                  "outcome": "signature_b",
+                  "probability": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "H3",
+              "outcomes": [
+                {
+                  "outcome": "signature_a",
+                  "probability": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "H4",
+              "outcomes": [
+                {
+                  "outcome": "signature_b",
+                  "probability": 1
+                }
+              ]
+            }
+          ],
+          "cost": {
+            "latency_ticks": 2,
+            "bytes": 512,
+            "energy_units": 1,
+            "utility_cost": 1
+          },
+          "permission": "permitted",
+          "capability": "available",
+          "dependency_group": "mic-array-root-1",
+          "expected_eig_nats": 0.6931471805599453,
+          "expected_evsi": 0
+        },
+        {
+          "request_id": "hazard_cue",
+          "modality": "audio",
+          "request_kind": "bounded_acoustic_event_window",
+          "description": "Request a short event window that discriminates hazard versus benign evidence.",
+          "predicted_observation_model": [
+            {
+              "hypothesis_id": "H1",
+              "outcomes": [
+                {
+                  "outcome": "alarm",
+                  "probability": 0.8
+                },
+                {
+                  "outcome": "quiet",
+                  "probability": 0.2
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "H2",
+              "outcomes": [
+                {
+                  "outcome": "alarm",
+                  "probability": 0.8
+                },
+                {
+                  "outcome": "quiet",
+                  "probability": 0.2
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "H3",
+              "outcomes": [
+                {
+                  "outcome": "alarm",
+                  "probability": 0.2
+                },
+                {
+                  "outcome": "quiet",
+                  "probability": 0.8
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "H4",
+              "outcomes": [
+                {
+                  "outcome": "alarm",
+                  "probability": 0.2
+                },
+                {
+                  "outcome": "quiet",
+                  "probability": 0.8
+                }
+              ]
+            }
+          ],
+          "cost": {
+            "latency_ticks": 3,
+            "bytes": 768,
+            "energy_units": 2,
+            "utility_cost": 2
+          },
+          "permission": "permitted",
+          "capability": "available",
+          "dependency_group": "mic-array-root-1",
+          "expected_eig_nats": 0.1927447570217575,
+          "expected_evsi": 6
+        }
+      ]
+    },
+    {
+      "episode_id": "av-dso-002-robust-stop",
+      "task": {
+        "task_id": "event-response-under-uncertainty",
+        "decision_deadline_tick": 10,
+        "terminal_decisions": [
+          "continue",
+          "pause"
+        ]
+      },
+      "public_belief": {
+        "hypotheses": [
+          {
+            "id": "H1",
+            "prior": 0.5
+          },
+          {
+            "id": "H2",
+            "prior": 0.5
+          }
+        ]
+      },
+      "decision_loss": [
+        {
+          "hypothesis_id": "H1",
+          "decision_id": "continue",
+          "loss": 0
+        },
+        {
+          "hypothesis_id": "H1",
+          "decision_id": "pause",
+          "loss": 5
+        },
+        {
+          "hypothesis_id": "H2",
+          "decision_id": "continue",
+          "loss": 0
+        },
+        {
+          "hypothesis_id": "H2",
+          "decision_id": "pause",
+          "loss": 5
+        }
+      ],
+      "current_evidence": [],
+      "current_best_decision": "continue",
+      "current_expected_loss": 0,
+      "request_budget": {
+        "max_latency_ticks": 4,
+        "max_bytes": 1024,
+        "max_energy_units": 2,
+        "privacy_scope": "ambient-permitted"
+      },
+      "candidate_requests": [
+        {
+          "request_id": "identify_subtype",
+          "modality": "video",
+          "request_kind": "frame_crop",
+          "description": "Distinguishes H1 from H2, but both imply continue.",
+          "predicted_observation_model": [
+            {
+              "hypothesis_id": "H1",
+              "outcomes": [
+                {
+                  "outcome": "type_a",
+                  "probability": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "H2",
+              "outcomes": [
+                {
+                  "outcome": "type_b",
+                  "probability": 1
+                }
+              ]
+            }
+          ],
+          "cost": {
+            "latency_ticks": 1,
+            "bytes": 256,
+            "energy_units": 1,
+            "utility_cost": 1
+          },
+          "permission": "permitted",
+          "capability": "available",
+          "dependency_group": "camera-root-1"
+        }
+      ]
+    },
+    {
+      "episode_id": "av-dso-003-observation-arrives-after-decision-deadline",
+      "task": {
+        "task_id": "timely-proactive-intervention",
+        "decision_deadline_tick": 10,
+        "terminal_decisions": [
+          "warn",
+          "stay_silent"
+        ]
+      },
+      "public_belief": {
+        "hypotheses": [
+          {
+            "id": "H1",
+            "prior": 0.5
+          },
+          {
+            "id": "H2",
+            "prior": 0.5
+          }
+        ]
+      },
+      "decision_loss": [
+        {
+          "hypothesis_id": "H1",
+          "decision_id": "warn",
+          "loss": 0
+        },
+        {
+          "hypothesis_id": "H1",
+          "decision_id": "stay_silent",
+          "loss": 100
+        },
+        {
+          "hypothesis_id": "H2",
+          "decision_id": "warn",
+          "loss": 40
+        },
+        {
+          "hypothesis_id": "H2",
+          "decision_id": "stay_silent",
+          "loss": 0
+        }
+      ],
+      "current_evidence": [],
+      "current_best_decision": "warn",
+      "current_expected_loss": 20,
+      "request_budget": {
+        "max_latency_ticks": 12,
+        "max_bytes": 1024,
+        "max_energy_units": 2,
+        "privacy_scope": "ambient-permitted"
+      },
+      "candidate_requests": [
+        {
+          "request_id": "high_rate_audio",
+          "modality": "audio",
+          "request_kind": "bounded_audio_window",
+          "description": "Useful observation but predicted delivery after the terminal response window.",
+          "predicted_observation_model": [
+            {
+              "hypothesis_id": "H1",
+              "outcomes": [
+                {
+                  "outcome": "cue",
+                  "probability": 0.9
+                },
+                {
+                  "outcome": "no_cue",
+                  "probability": 0.1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "H2",
+              "outcomes": [
+                {
+                  "outcome": "cue",
+                  "probability": 0.1
+                },
+                {
+                  "outcome": "no_cue",
+                  "probability": 0.9
+                }
+              ]
+            }
+          ],
+          "cost": {
+            "latency_ticks": 12,
+            "bytes": 512,
+            "energy_units": 1,
+            "utility_cost": 1
+          },
+          "permission": "permitted",
+          "capability": "available",
+          "dependency_group": "mic-root-1",
+          "arrival_tick": 13
+        }
+      ]
+    },
+    {
+      "episode_id": "av-dso-004-budget-excludes-best-information-request",
+      "task": {
+        "task_id": "object-identity-confirmation",
+        "decision_deadline_tick": 12,
+        "terminal_decisions": [
+          "same_entity",
+          "unknown"
+        ]
+      },
+      "public_belief": {
+        "hypotheses": [
+          {
+            "id": "H1",
+            "prior": 0.5
+          },
+          {
+            "id": "H2",
+            "prior": 0.5
+          }
+        ]
+      },
+      "decision_loss": [
+        {
+          "hypothesis_id": "H1",
+          "decision_id": "same_entity",
+          "loss": 0
+        },
+        {
+          "hypothesis_id": "H1",
+          "decision_id": "unknown",
+          "loss": 2
+        },
+        {
+          "hypothesis_id": "H2",
+          "decision_id": "same_entity",
+          "loss": 100
+        },
+        {
+          "hypothesis_id": "H2",
+          "decision_id": "unknown",
+          "loss": 2
+        }
+      ],
+      "current_evidence": [],
+      "current_best_decision": "unknown",
+      "current_expected_loss": 2,
+      "request_budget": {
+        "max_latency_ticks": 5,
+        "max_bytes": 1024,
+        "max_energy_units": 3,
+        "privacy_scope": "ambient-permitted"
+      },
+      "candidate_requests": [
+        {
+          "request_id": "highres_multi_frame",
+          "modality": "video",
+          "request_kind": "multi_frame_burst",
+          "description": "Would resolve identity but exceeds latency and energy budgets.",
+          "predicted_observation_model": [
+            {
+              "hypothesis_id": "H1",
+              "outcomes": [
+                {
+                  "outcome": "match",
+                  "probability": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "H2",
+              "outcomes": [
+                {
+                  "outcome": "different",
+                  "probability": 1
+                }
+              ]
+            }
+          ],
+          "cost": {
+            "latency_ticks": 9,
+            "bytes": 4096,
+            "energy_units": 5,
+            "utility_cost": 0.5
+          },
+          "permission": "permitted",
+          "capability": "available",
+          "dependency_group": "camera-root-1"
+        },
+        {
+          "request_id": "single_crop",
+          "modality": "video",
+          "request_kind": "single_frame_crop",
+          "description": "Affordable but only partially resolves ambiguity.",
+          "predicted_observation_model": [
+            {
+              "hypothesis_id": "H1",
+              "outcomes": [
+                {
+                  "outcome": "match",
+                  "probability": 0.7
+                },
+                {
+                  "outcome": "unclear",
+                  "probability": 0.3
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "H2",
+              "outcomes": [
+                {
+                  "outcome": "match",
+                  "probability": 0.3
+                },
+                {
+                  "outcome": "unclear",
+                  "probability": 0.7
+                }
+              ]
+            }
+          ],
+          "cost": {
+            "latency_ticks": 2,
+            "bytes": 512,
+            "energy_units": 1,
+            "utility_cost": 0.25
+          },
+          "permission": "permitted",
+          "capability": "available",
+          "dependency_group": "camera-root-1"
+        }
+      ]
+    },
+    {
+      "episode_id": "av-dso-005-permission-excludes-private-sensor-request",
+      "task": {
+        "task_id": "resolve-ambiguous-room-event",
+        "decision_deadline_tick": 12,
+        "terminal_decisions": [
+          "intervene",
+          "ask",
+          "stay_silent"
+        ]
+      },
+      "public_belief": {
+        "hypotheses": [
+          {
+            "id": "H1",
+            "prior": 0.4
+          },
+          {
+            "id": "H2",
+            "prior": 0.6
+          }
+        ]
+      },
+      "decision_loss": [
+        {
+          "hypothesis_id": "H1",
+          "decision_id": "intervene",
+          "loss": 0
+        },
+        {
+          "hypothesis_id": "H1",
+          "decision_id": "ask",
+          "loss": 4
+        },
+        {
+          "hypothesis_id": "H1",
+          "decision_id": "stay_silent",
+          "loss": 20
+        },
+        {
+          "hypothesis_id": "H2",
+          "decision_id": "intervene",
+          "loss": 20
+        },
+        {
+          "hypothesis_id": "H2",
+          "decision_id": "ask",
+          "loss": 4
+        },
+        {
+          "hypothesis_id": "H2",
+          "decision_id": "stay_silent",
+          "loss": 0
+        }
+      ],
+      "current_evidence": [],
+      "current_best_decision": "ask",
+      "current_expected_loss": 4,
+      "request_budget": {
+        "max_latency_ticks": 5,
+        "max_bytes": 2048,
+        "max_energy_units": 3,
+        "privacy_scope": "shared-space-only"
+      },
+      "candidate_requests": [
+        {
+          "request_id": "private_room_camera",
+          "modality": "video",
+          "request_kind": "activate_additional_camera",
+          "description": "Would be highly discriminating but outside the user's declared privacy scope.",
+          "predicted_observation_model": [
+            {
+              "hypothesis_id": "H1",
+              "outcomes": [
+                {
+                  "outcome": "private_event",
+                  "probability": 1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "H2",
+              "outcomes": [
+                {
+                  "outcome": "no_private_event",
+                  "probability": 1
+                }
+              ]
+            }
+          ],
+          "cost": {
+            "latency_ticks": 1,
+            "bytes": 1024,
+            "energy_units": 1,
+            "utility_cost": 0.1
+          },
+          "permission": "denied",
+          "capability": "available",
+          "dependency_group": "private-camera-root"
+        },
+        {
+          "request_id": "public_area_crop",
+          "modality": "video",
+          "request_kind": "frame_crop",
+          "description": "Permitted crop from the currently authorized shared-area camera.",
+          "predicted_observation_model": [
+            {
+              "hypothesis_id": "H1",
+              "outcomes": [
+                {
+                  "outcome": "cue",
+                  "probability": 0.6
+                },
+                {
+                  "outcome": "unclear",
+                  "probability": 0.4
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "H2",
+              "outcomes": [
+                {
+                  "outcome": "cue",
+                  "probability": 0.4
+                },
+                {
+                  "outcome": "unclear",
+                  "probability": 0.6
+                }
+              ]
+            }
+          ],
+          "cost": {
+            "latency_ticks": 2,
+            "bytes": 512,
+            "energy_units": 1,
+            "utility_cost": 0.2
+          },
+          "permission": "permitted",
+          "capability": "available",
+          "dependency_group": "shared-camera-root"
+        }
+      ]
+    },
+    {
+      "episode_id": "av-dso-006-correlated-observations-not-independent",
+      "task": {
+        "task_id": "confirm-audiovisual-event-source",
+        "decision_deadline_tick": 15,
+        "terminal_decisions": [
+          "confirm",
+          "unknown"
+        ]
+      },
+      "public_belief": {
+        "hypotheses": [
+          {
+            "id": "H1",
+            "prior": 0.5
+          },
+          {
+            "id": "H2",
+            "prior": 0.5
+          }
+        ]
+      },
+      "decision_loss": [
+        {
+          "hypothesis_id": "H1",
+          "decision_id": "confirm",
+          "loss": 0
+        },
+        {
+          "hypothesis_id": "H1",
+          "decision_id": "unknown",
+          "loss": 2
+        },
+        {
+          "hypothesis_id": "H2",
+          "decision_id": "confirm",
+          "loss": 20
+        },
+        {
+          "hypothesis_id": "H2",
+          "decision_id": "unknown",
+          "loss": 2
+        }
+      ],
+      "current_evidence": [
+        {
+          "evidence_ref": "obs:audio-spectrum:12",
+          "modality": "audio",
+          "epistemic_origin": "Observed",
+          "available_tick": 3,
+          "dependency_group": "capture-chain-7"
+        }
+      ],
+      "current_best_decision": "unknown",
+      "current_expected_loss": 2,
+      "request_budget": {
+        "max_latency_ticks": 6,
+        "max_bytes": 1024,
+        "max_energy_units": 2,
+        "privacy_scope": "ambient-permitted"
+      },
+      "candidate_requests": [
+        {
+          "request_id": "audio-caption-derived-view",
+          "modality": "text",
+          "request_kind": "derived_transcript",
+          "description": "A second software representation from the same capture chain; not independent corroboration.",
+          "predicted_observation_model": [
+            {
+              "hypothesis_id": "H1",
+              "outcomes": [
+                {
+                  "outcome": "mentions_event",
+                  "probability": 0.9
+                },
+                {
+                  "outcome": "no_mention",
+                  "probability": 0.1
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "H2",
+              "outcomes": [
+                {
+                  "outcome": "mentions_event",
+                  "probability": 0.1
+                },
+                {
+                  "outcome": "no_mention",
+                  "probability": 0.9
+                }
+              ]
+            }
+          ],
+          "cost": {
+            "latency_ticks": 1,
+            "bytes": 128,
+            "energy_units": 0,
+            "utility_cost": 0.1
+          },
+          "permission": "permitted",
+          "capability": "available",
+          "dependency_group": "capture-chain-7",
+          "derived_from_evidence": [
+            "obs:audio-spectrum:12"
+          ]
+        }
+      ]
+    },
+    {
+      "episode_id": "av-dso-007-uncalibrated-incomplete-outcome-partition",
+      "task": {
+        "task_id": "unknown-event-source",
+        "decision_deadline_tick": 20,
+        "terminal_decisions": [
+          "identify",
+          "unknown"
+        ]
+      },
+      "public_belief": {
+        "status": "uncalibrated",
+        "hypotheses": [
+          {
+            "id": "H1"
+          },
+          {
+            "id": "H2"
+          },
+          {
+            "id": "open_world_other"
+          }
+        ]
+      },
+      "decision_loss": [],
+      "current_evidence": [],
+      "current_best_decision": "unknown",
+      "current_expected_loss": null,
+      "request_budget": {
+        "max_latency_ticks": 8,
+        "max_bytes": 4096,
+        "max_energy_units": 5,
+        "privacy_scope": "ambient-permitted"
+      },
+      "candidate_requests": [
+        {
+          "request_id": "unvalidated_array_measurement",
+          "modality": "audio",
+          "request_kind": "spatial_audio_estimate",
+          "description": "Outcome model omits the open-world-other hypothesis and has no calibrated prior.",
+          "predicted_observation_model": [
+            {
+              "hypothesis_id": "H1",
+              "outcomes": [
+                {
+                  "outcome": "left",
+                  "probability": 0.8
+                },
+                {
+                  "outcome": "right",
+                  "probability": 0.2
+                }
+              ]
+            },
+            {
+              "hypothesis_id": "H2",
+              "outcomes": [
+                {
+                  "outcome": "left",
+                  "probability": 0.2
+                },
+                {
+                  "outcome": "right",
+                  "probability": 0.8
+                }
+              ]
+            }
+          ],
+          "cost": {
+            "latency_ticks": 3,
+            "bytes": 1024,
+            "energy_units": 2,
+            "utility_cost": null
+          },
+          "permission": "permitted",
+          "capability": "available",
+          "dependency_group": "array-root-1",
+          "calibration_status": "not_established"
+        }
+      ]
+    }
+  ]
+}
