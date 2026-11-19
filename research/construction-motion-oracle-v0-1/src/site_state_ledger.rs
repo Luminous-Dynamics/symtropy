@@ -495,6 +495,13 @@ pub struct SiteStateLedger {
     capacity_site_clock_domain_id: Option<String>,
     capacity_windows: Vec<CapacityAvailabilityWindow>,
     capacity_reservations: BTreeMap<String, CapacityReservationRecord>,
+    capacity_resource_catalog_sha256: Option<String>,
+    capacity_resources: BTreeMap<String, CapacityResourceDefinition>,
+    capacity_availability_snapshot_sha256: Option<String>,
+    capacity_site_snapshot_sha256: Option<String>,
+    capacity_site_clock_domain_id: Option<String>,
+    capacity_windows: Vec<CapacityAvailabilityWindow>,
+    capacity_reservations: BTreeMap<String, CapacityReservationRecord>,
     /// One non-overlapping interval index per exclusive resource. Since
     /// committed intervals cannot overlap, predecessor/successor checks are
     /// sufficient for O(log n) conflict detection on each claim.
@@ -1491,6 +1498,56 @@ impl SiteStateLedger {
                 self.resource_catalog_sha256 = Some(catalog_sha256);
                 self.resource_catalog = definitions;
             }
+            PreparedSiteMutation::PublishCapacityResourceCatalog {
+                catalog_sha256,
+                definitions,
+            } => {
+                self.capacity_resource_catalog_sha256 = Some(catalog_sha256);
+                self.capacity_resources = definitions;
+            }
+            PreparedSiteMutation::PublishCapacityAvailabilitySnapshot {
+                availability_snapshot_sha256,
+                site_snapshot_sha256,
+                site_clock_domain_id,
+                windows,
+            } => {
+                self.capacity_availability_snapshot_sha256 =
+                    Some(availability_snapshot_sha256);
+                self.capacity_site_snapshot_sha256 = Some(site_snapshot_sha256);
+                self.capacity_site_clock_domain_id = Some(site_clock_domain_id);
+                self.capacity_windows = windows;
+            }
+            PreparedSiteMutation::CommitCapacityReservation {
+                commit,
+                committed_event_id,
+                committed_sequence,
+            } => {
+                self.capacity_reservations.insert(
+                    commit.reservation.reservation_id.clone(),
+                    CapacityReservationRecord {
+                        commit,
+                        committed_event_id,
+                        committed_sequence,
+                        released_event_id: None,
+                        released_at_tick: None,
+                        release_receipt_sha256: None,
+                    },
+                );
+            }
+            PreparedSiteMutation::ReleaseCapacityReservation {
+                reservation_id,
+                released_event_id,
+                cleared_at_tick,
+                release_receipt_sha256,
+            } => {
+                let record = self
+                    .capacity_reservations
+                    .get_mut(&reservation_id)
+                    .expect("prepared capacity reservation remains present");
+                record.released_event_id = Some(released_event_id);
+                record.released_at_tick = Some(cleared_at_tick);
+                record.release_receipt_sha256 = Some(release_receipt_sha256);
+            }
             PreparedSiteMutation::CommitSpaceTimeReservation {
                 reservation,
                 committed_event_id,
@@ -1755,6 +1812,27 @@ enum PreparedSiteMutation {
     PublishResourceCatalog {
         catalog_sha256: String,
         definitions: BTreeMap<String, String>,
+    },
+    PublishCapacityResourceCatalog {
+        catalog_sha256: String,
+        definitions: BTreeMap<String, CapacityResourceDefinition>,
+    },
+    PublishCapacityAvailabilitySnapshot {
+        availability_snapshot_sha256: String,
+        site_snapshot_sha256: String,
+        site_clock_domain_id: String,
+        windows: Vec<CapacityAvailabilityWindow>,
+    },
+    CommitCapacityReservation {
+        commit: CapacityReservationCommit,
+        committed_event_id: String,
+        committed_sequence: u64,
+    },
+    ReleaseCapacityReservation {
+        reservation_id: String,
+        released_event_id: String,
+        cleared_at_tick: u64,
+        release_receipt_sha256: String,
     },
     CommitSpaceTimeReservation {
         reservation: SpaceTimeReservation,
