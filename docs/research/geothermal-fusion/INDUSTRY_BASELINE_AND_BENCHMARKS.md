@@ -86,6 +86,8 @@ Compare at least:
 6. Future fusion heat/electric source + geothermal + buffers + industrial sinks, as a published-design / synthetic case only until physical plant data exist.
 7. No-build / grid reinforcement / renewable-plus-storage / conventional supply alternatives where they provide a fair service match.
 
+8. Multi-service / tri-generation variants: RO supplied by geothermal-generated electricity, thermal desalination or absorption cooling supplied only by a source with adequate temperature grade, and hybrid water/thermal architectures. Compare identical product-water quality, water recovery, cooling duty, total source energy, pump/pretreatment/cleaning loads and brine/residual streams. Building/process absorption cooling does not satisfy fusion cryogenic refrigeration demand.
+
 Every architecture must serve the same:
 - chronological electric load profile and power-quality boundary;
 - thermal demand by temperature grade and interval;
