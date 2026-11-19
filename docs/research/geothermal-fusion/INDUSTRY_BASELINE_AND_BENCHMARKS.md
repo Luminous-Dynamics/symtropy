@@ -49,7 +49,7 @@
 
 ## Rust thermophysical-property provider reconnaissance
 
-This is a candidate shortlist for an independent provider bake-off, **not a production dependency decision**. The machine-readable record is [rust-property-provider-candidates.json](../../benchmarks/geothermal-fusion/v0.1/fixtures/rust-property-provider-candidates.json). The current known-answer corpus is the 19-point official [IAPWS IF97 fixture](../../benchmarks/geothermal-fusion/v0.1/fixtures/iapws-if97-official-known-answer.json).
+This is a candidate shortlist for an independent provider bake-off, **not a production dependency decision**. The machine-readable record is [rust-property-provider-candidates.json](../../../benchmarks/geothermal-fusion/v0.1/fixtures/rust-property-provider-candidates.json). The current known-answer corpus is the 19-point official [IAPWS IF97 fixture](../../../benchmarks/geothermal-fusion/v0.1/fixtures/iapws-if97-official-known-answer.json).
 
 | Candidate | Source-pinned evidence | Why it is worth testing | Main qualification risks |
 |---|---|---|---|
