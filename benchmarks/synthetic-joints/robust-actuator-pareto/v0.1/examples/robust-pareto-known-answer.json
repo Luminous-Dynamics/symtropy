@@ -46,7 +46,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-independent-A",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         },
         {
           "name": "task_energy",
@@ -57,7 +59,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-independent-A",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         },
         {
           "name": "task_coverage",
@@ -68,7 +72,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-independent-A",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         }
       ],
       "hard_constraints": [
@@ -82,7 +88,8 @@
           "configuration_digest": "config-independent-A",
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "mission_set_digest": "frozen-mission-set-01"
         },
         {
           "name": "torque_margin",
@@ -94,7 +101,8 @@
           "configuration_digest": "config-independent-A",
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "mission_set_digest": "frozen-mission-set-01"
         }
       ],
       "system_boundary_digest": "complete-installed-joint-boundary-v1",
@@ -115,7 +123,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-independent-B",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         },
         {
           "name": "task_energy",
@@ -126,7 +136,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-independent-B",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         },
         {
           "name": "task_coverage",
@@ -137,7 +149,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-independent-B",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         }
       ],
       "hard_constraints": [
@@ -151,7 +165,8 @@
           "configuration_digest": "config-independent-B",
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "mission_set_digest": "frozen-mission-set-01"
         },
         {
           "name": "torque_margin",
@@ -163,7 +178,8 @@
           "configuration_digest": "config-independent-B",
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "mission_set_digest": "frozen-mission-set-01"
         }
       ],
       "system_boundary_digest": "complete-installed-joint-boundary-v1",
@@ -184,7 +200,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-source-C",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-02",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         },
         {
           "name": "task_energy",
@@ -195,7 +213,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-source-C",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-02",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         },
         {
           "name": "task_coverage",
@@ -206,7 +226,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-source-C",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-02",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         }
       ],
       "hard_constraints": [
@@ -220,7 +242,8 @@
           "configuration_digest": "config-source-C",
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "mission_set_digest": "frozen-mission-set-02"
         },
         {
           "name": "torque_margin",
@@ -232,7 +255,8 @@
           "configuration_digest": "config-source-C",
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "mission_set_digest": "frozen-mission-set-02"
         }
       ],
       "system_boundary_digest": "complete-installed-joint-boundary-v1",
@@ -253,7 +277,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-vendor-D",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         },
         {
           "name": "task_energy",
@@ -264,7 +290,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-vendor-D",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         },
         {
           "name": "task_coverage",
@@ -275,7 +303,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-vendor-D",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         }
       ],
       "hard_constraints": [
@@ -289,7 +319,8 @@
           "configuration_digest": "config-vendor-D",
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "mission_set_digest": "frozen-mission-set-01"
         },
         {
           "name": "torque_margin",
@@ -301,7 +332,8 @@
           "configuration_digest": "config-vendor-D",
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "mission_set_digest": "frozen-mission-set-01"
         }
       ],
       "system_boundary_digest": "complete-installed-joint-boundary-v1",
@@ -322,7 +354,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-model-E",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         },
         {
           "name": "task_energy",
@@ -333,7 +367,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-model-E",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         },
         {
           "name": "task_coverage",
@@ -344,7 +380,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-model-E",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         }
       ],
       "hard_constraints": [
@@ -358,7 +396,8 @@
           "configuration_digest": "config-model-E",
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "mission_set_digest": "frozen-mission-set-01"
         },
         {
           "name": "torque_margin",
@@ -370,7 +409,8 @@
           "configuration_digest": "config-model-E",
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "mission_set_digest": "frozen-mission-set-01"
         }
       ],
       "system_boundary_digest": "complete-installed-joint-boundary-v1",
@@ -391,7 +431,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-unknown-F",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         },
         {
           "name": "task_energy",
@@ -402,7 +444,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-unknown-F",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         },
         {
           "name": "task_coverage",
@@ -413,7 +457,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-unknown-F",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         }
       ],
       "hard_constraints": [
@@ -427,7 +473,8 @@
           "configuration_digest": "config-unknown-F",
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "mission_set_digest": "frozen-mission-set-01"
         },
         {
           "name": "torque_margin",
@@ -439,7 +486,8 @@
           "configuration_digest": "config-unknown-F",
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "mission_set_digest": "frozen-mission-set-01"
         }
       ],
       "system_boundary_digest": "complete-installed-joint-boundary-v1",
@@ -460,7 +508,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-infeasible-G",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         },
         {
           "name": "task_energy",
@@ -471,7 +521,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-infeasible-G",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         },
         {
           "name": "task_coverage",
@@ -482,7 +534,9 @@
           "method": "Synthetic fixture source/method record; not physical evidence.",
           "configuration_digest": "config-infeasible-G",
           "operating_condition_digest": "48V-25C-cooling-A",
-          "system_boundary_digest": "complete-installed-joint-boundary-v1"
+          "system_boundary_digest": "complete-installed-joint-boundary-v1",
+          "mission_set_digest": "frozen-mission-set-01",
+          "stress_set_digest": "frozen-bounded-stress-set-v1"
         }
       ],
       "hard_constraints": [
@@ -496,7 +550,8 @@
           "configuration_digest": "config-infeasible-G",
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "mission_set_digest": "frozen-mission-set-01"
         },
         {
           "name": "torque_margin",
@@ -508,7 +563,8 @@
           "configuration_digest": "config-infeasible-G",
           "operating_condition_digest": "48V-25C-cooling-A",
           "system_boundary_digest": "complete-installed-joint-boundary-v1",
-          "stress_set_digest": "frozen-bounded-stress-set-v1"
+          "stress_set_digest": "frozen-bounded-stress-set-v1",
+          "mission_set_digest": "frozen-mission-set-01"
         }
       ],
       "system_boundary_digest": "complete-installed-joint-boundary-v1",
