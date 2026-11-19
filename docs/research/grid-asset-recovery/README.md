@@ -144,7 +144,9 @@ Each task now has:
 - duration;
 - zero or more simultaneous renewable resource requirements, each identifying a resource class and required units.
 
-A task can reserve multiple resource classes for the same interval—for example a qualified high-voltage crew, a heavy-lift crane and a test rig. The scheduler only starts it when **all** required resources have enough available capacity for the complete non-preemptive task interval. The fixture now includes shared crew, crane, high-voltage test equipment and heavy-haul vehicle resources.
+Every resource also declares a repeating calendar period and one or more availability windows within that period. The scheduler only starts a task when **all** required resource classes have enough capacity and the complete non-preemptive task duration fits inside an available window for every resource. The fixture uses a synthetic 24-hour period with a 08:00–22:00 daily window for the qualified crew, crane, test rig and heavy-haul vehicle.
+
+A task requiring a crane, qualified crew and test rig reserves all three for the same interval. A task too long to fit in every shift window is rejected rather than silently split across shifts. The first calendar model is deliberately simple: periodic windows on a shared elapsed-hour axis, without public holidays, shift exceptions, time zones, daylight-saving transitions, travel-time calendars or preemptive work.
 
 The scheduler performs non-preemptive, deterministic list scheduling across **all events in the case**, subject to precedence and resource capacity. Independent activities can overlap. When a crew or tool is unavailable, the next task is moved to the earliest feasible time slot. The reported event restoration time is the last scheduled task completion minus the event start; it is not the sum of all task durations.
 
@@ -162,7 +164,7 @@ The CLI emits a machine-readable JSON schedule report with task intervals, event
 
 ### Synthetic fixture schedule
 
-The three-event fixture now represents parallel parts sourcing/logistics and crew mobilisation. With the current synthetic durations and resource capacities, it declares restoration spans of 32 h, 1,219 h and 23 h. These are calculated from the task dependency graphs and the declared single-crew capacity; they are not observed transformer restoration times.
+The three-event fixture now represents parallel parts sourcing/logistics and crew mobilisation plus resource shift calendars. With the current synthetic durations and 14-hour daily windows, it declares restoration spans of 46 h, 1,222 h and 36 h. These are calculated from the task dependency graphs, simultaneous resource requirements and repeating calendar windows; they are not observed transformer restoration times.
 
 The second event's long OEM procurement duration is deliberately a stress case. It is a synthetic value used to exercise the schedule and must not be interpreted as a current supplier quote. The v0.2 unserved-energy calculation assumes the declared net firm shortfall remains constant until restoration. It is a transparent screening approximation—not a chronological production-cost, load-flow, stability or customer interruption model. Later versions must consume a time series and declared alternative-service availability before making operational or reliability claims.
 
@@ -220,7 +222,7 @@ Primary references:
 
 ### Bounded exact reference oracle
 
-A second scheduler path now exhaustively enumerates precedence-feasible serial schedules for cases of at most ten tasks. The CLI exposes it as `--exact-small`. It is an exact reference only for this bounded model: fixed non-preemptive durations, finish-to-start dependencies, fixed renewable resource capacities and release times. It is not a large-instance optimiser, and cases above ten tasks are rejected. The current task model supports multiple simultaneous renewable resource classes per task, but assumes constant resource capacity and fixed non-preemptive durations; it does not yet cover calendars, shifts, alternate execution modes, setup times or stochastic duration. Invoke it with `cargo run --manifest-path tools/grid-asset-recovery-validator/Cargo.toml -- --exact-small <case.json>`.
+A second scheduler path now exhaustively enumerates precedence-feasible serial schedules for cases of at most ten tasks. The CLI exposes it as `--exact-small`. It is an exact reference only for this bounded model: fixed non-preemptive durations, finish-to-start dependencies, fixed renewable resource capacities and release times. It is not a large-instance optimiser, and cases above ten tasks are rejected. The current task model supports multiple simultaneous renewable resource classes and repeating availability windows, but uses fixed non-preemptive durations and a shared elapsed-hour axis; it does not yet cover time zones, holidays, calendar exceptions, alternate execution modes, setup times, preemption or stochastic duration. Invoke it with `cargo run --manifest-path tools/grid-asset-recovery-validator/Cargo.toml -- --exact-small <case.json>`.
 
 A deliberately small counterexample is included in the Rust tests:
 - the deterministic earliest-feasible-start / stable-ID order has makespan **120 h**;
@@ -230,3 +232,33 @@ A deliberately small counterexample is included in the Rust tests:
 This is a four-task synthetic scheduling microcase, not a power-grid result. Its value is methodological: even a deterministic feasible heuristic can be suboptimal, so Power Fabric must publish its optimality gap where an exact reference is affordable.
 
 For larger recovery plans, the intended comparison remains CP-SAT / MILP / specialised RCPSP methods, with the same task graph, resource model and objective. The exact-small oracle must never be used to imply optimality for the 20-task or larger synthetic/field cases.
+
+
+## 13. Latest SOTA comparison and calendar-aware benchmark direction
+
+The scheduling literature has moved beyond a simple PSPLIB-only comparison:
+
+- A February 2026 SAT-based RCPSP study tested its methods over **13,413 instances** with diverse network/resource structures and reports 393 new lower bounds, 62 new upper bounds and 290 newly solved optimal instances. The paper is a useful algorithmic benchmark reference; it does not represent grid asset restoration.
+- An August 2026 calendar-aware RCPSP dataset provides 12 reproducible instances from tiny (5–8 activities) through large (500–1,000 activities), with DAGs, heterogeneous resources, shifts, lunch breaks, statutory holidays and stochastic disruptions. It reports baseline implementations using Max-Plus, OR-Tools CP-SAT and Gurobi MIP. This is much closer to our next scheduling model than classic PSPLIB, but remains industrial production scheduling rather than grid-repair data.
+- The 2026 RCPSP review classifies multi-skilled resources, uncertainty and multi-project scheduling among the major extensions. The benchmark plan should therefore evolve toward shared crews and equipment across events, shift calendars, stochastic task durations, correlated disruptions and portfolio-level objectives.
+
+References:
+- SAT-based RCPSP comparison (Computers & Operations Research, February 2026): https://doi.org/10.1016/j.cor.2025.107308
+- Calendar-aware RCPSP dataset (Data in Brief, August 2026): https://doi.org/10.1016/j.dib.2026.113256
+- 2026 RCPSP review (published online 10 June 2026): https://doi.org/10.1080/00207543.2026.2683116
+- PSPLIB and RCPSP resources: https://www.projectmanagement.ugent.be/research/project_scheduling/rcpsp
+
+### Transmission equipment / restoration reference points
+
+- ENTSO-E's 2026 transmission grid investment and supply-chain assessment reports typical lead time of at least 36 months for 245–420 kV power transformers, with TSOs reporting 113–243 planned additions per year in this category. It highlights critical subcomponents such as tap changers, GOES, copper, aluminium, bushings and oil as supply-chain exposures. This is a European TSO planning/supply-chain reference, not a universal delivery promise.
+- NERC's 2026 State of Reliability reports 2025 unavailability of 0.22% for AC circuits above 200 kV and 0.35% for transformers in North America. It notes 2025 had the highest transformer unavailability in its five-year period and that supply-chain constraints prolonged two transformer operational outages. These system unavailability measures complement—but do not replace—our proposed stage-level restoration and inventory metrics.
+- ACER's 2026 Monitoring Report says permitting remains the leading cause of delay for electricity transmission projects in its reporting scope; average permitting duration increased to almost 4.5 years in 2026. It also reports 20% of electricity transmission Projects of Common Interest had not progressed status for more than six years. These figures motivate the separate route-legitimacy workstream; they should not be treated as a universal jurisdictional timeline.
+
+References:
+- ENTSO-E 2026 assessment: https://eepublicdownloads.blob.core.windows.net/public-cdn-container/clean-documents/Publications/Position%20papers%20and%20reports/2026/entso-e_report_investment_supply_chain_assessment_2026_261030.pdf
+- NERC 2026 State of Reliability: https://prod.nerc.com/globalassets/programs/rapa/pa/nerc_sor_2026_technical_assessment.pdf
+- ACER 2026 Monitoring Report: https://www.acer.europa.eu/sites/default/files/documents/Publications/ACER-2026-Monitoring-Report-energy-infrastructure-development.pdf
+
+### What would constitute a real SOTA claim
+
+A future result must identify the exact benchmark corpus and version, include baseline source/commit hashes, publish hardware/runtime limits, report lower/upper bounds and optimality gaps, and replay the same calendar/task/resource data across methods. A lower restoration time on our synthetic fixture is not a SOTA result. A solver beating PSPLIB is not evidence it beats grid-operator restoration practice. Both algorithmic and operational comparisons are required.
