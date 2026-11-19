@@ -37,7 +37,7 @@ The validator rejects any plan that makes the sum exceed the requirement. It doe
 - `checkpointed`: multiple segments are permitted only at declared cumulative-effort checkpoints.
 - Every boundary before a later segment must have an interruption cause. A future planned boundary may name its intended cause; an observed boundary must be backed by a current execution event.
 - An active in-progress segment cannot be moved or followed by a new planned segment in the same proposal. Replanning must wait until a pause/checkpoint is observed and reconciled.
-- `pausedResourcePolicy=release` frees task resources between segments. `retain` reserves them continuously across the pause.
+- `pausedResourcePolicy=release` frees task resources between segments. `retain` reserves them continuously across the pause and, while a task remains paused without a planned resume, through the declared evaluation horizon.
 - Minimum segment effort and maximum interruptions are task-specific.
 
 ## Event and commitment semantics
@@ -50,7 +50,7 @@ Execution events bind:
 
 Exact duplicate deliveries with the same event identity and content are deduplicated. Reuse of an event ID or idempotency key with conflicting content is rejected. Superseded progress snapshots remain in the ledger but are reconciled against a later completed segment; stale, conflicted or unknown records block the evaluation.
 
-The proposal retains all baseline commitment identities and frozen event IDs. Changing commitment state, version, active segment or source evidence reference requires an explicit current reconciliation event binding the old/new versions, action, authority and evidence. Completed commitments cannot be changed. The schema and validator check consistency, not cryptographic signatures, legal authority or field truth.
+The proposal retains all baseline commitment identities and frozen event IDs. A new progress snapshot must be appended to the proposed event ledger and bound by an explicit version increment and reconciliation action. Supported actions are `progress_recorded` (in-progress to in-progress), `pause_confirmed` (in-progress to paused), `resume_authorized` (paused to in-progress), and `completion_confirmed` (paused/in-progress to completed). Changing commitment state, version, active segment, frozen event set or source evidence reference requires an explicit current reconciliation event binding the old/new versions, action, authority and evidence. Completed commitments cannot be changed. The schema and validator check consistency, not cryptographic signatures, legal authority or field truth.
 
 ## Benchmark and industry comparison
 
