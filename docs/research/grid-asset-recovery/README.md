@@ -354,3 +354,55 @@ The cross-system chain should be:
 **hazard/event scenario → asset failure set → recovery schedule and resource contention → asset service-return trajectories → dependent-service cascade → customer/ecosystem consequence → independent replay and risk review.**
 
 Keep physical energy/resource ledgers with their existing owners. This recovery tool emits time and service-availability evidence; it does not claim to simulate load flow, frequency stability, water balances or downstream service dependence.
+
+
+## 15. Disruption-aware recovery scenario sets
+
+The scheduler now accepts an independent, versioned scenario-set file via:
+
+`cargo run --manifest-path tools/grid-asset-recovery-validator/Cargo.toml -- --scenario-set docs/research/grid-asset-recovery/data/synthetic-recovery-scenarios-v0.1.json docs/research/grid-asset-recovery/data/synthetic-asset-recovery-v0.1.json`
+
+A scenario may overlay:
+- task duration realizations;
+- task release delays;
+- partial or complete resource-capacity outages over absolute elapsed-hour intervals;
+- explicit cause IDs and shared correlation-group IDs for common-cause disruptions.
+
+Resource outages consume capacity over the interval while remaining subject to the recurring shift calendar. The fast heuristic and both bounded exact small-instance references use the same outage reservations. A regression test specifically checks that exact makespan and service references cannot schedule through an outage.
+
+### Synthetic scenario portfolio
+
+The initial four-case scenario set contains:
+- baseline (0.55);
+- regional storm affecting the heavy-haul vehicle and crane under one shared correlation group (0.25);
+- OEM supplier delay extending one procurement task (0.15);
+- compound storm and supplier delay (0.05).
+
+These are **synthetic illustrative weights**, not probabilities estimated from historical utility, weather, supplier or repair records. A synthetic case is forbidden from claiming expert-elicited or empirical-fit probability basis. The purpose is to verify the scenario engine, common-cause representation, probability aggregation and tail reporting.
+
+The report emits expected weighted unserved energy, weighted p50/p95, worst scenario, scenario-specific makespan, service consequence and task schedule. The p95 is a weighted quantile over this small discrete scenario set; it is not a statistically reliable estimate of a real-world 95th percentile.
+
+### What to do before real-world claims
+
+1. Replace synthetic scenario weights with source-backed or expert-elicited values and document provenance, uncertainty and calibration.
+2. Build a larger fixed-seed ensemble with independent and correlated hazards: severe weather, access closure, flood, wildfire, cyber/communications outage, port congestion, OEM production interruption, critical component shortage and multiple simultaneous asset failures.
+3. Fit duration distributions by activity type from real anonymised event data. Compare lognormal, gamma, empirical bootstrap and heavy-tail alternatives; do not assume one distribution for all task classes.
+4. Use common random numbers across competing spare/crew strategies so the same failure and disruption realizations are replayed for every policy.
+5. Report expected value, p50/p90/p95/p99, CVaR95, worst-case bounded stress, recovery probability by time threshold and schedule stability.
+6. Validate calibration with held-out years/sites and reliability diagrams / proper scoring rules; compare predicted lead-time and repair-time distributions with observed outcomes.
+7. Model common-cause dependence explicitly (shared storm system, port, supplier, region, communications provider, depot or road corridor). Do not multiply marginal probabilities as if correlated events were independent.
+8. Preserve the separation between physical event risk, supplier lead-time uncertainty, task duration uncertainty and policy choices.
+
+### Next algorithmic frontier
+
+A credible robust-recovery solver should compare:
+- greedy earliest-start and service-weighted critical-path policies;
+- multi-start priority-rule serial schedule generation;
+- CP-SAT interval/cumulative resource scheduling;
+- MILP or SAT/branch-and-bound for bounded instances;
+- reactive rescheduling after observations, with frozen/committed tasks protected;
+- robust or stochastic optimisation with expected weighted unserved energy, CVaR95, p95 restoration and lifecycle cost shown as separate objectives.
+
+A policy should be evaluated on both **solution quality** and **stability**: how much schedule churn it creates when a supplier estimate or weather forecast changes, how many already-started tasks it invalidates, and whether a small input change causes a large and avoidable resource reassignment.
+
+The scenario engine currently uses deterministic scenario overlays and fixed task durations per scenario. It is not yet a stochastic simulator or a dispatch/operational decision system.
