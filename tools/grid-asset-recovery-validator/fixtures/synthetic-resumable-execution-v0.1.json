@@ -130,5 +130,25 @@
     }
   ],
   "reconciliations": [],
-  "caseMaturity": "synthetic_fixture"
+  "caseMaturity": "synthetic_fixture",
+  "baselineEvents": [
+    {
+      "eventId": "seg-1-complete",
+      "idempotencyKey": "storm-001-repair-pump-seg-0",
+      "eventType": "work_segment_completed",
+      "eventIdRef": "storm-001",
+      "taskId": "repair-pump",
+      "segmentId": "repair-pump-segment-0",
+      "sequence": 0,
+      "startHour": 0,
+      "endHour": 4,
+      "productiveEffortHours": 4,
+      "effectiveHour": 4,
+      "observedHour": 4.1,
+      "evidenceStatus": "current",
+      "evidenceClass": "synthetic_fixture",
+      "evidenceRef": "synthetic://segment/repair-pump/0",
+      "interruptionCause": "crew-shift-end"
+    }
+  ]
 }
