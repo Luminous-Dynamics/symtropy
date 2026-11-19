@@ -194,7 +194,9 @@
         "required": [
           "resourceId",
           "resourceType",
-          "availableUnits"
+          "availableUnits",
+          "calendarPeriodHours",
+          "availabilityWindows"
         ],
         "properties": {
           "resourceId": {
@@ -208,8 +210,56 @@
           "availableUnits": {
             "type": "integer",
             "minimum": 1
+          },
+          "calendarPeriodHours": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "availabilityWindows": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "startHour",
+                "endHour"
+              ],
+              "properties": {
+                "startHour": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "endHour": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              }
+            }
           }
-        }
+        },
+        "allOf": [
+          {
+            "properties": {
+              "calendarPeriodHours": {
+                "exclusiveMinimum": 0
+              }
+            }
+          },
+          {
+            "properties": {
+              "availabilityWindows": {
+                "items": {
+                  "properties": {
+                    "endHour": {
+                      "maximum": 100000
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
       }
     },
     "logisticsRoutes": {
