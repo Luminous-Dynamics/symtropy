@@ -75,8 +75,10 @@
           "milestone": "repair_completed",
           "status": "completed",
           "observedAt": "2030-01-01T14:00:00Z",
-          "progressFraction": 1.0,
-          "evidenceRefs": ["synthetic-evidence:field-observation-01"],
+          "progressFraction": 1,
+          "evidenceRefs": [
+            "synthetic-evidence:field-observation-01"
+          ],
           "evidenceClass": "observed",
           "freshness": "current"
         },
@@ -87,8 +89,10 @@
           "milestone": "commissioning_passed",
           "status": "completed",
           "observedAt": "2030-01-01T14:30:00Z",
-          "progressFraction": 1.0,
-          "evidenceRefs": ["synthetic-evidence:commissioning-record-01"],
+          "progressFraction": 1,
+          "evidenceRefs": [
+            "synthetic-evidence:commissioning-record-01"
+          ],
           "evidenceClass": "observed",
           "freshness": "current"
         }
@@ -116,29 +120,29 @@
       "series": [
         {
           "start": "2030-01-01T00:00:00Z",
-          "end": "2030-01-01T14:00:00Z",
-          "nativeDelivered": 0.0,
-          "nativeDemand": 10.0,
-          "functionalAvailability": 0.0,
+          "end": "2030-01-01T15:00:00Z",
+          "nativeDelivered": 0,
+          "nativeDemand": 10,
+          "functionalAvailability": 0,
           "status": "valid",
           "evidenceClass": "simulated",
           "sourceRef": "synthetic-electrical-model:step-0"
         },
         {
-          "start": "2030-01-01T14:00:00Z",
-          "end": "2030-01-01T15:00:00Z",
-          "nativeDelivered": 2.0,
-          "nativeDemand": 10.0,
+          "start": "2030-01-01T15:00:00Z",
+          "end": "2030-01-01T16:00:00Z",
+          "nativeDelivered": 2,
+          "nativeDemand": 10,
           "functionalAvailability": 0.2,
           "status": "valid",
           "evidenceClass": "simulated",
           "sourceRef": "synthetic-electrical-model:step-14"
         },
         {
-          "start": "2030-01-01T15:00:00Z",
+          "start": "2030-01-01T16:00:00Z",
           "end": "2030-01-01T18:00:00Z",
-          "nativeDelivered": 9.0,
-          "nativeDemand": 10.0,
+          "nativeDelivered": 9,
+          "nativeDemand": 10,
           "functionalAvailability": 0.9,
           "status": "valid",
           "evidenceClass": "simulated",
