@@ -1,0 +1,16 @@
+[package]
+name = "paired-actuator-source-replay"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "paired-actuator-source-replay"
+path = "src/main.rs"
+
+# Keep this no-dependency evidence replay tool isolated from the root workspace.
+[workspace]
