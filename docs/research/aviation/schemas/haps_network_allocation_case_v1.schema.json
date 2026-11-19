@@ -343,6 +343,11 @@
               "critical_excess_unserved_mbps": {
                 "type": "number",
                 "minimum": 0
+              },
+              "source_offset_s": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Original source-trace offset; distinct from offset_s in a sliced holdout window."
               }
             }
           }
@@ -407,7 +412,7 @@
       "uniqueItems": true
     }
   },
-  "$comment": "Semantic checks: cell IDs unique; each interval contains exactly one load row per declared cell; offsets strictly increase and fit inside horizon; intervals align with declared interval duration; critical excess is recomputed from offered minus terrestrial capacity; each cell can receive at most one beam per interval; selected cells do not exceed beam budget; the oracle is independently recomputed; no radio SINR/interference, propagation, spectrum or link feasibility is implied. Static fixed assignment requires declared static_assignment_cell_ids, no more than beam_budget; selected cells remain fixed across every interval. For a held-out window sliced from a longer traffic trace, offset_s is relative to the holdout case while source_offset_s records the original trace offset. The optimization_objective must be frozen across matched policies. For priority_weighted_critical_excess_served_mbps, the exact oracle maximizes sum(priority_weight × min(cell critical excess, per-beam capacity)) subject to the beam budget; ties are broken by the lexicographically ascending sorted cell-ID set.",
+  "$comment": "Semantic checks: cell IDs unique; each interval contains exactly one load row per declared cell; offsets strictly increase and fit inside horizon; intervals align with declared interval duration; critical excess is recomputed from offered minus terrestrial capacity; each cell can receive at most one beam per interval; selected cells do not exceed beam budget; the oracle is independently recomputed; no radio SINR/interference, propagation, spectrum or link feasibility is implied. Static fixed assignment requires declared static_assignment_cell_ids, no more than beam_budget; selected cells remain fixed across every interval. For a held-out window sliced from a longer traffic trace, offset_s is relative to the holdout case while source_offset_s records the original trace offset. The optimization_objective must be frozen across matched policies. For priority_weighted_critical_excess_served_mbps, the exact oracle maximizes sum(priority_weight × min(cell critical excess, per-beam capacity)) subject to the beam budget; ties are broken by the lexicographically ascending sorted cell-ID set. For sliced holdout windows, expected_oracle.intervals[].source_offset_s records the original source trace offset; offset_s remains relative to the evaluated window.",
   "allOf": [
     {
       "if": {
