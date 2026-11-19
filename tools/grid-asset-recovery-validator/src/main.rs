@@ -697,6 +697,8 @@ struct ScenarioOutcome {
     probability: f64,
     makespan_hours: f64,
     weighted_unserved_energy_mwh: f64,
+    affected_resource_ids: Vec<String>,
+    cause_ids: Vec<String>,
     correlated_cause_groups: Vec<String>,
     schedule: Vec<ScheduledTask>,
 }
@@ -973,6 +975,8 @@ fn evaluate_scenario_set(
 
         let mut profiles = profiles_base.clone();
         let mut cause_groups = BTreeSet::new();
+        let mut cause_ids = BTreeSet::new();
+        let mut affected_resources = BTreeSet::new();
         let mut outage_boundaries: BTreeMap<String, Vec<f64>> = BTreeMap::new();
         for outage in &scenario.resource_outages {
             let Some(profile) = profiles.get_mut(&outage.resource_id) else {
@@ -996,6 +1000,8 @@ fn evaluate_scenario_set(
                 )]);
             }
             cause_groups.insert(outage.correlation_group_id.clone());
+            cause_ids.insert(outage.cause_id.clone());
+            affected_resources.insert(outage.resource_id.clone());
             let boundaries = outage_boundaries.entry(outage.resource_id.clone()).or_default();
             boundaries.push(outage.start_hour);
             boundaries.push(outage.end_hour);
@@ -1048,6 +1054,8 @@ fn evaluate_scenario_set(
             probability: scenario.probability,
             makespan_hours: makespan,
             weighted_unserved_energy_mwh: weighted_unserved,
+            affected_resource_ids: affected_resources.into_iter().collect(),
+            cause_ids: cause_ids.into_iter().collect(),
             correlated_cause_groups: cause_groups.into_iter().collect(),
             schedule: scheduled,
         });
@@ -1315,6 +1323,11 @@ mod tests {
             .find(|outcome| outcome.scenario_id == "COMPOUND-STORM-SUPPLIER")
             .unwrap();
         assert_eq!(compound.correlated_cause_groups, vec!["REGIONAL-STORM-02".to_string()]);
+        assert_eq!(
+            compound.affected_resource_ids,
+            vec!["CRANE-200T".to_string(), "HEAVY-HAULER".to_string()]
+        );
+        assert_eq!(compound.cause_ids, vec!["STORM-FRONT-02".to_string()]);
     }
 
     #[test]
