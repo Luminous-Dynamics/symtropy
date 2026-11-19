@@ -40,6 +40,12 @@ The validator rejects any plan that makes the sum exceed the requirement. It doe
 - `pausedResourcePolicy=release` frees task resources between segments. `retain` reserves them continuously across the pause and, while a task remains paused without a planned resume, through the declared evaluation horizon.
 - Minimum segment effort and maximum interruptions are task-specific.
 
+## Evidence maturity and time semantics
+
+Every execution case declares `caseMaturity`: `synthetic_fixture` requires all execution events to be labelled `synthetic_fixture`; `field_observed` requires `observed`. The v0.1 gate does not accept an engineering-estimate or modelled event class, and a field-observed label remains a claim to be independently verified by its source/authority owner—not proof produced by this validator. The UTC origin must be a canonical `YYYY-MM-DDTHH:MM:SSZ` date with a valid Gregorian calendar date. Relative hours are interpreted from that frozen origin.
+
+An in-progress commitment reserves each required resource through the evaluation horizon until a current pause/closure event is reconciled. `pausedResourcePolicy=release` releases a resource only after a pause is observed; `retain` reserves the resource over the pause and while a task remains paused without a planned continuation. The evaluator never treats the end of a progress snapshot as an implicit release.
+
 ## Event and commitment semantics
 
 Execution events bind:
@@ -48,7 +54,7 @@ Execution events bind:
 - effective time and observed time;
 - work interval, delivered effort and evidence status/reference.
 
-Exact duplicate deliveries with the same event identity and content are deduplicated. Reuse of an event ID or idempotency key with conflicting content is rejected. Superseded progress snapshots remain in the ledger but are reconciled against a later completed segment; stale, conflicted or unknown records block the evaluation.
+Exact duplicate deliveries with the same event identity and content are deduplicated. Reuse of an event ID or idempotency key with conflicting content is rejected. Superseded progress snapshots remain in the ledger but are reconciled against a later completed segment; all snapshots for one segment must preserve the same task, event, sequence and start identity. Stale, conflicted or unknown records block the evaluation. A new snapshot is a commitment change and requires a version increment plus `progress_recorded`; transitions to paused/in-progress/completed require `pause_confirmed`, `resume_authorized` or `completion_confirmed` respectively.
 
 The proposal retains all baseline commitment identities and frozen event IDs. A new progress snapshot must be appended to the proposed event ledger and bound by an explicit version increment and reconciliation action. Supported actions are `progress_recorded` (in-progress to in-progress), `pause_confirmed` (in-progress to paused), `resume_authorized` (paused to in-progress), and `completion_confirmed` (paused/in-progress to completed). Changing commitment state, version, active segment, frozen event set or source evidence reference requires an explicit current reconciliation event binding the old/new versions, action, authority and evidence. Completed commitments cannot be changed. The schema and validator check consistency, not cryptographic signatures, legal authority or field truth.
 
@@ -65,6 +71,16 @@ This is the best first external calendar/disruption transfer corpus for #6119/#6
 ### Preemption trade-off comparator
 
 Salvadori and Agnetis, *The impact of the number of preemptions in resource-constrained project scheduling problems with time-varying resources*, Annals of Operations Research (2025), DOI [10.1007/s10479-025-06892-2](https://doi.org/10.1007/s10479-025-06892-2). The study computes makespan/preemption Pareto fronts for 30-job instances and reports that a small number of preemptions often captures much of the makespan benefit, especially with time-varying resources. The benchmark implication is to measure makespan and interruption/coordination burden together, not maximize preemption.
+
+### Decision-valued inspection and information quality
+
+Three adjacent 2026 studies make the next grid-specific extension clear:
+
+- Han et al., *Vision-Guided UAV Inspection and Repair Crew Dispatch for Post-Disaster Distribution Grid Restoration*, IEEE/I&CPS Asia 2026, DOI [10.1109/ICPSAsia70813.2026.11692267](https://doi.org/10.1109/ICPSAsia70813.2026.11692267). It converts UAV observations (fault type, severity, confidence and road accessibility) into repair inputs and jointly considers crew assignment/routing, repair sequencing, reinspection and restoration timing on InsPLAD and modified IEEE 33-bus cases.
+- Liang et al., *Quantifying the value of seismic structural health monitoring for post-earthquake recovery of electric power system in terms of resilience enhancement*, Reliability Engineering & System Safety 273 (September 2026), DOI [10.1016/j.ress.2026.112292](https://doi.org/10.1016/j.ress.2026.112292). It compares damage-information quality (no/partial/full monitoring and observation matrices) and quantifies system recovery/resilience effects; the abstract reports up to 21% lower Lack of Resilience on its own IEEE 24-bus case.
+- A 2026 dynamic inspection-crew dispatch paper, DOI [10.1016/j.ress.2026.112527](https://doi.org/10.1016/j.ress.2026.112527), updates fault posteriors with trouble calls and crew field observations, then adapts inspection routes on IEEE 34/126 systems.
+
+These are inspection/diagnosis and value-of-information comparators, not evidence that our scheduler has that capability. Integrate their question into #6242 and reuse the repository's decision-value / selective-repair pattern in [#5520](https://github.com/Luminous-Dynamics/symtropy/issues/5520) and [#3527](https://github.com/Luminous-Dynamics/symtropy/issues/3527). Do not fork a second Bayesian diagnosis engine or generic VoI model.
 
 ### Stochastic reactive scheduling
 
@@ -109,6 +125,10 @@ Do not combine interruption count, restoration time, service loss and resource c
 - Zero resource-capacity violations.
 - Zero downstream task starts before the full required work of predecessors is completed or scheduled.
 - Measurable Pareto trade-off between interruption burden and makespan on matched cases.
+
+## Build and dependency reproducibility
+
+The direct Rust dependencies are pinned to Serde 1.0.229 and serde_json 1.0.154. This isolated tool currently has no committed `Cargo.lock`; the CI job generates a lockfile once per workflow run, then uses `--locked` for Clippy, tests and replay. Therefore direct versions are fixed, but the transitive dependency graph is not yet commit-pinned across separate workflow runs. A generated lockfile should be reviewed and committed before a release or benchmark freeze.
 
 ## Qualification boundary
 
