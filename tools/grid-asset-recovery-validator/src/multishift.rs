@@ -1694,6 +1694,8 @@ mod tests {
             interruption_cause: None,
         });
 
+        case.baseline_events.push(case.events[1].clone());
+
         let baseline = &mut case.baseline_commitments[0];
         baseline.state = CommitmentState::InProgress;
         baseline.version = 1;
@@ -1799,6 +1801,7 @@ mod tests {
             evidence_ref: "synthetic://progress/repair-pump/complete".to_string(),
             interruption_cause: None,
         });
+        case.baseline_events.push(case.events.last().expect("new baseline snapshot").clone());
         case.baseline_commitments[0].state = CommitmentState::InProgress;
         case.baseline_commitments[0].version = 1;
         case.baseline_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
@@ -1920,6 +1923,7 @@ mod tests {
             evidence_ref: "synthetic://progress/repair-pump".to_string(),
             interruption_cause: None,
         });
+        case.baseline_events.push(case.events.last().expect("new baseline snapshot").clone());
         case.baseline_commitments[0].state = CommitmentState::InProgress;
         case.proposed_commitments[0].state = CommitmentState::InProgress;
         case.baseline_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
@@ -1958,6 +1962,7 @@ mod tests {
             evidence_ref: "synthetic://progress/repair-pump".to_string(),
             interruption_cause: None,
         });
+        case.baseline_events.push(case.events.last().expect("new baseline snapshot").clone());
         case.baseline_commitments[0].state = CommitmentState::InProgress;
         case.proposed_commitments[0].state = CommitmentState::InProgress;
         case.baseline_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
