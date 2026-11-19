@@ -694,6 +694,34 @@ mod tests {
         serde_json::from_str(EVIDENCE).expect("evidence fixture JSON")
     }
 
+    fn interval_fixture(
+        interval_id: &str,
+        start_utc: &str,
+        evidence_id: &str,
+        receipt_id: &str,
+    ) -> (Vec<u8>, Value, Value) {
+        let mut payload: Value = serde_json::from_slice(PAYLOAD).unwrap();
+        payload["interval_id"] = json!(interval_id);
+        payload["start_utc"] = json!(start_utc);
+        let bytes = serde_json::to_vec(&payload).unwrap();
+        let digest = digest_hex(&bytes);
+
+        let mut e = evidence();
+        e["evidence_id"] = json!(evidence_id);
+        e["subject"]["interval_id"] = json!(interval_id);
+        e["time_window"]["start_utc"] = json!(start_utc);
+        e["artifact"]["byte_length"] = json!(bytes.len());
+        e["artifact"]["digest"]["value"] = json!(digest);
+
+        let mut a = allocation();
+        a["receipt_id"] = json!(receipt_id);
+        a["source_evidence_id"] = json!(evidence_id);
+        a["source_payload_digest"]["value"] = json!(digest);
+        a["source_interval_id"] = json!(interval_id);
+
+        (bytes, e, a)
+    }
+
     fn allocation() -> Value {
         serde_json::from_str(ALLOCATION).expect("allocation fixture JSON")
     }
@@ -848,6 +876,117 @@ mod tests {
         e["artifact"]["digest"]["value"] = json!("z".repeat(64));
         let error = verify_source_interval(PAYLOAD, &e, &allocation()).unwrap_err();
         assert_eq!(error.code(), "MALFORMED_DIGEST");
+    }
+
+    #[test]
+    fn empty_batch_is_rejected() {
+        let error = verify_source_interval_batch(&[]).unwrap_err();
+        assert_eq!(error.code(), "EMPTY_BATCH");
+    }
+
+    #[test]
+    fn batch_rejects_same_physical_interval_with_new_caller_ids() {
+        let e1 = evidence();
+        let a1 = allocation();
+        let (bytes2, e2, a2) = interval_fixture(
+            "renamed-interval-id",
+            "2026-01-01T00:00:00Z",
+            "GF-SECOND-EVIDENCE",
+            "GF-SECOND-ALLOCATION",
+        );
+        let inputs = [
+            SourceIntervalInput {
+                payload_bytes: PAYLOAD,
+                evidence: &e1,
+                allocation: &a1,
+            },
+            SourceIntervalInput {
+                payload_bytes: &bytes2,
+                evidence: &e2,
+                allocation: &a2,
+            },
+        ];
+        let error = verify_source_interval_batch(&inputs).unwrap_err();
+        assert_eq!(error.code(), "DUPLICATE_SOURCE_INTERVAL");
+    }
+
+    #[test]
+    fn batch_accepts_non_overlapping_source_intervals_from_same_meter() {
+        let e1 = evidence();
+        let a1 = allocation();
+        let (bytes2, e2, a2) = interval_fixture(
+            "synthetic-hour-0002",
+            "2026-01-01T01:00:00Z",
+            "GF-SOURCE-INTERVAL-002",
+            "GF-ALLOCATION-002",
+        );
+        let inputs = [
+            SourceIntervalInput {
+                payload_bytes: PAYLOAD,
+                evidence: &e1,
+                allocation: &a1,
+            },
+            SourceIntervalInput {
+                payload_bytes: &bytes2,
+                evidence: &e2,
+                allocation: &a2,
+            },
+        ];
+        let reports = verify_source_interval_batch(&inputs).unwrap();
+        assert_eq!(reports.len(), 2);
+        assert!(reports.iter().all(|report| report.qualified));
+    }
+
+    #[test]
+    fn batch_rejects_duplicate_evidence_ids() {
+        let e1 = evidence();
+        let a1 = allocation();
+        let (bytes2, e2, a2) = interval_fixture(
+            "synthetic-hour-0002",
+            "2026-01-01T01:00:00Z",
+            "GF-SYNTHETIC-SOURCE-INTERVAL-001",
+            "GF-ALLOCATION-002",
+        );
+        let inputs = [
+            SourceIntervalInput {
+                payload_bytes: PAYLOAD,
+                evidence: &e1,
+                allocation: &a1,
+            },
+            SourceIntervalInput {
+                payload_bytes: &bytes2,
+                evidence: &e2,
+                allocation: &a2,
+            },
+        ];
+        let error = verify_source_interval_batch(&inputs).unwrap_err();
+        assert_eq!(error.code(), "DUPLICATE_EVIDENCE_ID");
+    }
+
+    #[test]
+    fn batch_rejects_duplicate_allocation_receipt_ids() {
+        let e1 = evidence();
+        let a1 = allocation();
+        let (bytes2, e2, a2) = interval_fixture(
+            "synthetic-hour-0002",
+            "2026-01-01T01:00:00Z",
+            "GF-SOURCE-INTERVAL-002",
+            "GF-SYNTHETIC-ALLOCATION-001",
+        );
+        let inputs = [
+            SourceIntervalInput {
+                payload_bytes: PAYLOAD,
+                evidence: &e1,
+                allocation: &a1,
+            },
+            SourceIntervalInput {
+                payload_bytes: &bytes2,
+                evidence: &e2,
+                allocation: &a2,
+            },
+        ];
+        let error = verify_source_interval_batch(&inputs).unwrap_err();
+        assert_eq!(error.code(), "DUPLICATE_ALLOCATION_RECEIPT_ID");
     }
 
     #[test]
