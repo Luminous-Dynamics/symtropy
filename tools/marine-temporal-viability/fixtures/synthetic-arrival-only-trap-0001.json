@@ -2633,7 +2633,9 @@
               "delta": -3,
               "unit": "day",
               "evidence_ref": "SYNTHETIC-WATER-CONSUMPTION",
-              "evidence_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+              "evidence_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+              "delta_lower_bound": -3,
+              "delta_upper_bound": -3
             },
             {
               "event_id": "integrated-mission-candidate-member-01-freshwater-restock",
@@ -2643,7 +2645,9 @@
               "delta": 3,
               "unit": "day",
               "evidence_ref": "SYNTHETIC-WATER-RESTOCK",
-              "evidence_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+              "evidence_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+              "delta_lower_bound": 3,
+              "delta_upper_bound": 3
             }
           ],
           "timepoints": [
