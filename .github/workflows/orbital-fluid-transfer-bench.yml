@@ -70,6 +70,11 @@ jobs:
             and .report.scenarios[0].receiver_id == "serviced-client-001"
             and .report.scenarios[0].interface_id == "COOPERATIVE-CAPTURE-PORT-A"
             and .report.scenarios[0].interface_revision == 3
+            and .report.scenarios[0].transfer_event_id == "transfer-storable-001"
+            and .report.scenarios[0].fluid_id == "synthetic-hydrazine-analogue"
+            and .report.scenarios[0].phase == "liquid"
+            and .report.scenarios[0].final_temperature_mk == 293150
+            and .report.scenarios[0].final_pressure_pa == 250000
             and .report.scenarios[1].status == "storage_only_not_transfer_evidence"
             and .report.scenarios[1].receiver_id == "serviced-client-001"
             and .report.scenarios[1].interface_id == "COOPERATIVE-CAPTURE-PORT-A"
