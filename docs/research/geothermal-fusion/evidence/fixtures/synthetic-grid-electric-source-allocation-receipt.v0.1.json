@@ -4,7 +4,7 @@
   "source_evidence_id": "GF-SYNTHETIC-ELECTRIC-SOURCE-INTERVAL-001",
   "source_payload_digest": {
     "algorithm": "sha256",
-    "value": "42a4909f982fd68c583024df090e36fd85909a878055e7e3ad59f239b1c096cf"
+    "value": "2630c420ddb096e2a763ff2a096acad3eb554b441adbb3bc5eb1d14edfae9c72"
   },
   "source_asset_id": "synthetic-grid-connection-01",
   "source_boundary_id": "synthetic-pcc-electric-meter-01",
