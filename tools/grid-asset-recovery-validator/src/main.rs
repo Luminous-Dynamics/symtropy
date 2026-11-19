@@ -266,11 +266,7 @@ fn validate(case: &Case) -> Vec<String> {
 
     let mut stock_demand: BTreeMap<(String, String), u32> = BTreeMap::new();
     let mut schedule_tasks = Vec::new();
-    let capacities: BTreeMap<String, u32> = case
-        .resources
-        .iter()
-        .map(|x| (x.resource_id.clone(), x.available_units))
-        .collect();
+    let capacities = resource_capacities(case);
     let required_stages = [
         "detect_and_isolate",
         "diagnose",
