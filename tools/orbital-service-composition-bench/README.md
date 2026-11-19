@@ -19,7 +19,7 @@ cargo fmt --manifest-path tools/orbital-service-composition-bench/Cargo.toml -- 
 cargo test --manifest-path tools/orbital-service-composition-bench/Cargo.toml --all-targets
 cargo clippy --manifest-path tools/orbital-service-composition-bench/Cargo.toml --all-targets -- -D warnings
 cargo run --quiet --manifest-path tools/orbital-service-composition-bench/Cargo.toml -- \
-  tools/orbital-service-composition-bench/fixtures/v0.1/cases.json \
+  fixture tools/orbital-service-composition-bench/fixtures/v0.1/cases.json \
   --source-commit "$(git rev-parse HEAD)"
 ```
 
