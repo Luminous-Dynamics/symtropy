@@ -1,3 +1,4 @@
+pub mod multirate;
 pub mod observation_export;
 pub mod waveform;
 

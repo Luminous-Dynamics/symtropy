@@ -93,3 +93,22 @@ The `observation_export` module converts a verified waveform receipt into a sequ
 The JSON frame shape matches Symthaea's observation schema for interchange. It is not a source-authentication mechanism and does not prove the synthetic values are physically plausible. Downstream consumers must still apply the normal evidence gate; synthetic frames must abstain at a direct-measurement gate.
 
 Tests cover state mapping, leading delay without a source sample, serialization round-trip, receipt tampering, and attempted measured-state/physical-measurement promotion.
+
+
+## Timestamp-native multi-rate alignment (S0.1)
+
+The `multirate` module adds a causal as-of query across asynchronous diagnostic streams while preserving each stream's native timestamps and declared sample period.
+
+- Selects only the newest sample with timestamp less than or equal to the decision time.
+- Preserves measured, synthetic, reconstructed, unavailable, invalid, delayed and degraded evidence dispositions.
+- Applies explicit per-channel maximum sample age; stale values are withheld while timestamp and source lineage remain visible.
+- Reports missing streams, future-only streams, stale samples and non-measured evidence as distinct states.
+- Rejects non-monotonic timestamps, duplicate stream/sample identities, clock-domain mismatches, non-finite values and measured samples lacking source/calibration lineage.
+- Performs no resampling, interpolation, zero-fill, forward-fill, backfill, diagnostic reconstruction or actuation.
+- Binds request, source-stream and output digests in an alignment receipt. The request-bound verifier replays the exact supplied streams and compares the complete receipt; digests remain integrity identifiers, not source authentication.
+
+Run the frozen eight-case synthetic corpus as part of the unit-test suite:
+
+    cargo test --locked --manifest-path crates/tools/plasma-diagnostic-fault-replay/Cargo.toml
+
+The corpus exercises heterogeneous and irregular sample times, future exclusion, staleness boundaries, evidence-state preservation, absent streams and fail-closed identity/clock/provenance checks. All fixture values are synthetic. The result qualifies only software alignment and causal selection; it does not establish physical observability, diagnostic accuracy, plasma-model validity, or disruption prediction.

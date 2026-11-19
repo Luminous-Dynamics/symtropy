@@ -4,14 +4,17 @@ on:
   push:
     branches:
       - research/plasma-diagnostic-fault-replay-v0-1-2026-11-17
+      - research/plasma-multirate-alignment-v0-1-2026-11-19
     paths:
       - "crates/tools/plasma-diagnostic-fault-replay/**"
       - "benchmarks/plasma/diagnostic-fault-replay-v0.json"
+      - "benchmarks/plasma/multirate-alignment-v0.json"
       - ".github/workflows/plasma-diagnostic-fault-replay.yml"
   pull_request:
     paths:
       - "crates/tools/plasma-diagnostic-fault-replay/**"
       - "benchmarks/plasma/diagnostic-fault-replay-v0.json"
+      - "benchmarks/plasma/multirate-alignment-v0.json"
       - ".github/workflows/plasma-diagnostic-fault-replay.yml"
   workflow_dispatch:
 
