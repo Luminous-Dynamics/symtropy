@@ -223,6 +223,131 @@ fn accepted_step_may_report_last_successful_time_after_requested_endpoint() {
 }
 
 #[test]
+fn successful_overshoot_anchors_the_next_interval_to_actual_returned_time() {
+    let model = profile(
+        "single",
+        "sha256:model-single-v1",
+        "clock-binding-single-v1",
+        "sha256:clock-map-single-v1",
+        1_000_000_000,
+        1,
+    );
+    let first = attempt(
+        "single-step-0",
+        "single",
+        "sha256:model-single-v1",
+        "clock-binding-single-v1",
+        "sha256:clock-map-single-v1",
+        0,
+        None,
+        0,
+        1,
+        2,
+        1_000_000_000,
+        StepOutcome::Accepted,
+    );
+    let second = attempt(
+        "single-step-1",
+        "single",
+        "sha256:model-single-v1",
+        "clock-binding-single-v1",
+        "sha256:clock-map-single-v1",
+        1,
+        None,
+        2,
+        3,
+        3,
+        1_000_000_000,
+        StepOutcome::Accepted,
+    );
+    let trace = RunTrace {
+        run_id: "synthetic-single-run-overshoot-chain".to_owned(),
+        federates: vec![model],
+        attempts: vec![first, second],
+        barriers: vec![
+            CommitBarrier {
+                barrier_id: "barrier-2s".to_owned(),
+                sequence: 0,
+                master_time_ns: 2_000_000_000,
+                participant_attempt_ids: vec!["single-step-0".to_owned()],
+            },
+            CommitBarrier {
+                barrier_id: "barrier-3s".to_owned(),
+                sequence: 1,
+                master_time_ns: 3_000_000_000,
+                participant_attempt_ids: vec!["single-step-1".to_owned()],
+            },
+        ],
+    };
+
+    assert_eq!(validate_trace(&trace), Ok(()));
+}
+
+#[test]
+fn next_interval_cannot_restart_from_requested_time_after_overshoot() {
+    let model = profile(
+        "single",
+        "sha256:model-single-v1",
+        "clock-binding-single-v1",
+        "sha256:clock-map-single-v1",
+        1_000_000_000,
+        1,
+    );
+    let first = attempt(
+        "single-step-0",
+        "single",
+        "sha256:model-single-v1",
+        "clock-binding-single-v1",
+        "sha256:clock-map-single-v1",
+        0,
+        None,
+        0,
+        1,
+        2,
+        1_000_000_000,
+        StepOutcome::Accepted,
+    );
+    let second = attempt(
+        "single-step-1",
+        "single",
+        "sha256:model-single-v1",
+        "clock-binding-single-v1",
+        "sha256:clock-map-single-v1",
+        1,
+        None,
+        1,
+        2,
+        2,
+        1_000_000_000,
+        StepOutcome::Accepted,
+    );
+    let trace = RunTrace {
+        run_id: "synthetic-single-run-stale-requested-time".to_owned(),
+        federates: vec![model],
+        attempts: vec![first, second],
+        barriers: vec![
+            CommitBarrier {
+                barrier_id: "barrier-2s".to_owned(),
+                sequence: 0,
+                master_time_ns: 2_000_000_000,
+                participant_attempt_ids: vec!["single-step-0".to_owned()],
+            },
+            CommitBarrier {
+                barrier_id: "barrier-2s-again".to_owned(),
+                sequence: 1,
+                master_time_ns: 2_000_000_000,
+                participant_attempt_ids: vec!["single-step-1".to_owned()],
+            },
+        ],
+    };
+
+    assert_eq!(
+        validate_trace(&trace).expect_err("stale requested time must be rejected").code(),
+        "ATTEMPT_CHAIN_DISCONTINUITY"
+    );
+}
+
+#[test]
 fn clock_binding_maps_exactly_without_float_rounding() {
     let trace = valid_trace();
     let binding = &trace.federates[1].clock;
