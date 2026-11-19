@@ -67,7 +67,7 @@ pub struct DesignIntentManifest {
     pub entities: Vec<DesignIntentEntity>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct RefereeMeasurement {
     /// Signed centerline/anchor residuals in the frozen site frame, in mm.
     pub residual_x_mm: f64,
