@@ -64,16 +64,20 @@ jobs:
             and .report.result == "pass"
             and .report.evidence_class == "synthetic"
             and .report.metrics.asset_count == 3
-            and .report.metrics.flight_attempts == 3
-            and .report.metrics.mission_successes == 2
-            and .report.metrics.recovered_stages == 2
+            and .report.metrics.flight_attempts == 4
+            and .report.metrics.mission_successes == 3
+            and .report.metrics.recovered_stages == 3
             and .report.metrics.lost_stages == 1
-            and .report.metrics.payload_acceptances == 2
-            and .report.metrics.accepted_payload_kg == 18000
+            and .report.metrics.payload_acceptances == 3
+            and .report.metrics.accepted_payload_kg == 23000
             and .report.metrics.completed_reflight_cycles == 1
+            and .report.metrics.turnaround_sample_count == 1
+            and .report.metrics.turnaround_total_ticks == 14
+            and .report.metrics.turnaround_max_ticks == 14
+            and .report.metrics.maintenance_task_count == 5
             and .report.metrics.maintenance_total_wait_ticks == 1
-            and .report.metrics.costs.total_lifecycle_scu == 444
-            and .report.metrics.costs.cost_per_accepted_kg_microscu == 24666
+            and .report.metrics.costs.total_lifecycle_scu == 485
+            and .report.metrics.costs.cost_per_accepted_kg_microscu == 21086
           ' reusable-launch-production-receipt.json
 
       - name: Retain benchmark receipt
