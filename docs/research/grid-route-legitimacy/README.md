@@ -43,7 +43,7 @@ The schema defines a jurisdiction profile and source URLs; an explicit evidence 
 
 A gate marked complete must carry evidence. Public participation, land access/servitude, statutory-decision and compensation gates require explicit decision types when marked complete. The referenced decision type must match the gate, and the decision must be effective and unexpired at the case snapshot date. A released workfront must have every required gate complete and release evidence with an authority/instrument class. Synthetic fixtures can never assert a released workfront.
 
-The synthetic fixture intentionally has incomplete rights-holder, participation, environmental and land-access gates. Its workfront is not released.
+The synthetic fixture intentionally has incomplete jurisdiction/applicability, rights-holder, participation, environmental and land-access gates. Its workfront is not released. A listed jurisdictional source is not treated as proof that the legal process or competent-authority applicability has been resolved.
 
 ## 5. Rights and privacy principles
 
