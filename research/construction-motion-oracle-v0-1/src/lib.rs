@@ -5,6 +5,14 @@
 //! producer's geometric expansion helpers.
 
 pub mod field_layout_acceptance;
+pub mod workface_resource_admission;
+pub use workface_resource_admission::{
+    ConstructionResourceKind, ReservationAdmission, ReservationClosure, ReservationError,
+    ReservationHoldReason, ReservationPolicy, ReservationTerminalState, ResourceActorRegistry,
+    ResourceActorRole, ResourceCatalog, ResourceDefinition, ResourceReservationBook,
+    ResourceReservationRecord, ResourceReservationRequest, SiteTimeInterval,
+    SpaceTimeClearanceDisposition, SpaceTimeClearanceReceipt,
+};
 pub mod ifc_ids_preflight;
 pub use ifc_ids_preflight::{
     GeometryPreflightEvaluation, IfcCoordinateContext, IfcIdsPreflightError, IfcIdsPreflightReport,
