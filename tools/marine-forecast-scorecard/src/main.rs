@@ -1,7 +1,7 @@
 use chrono::{DateTime, Duration, FixedOffset};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::env;
 use std::fs;
 use std::process::ExitCode;
@@ -98,7 +98,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
 
     let mut case_by_id: HashMap<String, Value> = HashMap::new();
     let mut group_folds: HashMap<String, String> = HashMap::new();
-    let mut test_strata = HashSet::<String>::new();
+    let mut test_strata = BTreeSet::<String>::new();
     let mut skill: BTreeMap<String, Vec<(f64, f64, f64)>> = BTreeMap::new();
     let mut events: BTreeMap<String, Vec<(f64, bool)>> = BTreeMap::new();
 
@@ -154,22 +154,31 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             let valid = parse_time(string_at(case, "forecast_valid_time"), "forecast_valid_time", &mut errors);
             let verified = parse_time(string_at(case, "verification_valid_time"), "verification_valid_time", &mut errors);
             let observed_at = parse_time(string_at(case, "observation_time"), "observation_time", &mut errors);
-            if let (Some(issue), Some(available), Some(cutoff)) = (issue, available, cutoff) {
-                if available < issue {
+            if let (Some(issue_time), Some(available_time), Some(cutoff_time)) =
+                (issue.as_ref(), available.as_ref(), cutoff.as_ref())
+            {
+                if available_time < issue_time {
                     errors.push(format!("forecast case '{case_id}' first availability precedes model issue time"));
                 }
-                if available > cutoff {
+                if available_time > cutoff_time {
                     blockers.push(format!("forecast case '{case_id}' uses information unavailable at decision cutoff"));
                 }
             }
-            if let (Some(issue), Some(valid)) = (issue, valid) {
+            if let (Some(issue_time), Some(valid_time)) = (issue.as_ref(), valid.as_ref()) {
                 match count_at(case, "lead_hours") {
-                    Some(lead) if issue + Duration::hours(lead as i64) == valid => {}
+                    Some(lead) if issue_time.clone() + Duration::hours(lead as i64) == *valid_time => {}
                     _ => errors.push(format!("forecast case '{case_id}' issue time + lead_hours must equal forecast_valid_time")),
                 }
             }
-            if let (Some(valid), Some(verified), Some(observed_at)) = (valid, verified, observed_at) {
-                if valid != verified || valid != observed_at {
+            if let (Some(valid_time), Some(cutoff_time)) = (valid.as_ref(), cutoff.as_ref()) {
+                if valid_time <= cutoff_time {
+                    errors.push(format!("forecast case '{case_id}' valid time must follow the decision cutoff"));
+                }
+            }
+            if let (Some(valid_time), Some(verified_time), Some(observed_time)) =
+                (valid.as_ref(), verified.as_ref(), observed_at.as_ref())
+            {
+                if valid_time != verified_time || valid_time != observed_time {
                     errors.push(format!("forecast case '{case_id}' verification timestamps do not match forecast valid time"));
                 }
             }
@@ -181,6 +190,15 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             }
 
             let variable = string_at(case, "variable").unwrap_or("unknown");
+            let expected_unit = match variable {
+                "wind_speed" => "m/s",
+                "significant_wave_height" => "m",
+                "mean_sea_level_pressure" => "Pa",
+                _ => "",
+            };
+            if expected_unit.is_empty() || string_at(case, "unit") != Some(expected_unit) {
+                errors.push(format!("forecast case '{case_id}' has a variable/unit mismatch"));
+            }
             let lead = count_at(case, "lead_hours").unwrap_or(0);
             let deterministic = number_at(case, "deterministic_value");
             let observation = number_at(case, "observed_value");
@@ -249,7 +267,11 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     let mut candidate_plan_changes = 0_u64;
     let mut baseline_plan_changes = 0_u64;
 
-    if let Some(pairs) = value.get("mission_pairs").and_then(Value::as_array) {
+    let pairs = value.get("mission_pairs").and_then(Value::as_array);
+    if pairs.is_none_or(Vec::is_empty) {
+        errors.push("mission_pairs must be a non-empty array".to_owned());
+    }
+    if let Some(pairs) = pairs {
         for (index, pair) in pairs.iter().enumerate() {
             let pair_id = string_at(pair, "pair_id").unwrap_or("").to_owned();
             let case_id = string_at(pair, "case_id").unwrap_or("").to_owned();
@@ -288,7 +310,15 @@ fn validate(raw: &[u8], value: &Value) -> Value {
                     if candidate_e > 0.0 && baseline_e > 0.0 && candidate_r >= 0.0 && baseline_r >= 0.0 =>
                 {
                     energy_improvements.push((baseline_e - candidate_e) / baseline_e * 100.0);
-                    regret_improvements.push((baseline_r - candidate_r) / baseline_r.max(1e-12) * 100.0);
+                    let regret_improvement = if baseline_r > 0.0 {
+                        (baseline_r - candidate_r) / baseline_r * 100.0
+                    } else if candidate_r == 0.0 {
+                        0.0
+                    } else {
+                        blockers.push(format!("candidate '{pair_id}' has positive regret against a zero-regret baseline"));
+                        -100.0
+                    };
+                    regret_improvements.push(regret_improvement);
                     candidate_energy.push(candidate_e);
                     baseline_energy.push(baseline_e);
                     candidate_regrets.push(candidate_r);
