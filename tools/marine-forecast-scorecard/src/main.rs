@@ -67,17 +67,25 @@ fn cvar95(values: &[f64]) -> (f64, usize) {
 struct FoldDecisionMetrics {
     energy_improvements: Vec<f64>,
     regret_improvements: Vec<f64>,
+    weather_blind_energy_improvements: Vec<f64>,
+    weather_blind_regret_improvements: Vec<f64>,
     candidate_regrets: Vec<f64>,
     baseline_regrets: Vec<f64>,
+    weather_blind_regrets: Vec<f64>,
     candidate_energy: Vec<f64>,
     baseline_energy: Vec<f64>,
+    weather_blind_energy: Vec<f64>,
     candidate_gate_violations: u64,
     candidate_service_breaches: u64,
     baseline_service_breaches: u64,
+    weather_blind_gate_violations: u64,
+    weather_blind_service_breaches: u64,
     candidate_comfort_breaches: u64,
     baseline_comfort_breaches: u64,
+    weather_blind_comfort_breaches: u64,
     candidate_plan_changes: u64,
     baseline_plan_changes: u64,
+    weather_blind_plan_changes: u64,
 }
 
 fn validate(raw: &[u8], value: &Value) -> Value {
@@ -306,6 +314,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
 
     let mut seen_pairs = HashSet::<String>::new();
     let mut paired_cases = HashSet::<String>::new();
+    let mut weather_blind_policy_ids = BTreeSet::<String>::new();
     let mut decision_by_fold = BTreeMap::<String, FoldDecisionMetrics>::new();
     let mut pair_folds_seen = BTreeSet::<String>::new();
 
@@ -346,48 +355,97 @@ fn validate(raw: &[u8], value: &Value) -> Value {
             }
             let candidate = pair.get("candidate").unwrap_or(&Value::Null);
             let baseline = pair.get("baseline").unwrap_or(&Value::Null);
+            let weather_blind = pair.get("weather_blind_reference").unwrap_or(&Value::Null);
+            let candidate_policy_id = string_at(candidate, "policy_id").unwrap_or("");
+            let baseline_policy_id = string_at(baseline, "policy_id").unwrap_or("");
+            let weather_blind_policy_id = string_at(weather_blind, "policy_id").unwrap_or("");
+            if candidate_policy_id.is_empty()
+                || baseline_policy_id.is_empty()
+                || weather_blind_policy_id.is_empty()
+                || candidate_policy_id == baseline_policy_id
+                || candidate_policy_id == weather_blind_policy_id
+                || baseline_policy_id == weather_blind_policy_id
+            {
+                errors.push(format!("mission pair '{pair_id}' requires three distinct named policy arms"));
+            }
+            if candidate.get("forecast_use").and_then(Value::as_bool) != Some(true)
+                || baseline.get("forecast_use").and_then(Value::as_bool) != Some(true)
+                || weather_blind.get("forecast_use").and_then(Value::as_bool) != Some(false)
+            {
+                errors.push(format!("mission pair '{pair_id}' must mark weather-blind as forecast_use=false and weather-informed policies as true"));
+            }
+            if !weather_blind_policy_id.is_empty() {
+                weather_blind_policy_ids.insert(weather_blind_policy_id.to_owned());
+            }
             let candidate_energy_value = number_at(candidate, "purchased_energy_kwh_per_berth_day");
             let baseline_energy_value = number_at(baseline, "purchased_energy_kwh_per_berth_day");
+            let weather_blind_energy_value = number_at(weather_blind, "purchased_energy_kwh_per_berth_day");
             let candidate_regret_value = number_at(candidate, "mission_regret_kwh_equivalent");
             let baseline_regret_value = number_at(baseline, "mission_regret_kwh_equivalent");
-            match (candidate_energy_value, baseline_energy_value, candidate_regret_value, baseline_regret_value) {
-                (Some(candidate_e), Some(baseline_e), Some(candidate_r), Some(baseline_r))
-                    if candidate_e > 0.0 && baseline_e > 0.0 && candidate_r >= 0.0 && baseline_r >= 0.0 =>
+            let weather_blind_regret_value = number_at(weather_blind, "mission_regret_kwh_equivalent");
+            match (candidate_energy_value, baseline_energy_value, weather_blind_energy_value,
+                   candidate_regret_value, baseline_regret_value, weather_blind_regret_value) {
+                (Some(candidate_e), Some(baseline_e), Some(weather_blind_e),
+                 Some(candidate_r), Some(baseline_r), Some(weather_blind_r))
+                    if candidate_e > 0.0 && baseline_e > 0.0 && weather_blind_e > 0.0
+                        && candidate_r >= 0.0 && baseline_r >= 0.0 && weather_blind_r >= 0.0 =>
                 {
                     fold_metrics.energy_improvements.push((baseline_e - candidate_e) / baseline_e * 100.0);
+                    fold_metrics.weather_blind_energy_improvements.push((weather_blind_e - candidate_e) / weather_blind_e * 100.0);
                     let regret_improvement = if baseline_r > 0.0 {
                         (baseline_r - candidate_r) / baseline_r * 100.0
                     } else if candidate_r == 0.0 {
                         0.0
                     } else {
-                        blockers.push(format!("candidate '{pair_id}' has positive regret against a zero-regret baseline"));
+                        blockers.push(format!("candidate '{pair_id}' has positive regret against a zero-regret resource-blind baseline"));
+                        -100.0
+                    };
+                    let weather_blind_regret_improvement = if weather_blind_r > 0.0 {
+                        (weather_blind_r - candidate_r) / weather_blind_r * 100.0
+                    } else if candidate_r == 0.0 {
+                        0.0
+                    } else {
+                        blockers.push(format!("candidate '{pair_id}' has positive regret against a zero-regret weather-blind baseline"));
                         -100.0
                     };
                     fold_metrics.regret_improvements.push(regret_improvement);
+                    fold_metrics.weather_blind_regret_improvements.push(weather_blind_regret_improvement);
                     fold_metrics.candidate_energy.push(candidate_e);
                     fold_metrics.baseline_energy.push(baseline_e);
+                    fold_metrics.weather_blind_energy.push(weather_blind_e);
                     fold_metrics.candidate_regrets.push(candidate_r);
                     fold_metrics.baseline_regrets.push(baseline_r);
+                    fold_metrics.weather_blind_regrets.push(weather_blind_r);
                 }
-                _ => errors.push(format!("mission pair '{pair_id}' has invalid energy or mission-regret values")),
+                _ => errors.push(format!("mission pair '{pair_id}' has invalid candidate, resource-blind or weather-blind energy/regret values")),
             }
             let candidate_gates = count_at(candidate, "hard_gate_violations");
             let candidate_services = count_at(candidate, "service_floor_breaches");
+            let weather_blind_gates = count_at(weather_blind, "hard_gate_violations");
+            let weather_blind_services = count_at(weather_blind, "service_floor_breaches");
+            let weather_blind_comfort = count_at(weather_blind, "comfort_breaches");
+            let weather_blind_changes = count_at(weather_blind, "plan_changes");
             let baseline_services = count_at(baseline, "service_floor_breaches");
             let candidate_comfort = count_at(candidate, "comfort_breaches");
             let baseline_comfort = count_at(baseline, "comfort_breaches");
             let candidate_changes = count_at(candidate, "plan_changes");
             let baseline_changes = count_at(baseline, "plan_changes");
-            if let (Some(gates), Some(services), Some(base_services), Some(comfort), Some(base_comfort), Some(changes), Some(base_changes)) =
-                (candidate_gates, candidate_services, baseline_services, candidate_comfort, baseline_comfort, candidate_changes, baseline_changes)
+            if let (Some(gates), Some(services), Some(base_services), Some(comfort), Some(base_comfort), Some(changes), Some(base_changes),
+                    Some(wb_gates), Some(wb_services), Some(wb_comfort), Some(wb_changes)) =
+                (candidate_gates, candidate_services, baseline_services, candidate_comfort, baseline_comfort, candidate_changes, baseline_changes,
+                    weather_blind_gates, weather_blind_services, weather_blind_comfort, weather_blind_changes)
             {
                 fold_metrics.candidate_gate_violations += gates;
                 fold_metrics.candidate_service_breaches += services;
                 fold_metrics.baseline_service_breaches += base_services;
+                fold_metrics.weather_blind_gate_violations += wb_gates;
+                fold_metrics.weather_blind_service_breaches += wb_services;
                 fold_metrics.candidate_comfort_breaches += comfort;
                 fold_metrics.baseline_comfort_breaches += base_comfort;
+                fold_metrics.weather_blind_comfort_breaches += wb_comfort;
                 fold_metrics.candidate_plan_changes += changes;
                 fold_metrics.baseline_plan_changes += base_changes;
+                fold_metrics.weather_blind_plan_changes += wb_changes;
                 if gates > 0 {
                     blockers.push(format!("candidate policy '{pair_id}' violates a hard gate"));
                 }
@@ -412,6 +470,9 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     }
     if paired_cases.len() != case_by_id.len() {
         errors.push("every forecast case must have exactly one information-matched mission pair".to_owned());
+    }
+    if weather_blind_policy_ids.len() != 1 {
+        errors.push("all paired missions must use the same declared weather-blind reference policy ID".to_owned());
     }
     for required_fold in ["development", "validation", "test"] {
         if !pair_folds_seen.contains(required_fold) {
@@ -464,28 +525,39 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     for (fold, metrics) in &decision_by_fold {
         let (candidate_cvar, candidate_tail_count) = cvar95(&metrics.candidate_regrets);
         let (baseline_cvar, baseline_tail_count) = cvar95(&metrics.baseline_regrets);
+        let (weather_blind_cvar, weather_blind_tail_count) = cvar95(&metrics.weather_blind_regrets);
         paired_case_count += metrics.energy_improvements.len();
         decision_by_fold_report.insert(fold.clone(), json!({
             "paired_case_count":metrics.energy_improvements.len(),
             "mean_paired_energy_improvement_pct":if metrics.energy_improvements.is_empty() {Value::Null} else {json!(mean(&metrics.energy_improvements))},
             "mean_paired_regret_improvement_pct":if metrics.regret_improvements.is_empty() {Value::Null} else {json!(mean(&metrics.regret_improvements))},
+            "mean_paired_energy_improvement_vs_weather_blind_pct":if metrics.weather_blind_energy_improvements.is_empty() {Value::Null} else {json!(mean(&metrics.weather_blind_energy_improvements))},
+            "mean_paired_regret_improvement_vs_weather_blind_pct":if metrics.weather_blind_regret_improvements.is_empty() {Value::Null} else {json!(mean(&metrics.weather_blind_regret_improvements))},
             "candidate_cvar95_regret_kwh_equivalent":candidate_cvar,
             "candidate_cvar95_tail_sample_count":candidate_tail_count,
             "baseline_cvar95_regret_kwh_equivalent":baseline_cvar,
             "baseline_cvar95_tail_sample_count":baseline_tail_count,
+            "weather_blind_cvar95_regret_kwh_equivalent":weather_blind_cvar,
+            "weather_blind_cvar95_tail_sample_count":weather_blind_tail_count,
             "candidate_mean_purchased_energy_kwh_per_berth_day":if metrics.candidate_energy.is_empty() {Value::Null} else {json!(mean(&metrics.candidate_energy))},
             "baseline_mean_purchased_energy_kwh_per_berth_day":if metrics.baseline_energy.is_empty() {Value::Null} else {json!(mean(&metrics.baseline_energy))},
+            "weather_blind_mean_purchased_energy_kwh_per_berth_day":if metrics.weather_blind_energy.is_empty() {Value::Null} else {json!(mean(&metrics.weather_blind_energy))},
             "candidate_hard_gate_violations":metrics.candidate_gate_violations,
             "candidate_service_floor_breaches":metrics.candidate_service_breaches,
             "baseline_service_floor_breaches":metrics.baseline_service_breaches,
+            "weather_blind_hard_gate_violations":metrics.weather_blind_gate_violations,
+            "weather_blind_service_floor_breaches":metrics.weather_blind_service_breaches,
             "candidate_comfort_breaches":metrics.candidate_comfort_breaches,
             "baseline_comfort_breaches":metrics.baseline_comfort_breaches,
+            "weather_blind_comfort_breaches":metrics.weather_blind_comfort_breaches,
             "candidate_plan_changes":metrics.candidate_plan_changes,
-            "baseline_plan_changes":metrics.baseline_plan_changes
+            "baseline_plan_changes":metrics.baseline_plan_changes,
+            "weather_blind_plan_changes":metrics.weather_blind_plan_changes
         }));
     }
     let decision_metrics = json!({
         "paired_case_count":paired_case_count,
+        "weather_blind_reference_policy_id":weather_blind_policy_ids.iter().next(),
         "by_fold":decision_by_fold_report,
         "statistical_inference":"NOT_PERFORMED",
         "paired_uncertainty_intervals":"NOT_COMPUTED",
@@ -582,6 +654,29 @@ mod tests {
         assert_eq!(report["decision_metrics"]["statistical_inference"], "NOT_PERFORMED");
         assert_eq!(report["decision_metrics"]["by_fold"]["test"]["paired_case_count"], 3);
         assert!(report["decision_metrics"]["by_fold"]["test"]["mean_paired_energy_improvement_pct"].as_f64().unwrap() > 0.0);
+    }
+
+    #[test]
+    fn weather_blind_reference_is_a_reported_matched_policy_arm() {
+        let report = audit(&fixture());
+        assert_eq!(report["decision_metrics"]["weather_blind_reference_policy_id"], "weather-blind-reference");
+        assert_eq!(report["decision_metrics"]["by_fold"]["test"]["paired_case_count"], 3);
+        assert!(report["decision_metrics"]["by_fold"]["test"]["mean_paired_energy_improvement_vs_weather_blind_pct"].as_f64().unwrap() > 0.0);
+        assert!(report["decision_metrics"]["by_fold"]["test"]["weather_blind_cvar95_regret_kwh_equivalent"].as_f64().unwrap() > 0.0);
+    }
+
+    #[test]
+    fn weather_blind_policy_cannot_consume_forecast_information() {
+        let mut value = fixture();
+        value["mission_pairs"][0]["weather_blind_reference"]["forecast_use"] = json!(true);
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn weather_blind_policy_identity_must_be_consistent_across_pairs() {
+        let mut value = fixture();
+        value["mission_pairs"][8]["weather_blind_reference"]["policy_id"] = json!("different-weather-blind-reference");
+        assert_eq!(audit(&value)["disposition"], "INVALID");
     }
 
     #[test]
