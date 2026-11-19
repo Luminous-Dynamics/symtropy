@@ -334,13 +334,22 @@ fn validate_architecture(
                 "{prefix}.not_applicable_reason: only valid for not_applicable route"
             ));
         }
-        if let Some(predecessor) = &operation.predecessor_process_id
-            && !architecture
+        if let Some(predecessor) = &operation.predecessor_process_id {
+            match architecture
                 .operations
                 .iter()
-                .any(|candidate| candidate.process_id == *predecessor)
-        {
-            errors.push(format!("{prefix}.predecessor_process_id: undeclared process"));
+                .position(|candidate| candidate.process_id == *predecessor)
+            {
+                None => errors.push(format!(
+                    "{prefix}.predecessor_process_id: undeclared process"
+                )),
+                Some(predecessor_index) if predecessor_index >= operation_index => {
+                    errors.push(format!(
+                        "{prefix}.predecessor_process_id: predecessor must appear earlier in the route"
+                    ));
+                }
+                Some(_) => {}
+            }
         }
     }
 
