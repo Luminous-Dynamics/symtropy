@@ -1,0 +1,188 @@
+name: Grid recovery supply-chain portfolio conformance
+
+on:
+  pull_request:
+    paths:
+      - "docs/research/grid-recovery-supply-chain/**"
+      - ".github/workflows/grid-recovery-supply-chain.yml"
+  push:
+    paths:
+      - "docs/research/grid-recovery-supply-chain/**"
+      - ".github/workflows/grid-recovery-supply-chain.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    name: Validate supply-chain portfolio schema and capacity controls
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python for schema tests only
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+
+      - name: Validate portfolio fixture and adversarial capacity cases
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import copy
+          import json
+          from datetime import datetime
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("docs/research/grid-recovery-supply-chain/data")
+          schema = json.loads((root / "supply-chain-portfolio-v0.1.schema.json").read_text())
+          fixture = json.loads((root / "synthetic-supply-chain-portfolio-v0.1.json").read_text())
+
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER)
+
+          def parse_time(value):
+              parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+              assert parsed.tzinfo is not None, f"timestamp lacks offset: {value}"
+              return parsed
+
+          def schema_errors(document):
+              return list(validator.iter_errors(document))
+
+          def require_valid(document):
+              errors = schema_errors(document)
+              assert not errors, "\\n".join(f"{list(e.path)}: {e.message}" for e in errors)
+
+          def require_invalid(document, label):
+              errors = schema_errors(document)
+              assert errors, f"negative control unexpectedly passed schema: {label}"
+
+          def unique(values, label):
+              assert len(values) == len(set(values)), f"duplicate {label} identity"
+
+          require_valid(fixture)
+
+          suppliers = {x["supplierId"]: x for x in fixture["suppliers"]}
+          resources = {x["resourceId"]: x for x in fixture["capacityResources"]}
+          projects = {x["projectId"]: x for x in fixture["projects"]}
+          artifacts = {x["artifactId"]: x for x in fixture["sourceArtifacts"]}
+
+          unique(list(suppliers), "supplier")
+          unique(list(resources), "resource")
+          unique(list(projects), "project")
+          unique(list(artifacts), "source artifact")
+          unique([x["reservationId"] for x in fixture["reservations"]], "reservation")
+          unique([x["idempotencyKey"] for x in fixture["reservations"]], "reservation idempotency")
+
+          for supplier in suppliers.values():
+              for artifact_id in supplier.get("sourceArtifactIds", []):
+                  assert artifact_id in artifacts, f"unknown supplier artifact: {artifact_id}"
+              for qualification in supplier["qualificationRecords"]:
+                  assert qualification["evidenceRefs"], "qualification requires evidence references"
+
+          for resource in resources.values():
+              assert resource["supplierId"] in suppliers, f"unknown supplier for {resource['resourceId']}"
+              for artifact_id in resource["sourceArtifactIds"]:
+                  assert artifact_id in artifacts, f"unknown capacity artifact: {artifact_id}"
+              windows = sorted(resource["capacityWindows"], key=lambda x: x["start"])
+              for index, window in enumerate(windows):
+                  start, end = parse_time(window["start"]), parse_time(window["end"])
+                  assert start < end, "capacity window is empty or reversed"
+                  if index:
+                      previous_end = parse_time(windows[index - 1]["end"])
+                      assert start >= previous_end, "overlapping capacity windows"
+                  assert window["capacityUnits"] > 0
+
+          for claim in fixture["leadTimeClaims"]:
+              assert claim["supplierId"] in suppliers, f"unknown lead-time supplier: {claim['supplierId']}"
+              assert claim["sourceArtifactId"] in artifacts, f"unknown lead-time source: {claim['sourceArtifactId']}"
+              if claim["basis"] == "right_censored_backlog":
+                  assert "bookedThrough" in claim
+                  assert "promisedDeliveryAt" not in claim
+                  assert "lowerBoundHours" not in claim and "upperBoundHours" not in claim
+              if claim["basis"] == "unknown":
+                  assert not any(k in claim for k in ("promisedDeliveryAt", "lowerBoundHours", "upperBoundHours", "delayHours"))
+
+          for reservation in fixture["reservations"]:
+              assert reservation["projectId"] in projects, f"unknown project: {reservation['projectId']}"
+              assert reservation["resourceId"] in resources, f"unknown resource: {reservation['resourceId']}"
+              assert reservation["sourceArtifactId"] in artifacts, f"unknown reservation source: {reservation['sourceArtifactId']}"
+              start, end = parse_time(reservation["start"]), parse_time(reservation["end"])
+              assert start < end, "reservation is empty or reversed"
+              windows = resources[reservation["resourceId"]]["capacityWindows"]
+              assert any(parse_time(w["start"]) <= start and end <= parse_time(w["end"]) for w in windows), "reservation is outside a declared capacity window"
+
+          def capacity_violations(document):
+              by_resource = {}
+              for reservation in document["reservations"]:
+                  if reservation["state"] not in {"held", "confirmed"}:
+                      continue
+                  by_resource.setdefault(reservation["resourceId"], []).append(reservation)
+              violations = []
+              for resource_id, reservations in by_resource.items():
+                  resource = next(x for x in document["capacityResources"] if x["resourceId"] == resource_id)
+                  boundaries = sorted({r[t] for r in reservations for t in ("start", "end")})
+                  for point in boundaries[:-1]:
+                      instant = parse_time(point)
+                      used = sum(r["units"] for r in reservations if parse_time(r["start"]) <= instant < parse_time(r["end"]))
+                      window = next((w for w in resource["capacityWindows"] if parse_time(w["start"]) <= instant < parse_time(w["end"])), None)
+                      if window is None or used > window["capacityUnits"]:
+                          violations.append((resource_id, point, used, None if window is None else window["capacityUnits"]))
+              return violations
+
+          assert not capacity_violations(fixture), "valid portfolio over-allocates capacity"
+
+          # The proposed second booking is visible but not counted as a held/confirmed reservation.
+          proposed = next(x for x in fixture["reservations"] if x["state"] == "proposed")
+          assert proposed["resourceId"] == "alpha-factory-line-1"
+          assert len([x for x in fixture["reservations"] if x["resourceId"] == proposed["resourceId"] and x["state"] in {"held", "confirmed"}]) == 1
+
+          # Negative control: promoting the proposed booking to confirmed creates an over-allocation.
+          overbooked = copy.deepcopy(fixture)
+          next(x for x in overbooked["reservations"] if x["reservationId"] == proposed["reservationId"])["state"] = "confirmed"
+          assert capacity_violations(overbooked), "double factory-slot booking was not detected"
+
+          # Negative control: a right-censored backlog is not a contractual delivery promise.
+          false_promise = copy.deepcopy(fixture)
+          censored = next(x for x in false_promise["leadTimeClaims"] if x["basis"] == "right_censored_backlog")
+          censored["promisedDeliveryAt"] = "2031-01-01T00:00:00Z"
+          require_invalid(false_promise, "right-censored backlog converted into delivery promise")
+
+          # Negative control: unknown supplier lead time cannot be upgraded to a fabricated interval.
+          false_unknown = copy.deepcopy(fixture)
+          unknown_claim = next(x for x in false_unknown["leadTimeClaims"] if x["basis"] == "unknown")
+          unknown_claim["lowerBoundHours"] = 720
+          require_invalid(false_unknown, "unknown lead time given invented interval")
+
+          # Negative control: duplicate reservation IDs/idempotency keys are rejected by semantic identity gates.
+          duplicate = copy.deepcopy(fixture)
+          duplicate["reservations"][1]["reservationId"] = duplicate["reservations"][0]["reservationId"]
+          unique([x["reservationId"] for x in fixture["reservations"]], "baseline reservation")
+          assert len([x["reservationId"] for x in duplicate["reservations"]]) != len(set(x["reservationId"] for x in duplicate["reservations"]))
+
+          # Shared-cause event must preserve a single causal and correlation identity over multiple resources.
+          for disruption in fixture["disruptions"]:
+              assert len(disruption["affectedResourceIds"]) >= 1
+              assert all(rid in resources for rid in disruption["affectedResourceIds"])
+          compound = next(x for x in fixture["disruptions"] if len(x["affectedResourceIds"]) > 1)
+          assert compound["causeId"] and compound["correlationGroupId"]
+
+          # Supplier Beta qualification is unknown; the fixture has no held/confirmed reservation with it.
+          beta = suppliers["supplier-beta"]
+          assert all(q["status"] == "unknown" for q in beta["qualificationRecords"])
+          beta_resource_ids = {r["resourceId"] for r in resources.values() if r["supplierId"] == "supplier-beta"}
+          assert not any(r["resourceId"] in beta_resource_ids and r["state"] in {"held", "confirmed"} for r in fixture["reservations"])
+
+          print("PASS: Draft 2020-12 portfolio schema and fixture")
+          print("PASS: supplier/resource/project/source references and unique reservation identities")
+          print("PASS: capacity windows, right-censored backlog and unknown lead-time semantics")
+          print("PASS: proposed bookings do not consume capacity; double booking is detected")
+          print("PASS: common-cause resource dependencies and unqualified supplier are not treated as available")
+          PY
