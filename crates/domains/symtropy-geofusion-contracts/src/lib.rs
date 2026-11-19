@@ -155,7 +155,7 @@ impl EnergyStream {
             }
         }
 
-        if !relative_tolerance.is_finite() || relative_tolerance < 0.0 {
+        if !relative_tolerance.is_finite() || !(0.0..1.0).contains(&relative_tolerance) {
             return Err(ValidationError::InvalidTolerance);
         }
         for (name, value) in [
@@ -169,6 +169,9 @@ impl EnergyStream {
         }
 
         let expected_mwh = self.power_mw * self.duration_hours;
+        if !expected_mwh.is_finite() || expected_mwh <= 0.0 {
+            return Err(ValidationError::NonFiniteOrNonPositive("power × duration MWh"));
+        }
         let scale = expected_mwh.abs().max(self.energy_mwh.abs());
         if (expected_mwh - self.energy_mwh).abs() > relative_tolerance * scale {
             return Err(ValidationError::EnergyPowerDurationMismatch);
@@ -187,7 +190,7 @@ impl EnergyStream {
                 }
                 let available_delta =
                     grade.source_temperature_c - grade.required_sink_temperature_c;
-                if available_delta + relative_tolerance < grade.minimum_approach_k {
+                if available_delta < grade.minimum_approach_k {
                     return Err(ValidationError::InsufficientTemperatureApproach);
                 }
             }
@@ -529,6 +532,41 @@ mod tests {
             stream.validate(1e-9),
             Err(ValidationError::EnergyPowerDurationMismatch)
         );
+    }
+
+    #[test]
+    fn power_duration_overflow_is_rejected() {
+        let mut stream = electric_stream(
+            SourceKind::GridElectricity,
+            ServiceKind::FacilityElectricalLoad,
+        );
+        stream.power_mw = f64::MAX;
+        stream.duration_hours = 2.0;
+        stream.energy_mwh = 2.0;
+        assert_eq!(
+            stream.validate(1e-9),
+            Err(ValidationError::NonFiniteOrNonPositive("power × duration MWh"))
+        );
+    }
+
+    #[test]
+    fn relative_tolerance_must_be_less_than_one() {
+        let stream = electric_stream(
+            SourceKind::GridElectricity,
+            ServiceKind::FacilityElectricalLoad,
+        );
+        assert_eq!(stream.validate(1.0), Err(ValidationError::InvalidTolerance));
+        let balance = EnergyBalance {
+            inputs: vec![EnergyTerm {
+                carrier: EnergyCarrier::Heat,
+                energy_mwh: 1.0,
+            }],
+            useful_outputs: vec![],
+            rejected_outputs: vec![],
+            conversion_losses: vec![],
+            storage_deltas: vec![],
+        };
+        assert_eq!(balance.evaluate(1.0), Err(ValidationError::InvalidTolerance));
     }
 
     #[test]
