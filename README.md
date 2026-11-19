@@ -1,14 +1,14 @@
 # Symtropy
 
-State-coupled N-dimensional physics engine. Any metric you define modulates forces, friction, and energy budgets in real-time through a thermodynamically-closed system.
+Deterministic, state-coupled N-dimensional rigid-body physics and simulation substrate. The native core provides collision detection, contact resolution, constraints, replay and extensible per-body coupling. The broader engineering programme composes Symtropy with specialist physical models through explicit interfaces; Symtropy is not presented as a universal multiphysics solver.
 
-Ships with Phi (integrated information) as the default metric and 68 research experiments. But the coupling framework is generic — plug in health, wealth, trust, skill, or any [0,1] value per body.
+The PhysicsCallback extension point enables application-defined state coupling, including experimental energy budgets and metric-gated actuator behavior. Such callbacks define model or policy behavior; they do not make arbitrary metrics intrinsic physical laws. Phi-related mechanics remain research experiments, not an established universal law of nature or a claim about subjective experience.
 
 **827 tests | 5 shapes | 5 joints | CCD | raycasting | warm-starting | island sleeping | 11 crates on crates.io**
 
 ## The Symtropy Adoption Story
 
-Symtropy is more than a physics engine; it is the physical substrate for a **Type 1 Civilization**.
+Symtropy is a reusable simulation and physical-systems substrate intended to compose with Symthaea and Mycelix. Broader civilizational applications are a long-term research direction, not a claim of current physical completeness.
 
 Why choose Symtropy over traditional solutions?
 
@@ -27,7 +27,7 @@ For game developers and industrial simulation, Symtropy provides a high-performa
 - **License:** Apache-2.0 OR MIT.
 
 ### 2. The Research Hero (Track A)
-For researchers in AI, A-Life, and Integrated Information Theory (IIT), Symtropy integrates Φ (integrated information) as a first-class physical law. This enables simulations where an agent's internal complexity (consciousness) meaningfully modulates its motor authority and energy efficiency.
+For researchers in AI, A-Life, and Integrated Information Theory (IIT), the research layer provides experimental Phi-aware coupling through declared callbacks and energy-accounting models. These experiments investigate how a modeled metric can affect agent motor authority or resource budgets; they do not establish Phi as a general physical law or demonstrate subjective experience.
 - **Crates:** `symtropy-consciousness-physics`, `symtropy-bevy`.
 - **License:** GNU AGPL v3.
 
@@ -59,6 +59,17 @@ symtropy-math                  N-dimensional geometric algebra (const-generic, s
 ```
 
 See [ARCHITECTURE.md](docs/tech/ARCHITECTURE.md) for the full crate guide.
+
+## Reality Simulation and Multiphysics
+
+Symtropy's long-term engineering direction is a **composable, evidence-aware physical-model coordinator**. The strategy is to keep the native N-dimensional rigid-body engine focused, connect specialist solvers where they are better suited, and qualify the interfaces, model applicability and coupled results.
+
+This is deliberately not a promise that the native core already solves CFD, FEM, electromagnetics, electrochemistry, plasma, fusion or geoscience. Current fluid and plasma work has explicit scaffolding/adapter boundaries; specialist solvers remain responsible for their supported equations and regimes.
+
+- [Reality Physics Platform](docs/tech/REALITY_PHYSICS_PLATFORM.md) — architecture, domain gap map, model passports, typed coupling, solver federation and project mapping.
+- [Reality Benchmark Portfolio](docs/ops/REALITY_BENCHMARK_PORTFOLIO.md) — matched SOTA comparisons, verification/validation, uncertainty, adversarial cases and qualification targets.
+
+The work composes existing owners: [multi-fidelity admission #4487](https://github.com/Luminous-Dynamics/symtropy/issues/4487), [engineering twin boundary #1467](https://github.com/Luminous-Dynamics/symtropy/issues/1467), [capability census #1472](https://github.com/Luminous-Dynamics/symtropy/issues/1472), [typed subsystem ports #5779](https://github.com/Luminous-Dynamics/symtropy/issues/5779), [FMI coupling benchmark #6156](https://github.com/Luminous-Dynamics/symtropy/issues/6156), and [solver-neutral plasma integration #1685](https://github.com/Luminous-Dynamics/symtropy/issues/1685).
 
 ## Quick Start: Generic State-Coupling
 
@@ -96,7 +107,7 @@ world.step_with_callback(0.016, &mut phi_field);
 
 ## Five Coupling Channels
 
-Any metric (Phi, health, trust, wealth) couples to physics through 5 channels:
+Callback-defined metrics (Phi, health, trust, wealth, etc.) can be connected through 5 software coupling channels. They are not automatically constitutive laws of real materials:
 
 | Channel | Direction | Mechanism |
 |---------|-----------|-----------|
@@ -154,6 +165,7 @@ Zero heap allocation in the physics hot path. All types use `const D: usize` gen
 | `FixedJoint<D>` | All (rigid attachment) |
 | `BallJoint<D>` | D translational |
 | `HingeJoint<D>` | D translational + (n-1) rotational |
+| `PrismaticJoint<D>` | Constrains all but one translational degree of freedom |
 | `DistanceConstraint<D>` | Maintains fixed distance |
 
 ## Feature Flags
@@ -208,6 +220,8 @@ cargo run --example hdc_cooperation --features consciousness-hdc
 | [ARCHITECTURE.md](docs/tech/ARCHITECTURE.md) | Crate dependency graph, key types, extension guide |
 | [FORMAL_SPECIFICATION.md](docs/tech/FORMAL_SPECIFICATION.md) | Mathematical specification of all 5 coupling channels |
 | [ROADMAP.md](docs/ops/ROADMAP.md) | Completed features, current priorities, future plans |
+| [REALITY_PHYSICS_PLATFORM.md](docs/tech/REALITY_PHYSICS_PLATFORM.md) | Composable multiphysics architecture, model portfolio and evidence boundaries |
+| [REALITY_BENCHMARK_PORTFOLIO.md](docs/ops/REALITY_BENCHMARK_PORTFOLIO.md) | Industry comparisons, benchmark families, VVUQ and qualification gates |
 | [MK0_BOOTSTRAPPER_PROTOCOL.md](docs/tech/MK0_BOOTSTRAPPER_PROTOCOL.md) | One-room bootstrapper protocol for the immediate deployable starting loop |
 | [CONTRIBUTING.md](docs/CONTRIBUTING.md) | How to contribute (determinism is a hard requirement) |
 
@@ -221,7 +235,7 @@ cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physic
 # Run benchmarks
 cd crates/symtropy-physics && cargo bench
 
-# Build the game (requires Bevy 0.18)
+# Build the game (requires Bevy 0.19)
 cargo build --release
 
 # Build with Mycelix governance integration
