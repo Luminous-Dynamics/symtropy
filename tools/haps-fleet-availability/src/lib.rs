@@ -415,8 +415,12 @@ fn evaluate_variant(variant: &Variant, duration_days: usize) -> Result<VariantRe
             .iter()
             .position(|platform| platform.platform_id == window.platform_id)
             .ok_or_else(|| FleetError::InvalidCase("unknown maintenance platform".to_owned()))?;
-        for day in window.start_day..window.start_day + window.duration_days {
-            maintenance[index][day] = true;
+        for day_is_maintained in maintenance[index]
+            .iter_mut()
+            .skip(window.start_day)
+            .take(window.duration_days)
+        {
+            *day_is_maintained = true;
         }
     }
 
@@ -427,8 +431,12 @@ fn evaluate_variant(variant: &Variant, duration_days: usize) -> Result<VariantRe
                 .iter()
                 .any(|domain| domain == &platform.weather_domain_id)
             {
-                for day in event.start_day..event.start_day + event.duration_days {
-                    weather[index][day] = true;
+                for day_is_weather_affected in weather[index]
+                    .iter_mut()
+                    .skip(event.start_day)
+                    .take(event.duration_days)
+                {
+                    *day_is_weather_affected = true;
                 }
             }
         }
