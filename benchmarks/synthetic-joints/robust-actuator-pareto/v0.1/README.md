@@ -121,7 +121,7 @@ cargo clippy --manifest-path benchmarks/synthetic-joints/robust-actuator-pareto/
 
 Dedicated workflow: `.github/workflows/robust-actuator-pareto.yml`. The authoring environment has no local Cargo/rustc/rustfmt; exact-head CI is required before compilation, formatting or Clippy is reported as passing.
 
-Twenty-three Rust tests cover mixed objective directions, trade-off preservation, evidence-lane isolation, hard violation, unknown margin/evidence, known violation with unrelated unknowns, duplicate IDs, shape/unit/non-finite validation, equal objective vectors, missing objectives/source, stale configuration/conditions, metric names, mission/stress/system-boundary cohort isolation, explicit violation receipts and complete candidate retention.
+Twenty-four Rust tests cover mixed objective directions, trade-off preservation, evidence-lane isolation, hard violation, unknown margin/evidence, known violation with unrelated unknowns, duplicate IDs, shape/unit/non-finite validation, equal objective vectors, missing objectives/source, stale configuration/conditions, metric names, mission/stress/system-boundary cohort isolation, explicit violation receipts and complete candidate retention.
 
 ## 9. M1–M5 roadmap
 
