@@ -290,6 +290,8 @@ fn run_dependency_invalidation_scaling_benchmarks() {
             plan_durations.push(start.elapsed());
             affected_count = plan.requalification_order.len();
             unaffected_count = plan.unaffected_nodes.len();
+            assert_eq!(affected_count, node_count / COMPONENTS - 1);
+            assert_eq!(unaffected_count, node_count - node_count / COMPONENTS);
             black_box(plan);
         }
 
