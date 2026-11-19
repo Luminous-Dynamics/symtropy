@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_slow_rotation_exact_reference",
+  "source": {
+    "paper": "Brihaye et al., JHEP 11 (2010) 089, arXiv:1010.0860",
+    "equations": [
+      "(2.12)",
+      "(2.20)",
+      "(2.21)",
+      "(3.8)"
+    ]
+  },
+  "expansion": {
+    "metric": "b=f=F+O(a^2), h=r^2+O(a^2), g=r^2",
+    "rotation": "w=a*W_1(r)+O(a^3)",
+    "C": "2*r_H^2+alpha",
+    "s": "sqrt(1+alpha*C/r^4)",
+    "F": "1-C/(r^2*(1+s))",
+    "W_1": "C/(r^4*(1+s))",
+    "W_1_prime": "-2*C/(r^5*s)",
+    "W_1_second": "W_1_prime*(-5/r+2*alpha*C/(s^2*r^5))"
+  },
+  "angular_noether": {
+    "K": "r^2-alpha*(F-1)=r^2*s",
+    "P_w": "-2*a*C",
+    "W_asymptotic": "a*C/2",
+    "identity": "P_w=-4*W",
+    "physical_alpha_nonnegative_bound": "K(r)>=r^2>0 for r>0 and alpha>=0",
+    "quadrature": "w_prime=P_w/(r^3*K)"
+  },
+  "horizon": {
+    "Omega_H": "a/r_H^2",
+    "w1": "-2*a*C/(r_H^3*(r_H^2+alpha))",
+    "b1_equals_f1": "2*r_H/(r_H^2+alpha)",
+    "W_from_horizon_relation": "a*C/2"
+  },
+  "alpha_zero_myers_perry": {
+    "u": "(r_H/r)^2",
+    "q": "a^2/r_H^2",
+    "D": "1-q+q*u^2",
+    "Omega_H": "a/r_H^2",
+    "exact_w": "a/r_H^2*u^2/D",
+    "linear_w": "a/r_H^2*u^2",
+    "exact_cubic_remainder": "a^3/r_H^4*u^2*(1-u^2)/D"
+  },
+  "exact_control_rH1_alpha0_7_a0_02_r2": {
+    "r": "2",
+    "s": "sqrt(1789)/40",
+    "F": "(47-sqrt(1789))/7",
+    "w": "(-40+sqrt(1789))/1400",
+    "w_prime": "-27/(200*sqrt(1789))",
+    "w_second": "231309*sqrt(1789)/1280208400",
+    "W": "27/1000",
+    "P_w": "-27/250",
+    "w_H": "1/50",
+    "w1_H": "-27/425"
+  },
+  "symbolic_checks": {
+    "w_prime": "passed",
+    "w_second": "passed",
+    "K_equals_r2_times_s": "passed",
+    "P_w_constant": "passed",
+    "P_w_equals_minus_4W": "passed",
+    "asymptotic_W": "passed",
+    "horizon_Omega_H": "passed",
+    "horizon_w1": "passed",
+    "horizon_global_W_relation": "passed",
+    "MP_exact_cubic_remainder": "passed"
+  },
+  "claim_ceiling": "Published first-order slow-rotation profile and exact analytic identities only. The even-spin metric backreaction starts at O(a^2) and is not supplied by this fixture. This does not establish a finite-spin nonzero-alpha solution or uniform validity near extremality."
+}
