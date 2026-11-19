@@ -882,6 +882,249 @@ impl SiteStateLedger {
                     definitions,
                 })
             }
+            SiteEventPayload::CapacityResourceCatalogPublished {
+                catalog_sha256,
+                resources,
+            } => {
+                require_role(event.actor_role, SiteActorRole::SiteResourceAuthority)?;
+                if !is_sha256(catalog_sha256) {
+                    return Err(SiteLedgerError::InvalidCapacityResourceCatalogDigest);
+                }
+                if resources.is_empty() {
+                    return Err(SiteLedgerError::EmptyCapacityResourceCatalog);
+                }
+                if self.active_capacity_reservations().next().is_some()
+                    && self.capacity_resource_catalog_sha256.as_deref()
+                        != Some(catalog_sha256.as_str())
+                {
+                    return Err(SiteLedgerError::CapacityResourceCatalogWouldOrphanReservation(
+                        "capacity-resource-catalog-version".into(),
+                    ));
+                }
+
+                let mut definitions = BTreeMap::<String, CapacityResourceDefinition>::new();
+                for resource in resources {
+                    if resource.resource_id.trim().is_empty()
+                        || resource.capacity_owner_id.trim().is_empty()
+                        || resource.unit_label.trim().is_empty()
+                        || resource.capacity_units == 0
+                        || !is_sha256(&resource.definition_sha256)
+                    {
+                        return Err(SiteLedgerError::InvalidCapacityResourceDefinition(
+                            resource.resource_id.clone(),
+                        ));
+                    }
+                    if self.resource_catalog.contains_key(&resource.resource_id) {
+                        return Err(SiteLedgerError::CapacityCatalogNamespaceCollision(
+                            resource.resource_id.clone(),
+                        ));
+                    }
+                    if definitions
+                        .insert(resource.resource_id.clone(), resource.clone())
+                        .is_some()
+                    {
+                        return Err(SiteLedgerError::DuplicateCapacityResourceId(
+                            resource.resource_id.clone(),
+                        ));
+                    }
+                }
+                if self.capacity_resource_catalog_sha256.as_deref()
+                    == Some(catalog_sha256.as_str())
+                    && self.capacity_resources != definitions
+                {
+                    return Err(SiteLedgerError::CapacityResourceCatalogDigestContentMismatch);
+                }
+                for record in self.active_capacity_reservations() {
+                    for claim in &record.commit.reservation.claims {
+                        if definitions
+                            .get(&claim.resource_id)
+                            .is_none_or(|definition| {
+                                definition.definition_sha256 != claim.resource_definition_sha256
+                            })
+                        {
+                            return Err(
+                                SiteLedgerError::CapacityResourceCatalogWouldOrphanReservation(
+                                    claim.resource_id.clone(),
+                                ),
+                            );
+                        }
+                    }
+                }
+                Ok(PreparedSiteMutation::PublishCapacityResourceCatalog {
+                    catalog_sha256: catalog_sha256.clone(),
+                    definitions,
+                })
+            }
+            SiteEventPayload::CapacityAvailabilitySnapshotPublished {
+                availability_snapshot_sha256,
+                site_snapshot_sha256,
+                site_clock_domain_id,
+                windows,
+            } => {
+                require_role(event.actor_role, SiteActorRole::SiteResourceAuthority)?;
+                if !is_sha256(availability_snapshot_sha256)
+                    || !is_sha256(site_snapshot_sha256)
+                    || site_clock_domain_id.trim().is_empty()
+                    || windows.is_empty()
+                {
+                    return Err(SiteLedgerError::InvalidCapacityAvailabilitySnapshot);
+                }
+                let catalog_sha256 = self
+                    .capacity_resource_catalog_sha256
+                    .as_ref()
+                    .ok_or(SiteLedgerError::CapacityResourceCatalogMismatch)?;
+                let scenario = RobustCumulativeCapacityScenario {
+                    base: CumulativeCapacityScenario {
+                        scenario_id: format!(
+                            "capacity-window-validation-{}",
+                            event.event_id
+                        ),
+                        resource_catalog_sha256: catalog_sha256.clone(),
+                        site_snapshot_sha256: site_snapshot_sha256.clone(),
+                        site_clock_domain_id: site_clock_domain_id.clone(),
+                        resources: self.capacity_resources.values().cloned().collect(),
+                        reservations: Vec::new(),
+                    },
+                    availability_windows: windows.clone(),
+                };
+                // This validates each owner's window identity, definition,
+                // site snapshot, clock, interval, capacity ordering and
+                // non-overlap. Coverage of active reservations is deliberately
+                // evaluated separately: an adverse derating update must still
+                // be recorded, even if it makes existing commitments non-robust.
+                evaluate_robust_cumulative_resource_capacity(&scenario)
+                    .map_err(SiteLedgerError::CapacityAdmissionUnqualified)?;
+
+                if self.capacity_availability_snapshot_sha256.as_deref()
+                    == Some(availability_snapshot_sha256.as_str())
+                    && (self.capacity_site_snapshot_sha256.as_deref()
+                        != Some(site_snapshot_sha256.as_str())
+                        || self.capacity_site_clock_domain_id.as_deref()
+                            != Some(site_clock_domain_id.as_str())
+                        || self.capacity_windows != *windows)
+                {
+                    return Err(
+                        SiteLedgerError::CapacityAvailabilitySnapshotWouldOrphanReservation(
+                            "capacity-availability-snapshot-digest-content-mismatch".into(),
+                        ),
+                    );
+                }
+                Ok(PreparedSiteMutation::PublishCapacityAvailabilitySnapshot {
+                    availability_snapshot_sha256: availability_snapshot_sha256.clone(),
+                    site_snapshot_sha256: site_snapshot_sha256.clone(),
+                    site_clock_domain_id: site_clock_domain_id.clone(),
+                    windows: windows.clone(),
+                })
+            }
+            SiteEventPayload::CapacityReservationCommitted { commit } => {
+                require_role(event.actor_role, SiteActorRole::DispatchCoordinator)?;
+                validate_capacity_reservation_commit(self, commit)?;
+                if self
+                    .capacity_reservations
+                    .contains_key(&commit.reservation.reservation_id)
+                {
+                    return Err(SiteLedgerError::DuplicateCapacityReservation(
+                        commit.reservation.reservation_id.clone(),
+                    ));
+                }
+
+                let catalog_sha256 = self
+                    .capacity_resource_catalog_sha256
+                    .as_ref()
+                    .ok_or(SiteLedgerError::CapacityResourceCatalogMismatch)?;
+                let site_snapshot_sha256 = self
+                    .capacity_site_snapshot_sha256
+                    .as_ref()
+                    .ok_or(SiteLedgerError::CapacityAvailabilitySnapshotMismatch)?;
+                let site_clock_domain_id = self
+                    .capacity_site_clock_domain_id
+                    .as_ref()
+                    .ok_or(SiteLedgerError::CapacityAvailabilitySnapshotMismatch)?;
+                let mut reservations: Vec<CapacityReservation> = self
+                    .active_capacity_reservations()
+                    .map(|record| record.commit.reservation.clone())
+                    .collect();
+                reservations.push(commit.reservation.clone());
+                let scenario = RobustCumulativeCapacityScenario {
+                    base: CumulativeCapacityScenario {
+                        scenario_id: format!(
+                            "capacity-admission-{}-{}",
+                            self.last_sequence, commit.reservation.reservation_id
+                        ),
+                        resource_catalog_sha256: catalog_sha256.clone(),
+                        site_snapshot_sha256: site_snapshot_sha256.clone(),
+                        site_clock_domain_id: site_clock_domain_id.clone(),
+                        resources: self.capacity_resources.values().cloned().collect(),
+                        reservations,
+                    },
+                    availability_windows: self.capacity_windows.clone(),
+                };
+                let report = evaluate_robust_cumulative_resource_capacity(&scenario)
+                    .map_err(SiteLedgerError::CapacityAdmissionUnqualified)?;
+                if !report.is_robustly_feasible
+                    || report.indeterminate_segment_count != 0
+                    || report.definitely_over_capacity_segment_count != 0
+                {
+                    return Err(SiteLedgerError::CapacityAdmissionNotRobust {
+                        impacted_reservation_ids: report.impacted_reservation_ids(),
+                    });
+                }
+                Ok(PreparedSiteMutation::CommitCapacityReservation {
+                    commit: commit.clone(),
+                    committed_event_id: event.event_id.clone(),
+                    committed_sequence: event.sequence,
+                })
+            }
+            SiteEventPayload::CapacityReservationReleased {
+                reservation_id,
+                site_clock_domain_id,
+                cleared_at_tick,
+                site_snapshot_sha256,
+                site_ledger_sequence,
+                site_ledger_event_sha256,
+                release_receipt_sha256,
+            } => {
+                require_role(event.actor_role, SiteActorRole::Referee)?;
+                if !is_sha256(site_snapshot_sha256) || !is_sha256(release_receipt_sha256) {
+                    return Err(SiteLedgerError::InvalidReceiptDigest);
+                }
+                if !is_sha256(site_ledger_event_sha256)
+                    || *site_ledger_sequence != self.last_sequence
+                    || self.last_event_sha256.as_deref()
+                        != Some(site_ledger_event_sha256.as_str())
+                    || self.capacity_site_snapshot_sha256.as_deref()
+                        != Some(site_snapshot_sha256.as_str())
+                {
+                    return Err(SiteLedgerError::ReservationSnapshotMismatch);
+                }
+                let record = self
+                    .capacity_reservations
+                    .get(reservation_id)
+                    .ok_or_else(|| {
+                        SiteLedgerError::UnknownCapacityReservation(reservation_id.clone())
+                    })?;
+                if !record.is_active() {
+                    return Err(SiteLedgerError::CapacityReservationAlreadyReleased(
+                        reservation_id.clone(),
+                    ));
+                }
+                if site_clock_domain_id != &record.commit.reservation.site_clock_domain_id
+                    || site_clock_domain_id != self.capacity_site_clock_domain_id.as_ref().unwrap_or(&String::new())
+                    || *cleared_at_tick < record.commit.committed_at_tick
+                {
+                    return Err(
+                        SiteLedgerError::CapacityReservationReleaseContextMismatch(
+                            reservation_id.clone(),
+                        ),
+                    );
+                }
+                Ok(PreparedSiteMutation::ReleaseCapacityReservation {
+                    reservation_id: reservation_id.clone(),
+                    released_event_id: event.event_id.clone(),
+                    cleared_at_tick: *cleared_at_tick,
+                    release_receipt_sha256: release_receipt_sha256.clone(),
+                })
+            }
             SiteEventPayload::SpaceTimeReservationCommitted { reservation } => {
                 require_role(event.actor_role, SiteActorRole::DispatchCoordinator)?;
                 validate_space_time_reservation(self, reservation)?;
