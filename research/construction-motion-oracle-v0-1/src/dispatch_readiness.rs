@@ -1447,7 +1447,7 @@ mod tests {
                 &changed_clock_policy,
                 &clock_sample(2, 130)
             ),
-            Err(DispatchReadinessFailure::ClockUncertaintyExceedsPolicy)
+            Err(DispatchReadinessFailure::ClockUncertaintyPolicyMismatch)
         );
 
         let mut unregistered = clock_sample(2, 130);
