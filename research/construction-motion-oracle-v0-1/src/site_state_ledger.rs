@@ -27,6 +27,7 @@ pub enum SiteActorRole {
     Robot,
     Referee,
     SiteQualityAuthority,
+    ClockAuthority,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
