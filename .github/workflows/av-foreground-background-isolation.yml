@@ -94,6 +94,12 @@ jobs:
             .actual_index_ready_tick > .query_cutoff_tick and
             .expected_disposition == "NOT_AVAILABLE_AS_KNOWN_AT_CUTOFF"' \
             research/av-foreground-background-isolation-v0/fixtures/evaluator-only/scheduler-oracle-v1.json
+          jq -e '.episodes[] | select(.episode_id == "as-known-002-late-index") |
+            .query.as_known_cutoff_tick == 80 and
+            .source_observation.available_to_foreground_tick == 25 and
+            .source_observation.foreground_working_buffer_expires_tick == 40 and
+            .query.retrieval_scope == "committed_background_event_memory_only"' \
+            research/av-foreground-background-isolation-v0/fixtures/agent/workload-v1.json
           jq -e '.episodes[] | select(.episode_id == "cancel-003-stale-retrieval") |
             .retrieval_request_revision < .current_task_revision_at_finish and
             .expected_disposition == "STALE_COMPLETION_REJECTED_FOR_CURRENT_TASK"' \
