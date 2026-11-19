@@ -42,3 +42,10 @@ These are source references for later requirements/evidence profiles, not certif
 - **ECSS-Q-ST-70-01C Rev.1 (15 October 2025)**, cleanliness and contamination control across design, production, test and operation. https://ecss.nl/standard/ecss-q-st-70-01c-cleanliness-and-contamination-control-15-october-2025/
 
 The benchmark maps these to separate obligations: interface/conops, material compatibility, pressure-boundary integrity and cleanliness/contamination acceptance. No one standard covers the complete transfer service, and none of these references supplies a cryogenic boil-off or thermal-fluid model.
+
+
+## Receiver and capture-interface handoff — 19 November 2026
+
+Every scenario now declares the receiving client/tank identity, prepared interface ID and interface revision. The serialized scenario result echoes those exact fields for both transfer-accepted and storage-only cases. This allows a downstream composition gate to compare the fluid receiver against the client and interface revision accepted by the separate mechanical-capture benchmark.
+
+The fields are synthetic in v0.1. An identity match does not establish mechanical attachment, seal integrity, fluid compatibility or producer authentication. Storage-only remains a separate outcome and cannot be promoted to transfer acceptance.
