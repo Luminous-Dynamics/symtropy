@@ -15,6 +15,7 @@ const VALID_AVAILABILITY_EVIDENCE: &[&str] = &[
     "operational_distribution_log",
     "verified_archive_manifest",
     "first_seen_capture",
+    "synthetic_fixture",
 ];
 
 #[derive(Clone, Debug)]
@@ -639,6 +640,7 @@ mod tests {
     fn realized_reanalysis_cannot_enter_policy_inputs() {
         let mut value = fixture();
         value["decisions"][0]["policy_input_source_ids"] = json!(["gfs-cycle-a", "era5-analysis"]);
+        value["decisions"][0]["evaluator_context_source_ids"] = json!([]);
         let report = audit(&value);
         assert_eq!(report["disposition"], "BLOCKED");
         assert!(report["decision_reports"][0]["findings"].as_array().unwrap()
@@ -649,6 +651,7 @@ mod tests {
     fn buoy_observations_remain_validation_only() {
         let mut value = fixture();
         value["decisions"][0]["policy_input_source_ids"] = json!(["gfs-cycle-a", "ndbc-44013"]);
+        value["decisions"][0]["validation_observation_source_ids"] = json!([]);
         let report = audit(&value);
         assert_eq!(report["disposition"], "BLOCKED");
         assert!(report["decision_reports"][0]["findings"].as_array().unwrap()
@@ -690,6 +693,31 @@ mod tests {
     fn malformed_digest_is_invalid() {
         let mut value = fixture();
         value["sources"][0]["artifact_sha256"] = json!("abc");
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+
+    #[test]
+    fn missing_first_availability_is_not_inferred_from_retrieval_time() {
+        let mut value = fixture();
+        set_research_admissible(&mut value);
+        value["sources"][0]["forecast"]["first_available_at"] = Value::Null;
+        assert_eq!(audit(&value)["disposition"], "INCOMPLETE");
+    }
+
+    #[test]
+    fn forecast_retrieval_cannot_precede_declared_availability() {
+        let mut value = fixture();
+        set_research_admissible(&mut value);
+        value["sources"][0]["retrieved_at"] = json!("2026-11-19T06:10:00Z");
+        assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+    #[test]
+    fn cycle_issue_plus_lead_must_equal_forecast_valid_time() {
+        let mut value = fixture();
+        set_research_admissible(&mut value);
+        value["sources"][0]["forecast"]["lead_hours"] = json!(6);
         assert_eq!(audit(&value)["disposition"], "INVALID");
     }
 
