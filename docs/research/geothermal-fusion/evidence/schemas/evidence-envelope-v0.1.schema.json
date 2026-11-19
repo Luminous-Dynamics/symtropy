@@ -838,7 +838,14 @@
       "then": {
         "properties": {
           "subject": {
+            "properties": {
+              "kind": {
+                "const": "physical_asset"
+              }
+            },
             "required": [
+              "kind",
+              "asset_id",
               "interval_id"
             ]
           }
