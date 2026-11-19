@@ -69,6 +69,8 @@ pub struct SharedFleetScenario {
 pub struct SharedRepositionLink {
     pub from_region_id: String,
     pub to_region_id: String,
+    /// v0.1 uses one discrete period per cross-region reposition. Longer routes
+    /// require the explicit in-transit weather/permission state planned for v0.2.
     pub travel_periods: u16,
     pub energy_units: u64,
     pub cost_units: u64,
@@ -254,7 +256,6 @@ fn validate_input(input: &SharedFleetInput) -> Result<(), Vec<String>> {
         || input.protected_energy_reserve_units >= input.maximum_aircraft_energy_units
         || input.initial_aircraft_energy_units < input.protected_energy_reserve_units
         || input.energy_units_per_aerial_delivery == 0
-        || input.recharge_energy_units_per_idle_period == 0
     {
         errors.push("aircraft energy capacity, initial energy, reserve, delivery energy and recharge rate are inconsistent".into());
     }
@@ -290,8 +291,10 @@ fn validate_input(input: &SharedFleetInput) -> Result<(), Vec<String>> {
         {
             errors.push(format!("reposition_links[{index}]: invalid from/to region"));
         }
-        if link.travel_periods == 0 || link.energy_units == 0 {
-            errors.push(format!("reposition_links[{index}]: cross-region travel and energy must be positive"));
+        if link.travel_periods != 1 || link.energy_units == 0 {
+            errors.push(format!(
+                "reposition_links[{index}]: v0.1 requires exactly one discrete travel period and positive energy"
+            ));
         }
         if !links.insert((link.from_region_id.as_str(), link.to_region_id.as_str())) {
             errors.push(format!("reposition_links[{index}]: duplicate directed link"));
@@ -430,8 +433,6 @@ fn simulate_scenario(
 ) -> Result<ScenarioMetrics, String> {
     let mut metrics = ScenarioMetrics::default();
     let mut aircraft_region = input.initial_aircraft_region_id.clone();
-    let mut transit_destination: Option<String> = None;
-    let mut transit_remaining = 0_u16;
     let mut energy = input.initial_aircraft_energy_units;
     let mut history: Vec<Vec<SharedFleetObservation>> = Vec::new();
 
@@ -445,14 +446,7 @@ fn simulate_scenario(
         let mut aerial_this_period: Option<(String, u32)> = None;
 
         if aircraft_enabled {
-            if transit_remaining > 0 {
-                transit_remaining -= 1;
-                checked_add(&mut metrics.repositioning_periods, 1, "repositioning periods")?;
-                if transit_remaining == 0 {
-                    aircraft_region = transit_destination.take()
-                        .ok_or_else(|| "transit destination missing at arrival".to_string())?;
-                }
-            } else if action == input.regions.len() {
+            if action == input.regions.len() {
                 let before = energy;
                 energy = energy.saturating_add(input.recharge_energy_units_per_idle_period)
                     .min(input.maximum_aircraft_energy_units);
@@ -509,12 +503,9 @@ fn simulate_scenario(
                         add_cost(&mut metrics, u128::from(link.cost_units))?;
                         checked_add(&mut metrics.repositioning_events, 1, "repositioning events")?;
                         checked_add(&mut metrics.repositioning_periods, 1, "repositioning periods")?;
-                        if link.travel_periods == 1 {
-                            aircraft_region = target.clone();
-                        } else {
-                            transit_destination = Some(target.clone());
-                            transit_remaining = link.travel_periods - 1;
-                        }
+                        // v0.1 reserves the complete decision period for repositioning.
+                        // The target region can only be served from the next period onward.
+                        aircraft_region = target.clone();
                     }
                 }
             }
@@ -842,9 +833,12 @@ mod tests {
     }
 
     #[test]
-    fn repositioning_consumes_time_before_aerial_service_can_begin() {
+    fn repositioning_consumes_one_full_period_before_service() {
         let mut test = input();
-        test.reposition_links[0].travel_periods = 2;
+        test.period_count = 1;
+        for scenario in &mut test.scenarios {
+            scenario.periods.truncate(1);
+        }
         let canonical = canonicalize(&test);
         let (_nodes, indices, mask) = forced_region_mask(&canonical, "rural");
         let metrics = simulate_scenario(
@@ -855,9 +849,10 @@ mod tests {
             true,
         )
         .expect("forced reposition policy");
-        assert_eq!(metrics.repositioning_periods, 2);
+        assert_eq!(metrics.repositioning_periods, 1);
         assert_eq!(metrics.repositioning_events, 1);
-        assert_eq!(metrics.aerial_deliveries, 4);
+        assert_eq!(metrics.aerial_deliveries, 0);
+        assert_eq!(metrics.end_energy_units, 12);
     }
 
     #[test]
@@ -993,9 +988,9 @@ mod tests {
     }
 
     #[test]
-    fn rejects_zero_time_cross_region_transfer() {
+    fn rejects_multi_period_transfer_until_transit_state_is_modeled() {
         let mut test = input();
-        test.reposition_links[0].travel_periods = 0;
+        test.reposition_links[0].travel_periods = 2;
         assert!(validate_input(&test).is_err());
     }
 
