@@ -24,6 +24,8 @@ fn profile(
             nanoseconds_per_tick_denominator: ns_den,
         },
         initial_local_tick: 0,
+        early_return_allowed: true,
+        event_mode_enabled: false,
     }
 }
 
@@ -56,6 +58,14 @@ fn attempt(
         master_start_ns: local_start * ns_per_tick,
         master_requested_end_ns: local_requested * ns_per_tick,
         master_returned_end_ns: local_returned * ns_per_tick,
+        state_before_digest: format!("state:{federate_id}:{local_start}"),
+        state_after_digest: if outcome == StepOutcome::Rejected {
+            format!("state:{federate_id}:{local_start}")
+        } else {
+            format!("state:{federate_id}:{local_returned}")
+        },
+        event_handling_needed: false,
+        terminate_simulation: false,
         outcome,
     }
 }
@@ -164,6 +174,15 @@ fn accepts_mixed_clock_scales_early_return_and_rejected_retry() {
     assert_eq!(validate_trace(&trace), Ok(()));
 }
 
+
+#[test]
+fn accepted_step_may_report_last_successful_time_before_requested_endpoint() {
+    let mut trace = valid_trace();
+    trace.attempts[0].local_requested_end_tick = 2;
+    trace.attempts[0].master_requested_end_ns = 2_000_000_000;
+    assert_eq!(validate_trace(&trace), Ok(()));
+}
+
 #[test]
 fn clock_binding_maps_exactly_without_float_rounding() {
     let trace = valid_trace();
@@ -239,6 +258,26 @@ fn frozen_adversarial_corpus() {
                 trace.attempts[4].sequence = 3;
                 trace.attempts[5].sequence = 3;
             }
+            "rejected_state_changed" => {
+                trace.attempts[4].state_after_digest = "state:mutated".to_owned();
+            }
+            "early_return_without_permission" => {
+                trace.federates[0].early_return_allowed = false;
+            }
+            "zero_progress_early_return" => {
+                trace.attempts[2].local_returned_end_tick = 1;
+                trace.attempts[2].master_returned_end_ns = 1_000_000_000;
+            }
+            "event_without_event_mode" => {
+                trace.attempts[2].event_handling_needed = true;
+            }
+            "event_mode_without_round_trip" => {
+                trace.federates[0].event_mode_enabled = true;
+                trace.attempts[2].event_handling_needed = true;
+            }
+            "fmu_requests_termination" => {
+                trace.attempts[2].terminate_simulation = true;
+            }
             "retry_recorded_after_later_step" => {
                 let mut future = trace.attempts[5].clone();
                 future.attempt_id = "geo-step-3".to_owned();
@@ -258,5 +297,5 @@ fn frozen_adversarial_corpus() {
         assert_code(&trace, expected);
     }
 
-    assert_eq!(seen.len(), 13);
+    assert_eq!(seen.len(), 19);
 }
