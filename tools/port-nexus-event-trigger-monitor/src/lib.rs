@@ -22,6 +22,7 @@ pub enum SignalDomain {
     Compute,
     Cooling,
     ThermalStore,
+    Water,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -667,6 +668,28 @@ mod tests {
                 critical: true,
                 hard_bound: Some(HardBound::Lower { limit: 20.0 }),
             },
+            SignalDefinition {
+                signal_id: "ro_feedwater_heat_demand_kw".to_owned(),
+                domain: SignalDomain::Water,
+                unit: "kW".to_owned(),
+                baseline_value: 6_270.0,
+                soft_absolute_threshold: 500.0,
+                soft_relative_threshold: 0.10,
+                max_age_ms: 300_000,
+                critical: true,
+                hard_bound: None,
+            },
+            SignalDefinition {
+                signal_id: "heat_sink_available_kw".to_owned(),
+                domain: SignalDomain::Water,
+                unit: "kW".to_owned(),
+                baseline_value: 6_270.0,
+                soft_absolute_threshold: 500.0,
+                soft_relative_threshold: 0.10,
+                max_age_ms: 300_000,
+                critical: true,
+                hard_bound: Some(HardBound::Lower { limit: 5_000.0 }),
+            },
         ]
     }
 
@@ -860,6 +883,59 @@ mod tests {
         let next = snapshot(3, 150_000, &[("berth_arrival_delay_min", 16.0)]);
         let next_result = evaluate_trigger(&next, &definitions(), &policy(), &recovery_result.next_state).unwrap();
         assert!(matches!(next_result.decision, TriggerDecision::ReplanRequested { .. }));
+    }
+
+    #[test]
+    fn heat_sink_capacity_loss_triggers_hard_replan() {
+        let input = snapshot(1, 100_000, &[("heat_sink_available_kw", 4_000.0)]);
+        let result = evaluate_trigger(
+            &input,
+            &definitions(),
+            &policy(),
+            &TriggerState::default(),
+        ).unwrap();
+        assert_eq!(
+            result.decision,
+            TriggerDecision::ReplanRequested { priority: TriggerPriority::Hard }
+        );
+        assert!(result.reason_codes.contains(
+            &"HARD_BOUNDARY_BREACH:heat_sink_available_kw".to_owned()
+        ));
+    }
+
+    #[test]
+    fn ro_feedwater_heat_demand_shift_triggers_normal_replan() {
+        let input = snapshot(1, 100_000, &[("ro_feedwater_heat_demand_kw", 5_500.0)]);
+        let result = evaluate_trigger(
+            &input,
+            &definitions(),
+            &policy(),
+            &TriggerState::default(),
+        ).unwrap();
+        assert_eq!(
+            result.decision,
+            TriggerDecision::ReplanRequested { priority: TriggerPriority::Normal }
+        );
+        assert!(result.reason_codes.contains(
+            &"SOFT_DEVIATION:ro_feedwater_heat_demand_kw".to_owned()
+        ));
+    }
+
+    #[test]
+    fn missing_critical_water_sink_signal_is_data_incomplete() {
+        let mut input = snapshot(1, 100_000, &[]);
+        input.measurements.retain(|m| m.signal_id != "heat_sink_available_kw");
+        let result = evaluate_trigger(
+            &input,
+            &definitions(),
+            &policy(),
+            &TriggerState::default(),
+        ).unwrap();
+        assert_eq!(result.decision, TriggerDecision::DataIncomplete);
+        assert!(result.evidence_refresh_required);
+        assert!(result.reason_codes.contains(
+            &"MISSING_CRITICAL_SIGNAL:heat_sink_available_kw".to_owned()
+        ));
     }
 
     #[test]
