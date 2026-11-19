@@ -40,6 +40,7 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
+          import hashlib
           import json
           from pathlib import Path
           from jsonschema import Draft202012Validator
@@ -64,8 +65,27 @@ jobs:
               assert fixture["asOfHour"] < fixture["horizonEndHour"]
               parsed[path.name] = fixture
 
+          def canonical_event_manifest(events):
+              ordered = sorted(events, key=lambda event: event["eventId"])
+              fields = [
+                  "eventId", "idempotencyKey", "eventType", "eventIdRef", "taskId",
+                  "segmentId", "sequence", "startHour", "endHour", "productiveEffortHours",
+                  "effectiveHour", "observedHour", "evidenceStatus", "evidenceClass",
+                  "evidenceRef", "interruptionCause",
+              ]
+              normalized = []
+              for event in ordered:
+                  record = {key: event[key] for key in fields}
+                  for key in ("startHour", "endHour", "productiveEffortHours", "effectiveHour", "observedHour"):
+                      record[key] = float(record[key])
+                  normalized.append(record)
+              payload = json.dumps(normalized, separators=(",", ":"), ensure_ascii=False).encode()
+              return hashlib.sha256(payload).hexdigest()
+
           planned = parsed["synthetic-resumable-execution-v0.1.json"]
           assert planned["baselineCommitments"] == planned["proposedCommitments"]
+          assert planned["baselineEventManifestRef"].startswith("synthetic://")
+          assert planned["baselineEventManifestSha256"] == canonical_event_manifest(planned["baselineEvents"])
           assert len(planned["events"]) == 1
           assert planned["events"][0]["eventType"] == "work_segment_completed"
           assert planned["plannedSegments"][0]["startHour"] > planned["asOfHour"]
@@ -80,6 +100,7 @@ jobs:
           assert len(progress["baselineEvents"]) == 2
           assert len(progress["events"]) == 3
           assert progress["baselineEvents"] == progress["events"][:2]
+          assert progress["baselineEventManifestSha256"] == canonical_event_manifest(progress["baselineEvents"])
           assert progress["baselineCommitments"][0]["version"] == 1
           assert progress["proposedCommitments"][0]["version"] == 2
           assert progress["reconciliations"][0]["action"] == "progress_recorded"
