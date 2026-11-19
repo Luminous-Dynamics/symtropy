@@ -400,9 +400,7 @@ fn assess_unit(
     let thermal_margin = unit.temperature_c.zip(unit.thermal_limit_lower_c)
         .map(|(temperature, limit)| limit - temperature.upper);
 
-    if continuous_margin.is_some_and(|margin| margin < 0.0)
-        && peak_margin.is_some_and(|margin| margin < 0.0)
-    {
+    if peak_margin.is_some_and(|margin| margin < 0.0) {
         infeasible = true;
         reasons.push("delivered torque exceeds the per-unit peak capability lower bound".to_owned());
     }
@@ -942,7 +940,19 @@ mod tests {
     }
 
     #[test]
-    fn sharing_021_aggregate_temperature_is_not_used_as_unit_temperature() {
+    fn sharing_021_known_peak_overload_precedes_missing_continuous_rating() {
+        let mut a = unit("A", interval(16.0, 17.0), interval(40.0, 42.0));
+        a.continuous_torque_capability_lower_nm = None;
+        let report = evaluate_joint(&input(vec![
+            a,
+            unit("B", interval(4.0, 5.0), interval(41.0, 43.0)),
+        ])).unwrap();
+        assert_eq!(report.unit_assessments[0].capability_disposition, UnitCapabilityDisposition::Infeasible);
+        assert_eq!(report.disposition, JointDisposition::Infeasible);
+    }
+
+    #[test]
+    fn sharing_022_aggregate_temperature_is_not_used_as_unit_temperature() {
         let report = evaluate_joint(&input(vec![
             unit("A", interval(4.0, 5.0), interval(30.0, 32.0)),
             unit("B", interval(5.0, 6.0), interval(60.0, 65.0)),
