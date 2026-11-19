@@ -234,6 +234,7 @@ fn skew(vector: Vector3) -> Matrix3 {
     ]
 }
 
+#[cfg(test)]
 fn trace(matrix: Matrix3) -> f64 {
     matrix[0][0] + matrix[1][1] + matrix[2][2]
 }
