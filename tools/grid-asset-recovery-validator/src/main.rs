@@ -1,6 +1,6 @@
 mod scheduler;
 
-use scheduler::{AvailabilityWindow, ResourceProfile, ResourceRequirement, ScheduledTask, TaskSpec, exact_small_schedule, schedule};
+use scheduler::{AvailabilityWindow, ResourceProfile, ResourceRequirement, ScheduledTask, TaskSpec, exact_small_schedule, exact_small_service_schedule, schedule, weighted_unserved_energy_mwh};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -339,6 +339,9 @@ fn validate(case: &Case) -> Vec<String> {
                 depends_on: task.depends_on.clone(),
                 release_hour: event.start_hour,
                 duration_hours: task.duration_hours,
+                service_weight_mw: (event.firm_capacity_lost_mw
+                    - plan.alternative_firm_capacity_mw)
+                    .max(0.0),
                 resource_requirements: task.resource_requirements.clone(),
             });
         }
@@ -620,12 +623,24 @@ struct ExactSmallComparison {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+struct ExactSmallServiceComparison {
+    greedy_weighted_unserved_energy_mwh: f64,
+    exact_weighted_unserved_energy_mwh: f64,
+    absolute_improvement_mwh: f64,
+    relative_improvement: f64,
+    exact_makespan_hours: f64,
+    exact_schedule: Vec<ScheduledTask>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 struct ScheduleReport {
     case_id: String,
     case_maturity: String,
     scheduler: String,
     optimality_status: String,
     exact_small_comparison: Option<ExactSmallComparison>,
+    exact_small_service_comparison: Option<ExactSmallServiceComparison>,
     events: Vec<EventScheduleReport>,
     scheduled_tasks: Vec<ScheduledTask>,
 }
@@ -656,6 +671,9 @@ fn task_specs_for_case(case: &Case) -> Vec<TaskSpec> {
                 depends_on: task.depends_on.clone(),
                 release_hour: event.start_hour,
                 duration_hours: task.duration_hours,
+                service_weight_mw: (event.firm_capacity_lost_mw
+                    - event.selected_plan.alternative_firm_capacity_mw)
+                    .max(0.0),
                 resource_requirements: task.resource_requirements.clone(),
             })
         })
@@ -670,6 +688,7 @@ fn build_report(
     case: &Case,
     mut scheduled_tasks: Vec<ScheduledTask>,
     exact_small_comparison: Option<ExactSmallComparison>,
+    exact_small_service_comparison: Option<ExactSmallServiceComparison>,
 ) -> ScheduleReport {
     scheduled_tasks.sort_by(|left, right| {
         left.start_hour
@@ -707,12 +726,15 @@ fn build_report(
         case_id: case.case_id.clone(),
         case_maturity: case.case_maturity.clone(),
         scheduler: "earliest_feasible_start_list_v0.1".to_string(),
-        optimality_status: if exact_small_comparison.is_some() {
-            "exhaustively_optimal_for_bounded_case".to_string()
+        optimality_status: if exact_small_service_comparison.is_some() {
+            "exhaustively_optimal_for_bounded_weighted_unserved_energy_case".to_string()
+        } else if exact_small_comparison.is_some() {
+            "exhaustively_optimal_for_bounded_makespan_case".to_string()
         } else {
             "heuristic_not_proven_optimal".to_string()
         },
         exact_small_comparison,
+        exact_small_service_comparison,
         events,
         scheduled_tasks,
     }
@@ -732,18 +754,25 @@ fn run(input: &str) -> Result<(Case, Vec<ScheduledTask>), Vec<String>> {
 fn main() {
     let mut path = None;
     let mut exact_small = false;
+    let mut exact_small_service = false;
     for argument in env::args().skip(1) {
         if argument == "--exact-small" {
             exact_small = true;
+        } else if argument == "--exact-small-service" {
+            exact_small_service = true;
         } else if path.is_none() {
             path = Some(argument);
         } else {
-            eprintln!("usage: grid-asset-recovery-validator [--exact-small] <case.json>");
+            eprintln!("usage: grid-asset-recovery-validator [--exact-small|--exact-small-service] <case.json>");
             process::exit(2);
         }
     }
+    if exact_small && exact_small_service {
+        eprintln!("select only one exact objective");
+        process::exit(2);
+    }
     let Some(path) = path else {
-        eprintln!("usage: grid-asset-recovery-validator [--exact-small] <case.json>");
+        eprintln!("usage: grid-asset-recovery-validator [--exact-small|--exact-small-service] <case.json>");
         process::exit(2);
     };
     let input = fs::read_to_string(&path).unwrap_or_else(|error| {
@@ -787,7 +816,62 @@ fn main() {
             } else {
                 None
             };
-            let report = build_report(&case, scheduled, exact_comparison);
+            let exact_service_comparison = if exact_small_service {
+                let tasks = task_specs_for_case(&case);
+                let profiles = resource_capacities(&case);
+                let greedy_service = match weighted_unserved_energy_mwh(&tasks, &scheduled) {
+                    Ok(value) => value,
+                    Err(errors) => {
+                        for error in errors {
+                            eprintln!("SERVICE-OBJECTIVE-FAIL: {error}");
+                        }
+                        process::exit(1);
+                    }
+                };
+                match exact_small_service_schedule(&tasks, &profiles) {
+                    Ok(exact_schedule) => {
+                        let exact_service = match weighted_unserved_energy_mwh(&tasks, &exact_schedule) {
+                            Ok(value) => value,
+                            Err(errors) => {
+                                for error in errors {
+                                    eprintln!("EXACT-SERVICE-OBJECTIVE-FAIL: {error}");
+                                }
+                                process::exit(1);
+                            }
+                        };
+                        let exact_makespan = exact_schedule
+                            .iter()
+                            .map(|task| task.end_hour)
+                            .fold(0.0, f64::max);
+                        Some(ExactSmallServiceComparison {
+                            greedy_weighted_unserved_energy_mwh: greedy_service,
+                            exact_weighted_unserved_energy_mwh: exact_service,
+                            absolute_improvement_mwh: (greedy_service - exact_service).max(0.0),
+                            relative_improvement: if greedy_service > 0.0 {
+                                (greedy_service - exact_service).max(0.0) / greedy_service
+                            } else {
+                                0.0
+                            },
+                            exact_makespan_hours: exact_makespan,
+                            exact_schedule,
+                        })
+                    }
+                    Err(errors) => {
+                        for error in errors {
+                            eprintln!("EXACT-SERVICE-REFERENCE-FAIL: {error}");
+                        }
+                        process::exit(1);
+                    }
+                }
+            } else {
+                None
+            };
+            let report = build_report(
+                &case,
+                scheduled,
+                exact_comparison,
+                exact_service_comparison,
+            );
             println!(
                 "{}",
                 serde_json::to_string_pretty(&report).expect("schedule report serializes")
