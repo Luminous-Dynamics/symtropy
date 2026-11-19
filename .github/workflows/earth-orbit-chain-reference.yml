@@ -64,6 +64,8 @@ jobs:
           jq -e '
             .result == "pass"
             and .report.disposition == "ready"
+            and .report.evidence_class == "synthetic"
+            and (.report.claim_ceiling | length > 0)
             and (.source_commit | test("^[0-9a-f]{40}$"))
             and (.campaign_sha256 | test("^[0-9a-f]{64}$"))
             and (.report.cargo_deliveries | length == 1)
