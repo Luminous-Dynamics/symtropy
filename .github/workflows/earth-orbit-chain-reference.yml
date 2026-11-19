@@ -47,7 +47,7 @@ jobs:
         run: cargo fmt --manifest-path Cargo.toml --package symtropy-earth-orbit-chain -- --check
 
       - name: Run package unit tests
-        run: cargo test --locked --manifest-path Cargo.toml --package symtropy-earth-orbit-chain --lib
+        run: cargo test --locked --manifest-path Cargo.toml --package symtropy-earth-orbit-chain --all-targets
 
       - name: Run package Clippy with warnings denied
         run: cargo clippy --locked --manifest-path Cargo.toml --package symtropy-earth-orbit-chain --all-targets -- -D warnings
