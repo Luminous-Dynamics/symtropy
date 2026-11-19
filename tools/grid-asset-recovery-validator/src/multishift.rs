@@ -1767,6 +1767,85 @@ mod tests {
     }
 
     #[test]
+    fn active_resource_is_not_reallocated_before_a_pause_is_observed() {
+        let mut case = fixture();
+        case.events.push(ExecutionEvent {
+            event_id: "repair-progress".to_string(),
+            idempotency_key: "repair-progress-key".to_string(),
+            event_type: ExecutionEventType::ProgressSnapshot,
+            event_id_ref: "storm-001".to_string(),
+            task_id: "repair-pump".to_string(),
+            segment_id: "repair-pump-active".to_string(),
+            sequence: 1,
+            start_hour: 4.0,
+            end_hour: 8.0,
+            productive_effort_hours: 3.0,
+            effective_hour: 8.0,
+            observed_hour: 8.0,
+            evidence_status: EvidenceStatus::Current,
+            evidence_class: EvidenceClass::SyntheticFixture,
+            evidence_ref: "synthetic://progress/repair-pump".to_string(),
+            interruption_cause: None,
+        });
+        case.baseline_commitments[0].state = CommitmentState::InProgress;
+        case.proposed_commitments[0].state = CommitmentState::InProgress;
+        case.baseline_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
+        case.proposed_commitments[0].active_segment_id = Some("repair-pump-active".to_string());
+        case.baseline_commitments[0].frozen_event_ids.push("repair-progress".to_string());
+        case.proposed_commitments[0].version = 2;
+        case.proposed_commitments[0].frozen_event_ids.push("repair-progress".to_string());
+        case.planned_segments = vec![PlannedSegment {
+            segment_id: "commission-while-crew-active".to_string(),
+            event_id: "storm-001".to_string(),
+            task_id: "test-commission".to_string(),
+            sequence: 0,
+            start_hour: 12.0,
+            end_hour: 14.0,
+            productive_effort_hours: 2.0,
+            interruption_cause: None,
+        }];
+        case.tasks[1].depends_on.clear();
+        case.reconciliations.push(ReconciliationEvent {
+            event_id: "reconcile-progress-001".to_string(),
+            commitment_id: "commit-repair-pump".to_string(),
+            from_version: 1,
+            to_version: 2,
+            action: ReconciliationAction::ProgressRecorded,
+            observed_hour: 8.0,
+            evidence_status: EvidenceStatus::Current,
+            authority_ref: "synthetic://authority/shift-supervisor".to_string(),
+            evidence_ref: "synthetic://reconciliation/progress-001".to_string(),
+        });
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn synthetic_case_cannot_claim_observed_field_evidence() {
+        let mut case = fixture();
+        case.events[0].evidence_class = EvidenceClass::Observed;
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn impossible_calendar_date_is_rejected() {
+        let mut case = fixture();
+        case.time_origin_utc = "2030-02-30T00:00:00Z".to_string();
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
+    fn short_intermediate_segment_is_not_excused_by_later_completion() {
+        let mut case = fixture();
+        case.tasks[0].checkpoint_effort_hours = vec![1.0, 7.0];
+        case.events[0].productive_effort_hours = 1.0;
+        case.planned_segments[0].productive_effort_hours = 7.0;
+        case.planned_segments[0].end_hour = 17.0;
+        case.planned_segments[1].start_hour = 17.0;
+        case.planned_segments[1].end_hour = 19.0;
+        assert!(validate(&case).is_err());
+    }
+
+    #[test]
     fn resource_capacity_conflict_is_rejected() {
         let mut case = fixture();
         case.planned_segments[1].start_hour = 12.0;
