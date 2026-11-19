@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:symtropy:lunar-excavation-benchmark-dataset:0.1.0",
+  "title": "Lunar Excavation Benchmark Dataset Manifest",
+  "description": "Dataset-level partition and group-assignment contract. A separate validator must verify each run against these assignments and protect blind-test access.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "dataset_id",
+    "created_at",
+    "source_class",
+    "split_policy",
+    "group_assignments",
+    "run_assignments"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "lunar-excavation-model-validation-v0"
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source_class": {
+      "enum": [
+        "physical_analogue_dataset",
+        "published_dataset",
+        "synthetic_fixture"
+      ]
+    },
+    "split_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "isolation_axes",
+        "partition_order",
+        "blind_test_access",
+        "optional_isolation_axes"
+      ],
+      "properties": {
+        "isolation_axes": {
+          "const": [
+            "material_batch_id",
+            "preparation_protocol_id",
+            "tool_geometry_id",
+            "operating_regime_id"
+          ]
+        },
+        "partition_order": {
+          "const": [
+            "calibration",
+            "validation",
+            "blind_test"
+          ]
+        },
+        "blind_test_access": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "hidden_from_model",
+            "revealed_after_freeze",
+            "freeze_required"
+          ],
+          "properties": {
+            "hidden_from_model": {
+              "const": true
+            },
+            "revealed_after_freeze": {
+              "const": true
+            },
+            "freeze_required": {
+              "type": "array",
+              "minItems": 6,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "executable_sha256",
+                  "source_revision",
+                  "configuration_artifact_id",
+                  "parameters_artifact_id",
+                  "random_seed",
+                  "prediction_artifacts"
+                ]
+              },
+              "maxItems": 6
+            }
+          }
+        },
+        "optional_isolation_axes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "laboratory_id",
+              "campaign_id"
+            ]
+          }
+        }
+      }
+    },
+    "group_assignments": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "material_batch_id",
+        "preparation_protocol_id",
+        "tool_geometry_id",
+        "operating_regime_id"
+      ],
+      "properties": {
+        "material_batch_id": {
+          "$ref": "#/$defs/partitionMap"
+        },
+        "preparation_protocol_id": {
+          "$ref": "#/$defs/partitionMap"
+        },
+        "tool_geometry_id": {
+          "$ref": "#/$defs/partitionMap"
+        },
+        "operating_regime_id": {
+          "$ref": "#/$defs/partitionMap"
+        },
+        "laboratory_id": {
+          "$ref": "#/$defs/partitionMap"
+        },
+        "campaign_id": {
+          "$ref": "#/$defs/partitionMap"
+        }
+      }
+    },
+    "run_assignments": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "run_id",
+          "partition",
+          "group_keys"
+        ],
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "partition": {
+            "$ref": "#/$defs/partition"
+          },
+          "group_keys": {
+            "$ref": "#/$defs/groupKeys"
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "$defs": {
+    "partition": {
+      "enum": [
+        "calibration",
+        "validation",
+        "blind_test"
+      ]
+    },
+    "partitionMap": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/partition"
+      }
+    },
+    "groupKeys": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "material_batch_id",
+        "preparation_protocol_id",
+        "tool_geometry_id",
+        "operating_regime_id"
+      ],
+      "properties": {
+        "material_batch_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preparation_protocol_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool_geometry_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operating_regime_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "laboratory_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "campaign_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

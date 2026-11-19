@@ -1,0 +1,663 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:symtropy:lunar-excavation-benchmark-run:0.1.0",
+  "title": "Lunar Excavation Model Benchmark Run",
+  "description": "Evidence-scoped run record for matched DEM, CEL/FEM, analytical, or empirical excavation tests. Schema validation is necessary but not sufficient for dataset admission.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "run_id",
+    "recorded_at",
+    "source_class",
+    "partition",
+    "group_keys",
+    "specimen",
+    "environment",
+    "tool",
+    "operation",
+    "observations",
+    "model",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "lunar-excavation-model-validation-v0"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source_class": {
+      "enum": [
+        "physical_analogue_measurement",
+        "published_measurement",
+        "simulation",
+        "synthetic_fixture"
+      ]
+    },
+    "partition": {
+      "enum": [
+        "calibration",
+        "validation",
+        "blind_test"
+      ]
+    },
+    "group_keys": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "material_batch_id",
+        "preparation_protocol_id",
+        "tool_geometry_id",
+        "operating_regime_id"
+      ],
+      "properties": {
+        "material_batch_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preparation_protocol_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool_geometry_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operating_regime_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "laboratory_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "campaign_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "specimen": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "material_family",
+        "material_name",
+        "batch_id",
+        "preparation_protocol_id",
+        "grain_size_distribution_artifact_id",
+        "bulk_density_kg_m3",
+        "relative_density_percent",
+        "water_content_mass_fraction",
+        "sample_mass_kg",
+        "compaction_history_id"
+      ],
+      "properties": {
+        "material_family": {
+          "enum": [
+            "lunar_regolith_simulant",
+            "terrestrial_regolith_analogue",
+            "competent_rock_analogue",
+            "returned_lunar_sample",
+            "other"
+          ]
+        },
+        "material_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "batch_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preparation_protocol_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "grain_size_distribution_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mineralogy_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "particle_shape_method": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "bulk_density_kg_m3": {
+          "$ref": "#/$defs/measurement"
+        },
+        "relative_density_percent": {
+          "$ref": "#/$defs/measurement"
+        },
+        "water_content_mass_fraction": {
+          "$ref": "#/$defs/measurement"
+        },
+        "sample_mass_kg": {
+          "$ref": "#/$defs/measurement"
+        },
+        "compaction_history_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overburden_pressure_kPa": {
+          "$ref": "#/$defs/measurement"
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gravity_m_s2",
+        "confining_pressure_kPa",
+        "chamber_pressure_Pa",
+        "temperature_K",
+        "atmosphere"
+      ],
+      "properties": {
+        "gravity_m_s2": {
+          "$ref": "#/$defs/measurement"
+        },
+        "confining_pressure_kPa": {
+          "$ref": "#/$defs/measurement"
+        },
+        "chamber_pressure_Pa": {
+          "$ref": "#/$defs/measurement"
+        },
+        "temperature_K": {
+          "$ref": "#/$defs/measurement"
+        },
+        "atmosphere": {
+          "enum": [
+            "air",
+            "vacuum",
+            "inert_gas",
+            "other",
+            "unknown"
+          ]
+        },
+        "environment_notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool_type",
+        "geometry_id",
+        "geometry_artifact_id",
+        "cutting_width_m",
+        "rake_angle_deg",
+        "edge_radius_m",
+        "wear_state"
+      ],
+      "properties": {
+        "tool_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "geometry_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "geometry_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cutting_width_m": {
+          "$ref": "#/$defs/measurement"
+        },
+        "rake_angle_deg": {
+          "$ref": "#/$defs/measurement"
+        },
+        "edge_radius_m": {
+          "$ref": "#/$defs/measurement"
+        },
+        "wear_state": {
+          "enum": [
+            "new",
+            "run_in",
+            "worn",
+            "reconditioned",
+            "unknown"
+          ]
+        },
+        "wear_measurement_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "feed_rate_m_s",
+        "penetration_depth_m",
+        "duration_s",
+        "tool_path_artifact_id",
+        "stroke_count"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "static",
+            "quasi_static",
+            "continuous",
+            "vibratory",
+            "percussive",
+            "mixed"
+          ]
+        },
+        "feed_rate_m_s": {
+          "$ref": "#/$defs/measurement"
+        },
+        "penetration_depth_m": {
+          "$ref": "#/$defs/measurement"
+        },
+        "duration_s": {
+          "$ref": "#/$defs/measurement"
+        },
+        "tool_path_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stroke_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "control_mode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "observations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "force_trace_artifact_id",
+        "peak_force_N",
+        "mean_force_N",
+        "impulse_N_s",
+        "energy_input_J",
+        "displaced_volume_m3",
+        "excavation_depth_m",
+        "residual_geometry_artifact_id"
+      ],
+      "properties": {
+        "force_trace_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "peak_force_N": {
+          "$ref": "#/$defs/measurement"
+        },
+        "mean_force_N": {
+          "$ref": "#/$defs/measurement"
+        },
+        "impulse_N_s": {
+          "$ref": "#/$defs/measurement"
+        },
+        "energy_input_J": {
+          "$ref": "#/$defs/measurement"
+        },
+        "displaced_volume_m3": {
+          "$ref": "#/$defs/measurement"
+        },
+        "excavation_depth_m": {
+          "$ref": "#/$defs/measurement"
+        },
+        "residual_geometry_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "particle_flow_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "surface_heave_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wear_after_test_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "failure_observations": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "solver_family",
+        "model_name",
+        "model_version",
+        "source_revision",
+        "executable_sha256",
+        "configuration_artifact_id",
+        "parameters_artifact_id",
+        "random_seed",
+        "run_status",
+        "predictions"
+      ],
+      "properties": {
+        "solver_family": {
+          "enum": [
+            "dem",
+            "cel_fem",
+            "continuum",
+            "analytical_empirical",
+            "other"
+          ]
+        },
+        "model_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executable_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "configuration_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parameters_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "random_seed": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "run_status": {
+          "enum": [
+            "converged",
+            "failed",
+            "not_run",
+            "not_applicable"
+          ]
+        },
+        "failure_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "predictions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "peak_force_N",
+            "mean_force_N",
+            "displaced_volume_m3"
+          ],
+          "properties": {
+            "peak_force_N": {
+              "$ref": "#/$defs/prediction_interval"
+            },
+            "mean_force_N": {
+              "$ref": "#/$defs/prediction_interval"
+            },
+            "displaced_volume_m3": {
+              "$ref": "#/$defs/prediction_interval"
+            }
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "source_citation": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "standard_uncertainty",
+        "unit",
+        "status",
+        "source_artifact_id",
+        "calibration_record_id"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "standard_uncertainty": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "measured",
+            "published",
+            "estimated",
+            "synthetic",
+            "unknown"
+          ]
+        },
+        "source_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "calibration_record_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "unknown"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "null"
+              },
+              "standard_uncertainty": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "value": {
+                "type": "number"
+              },
+              "standard_uncertainty": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "prediction_interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "estimate",
+        "lower",
+        "upper",
+        "unit",
+        "nominal_coverage"
+      ],
+      "properties": {
+        "estimate": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "lower": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "upper": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nominal_coverage": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "role",
+        "path",
+        "media_type",
+        "sha256"
+      ],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "enum": [
+            "raw_sensor_trace",
+            "material_characterization",
+            "tool_geometry",
+            "tool_path",
+            "as_built_geometry",
+            "particle_flow",
+            "model_configuration",
+            "model_parameters",
+            "model_output",
+            "calibration_record",
+            "other"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}
