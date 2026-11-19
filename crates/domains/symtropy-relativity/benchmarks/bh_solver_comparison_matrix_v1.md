@@ -158,3 +158,27 @@ For \(\chi\) on a frozen grid from the slow-spin regime toward the branch endpoi
 6. near extremality, use a horizon-adapted coordinate and pseudo-arclength continuation; return unresolved at a singular gauge or failed regularity condition.
 
 The benchmark target is a calibrated *accuracy-versus-spin envelope* rather than a single claimed “valid up to spin X” threshold. The threshold depends on coupling, observable and tolerance.
+
+
+## 12. Thermodynamic integrability as an independent global check
+
+For the 5D asymptotically flat equal-spin branch, compute the horizon and asymptotic quantities from independent formulas:
+\[
+T_H=\frac{\sqrt{b_1f_1}}{4\pi},\qquad
+A_H=2\pi^2 r_H^2\sqrt{h_H},
+\]
+\[
+S_{\rm Wald}=\frac{2\pi^2}{4G}\sqrt{h_H}
+\left[r_H^2+\alpha\left(4-\frac{h_H}{r_H^2}\right)\right],
+\]
+\[
+E=-\frac{3(2\pi^2)}{16\pi G}\mathcal U,\qquad
+J=\frac{2\pi^2}{8\pi G}\mathcal W.
+\]
+Along a fixed-\(\alpha\) family, enforce the two-equal-spin first law
+\[
+dE=T_H\,dS_{\rm Wald}+2\Omega_H\,dJ.
+\]
+Record a dimensionless first-law defect using finite differences or a validated branch tangent. This is not a replacement for field-equation residuals: it is a global independent consistency condition on the charges, horizon data and branch parameterization.
+
+In the cross-gauge benchmark, compare \(E,J,T_H,A_H,S_{\rm Wald}\) in both coordinate gauges and require each gauge's first-law defect to converge to the same enclosure as the branch step and numerical precision are refined.
