@@ -17,7 +17,7 @@ pub enum WellheadPhase {
     Unknown,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FluidPropertyProvenance {
     pub fluid_composition_id: String,
     pub model_id: String,
