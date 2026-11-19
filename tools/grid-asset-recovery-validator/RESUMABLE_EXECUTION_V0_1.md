@@ -102,7 +102,7 @@ Ghasemi et al., *A multi-skilled RCPSP with reliability constraints*, Computers 
 
 ## Benchmark protocol
 
-An additional **event-history immutability stratum** is mandatory: mutate a baseline event while preserving its ID, delete a baseline event, duplicate a baseline ID, append an event without a reconciliation, or reorder independent records. The first four must fail closed; the final permutation must produce the same canonical report. Candidate replanning is evaluated only relative to a frozen event payload snapshot, not a mutable list of identifiers.
+An additional **event-history immutability stratum** is mandatory: mutate any baseline event field while preserving its ID, delete a baseline event, duplicate a baseline ID, tamper with the manifest digest, append an event without a reconciliation, or reorder independent records. The first five must fail closed; the final permutation must produce the same canonical report. The current source suite has a field-by-field tamper control covering all 16 execution-event fields. Candidate replanning is evaluated only relative to a frozen event payload snapshot, not a mutable list of identifiers.
 
 ## Benchmark protocol
 
