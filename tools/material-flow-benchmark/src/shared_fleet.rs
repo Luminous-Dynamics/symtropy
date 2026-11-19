@@ -754,7 +754,9 @@ fn solve_node(
         return Ok(metrics);
     }
 
-    let period_index = node.period_index.expect("validated decision node has a period");
+    let period_index = node
+        .period_index
+        .ok_or_else(|| "decision node has no period".to_string())?;
     let actions = generate_actions(input, period_index, state);
     let mut best_metrics: Option<WeightedMetrics> = None;
     let mut best_targets: Option<Vec<usize>> = None;
@@ -801,7 +803,9 @@ fn evaluate_fixed_policy(
         }
         return Ok(total);
     }
-    let period_index = node.period_index.expect("decision node has a period");
+    let period_index = node
+        .period_index
+        .ok_or_else(|| "decision node has no period".to_string())?;
     let targets: Vec<usize> = state
         .iter()
         .enumerate()
@@ -836,6 +840,9 @@ fn collect_policy(
         }
         return Ok(());
     }
+    let period_index = node
+        .period_index
+        .ok_or_else(|| "decision node has no period".to_string())?;
     let key = StateKey {
         node_id: node.node_id,
         fleet_state: state.clone(),
@@ -859,7 +866,7 @@ fn collect_policy(
         })
         .collect();
     output.push(SharedFleetDecision {
-        period_index: node.period_index.unwrap_or(0),
+        period_index,
         observed_history_digest_sha256: node.history_digest_sha256.clone(),
         fleet_state_digest_sha256,
         aircraft_targets,
