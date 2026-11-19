@@ -84,6 +84,9 @@ jobs:
       - name: Check Rust formatting
         run: cargo fmt --manifest-path tools/grid-asset-recovery-validator/Cargo.toml --all -- --check
 
+      - name: Resolve and freeze the pinned dependency graph for this run
+        run: cargo generate-lockfile --manifest-path tools/grid-asset-recovery-validator/Cargo.toml
+
       - name: Run strict Clippy
         run: cargo clippy --locked --manifest-path tools/grid-asset-recovery-validator/Cargo.toml --all-targets -- -D warnings
 
