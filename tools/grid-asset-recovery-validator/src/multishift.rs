@@ -1598,6 +1598,57 @@ mod tests {
     }
 
     #[test]
+    fn paused_commitment_resumes_only_with_authorized_versioned_event() {
+        let mut case = fixture();
+        case.as_of_hour = 10.0;
+        case.events.push(ExecutionEvent {
+            event_id: "resume-progress".to_string(),
+            idempotency_key: "resume-progress-key".to_string(),
+            event_type: ExecutionEventType::ProgressSnapshot,
+            event_id_ref: "storm-001".to_string(),
+            task_id: "repair-pump".to_string(),
+            segment_id: "repair-pump-resumed".to_string(),
+            sequence: 1,
+            start_hour: 4.0,
+            end_hour: 10.0,
+            productive_effort_hours: 2.0,
+            effective_hour: 10.0,
+            observed_hour: 10.0,
+            evidence_status: EvidenceStatus::Current,
+            evidence_class: EvidenceClass::SyntheticFixture,
+            evidence_ref: "synthetic://progress/repair-pump/resumed".to_string(),
+            interruption_cause: None,
+        });
+
+        case.baseline_commitments[0].state = CommitmentState::Paused;
+        case.baseline_commitments[0].version = 1;
+        case.baseline_commitments[0].active_segment_id = None;
+        case.proposed_commitments[0].state = CommitmentState::InProgress;
+        case.proposed_commitments[0].version = 2;
+        case.proposed_commitments[0].active_segment_id = Some("repair-pump-resumed".to_string());
+        case.proposed_commitments[0].frozen_event_ids.push("resume-progress".to_string());
+
+        case.planned_segments.clear();
+        case.reconciliations.push(ReconciliationEvent {
+            event_id: "reconcile-resume-001".to_string(),
+            commitment_id: "commit-repair-pump".to_string(),
+            from_version: 1,
+            to_version: 2,
+            action: ReconciliationAction::ResumeAuthorized,
+            observed_hour: 10.0,
+            evidence_status: EvidenceStatus::Current,
+            authority_ref: "synthetic://authority/asset-owner".to_string(),
+            evidence_ref: "synthetic://reconciliation/resume-001".to_string(),
+        });
+
+        let report = validate(&case).expect("authorized resume is reconciled");
+        let repair = report.tasks.iter().find(|x| x.task_id == "repair-pump").unwrap();
+        assert_eq!(repair.commitment_state, "in_progress");
+        assert_eq!(repair.observed_effort_hours, 6.0);
+        assert_eq!(repair.remaining_effort_hours, 2.0);
+    }
+
+    #[test]
     fn appended_progress_snapshot_without_reconciliation_is_rejected() {
         let mut case = fixture();
         case.events.push(ExecutionEvent {
