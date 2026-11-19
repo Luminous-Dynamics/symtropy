@@ -194,7 +194,7 @@ fn dependency_reaches_stage(
     )
 }
 
-fn validate(case: &Case) -> Vec<String> {
+fn validate(case: &Case, policy: SchedulePolicy) -> Vec<String> {
     let mut errors = Vec::new();
 
     if case.schema_version != "0.1.0" {
@@ -526,7 +526,7 @@ fn validate(case: &Case) -> Vec<String> {
         }
     }
 
-    match schedule(&schedule_tasks, &capacities) {
+    match schedule_with_policy(&schedule_tasks, &capacities, policy) {
         Ok(scheduled) => {
             for event in &case.events {
                 let completion = scheduled
@@ -767,7 +767,7 @@ fn run_with_policy(
 ) -> Result<(Case, Vec<ScheduledTask>), Vec<String>> {
     let case: Case =
         serde_json::from_str(input).map_err(|error| vec![format!("JSON decode error: {error}")])?;
-    let errors = validate(&case);
+    let errors = validate(&case, policy);
     if !errors.is_empty() {
         return Err(errors);
     }
@@ -932,7 +932,7 @@ mod tests {
 
     fn check(value: &Value) -> Vec<String> {
         let case: Case = serde_json::from_value(value.clone()).expect("typed fixture");
-        validate(&case)
+        validate(&case, SchedulePolicy::EarliestFeasibleStart)
     }
 
     #[test]
