@@ -1,16 +1,16 @@
 # plasma-dataset-admission
 
-Standalone, offline Rust auditor for plasma research dataset provenance, rights-review status and byte integrity.
+Standalone, offline Rust auditor for plasma research dataset provenance, rights-review status and byte integrity. The source manifest records upstream metadata only; the CLI reads actual staged bytes from an optional local directory and recomputes their SHA-256 itself.
 
 This tool intentionally does not download files, interpret license terms automatically, or redistribute data. It consumes a version-pinned JSON manifest and reports what remains blocked.
 
 ## Run
 
     cargo test --locked --manifest-path crates/tools/plasma-dataset-admission/Cargo.toml
-    cargo run --locked --manifest-path crates/tools/plasma-dataset-admission/Cargo.toml -- benchmarks/plasma/dataset-admission-pnas-2025-v0.json
+    cargo run --locked --manifest-path crates/tools/plasma-dataset-admission/Cargo.toml -- benchmarks/plasma/dataset-admission-pnas-2025-v0.json [artifact-directory]
     cargo clippy --locked --manifest-path crates/tools/plasma-dataset-admission/Cargo.toml --all-targets -- -D warnings
 
-A syntactically valid manifest may correctly produce BLOCKED_PENDING_EVIDENCE. The CLI exits successfully when the audit runs; it does not turn a blocked source into an admitted dataset.
+A syntactically valid manifest may correctly produce BLOCKED_PENDING_EVIDENCE. When an artifact directory is supplied, the CLI reads only declared regular files from that directory, refuses symlinks/path traversal, and recomputes each file's size and SHA-256. Without a directory, all artifacts are treated as not locally acquired. The CLI exits successfully when the audit runs; it does not turn a blocked source into an admitted dataset.
 
 ## Admission semantics
 
@@ -19,7 +19,7 @@ A syntactically valid manifest may correctly produce BLOCKED_PENDING_EVIDENCE. T
 - BLOCKED_PENDING_EVIDENCE covers unknown rights, incomplete acquisition and duplicate source-reported MD5 values across different artifact IDs.
 - REJECTED covers malformed identity, invalid digest syntax, inconsistent local observations, exact size mismatch and source SHA-256 mismatch.
 
-A repeated upstream MD5 is a quarantine signal, not proof that two files are byte-identical. Local SHA-256 identifies staged bytes but does not authenticate them against a source release when the source did not publish SHA-256. Therefore v0.1 requires a source-published SHA-256 match before admitting data for evaluation; a local-only digest is insufficient.
+A repeated upstream MD5 is a quarantine signal, not proof that two files are byte-identical. Actual local bytes are supplied to the library or read from the artifact directory; a hash value written into the manifest is never trusted. Local SHA-256 identifies staged bytes but does not authenticate them against a source release when the source did not publish SHA-256. Therefore v0.1 requires a source-published SHA-256 match before admitting data for evaluation; a local-only digest is insufficient.
 
 ## Current frozen fixture
 
