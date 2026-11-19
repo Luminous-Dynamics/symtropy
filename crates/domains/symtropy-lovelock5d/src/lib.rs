@@ -10,7 +10,10 @@
 
 #![forbid(unsafe_code)]
 
+pub mod interval;
 pub mod reduced_action;
+
+pub use interval::{AngularQuadratureEnclosure5D, Interval, IntervalError, certify_angular_quadrature};
 
 use core::fmt;
 
@@ -632,6 +635,33 @@ impl BoulwareDeser5D {
         }
     }
 
+    /// Outward-rounded enclosure of the exact angular-flux bracket on
+    /// the static Boulware-Deser background:
+    ///
+    ///   K(r)=r^2-alpha*(F(r)-1)
+    ///       =r^2*sqrt(1+alpha*(alpha+2*r_H^2)/r^4).
+    ///
+    /// For alpha>=0 this is strictly positive and K(r)>=r^2. This proof is
+    /// specific to the static/linear-spin reference family, not arbitrary
+    /// nonlinear rotating candidate profiles.
+    pub fn angular_flux_bracket_enclosure(
+        self,
+        radius: Interval,
+    ) -> Result<Interval, IntervalError> {
+        radius.require_strictly_positive()?;
+        let alpha = Interval::point(self.alpha)?;
+        let horizon = Interval::point(self.horizon_radius)?;
+        let two = Interval::point(2.0)?;
+        let amplitude = alpha.add(two.mul(horizon.square_positive()?)?)?;
+        let radius_sq = radius.square_positive()?;
+        let radius_fourth = radius_sq.mul(radius_sq)?;
+        let radicand = Interval::one().add(
+            alpha.mul(amplitude)?.div(radius_fourth)?,
+        )?;
+        let positive_factor = radicand.sqrt()?;
+        radius_sq.mul(positive_factor)
+    }
+
     /// Return the lapse, its first two radial derivatives, and the 5D
     /// Gauss-Bonnet scalar for the static spherical Einstein branch.
     ///
@@ -1074,6 +1104,29 @@ mod tests {
         close(far, asymptotic, 2e-5);
     }
 
+
+    #[test]
+    fn boulware_deser_angular_bracket_has_full_patch_positive_enclosure() {
+        let bd = BoulwareDeser5D::new(1.0, 0.7).unwrap();
+        let patch = Interval::new(1.0, 20.0).unwrap();
+        let bracket = bd.angular_flux_bracket_enclosure(patch).unwrap();
+        assert!(bracket.strictly_positive());
+        for radius in [1.0, 1.1, 1.5, 2.0, 5.0, 10.0, 20.0] {
+            let exact = radius.powi(2)
+                * (1.0 + 0.7 * 2.7 / radius.powi(4)).sqrt();
+            assert!(bracket.contains(exact));
+        }
+    }
+
+    #[test]
+    fn boulware_deser_bracket_rejects_patch_touching_zero_radius() {
+        let bd = BoulwareDeser5D::new(1.0, 0.7).unwrap();
+        let patch = Interval::new(0.0, 2.0).unwrap();
+        assert_eq!(
+            bd.angular_flux_bracket_enclosure(patch),
+            Err(IntervalError::IntervalNotStrictlyPositive)
+        );
+    }
 
     #[test]
     fn slow_rotation_bd_flux_is_exactly_constant_at_finite_alpha() {
