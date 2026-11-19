@@ -21,6 +21,7 @@
 //! - fault scenarios are deterministic sets, not invented probabilities;
 //! - a passing plan is not a booking, permit, launch authorization or safety case.
 
+use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
 
 /// Schema version for the first Earth-to-orbit chain contract.
@@ -151,7 +152,8 @@ pub struct CampaignV1 {
 }
 
 /// Stable finding identifiers; consumers should branch on these values, not prose.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum FindingCode {
     InvalidIdentifier,
     DuplicateIdentifier,
@@ -185,14 +187,15 @@ pub enum FindingCode {
 }
 
 /// One deterministic validation finding.
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct Finding {
     pub code: FindingCode,
     pub subject_id: String,
 }
 
 /// Result class; evidence gaps are not represented as feasible or infeasible.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum CampaignDisposition {
     Ready,
     NeedsEvidence,
@@ -200,7 +203,7 @@ pub enum CampaignDisposition {
 }
 
 /// Result for one deterministic failure-domain set.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct FaultOutcomeV1 {
     pub scenario_id: String,
     pub delivered_mass_grams: u64,
@@ -209,7 +212,8 @@ pub struct FaultOutcomeV1 {
 }
 
 /// Per-payload delivery record for downstream service composition.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum CargoDeliveryStatus {
     /// The whole campaign passed all required transport and orbit gates.
     Accepted,
@@ -218,7 +222,7 @@ pub enum CargoDeliveryStatus {
 }
 
 /// Identity-bound payload delivery result; does not authorize spacecraft operations.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct CargoDeliveryV1 {
     pub cargo_lot_id: String,
     pub cargo_mass_grams: u64,
@@ -230,7 +234,7 @@ pub struct CargoDeliveryV1 {
 }
 
 /// Independent accounting and admission report.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct CampaignReportV1 {
     pub schema_version: &'static str,
     pub disposition: CampaignDisposition,
@@ -880,6 +884,19 @@ mod tests {
         assert_eq!(delivery.terminal_node_id.as_deref(), Some("orbit"));
         assert_eq!(delivery.arrival_epoch_seconds, Some(50));
         assert_eq!(delivery.status, CargoDeliveryStatus::Accepted);
+    }
+
+    #[test]
+    fn campaign_report_serializes_payload_delivery_identity_and_acceptance() {
+        let report = evaluate_campaign(&baseline());
+        let json = serde_json::to_value(&report).expect("report should serialize");
+        let delivery = &json["cargo_deliveries"][0];
+        assert_eq!(delivery["cargo_lot_id"], "payload-1");
+        assert_eq!(delivery["target_orbit_id"], "leo-550km");
+        assert_eq!(delivery["destination_node_id"], "orbit");
+        assert_eq!(delivery["terminal_node_id"], "orbit");
+        assert_eq!(delivery["arrival_epoch_seconds"], 50);
+        assert_eq!(delivery["status"], "accepted");
     }
 
     #[test]
