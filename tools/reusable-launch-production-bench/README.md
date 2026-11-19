@@ -38,3 +38,10 @@ The nested Cargo manifest has its own `[workspace]` declaration so the reference
 All fixture quantities are synthetic. A passing receipt establishes only that this implementation satisfied its declared deterministic software contract for the exact input fixture. It does not establish real manufacturing yield, turnaround, launch cost, recovery probability, mission success, propulsion performance, structural integrity, environmental performance, commercial viability, or flight qualification.
 
 Do not compare the synthetic cost-per-kilogram output with an industry price. The v0.1 fixture exists to test accounting and event semantics, not to estimate a real launch service.
+
+
+## Reflight semantics
+
+The v0.1 fixture now includes a second flight of the same serialized stage. A reflight is counted only when a stage with a prior recovered flight transitions from Ready to Flown again. Turnaround is measured from the prior Recovered event to that next Flown event—not from launch to requalification, and not from a first recovery that has not yet led to another flight.
+
+The frozen fixture has 3 assets, 30 state events, 4 flight attempts, 5 maintenance tasks, 1 same-stage reflight, and a one-tick wait in the single-slot inspection queue. All values are synthetic. The independent reference receipt's cost-per-accepted-kg field is an integer-scaled fixture metric, not a real launch price.
