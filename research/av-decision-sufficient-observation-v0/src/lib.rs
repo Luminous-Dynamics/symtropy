@@ -633,9 +633,11 @@ pub fn audit_fixtures(agent: &Value, oracle: &Value, expected: &Value) -> Result
     let robust_stop = &agent_episodes[1];
     let (ids, priors, decisions, losses) = parse_decision_problem(robust_stop)?;
     let mut per_hypothesis_actions = Vec::with_capacity(ids.len());
-    for (index, _) in ids.iter().enumerate() {
-        let mut point_prior = vec![0.0; ids.len()];
-        point_prior[index] = 1.0;
+    for hypothesis_id in &ids {
+        let point_prior: Vec<f64> = ids
+            .iter()
+            .map(|candidate_id| f64::from(candidate_id == hypothesis_id))
+            .collect();
         per_hypothesis_actions.push(best_decision(&point_prior, &losses, &decisions)?.0);
     }
     if per_hypothesis_actions.iter().collect::<BTreeSet<_>>().len() != 1 {
