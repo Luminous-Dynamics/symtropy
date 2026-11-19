@@ -505,7 +505,7 @@ pub fn evaluate_trigger(
 
     let current_hard: BTreeSet<String> = hard_reasons.iter().cloned().collect();
     let previous_hard: BTreeSet<String> =
-        previous_state.active_hard_reasons.iter().cloned().collect();
+        next_state.active_hard_reasons.iter().cloned().collect();
     let new_hard: Vec<String> = current_hard
         .difference(&previous_hard)
         .cloned()
