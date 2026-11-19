@@ -1123,7 +1123,7 @@
             "start_margin_days": 4,
             "authorized_emptying_days": 0,
             "generated_days": 0.5,
-            "end_margin_days": 3.4,
+            "end_margin_days": 3.5,
             "tolerance_days": 0.001,
             "service_authority_ref": "NO_EMPTYING",
             "service_evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
@@ -1155,10 +1155,10 @@
             "replenishment_evidence_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
           },
           "waste": {
-            "start_margin_days": 3.4,
+            "start_margin_days": 3.5,
             "authorized_emptying_days": 0,
             "generated_days": 0.5,
-            "end_margin_days": 2.8,
+            "end_margin_days": 3,
             "tolerance_days": 0.001,
             "service_authority_ref": "NO_EMPTYING",
             "service_evidence_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
