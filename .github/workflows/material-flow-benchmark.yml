@@ -65,7 +65,13 @@ jobs:
           grep -q '"dispatch_commands_emitted": false' mfb-l1-evidence/shared-aircraft-report.json
           grep -q '"unauthorized_aerial_dispatches": 0' mfb-l1-evidence/shared-aircraft-report.json
           grep -q '"protected_reserve_violations": 0' mfb-l1-evidence/shared-aircraft-report.json
-          grep -q '"expected_aerial_deliveries": 0' mfb-l1-evidence/shared-aircraft-report.json
+          jq -e '
+            .optimized_policy.expected_total_cost_units == 1511
+            and .fixed_initial_region_baseline.expected_total_cost_units == 1576
+            and .truck_only_baseline.expected_total_cost_units == 1980
+            and .optimized_policy.expected_aerial_deliveries == 4
+            and .truck_only_baseline.expected_aerial_deliveries == 0
+          ' mfb-l1-evidence/shared-aircraft-report.json
           cat mfb-l1-evidence/shared-aircraft-report.json
       - name: Validate synthetic 3D cargo-bay loading
         run: |
