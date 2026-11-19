@@ -337,3 +337,20 @@ These figures are deliberately synthetic. The 12-hour repair blocks are task seg
 This second archetype is important because the model should not assume transformer-style recovery applies to cable systems. Later corpus families should add overhead-line tower/conductor failures, HVDC converter valves/transformers, GIS/circuit breakers and remote island/mine corridors.
 
 The validator CI now schema-checks both transformer-fleet and submarine-cable fixtures, runs the same Rust semantic tests over both and invokes the CLI on both cases.
+
+
+## 16. Integration boundaries: service cascades and deep uncertainty
+
+The recovery engine owns **asset-level restoration execution**: equipment compatibility, spares, task dependencies, renewable resources, work calendars, logistics and return-to-service timing.
+
+It should feed, not duplicate:
+- [CIVDYN-CASCADE-001 #3894](https://github.com/Luminous-Dynamics/symtropy/issues/3894): propagate asset outage/restoration trajectories through electricity, water, telecom, transport, healthcare and other interdependent services; preserve dependency logic, degraded service and whole-event consequences.
+- [PROTECT-ROBUST-001 #5317](https://github.com/Luminous-Dynamics/symtropy/issues/5317): evaluate nonstationary/compound hazards, uncertainty sets, tail risk, common-cause failures and robust service floors.
+- [POWER-SYSTEM-RESILIENCE-001 #3418](https://github.com/Luminous-Dynamics/symtropy/issues/3418): retain grid-forming, islanding, black-start, protection and switching/operational qualification authority.
+- [GRID-ENHANCEMENT-FIRM-CAPACITY-001 #6080](https://github.com/Luminous-Dynamics/symtropy/issues/6080): consume firm shortfall and bottleneck/alternative transfer boundaries.
+- [GRID-TRANSMISSION-PORTFOLIO-001 #6067](https://github.com/Luminous-Dynamics/symtropy/issues/6067): consume corridor technology and route-specific asset configuration.
+
+The cross-system chain should be:
+**hazard/event scenario → asset failure set → recovery schedule and resource contention → asset service-return trajectories → dependent-service cascade → customer/ecosystem consequence → independent replay and risk review.**
+
+Keep physical energy/resource ledgers with their existing owners. This recovery tool emits time and service-availability evidence; it does not claim to simulate load flow, frequency stability, water balances or downstream service dependence.
