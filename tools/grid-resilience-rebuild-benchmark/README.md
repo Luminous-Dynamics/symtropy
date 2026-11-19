@@ -36,7 +36,7 @@ A quick temporary restoration is not automatically the final asset design. Conve
 
 ## Scenario and cost provenance
 
-The hazard manifest is a synthetic deterministic scenario set with no assigned probabilities. Do not convert its three enumerated scenarios into a probability distribution or p95/CVaR claim. Capital options bind:
+The hazard manifest is a synthetic deterministic scenario set with no assigned probabilities; both it and a separate shared-resource/supplier-capacity snapshot are independently SHA-256-pinned and checked in CI. Supplier capacity marked `proposed_only` or `unknown` is not available capacity. Do not convert its three enumerated scenarios into a probability distribution or p95/CVaR claim. Capital options bind:
 - currency and price-base year;
 - lifecycle horizon and discounting convention reference;
 - incremental cost evidence reference;
