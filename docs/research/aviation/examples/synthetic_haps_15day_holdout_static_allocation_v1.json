@@ -465,7 +465,8 @@
         ],
         "critical_excess_offered_mbps": 31,
         "critical_excess_served_mbps": 13,
-        "critical_excess_unserved_mbps": 18
+        "critical_excess_unserved_mbps": 18,
+        "source_offset_s": 1296000
       },
       {
         "offset_s": 86400,
@@ -475,7 +476,8 @@
         ],
         "critical_excess_offered_mbps": 26,
         "critical_excess_served_mbps": 20,
-        "critical_excess_unserved_mbps": 6
+        "critical_excess_unserved_mbps": 6,
+        "source_offset_s": 1382400
       },
       {
         "offset_s": 172800,
@@ -485,7 +487,8 @@
         ],
         "critical_excess_offered_mbps": 51,
         "critical_excess_served_mbps": 20,
-        "critical_excess_unserved_mbps": 31
+        "critical_excess_unserved_mbps": 31,
+        "source_offset_s": 1468800
       },
       {
         "offset_s": 259200,
@@ -495,7 +498,8 @@
         ],
         "critical_excess_offered_mbps": 16,
         "critical_excess_served_mbps": 13,
-        "critical_excess_unserved_mbps": 3
+        "critical_excess_unserved_mbps": 3,
+        "source_offset_s": 1555200
       },
       {
         "offset_s": 345600,
@@ -505,7 +509,8 @@
         ],
         "critical_excess_offered_mbps": 41,
         "critical_excess_served_mbps": 18,
-        "critical_excess_unserved_mbps": 23
+        "critical_excess_unserved_mbps": 23,
+        "source_offset_s": 1641600
       },
       {
         "offset_s": 432000,
@@ -515,7 +520,8 @@
         ],
         "critical_excess_offered_mbps": 20,
         "critical_excess_served_mbps": 10,
-        "critical_excess_unserved_mbps": 10
+        "critical_excess_unserved_mbps": 10,
+        "source_offset_s": 1728000
       },
       {
         "offset_s": 518400,
@@ -525,7 +531,8 @@
         ],
         "critical_excess_offered_mbps": 53,
         "critical_excess_served_mbps": 19,
-        "critical_excess_unserved_mbps": 34
+        "critical_excess_unserved_mbps": 34,
+        "source_offset_s": 1814400
       },
       {
         "offset_s": 604800,
@@ -535,7 +542,8 @@
         ],
         "critical_excess_offered_mbps": 26,
         "critical_excess_served_mbps": 17,
-        "critical_excess_unserved_mbps": 9
+        "critical_excess_unserved_mbps": 9,
+        "source_offset_s": 1900800
       },
       {
         "offset_s": 691200,
@@ -545,7 +553,8 @@
         ],
         "critical_excess_offered_mbps": 32,
         "critical_excess_served_mbps": 10,
-        "critical_excess_unserved_mbps": 22
+        "critical_excess_unserved_mbps": 22,
+        "source_offset_s": 1987200
       },
       {
         "offset_s": 777600,
@@ -555,7 +564,8 @@
         ],
         "critical_excess_offered_mbps": 38,
         "critical_excess_served_mbps": 20,
-        "critical_excess_unserved_mbps": 18
+        "critical_excess_unserved_mbps": 18,
+        "source_offset_s": 2073600
       },
       {
         "offset_s": 864000,
@@ -565,7 +575,8 @@
         ],
         "critical_excess_offered_mbps": 47,
         "critical_excess_served_mbps": 20,
-        "critical_excess_unserved_mbps": 27
+        "critical_excess_unserved_mbps": 27,
+        "source_offset_s": 2160000
       },
       {
         "offset_s": 950400,
@@ -575,7 +586,8 @@
         ],
         "critical_excess_offered_mbps": 18,
         "critical_excess_served_mbps": 9,
-        "critical_excess_unserved_mbps": 9
+        "critical_excess_unserved_mbps": 9,
+        "source_offset_s": 2246400
       },
       {
         "offset_s": 1036800,
@@ -585,7 +597,8 @@
         ],
         "critical_excess_offered_mbps": 37,
         "critical_excess_served_mbps": 20,
-        "critical_excess_unserved_mbps": 17
+        "critical_excess_unserved_mbps": 17,
+        "source_offset_s": 2332800
       },
       {
         "offset_s": 1123200,
@@ -595,7 +608,8 @@
         ],
         "critical_excess_offered_mbps": 48,
         "critical_excess_served_mbps": 20,
-        "critical_excess_unserved_mbps": 28
+        "critical_excess_unserved_mbps": 28,
+        "source_offset_s": 2419200
       },
       {
         "offset_s": 1209600,
@@ -605,7 +619,8 @@
         ],
         "critical_excess_offered_mbps": 19,
         "critical_excess_served_mbps": 5,
-        "critical_excess_unserved_mbps": 14
+        "critical_excess_unserved_mbps": 14,
+        "source_offset_s": 2505600
       }
     ],
     "total_critical_excess_offered_mbps_intervals": 503,
