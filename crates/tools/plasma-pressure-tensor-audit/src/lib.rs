@@ -1176,6 +1176,24 @@ mod tests {
     }
 
     #[test]
+    fn frozen_reference_prediction_fixtures_report_off_diagonal_divergence_error() {
+        let reference_json =
+            include_str!("../../../../benchmarks/plasma/pressure-grid-reference-v0.json");
+        let predicted_json =
+            include_str!("../../../../benchmarks/plasma/pressure-grid-predicted-v0.json");
+        let reference: PressureGridRequest =
+            serde_json::from_str(reference_json).expect("reference fixture parses");
+        let predicted: PressureGridRequest =
+            serde_json::from_str(predicted_json).expect("predicted fixture parses");
+        let report = compare_periodic_pressure_divergence(&reference, &predicted)
+            .expect("matched operator comparison");
+        assert!(report.body.both_fields_admissible);
+        assert!(report.body.component_errors[0].rmse > 0.0);
+        assert!(report.body.component_errors[1].rmse > 0.0);
+        assert!(report.body.component_errors[2].rmse.abs() < 1.0e-12);
+    }
+
+    #[test]
     fn pressure_divergence_comparison_is_operator_level() {
         let reference = grid_request(&[0.0, 2.0, 4.0, 2.0, 0.0, 2.0, 4.0, 2.0]);
         let mut predicted = reference.clone();
