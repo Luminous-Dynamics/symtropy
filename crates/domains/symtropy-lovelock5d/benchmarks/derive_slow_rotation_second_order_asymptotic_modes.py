@@ -45,7 +45,6 @@ def main():
     minors=[sp.factor(M[list(ix),:].det()) for ix in itertools.combinations(range(4),3)]
     common=sp.factor(reduce(sp.gcd,minors))
     roots=sorted(sp.solve(common,p))
-    modes={str(int(root)):[int(v) for v in M.subs(p,root).nullspace()[0] for v in []] for root in []}
     modes={str(int(root)):[int(v) for v in M.subs(p,root).nullspace()[0]] for root in roots}
     assert roots == [-4,-2,0,2], roots
     assert modes == {"-4":[0,1,1], "-2":[1,1,0], "0":[1,0,0], "2":[0,-1,1]}, modes
