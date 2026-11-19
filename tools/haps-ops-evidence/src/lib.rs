@@ -11,7 +11,6 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-const TIME_TOLERANCE_S: i64 = 0;
 const SECONDS_PER_DAY: i64 = 86_400;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -250,7 +249,7 @@ fn parse_utc_seconds(value: &str, label: &str) -> Result<i64, LedgerError> {
     }
 
     // Howard Hinnant's civil-date conversion to days since 1970-01-01.
-    let y = year - i64::from(month <= 2);
+    let y = year - if month <= 2 { 1 } else { 0 };
     let era = if y >= 0 { y } else { y - 399 } / 400;
     let year_of_era = y - era * 400;
     let adjusted_month = month + if month > 2 { -3 } else { 9 };
@@ -389,9 +388,9 @@ fn validate_ledger(ledger: &OpsEvidenceLedger) -> Result<(), LedgerError> {
                 event.event_id
             )));
         }
-        if !valid_state(&event.from_state) || !valid_state(&event.to_state) || !valid_transition(event) {
+        if !valid_state(&event.from_state) || !valid_state(&event.to_state) {
             return Err(LedgerError::InvalidEvent(format!(
-                "event {} has an invalid lifecycle transition",
+                "event {} has an unknown lifecycle state",
                 event.event_id
             )));
         }
@@ -400,6 +399,12 @@ fn validate_ledger(ledger: &OpsEvidenceLedger) -> Result<(), LedgerError> {
             return Err(LedgerError::InvalidEvent(format!(
                 "event {} starts in {}, but current asset state is {}",
                 event.event_id, event.from_state, current_state
+            )));
+        }
+        if !valid_transition(event) {
+            return Err(LedgerError::InvalidEvent(format!(
+                "event {} has an invalid lifecycle transition",
+                event.event_id
             )));
         }
         if !event.clock_uncertainty_s.is_finite() || event.clock_uncertainty_s < 0.0 {
@@ -444,9 +449,12 @@ fn validate_ledger(ledger: &OpsEvidenceLedger) -> Result<(), LedgerError> {
         }
         match event.onset_knowledge.as_str() {
             "known" => {
-                if event.onset_interval_earliest_utc.is_some() || event.onset_interval_latest_utc.is_some() {
+                if event.occurred_at_utc.is_none()
+                    || event.onset_interval_earliest_utc.is_some()
+                    || event.onset_interval_latest_utc.is_some()
+                {
                     return Err(LedgerError::InvalidEvent(
-                        "known onset must not also specify censoring bounds".to_owned(),
+                        "known onset requires occurred_at_utc and must not carry censoring bounds".to_owned(),
                     ));
                 }
             }
@@ -698,7 +706,7 @@ mod tests {
         value["events"][5]["from_state"] = Value::String("grounded".to_owned());
         let bytes = serde_json::to_vec(&value).expect("serialize");
         let error = validate_ledger_json(&bytes).expect_err("state mismatch must fail");
-        assert!(error.to_string().contains("from_state"));
+        assert!(error.to_string().contains("current asset state"));
     }
 
     #[test]
