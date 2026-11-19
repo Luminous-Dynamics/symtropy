@@ -1,0 +1,186 @@
+{
+  "schemaVersion": "0.1.0",
+  "snapshotDate": "2026-11-19",
+  "records": [
+    {
+      "recordId": "CARM-PLUS-CA-RCPSP-2026",
+      "title": "An expert-informed multi-scale calendar-aware RCPSP dataset",
+      "category": "calendar_aware_rcpsp",
+      "reportedScale": "12 instances; tiny 5–8 tasks, small 25–40, medium 120–180, large 500–1,000",
+      "features": [
+        "DAG task precedence",
+        "heterogeneous skilled workers and machines",
+        "recurring work shifts",
+        "lunch breaks",
+        "statutory holidays",
+        "2–4 disruption scenarios per instance",
+        "fixed random seeds",
+        "descriptive Max-Plus, OR-Tools CP-SAT and Gurobi MIP baselines"
+      ],
+      "licenseStatus": "explicitly_open",
+      "license": "CC BY 4.0",
+      "importStatus": "metadata_registered_not_imported",
+      "primarySource": "https://doi.org/10.1016/j.dib.2026.113256",
+      "secondarySource": "https://github.com/aftab-fr/carm-plus-dataset",
+      "relevance": "Closest public generic analogue to our shift calendars and disruption overlays; use first for format/feature gap audit and matched solver comparison.",
+      "limitations": "Industrial manufacturing context, not transmission restoration. Its small set of 12 instances is a feature demonstration, not a large statistical test suite. The published solver baselines are described as descriptive."
+    },
+    {
+      "recordId": "PSPLIB-RCPSP",
+      "title": "Project Scheduling Problem Library",
+      "category": "classic_rcpsp",
+      "reportedScale": "2,040 classic single-mode RCPSP instances reported by the University of Ghent catalogue",
+      "features": [
+        "DAG task precedence",
+        "renewable resource constraints",
+        "classic makespan objective",
+        "widely used algorithmic baseline"
+      ],
+      "licenseStatus": "license_not_verified",
+      "license": null,
+      "importStatus": "metadata_registered_not_imported",
+      "primarySource": "https://www.projectmanagement.ugent.be/research/data",
+      "secondarySource": "https://www.projectmanagement.ugent.be/research/project_scheduling/rcpsp",
+      "relevance": "Historical baseline for schedule feasibility and makespan solver quality; helps check conventional RCPSP behaviour.",
+      "limitations": "Calendar, skill, disruption and grid-asset semantics are not represented in the classical formulation; a win here would not establish better grid restoration."
+    },
+    {
+      "recordId": "RCPLIB-UGENT",
+      "title": "RCPLIB and associated single-mode RCPSP families",
+      "category": "classic_rcpsp",
+      "reportedScale": "University catalogue lists more than 30,000 generated/supplied instances across RCPSP families, with some generators able to produce almost four million projects",
+      "features": [
+        "multiple network generators",
+        "hard exact-solver sets",
+        "hard heuristic sets",
+        "large-scale generated project/resource data"
+      ],
+      "licenseStatus": "license_not_verified",
+      "license": null,
+      "importStatus": "metadata_registered_not_imported",
+      "primarySource": "https://www.projectmanagement.ugent.be/research/data",
+      "secondarySource": "https://github.com",
+      "relevance": "Scale and network-structure stress testing after a compatible parser is implemented.",
+      "limitations": "Do not treat all families as one corpus; record exact sub-dataset and source hash. License and redistribution conditions require review."
+    },
+    {
+      "recordId": "MSLIB-UGENT",
+      "title": "Multi-skilled resource-constrained project scheduling library",
+      "category": "multi_skill_rcpsp",
+      "reportedScale": "32,480 MSLIB instances reported by the University of Ghent catalogue",
+      "features": [
+        "multi-skilled resources",
+        "skill matching",
+        "resource assignment",
+        "known-solution workbook"
+      ],
+      "licenseStatus": "license_not_verified",
+      "license": null,
+      "importStatus": "metadata_registered_not_imported",
+      "primarySource": "https://www.projectmanagement.ugent.be/research/data",
+      "secondarySource": "https://github.com",
+      "relevance": "Tests crew qualification, skill coverage and specialist bottlenecks that generic one-type crew resources cannot represent.",
+      "limitations": "Skills do not automatically equal HV qualification, switching authority, site competence or safety authorisation; map skill ontologies explicitly and do not infer legal competency."
+    },
+    {
+      "recordId": "MMLIB-UGENT",
+      "title": "Multi-mode resource-constrained project scheduling datasets",
+      "category": "multi_mode_rcpsp",
+      "reportedScale": "4,320 MMLIB50, MMLIB100 and MMLIB+ instances reported by the University of Ghent catalogue",
+      "features": [
+        "multiple execution modes per task",
+        "different resource demands by mode",
+        "mode-duration trade-offs"
+      ],
+      "licenseStatus": "license_not_verified",
+      "license": null,
+      "importStatus": "metadata_registered_not_imported",
+      "primarySource": "https://www.projectmanagement.ugent.be/research/data",
+      "secondarySource": "https://github.com",
+      "relevance": "Tests recovery alternatives such as local repair, exchange spare, qualified replacement module or full OEM replacement as different modes.",
+      "limitations": "Our current recovery contract models one selected plan per event; alternate modes and mode-switching are not yet implemented."
+    },
+    {
+      "recordId": "DSLIB-UGENT",
+      "title": "Dynamic scheduling empirical project database",
+      "category": "empirical_project_control",
+      "reportedScale": "More than 180 real project instances reported by the University of Ghent catalogue",
+      "features": [
+        "real project networks",
+        "resource scheduling",
+        "risk analysis",
+        "project control",
+        "dynamic rescheduling"
+      ],
+      "licenseStatus": "access_conditions_review_required",
+      "license": null,
+      "importStatus": "metadata_registered_not_imported",
+      "primarySource": "https://www.projectmanagement.ugent.be/research/data",
+      "secondarySource": "https://www.or-as.be/research/data/",
+      "relevance": "Useful empirical comparator for delay, schedule-risk and reactive replanning methodology.",
+      "limitations": "Not grid asset repair data. Access/privacy/licensing and industrial confidentiality must be reviewed before any import."
+    },
+    {
+      "recordId": "SAT-RCPSP-2026-107308",
+      "title": "Comparing and extending satisfiability solution methods for RCPSP",
+      "category": "solver_method_comparison",
+      "reportedScale": "13,413 project instances in the published experiment; paper reports 393 new lower bounds, 62 new upper bounds and 290 newly solved optimal instances",
+      "features": [
+        "SAT-based scheduling",
+        "minimal forbidden sets and covers",
+        "binary decision trees",
+        "network adders",
+        "lower/upper bound improvement"
+      ],
+      "licenseStatus": "documentation_only",
+      "license": null,
+      "importStatus": "not_a_dataset",
+      "primarySource": "https://doi.org/10.1016/j.cor.2025.107308",
+      "secondarySource": "https://www.projectmanagement.ugent.be/research/data",
+      "relevance": "Important exact/near-exact algorithmic comparator for our bounded scheduler and future CP-SAT/SAT adapter.",
+      "limitations": "Published experiment is a generic RCPSP study; not a field grid-restoration comparison. Benchmark source/version and solver configuration must be pinned before reproduction."
+    },
+    {
+      "recordId": "MSRCPSP-RELIABILITY-2026",
+      "title": "Multi-skilled RCPSP with reliability constraints",
+      "category": "solver_method_comparison",
+      "reportedScale": "Published 2026 multi-objective study; exact methods for small cases and HNSGA-II for larger instances",
+      "features": [
+        "multi-skilled resources",
+        "reliability constraints",
+        "stochastic disruptions",
+        "makespan and cost objectives",
+        "exact AUGMECON2-VIKOR small-case comparison",
+        "HNSGA-II metaheuristic large cases"
+      ],
+      "licenseStatus": "documentation_only",
+      "license": null,
+      "importStatus": "not_a_dataset",
+      "primarySource": "https://doi.org/10.1016/j.cie.2026.112154",
+      "secondarySource": "https://www.sciencedirect.com/science/article/pii/S0360835226003554",
+      "relevance": "Methodological comparator for multi-skilled crew reliability, disruption modelling and multiobjective cost/schedule trade-offs.",
+      "limitations": "A method paper is not a public grid-repair dataset and should not be misreported as an operator benchmark."
+    },
+    {
+      "recordId": "OR-TOOLS-CP-SAT-SCHEDULING",
+      "title": "Google OR-Tools CP-SAT scheduling recipes",
+      "category": "solver_documentation",
+      "reportedScale": "Reference implementation documentation",
+      "features": [
+        "interval variables",
+        "NoOverlap",
+        "cumulative resource constraints",
+        "calendar profiles",
+        "alternative resources",
+        "tasks across breaks"
+      ],
+      "licenseStatus": "documentation_only",
+      "license": null,
+      "importStatus": "not_a_dataset",
+      "primarySource": "https://github.com/google/or-tools/blob/stable/ortools/sat/docs/scheduling.md",
+      "secondarySource": "https://developers.google.com/optimization/scheduling",
+      "relevance": "Candidate baseline formulation for cumulative multi-resource and calendar-constrained scheduling, used only as a benchmark adapter.",
+      "limitations": "A solver API and recipe collection, not an incumbent benchmark dataset. Pin exact OR-Tools version and solver parameters for comparisons."
+    }
+  ]
+}
