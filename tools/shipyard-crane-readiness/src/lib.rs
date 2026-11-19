@@ -1504,7 +1504,7 @@ mod tests {
         let dependencies = ReadinessDependencies::from_plan(&plan);
         let events = [
             ReadinessEventEnvelope {
-                event_id: "event-noop".to_owned(),
+                event_id: "noop-status".to_owned(),
                 source_id: "crane-insp-1".to_owned(),
                 source_sequence: 2,
                 event: ReadinessEvent::EvidenceStatusChanged {
@@ -1513,7 +1513,76 @@ mod tests {
                 },
             },
             ReadinessEventEnvelope {
-                event_id: "event-unrelated".to_owned(),
+                event_id: "noop-digest".to_owned(),
+                source_id: "crane-insp-1".to_owned(),
+                source_sequence: 3,
+                event: ReadinessEvent::EvidenceDigestChanged {
+                    record_id: "crane-insp-1".to_owned(),
+                    new_sha256: "A".repeat(64),
+                },
+            },
+            ReadinessEventEnvelope {
+                event_id: "noop-device".to_owned(),
+                source_id: "load-limiter-1".to_owned(),
+                source_sequence: 3,
+                event: ReadinessEvent::DeviceStateChanged {
+                    device_id: "load-limiter-1".to_owned(),
+                    device_revision: "device-r2".to_owned(),
+                    new_state: DeviceState::Operational,
+                },
+            },
+            ReadinessEventEnvelope {
+                event_id: "noop-subject".to_owned(),
+                source_id: "subject::CraneInspection::gantry-1".to_owned(),
+                source_sequence: 4,
+                event: ReadinessEvent::SubjectRevisionChanged {
+                    evidence_class: EvidenceClass::CraneInspection,
+                    subject_id: "gantry-1".to_owned(),
+                    new_revision: "crane-r4".to_owned(),
+                },
+            },
+            ReadinessEventEnvelope {
+                event_id: "noop-zone".to_owned(),
+                source_id: "exclusion-zone::yard-epoch-7".to_owned(),
+                source_sequence: 2,
+                event: ReadinessEvent::ExclusionZoneStateChanged {
+                    site_epoch_id: "yard-epoch-7".to_owned(),
+                    new_state: ExclusionZoneState::Enforced,
+                },
+            },
+            ReadinessEventEnvelope {
+                event_id: "noop-lift".to_owned(),
+                source_id: "lift-receipt-001".to_owned(),
+                source_sequence: 2,
+                event: ReadinessEvent::LiftPreflightChanged {
+                    receipt_id: "lift-receipt-001".to_owned(),
+                    input_sha256: "b".repeat(64),
+                    report_sha256: "c".repeat(64),
+                    disposition: LiftPreflightDisposition::ReadyForHumanReview,
+                    invalidated: false,
+                },
+            },
+            ReadinessEventEnvelope {
+                event_id: "noop-window".to_owned(),
+                source_id: "operation-window::readiness-001".to_owned(),
+                source_sequence: 2,
+                event: ReadinessEvent::OperationWindowChanged {
+                    readiness_id: "readiness-001".to_owned(),
+                    new_start_tick: 100,
+                    new_end_tick: 200,
+                },
+            },
+            ReadinessEventEnvelope {
+                event_id: "noop-clock".to_owned(),
+                source_id: "clock-domain::readiness-001".to_owned(),
+                source_sequence: 2,
+                event: ReadinessEvent::ClockDomainChanged {
+                    readiness_id: "readiness-001".to_owned(),
+                    new_clock_domain_id: "yard-clock-01".to_owned(),
+                },
+            },
+            ReadinessEventEnvelope {
+                event_id: "unrelated-event".to_owned(),
                 source_id: "unrelated-record".to_owned(),
                 source_sequence: 9,
                 event: ReadinessEvent::EvidenceStatusChanged {
@@ -1635,6 +1704,109 @@ mod tests {
         assert_eq!(report.disposition, ReadinessReplayDisposition::Current);
         assert_eq!(report.duplicate_event_count, 1);
         assert_eq!(report.applied_source_count, 1);
+    }
+
+    #[test]
+    fn changed_evidence_digest_invalidates_readiness() {
+        let dependencies = ReadinessDependencies::from_plan(&baseline());
+        let event = ReadinessEventEnvelope {
+            event_id: "digest-changed".to_owned(),
+            source_id: "crane-insp-1".to_owned(),
+            source_sequence: 10,
+            event: ReadinessEvent::EvidenceDigestChanged {
+                record_id: "crane-insp-1".to_owned(),
+                new_sha256: "d".repeat(64),
+            },
+        };
+        let report = dependencies.replay(&[event]);
+        assert_eq!(report.disposition, ReadinessReplayDisposition::Invalidated);
+        assert_eq!(report.invalidations[0].reason, ReadinessInvalidationReason::EvidenceDigestChanged);
+    }
+
+    #[test]
+    fn source_subject_revision_change_invalidates_readiness() {
+        let dependencies = ReadinessDependencies::from_plan(&baseline());
+        let event = ReadinessEventEnvelope {
+            event_id: "crane-revision".to_owned(),
+            source_id: "subject::CraneInspection::gantry-1".to_owned(),
+            source_sequence: 5,
+            event: ReadinessEvent::SubjectRevisionChanged {
+                evidence_class: EvidenceClass::CraneInspection,
+                subject_id: "gantry-1".to_owned(),
+                new_revision: "crane-r5".to_owned(),
+            },
+        };
+        let report = dependencies.replay(&[event]);
+        assert_eq!(report.disposition, ReadinessReplayDisposition::Invalidated);
+        assert_eq!(report.invalidations[0].reason, ReadinessInvalidationReason::SubjectRevisionChanged);
+    }
+
+    #[test]
+    fn exclusion_zone_state_change_invalidates_readiness() {
+        let dependencies = ReadinessDependencies::from_plan(&baseline());
+        let event = ReadinessEventEnvelope {
+            event_id: "zone-not-enforced".to_owned(),
+            source_id: "exclusion-zone::yard-epoch-7".to_owned(),
+            source_sequence: 2,
+            event: ReadinessEvent::ExclusionZoneStateChanged {
+                site_epoch_id: "yard-epoch-7".to_owned(),
+                new_state: ExclusionZoneState::NotEnforced,
+            },
+        };
+        let report = dependencies.replay(&[event]);
+        assert_eq!(report.disposition, ReadinessReplayDisposition::Invalidated);
+        assert_eq!(report.invalidations[0].reason, ReadinessInvalidationReason::ExclusionZoneStateChanged);
+    }
+
+    #[test]
+    fn changed_lift_preflight_receipt_invalidates_readiness() {
+        let dependencies = ReadinessDependencies::from_plan(&baseline());
+        let event = ReadinessEventEnvelope {
+            event_id: "lift-receipt-replaced".to_owned(),
+            source_id: "lift-receipt-001".to_owned(),
+            source_sequence: 2,
+            event: ReadinessEvent::LiftPreflightChanged {
+                receipt_id: "lift-receipt-001".to_owned(),
+                input_sha256: "d".repeat(64),
+                report_sha256: "e".repeat(64),
+                disposition: LiftPreflightDisposition::ReadyForHumanReview,
+                invalidated: false,
+            },
+        };
+        let report = dependencies.replay(&[event]);
+        assert_eq!(report.disposition, ReadinessReplayDisposition::Invalidated);
+        assert_eq!(report.invalidations[0].reason, ReadinessInvalidationReason::LiftPreflightChanged);
+    }
+
+    #[test]
+    fn operation_window_and_clock_domain_changes_invalidate_readiness() {
+        let dependencies = ReadinessDependencies::from_plan(&baseline());
+        let events = [
+            ReadinessEventEnvelope {
+                event_id: "window-moved".to_owned(),
+                source_id: "operation-window::readiness-001".to_owned(),
+                source_sequence: 2,
+                event: ReadinessEvent::OperationWindowChanged {
+                    readiness_id: "readiness-001".to_owned(),
+                    new_start_tick: 110,
+                    new_end_tick: 210,
+                },
+            },
+            ReadinessEventEnvelope {
+                event_id: "clock-replaced".to_owned(),
+                source_id: "clock-domain::readiness-001".to_owned(),
+                source_sequence: 2,
+                event: ReadinessEvent::ClockDomainChanged {
+                    readiness_id: "readiness-001".to_owned(),
+                    new_clock_domain_id: "yard-clock-02".to_owned(),
+                },
+            },
+        ];
+        let report = dependencies.replay(&events);
+        assert_eq!(report.disposition, ReadinessReplayDisposition::Invalidated);
+        assert_eq!(report.invalidations.len(), 2);
+        assert!(report.invalidations.iter().any(|item| item.reason == ReadinessInvalidationReason::OperationWindowChanged));
+        assert!(report.invalidations.iter().any(|item| item.reason == ReadinessInvalidationReason::ClockDomainChanged));
     }
 
     #[test]
