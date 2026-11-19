@@ -338,7 +338,8 @@
                     "test_result",
                     "operator_log",
                     "synthetic_fixture",
-                    "other_declared"
+                    "other_declared",
+                    "release_authority_record"
                   ]
                 },
                 "content_digest": {
@@ -501,7 +502,9 @@
         "release_status",
         "return_to_service_authorized",
         "release_authority_ref",
-        "release_scope"
+        "release_scope",
+        "authorized_asset_ref",
+        "authorized_configuration_ref"
       ],
       "properties": {
         "release_status": {
@@ -527,8 +530,82 @@
             "specific_configuration_and_scope",
             "unknown"
           ]
+        },
+        "authorized_asset_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "description": "Exact asset returned to service; required when return_to_service_authorized=true."
+        },
+        "authorized_configuration_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "description": "Exact as-built/configuration revision returned to service; required when return_to_service_authorized=true."
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "return_to_service_authorized": {
+                "const": true
+              }
+            },
+            "required": [
+              "return_to_service_authorized"
+            ]
+          },
+          "then": {
+            "properties": {
+              "release_status": {
+                "const": "authorized_by_external_authority"
+              },
+              "release_authority_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "release_scope": {
+                "const": "specific_configuration_and_scope"
+              },
+              "authorized_asset_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "authorized_configuration_ref": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "return_to_service_authorized": {
+                "const": false
+              }
+            },
+            "required": [
+              "return_to_service_authorized"
+            ]
+          },
+          "then": {
+            "properties": {
+              "authorized_asset_ref": {
+                "type": "null"
+              },
+              "authorized_configuration_ref": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
     },
     "source_evidence_refs": {
       "type": "array",
@@ -545,5 +622,5 @@
       "uniqueItems": true
     }
   },
-  "$comment": "Semantic invariants: event IDs unique; event_sequence is contiguous; previous_event_id links to the prior record; each event asset/configuration exists in assets; configuration_ref matches the relevant asset configuration; observed_at_utc and recorded_at_utc are distinct concepts and recorded_at_utc must not precede observed_at_utc unless a declared clock/correction rule applies; occurred_at_utc may be null when true occurrence is unknown; interval-censored onset requires a lower and upper bound and no fabricated point onset; exposure_seconds must equal end-start after declared clock normalization; right-censored exposure has no failure event/bounds and represents a platform observed operating through end_utc without a detected failure; no release_status other than authorized_by_external_authority may set return_to_service_authorized=true; even that state requires a non-null release_authority_ref and explicit scope. Content digests and signatures are not verified by this schema. Synthetic records do not constitute real maintenance, inspection or operational evidence. Event state transitions are validated from each asset's initial_state through the ordered event chain. occurred_at_utc records when the ledger event occurred; it is not a proxy for defect onset. onset_known_at_utc is the exact onset when known; interval-censored onset uses only earliest/latest bounds, with latest no later than observed_at_utc and both bounds inside the observation window. Exposure IDs must be unique. Right-censored exposures require no observed failure and no event-time bounds. Interval-censored exposures require ordered bounds inside the observation window and a detected failure/defect. Left-truncated exposures require risk_entry_utc before start_utc; risk_entry_utc is null for all other censoring statuses."
+  "$comment": "Semantic invariants: event IDs unique; event_sequence is contiguous; previous_event_id links to the prior record; each event asset/configuration exists in assets; configuration_ref matches the relevant asset configuration; observed_at_utc and recorded_at_utc are distinct concepts and recorded_at_utc must not precede observed_at_utc unless a declared clock/correction rule applies; occurred_at_utc may be null when true occurrence is unknown; interval-censored onset requires a lower and upper bound and no fabricated point onset; exposure_seconds must equal end-start after declared clock normalization; right-censored exposure has no failure event/bounds and represents a platform observed operating through end_utc without a detected failure; no release_status other than authorized_by_external_authority may set return_to_service_authorized=true; even that state requires a non-null release_authority_ref and explicit scope. Content digests and signatures are not verified by this schema. Synthetic records do not constitute real maintenance, inspection or operational evidence. Event state transitions are validated from each asset's initial_state through the ordered event chain. occurred_at_utc records when the ledger event occurred; it is not a proxy for defect onset. onset_known_at_utc is the exact onset when known; interval-censored onset uses only earliest/latest bounds, with latest no later than observed_at_utc and both bounds inside the observation window. Exposure IDs must be unique. Right-censored exposures require no observed failure and no event-time bounds. Interval-censored exposures require ordered bounds inside the observation window and a detected failure/defect. Left-truncated exposures require risk_entry_utc before start_utc; risk_entry_utc is null for all other censoring statuses. A return-to-service claim requires the external authority reference, asset_ref and configuration_ref on the boundary to exactly match a return_to_service_authorized event in the same ordered event chain. That event must itself contain release_authority_ref and a source_evidence_refs item with evidence_kind=release_authority_record and evidence_ref equal to that authority reference. The configuration is the active configuration at the release event sequence. When return_to_service_authorized=false, authorized_asset_ref and authorized_configuration_ref must be null."
 }
