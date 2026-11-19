@@ -724,6 +724,9 @@ mod tests {
         actors
             .grant("clock-authority", SiteActorRole::ClockAuthority)
             .unwrap();
+        actors
+            .grant("clock-authority", SiteActorRole::ClockAuthority)
+            .unwrap();
         let mut ledger = SiteStateLedger::with_actor_registry(actors);
         let package = SiteWorkPackage {
             package_sha256: digest('a'),
@@ -1314,4 +1317,165 @@ mod tests {
         // caller's canonical digest/signature must cover every field, and the
         // changed payload must therefore have a different signed byte string.
     }
+
+    #[test]
+    fn clock_authority_epoch_and_mapping_are_independent_readiness_requirements() {
+        let ledger = site_ledger();
+        let mut request = make_request(&ledger);
+        request.qualified_clock.authority_id = "unregistered-clock".into();
+        assert_eq!(
+            check_dispatch_readiness(&ledger, &request, &policy()),
+            Err(DispatchReadinessFailure::ClockAuthorityNotRegistered)
+        );
+
+        request = make_request(&ledger);
+        request.qualified_clock.epoch_sha256 = digest('0');
+        assert_eq!(
+            check_dispatch_readiness(&ledger, &request, &policy()),
+            Err(DispatchReadinessFailure::ClockEpochMismatch)
+        );
+
+        request = make_request(&ledger);
+        request.qualified_clock.mapping_sha256 = digest('0');
+        assert_eq!(
+            check_dispatch_readiness(&ledger, &request, &policy()),
+            Err(DispatchReadinessFailure::ClockMappingMismatch)
+        );
+    }
+
+    #[test]
+    fn excessive_uncertainty_and_holdover_expiry_block_readiness() {
+        let ledger = site_ledger();
+        let request = make_request(&ledger);
+        let mut strict_policy = policy();
+        strict_policy.max_clock_uncertainty_ticks = 0;
+        assert_eq!(
+            check_dispatch_readiness(&ledger, &request, &strict_policy),
+            Err(DispatchReadinessFailure::ClockUncertaintyExceedsPolicy)
+        );
+
+        let mut expired_clock = make_request(&ledger);
+        expired_clock.qualified_clock.current_tick = 130;
+        expired_clock.qualified_clock.valid_until_tick = 130;
+        assert_eq!(
+            check_dispatch_readiness(&ledger, &expired_clock, &policy()),
+            Err(DispatchReadinessFailure::ClockQualificationExpired)
+        );
+
+        let mut straddling_clock = make_request(&ledger);
+        straddling_clock.qualified_clock.current_tick = 129;
+        straddling_clock.qualified_clock.valid_until_tick = 130;
+        assert_eq!(
+            check_dispatch_readiness(&ledger, &straddling_clock, &policy()),
+            Err(DispatchReadinessFailure::ClockUncertaintyStraddlesBoundary)
+        );
+    }
+
+    #[test]
+    fn interval_overflow_and_uncertain_generation_or_occupancy_boundaries_fail_closed() {
+        let ledger = site_ledger();
+        let mut overflow = make_request(&ledger);
+        overflow.qualified_clock.current_tick = 0;
+        assert_eq!(
+            check_dispatch_readiness(&ledger, &overflow, &policy()),
+            Err(DispatchReadinessFailure::ClockIntervalOverflow)
+        );
+
+        let mut generation_boundary = make_request(&ledger);
+        generation_boundary.qualified_clock.current_tick = 100;
+        assert_eq!(
+            check_dispatch_readiness(&ledger, &generation_boundary, &policy()),
+            Err(DispatchReadinessFailure::ClockUncertaintyStraddlesBoundary)
+        );
+
+        let mut occupancy_boundary = make_request(&ledger);
+        occupancy_boundary.occupancy.checked_at_tick = 120;
+        assert_eq!(
+            check_dispatch_readiness(&ledger, &occupancy_boundary, &policy()),
+            Err(DispatchReadinessFailure::ClockUncertaintyStraddlesBoundary)
+        );
+    }
+
+    #[test]
+    fn receipt_consumption_rejects_replayed_reset_or_remapped_clock_samples() {
+        let ledger = site_ledger();
+        let request = make_request(&ledger);
+        let receipt = check_dispatch_readiness(&ledger, &request, &policy()).unwrap();
+
+        let replayed = clock_sample(1, 130);
+        assert_eq!(
+            verify_dispatch_readiness_receipt_current(&ledger, &receipt, &policy(), &replayed),
+            Err(DispatchReadinessFailure::ClockSampleNotFresh)
+        );
+
+        let mut reset = clock_sample(2, 130);
+        reset.epoch_sha256 = digest('0');
+        assert_eq!(
+            verify_dispatch_readiness_receipt_current(&ledger, &receipt, &policy(), &reset),
+            Err(DispatchReadinessFailure::ClockEpochMismatch)
+        );
+
+        let mut remapped = clock_sample(2, 130);
+        remapped.mapping_sha256 = digest('0');
+        assert_eq!(
+            verify_dispatch_readiness_receipt_current(&ledger, &receipt, &policy(), &remapped),
+            Err(DispatchReadinessFailure::ClockMappingMismatch)
+        );
+
+        let mut reused_receipt = clock_sample(2, 130);
+        reused_receipt.receipt_sha256 = receipt.clock_receipt_sha256.clone();
+        assert_eq!(
+            verify_dispatch_readiness_receipt_current(
+                &ledger,
+                &receipt,
+                &policy(),
+                &reused_receipt
+            ),
+            Err(DispatchReadinessFailure::InvalidClockEvidence)
+        );
+    }
+
+    #[test]
+    fn receipt_consumption_rechecks_clock_policy_and_authority() {
+        let ledger = site_ledger();
+        let request = make_request(&ledger);
+        let receipt = check_dispatch_readiness(&ledger, &request, &policy()).unwrap();
+
+        let mut changed_clock_policy = policy();
+        changed_clock_policy.clock_uncertainty_policy_sha256 = digest('0');
+        assert_eq!(
+            verify_dispatch_readiness_receipt_current(
+                &ledger,
+                &receipt,
+                &changed_clock_policy,
+                &clock_sample(2, 130)
+            ),
+            Err(DispatchReadinessFailure::ClockUncertaintyExceedsPolicy)
+        );
+
+        let mut unregistered = clock_sample(2, 130);
+        unregistered.authority_id = "unknown-clock".into();
+        assert_eq!(
+            verify_dispatch_readiness_receipt_current(
+                &ledger,
+                &receipt,
+                &policy(),
+                &unregistered
+            ),
+            Err(DispatchReadinessFailure::ClockAuthorityNotRegistered)
+        );
+
+        let mut too_uncertain = clock_sample(2, 130);
+        too_uncertain.uncertainty_bound_ticks = 3;
+        assert_eq!(
+            verify_dispatch_readiness_receipt_current(
+                &ledger,
+                &receipt,
+                &policy(),
+                &too_uncertain
+            ),
+            Err(DispatchReadinessFailure::ClockUncertaintyExceedsPolicy)
+        );
+    }
+
 }
