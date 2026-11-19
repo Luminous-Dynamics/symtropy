@@ -50,4 +50,35 @@ jobs:
         run: cargo test --locked --manifest-path Cargo.toml --package symtropy-earth-orbit-chain --lib
 
       - name: Run package Clippy with warnings denied
-        run: cargo clippy --locked --manifest-path Cargo.toml --package symtropy-earth-orbit-chain --lib -- -D warnings
+        run: cargo clippy --locked --manifest-path Cargo.toml --package symtropy-earth-orbit-chain --all-targets -- -D warnings
+
+      - name: Generate exact-head payload delivery receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --locked --quiet --manifest-path Cargo.toml --package symtropy-earth-orbit-chain --bin earth-orbit-chain-reference -- \
+            crates/domains/symtropy-earth-orbit-chain/fixtures/v1/nominal.json \
+            --source-commit "$source_commit" > earth-orbit-chain-receipt.json
+          jq -e '
+            .result == "pass"
+            and .report.disposition == "ready"
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.campaign_sha256 | test("^[0-9a-f]{64}$"))
+            and (.report.cargo_deliveries | length == 1)
+            and .report.cargo_deliveries[0].cargo_lot_id == "serviced-client-001"
+            and .report.cargo_deliveries[0].cargo_mass_grams == 1000000
+            and .report.cargo_deliveries[0].target_orbit_id == "leo-550km"
+            and .report.cargo_deliveries[0].destination_node_id == "orbit"
+            and .report.cargo_deliveries[0].terminal_node_id == "orbit"
+            and .report.cargo_deliveries[0].arrival_epoch_seconds == 50
+            and .report.cargo_deliveries[0].status == "accepted"
+          ' earth-orbit-chain-receipt.json
+
+      - name: Retain exact-input receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: earth-orbit-chain-receipt-${{ github.sha }}
+          path: earth-orbit-chain-receipt.json
+          if-no-files-found: error
