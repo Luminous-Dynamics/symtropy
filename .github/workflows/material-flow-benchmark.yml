@@ -38,6 +38,14 @@ jobs:
         run: cargo clippy --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --all-targets -- -D warnings
       - name: Tests
         run: cargo test --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --all-targets
+      - name: Evaluate synthetic demand-adaptive logistics modes
+        run: |
+          mkdir -p mfb-l1-evidence
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-evaluate-mode-options -- tools/material-flow-benchmark/fixtures/synthetic-two-region-mode-options.json > mfb-l1-evidence/mode-options-report.json
+          grep -q '"physical_dispatch_authorized": false' mfb-l1-evidence/mode-options-report.json
+          grep -q '"dispatch_commands_emitted": false' mfb-l1-evidence/mode-options-report.json
+          grep -q '"exact_policy_count_evaluated"' mfb-l1-evidence/mode-options-report.json
+          cat mfb-l1-evidence/mode-options-report.json
       - name: Validate synthetic 3D cargo-bay loading
         run: |
           mkdir -p mfb-l1-evidence
