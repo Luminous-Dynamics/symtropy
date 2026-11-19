@@ -170,7 +170,9 @@ impl ReservoirWellheadCase {
             ("property output digest", p.output_digest.as_str()),
             ("property state boundary ID", p.state_boundary_id.as_str()),
         ] {
-            require_id(name, value)?;
+            if value.trim().is_empty() {
+                return Err(WellheadValidationError::PropertyProvenanceMissing(name));
+            }
         }
         if p.state_boundary_id != self.wellhead.boundary_id {
             return Err(WellheadValidationError::PropertyBoundaryMismatch);
