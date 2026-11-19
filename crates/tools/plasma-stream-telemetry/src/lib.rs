@@ -1173,6 +1173,36 @@ mod tests {
     }
 
     #[test]
+    fn frozen_multiclock_fixture_matches_timing_cadence_and_ack_known_answers() {
+        let input = include_str!("../../../../benchmarks/plasma/stream-telemetry-v0.json");
+        let trace: ReplayRequest = serde_json::from_str(input).expect("fixture parses");
+        let report = replay_trace(&trace).expect("trace replays");
+
+        assert_eq!(report.body.summary.event_count, 2);
+        assert_eq!(report.body.summary.on_time_valid, 1);
+        assert_eq!(report.body.summary.degraded, 1);
+        assert_eq!(report.body.summary.sequence_gaps, 1);
+        assert_eq!(report.body.summary.deadline_misses, 0);
+        assert_eq!(report.body.summary.deadline_miss_rate_ppm, Some(0));
+
+        let first = &report.body.reports[0];
+        assert_eq!(first.metrics.source_to_acquisition_latency_ns, Some(10));
+        assert_eq!(first.metrics.transport_latency_ns, Some(40));
+        assert_eq!(first.metrics.queue_wait_ns, Some(20));
+        assert_eq!(first.metrics.processing_latency_ns, Some(50));
+        assert_eq!(first.metrics.acquisition_to_decision_ns, Some(140));
+        assert_eq!(first.metrics.source_age_at_decision_ns, Some(150));
+        assert_eq!(first.metrics.downstream_ack_latency_ns, Some(30));
+
+        let second = &report.body.reports[1];
+        assert_eq!(second.disposition, EventDisposition::Degraded);
+        assert_eq!(second.metrics.observed_source_interarrival_ns, Some(1_000_000));
+        assert_eq!(second.metrics.expected_source_interarrival_ns, Some(2_000_000));
+        assert_eq!(second.metrics.source_period_consistent, Some(false));
+        assert_eq!(second.acknowledgement_state, Some(AcknowledgementState::Unknown));
+    }
+
+    #[test]
     fn unknown_schema_fields_are_refused() {
         let json = r#"{"schema_version":"luminous.plasma-stream-telemetry.v0.1","trace_id":"x","unexpected":true}"#;
         assert!(serde_json::from_str::<ReplayRequest>(json).is_err());
