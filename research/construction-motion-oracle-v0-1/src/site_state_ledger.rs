@@ -403,6 +403,16 @@ impl SiteStateLedger {
         self.active_package_sha256.as_deref()
     }
 
+    /// Read-only access to the exact immutable package bound by its digest.
+    ///
+    /// Callers should still compare the package digest, frame and transform
+    /// against the evidence they intend to consume.
+    pub fn work_package(&self, package_sha256: &str) -> Option<&SiteWorkPackage> {
+        self.packages
+            .get(package_sha256)
+            .map(|projection| &projection.package)
+    }
+
     pub fn event_count(&self) -> usize {
         self.events.len()
     }
