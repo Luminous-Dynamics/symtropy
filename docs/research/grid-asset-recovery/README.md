@@ -421,3 +421,42 @@ With the declared task graph, resource calendars and four scenario overlays:
 - Worst case in this scenario set: **102,290 MWh**.
 
 These results were reproduced from the checked-in input JSON using the dependency graph, 14-hour recurring resource windows, explicit capacity-outage intervals and task-duration overlays. They are deterministic calculations on synthetic assumptions—not measured outage energy, predicted customer interruptions or validated field performance. The probability weights are illustrative and dominate expected/tail values; changing them changes the reported expectation and quantiles. The machine-readable report preserves affected resource IDs, cause IDs and correlation-group IDs for each scenario.
+
+
+## 16. External algorithmic benchmark corpus register
+
+The machine-readable register is:
+- `data/scheduling-benchmark-register-v0.1.schema.json`
+- `data/scheduling-benchmark-register-v0.1.json`
+
+It deliberately separates benchmark datasets, method papers and solver documentation. At this snapshot, the external datasets are **registered but not imported, frozen or executed**. Do not infer results from the record count.
+
+### Recommended staged use
+
+1. **Calendar/disruption transfer test:** start with CARM-Plus CA-RCPSP (12 instances, five-to-1,000 tasks, recurring calendars, lunch breaks, statutory holidays and 2–4 disruption scenarios). It is the closest generic match to our scheduler's calendar and disruption model and is openly released under CC BY 4.0. Its authors publish descriptive Max-Plus, OR-Tools CP-SAT and Gurobi MIP baselines. Its manufacturing domain differs from transmission restoration.
+2. **Classical solver sanity:** PSPLIB and RCPLIB, to check ordinary precedence/resource/makespan behaviour and compare feasibility/optimality against known solutions. These datasets do not contain our shift/calendar/asset semantics.
+3. **Specialist crews:** MSLIB/SSLIB for multi-skilled assignment. Map its skills to a typed competency ontology; do not equate a generic skill with high-voltage authorisation, site qualification or statutory competence.
+4. **Alternative recovery plans:** MMLIB for multi-mode activities. This motivates modelling repair, module exchange, local spare substitution and full OEM procurement as different modes, which the present selected-plan contract does not yet implement.
+5. **Empirical schedule control:** DSLIB, only after access, privacy and license review. It contains empirical project-control data, but not transmission repair records.
+6. **Solver-method comparisons:** SAT-based RCPSP, calendar-aware CP-SAT/MIP and multi-skilled reliability-constrained RCPSP literature. Use exact-small microcases first, then compare feasibility, bounds, gaps, runtime, robustness and solution stability on larger corpora.
+
+The University of Ghent's dataset catalogue reports PSPLIB (2,040 instances), MSLIB (32,480), MMLIB50/100/+ (4,320) and DSLIB (more than 180 real projects). It also lists large RCPSP families and NetRes-scale generation. We will pin the exact sub-dataset/version rather than compare an ambiguous label such as "RCPLIB" as one corpus.
+
+Primary sources:
+- University of Ghent project data catalogue: https://www.projectmanagement.ugent.be/research/data
+- OR&S dataset index: https://www.or-as.be/research/data/
+- CARM-Plus calendar-aware dataset: https://doi.org/10.1016/j.dib.2026.113256
+- SAT-based RCPSP study, February 2026: https://doi.org/10.1016/j.cor.2025.107308
+- Multi-skilled reliability-constrained RCPSP, September 2026: https://doi.org/10.1016/j.cie.2026.112154
+- OR-Tools CP-SAT scheduling recipes: https://github.com/google/or-tools/blob/stable/ortools/sat/docs/scheduling.md
+
+### Criteria for a valid SOTA comparison
+
+- Pin exact corpus sub-dataset, release, files, hashes, license and preprocessing.
+- Publish all parser/adaptor transformations; never silently discard constraints unsupported by the local scheduler.
+- Run each solver on the same feasible model, calendar, resources, objective, scenario and time/memory budget.
+- Include strong baselines: CP-SAT, MIP, SAT, Max-Plus and priority-rule scheduling where the model variant permits.
+- Report feasibility first; then best/average/worst objective, lower and upper bounds, optimality gap, p50/p95 runtime, memory, timeout and solver status.
+- For stochastic or disruption cases, use common random numbers and report expected objective, p50/p95/p99 and CVaR95; include schedule stability and reactive rescheduling churn.
+- Do not claim a win because a local heuristic beats one weak greedy baseline or because it passes a handful of synthetic fixtures.
+- Keep generic scheduling results separate from transmission domain validation. A better RCPSP score is not evidence of better grid reliability.
