@@ -126,6 +126,17 @@ jobs:
                   assert receipt["acceptedRows"] == receipt["sourceRows"]
                   assert receipt["mappedTicks"] == receipt["targetTicks"]
 
+          # Scenario-specific negative control: this fixture has no alternate supply, so service
+          # pickup must not precede its observed commissioning-passed milestone.
+          observed_work = next(s for s in fixture["restorationStreams"] if s["streamKind"] == "observed_work")
+          commissioning = next(x for x in observed_work["items"] if x["milestone"] == "commissioning_passed")
+          first_service = next(x for x in service_streams["independent-power-service-model"]["series"] if x.get("functionalAvailability", 0.0) > 0.0)
+          assert instant(first_service["start"]) >= instant(commissioning["observedAt"]), "service pickup precedes commissioning evidence"
+          early_pickup = copy.deepcopy(fixture)
+          early_pickup["serviceStreams"][0]["series"][1]["start"] = "2030-01-01T14:00:00Z"
+          early_first_service = next(x for x in early_pickup["serviceStreams"][0]["series"] if x.get("functionalAvailability", 0.0) > 0.0)
+          assert instant(early_first_service["start"]) < instant(commissioning["observedAt"]), "early-pickup negative control failed"
+
           # Negative control: moving a planned repair milestone earlier must not alter the
           # independently sourced service trajectory.
           moved_plan = copy.deepcopy(fixture)
@@ -157,5 +168,6 @@ jobs:
           print("PASS: external register IDs and status/licensing claim boundaries")
           print("PASS: fixture references, temporal order, normalization and source accounting")
           print("PASS: planned schedule cannot create service availability")
+          print("PASS: delayed-service fixture does not restore before observed commissioning evidence")
           print("PASS: stale service, false measured evidence and schedule-only cases are handled")
           PY
