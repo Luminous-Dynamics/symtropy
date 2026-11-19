@@ -1,0 +1,94 @@
+{
+  "schema_version": "0.1.0",
+  "fixture_id": "SYN-GEOFUSION-SOURCE-ALLOCATION-CASCADE-001",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "source_interval_allocation_arithmetic_only",
+  "provenance": {
+    "source_refs": [],
+    "note": "All quantities are synthetic values for anti-double-count testing; this is not a geothermal measurement or dispatch recommendation."
+  },
+  "source_interval": {
+    "source_asset_id": "synthetic-geothermal-wellfield-01",
+    "source_boundary_id": "synthetic-wellhead-heat-meter-01",
+    "source_interval_id": "synthetic-hour-0001",
+    "carrier": "heat",
+    "available_energy_mwh": 10.0
+  },
+  "valid_case": {
+    "allocations": [
+      {
+        "allocation_id": "direct-process-heat",
+        "destination_asset_id": "process-heat-loop",
+        "service": "industrial_process_heat",
+        "carrier": "heat",
+        "energy_mwh": 6.0
+      },
+      {
+        "allocation_id": "power-cycle-thermal-input",
+        "destination_asset_id": "power-cycle-evaporator",
+        "service": "power-cycle-thermal-input",
+        "carrier": "heat",
+        "energy_mwh": 3.0
+      }
+    ],
+    "curtailed_energy_mwh": 1.0,
+    "expected": {
+      "allocated_energy_mwh": 9.0,
+      "curtailed_energy_mwh": 1.0,
+      "residual_energy_mwh": 0.0,
+      "within_tolerance": true
+    }
+  },
+  "negative_control_overallocated": {
+    "allocations": [
+      {
+        "allocation_id": "direct-process-heat",
+        "destination_asset_id": "process-heat-loop",
+        "service": "industrial_process_heat",
+        "carrier": "heat",
+        "energy_mwh": 6.0
+      },
+      {
+        "allocation_id": "power-cycle-thermal-input",
+        "destination_asset_id": "power-cycle-evaporator",
+        "service": "power-cycle-thermal-input",
+        "carrier": "heat",
+        "energy_mwh": 5.0
+      }
+    ],
+    "curtailed_energy_mwh": 0.0,
+    "expected": {
+      "allocated_energy_mwh": 11.0,
+      "curtailed_energy_mwh": 0.0,
+      "residual_energy_mwh": -1.0,
+      "within_tolerance": false
+    }
+  },
+  "negative_control_unallocated": {
+    "allocations": [
+      {
+        "allocation_id": "direct-process-heat",
+        "destination_asset_id": "process-heat-loop",
+        "service": "industrial_process_heat",
+        "carrier": "heat",
+        "energy_mwh": 6.0
+      }
+    ],
+    "curtailed_energy_mwh": 2.0,
+    "expected": {
+      "allocated_energy_mwh": 6.0,
+      "curtailed_energy_mwh": 2.0,
+      "residual_energy_mwh": 2.0,
+      "within_tolerance": false
+    }
+  },
+  "explicitly_not_modelled": [
+    "geothermal reservoir or wellbore physics",
+    "power-cycle efficiency or component maps",
+    "heat-exchanger temperature approaches",
+    "electricity generation, conversion losses or exergy",
+    "thermal storage dynamics",
+    "dispatch optimization or grid service",
+    "physical instrumentation, calibration or source authenticity"
+  ]
+}
