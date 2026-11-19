@@ -803,7 +803,7 @@ mod tests {
         assert!(audit_fixtures(&agent, &oracle, &expected).is_err());
 
         let (agent, oracle, mut expected) = fixtures();
-        expected["episodes"][0]["world_truth"] = json!({"entity_id":"hidden-entity"});
+        expected["episodes"][0]["world_truth"] = serde_json::json!({"entity_id":"hidden-entity"});
         assert!(audit_fixtures(&agent, &oracle, &expected).is_err());
     }
 
