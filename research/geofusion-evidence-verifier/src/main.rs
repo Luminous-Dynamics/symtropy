@@ -16,7 +16,7 @@ fn read_json(path: &PathBuf, label: &'static str) -> Result<Value, String> {
 fn run() -> Result<i32, String> {
     let mut args = env::args_os().skip(1);
     let payload_path = args.next().map(PathBuf::from)
-        .ok_or_else(|| "usage: geofusion-evidence-verifier <raw-payload.json> <evidence-envelope.json> <allocation-receipt.json>".to_owned())?;
+        .ok_or_else(|| concat!(\n            "usage: geofusion-evidence-verifier <raw-payload.json> ",\n            "<evidence-envelope.json> <allocation-receipt.json>"\n        ).to_owned())?;
     let evidence_path = args.next().map(PathBuf::from)
         .ok_or_else(|| "missing evidence-envelope.json argument".to_owned())?;
     let allocation_path = args.next().map(PathBuf::from)
