@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "mjbots-qdd100-beta3-vendor-thermal-curve-source-transcription-v0.1",
+  "actuator": {
+    "candidate_id": "mjbots-qdd100-beta3",
+    "name": "mjbots qdd100 beta 3",
+    "revision_state": "exact",
+    "unit_identifier": null,
+    "controller_state": "Vendor product revision as named by the source; exact controller configuration not disclosed",
+    "firmware_state": null,
+    "configuration_digest": null,
+    "system_boundary": {
+      "included_components": [
+        "qdd100 beta 3 actuator as represented by vendor source"
+      ],
+      "excluded_components": [
+        "robot link",
+        "external battery",
+        "application mounting hardware"
+      ],
+      "boundary_notes": "The published thermal curve is an actuator product-page result; complete installed-system mass, wiring, mounting and auxiliary cooling boundary are not specified."
+    }
+  },
+  "test_conditions": {
+    "test_class": "locked_rotor",
+    "ambient_temperature_c": 20,
+    "supply_voltage_v": 24,
+    "supply_current_limit_a": null,
+    "rotor_or_output_speed": {
+      "value": 0,
+      "unit": "rpm",
+      "status": "reported",
+      "reason": null
+    },
+    "load_mode": "Zero-speed torque hold / thermal time-to-limit; the source summary does not disclose a dynamic output-speed sweep for this thermal curve.",
+    "orientation": null,
+    "initial_thermal_state": [
+      {
+        "location": "winding",
+        "status": "not_disclosed",
+        "temperature_c": null,
+        "sensor_position": null,
+        "uncertainty_c": null,
+        "calibration_ref": null,
+        "reason": "Initial winding temperature is not specified in the accessible source summary."
+      },
+      {
+        "location": "case",
+        "status": "not_disclosed",
+        "temperature_c": null,
+        "sensor_position": null,
+        "uncertainty_c": null,
+        "calibration_ref": null,
+        "reason": "Initial case temperature is not specified."
+      }
+    ],
+    "thermal_state_reset": "not_disclosed",
+    "control_mode": null,
+    "sample_rate_hz": null,
+    "test_method_notes": "ActuatorList's source note describes zero speed, 24 V, 20 °C ambient, no airflow and no heat sink. The exact start temperature, control mode, sample rate, test repeat count, and winding limit are not disclosed in that note. Do not interpret these data as dynamic-load or repeated-mission performance."
+  },
+  "cooling_boundary": {
+    "airflow_status": "none",
+    "airflow_velocity_m_s": null,
+    "heat_sink_status": "none",
+    "heat_sink_description": "No heat sink, as stated in the benchmark source note.",
+    "mounting_boundary": "Other mounting/contact boundary details are not disclosed.",
+    "coolant_status": "none",
+    "coolant_description": null,
+    "reason": "Benchmark source note states no airflow or heat sink; other boundary details remain unknown."
+  },
+  "thermal_limits": [
+    {
+      "location": "unknown",
+      "status": "not_disclosed",
+      "limit_temperature_c": null,
+      "limit_source": "Not disclosed in the accessible benchmark note.",
+      "protection_behavior": "Source reports time-to-thermal-limit; the exact sensor, threshold and protection action are not specified.",
+      "reason": "Do not infer winding temperature threshold or protection behavior."
+    }
+  ],
+  "curve_points": [
+    {
+      "point_id": "qdd100b3-16Nm-under-1s",
+      "commanded_torque_nm": null,
+      "measured_output_torque_nm": 16,
+      "output_speed_rpm": 0,
+      "time_to_event": {
+        "status": "left_censored",
+        "value_s": 1,
+        "relation": "less_than",
+        "event_type": "unknown",
+        "exposure_duration_s": null,
+        "reason": "The register note says the source gives the first point as under 1 s and it is entered as 1 s; preserving the strict less-than relation avoids presenting 1 s as an exact event time."
+      },
+      "torque_uncertainty_nm": 0.5,
+      "observation_class": "vendor_measured",
+      "note": "ActuatorList assigns ±0.5 N·m as its estimate; this is not an uncertainty stated by the manufacturer."
+    },
+    {
+      "point_id": "qdd100b3-10Nm-60s",
+      "commanded_torque_nm": null,
+      "measured_output_torque_nm": 10,
+      "output_speed_rpm": 0,
+      "time_to_event": {
+        "status": "reported",
+        "value_s": 60,
+        "relation": "equal",
+        "event_type": "unknown",
+        "exposure_duration_s": null,
+        "reason": "The source register reports 60 s to thermal limit; exact event threshold and repetition count are not disclosed."
+      },
+      "torque_uncertainty_nm": 0.5,
+      "observation_class": "vendor_measured",
+      "note": "ActuatorList assigns ±0.5 N·m as its estimate; vendor measurement, not independent replication."
+    },
+    {
+      "point_id": "qdd100b3-6Nm-400s",
+      "commanded_torque_nm": null,
+      "measured_output_torque_nm": 6,
+      "output_speed_rpm": 0,
+      "time_to_event": {
+        "status": "reported",
+        "value_s": 400,
+        "relation": "equal",
+        "event_type": "unknown",
+        "exposure_duration_s": null,
+        "reason": "The source register reports 400 s to thermal limit; exact event threshold and repetition count are not disclosed."
+      },
+      "torque_uncertainty_nm": 0.5,
+      "observation_class": "vendor_measured",
+      "note": "ActuatorList assigns ±0.5 N·m as its estimate; vendor measurement, not independent replication."
+    },
+    {
+      "point_id": "qdd100b3-3p3Nm-continuous-claim",
+      "commanded_torque_nm": null,
+      "measured_output_torque_nm": 3.3,
+      "output_speed_rpm": 0,
+      "time_to_event": {
+        "status": "continuous_claim",
+        "value_s": null,
+        "relation": "not_applicable",
+        "event_type": "unknown",
+        "exposure_duration_s": null,
+        "reason": "The source register labels this point continuous but does not provide the observation duration in the accessible summary. It is retained as a source claim, not a measured infinite-duration result."
+      },
+      "torque_uncertainty_nm": 0.5,
+      "observation_class": "vendor_measured",
+      "note": "The word continuous is retained from the source; the underlying test duration and steady-state criterion are unknown."
+    }
+  ],
+  "mission_trials": [],
+  "trace_availability": {
+    "status": "not_available",
+    "raw_trace_refs": [],
+    "sampling_clock": null,
+    "reason": "The accessible source is a product-page thermal summary and the benchmark register's transcription; raw synchronized torque/current/temperature traces were not located."
+  },
+  "evidence": [
+    {
+      "reference": "https://actuatorlist.com/benchmarks#run=mjbots-qdd100/mjbots-beta3-spec",
+      "source_class": "benchmark_transcription",
+      "method": "Secondary register transcribes the manufacturer-published product-page thermal table and documents test conditions, provenance and uncertainty treatment.",
+      "retrieved_or_published_date": "2026-11-16",
+      "independence": "not_assessed"
+    },
+    {
+      "reference": "https://mjbots.com/products/qdd100-beta-3",
+      "source_class": "manufacturer_claim",
+      "method": "Primary vendor product page identified as the source for the beta 3 thermal points.",
+      "retrieved_or_published_date": null,
+      "independence": "vendor"
+    }
+  ],
+  "claim_ceiling": "Source-transcribed vendor thermal curve under reported zero-speed conditions only. Not an independent test, dynamic-load map, repeated mission-cycle qualification, validated thermal model, installed-system rating or safety claim.",
+  "notes": [
+    "The earlier qdd100 beta source from 2020 is a different revision and must not be merged with beta 3 points.",
+    "No thermal response surface or repeated-cycle performance can be inferred from these four source points.",
+    "The example is intentionally explicit about unavailable raw traces, initial temperatures, sensor location, thermal threshold and test duration."
+  ]
+}
