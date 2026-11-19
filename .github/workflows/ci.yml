@@ -74,6 +74,50 @@ jobs:
       if: runner.os == 'Linux'
       run: bash scripts/check-licenses.sh
 
+    # This guard validates only the committed synthetic flow corpus and DOE manifest.
+    # The reusable validator checks run/manifest joins, provenance, interval shape and digests.
+    - name: Lunar Granular Flow Benchmark Fixture (Linux)
+      if: runner.os == 'Linux'
+      run: bash scripts/check-lunar-granular-flow-fixture.sh
+
+    # These are standalone tool workspaces, so the main workspace matrix does not
+    # automatically compile them. Keep their formatting, tests, Clippy and JSON
+    # example executions explicit on Linux.
+    - name: Lunar Source Artifact Registration (Linux)
+      if: runner.os == 'Linux'
+      run: bash scripts/check-lunar-granular-flow-source-registration.sh
+
+    - name: Lunar Feeder Controller Tournament (Linux)
+      if: runner.os == 'Linux'
+      run: bash scripts/check-lunar-feeder-controller-tournament.sh
+
+    - name: Lunar Granular Flow Source Registry (Linux)
+      if: runner.os == 'Linux'
+      run: bash scripts/check-lunar-granular-flow-sources.sh
+
+    - name: Lunar Granular Flow Rust Tools (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        set -euo pipefail
+        for manifest in \
+          tools/lunar-granular-flow-similarity/Cargo.toml \
+          tools/lunar-regolith-feeder-supervisor/Cargo.toml
+        do
+          cargo fmt --manifest-path "$manifest" -- --check
+          cargo test --manifest-path "$manifest"
+          cargo clippy --manifest-path "$manifest" --all-targets -- -D warnings
+        done
+        cargo run --quiet --manifest-path tools/lunar-granular-flow-similarity/Cargo.toml -- \
+          tools/lunar-granular-flow-similarity/examples/synthetic-similarity-input.json \
+          > /tmp/lunar-granular-flow-similarity-report.json
+        jq -e '.overall_status == "within_declared_similarity_envelope" and (.coordinates | length) == 18' \
+          /tmp/lunar-granular-flow-similarity-report.json >/dev/null
+        cargo run --quiet --manifest-path tools/lunar-regolith-feeder-supervisor/Cargo.toml -- \
+          tools/lunar-regolith-feeder-supervisor/examples/synthetic-supervisor-input.json \
+          > /tmp/lunar-regolith-feeder-supervisor-decision.json
+        jq -e '.mode == "normal" and .feeder_command == "hold" and .vibration_command == "hold"' \
+          /tmp/lunar-regolith-feeder-supervisor-decision.json >/dev/null
+
     - name: Run Clippy
       run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 

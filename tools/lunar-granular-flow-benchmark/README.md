@@ -1,0 +1,362 @@
+# Lunar granular-flow and material-transfer benchmark — v0
+
+This benchmark qualifies material flow and transfer after excavation: rotating drums, hoppers, chutes, conveyors, collection, screening and beneficiation. It is deliberately separate from the excavation-force model benchmark in [#6012](https://github.com/Luminous-Dynamics/symtropy/issues/6012). A model can predict cutting force accurately and still fail to discharge or deliver useful feedstock.
+
+**Functional output:** accepted target-specification feedstock delivered to a named downstream process, with measured loss and energy boundaries. Not nominal bucket payload, cut volume, or machine-reported mass.
+
+## 2026 evidence that changes the engineering approach
+
+### 1. The wall is an active part of the granular system
+
+Wylęgała and Uhl, *Influence of wall material and vacuum conditions on lunar regolith flow stability in a rotating drum*, Acta Astronautica 249 (2026), DOI [10.1016/j.actaastro.2026.07.006](https://doi.org/10.1016/j.actaastro.2026.07.006).
+
+The study tested smooth PETG, roughened PETG, PTFE, aluminium and copper at 2, 6 and 12 rpm in ambient air and high vacuum (about 6×10^-4 torr, approximately 0.08 Pa). It reports:
+- vacuum increased mean dynamic surface angles by 8–22% for the PETG surfaces;
+- low-speed angle stability improved by 26–47% under vacuum across most tested materials;
+- wall material explained more than 80% of the variance in the reported geometry and angle metrics;
+- copper showed a distinct response, which the authors relate to rapid charge redistribution.
+
+The raw research dataset is listed openly at [Zenodo DOI 10.5281/zenodo.18749190](https://doi.org/10.5281/zenodo.18749190).
+
+**Interpretation:** the hopper liner, drum wall, chute surface, conductivity and grounding are not passive hardware. They may materially alter the force network and flow state. The reported effect sizes are specific to that simulant, apparatus and test design; they are not universal material rankings.
+
+### 2. Returned Chang'e-6 material exhibits cohesive agglomerate flow
+
+Bao et al., *Sustained Agglomerate Flow and Low-Gravity Prediction of Chang'e-6 Lunar Regolith*, Acta Astronautica (online 3 November 2026), DOI [10.1016/j.actaastro.2026.10.071](https://doi.org/10.1016/j.actaastro.2026.10.071).
+
+The CE60100 returned sample mass available for the rotating-drum study was 1.85 g; its original sealed bottle was used as the rotating chamber to limit sample disturbance and loss. The reported slumping regime has periodic avalanches and persistent cohesive clusters. Dynamic angle of repose decreases from 50.4° ± 3.1° at Fr = 3.3×10^-4 to 41.1° ± 1.8° at Fr = 3.3×10^-3. A force-balance model combines gravity, rotational inertia and cohesion and reproduces the Fr trend without fitting the reported CE-6 DAoR values.
+
+This is a source-specific **micro-sample rotating-drum** benchmark. The 1.85-g sample is not bulk test material for hopper or conveyor campaigns, and the result is not a universal regolith discharge law.
+
+### 3. Excavation is not delivery
+
+ESA's MoLES3 integrated analogue campaign, *Integrated robotic feedstock preparation for lunar oxygen production*, DOI [10.1038/s44453-026-00051-y](https://doi.org/10.1038/s44453-026-00051-y), decomposes a physically separated rover excavation / stationary vibratory beneficiation architecture. In the tested configuration, transfer loss was the dominant recoverable feedstock inefficiency, while beneficiation consumed a smaller fraction of total system energy. Its 2.5-hour window, 60-kg mass limit and 300-Wh energy target are challenge-specific, not universal machine specifications.
+
+MoLES3 defines a useful decomposition:
+- transfer efficiency, η_trans;
+- separation / beneficiation yield, η_sep;
+- composite feedstock preparation efficiency, η_feed = η_trans × η_sep.
+
+Retain each component separately. A product of two individually high efficiencies can still expose a costly weakest link.
+
+### 4. Do not collapse materials into one "lunar soil" record
+
+Gasteiner, Murdoch and D'Angelo's 2026 open lunar-regolith database includes more than 6,000 records and preserves material/source distinctions across historic in-situ measurements, inferred values and returned-sample/laboratory characterizations. See [DOI 10.1002/nag.70432](https://doi.org/10.1002/nag.70432) and the [open data release](https://doi.org/10.57745/NTSZ8G).
+
+Every run must identify material batch, PSD, preparation/compaction history, morphology and evidence class. A simulant's name alone is insufficient.
+
+## Versioned dimensionless coordinate provenance
+
+The canonical formula set is `tools/lunar-granular-flow-benchmark/dimensionless-coordinate-formulas.json` (`lunar-granular-dimensionless-groups-v1`). Run records carry a `derived_coordinates` object with the formula-set ID, uncertainty-propagation method and source artifact IDs.
+
+The run-admission validator checks:
+- every dimensionless input dependency is present before accepting a derived value; if any required primitive is unknown, the coordinate must remain null/unknown;
+- all source artifact IDs used for derivation resolve in the run's artifact manifest;
+- the declared central value matches the versioned formula within a 1% tolerance for numeric serialization/rounding;
+- signed electrostatic number preserves sign;
+- synthetic fixtures independently recompute the known vibration, particle/drum and roughness ratios, and negative controls reject invented values and tampered derivations.
+
+The formula set includes granular Bond number (Bo_m), wall adhesion ratio (Aw), inertial number (I), signed electrostatic number (El), vibration acceleration ratio (Gamma), dimensionless vibration frequency, vibration displacement/particle size, particle/drum ratio and wall roughness/particle size. Real runs must additionally document uncertainty propagation and measurement covariance assumptions. Formula agreement verifies arithmetic, not whether the primitives were physically measured correctly.
+
+## Paradigm shifts
+
+1. **Co-design material and contact surfaces.** Optimize wall material, roughness, conductivity, grounding, coatings and wear state with the granular material. Do not optimize only hopper shape or bulk material parameters.
+2. **Use a multidimensional similarity envelope.** Froude similarity alone is insufficient where cohesion and wall adhesion compete with gravity. Preserve at least:
+   - rotational Froude number: Fr = ω²R/g;
+   - particle cohesion-to-weight ratio: Cw = F_cohesive/(m_particle g);
+   - wall-adhesion-to-weight ratio: Aw = F_wall_adhesion/(m_particle g);
+   - particle-to-drum ratio: d50/R;
+   - wall roughness ratio: Ra/d50;
+   - fill fraction, pressure, temperature, grounding and electrostatic state.
+   
+   Cw and Aw are proposed measurable similarity coordinates, not claims that a single closed-form constitutive law exists. Measure or independently bound them; do not infer them from angle of repose alone. Matching Fr while mismatching Cw/Aw does not establish lunar-gravity similitude.
+3. **Benchmark the complete material path.** Excavated mass → collected mass → transfer input/output → processed size fractions → accepted target feedstock → stored/delivered feedstock. Every interface has a separate mass and energy boundary.
+4. **Treat flow as a dynamic state, not a static material property.** Avalanches, agglomerate persistence, intermittent discharge, arching, restart after dwell, segregation and wear matter alongside static/dynamic angle of repose.
+5. **Make uncertainty and abstention first-class.** A model should identify an unseen batch, wall treatment, pressure or flow regime as out-of-envelope and abstain instead of confidently extrapolating.
+6. **Use active experiment selection.** Symthaea can choose the next most informative wall/pressure/Fr/fill/batch experiment; the choice is preregistered and cannot be scored as its own independent validation.
+
+## Industry and current capability comparison
+
+The right comparison is by **mission boundary and accepted output**, not by raw rpm, kilograms excavated, or a single angle-of-repose number.
+
+- **NASA IPEx:** NASA's current Lunar Surface Technology page says IPEx is designed to deliver 10 metric tonnes over 100 m and 11 days in its quick facts, while its detailed project description says "on the order of 20 metric tons" over a single mission. Preserve these distinct descriptions and their boundary/status; neither is a measured lunar operating record. The same NASA page describes surface excavation/site preparation, logistics and processing capabilities, not a flight-qualified subsurface tunnel-boring system.
+- **ESA MoLES3:** the 2026 LUNA analogue uses a 2.5-hour field window, 60-kg system mass limit and 300-Wh target. It provides an integrated transfer/beneficiation comparator and decomposes transfer and separation efficiencies, but remains an Earth-gravity analogue with its own challenge constraints.
+- **Terrestrial TBM:** USACE EM 1110-2-2901 reports a historical project database average utilization of 38% (range 5–69%) and average advance of 375 m/month (range 5–2,084) for its cited tunnel-project population. This is an old rock-tunnelling dataset, not a lunar regolith-flow target. Its enduring lesson is that penetration while cutting, utilization, calendar advance, mucking and support are different metrics; compare the complete time boundary and downtime taxonomy.
+- **Granular-flow SOTA:** the Wylęgała–Uhl wall/vacuum study and Bao et al. CE60100 study are physical references for specific simulant / returned-sample regimes. They do not qualify full-scale hopper discharge or long-duration mining. The benchmark should aim to reproduce those source conditions, then generalize across batches, wall interfaces, environments and transfer geometries.
+
+The competitive claim we should pursue is an independently replayable, provenance-preserving **accepted-feedstock service**: accepted target-size kg delivered per mission-hour and per kWh, with mass closure, uncertainty, jam/recovery, wear and contamination visible. We should not claim that this already exceeds NASA, ESA or terrestrial industry.
+
+## Benchmark protocol
+
+### Track A — reproduce the published wall/vacuum experiment
+
+The first matrix has 30 factor combinations: five source wall materials × two pressure classes × three source rotation speeds. This is a **factor-level reproduction design**, not a claim that a reproduction has occurred.
+
+Before executing it:
+- recover exact source sample/batch, drum geometry, fill ratio, wall finish, speed-control and imaging/segmentation definitions from the publication and Zenodo raw data;
+- record all differences from the source protocol;
+- preserve raw video/images and the complete processed time series;
+- reproduce source statistical summaries on the matched protocol before tuning any model.
+
+The 30 cells are listed in `design-of-experiments.json`.
+
+### Track B — extend by Froude number and fill fraction
+
+The extension has 90 proposed cells: five wall materials × two pressure classes × three target Fr levels (3.3×10^-4, 1.0×10^-3, 3.3×10^-3) × three fill fractions (0.15, 0.25, 0.35). The 36-cell batch-transfer sentinel matrix is a separate experiment and must not be pooled into the source-reproduction score.
+
+The fill levels and middle Fr are analyst-selected experimental levels, not values claimed from the source. Derive actual angular speed at execution from measured drum radius and gravity. Do not silently assume that the source apparatus has the same radius.
+
+Use a screening stage followed by preregistered confirmatory repeats. Establish reset/reconditioning and sample-independence rules before calling repeated runs independent. Returned CE60100 data remain in a separate source-matched micro-sample track.
+
+### Track C — batch-transfer sentinel experiment
+
+A third, smaller matrix contains 36 planned cells: three independently characterized material batches (calibration, validation and blind-test roles) × three representative wall materials (smooth PETG, PTFE, copper) × two pressure classes × two Fr levels (3.3×10^-4 and 3.3×10^-3), at a fixed analyst-selected fill fraction of 0.25.
+
+This is the explicit test of whether a model trained on one lot transfers to another. The batch roles must be assigned to real independently characterized lots at execution; the names in the design file are role labels, not material records. Keep the blind lot and raw outcomes under an independent custodian until the executable, source revision, configuration, parameters, seed and predictions are frozen. Never distribute repeats from one physical lot across calibration and blind partitions.
+
+### Track C — transfer and discharge
+
+For hoppers, chutes and conveyors, vary outlet geometry, wall angle/material/roughness, fill level, conditioning/dwell time, vibration, speed and material batch. Measure:
+- mass flow rate and variability;
+- bridging/jam incidence, duration and autonomous recovery;
+- start/stop and restart after dwell;
+- retained/residual mass and mass-balance residual;
+- size segregation, fines/dust generation and contamination;
+- energy per accepted delivered mass.
+
+### Track D — beneficiation and accepted feedstock
+
+Measure input, target-size product, oversize, undersize, retained material, dust/fines, contamination and unknown streams. Keep transfer efficiency and beneficiation yield separate; report their product only as a clearly named composite.
+
+## Model tournament
+
+Compare on identical, preregistered splits:
+- analytical / force-balance granular-flow baselines;
+- DEM with cohesion and wall-contact models;
+- continuum models where their assumptions apply;
+- physics-informed residual models;
+- ML surrogates with out-of-distribution detection and abstention.
+
+Separate:
+- interpolation within represented batches, walls, geometries and environments;
+- leave-one-material-batch-out transfer;
+- leave-one-wall-surface/material-out transfer;
+- leave-one-apparatus/laboratory-out transfer;
+- pressure/temperature/grounding and Fr/fill regime transfer.
+
+Report model-form disagreement and non-convergence; do not average disagreeing solvers into an untraceable consensus. Keep excavation-force scores in #6012 separate from granular-flow scores here.
+
+## Required scorecard
+
+| Category | Metrics |
+|---|---|
+| Flow state | static and dynamic AoR (method-labelled), angle stability CV, flow-regime classification |
+| Dynamics | avalanche frequency/size, agglomerate fraction/lifetime, discharge-rate time series |
+| Transfer | η_trans, retained mass, jam probability/duration, mass closure at each interface |
+| Product | PSD shift, segregation, fines/dust, contamination, η_sep, accepted target-size mass |
+| Resources | kWh per accepted kg, delivered kg per operating hour, sample mass consumed, calibration/operator hours |
+| Model quality | point error by group, worst-group error, 50/80/90/95% interval coverage and sharpness, OOD detection/abstention, runtime |
+| Reliability | restart recovery, wear state, sensor dropout response, repeatability and instrument drift |
+
+Do not reduce this to one leaderboard scalar. Publish Pareto fronts for accepted feedstock, energy, reliability, time, wear and sample consumption.
+
+## Proposed improvement targets (hypotheses, not achieved results)
+
+1. Reproduce Wylęgała–Uhl's source-condition factor effects within source-data uncertainty before claiming replication.
+2. Reproduce Bao et al.'s CE60100 Fr-dependent slumping trend on source-matched micro-sample conditions without fitting the withheld DAoR values.
+3. Beat the strongest predeclared analytical/DEM baseline on group-disjoint discharge-rate and retained-mass predictions by at least 20%, while retaining calibrated 90–95% intervals.
+4. Use at least 25% fewer calibration runs or sample mass than the strongest matched baseline at equal blind-set error and interval coverage.
+5. Close measured mass balance at every transfer boundary within combined instrument uncertainty; otherwise return `indeterminate / reconciliation required`.
+6. Improve accepted target-size kg per kWh and per mission-hour without increasing jams, dust loss, contamination, or wear.
+7. Demonstrate OOD abstention on unseen material/wall/environment states rather than unsupported extrapolation.
+
+These are falsifiable research targets. Absolute tolerances require a standardized analogue rig, a frozen test profile and declared instrument uncertainty.
+
+## Files and checks
+
+- `granular-flow-run.schema.json`: run-level Draft 2020-12 record schema.
+- `dataset-manifest.schema.json`: group-disjoint calibration / validation / blind-test manifest.
+- `design-of-experiments.json`: source-reproduction and proposed extension matrices; planned tests only.
+- `examples/`: synthetic fixtures; no physical data.
+- `scripts/validate-lunar-granular-flow-dataset.sh`: reusable semantic/provenance admission checks.
+- `scripts/check-lunar-granular-flow-fixture.sh`: Linux CI checks and negative controls.
+
+Schema conformance alone does not validate a physical experiment. The reusable validator is not a general JSON Schema engine. Blind-set custody requires an independent custodian and access control outside the run parser.
+
+## Authority and integration boundaries
+
+- Excavation-force model comparison: [#6012](https://github.com/Luminous-Dynamics/symtropy/issues/6012).
+- Planned-to-as-built and disposition closure: [#6006](https://github.com/Luminous-Dynamics/symtropy/issues/6006).
+- Granular flow / handling: [#6041](https://github.com/Luminous-Dynamics/symtropy/issues/6041).
+- Subsurface observability: [#5983](https://github.com/Luminous-Dynamics/symtropy/issues/5983).
+- Earth analogue campaign: [#5988](https://github.com/Luminous-Dynamics/symtropy/issues/5988).
+- Material identity / source-bounded properties: [#6004](https://github.com/Luminous-Dynamics/symtropy/issues/6004).
+
+Symtropy owns immutable input records, dataset manifests, replay and receipts. Specialist granular-flow/DEM solvers retain physical-model authority. Symthaea may propose experiments and identify OOD conditions, but cannot certify its own prediction. Mycelix may preserve provenance and custody but cannot establish physical accuracy.
+
+## Claim ceiling
+
+The checked-in run examples and design matrix are synthetic/planned. No rotating-drum, hopper, vacuum or returned-sample experiment has been executed by this PR. Earth-g simulant results do not automatically qualify lunar gravity, vacuum electrostatics, full-scale hopper flow, excavation throughput or flight hardware.
+
+## New 2026 hopper/feeder benchmark and active-flow control
+
+Stepanova, Dreyer & Garvey, *Vibration-assisted granular flow under simulated lunar conditions: parabolic flight validation of lunar regolith feed system* (9 November 2026), DOI [10.1007/s44461-026-00021-y](https://doi.org/10.1007/s44461-026-00021-y), provides a useful operational baseline:
+
+- Eight parallel hopper–feeder assemblies represented four conical outlet geometries: 11, 17.5, 30 and 45 mm, with 46.5°, 55°, 72° and 90° hopper wall angles, each duplicated.
+- Across 60 lunar-gravity parabolas (480 assembly/parabola observations), sustained hopper supply to the rotary pocket feeders occurred in all 330 vibration-on observations with functioning feeders, with measured Γ = 3.4–23.8. Flow arrested within seconds in 80 of 84 vibration-off observations.
+- The test used ICN-LHT-1, an 800-g initial fill with a roughly 300-mm material column, no replenishment during flight, 0.16 g, and 27–60 Pa. The hoppers retained about 20% of initial fill after the 30-parabola sequence.
+- The vibration system operated at measured 37–53 Hz and 0.16–0.78 mm peak-to-peak displacement. Load cells sampled at 5 Hz, accelerometers at 500 Hz, and video at 30 fps.
+- The delivered 0.3–1.0 g/s rate was controlled primarily by pocket-feeder speed. Rate was about 21% lower at 0.16 g than in 1-g ground tests with identical commands.
+- Important boundary: this was **hopper supply to a rotary pocket feeder**, not free gravity discharge. The study also did not test vibration levels between Γ = 0 and 3.4, so it only bounds Γ_cr ≤ 3.4 for ICN-LHT-1 and that apparatus; it does not identify the exact threshold.
+- Supplementary agglutinate tests observed vibration-induced upward size segregation and fragmentation during repeated handling. Thus anti-jam operation must be scored together with composition drift and particle damage.
+
+The new advanced-doe-v0.json contains:
+- 480 source-record slots mirroring the paper's two flights × six high/low/off-vibration and high/low feeder-speed conditions × eight assemblies × five per-flight repeats. These are source-record placeholders, not reproduced measurements; exact condition schedules and numeric settings must be imported from the publication/source data before a matched-reproduction claim.
+- 800 proposed threshold-screen cells spanning four outlet geometries, two gravity levels, two pressure levels, nine Γ settings (including values below 3.4), three frequencies for vibration-on tests, and two feeder-speed fractions. Every cell is planned/not run and each derived actuator stroke must be checked against hardware limits.
+- 90 proposed annular vacuum shear-cell cells spanning a 3-decade granular Bond-number range, three inertial-number levels and three analyst-selected confining-pressure levels at fixed size ratio. These values are screening choices, not measured lunar thresholds.
+
+### Supervisory control paradigm
+
+The Rust crate at tools/lunar-regolith-feeder-supervisor implements an advisory stateful policy:
+1. Use accelerometer-measured Γ rather than commanded motor settings; the paper reports resonance/isolator coupling that made command settings an unreliable proxy for actual displacement.
+2. Regulate **hopper continuity** with vibration, subject to per-material/per-apparatus commissioned Γ bounds.
+3. Regulate **delivered mass rate** with the rotary feeder when pocket filling is adequate. Do not use vibration as a substitute for feeder metering.
+4. Pause the feeder during no-flow/intermittent-flow recovery, and require an observed return to continuous flow before resuming.
+5. Stop on stale/failed critical sensors, unobserved material-quality metrics required by the feed specification, excessive segregation, excessive agglutinate fragmentation, or actuator values outside the commissioned envelope.
+6. Reduce vibration only after repeated stable windows and only when vibration power is actually measured.
+
+This is a reference supervisory policy and test target, not actuator firmware or safety-certified control. The published Γ ≤ 3.4 result is not a default for another simulant, wall, fill, vacuum, gravity or hopper geometry.
+
+## Segregation is a separate physics and product-quality problem
+
+Nakagawa & Kioka, *Segregation in Granular Flow Under Lunar Conditions*, Fluids 11(11), 279 (4 November 2026), DOI [10.3390/fluids11110279](https://doi.org/10.3390/fluids11110279), argues that granular Bond number Bo_m = F_adh/(m g) and inertial number I = γdot d/sqrt(P/rho) organize the lunar regime better than gravity alone. Its review explicitly states that the internal composition field of dense, sheared, cohesive, polydisperse flow has not yet been resolved under reduced gravity. It proposes a vacuum annular shear-cell experiment varying Bo_m over at least three decades at fixed size ratio, while varying confining pressure independently and measuring composition by tomography or registered sectioning.
+
+That is tracked separately in [#6070](https://github.com/Luminous-Dynamics/symtropy/issues/6070). The run record now has fields for size-fraction/composition profile artifacts, out-of-spec mass and duration, agglomerate fragmentation, and flow continuity. A flow system can be jam-free and still produce unacceptable reactor feed. Preserve the time- and position-dependent composition field; a single bulk average can hide segregation.
+
+## Rust tools
+
+- tools/lunar-granular-flow-similarity: fail-closed similarity-envelope comparison across Fr, cohesion/weight, wall-adhesion/weight, particle/vessel ratio, roughness/particle ratio, fill, gravity, pressure and categorical boundaries. Missing coordinates return indeterminate. This screens claimed similitude; it does not establish physical equivalence.
+- tools/lunar-regolith-feeder-supervisor: advisory, stateful hopper/rotary-feeder supervisory policy with sensor-health checks, flow recovery, metering control, quality holds and power-aware vibration trimming.
+- scripts/validate-lunar-granular-flow-dataset.sh: dataset/run semantic and provenance admission checks.
+- scripts/check-lunar-granular-flow-fixture.sh: synthetic fixture tests, DOE count checks and partition/digest negative controls.
+
+The Linux CI explicitly formats, tests, Clippy-checks and executes both standalone Rust tools. These crates are not implicitly compiled by the root workspace.
+
+## Additional published 1-g flow-regime comparator: LHS-1
+
+Lappa, Watson & Bonnieu, *Vibrationally aided flow of lunar regolith simulants in a hopper-based conveying device*, Journal of Rheology 70, 557–579 (21 April 2026), DOI [10.1122/8.0001055](https://doi.org/10.1122/8.0001055), provides a complementary terrestrial-gravity comparator using LHS-1:
+
+- Identifies four spatial flow configurations: **funnel, mass, asymmetric, and ratholing**.
+- Reports vibration made flow more regular and spatially uniform and reduced arching, but average mass rate remained below purely gravitational flow in the tested configurations.
+- Low frequencies promoted arching; at higher frequency, clogging could re-emerge at thresholds, particularly with low acceleration amplitude.
+- Increasing vibration amplitude generally mitigated blockage, but its effectiveness weakened as sample mass increased.
+- The paper identifies the four regimes using the spatial/temporal flow pattern, not simply average mass rate.
+
+This is a 1-g LHS-1 hopper benchmark, distinct from the 0.16-g ICN-LHT-1 hopper-to-rotary-pocket-feeder parabolic-flight study. It should be used as a separate source-reproduction and cross-material comparison, not pooled into the parabolic-flight success ratio. Exact source factor values and test geometry must be extracted from the full experimental tables before calling a replication matched.
+
+The new 63-cell LHS-1 extension in advanced-doe-v0.json is analyst-selected: seven Gamma values × three apparatus-commissioned frequency bands × three hopper charge-mass fractions. It explicitly holds frequency and acceleration as independent controls and includes spatial-flow regime classification, stagnant-zone/rathole area, asymmetry, jam probability, and mass-rate variability. All cells are planned only.
+
+**Why this matters:** a mass-flow average can conceal ratholing or a large stagnant region. Regime classification, occupancy/velocity fields and outlet-rate time series must accompany throughput, energy and composition measurements. The run schema now includes charge mass and hopper geometry fields, an observed regime classification and confidence, and an artifact reference to the spatial flow-regime evidence.
+
+## Cross-gravity, cross-simulant bridge experiment
+
+The two published hopper comparators cannot be collapsed into a single trend: the Lappa et al. paper uses LHS-1 in a 1-g ground rig, while Stepanova et al. use ICN-LHT-1 at 0.16 g in parabolic flight. Their apparatus, material and operating conditions are not matched. The new 80-cell bridge matrix in advanced-doe-v0.json is intended to separate those effects:
+
+- Two separately characterized simulants: LHS-1 and ICN-LHT-1.
+- Two gravity levels: 1 g and 0.16 g.
+- Four vibration levels: off, Gamma 1.5, 3.4 and 6.
+- Three calibrated frequency bands for vibration-on cells, with identical hardware bands in both gravity campaigns.
+- Two hopper charge levels: 0.25 and 1.0 of the test rig's commissioned rated charge.
+- One common hopper/outlet/mount/rotary-pocket-feeder/sensor architecture and a target of three repeats per cell.
+
+This is a proposed matched bridge, not source reproduction. Gamma 3.4 is included because it is a demonstrated sustained-flow level for ICN-LHT-1 in the cited parabolic-flight apparatus; it is not a universal threshold. Frequency bands and charge limits must be commissioned against the actual test rig. Matching Gamma does not match displacement, contact dynamics, particle adhesion or the full gravity/contact regime. Preserve measured frequency, peak acceleration, displacement, packing state, bed height, material batch, wall contact and feeder response.
+
+Analyse material × gravity × Gamma × frequency × charge-mass interactions with a preregistered mixed-effects model. Do not pool LHS-1 and ICN-LHT-1 into one material class, and do not infer lunar gravity equivalence from matched Gamma alone.
+
+## Additional public LHS-1 video corpus and source-data boundary
+
+The 2026 Lappa, Watson & Vincent Bonnieu *Journal of Rheology* paper is a complementary LHS-1 hopper-discharge baseline (DOI [10.1122/8.0001055](https://doi.org/10.1122/8.0001055)). It reports that vibration regularizes flow and reduces arching, but average mass rate can remain below purely gravitational flow. Its regime map includes funnel, mass, asymmetric and ratholing patterns; low frequencies promote arching, while some high-frequency / low-amplitude settings can reintroduce clogging. Effectiveness also weakens as sample mass grows. This is a reminder that an "increase Gamma" controller cannot ignore frequency, fill/charge mass and flow morphology.
+
+The corresponding University of Strathclyde video dataset is publicly listed under DOI [10.15129/22b792eb-7ca4-46b1-b2eb-6ef15b95a281](https://doi.org/10.15129/22b792eb-7ca4-46b1-b2eb-6ef15b95a281), 558 MB, CC BY 4.0. It contains labelled folders of videos used to generate the paper's analysis and figures. Source page: [Strathclyde dataset record](https://pureportal.strath.ac.uk/en/datasets/data-for-vibrationally-aided-flow-of-lunar-regolith-simulant-in-a/). The download endpoint returned HTTP 403 during this authoring session, so no video files were ingested and no computer-vision measurements are claimed. The benchmark records it as a public ingestion target, subject to successfully retrieving and hashing the exact archive.
+
+The newer Stepanova, Dreyer & Garvey 2026 parabolic-flight article is separate: it reports 480 experiments at 0.16 g / 27–60 Pa with ICN-LHT-1, but its data-availability statement says load-cell, accelerometer and video records are available from the corresponding author on reasonable request. It does **not** provide a public 480-row archive. The 480 objects in `advanced-doe-v0.json` are empty structural templates awaiting an author data request; they must never be used as synthetic labels, reconstructed results or a model-training set.
+
+### Cross-gravity and second-simulant extensions
+
+The advanced DOE also separates two planned transfers:
+- **80-cell LHS-1 / ICN-LHT-1 × 1 g / 0.16 g matched-envelope sentinel** with a common apparatus boundary, feeder, charge-mass role, measured Gamma and frequency bands. This tests which transfer variables change with gravity and how output metering shifts; it is planned, not run.
+- **63-cell LHS-1 hopper regime extension** based on the 2026 Journal of Rheology paper's four flow morphologies and vibration response, using a three-frequency band × seven Gamma levels × three rated fill/charge levels. Exact frequencies and displacement must be commissioned from the apparatus response curve, and source levels must be recovered from the paper before calling this a reproduction.
+
+These extensions keep **material identity, flow morphology and gravity** visible rather than treating one simulant's operating point as a universal lunar control law.
+
+## Source-data ingestion registry
+
+The exact source/access ledger is pinned in `data-sources.json`; CI checks its identity, declared status and known source checksums. The current ingest state is **zero datasets ingested**:
+
+| Source | Access / scope | Best first step |
+|---|---|---|
+| Wylęgała–Uhl 2026 rotating drum | Public Zenodo record, DOI 10.5281/zenodo.18749190; frame-level CSV 38.8 MB with MD5 recorded; raw/processed videos 39.4 GB with MD5 recorded | Retrieve the CSV first to reproduce the published angle/stability metrics, then selectively audit videos |
+| Lappa–Watson–Bonnieu 2026 LHS-1 hopper | University of Strathclyde dataset DOI 10.15129/22b792eb-7ca4-46b1-b2eb-6ef15b95a281; 558 MB video ZIP, listed CC BY 4.0 | Reconstruct flow morphology/clogging and vibration/fill/frequency effects from the figure-labelled video folders |
+| Stepanova–Dreyer–Garvey 2026 parabolic feeder | Data available from corresponding author on reasonable request; no public 480-row archive | Request load-cell, accelerometer, video, per-parabola condition map and calibration records; only then populate the 480 empty import templates |
+
+The Wylęgała–Uhl Zenodo record lists `metrics_frame_level.csv` (38.8 MB, MD5 `55c298d9edccc571f0ca0a3ec8e36fbd`) and `materials.zip` (39.4 GB, MD5 `2bf754879dc088c2cb648c5441c7d640`). The public record is [here](https://zenodo.org/records/18749190). The Lappa dataset record lists the 558-MB video corpus and CC BY 4.0 [here](https://pureportal.strath.ac.uk/en/datasets/data-for-vibrationally-aided-flow-of-lunar-regolith-simulant-in-a/). The Stepanova paper explicitly says that its sensor/video records are available by corresponding-author request [here](https://link.springer.com/article/10.1007/s44461-026-00021-y).
+
+Download attempts for the Wylęgała CSV and Lappa ZIP returned access errors in this authoring session. Accordingly no bytes, extracted labels, frame metrics or video analysis are committed. A public DOI is not evidence that the actual archive was downloaded, decoded, licensed for redistribution or validated. At ingestion:
+1. record exact retrieval timestamp, URL, license, filename and source DOI;
+2. verify any source-provided MD5 only as an integrity cross-check;
+3. calculate SHA-256 on the exact downloaded bytes and create a content-addressed artifact record;
+4. preserve the unmodified source archive; extract to a separate derived-data path;
+5. pin decoder, frame rate, crop/ROI, calibration, segmentation/model version and parameters;
+6. compare automated metrics with source-published summary tables and manually adjudicated frames;
+7. keep source material, batch, apparatus, pressure and test protocol boundaries intact.
+
+The CI source registry check only validates metadata and claim boundaries. It does not download, validate or qualify these datasets.
+
+## Controller tournament and SOTA comparison
+
+The machine-readable tournament contract is `controller-tournament.json`; CI checks that the comparison remains protocol-only and has not been mislabeled as a result. The benchmark compares seven policies on the same source/campaign boundary:
+1. passive no-vibration reference;
+2. fixed vibration;
+3. feeder-speed PID with fixed vibration;
+4. the current Rust rule-based advisory supervisor;
+5. gain-scheduled response-surface control;
+6. constrained model-predictive control;
+7. safe Bayesian experiment selection/adaptation, restricted to an independently commissioned envelope.
+
+The ambitious candidate is not unconstrained online learning. It is a **constrained quality-aware controller** that separates hopper continuity from metering, uses measured acceleration/frequency and feeder encoder feedback, minimizes energy per accepted kg, and treats segregation/fragmentation as state constraints. Unknown quality sensors, out-of-domain material/wall/pressure states or unacknowledged actuator outcomes must block new accepted-feed delivery commands.
+
+To beat current practice, the controller must outperform fixed vibration or simple feeder PID on group-disjoint material batches while preserving jam probability, off-spec mass, fragmentation and wear. Proposed targets are 15% lower vibration energy per accepted kg and 15% more accepted kg per mission-hour at matched constraints, with 90–95% calibrated interval coverage and zero hard-bound violations. These are hypotheses, not measured results.
+
+The comparison must distinguish the source papers' boundaries:
+- LHS-1 ground hopper gravity discharge (Lappa et al.);
+- ICN-LHT-1 reduced-gravity/vacuum hopper supply to a rotary pocket feeder (Stepanova et al.);
+- rotating-drum wall/vacuum surface stability (Wylęgała & Uhl).
+
+No model trained on rotating-drum angles may claim hopper flow qualification without a matched transfer experiment. No model trained on hopper-to-feeder flow may claim free gravity discharge or downstream beneficiation. The issue [#6090](https://github.com/Luminous-Dynamics/symtropy/issues/6090) tracks the controller tournament and its control/actuator acknowledgement contract.
+
+
+The end-to-end source acquisition gates, exact data-request items, and source-specific reproduction boundaries are maintained in [docs/research/LUNAR_GRANULAR_FLOW_DATA_ACQUISITION.md](../../../docs/research/LUNAR_GRANULAR_FLOW_DATA_ACQUISITION.md).
+
+## Distribution-valued adhesion, evolving particle inventory and second-stage segregation
+
+The scalar \(Bo_m\) used in the first-stage annular screen is a controlled summary, not an adequate description of the whole regolith stream. Nakagawa & Kioka (2026) note that adhesion on rough grains is broadly distributed: the strongest contacts can govern arrest/clogging, while weak contacts can govern relative motion and percolation. The lunar grading also spans multiple decades; a single sample can occupy several cohesion regimes simultaneously. Shape/interlocking and agglutinate breakage are not captured by \(Bo_m\), \(I\), and \(El\) alone.
+
+The run contract therefore now supports:
+
+- size-bin-specific particle mass and contact-adhesion p05/p50/p95/p99;
+- size-bin-specific derived \(Bo_m\) quantiles, each reconciled against its source force quantile, representative particle mass and gravity;
+- bulk tensile strength and \(\Sigma^*=P/\sigma_t\), a confinement-to-cohesive-strength ratio;
+- flow depth, breakage rate, segregation velocity scale and size contrast, with \(R=H\bar b/(w_0\Delta s)\), the breakage/segregation timescale ratio;
+- pre/post-run PSD and composition artifacts, as well as agglutinate fragmentation and out-of-spec feedstock measurements.
+
+The **18-coordinate** similarity utility now treats electrostatic projection as signed only along a declared reference axis. The paper's \(El=|q|E/(mg)\) is a magnitude; its direction is size-dependent charge polarity. The run schema uses a signed field component and requires \`electrostatic_field_axis_id\`; the similarity comparator requires the axis identity to match. A polarity comparison without a shared axis is not a valid similitude claim.
+
+### Staged segregation programme
+
+Stage 1 remains the 90-cell fixed-size-ratio annular vacuum shear-cell screen: 10 target \(Bo_m\) levels over three decades × 3 inertial-number levels × 3 confining-pressure levels. This isolates the cohesion / confinement competition, but does not represent a full lunar grading.
+
+Stage 2 adds 36 planned multi-species cells: narrow bidisperse, trimodal and broad Apollo-like grading × matched/contrasting density × 10/30/60% agglutinate volume fraction × grounded/isolated electrical boundary. The 10/30/60% values span the approximate range reported in the review, while the Apollo-like \(D_5=3.3\,\mu m\), \(D_{50}=72\,\mu m\), \(D_{95}=1370\,\mu m\) are source anchors, not substitute test material. The actual particle size, mineral density, morphology, adhesion and charge distributions must be measured for each batch.
+
+This second stage asks whether the first-stage regime map survives simultaneous size, density, shape, electrostatic and breakage interactions. It is explicitly not a full factorial over every physical parameter; it is a discriminating screen whose follow-up conditions should be chosen using observed interaction effects and uncertainty.
+
+The new work is tracked in [#6070](https://github.com/Luminous-Dynamics/symtropy/issues/6070). Process-specific feedstock contracts from beneficiation through the reactor inlet are tracked separately in [#6124](https://github.com/Luminous-Dynamics/symtropy/issues/6124).

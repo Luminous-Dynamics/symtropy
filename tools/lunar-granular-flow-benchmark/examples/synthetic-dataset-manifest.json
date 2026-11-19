@@ -1,0 +1,143 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "lunar-granular-flow-validation-v0",
+  "dataset_id": "SYNTHETIC-GRANULAR-FLOW-THREE-PARTITION-FIXTURE",
+  "created_at": "2026-11-18T09:00:00+02:00",
+  "source_class": "synthetic_fixture",
+  "split_policy": {
+    "isolation_axes": [
+      "material_batch_id",
+      "preparation_protocol_id",
+      "wall_surface_id",
+      "apparatus_geometry_id",
+      "environment_profile_id",
+      "operating_regime_id"
+    ],
+    "optional_isolation_axes": [
+      "laboratory_id",
+      "campaign_id",
+      "feeder_geometry_id",
+      "vibration_profile_id"
+    ],
+    "partition_order": [
+      "calibration",
+      "validation",
+      "blind_test"
+    ],
+    "blind_test_access": {
+      "hidden_from_model": true,
+      "revealed_after_freeze": true,
+      "freeze_required": [
+        "executable_sha256",
+        "source_revision",
+        "configuration_artifact_id",
+        "parameters_artifact_id",
+        "random_seed",
+        "prediction_artifacts"
+      ]
+    }
+  },
+  "group_assignments": {
+    "material_batch_id": {
+      "SYN-FLOW-BATCH-A": "calibration",
+      "SYN-FLOW-BATCH-B": "validation",
+      "SYN-FLOW-BATCH-C": "blind_test"
+    },
+    "preparation_protocol_id": {
+      "SYN-FLOW-PREP-A": "calibration",
+      "SYN-FLOW-PREP-B": "validation",
+      "SYN-FLOW-PREP-C": "blind_test"
+    },
+    "wall_surface_id": {
+      "SYN-WALL-PTFE-A": "calibration",
+      "SYN-WALL-PTFE-B": "validation",
+      "SYN-WALL-PTFE-C": "blind_test"
+    },
+    "apparatus_geometry_id": {
+      "SYN-DRUM-A": "calibration",
+      "SYN-DRUM-B": "validation",
+      "SYN-DRUM-C": "blind_test"
+    },
+    "environment_profile_id": {
+      "SYN-VACUUM-A": "calibration",
+      "SYN-VACUUM-B": "validation",
+      "SYN-VACUUM-C": "blind_test"
+    },
+    "operating_regime_id": {
+      "SYN-SLUMPING-A": "calibration",
+      "SYN-SLUMPING-B": "validation",
+      "SYN-SLUMPING-C": "blind_test"
+    },
+    "laboratory_id": {
+      "SYN-FLOW-LAB-A": "calibration",
+      "SYN-FLOW-LAB-B": "validation",
+      "SYN-FLOW-LAB-C": "blind_test"
+    },
+    "campaign_id": {
+      "SYN-FLOW-CAMPAIGN-A": "calibration",
+      "SYN-FLOW-CAMPAIGN-B": "validation",
+      "SYN-FLOW-CAMPAIGN-C": "blind_test"
+    },
+    "feeder_geometry_id": {
+      "SYN-FEEDER-A": "calibration",
+      "SYN-FEEDER-B": "validation",
+      "SYN-FEEDER-C": "blind_test"
+    },
+    "vibration_profile_id": {
+      "SYN-VIBRATION-A": "calibration",
+      "SYN-VIBRATION-B": "validation",
+      "SYN-VIBRATION-C": "blind_test"
+    }
+  },
+  "run_assignments": [
+    {
+      "run_id": "SYN-FLOW-CAL-001",
+      "partition": "calibration",
+      "group_keys": {
+        "material_batch_id": "SYN-FLOW-BATCH-A",
+        "preparation_protocol_id": "SYN-FLOW-PREP-A",
+        "wall_surface_id": "SYN-WALL-PTFE-A",
+        "apparatus_geometry_id": "SYN-DRUM-A",
+        "environment_profile_id": "SYN-VACUUM-A",
+        "operating_regime_id": "SYN-SLUMPING-A",
+        "laboratory_id": "SYN-FLOW-LAB-A",
+        "campaign_id": "SYN-FLOW-CAMPAIGN-A",
+        "feeder_geometry_id": "SYN-FEEDER-A",
+        "vibration_profile_id": "SYN-VIBRATION-A"
+      }
+    },
+    {
+      "run_id": "SYN-FLOW-VAL-001",
+      "partition": "validation",
+      "group_keys": {
+        "material_batch_id": "SYN-FLOW-BATCH-B",
+        "preparation_protocol_id": "SYN-FLOW-PREP-B",
+        "wall_surface_id": "SYN-WALL-PTFE-B",
+        "apparatus_geometry_id": "SYN-DRUM-B",
+        "environment_profile_id": "SYN-VACUUM-B",
+        "operating_regime_id": "SYN-SLUMPING-B",
+        "laboratory_id": "SYN-FLOW-LAB-B",
+        "campaign_id": "SYN-FLOW-CAMPAIGN-B",
+        "feeder_geometry_id": "SYN-FEEDER-B",
+        "vibration_profile_id": "SYN-VIBRATION-B"
+      }
+    },
+    {
+      "run_id": "SYN-FLOW-BLIND-001",
+      "partition": "blind_test",
+      "group_keys": {
+        "material_batch_id": "SYN-FLOW-BATCH-C",
+        "preparation_protocol_id": "SYN-FLOW-PREP-C",
+        "wall_surface_id": "SYN-WALL-PTFE-C",
+        "apparatus_geometry_id": "SYN-DRUM-C",
+        "environment_profile_id": "SYN-VACUUM-C",
+        "operating_regime_id": "SYN-SLUMPING-C",
+        "laboratory_id": "SYN-FLOW-LAB-C",
+        "campaign_id": "SYN-FLOW-CAMPAIGN-C",
+        "feeder_geometry_id": "SYN-FEEDER-C",
+        "vibration_profile_id": "SYN-VIBRATION-C"
+      }
+    }
+  ],
+  "notes": "NON-PHYSICAL SYNTHETIC MANIFEST. Partition labels and IDs demonstrate validator behavior only; no test data or lunar material are represented."
+}

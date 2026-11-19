@@ -1,0 +1,149 @@
+{
+  "schema_version": "0.1.0",
+  "formula_set_id": "lunar-granular-dimensionless-groups-v1",
+  "evidence_class": "dimensionless_definition_registry",
+  "literature_basis": {
+    "doi": "10.3390/fluids11110279",
+    "title": "Segregation in Granular Flow Under Lunar Conditions",
+    "role": "Defines the proposed Bo_m, I and signed electrostatic-number regime coordinates; apparatus-specific applicability still requires validation."
+  },
+  "common_rules": {
+    "missing_primitives": "derived coordinate status must be unknown; never substitute zero",
+    "nonfinite_primitives": "reject run record",
+    "units": "convert all inputs to SI before evaluation",
+    "uncertainty": "propagate primitive uncertainty; first-order GUM when linearization is defensible, otherwise Monte Carlo or interval bounds",
+    "correlation": "include known covariance between measurements; do not assume independence without documenting the assumption",
+    "derived_provenance": "store exact formula_set_id, derivation_method_id, calculation_version and source artifact IDs",
+    "claim_ceiling": "dimensionless similarity is a screening comparison, not proof of dynamic similarity, constitutive equivalence or lunar hardware qualification"
+  },
+  "coordinates": [
+    {
+      "id": "granular_bond_number",
+      "symbol": "Bo_m",
+      "formula": "F_interparticle_adhesion_N / (representative_particle_mass_kg * gravity_m_s2)",
+      "inputs": [
+        "material.mean_interparticle_cohesion_force_n",
+        "material.representative_particle_mass_kg",
+        "environment.gravity_m_s2"
+      ],
+      "output_unit": "1",
+      "domain": "non-negative",
+      "missing_rule": "unknown unless all three inputs are available",
+      "physical_scope": "particle-particle adhesion relative to particle weight"
+    },
+    {
+      "id": "wall_adhesion_to_particle_weight",
+      "symbol": "Aw",
+      "formula": "wall_pull_off_force_n / (representative_particle_mass_kg * gravity_m_s2)",
+      "inputs": [
+        "apparatus.wall_pull_off_force_n",
+        "material.representative_particle_mass_kg",
+        "environment.gravity_m_s2"
+      ],
+      "output_unit": "1",
+      "domain": "non-negative",
+      "missing_rule": "unknown unless all three inputs are available",
+      "physical_scope": "wall-particle adhesion relative to particle weight"
+    },
+    {
+      "id": "inertial_number",
+      "symbol": "I",
+      "formula": "shear_rate_s_minus_1 * d50_m / sqrt(normal_confining_stress_pa / bulk_density_kg_m3)",
+      "inputs": [
+        "operation.shear_rate_s_minus_1",
+        "material.d50_um",
+        "operation.normal_confining_stress_pa",
+        "material.bulk_density_kg_m3"
+      ],
+      "output_unit": "1",
+      "domain": "non-negative",
+      "missing_rule": "unknown unless all four inputs are available",
+      "physical_scope": "shear-rate/inertial granular-flow regime"
+    },
+    {
+      "id": "electrostatic_number",
+      "symbol": "El",
+      "formula": "surface_charge_coulomb_per_kg * electrostatic_field_v_m / gravity_m_s2",
+      "inputs": [
+        "material.surface_charge_coulomb_per_kg",
+        "environment.electrostatic_field_v_m",
+        "environment.gravity_m_s2"
+      ],
+      "output_unit": "1",
+      "domain": "signed",
+      "missing_rule": "unknown unless all three inputs are available",
+      "sign_semantics": "preserve sign; opposite polarity is a physical mismatch even when magnitudes match",
+      "physical_scope": "electric forcing relative to gravitational weight"
+    },
+    {
+      "id": "vibration_gamma",
+      "symbol": "Gamma",
+      "formula": "vibration_peak_acceleration_m_s2 / gravity_m_s2",
+      "inputs": [
+        "operation.vibration_peak_acceleration_m_s2",
+        "environment.gravity_m_s2"
+      ],
+      "output_unit": "1",
+      "domain": "non-negative",
+      "missing_rule": "unknown unless both inputs are available",
+      "physical_scope": "peak vibration acceleration relative to gravity"
+    },
+    {
+      "id": "vibration_frequency_gravity_scale",
+      "symbol": "f_star",
+      "formula": "vibration_frequency_hz * sqrt(d50_m / gravity_m_s2)",
+      "inputs": [
+        "operation.vibration_frequency_hz",
+        "material.d50_um",
+        "environment.gravity_m_s2"
+      ],
+      "output_unit": "1",
+      "domain": "non-negative",
+      "missing_rule": "unknown unless all three inputs are available",
+      "physical_scope": "vibration frequency scaled by particle/gravity time"
+    },
+    {
+      "id": "vibration_amplitude_to_particle_size",
+      "symbol": "A_star",
+      "formula": "vibration_amplitude_m / d50_m",
+      "inputs": [
+        "operation.vibration_amplitude_m",
+        "material.d50_um"
+      ],
+      "output_unit": "1",
+      "domain": "non-negative",
+      "missing_rule": "unknown unless both inputs are available",
+      "physical_scope": "vibration displacement relative to median particle size"
+    },
+    {
+      "id": "particle_to_drum_ratio",
+      "symbol": "d_star",
+      "formula": "d50_m / drum_inner_radius_m",
+      "inputs": [
+        "material.d50_um",
+        "apparatus.drum_inner_radius_m"
+      ],
+      "output_unit": "1",
+      "domain": "strictly_positive",
+      "missing_rule": "unknown unless both inputs are available",
+      "physical_scope": "particle size relative to vessel curvature/size"
+    },
+    {
+      "id": "wall_roughness_to_particle_ratio",
+      "symbol": "Ra_star",
+      "formula": "wall_roughness_ra_um / d50_um",
+      "inputs": [
+        "apparatus.wall_roughness_ra_um",
+        "material.d50_um"
+      ],
+      "output_unit": "1",
+      "domain": "non-negative",
+      "missing_rule": "unknown unless both inputs are available",
+      "physical_scope": "wall roughness relative to particle size"
+    }
+  ],
+  "conversions": {
+    "d50_um_to_m": "multiply by 1e-6",
+    "wall_roughness_ratio": "both lengths remain in micrometres so the ratio is unitless"
+  }
+}

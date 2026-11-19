@@ -1,0 +1,120 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "lunar-feeder-controller-tournament-v0",
+  "evidence_class": "benchmark_protocol_only",
+  "status": "planned_not_run",
+  "source_profiles": [
+    {
+      "id": "LHS-1-ground-hopper",
+      "source_doi": "10.1122/8.0001055",
+      "apparatus_boundary": "hopper gravity discharge",
+      "data_access": "public video corpus; 558 MB; CC BY 4.0",
+      "dataset_doi": "10.15129/22b792eb-7ca4-46b1-b2eb-6ef15b95a281"
+    },
+    {
+      "id": "ICN-LHT-1-parabolic-feeder",
+      "source_doi": "10.1007/s44461-026-00021-y",
+      "apparatus_boundary": "hopper supply to rotary pocket feeder",
+      "data_access": "author request for load cell accelerometer and video; no public raw dataset"
+    },
+    {
+      "id": "Wylegala-Uhl-vacuum-drum",
+      "source_doi": "10.1016/j.actaastro.2026.07.006",
+      "apparatus_boundary": "rotating drum flow stability",
+      "data_access": "public Zenodo frame-level CSV and video archive; separate from hopper data",
+      "dataset_doi": "10.5281/zenodo.18749190"
+    }
+  ],
+  "controllers": [
+    {
+      "id": "passive_no_vibration",
+      "category": "physical_baseline",
+      "status": "baseline_to_reproduce"
+    },
+    {
+      "id": "fixed_vibration",
+      "category": "open_loop",
+      "status": "baseline_to_reproduce"
+    },
+    {
+      "id": "feeder_pid_fixed_vibration",
+      "category": "classical_control",
+      "status": "baseline_to_implement"
+    },
+    {
+      "id": "rule_based_supervisor",
+      "category": "rule_based",
+      "status": "implemented_advisory_only",
+      "implementation": "tools/lunar-regolith-feeder-supervisor"
+    },
+    {
+      "id": "gain_scheduled_response_surface",
+      "category": "scheduled_control",
+      "status": "research_candidate"
+    },
+    {
+      "id": "constrained_model_predictive_control",
+      "category": "model_predictive_control",
+      "status": "research_candidate"
+    },
+    {
+      "id": "safe_bayesian_experiment_selection",
+      "category": "safe_adaptive_control",
+      "status": "research_candidate"
+    }
+  ],
+  "holdout_axes": [
+    "material_batch_id",
+    "preparation_protocol_id",
+    "wall_surface_id",
+    "apparatus_geometry_id",
+    "environment_profile_id",
+    "operating_regime_id",
+    "vibration_profile_id",
+    "feeder_geometry_id"
+  ],
+  "primary_metrics": [
+    "accepted_target_size_kg_per_mission_hour",
+    "accepted_target_size_kg_per_kwh",
+    "flow_continuity_duty_fraction",
+    "jam_events_per_operating_hour",
+    "mass_flow_rate_cv",
+    "cumulative_out_of_spec_mass_kg",
+    "segregation_index",
+    "agglomerate_fragmentation_fraction",
+    "vibration_energy_per_accepted_kg",
+    "feeder_energy_per_accepted_kg"
+  ],
+  "integrity_metrics": [
+    "actuator_hard_bound_violations",
+    "measured_command_tracking_error",
+    "stale_sensor_stop_success",
+    "unknown_state_abstention",
+    "blind_batch_false_safe_rate",
+    "prediction_interval_coverage",
+    "worst_group_error",
+    "controller_compute_time_ms"
+  ],
+  "constraints": {
+    "compare_same_material_batch_and_hardware_when_reproducing_source": true,
+    "split_by_complete_batches_for_generalization": true,
+    "frame_level_random_split_is_not_cross_condition_generalization": true,
+    "blind_partition_requires_external_custodian": true,
+    "no_controller_may_exceed_commissioned_frequency_gamma_or_actuator_stroke": true,
+    "unknown_required_quality_measurement_blocks_accepted_delivery": true,
+    "publication_source_claims_must_remain_distinct_by_test_boundary": true
+  },
+  "improvement_targets": {
+    "energy_per_accepted_kg_reduction_fraction": 0.15,
+    "accepted_kg_per_mission_hour_improvement_fraction": 0.15,
+    "calibration_experiment_or_sample_mass_reduction_fraction": 0.25,
+    "interval_coverage_nominal": [
+      0.9,
+      0.95
+    ],
+    "hard_bound_violations_allowed": 0,
+    "status": "proposed_hypotheses_not_achieved",
+    "conditions": "All targets require identical held-out batch splits, matched apparatus, metrology uncertainty and preregistered non-inferiority limits for jam rate, off-spec mass, fragmentation and wear."
+  },
+  "claim_ceiling": "Protocol only. No head-to-head controller results, adaptive-control performance, MPC performance, Bayesian optimization performance, hardware-in-loop result or flight qualification is represented."
+}
