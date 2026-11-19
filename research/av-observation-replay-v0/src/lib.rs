@@ -681,7 +681,7 @@ pub fn sha256_hex_v1(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     const HEX: &[u8; 16] = b"0123456789abcdef";
     let mut output = String::with_capacity(64);
-    for byte in digest {
+    for byte in digest.iter().copied() {
         output.push(HEX[(byte >> 4) as usize] as char);
         output.push(HEX[(byte & 0x0f) as usize] as char);
     }
@@ -890,11 +890,11 @@ mod tests {
         let bundle = fixture();
         let reference = bundle.observations[0].artifact_ref();
         assert_eq!(
-            verify_artifact_bytes_v1(&reference, b"ABCE"),
+            verify_artifact_bytes_v1(reference, b"ABCE"),
             Err(ContractError::ArtifactIntegrityMismatch)
         );
         assert_eq!(
-            verify_artifact_bytes_v1(&reference, b"ABC"),
+            verify_artifact_bytes_v1(reference, b"ABC"),
             Err(ContractError::ArtifactIntegrityMismatch)
         );
     }
