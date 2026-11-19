@@ -139,6 +139,29 @@ jobs:
 
           assert not capacity_violations(fixture), "valid portfolio over-allocates capacity"
 
+          def qualification_violations(document):
+              suppliers_by_id = {item["supplierId"]: item for item in document["suppliers"]}
+              resources_by_id = {item["resourceId"]: item for item in document["capacityResources"]}
+              projects_by_id = {item["projectId"]: item for item in document["projects"]}
+              violations = []
+              snapshot = parse_time(document["snapshotAt"])
+              for reservation in document["reservations"]:
+                  if reservation["state"] not in {"held", "confirmed"}:
+                      continue
+                  supplier_id = resources_by_id[reservation["resourceId"]]["supplierId"]
+                  supplier = suppliers_by_id[supplier_id]
+                  asset_family = projects_by_id[reservation["projectId"]]["requiredAssetFamily"]
+                  matches = [q for q in supplier["qualificationRecords"] if q["assetFamily"] == asset_family]
+                  if len(matches) != 1 or matches[0]["status"] != "qualified":
+                      violations.append((reservation["reservationId"], "supplier not qualified for asset family"))
+                      continue
+                  valid_until = matches[0].get("validUntil")
+                  if valid_until and datetime.fromisoformat(valid_until).date() <= snapshot.date():
+                      violations.append((reservation["reservationId"], "supplier qualification expired"))
+              return violations
+
+          assert not qualification_violations(fixture), "active reservation uses unqualified supplier"
+
           # The proposed second booking is visible but not counted as a held/confirmed reservation.
           proposed = next(x for x in fixture["reservations"] if x["state"] == "proposed")
           assert proposed["resourceId"] == "alpha-factory-line-1"
@@ -180,9 +203,15 @@ jobs:
           beta_resource_ids = {r["resourceId"] for r in resources.values() if r["supplierId"] == "supplier-beta"}
           assert not any(r["resourceId"] in beta_resource_ids and r["state"] in {"held", "confirmed"} for r in fixture["reservations"])
 
+          # Negative control: an otherwise available slot at an unqualified supplier cannot be confirmed.
+          unqualified_confirmation = copy.deepcopy(fixture)
+          next(x for x in unqualified_confirmation["reservations"] if x["reservationId"] == "reservation-rural-unqualified-beta-option")["state"] = "confirmed"
+          assert qualification_violations(unqualified_confirmation), "unqualified supplier confirmation was not rejected"
+
           print("PASS: Draft 2020-12 portfolio schema and fixture")
           print("PASS: supplier/resource/project/source references and unique reservation identities")
           print("PASS: capacity windows, right-censored backlog and unknown lead-time semantics")
           print("PASS: proposed bookings do not consume capacity; double booking is detected")
+          print("PASS: supplier qualification must be current and asset-family compatible before confirmation")
           print("PASS: common-cause resource dependencies and unqualified supplier are not treated as available")
           PY
