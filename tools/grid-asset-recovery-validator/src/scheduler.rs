@@ -614,7 +614,9 @@ pub fn weighted_unserved_energy_mwh(
         {
             return Err(vec![format!("schedule task {} has invalid interval", task_key)]);
         }
-        *end = end.max(scheduled_task.end_hour);
+        if scheduled_task.end_hour > *end {
+            *end = scheduled_task.end_hour;
+        }
     }
 
     if seen.len() != task_ids.len() {
@@ -639,7 +641,7 @@ fn exact_service_search(
 ) {
     if unscheduled.is_empty() {
         let scheduled_tasks: Vec<_> = scheduled.values().cloned().collect();
-        let task_specs: Vec<_> = task_by_key.values().map(|task| (*task).clone()).collect();
+        let task_specs: Vec<_> = task_by_key.values().map(|task| (**task).clone()).collect();
         let objective = weighted_unserved_energy_mwh(&task_specs, &scheduled_tasks)
             .expect("complete exact-search schedule has valid service metadata");
         let makespan = scheduled_tasks
