@@ -433,7 +433,8 @@
         "hard_gate_violations": 0,
         "service_floor_breaches": 0,
         "comfort_breaches": 0,
-        "plan_changes": 1
+        "plan_changes": 1,
+        "forecast_use": true
       },
       "baseline": {
         "policy_id": "matched-baseline",
@@ -442,7 +443,18 @@
         "hard_gate_violations": 0,
         "service_floor_breaches": 0,
         "comfort_breaches": 0,
-        "plan_changes": 2
+        "plan_changes": 2,
+        "forecast_use": true
+      },
+      "weather_blind_reference": {
+        "policy_id": "weather-blind-reference",
+        "forecast_use": false,
+        "purchased_energy_kwh_per_berth_day": 5.7,
+        "mission_regret_kwh_equivalent": 0.9,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 3
       }
     },
     {
@@ -467,7 +479,8 @@
         "hard_gate_violations": 0,
         "service_floor_breaches": 0,
         "comfort_breaches": 0,
-        "plan_changes": 2
+        "plan_changes": 2,
+        "forecast_use": true
       },
       "baseline": {
         "policy_id": "matched-baseline",
@@ -476,7 +489,18 @@
         "hard_gate_violations": 0,
         "service_floor_breaches": 0,
         "comfort_breaches": 0,
-        "plan_changes": 3
+        "plan_changes": 3,
+        "forecast_use": true
+      },
+      "weather_blind_reference": {
+        "policy_id": "weather-blind-reference",
+        "forecast_use": false,
+        "purchased_energy_kwh_per_berth_day": 5.8,
+        "mission_regret_kwh_equivalent": 0.9500000000000001,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 4
       }
     },
     {
@@ -501,7 +525,8 @@
         "hard_gate_violations": 0,
         "service_floor_breaches": 0,
         "comfort_breaches": 0,
-        "plan_changes": 1
+        "plan_changes": 1,
+        "forecast_use": true
       },
       "baseline": {
         "policy_id": "matched-baseline",
@@ -510,7 +535,18 @@
         "hard_gate_violations": 0,
         "service_floor_breaches": 0,
         "comfort_breaches": 0,
-        "plan_changes": 2
+        "plan_changes": 2,
+        "forecast_use": true
+      },
+      "weather_blind_reference": {
+        "policy_id": "weather-blind-reference",
+        "forecast_use": false,
+        "purchased_energy_kwh_per_berth_day": 5.9,
+        "mission_regret_kwh_equivalent": 1,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 3
       }
     },
     {
@@ -535,7 +571,8 @@
         "hard_gate_violations": 0,
         "service_floor_breaches": 0,
         "comfort_breaches": 0,
-        "plan_changes": 2
+        "plan_changes": 2,
+        "forecast_use": true
       },
       "baseline": {
         "policy_id": "matched-baseline",
@@ -544,7 +581,18 @@
         "hard_gate_violations": 0,
         "service_floor_breaches": 0,
         "comfort_breaches": 0,
-        "plan_changes": 3
+        "plan_changes": 3,
+        "forecast_use": true
+      },
+      "weather_blind_reference": {
+        "policy_id": "weather-blind-reference",
+        "forecast_use": false,
+        "purchased_energy_kwh_per_berth_day": 5.7,
+        "mission_regret_kwh_equivalent": 0.9,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 4
       }
     },
     {
@@ -569,7 +617,8 @@
         "hard_gate_violations": 0,
         "service_floor_breaches": 0,
         "comfort_breaches": 0,
-        "plan_changes": 1
+        "plan_changes": 1,
+        "forecast_use": true
       },
       "baseline": {
         "policy_id": "matched-baseline",
@@ -578,7 +627,18 @@
         "hard_gate_violations": 0,
         "service_floor_breaches": 0,
         "comfort_breaches": 0,
-        "plan_changes": 2
+        "plan_changes": 2,
+        "forecast_use": true
+      },
+      "weather_blind_reference": {
+        "policy_id": "weather-blind-reference",
+        "forecast_use": false,
+        "purchased_energy_kwh_per_berth_day": 5.8,
+        "mission_regret_kwh_equivalent": 0.9500000000000001,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 3
       }
     },
     {
@@ -603,7 +663,8 @@
         "hard_gate_violations": 0,
         "service_floor_breaches": 0,
         "comfort_breaches": 0,
-        "plan_changes": 2
+        "plan_changes": 2,
+        "forecast_use": true
       },
       "baseline": {
         "policy_id": "matched-baseline",
@@ -612,7 +673,18 @@
         "hard_gate_violations": 0,
         "service_floor_breaches": 0,
         "comfort_breaches": 0,
-        "plan_changes": 3
+        "plan_changes": 3,
+        "forecast_use": true
+      },
+      "weather_blind_reference": {
+        "policy_id": "weather-blind-reference",
+        "forecast_use": false,
+        "purchased_energy_kwh_per_berth_day": 5.9,
+        "mission_regret_kwh_equivalent": 1,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 4
       }
     },
     {
@@ -637,7 +709,8 @@
         "hard_gate_violations": 0,
         "service_floor_breaches": 0,
         "comfort_breaches": 0,
-        "plan_changes": 1
+        "plan_changes": 1,
+        "forecast_use": true
       },
       "baseline": {
         "policy_id": "matched-baseline",
@@ -646,7 +719,18 @@
         "hard_gate_violations": 0,
         "service_floor_breaches": 0,
         "comfort_breaches": 0,
-        "plan_changes": 2
+        "plan_changes": 2,
+        "forecast_use": true
+      },
+      "weather_blind_reference": {
+        "policy_id": "weather-blind-reference",
+        "forecast_use": false,
+        "purchased_energy_kwh_per_berth_day": 5.7,
+        "mission_regret_kwh_equivalent": 0.9,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 3
       }
     },
     {
@@ -671,7 +755,8 @@
         "hard_gate_violations": 0,
         "service_floor_breaches": 0,
         "comfort_breaches": 0,
-        "plan_changes": 2
+        "plan_changes": 2,
+        "forecast_use": true
       },
       "baseline": {
         "policy_id": "matched-baseline",
@@ -680,7 +765,18 @@
         "hard_gate_violations": 0,
         "service_floor_breaches": 0,
         "comfort_breaches": 0,
-        "plan_changes": 3
+        "plan_changes": 3,
+        "forecast_use": true
+      },
+      "weather_blind_reference": {
+        "policy_id": "weather-blind-reference",
+        "forecast_use": false,
+        "purchased_energy_kwh_per_berth_day": 5.8,
+        "mission_regret_kwh_equivalent": 0.9500000000000001,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 4
       }
     },
     {
@@ -705,7 +801,8 @@
         "hard_gate_violations": 0,
         "service_floor_breaches": 0,
         "comfort_breaches": 0,
-        "plan_changes": 1
+        "plan_changes": 1,
+        "forecast_use": true
       },
       "baseline": {
         "policy_id": "matched-baseline",
@@ -714,7 +811,18 @@
         "hard_gate_violations": 0,
         "service_floor_breaches": 0,
         "comfort_breaches": 0,
-        "plan_changes": 2
+        "plan_changes": 2,
+        "forecast_use": true
+      },
+      "weather_blind_reference": {
+        "policy_id": "weather-blind-reference",
+        "forecast_use": false,
+        "purchased_energy_kwh_per_berth_day": 5.9,
+        "mission_regret_kwh_equivalent": 1,
+        "hard_gate_violations": 0,
+        "service_floor_breaches": 0,
+        "comfort_breaches": 0,
+        "plan_changes": 3
       }
     }
   ]
