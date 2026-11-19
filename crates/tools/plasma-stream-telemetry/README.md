@@ -20,7 +20,7 @@ All times are integer nanoseconds. The calibration affine map is:
     t_ref = t_ref_anchor + (t_clock - t_clock_anchor)
             + (t_clock - t_clock_anchor) * drift_ppb / 1e9
 
-Each stream trace is replayed in observed receive order. Events are never sorted to hide duplicates, gaps or reordering. Sequence gaps are explicit degradation; duplicates and out-of-order sequence numbers remain distinct dispositions.
+Each stream trace is replayed in observed receive order. Events are never sorted to hide duplicates, gaps or reordering. Every missing sequence number is counted (not merely the number of gap events); sequence gaps are explicit degradation, while duplicates and out-of-order sequence numbers remain distinct dispositions.
 
 ## Metrics
 
