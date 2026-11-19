@@ -12,7 +12,8 @@ It verifies:
 - exact rational mapping from each model's integer clock ticks to a common integer-nanosecond master clock;
 - accepted, early-return and normalized-discard communication-step semantics;
 - FMI importer permission for early return, actual `lastSuccessfulTime`, and unchanged-state checks for discard;
-- retry identity and unchanged retry start state;
+- retry identity and unchanged retry start time/state digest;
+- an initial-state digest plus committed state-digest continuity across every federate step;
 - contiguous per-federate step sequences;
 - common commit barriers containing exactly one terminal step from every required federate;
 - barrier monotonicity and common model-time alignment.
@@ -41,7 +42,8 @@ The mapping is accepted only when the result is integral and representable as i6
 - An early return at the current communication point is valid FMI behavior in some event situations, but v0.1 has no same-time event-round record. It is classified as `ZERO_PROGRESS_EARLY_RETURN_UNSUPPORTED`, not as an invalid FMI trace.
 - `eventHandlingNeeded` and `terminateSimulation` are explicitly rejected as unsupported trace paths until Event Mode and termination membership transitions are represented. If an event is signalled without Event Mode being enabled, it is rejected as a contract violation.
 - `Rejected`: a normalized no-advance/discard disposition. Caller-supplied before/after state digests must match. Its trace end-time field is set to the canonical start time; it is not copied from the undefined output arguments of an FMI `fmi3Discard` call.
-- A retry must have a new attempt ID, reference the immediately preceding rejected attempt, preserve its start state and not widen its requested horizon.
+- Every attempt's `state_before_digest` must match the initial state or the prior committed attempt's `state_after_digest`. A retry must have a new attempt ID, reference the immediately preceding rejected attempt, preserve its start time and state digest, and not widen its requested horizon.
+- State digests are opaque, caller-supplied trace fields. The verifier checks their chain/consistency; it does not independently inspect an FMU's opaque internal state or establish that the supplied digest was honestly captured.
 - Every commit barrier must contain exactly one terminal accepted/early-return attempt per required federate.
 
 FMI source: [FMI 3.0.2, §4.1.3 and §4.2](https://fmi-standard.org/docs/3.0.2/). This verifier is stricter than the full standard in several deliberately unsupported areas. It is a bounded trace profile, not a complete importer/master implementation. It does not load FMUs, implement Event Mode / `fmi3UpdateDiscreteStates`, Intermediate Update callbacks, successful-step rollback/re-execution, Scheduled Execution, interpolation/hold, or wall-clock scheduling.
@@ -55,10 +57,10 @@ cargo clippy --locked --manifest-path research/geofusion-fmi-trace-verifier/Carg
 
 ## Frozen corpus and claim ceiling
 
-The frozen TSV corpus contains **26 unique negative controls**. The test harness asserts unique IDs, three-column rows and the expected disposition for every mutation.
+The frozen TSV corpus contains **29 unique negative controls**. The test harness asserts unique IDs, three-column rows and the expected disposition for every mutation.
 
+Controls cover wrong model and clock identity; inexact, negative or overflowing rational time mappings; invalid accepted/early-return endpoints; early return without importer permission; unsupported zero-progress event rounds; unrepresented Event Mode and termination paths; discard time/state mutation; retry lineage, state, ordering and horizon defects; missing state snapshots; committed-state discontinuity; sequence gaps; and barrier membership/time/sequence defects.
 
-
-The frozen TSV corpus mutates a valid two-federate trace with wrong model identity, clock-map mismatch, rejected-step advancement or state mutation, early return without importer permission, zero-progress early return, unrepresented event/termination paths, invalid retry linkage/start/horizon, unresolved rejection, sequence gaps, barrier membership/time defects, invalid rational clock scales/overflow, stale clock identity, missing state digests and invalid early-return endpoints, and a control that rejects an early return beyond the requested endpoint.
+Positive cases cover two federates with different clock resolutions, an early return, a rejected step followed by a valid retry, a normal successful return before the requested endpoint, and a normal successful return after the requested endpoint.
 
 All examples are synthetic. Passing tests establish only the declared trace-verification behavior. They do not prove FMI standard conformance, physical model accuracy, energy conservation, geothermal output, fusion performance, grid stability, equipment safety or operational authorization.
