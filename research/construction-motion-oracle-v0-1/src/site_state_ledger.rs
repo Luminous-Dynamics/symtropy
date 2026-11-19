@@ -31,6 +31,42 @@ pub enum SiteActorRole {
     DispatchCoordinator,
 }
 
+/// Actor-to-role policy supplied by an authenticated identity source.
+///
+/// Role membership is checked for every event. This in-memory registry is a
+/// projection input; production callers must load it from an authenticated,
+/// versioned authority source and ensure revocations are reflected before
+/// event ingestion.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct SiteActorRegistry {
+    roles_by_actor: BTreeMap<String, BTreeSet<SiteActorRole>>,
+}
+
+impl SiteActorRegistry {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn grant(
+        &mut self,
+        actor_id: impl Into<String>,
+        role: SiteActorRole,
+    ) -> Result<(), SiteLedgerError> {
+        let actor_id = actor_id.into();
+        if actor_id.trim().is_empty() {
+            return Err(SiteLedgerError::EmptyActorRegistration);
+        }
+        self.roles_by_actor.entry(actor_id).or_default().insert(role);
+        Ok(())
+    }
+
+    pub fn allows(&self, actor_id: &str, role: SiteActorRole) -> bool {
+        self.roles_by_actor
+            .get(actor_id)
+            .is_some_and(|roles| roles.contains(&role))
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RobotExecutionDisposition {
     Printed,
@@ -259,6 +295,7 @@ pub enum SiteLedgerError {
     EventIndexCorrupt,
     EventHistoryContainsDuplicate(String),
     ActorRoleDenied,
+    EmptyActorRegistration,
     EmptyPackageIdentity,
     InvalidPackageDigest,
     InvalidIdsEngineBuildDigest,
@@ -338,6 +375,7 @@ struct PackageProjection {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SiteStateLedger {
+    actor_registry: SiteActorRegistry,
     last_sequence: u64,
     last_event_sha256: Option<String>,
     events: Vec<SiteEventEnvelope>,
@@ -356,16 +394,30 @@ pub struct SiteStateLedger {
 }
 
 impl SiteStateLedger {
+    /// Create an unconfigured ledger. All event ingestion is denied until the
+    /// caller supplies an authenticated actor-role registry.
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Reconstruct the projection from an ordered, caller-preverified event
-    /// history. The input must contain each committed event exactly once.
-    /// Sequence and previous-digest links are validated by apply; a duplicate
-    /// record in a persisted history is corruption, not an idempotent replay.
-    pub fn replay(events: &[SiteEventEnvelope]) -> Result<Self, SiteLedgerError> {
-        let mut ledger = Self::new();
+    pub fn with_actor_registry(actor_registry: SiteActorRegistry) -> Self {
+        Self {
+            actor_registry,
+            ..Self::default()
+        }
+    }
+
+    pub fn actor_registry(&self) -> &SiteActorRegistry {
+        &self.actor_registry
+    }
+
+    /// Reconstruct the projection from caller-preverified history and the
+    /// same authenticated actor-role registry used by the original reducer.
+    pub fn replay(
+        events: &[SiteEventEnvelope],
+        actor_registry: SiteActorRegistry,
+    ) -> Result<Self, SiteLedgerError> {
+        let mut ledger = Self::with_actor_registry(actor_registry);
         for event in events {
             if ledger.apply(event.clone())? == SiteApplyOutcome::DuplicateIgnored {
                 return Err(SiteLedgerError::EventHistoryContainsDuplicate(
@@ -384,6 +436,9 @@ impl SiteStateLedger {
     /// unchanged.
     pub fn apply(&mut self, event: SiteEventEnvelope) -> Result<SiteApplyOutcome, SiteLedgerError> {
         validate_event_envelope(&event)?;
+        if !self.actor_registry.allows(&event.actor_id, event.actor_role) {
+            return Err(SiteLedgerError::ActorRoleDenied);
+        }
 
         if let Some(index) = self.events_by_id.get(&event.event_id) {
             let existing = self
@@ -1588,6 +1643,28 @@ mod tests {
     use super::*;
     use crate::field_layout_acceptance::FieldLayoutEntityType;
 
+    fn test_actor_registry() -> SiteActorRegistry {
+        let mut registry = SiteActorRegistry::new();
+        registry
+            .grant("design-authority", SiteActorRole::DesignAuthority)
+            .unwrap();
+        registry.grant("surveyor", SiteActorRole::Surveyor).unwrap();
+        registry.grant("robot-1", SiteActorRole::Robot).unwrap();
+        registry.grant("robot-2", SiteActorRole::Robot).unwrap();
+        registry.grant("referee-1", SiteActorRole::Referee).unwrap();
+        registry.grant("referee-01", SiteActorRole::Referee).unwrap();
+        registry
+            .grant("quality-lead", SiteActorRole::SiteQualityAuthority)
+            .unwrap();
+        registry
+            .grant("resource-authority", SiteActorRole::SiteResourceAuthority)
+            .unwrap();
+        registry
+            .grant("dispatch-coordinator", SiteActorRole::DispatchCoordinator)
+            .unwrap();
+        registry
+    }
+
     fn digest(byte: char) -> String {
         std::iter::repeat_n(byte, 64).collect()
     }
@@ -1696,7 +1773,7 @@ mod tests {
     }
 
     fn setup_started_attempt() -> (SiteStateLedger, String, String) {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         let package_digest = publish_package(&mut ledger, package('a', &["line-1", "point-1"]));
         let station = station_event(&ledger, 2, "event-station");
         ledger.apply(station).unwrap();
@@ -1869,7 +1946,7 @@ mod tests {
 
     #[test]
     fn stale_station_transform_and_wrong_actor_are_rejected_atomically() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         let package_digest = publish_package(&mut ledger, package('a', &["line-1"]));
         let mut invalid = station_event(&ledger, 2, "event-station");
         if let SiteEventPayload::StationQualified {
@@ -1908,7 +1985,7 @@ mod tests {
 
     #[test]
     fn exact_duplicate_event_is_idempotent_but_conflicting_reuse_is_rejected() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         let package = package('a', &["point-1"]);
         let original = event(
             "event-publish",
@@ -1947,7 +2024,7 @@ mod tests {
 
     #[test]
     fn sequence_gap_and_previous_digest_mismatch_fail_closed() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         let gap = event(
             "event-gap",
             2,
@@ -2034,7 +2111,7 @@ mod tests {
 
     #[test]
     fn waiver_requires_quality_authority_and_does_not_increment_acceptance() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         let package_digest = publish_package(&mut ledger, package('a', &["point-1"]));
         let waiver = HumanWaiver {
             design_entity_id: "point-1".into(),
@@ -2096,7 +2173,7 @@ mod tests {
 
     #[test]
     fn previous_event_digest_mismatch_fails_closed_without_advancing_state() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         let package_digest = publish_package(&mut ledger, package('a', &["point-1"]));
         let mut event = station_event(&ledger, 2, "event-station");
         event.previous_event_sha256 = Some(digest('0'));
@@ -2567,7 +2644,7 @@ mod tests {
 
     #[test]
     fn event_identity_index_remains_stable_after_long_append_history() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         let package = package('a', &["point-1"]);
         let package_event = event(
             "event-publish",
@@ -2649,14 +2726,14 @@ mod tests {
         );
         ledger.apply(referee).unwrap();
 
-        let replayed = SiteStateLedger::replay(ledger.event_history()).unwrap();
+        let replayed = SiteStateLedger::replay(ledger.event_history(), ledger.actor_registry().clone()).unwrap();
         assert_eq!(replayed, ledger);
         assert_eq!(replayed.accepted_count(&package_digest), Some(1));
     }
 
     #[test]
     fn persisted_duplicate_or_broken_chain_is_not_valid_replay_history() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         publish_package(&mut ledger, package('a', &["point-1"]));
         let first = ledger.event_history()[0].clone();
         let duplicate_history = vec![first.clone(), first];
@@ -2681,7 +2758,7 @@ mod tests {
 
     #[test]
     fn malformed_ids_engine_build_cannot_be_published_to_the_site_ledger() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         let mut invalid = package('a', &["point-1"]);
         invalid.ids_engine_build_sha256 = "unknown-engine-build".into();
         let publication = event(
@@ -2781,7 +2858,7 @@ mod tests {
 
     #[test]
     fn overlapping_exclusive_resource_claims_are_rejected_atomically() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
         let first = reservation_for(&ledger, "reservation-1", 130, 300, 120, 100, 450);
@@ -2814,7 +2891,7 @@ mod tests {
 
     #[test]
     fn adjacent_half_open_resource_claims_do_not_conflict() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
         let first_reservation =
@@ -2840,7 +2917,7 @@ mod tests {
 
     #[test]
     fn lease_expiry_does_not_automatically_release_physical_resource() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
         let first_reservation =
@@ -2878,7 +2955,7 @@ mod tests {
 
     #[test]
     fn referee_clearance_releases_a_reservation_and_replay_preserves_projection() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
         let first_reservation =
@@ -2912,7 +2989,7 @@ mod tests {
         assert!(!released.is_active());
         assert_eq!(released.released_at_tick, Some(220));
 
-        let replay = SiteStateLedger::replay(ledger.event_history()).unwrap();
+        let replay = SiteStateLedger::replay(ledger.event_history(), ledger.actor_registry().clone()).unwrap();
         assert_eq!(replay, ledger);
         assert_eq!(replay.active_space_time_reservations().count(), 0);
 
@@ -2931,7 +3008,7 @@ mod tests {
 
     #[test]
     fn resource_catalog_cannot_remove_a_resource_held_by_an_active_reservation() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
         let first_reservation =
@@ -2975,7 +3052,7 @@ mod tests {
 
     #[test]
     fn stale_release_snapshot_and_wrong_release_role_fail_closed() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
         let first_reservation =
@@ -3017,7 +3094,7 @@ mod tests {
 
     #[test]
     fn indexed_conflict_decisions_match_brute_force_oracle_over_generated_windows() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
         let mut seed = 0x51_7e_2026_u64;
@@ -3079,7 +3156,7 @@ mod tests {
 
     #[test]
     fn resource_catalog_version_cannot_change_while_a_reservation_is_active() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
         let reservation =
@@ -3117,7 +3194,7 @@ mod tests {
 
     #[test]
     fn work_package_revision_cannot_supersede_an_active_resource_reservation() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         let package_digest = publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
         let reservation = reservation_for(
@@ -3156,7 +3233,7 @@ mod tests {
 
     #[test]
     fn identical_catalog_digest_cannot_be_reused_for_changed_definitions() {
-        let mut ledger = SiteStateLedger::new();
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
         publish_package(&mut ledger, package('a', &["point-1"]));
         publish_exclusive_resource_catalog(&mut ledger);
         let before_sequence = ledger.last_sequence();
@@ -3184,6 +3261,40 @@ mod tests {
         assert_eq!(
             ledger.resource_definition_sha256("crane-zone-1"),
             Some(expected_definition.as_str())
+        );
+    }
+
+
+    #[test]
+    fn empty_actor_registry_denies_all_event_ingestion() {
+        let mut ledger = SiteStateLedger::new();
+        let event = event(
+            "untrusted-package-event",
+            1,
+            None,
+            '1',
+            "design-authority",
+            SiteActorRole::DesignAuthority,
+            SiteEventPayload::WorkPackagePublished {
+                package: package('a', &["point-1"]),
+            },
+        );
+        assert_eq!(ledger.apply(event), Err(SiteLedgerError::ActorRoleDenied));
+        assert_eq!(ledger.last_sequence(), 0);
+        assert_eq!(ledger.event_count(), 0);
+    }
+
+    #[test]
+    fn replay_requires_the_same_actor_authority_registry() {
+        let mut ledger = SiteStateLedger::with_actor_registry(test_actor_registry());
+        publish_package(&mut ledger, package('a', &["point-1"]));
+        assert_eq!(
+            SiteStateLedger::replay(ledger.event_history(), ledger.actor_registry().clone()).unwrap(),
+            ledger
+        );
+        assert_eq!(
+            SiteStateLedger::replay(ledger.event_history(), SiteActorRegistry::new()),
+            Err(SiteLedgerError::ActorRoleDenied)
         );
     }
 
