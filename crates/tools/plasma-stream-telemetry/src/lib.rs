@@ -161,6 +161,19 @@ pub struct EventReport {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct LatencyDistribution {
+    pub sample_count: usize,
+    pub p50_ns: u64,
+    pub p95_ns: u64,
+    pub p99_ns: u64,
+    pub p999_ns: u64,
+    pub max_observed_ns: u64,
+    pub percentile_method: String,
+    pub maximum_is_wcet_proof: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ReplaySummary {
     pub event_count: usize,
     pub on_time_valid: usize,
@@ -172,6 +185,16 @@ pub struct ReplaySummary {
     pub model_unqualified: usize,
     pub processing_timeout_or_unknown: usize,
     pub sequence_gaps: usize,
+    pub deadline_qualified_decisions: usize,
+    pub deadline_misses: usize,
+    pub deadline_miss_rate_ppm: Option<u32>,
+    pub source_to_acquisition_latency: Option<LatencyDistribution>,
+    pub transport_latency: Option<LatencyDistribution>,
+    pub queue_wait: Option<LatencyDistribution>,
+    pub processing_latency: Option<LatencyDistribution>,
+    pub acquisition_to_decision_latency: Option<LatencyDistribution>,
+    pub source_age_at_decision: Option<LatencyDistribution>,
+    pub downstream_ack_latency: Option<LatencyDistribution>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -347,6 +370,41 @@ fn validate_request(request: &ReplayRequest) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+fn latency_distribution(mut values: Vec<u64>) -> Option<LatencyDistribution> {
+    if values.is_empty() {
+        return None;
+    }
+    values.sort_unstable();
+    let nearest_rank = |numerator: u128, denominator: u128| -> u64 {
+        let len = values.len() as u128;
+        let rank = (len * numerator).div_ceil(denominator).max(1);
+        values[(rank - 1).min(len - 1) as usize]
+    };
+    let max_observed_ns = *values.last().unwrap_or(&0);
+    Some(LatencyDistribution {
+        sample_count: values.len(),
+        p50_ns: nearest_rank(50, 100),
+        p95_ns: nearest_rank(95, 100),
+        p99_ns: nearest_rank(99, 100),
+        p999_ns: nearest_rank(999, 1000),
+        max_observed_ns,
+        percentile_method: "nearest_rank".to_owned(),
+        maximum_is_wcet_proof: false,
+    })
+}
+
+fn collect_latency(
+    reports: &[EventReport],
+    select: impl Fn(&LatencyMetrics) -> Option<u64>,
+) -> Option<LatencyDistribution> {
+    latency_distribution(
+        reports
+            .iter()
+            .filter_map(|report| select(&report.metrics))
+            .collect(),
+    )
 }
 
 fn empty_metrics(spec: &StreamSpec, sequence_gap: bool) -> LatencyMetrics {
@@ -646,6 +704,20 @@ pub fn replay_trace(request: &ReplayRequest) -> Result<ReplayReport, String> {
     let count_where = |predicate: fn(EventDisposition) -> bool| {
         reports.iter().filter(|report| predicate(report.disposition)).count()
     };
+    let deadline_qualified_decisions = reports
+        .iter()
+        .filter(|report| report.metrics.deadline_missed.is_some())
+        .count();
+    let deadline_misses = reports
+        .iter()
+        .filter(|report| report.metrics.deadline_missed == Some(true))
+        .count();
+    let deadline_miss_rate_ppm = if deadline_qualified_decisions == 0 {
+        None
+    } else {
+        let numerator = (deadline_misses as u128) * 1_000_000_u128;
+        Some((numerator / deadline_qualified_decisions as u128) as u32)
+    };
     let summary = ReplaySummary {
         event_count: count,
         on_time_valid: count_where(|status| status == EventDisposition::OnTimeValid),
@@ -669,6 +741,24 @@ pub fn replay_trace(request: &ReplayRequest) -> Result<ReplayReport, String> {
             EventDisposition::ProcessingTimeout | EventDisposition::Unknown
         )),
         sequence_gaps,
+        deadline_qualified_decisions,
+        deadline_misses,
+        deadline_miss_rate_ppm,
+        source_to_acquisition_latency: collect_latency(&reports, |metrics| {
+            metrics.source_to_acquisition_latency_ns
+        }),
+        transport_latency: collect_latency(&reports, |metrics| metrics.transport_latency_ns),
+        queue_wait: collect_latency(&reports, |metrics| metrics.queue_wait_ns),
+        processing_latency: collect_latency(&reports, |metrics| metrics.processing_latency_ns),
+        acquisition_to_decision_latency: collect_latency(&reports, |metrics| {
+            metrics.acquisition_to_decision_ns
+        }),
+        source_age_at_decision: collect_latency(&reports, |metrics| {
+            metrics.source_age_at_decision_ns
+        }),
+        downstream_ack_latency: collect_latency(&reports, |metrics| {
+            metrics.downstream_ack_latency_ns
+        }),
     };
 
     let body = ReplayReportBody {
@@ -982,6 +1072,48 @@ mod tests {
         let second = replay_trace(&trace).expect("second");
         assert_eq!(first, second);
         assert_eq!(first.receipt_sha256, second.receipt_sha256);
+    }
+
+    #[test]
+    fn latency_distributions_use_deterministic_nearest_rank_and_disclaim_wcet() {
+        let mut events = Vec::new();
+        for (index, delay) in [10_u64, 20, 30, 40, 50].into_iter().enumerate() {
+            let seq = index as u64 + 1;
+            let acquisition = 1000 + seq * 100;
+            let mut input = event(seq, acquisition - 100, acquisition);
+            input.processing_start_time = Some(stamp(acquisition + 2));
+            input.processing_end_time = Some(stamp(acquisition + delay - 1));
+            input.decision_time = Some(stamp(acquisition + delay));
+            events.push(input);
+        }
+        let report = replay_trace(&request(events)).expect("replay");
+        let distribution = report
+            .body
+            .summary
+            .acquisition_to_decision_latency
+            .as_ref()
+            .expect("latency samples");
+        assert_eq!(distribution.sample_count, 5);
+        assert_eq!(distribution.p50_ns, 30);
+        assert_eq!(distribution.p95_ns, 50);
+        assert_eq!(distribution.p99_ns, 50);
+        assert_eq!(distribution.p999_ns, 50);
+        assert_eq!(distribution.max_observed_ns, 50);
+        assert_eq!(distribution.percentile_method, "nearest_rank");
+        assert!(!distribution.maximum_is_wcet_proof);
+    }
+
+    #[test]
+    fn deadline_miss_rate_counts_only_clock_qualified_decisions() {
+        let mut first = event(1, 900, 1000);
+        first.decision_time = Some(stamp(1100));
+        let second = event(2, 1000, 1100);
+        let mut third = event(3, 1100, 1200);
+        third.receive_time.as_mut().unwrap().calibration_id = "missing".to_owned();
+        let report = replay_trace(&request(vec![first, second, third])).expect("replay");
+        assert_eq!(report.body.summary.deadline_qualified_decisions, 2);
+        assert_eq!(report.body.summary.deadline_misses, 1);
+        assert_eq!(report.body.summary.deadline_miss_rate_ppm, Some(500_000));
     }
 
     #[test]
