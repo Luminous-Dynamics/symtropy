@@ -673,6 +673,11 @@ pub fn qualify(case: &Case) -> Result<QualificationReport, Vec<String>> {
 mod tests {
     use super::*;
 
+    fn refresh_policy_digest(case: &mut Case) {
+        case.policy_certificate_sha256 =
+            canonical_policy_certificate_sha256(&case.policy_certificate).expect("policy serializes");
+    }
+
     fn fixture() -> Case {
         serde_json::from_str(include_str!("../fixtures/synthetic-grid-inspection-resource-case-v0.1.json"))
             .expect("fixture must deserialize")
@@ -796,6 +801,17 @@ mod tests {
     fn branch_weight_conservation_is_mandatory() {
         let mut case = fixture();
         case.policy_certificate.first_outcome_branches[0].probability_basis_points = 2_000;
+        refresh_policy_digest(&mut case);
+        assert!(qualify(&case).is_err());
+    }
+
+    #[test]
+    fn second_outcome_branches_must_cover_positive_and_negative() {
+        let mut case = fixture();
+        let nested = case.policy_certificate.first_outcome_branches.iter_mut()
+            .find(|branch| branch.second_outcome_branches.is_some()).unwrap();
+        nested.second_outcome_branches.as_mut().unwrap()[1].outcome = ObservationOutcome::Positive;
+        refresh_policy_digest(&mut case);
         assert!(qualify(&case).is_err());
     }
 
@@ -824,6 +840,7 @@ mod tests {
     fn duplicate_first_outcome_is_rejected() {
         let mut case = fixture();
         case.policy_certificate.first_outcome_branches[1].outcome = ObservationOutcome::Positive;
+        refresh_policy_digest(&mut case);
         assert!(qualify(&case).is_err());
     }
 
