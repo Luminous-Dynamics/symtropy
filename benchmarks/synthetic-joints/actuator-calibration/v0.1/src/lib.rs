@@ -39,6 +39,8 @@ pub struct CalibrationPlan {
     pub calibration_split_digest: String,
     pub test_split_digest: String,
     pub mission_set_digest: String,
+    pub system_boundary_digest: String,
+    pub operating_condition_digest: String,
     pub domain_digest: String,
     pub alpha: f64,
     pub evidence_class: MeasurementEvidenceClass,
@@ -46,7 +48,7 @@ pub struct CalibrationPlan {
     pub training_specimen_ids: Vec<String>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PredictionObservation {
     pub sample_id: String,
     /// Index into the frozen mission trajectory; indices must be 0..N-1.
@@ -75,6 +77,8 @@ pub struct PredictionDataset {
     pub split_digest: String,
     pub model_digest: String,
     pub mission_set_digest: String,
+    pub system_boundary_digest: String,
+    pub operating_condition_digest: String,
     pub domain_digest: String,
     pub specimens: Vec<SpecimenPredictions>,
 }
@@ -140,6 +144,8 @@ fn validate_plan(plan: &CalibrationPlan) -> Result<(), String> {
         || !nonempty(&plan.calibration_split_digest)
         || !nonempty(&plan.test_split_digest)
         || !nonempty(&plan.mission_set_digest)
+        || !nonempty(&plan.system_boundary_digest)
+        || !nonempty(&plan.operating_condition_digest)
         || !nonempty(&plan.domain_digest)
     {
         return Err(invalid("model, split, mission and domain digests must be nonempty"));
@@ -186,6 +192,8 @@ fn validate_dataset(
     }
     if dataset.model_digest != plan.model_digest
         || dataset.mission_set_digest != plan.mission_set_digest
+        || dataset.system_boundary_digest != plan.system_boundary_digest
+        || dataset.operating_condition_digest != plan.operating_condition_digest
         || dataset.domain_digest != plan.domain_digest
     {
         return Err(invalid("dataset model, mission or domain digest does not match the frozen plan"));
@@ -373,6 +381,8 @@ pub fn calibrate_grouped_intervals(
             status: CalibrationStatus::InsufficientCalibrationGroups,
             model_digest: plan.model_digest.clone(),
             mission_set_digest: plan.mission_set_digest.clone(),
+            system_boundary_digest: plan.system_boundary_digest.clone(),
+            operating_condition_digest: plan.operating_condition_digest.clone(),
             domain_digest: plan.domain_digest.clone(),
             target_miscoverage_alpha: plan.alpha,
             calibration_specimen_count: calibration_count,
@@ -487,6 +497,8 @@ pub fn calibrate_grouped_intervals(
         status: CalibrationStatus::Calibrated,
         model_digest: plan.model_digest.clone(),
         mission_set_digest: plan.mission_set_digest.clone(),
+        system_boundary_digest: plan.system_boundary_digest.clone(),
+        operating_condition_digest: plan.operating_condition_digest.clone(),
         domain_digest: plan.domain_digest.clone(),
         target_miscoverage_alpha: plan.alpha,
         calibration_specimen_count: calibration_count,
@@ -526,6 +538,8 @@ mod tests {
             calibration_split_digest: CAL.to_owned(),
             test_split_digest: TEST.to_owned(),
             mission_set_digest: MISSION.to_owned(),
+            system_boundary_digest: "installed-joint-boundary-v1".to_owned(),
+            operating_condition_digest: "48V-25C-cooling-A".to_owned(),
             domain_digest: DOMAIN.to_owned(),
             alpha,
             evidence_class: MeasurementEvidenceClass::IndependentPhysical,
@@ -569,6 +583,8 @@ mod tests {
             split_digest: CAL.to_owned(),
             model_digest: MODEL.to_owned(),
             mission_set_digest: MISSION.to_owned(),
+            system_boundary_digest: "installed-joint-boundary-v1".to_owned(),
+            operating_condition_digest: "48V-25C-cooling-A".to_owned(),
             domain_digest: DOMAIN.to_owned(),
             specimens: groups,
         }
@@ -715,7 +731,18 @@ mod tests {
     }
 
     #[test]
-    fn calibration_014_prediction_bounds_must_be_ordered_and_finite() {
+    fn calibration_014_system_boundary_or_operating_condition_mismatch_rejects() {
+        let mut test = known_test();
+        test.system_boundary_digest = "motor-only-boundary".to_owned();
+        assert!(calibrate_grouped_intervals(&plan(0.25), &known_calibration(), &test).is_err());
+
+        let mut calibration = known_calibration();
+        calibration.operating_condition_digest = "different-cooling".to_owned();
+        assert!(calibrate_grouped_intervals(&plan(0.25), &calibration, &known_test()).is_err());
+    }
+
+    #[test]
+    fn calibration_021_prediction_bounds_must_be_ordered_and_finite() {
         let mut calibration = known_calibration();
         calibration.specimens[0].observations[0].predicted_lower_torque_nm = 20.0;
         calibration.specimens[0].observations[0].predicted_upper_torque_nm = 10.0;
@@ -727,7 +754,7 @@ mod tests {
     }
 
     #[test]
-    fn calibration_015_observation_indices_and_group_lengths_must_match() {
+    fn calibration_021_observation_indices_and_group_lengths_must_match() {
         let mut calibration = known_calibration();
         calibration.specimens[0].observations[1].sample_index = 0;
         assert!(calibrate_grouped_intervals(&plan(0.25), &calibration, &known_test()).is_err());
@@ -738,7 +765,7 @@ mod tests {
     }
 
     #[test]
-    fn calibration_016_empty_in_domain_test_cohort_has_no_fake_zero_coverage() {
+    fn calibration_021_empty_in_domain_test_cohort_has_no_fake_zero_coverage() {
         let mut test = known_test();
         for specimen in &mut test.specimens {
             for observation in &mut specimen.observations {
@@ -753,7 +780,7 @@ mod tests {
     }
 
     #[test]
-    fn calibration_017_wilson_interval_contains_observed_group_coverage() {
+    fn calibration_021_wilson_interval_contains_observed_group_coverage() {
         let report = calibrate_grouped_intervals(&plan(0.25), &known_calibration(), &known_test()).unwrap();
         assert!(report.wilson_95_lower.unwrap() <= 0.5);
         assert!(report.wilson_95_upper.unwrap() >= 0.5);
@@ -762,14 +789,14 @@ mod tests {
     }
 
     #[test]
-    fn calibration_018_invalid_alpha_rejects() {
+    fn calibration_021_invalid_alpha_rejects() {
         assert!(calibrate_grouped_intervals(&plan(0.0), &known_calibration(), &known_test()).is_err());
         assert!(calibrate_grouped_intervals(&plan(1.0), &known_calibration(), &known_test()).is_err());
         assert!(calibrate_grouped_intervals(&plan(f64::NAN), &known_calibration(), &known_test()).is_err());
     }
 
     #[test]
-    fn calibration_019_sample_id_overlap_between_calibration_and_test_rejects() {
+    fn calibration_021_sample_id_overlap_between_calibration_and_test_rejects() {
         let calibration = known_calibration();
         let mut test = known_test();
         test.specimens[0].observations[0].sample_id =
@@ -778,7 +805,7 @@ mod tests {
     }
 
     #[test]
-    fn calibration_020_empty_dataset_or_specimen_group_rejects() {
+    fn calibration_021_empty_dataset_or_specimen_group_rejects() {
         let mut calibration = known_calibration();
         calibration.specimens.clear();
         assert!(calibrate_grouped_intervals(&plan(0.25), &calibration, &known_test()).is_err());
