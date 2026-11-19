@@ -1,5 +1,5 @@
 use std::hint::black_box;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use construction_robot_interop_core::resources::ReservationRequest;
 use construction_spacetime_occupancy_core::{
@@ -81,7 +81,131 @@ fn dense_occupancy(index: u64) -> SpatialOccupancy {
     }
 }
 
+
+
+fn temporal_reuse_occupancy(index: u64) -> SpatialOccupancy {
+    let task_id = format!("reuse-task-{index:06}");
+    let start_ms = index * 10_000;
+    let end_ms = start_ms + 1_000;
+    SpatialOccupancy {
+        occupancy_id: format!("reuse-occupancy-{index:06}"),
+        task_id: task_id.clone(),
+        kind: OccupancyKind::Workface,
+        binding: binding(),
+        // All generations reuse the same workface geometry. Only time separates
+        // them, which is adversarial to a spatial-only broad phase.
+        bounds: Bounds3Mm {
+            min: [0, 0, 0],
+            max: [1_000, 1_000, 2_000],
+        },
+        uncertainty_margin_mm: [0, 0, 0],
+        clearance_margin_mm: [0, 0, 0],
+        reservation: ReservationRequest {
+            reservation_id: format!("reuse-reservation-{index:06}"),
+            resource_id: "reused-workface".to_owned(),
+            task_id,
+            owner_id: format!("reuse-owner-{index:06}"),
+            site_epoch: "benchmark-epoch-1".to_owned(),
+            clock_domain_id: "benchmark-clock".to_owned(),
+            clock_uncertainty_ms: 0,
+            interval_start_ms: start_ms,
+            interval_end_ms: end_ms,
+            expires_at_ms: end_ms + 100,
+            units: 1,
+        },
+    }
+}
+
+fn percentile(mut samples: Vec<Duration>, percentile: usize) -> Duration {
+    samples.sort_unstable();
+    samples[((samples.len() - 1) * percentile).div_ceil(100)]
+}
+
+fn run_temporal_reuse_benchmark() {
+    println!("distribution,records,build_p50_ms,query_p50_ns,query_p95_ns,query_p99_ns,spatial_candidates,temporal_candidates,space_time_candidates,exact_conflicts");
+    for size in [10_u64, 100, 1_000, 10_000] {
+        let mut build_samples = Vec::with_capacity(5);
+        let mut final_book = None;
+        for _ in 0..5 {
+            let mut book =
+                SpatialOccupancyBook::new(binding(), "benchmark-clock").expect("valid reuse book");
+            let started = Instant::now();
+            for index in 0..size {
+                book.insert(temporal_reuse_occupancy(index))
+                    .expect("same-space, disjoint-time workface generation");
+            }
+            build_samples.push(started.elapsed());
+            final_book = Some(book);
+        }
+        let book = final_book.expect("five complete build samples");
+
+        // A query just after the latest generation should have no temporal
+        // candidates, despite every historical occupancy sharing the same cell.
+        let future_query = temporal_reuse_occupancy(size + 1);
+        let counts = book
+            .candidate_counts_for(black_box(&future_query))
+            .expect("valid temporal reuse query");
+        let conflicts = book
+            .conflicts_for(black_box(&future_query))
+            .expect("valid temporal reuse conflict query");
+        assert!(conflicts.is_empty());
+        assert_eq!(counts.spatial, size as usize);
+        assert_eq!(counts.space_time, 0);
+
+        let mut query_samples = Vec::with_capacity(31);
+        for _ in 0..31 {
+            let started = Instant::now();
+            for _ in 0..1_000 {
+                black_box(
+                    book.conflicts_for(black_box(&future_query))
+                        .expect("valid repeated temporal reuse query"),
+                );
+            }
+            query_samples.push(started.elapsed() / 1_000);
+        }
+        let query_p50 = percentile(query_samples.clone(), 50);
+        let query_p95 = percentile(query_samples.clone(), 95);
+        let query_p99 = percentile(query_samples, 99);
+        let build_p50 = percentile(build_samples, 50);
+
+        println!(
+            "temporal-reuse,{size},{:.3},{},{},{},{},{},{},{}",
+            build_p50.as_secs_f64() * 1_000.0,
+            query_p50.as_nanos(),
+            query_p95.as_nanos(),
+            query_p99.as_nanos(),
+            counts.spatial,
+            counts.temporal,
+            counts.space_time,
+            conflicts.len()
+        );
+
+        // Positive control: query a previously occupied generation. Its exact
+        // overlap must remain visible after temporal and spatial candidate pruning.
+        let existing_index = size / 2;
+        let existing = temporal_reuse_occupancy(existing_index);
+        let positive = book
+            .conflicts_for(black_box(&existing))
+            .expect("valid historical overlap query");
+        assert_eq!(positive.len(), 0, "identical occupancy identity is idempotent");
+
+        let mut same_time_new_identity = existing;
+        same_time_new_identity.occupancy_id = format!("reuse-positive-query-{size}");
+        same_time_new_identity.task_id = format!("reuse-positive-task-{size}");
+        same_time_new_identity.reservation.reservation_id =
+            format!("reuse-positive-reservation-{size}");
+        same_time_new_identity.reservation.task_id =
+            same_time_new_identity.task_id.clone();
+        let positive = book
+            .conflicts_for(black_box(&same_time_new_identity))
+            .expect("valid positive overlap control");
+        assert_eq!(positive.len(), 1, "true same-time workface overlap was lost");
+    }
+}
+
 fn main() {
+    run_temporal_reuse_benchmark();
+
     for size in [10_u64, 100, 1_000, 10_000] {
         let mut book = SpatialOccupancyBook::new(binding(), "benchmark-clock").expect("valid book");
         let start = Instant::now();
