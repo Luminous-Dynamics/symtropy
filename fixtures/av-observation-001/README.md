@@ -59,3 +59,17 @@ The case matrix freezes scenario family and paired-control identity. A future da
 - No simulator or sensory renderer is qualified by this file.
 - No Symthaea capability or SOTA score is implied.
 - Physical camera/microphone and calibrated spatial-audio qualification remain separate promotion tiers.
+
+## Shared world/sensor contracts and modality boundary
+
+Bind each future scenario to the existing `WorldManifestV1` from #1587, including `world_generation`, frame topology and exact world-asset/profile references. Camera and microphone sensor origins must refer to named coordinate frames and versioned calibration/profile artifacts. A change to physics-relevant world geometry, material, sensor pose, clock generation or propagation profile must advance the corresponding generation/profile identity.
+
+The existing `SensorSampleV1` / `SensorModelV1` adapter is a deterministic **scalar-channel** model. It is useful for timing/noise/dropout patterns on scalar readings but is not an RGB/RGBA frame renderer, PCM waveform renderer, microphone-array propagation model, codec, rolling-shutter model or acoustic transducer model. Do not serialize full images/waveforms as a pile of unrelated scalar channels or claim that scalar noise/dropout qualifies those modalities.
+
+The audiovisual rendering tranche must add modality-specific observation artifact records:
+
+- **Video frame:** immutable artifact digest/URI, width/height/pixel format/stride, color-space/range, camera profile/calibration, exposure interval (not just one point timestamp), frame sequence, clock-domain generation, capture interval and availability time.
+- **Audio chunk:** immutable PCM artifact digest/URI, sample format/rate/channel layout, absolute half-open source sample interval, device/profile/calibration identity, clock-domain generation, capture interval and availability time.
+- **Derived transform:** resample/downmix/resize/crop/encode pipeline identity and exact parent-artifact digest; derived observations never replace the raw source root.
+
+These are observation artifacts, not truth. The evaluator may join them to hidden world truth through a private scenario map; the agent receives only the artifact and permitted capture/transport metadata. Use #621's cross-clock transform evidence when comparing sensor domains; use #633 for modality-specific, dependence-aware fusion. The fixture pack does not create its own clock service or fusion likelihood model.
