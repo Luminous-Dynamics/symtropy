@@ -1012,6 +1012,13 @@ mod tests {
                 "credential-r1",
                 Some(*role),
             ));
+            evidence_records.push(record(
+                EvidenceClass::BriefingAcknowledgement,
+                &format!("ack-{index}"),
+                &person,
+                "method-r5",
+                Some(*role),
+            ));
         }
         ReadinessPlan {
             readiness_id: "readiness-001".to_owned(),
@@ -1025,6 +1032,7 @@ mod tests {
             end_tick: 200,
             method_statement_id: "method-1".to_owned(),
             method_statement_revision: "method-r5".to_owned(),
+            exclusion_zone_plan_revision: "zone-r3".to_owned(),
             lift_preflight: LiftPreflightReceiptRef {
                 receipt_id: "lift-receipt-001".to_owned(),
                 input_sha256: "b".repeat(64),
@@ -1109,7 +1117,18 @@ mod tests {
                     credential_record_id: format!("credential-{index}"),
                 })
                 .collect(),
-            briefing_acknowledgements: required_roles,
+            briefing_acknowledgements: required_roles
+                .iter()
+                .enumerate()
+                .map(|(index, role)| BriefingAcknowledgement {
+                    role: *role,
+                    person_reference: format!("person-ref-{index}"),
+                    method_statement_id: "method-1".to_owned(),
+                    method_statement_revision: "method-r5".to_owned(),
+                    acknowledged_at_tick: 80,
+                    evidence_record_id: format!("ack-{index}"),
+                })
+                .collect(),
             exclusion_zone_state: ExclusionZoneState::Enforced,
         }
     }
@@ -1184,10 +1203,36 @@ mod tests {
     fn briefing_without_all_required_role_acknowledgements_is_indeterminate() {
         let mut plan = baseline();
         plan.briefing_acknowledgements
-            .retain(|role| *role != PersonnelRole::Slinger);
+            .retain(|acknowledgement| acknowledgement.role != PersonnelRole::Slinger);
         let report = evaluate(&plan);
         assert_eq!(report.disposition, Disposition::Indeterminate);
         assert!(has_code(&report, "BRIEFING_ACK_MISSING"));
+    }
+
+    #[test]
+    fn acknowledgement_for_another_method_statement_revision_is_indeterminate() {
+        let mut plan = baseline();
+        plan.briefing_acknowledgements[0].method_statement_revision = "method-r4".to_owned();
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "BRIEFING_ACK_SUBJECT_OR_TIME_MISMATCH"));
+    }
+
+    #[test]
+    fn duplicate_matching_inspection_records_are_ambiguous() {
+        let mut plan = baseline();
+        let duplicate = plan
+            .evidence_records
+            .iter()
+            .find(|record| record.record_id == "crane-insp-1")
+            .unwrap()
+            .clone();
+        let mut second = duplicate;
+        second.record_id = "crane-insp-duplicate".to_owned();
+        plan.evidence_records.push(second);
+        let report = evaluate(&plan);
+        assert_eq!(report.disposition, Disposition::Indeterminate);
+        assert!(has_code(&report, "REQUIRED_EVIDENCE_AMBIGUOUS"));
     }
 
     #[test]
