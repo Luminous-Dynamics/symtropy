@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/rural-industrial-electrification-v0-1/tools/rural-industrial-electrification-evaluator/schemas/ev_carrier_configurations_v0_1.schema.json",
-  "title": "EV-CARRIER-REF-01 incremental carrier configuration inputs",
+  "title": "EV-CARRIER-REF-01 incremental configuration corpus v0.1",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -43,7 +43,8 @@
           "incremental_external_site_peak_power_kw",
           "incremental_external_site_charging_window_hours",
           "external_site_peak_coincident_with_vehicle_charging",
-          "notes"
+          "notes",
+          "incremental_external_site_charging_window_hours"
         ],
         "properties": {
           "config_id": {
@@ -51,8 +52,10 @@
             "minLength": 1
           },
           "base_design_id": {
-            "type": "string",
-            "minLength": 1
+            "enum": [
+              "urban-distribution-truck",
+              "light-commercial-van"
+            ]
           },
           "architecture": {
             "enum": [
