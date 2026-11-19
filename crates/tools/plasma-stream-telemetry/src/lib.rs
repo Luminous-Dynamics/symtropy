@@ -793,6 +793,21 @@ pub fn replay_trace(request: &ReplayRequest) -> Result<ReplayReport, String> {
     })
 }
 
+/// Independently replay and compare the complete report for a supplied trace.
+///
+/// The report digest is unkeyed integrity metadata; this verifier does not
+/// authenticate the trace issuer, clock calibrator, model signer or device.
+pub fn verify_replay_report(
+    request: &ReplayRequest,
+    report: &ReplayReport,
+) -> Result<(), String> {
+    let expected = replay_trace(request)?;
+    if expected != *report {
+        return Err("replayed telemetry report does not match the supplied report".to_owned());
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1143,6 +1158,18 @@ mod tests {
         assert_eq!(report.body.summary.deadline_qualified_decisions, 2);
         assert_eq!(report.body.summary.deadline_misses, 1);
         assert_eq!(report.body.summary.deadline_miss_rate_ppm, Some(500_000));
+    }
+
+    #[test]
+    fn replay_verifier_rejects_rehashed_report_tampering() {
+        let trace = request(vec![event(1, 900, 1000)]);
+        let mut report = replay_trace(&trace).expect("replay");
+        verify_replay_report(&trace, &report).expect("valid replay receipt");
+
+        report.body.summary.deadline_miss_rate_ppm = Some(999_999);
+        let serialized = serde_json::to_vec(&report.body).expect("serialize body");
+        report.receipt_sha256 = sha256_hex(&serialized);
+        assert!(verify_replay_report(&trace, &report).is_err());
     }
 
     #[test]
