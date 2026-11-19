@@ -34,6 +34,24 @@ It asks whether two work envelopes, access regions, staging footprints or transi
 - Typed stale-context, malformed-geometry, overflow, clock and task-binding failures.
 - Conflict records include both occupancy/task IDs, occupancy classes, expanded overlap bounds, overlap time and clock domain.
 
+## V0.2 space-time candidate index experiment
+
+The existing 1 m spatial grid now has a bounded temporal broad phase alongside it. Each occupancy is indexed at exactly one of four time resolutions (1 s, 10 s, 60 s, 10 min), using the already uncertainty-expanded half-open interval from its existing ReservationRequest. The existing reservation book remains the resource-capacity/expiry owner; this temporal index exists only to prune geometric occupancy candidates.
+
+An occupancy is assigned to the finest level whose bucket span fits within 4,096 buckets. Longer spans use a global-time fallback. Query intervals search every resolution. If a query is too wide to enumerate at a given level, the query conservatively includes every occupancy assigned to that level. This makes the index a candidate superset: it can add false positives but cannot drop a true interval overlap.
+
+The query uses an adaptive broad-phase strategy. It estimates candidate pressure from the spatial and temporal bucket metadata and starts from the smaller side:
+- spatial-first: enumerate spatial candidates, then filter by exact expanded half-open interval overlap;
+- time-first: enumerate temporal candidates, then probe the spatial grid for each ID.
+
+This matters for a reused workface: a query for the next shift should not scan every historical occupancy that shares the same spatial cell. Exact AABB intersection and half-open time overlap remain the final conflict predicate. The old candidate_count_for API remains the spatial-only baseline; candidate_counts_for exposes spatial-only, temporal-only and intersected candidate counts.
+
+New adversarial tests cover half-open adjacency, bucket boundaries, coarse-level intervals, global-time fallback, wide-query fallback, uncertainty-created overlap, combined spatial/time fallback and a deterministic 512-record / 1,024-query full-scan differential oracle. The oracle recomputes exact conflicts from the stored expanded bounds/intervals without using either index.
+
+The scale harness now includes a repeated-workface distribution at 10/100/1,000/10,000 records. Every record has the same physical workface bounds but a disjoint 1-second time slot. It reports median build time, p50/p95/p99 query latency and spatial/temporal/combined candidate counts. A separate positive control queries an actually occupied interval and requires the true overlap to remain visible.
+
+**Interpretation limits:** the candidate-count diagnostic materializes both index candidate sets for observability and is not the timed adaptive conflict path. The repeated-workface benchmark is a synthetic single-host software experiment; it does not model all real site distributions, reservation book throughput, durable storage or distributed concurrency. No physical or SOTA claim follows from it.
+
 ## Local commands
 
 ```sh

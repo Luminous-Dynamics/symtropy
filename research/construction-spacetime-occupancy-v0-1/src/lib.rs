@@ -12,8 +12,14 @@ use std::collections::{BTreeMap, BTreeSet};
 const SPATIAL_CELL_SIZE_MM: i64 = 1_000;
 /// Oversized envelopes use a conservative global candidate bucket.
 const MAX_GRID_CELLS_PER_OCCUPANCY: u128 = 4_096;
+/// Temporal broad-phase widths; the existing reservation book remains the
+/// authority for resource capacity and reservation lifecycle.
+const OCCUPANCY_TIME_BUCKET_WIDTHS_MS: [u64; 4] = [1_000, 10_000, 60_000, 600_000];
+/// Bound both index insertion work and query work at every temporal level.
+const MAX_OCCUPANCY_TIME_BUCKETS: u64 = 4_096;
 
 type CellKey = (i64, i64, i64);
+type TimeKey = (usize, u64);
 
 use construction_robot_interop_core::resources::{
     ReservationBook, ReservationOutcome, ReservationRequest,
@@ -136,6 +142,16 @@ pub struct SpatialOccupancy {
     pub reservation: ReservationRequest,
 }
 
+/// Candidate counts for the original spatial broad phase and the new combined
+/// space-time broad phase. Exact conflicts are still decided by the narrow
+/// AABB/half-open-time predicate, never by these counts.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CandidateSetCounts {
+    pub spatial: usize,
+    pub temporal: usize,
+    pub space_time: usize,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ConflictRecord {
     pub existing_occupancy_id: String,
@@ -205,6 +221,9 @@ pub struct SpatialOccupancyBook {
     expanded_intervals: BTreeMap<String, (u64, u64)>,
     spatial_cells: BTreeMap<CellKey, BTreeSet<String>>,
     global_occupancies: BTreeSet<String>,
+    temporal_buckets: BTreeMap<TimeKey, BTreeSet<String>>,
+    temporal_level_occupancies: BTreeMap<usize, BTreeSet<String>>,
+    global_time_occupancies: BTreeSet<String>,
 }
 
 impl SpatialOccupancyBook {
@@ -224,6 +243,9 @@ impl SpatialOccupancyBook {
             expanded_intervals: BTreeMap::new(),
             spatial_cells: BTreeMap::new(),
             global_occupancies: BTreeSet::new(),
+            temporal_buckets: BTreeMap::new(),
+            temporal_level_occupancies: BTreeMap::new(),
+            global_time_occupancies: BTreeSet::new(),
         })
     }
 
@@ -330,7 +352,145 @@ impl SpatialOccupancyBook {
         candidate_ids
     }
 
-    fn index_occupancy(&mut self, occupancy_id: &str, expanded_bounds: &Bounds3Mm) {
+    /// Return a conservative temporal candidate superset. Existing occupancies
+    /// are stored at exactly one temporal resolution. A query visits every
+    /// resolution, and when its interval is too wide to enumerate at a level,
+    /// it falls back to every occupancy assigned to that level. Long existing
+    /// intervals have their own global fallback. These rules make the index
+    /// incapable of dropping a true temporal overlap.
+    fn spatial_candidate_estimate(&self, bounds: &Bounds3Mm) -> usize {
+        let Some(cells) = grid_cells(bounds) else {
+            return self.occupancies.len();
+        };
+        cells.iter().fold(self.global_occupancies.len(), |count, cell| {
+            count.saturating_add(self.spatial_cells.get(cell).map_or(0, BTreeSet::len))
+        })
+    }
+
+    fn spatial_candidate_contains(&self, bounds: &Bounds3Mm, occupancy_id: &str) -> bool {
+        if !self.occupancies.contains_key(occupancy_id) {
+            return false;
+        }
+        if self.global_occupancies.contains(occupancy_id) {
+            return true;
+        }
+        let Some(cells) = grid_cells(bounds) else {
+            return true;
+        };
+        cells.iter().any(|cell| {
+            self.spatial_cells
+                .get(cell)
+                .is_some_and(|ids| ids.contains(occupancy_id))
+        })
+    }
+
+    fn temporal_candidate_estimate(&self, interval: (u64, u64)) -> usize {
+        OCCUPANCY_TIME_BUCKET_WIDTHS_MS
+            .iter()
+            .copied()
+            .enumerate()
+            .fold(
+                self.global_time_occupancies.len(),
+                |count, (level, width_ms)| {
+                    let level_count = match time_bucket_bounds(interval.0, interval.1, width_ms) {
+                        Some((first_bucket, last_bucket)) => (first_bucket..=last_bucket).fold(
+                            0_usize,
+                            |level_count, bucket| {
+                                level_count.saturating_add(
+                                    self.temporal_buckets
+                                        .get(&(level, bucket))
+                                        .map_or(0, BTreeSet::len),
+                                )
+                            },
+                        ),
+                        None => self
+                            .temporal_level_occupancies
+                            .get(&level)
+                            .map_or(0, BTreeSet::len),
+                    };
+                    count.saturating_add(level_count)
+                },
+            )
+    }
+
+    fn temporal_candidate_ids(&self, (start_ms, end_ms): (u64, u64)) -> BTreeSet<String> {
+        let mut candidates = self.global_time_occupancies.clone();
+
+        for (level, width_ms) in OCCUPANCY_TIME_BUCKET_WIDTHS_MS.iter().copied().enumerate() {
+            match time_bucket_bounds(start_ms, end_ms, width_ms) {
+                Some((first_bucket, last_bucket)) => {
+                    for bucket in first_bucket..=last_bucket {
+                        if let Some(ids) = self.temporal_buckets.get(&(level, bucket)) {
+                            candidates.extend(ids.iter().cloned());
+                        }
+                    }
+                }
+                None => {
+                    if let Some(ids) = self.temporal_level_occupancies.get(&level) {
+                        candidates.extend(ids.iter().cloned());
+                    }
+                }
+            }
+        }
+
+        candidates
+    }
+
+    fn space_time_candidate_ids(
+        &self,
+        bounds: &Bounds3Mm,
+        interval: (u64, u64),
+    ) -> BTreeSet<String> {
+        let spatial_estimate = self.spatial_candidate_estimate(bounds);
+        let temporal_estimate = self.temporal_candidate_estimate(interval);
+        if spatial_estimate <= temporal_estimate {
+            // Spatially selective: generate that side, then apply exact expanded
+            // interval overlap without materializing a possibly huge temporal set.
+            self.spatial_candidate_ids(bounds)
+                .into_iter()
+                .filter(|id| {
+                    self.expanded_intervals.get(id).is_some_and(|(start, end)| {
+                        interval.0 < *end && *start < interval.1
+                    })
+                })
+                .collect()
+        } else {
+            // Temporally selective: generate only active time candidates, then
+            // probe the spatial grid per ID. This avoids enumerating every prior
+            // occupancy in a repeatedly reused workface cell.
+            self.temporal_candidate_ids(interval)
+                .into_iter()
+                .filter(|id| self.spatial_candidate_contains(bounds, id))
+                .collect()
+        }
+    }
+
+    fn index_temporal_interval(&mut self, occupancy_id: &str, interval: (u64, u64)) {
+        if let Some((level, first_bucket, last_bucket)) =
+            select_time_index_level(interval)
+        {
+            self.temporal_level_occupancies
+                .entry(level)
+                .or_default()
+                .insert(occupancy_id.to_owned());
+            for bucket in first_bucket..=last_bucket {
+                self.temporal_buckets
+                    .entry((level, bucket))
+                    .or_default()
+                    .insert(occupancy_id.to_owned());
+            }
+        } else {
+            self.global_time_occupancies
+                .insert(occupancy_id.to_owned());
+        }
+    }
+
+    fn index_occupancy(
+        &mut self,
+        occupancy_id: &str,
+        expanded_bounds: &Bounds3Mm,
+        expanded_interval: (u64, u64),
+    ) {
         match grid_cells(expanded_bounds) {
             Some(cells) => {
                 for cell in cells {
@@ -344,6 +504,7 @@ impl SpatialOccupancyBook {
                 self.global_occupancies.insert(occupancy_id.to_owned());
             }
         }
+        self.index_temporal_interval(occupancy_id, expanded_interval);
     }
 
     fn find_conflicts_validated(
@@ -354,7 +515,9 @@ impl SpatialOccupancyBook {
     ) -> Result<Vec<ConflictRecord>, SpatialError> {
         let mut conflicts = Vec::new();
 
-        for existing_id in self.spatial_candidate_ids(&expanded_candidate) {
+        for existing_id in
+            self.space_time_candidate_ids(&expanded_candidate, (candidate_start, candidate_end))
+        {
             let existing = self
                 .occupancies
                 .get(&existing_id)
@@ -418,9 +581,9 @@ impl SpatialOccupancyBook {
         self.find_conflicts_validated(occupancy, expanded_candidate, candidate_interval)
     }
 
-    /// Number of broad-phase candidates considered by the spatial index. This is
-    /// a diagnostic for benchmark/reporting only; exact conflict results come from
-    /// `conflicts_for`, which applies interval and AABB overlap tests.
+    /// Number of candidates returned by the original spatial-only index.
+    /// Retained as a baseline metric so the effect of temporal pruning remains
+    /// measurable and does not disappear behind the new query implementation.
     pub fn candidate_count_for(&self, occupancy: &SpatialOccupancy) -> Result<usize, SpatialError> {
         let expanded_candidate = self.validate_occupancy(occupancy)?;
         if let Some(previous) = self.occupancies.get(&occupancy.occupancy_id) {
@@ -433,6 +596,48 @@ impl SpatialOccupancyBook {
             };
         }
         Ok(self.spatial_candidate_ids(&expanded_candidate).len())
+    }
+
+    /// Report spatial candidates, temporal candidates and their intersection.
+    /// The intersection is the candidate set actually sent to the exact
+    /// space-time overlap predicate.
+    pub fn candidate_counts_for(
+        &self,
+        occupancy: &SpatialOccupancy,
+    ) -> Result<CandidateSetCounts, SpatialError> {
+        let expanded_candidate = self.validate_occupancy(occupancy)?;
+        if let Some(previous) = self.occupancies.get(&occupancy.occupancy_id) {
+            return if previous == occupancy {
+                Ok(CandidateSetCounts {
+                    spatial: 0,
+                    temporal: 0,
+                    space_time: 0,
+                })
+            } else {
+                Err(SpatialError::OccupancyIdConflict(
+                    occupancy.occupancy_id.clone(),
+                ))
+            };
+        }
+        let interval = expanded_time_interval(&occupancy.reservation)?;
+        // Diagnostic path intentionally materializes both original candidate
+        // sets so their raw sizes remain distinct from the adaptive query path.
+        let spatial = self.spatial_candidate_ids(&expanded_candidate);
+        let temporal = self.temporal_candidate_ids(interval);
+        let space_time = spatial.intersection(&temporal).count();
+        Ok(CandidateSetCounts {
+            spatial: spatial.len(),
+            temporal: temporal.len(),
+            space_time,
+        })
+    }
+
+    /// Number of candidates passed to exact space-time conflict evaluation.
+    pub fn space_time_candidate_count_for(
+        &self,
+        occupancy: &SpatialOccupancy,
+    ) -> Result<usize, SpatialError> {
+        Ok(self.candidate_counts_for(occupancy)?.space_time)
     }
 
     fn prepare_insert(
@@ -478,7 +683,11 @@ impl SpatialOccupancyBook {
             .insert(occupancy_id.clone(), prepared.expanded_bounds);
         self.expanded_intervals
             .insert(occupancy_id.clone(), prepared.expanded_interval);
-        self.index_occupancy(&occupancy_id, &prepared.expanded_bounds);
+        self.index_occupancy(
+            &occupancy_id,
+            &prepared.expanded_bounds,
+            prepared.expanded_interval,
+        );
         self.occupancies.insert(occupancy_id, prepared.occupancy);
         InsertOutcome::AdmittedToSpatialIndex
     }
@@ -491,6 +700,43 @@ impl SpatialOccupancyBook {
         let prepared = self.prepare_insert(occupancy)?;
         Ok(self.commit_prepared(prepared))
     }
+}
+
+/// Map a non-empty half-open interval to inclusive integer time buckets.
+/// The final occupied millisecond is end_ms - 1, so adjacent [a,b) and [b,c)
+/// intervals do not share a bucket solely because they touch at b.
+fn time_bucket_bounds(
+    start_ms: u64,
+    end_ms: u64,
+    bucket_width_ms: u64,
+) -> Option<(u64, u64)> {
+    if start_ms >= end_ms || bucket_width_ms == 0 {
+        return None;
+    }
+    let last_included_ms = end_ms.checked_sub(1)?;
+    let first_bucket = start_ms / bucket_width_ms;
+    let last_bucket = last_included_ms / bucket_width_ms;
+    let bucket_count = last_bucket
+        .checked_sub(first_bucket)?
+        .checked_add(1)?;
+    if bucket_count > MAX_OCCUPANCY_TIME_BUCKETS {
+        return None;
+    }
+    Some((first_bucket, last_bucket))
+}
+
+/// Assign an occupancy to the finest temporal level whose bucket expansion
+/// fits the bounded insertion budget. Longer spans use a conservative global
+/// time set rather than allocating unbounded bucket entries.
+fn select_time_index_level(interval: (u64, u64)) -> Option<(usize, u64, u64)> {
+    OCCUPANCY_TIME_BUCKET_WIDTHS_MS
+        .iter()
+        .copied()
+        .enumerate()
+        .find_map(|(level, width_ms)| {
+            time_bucket_bounds(interval.0, interval.1, width_ms)
+                .map(|(first, last)| (level, first, last))
+        })
 }
 
 /// Return the conservative broad-phase cells for an already expanded AABB.
@@ -622,6 +868,80 @@ mod tests {
 
     fn book() -> SpatialOccupancyBook {
         SpatialOccupancyBook::new(binding(), "site-clock-1").expect("valid book")
+    }
+
+    fn temporal_occupancy(index: u64, start_ms: u64, end_ms: u64) -> SpatialOccupancy {
+        let id = format!("temporal-{index:05}");
+        let mut item = occupancy(
+            &id,
+            &id,
+            OccupancyKind::Workface,
+            bounds([0, 0, 0], [500, 500, 500]),
+            start_ms,
+            end_ms,
+        );
+        item.reservation.expires_at_ms = end_ms.saturating_add(100);
+        item
+    }
+
+    fn brute_force_conflicts(
+        book: &SpatialOccupancyBook,
+        candidate: &SpatialOccupancy,
+    ) -> Vec<ConflictRecord> {
+        let expanded_candidate = candidate
+            .bounds
+            .expanded(
+                candidate.uncertainty_margin_mm,
+                candidate.clearance_margin_mm,
+            )
+            .expect("candidate bounds are valid");
+        let (candidate_start, candidate_end) =
+            expanded_time_interval(&candidate.reservation).expect("candidate time is valid");
+        let mut expected = Vec::new();
+
+        for (existing_id, existing) in &book.occupancies {
+            let (existing_start, existing_end) = book
+                .expanded_intervals
+                .get(existing_id)
+                .copied()
+                .expect("every occupancy has an expanded interval");
+            let overlap_start = candidate_start.max(existing_start);
+            let overlap_end = candidate_end.min(existing_end);
+            if overlap_start >= overlap_end {
+                continue;
+            }
+            let expanded_existing = book
+                .expanded_bounds
+                .get(existing_id)
+                .copied()
+                .expect("every occupancy has expanded bounds");
+            let minimum = std::array::from_fn(|axis| {
+                expanded_candidate.min[axis].max(expanded_existing.min[axis])
+            });
+            let maximum = std::array::from_fn(|axis| {
+                expanded_candidate.max[axis].min(expanded_existing.max[axis])
+            });
+            if (0..3).any(|axis| minimum[axis] > maximum[axis]) {
+                continue;
+            }
+            expected.push(ConflictRecord {
+                existing_occupancy_id: existing.occupancy_id.clone(),
+                candidate_occupancy_id: candidate.occupancy_id.clone(),
+                existing_task_id: existing.task_id.clone(),
+                candidate_task_id: candidate.task_id.clone(),
+                existing_kind: existing.kind,
+                candidate_kind: candidate.kind,
+                overlap_bounds_mm: Bounds3Mm {
+                    min: minimum,
+                    max: maximum,
+                },
+                overlap_start_ms: overlap_start,
+                overlap_end_ms: overlap_end,
+                clock_domain_id: book.clock_domain_id.clone(),
+            });
+        }
+        expected.sort_by(|left, right| left.existing_occupancy_id.cmp(&right.existing_occupancy_id));
+        expected
     }
 
     fn lattice_oracle_intersection(left: Bounds3Mm, right: Bounds3Mm) -> Option<Bounds3Mm> {
@@ -1527,4 +1847,213 @@ mod tests {
             Err(SpatialError::OccupancyIdConflict("stable-id".to_owned()))
         );
     }
+
+    #[test]
+    fn temporal_index_prunes_repeated_workface_candidates_with_disjoint_time() {
+        let mut book = book();
+        const RECORDS: u64 = 256;
+        for index in 0..RECORDS {
+            let start_ms = index * 10_000;
+            let item = temporal_occupancy(index, start_ms, start_ms + 1_000);
+            assert_eq!(
+                book.insert(item),
+                Ok(InsertOutcome::AdmittedToSpatialIndex)
+            );
+        }
+
+        let query = temporal_occupancy(RECORDS + 1, RECORDS * 10_000, RECORDS * 10_000 + 1_000);
+        let counts = book.candidate_counts_for(&query).unwrap();
+        assert_eq!(counts.spatial, RECORDS as usize);
+        assert_eq!(counts.temporal, 0);
+        assert_eq!(counts.space_time, 0);
+        assert_eq!(
+            book.candidate_count_for(&query).unwrap(),
+            RECORDS as usize
+        );
+        assert!(book.conflicts_for(&query).unwrap().is_empty());
+    }
+
+    #[test]
+    fn temporal_index_keeps_exact_half_open_adjacency_non_conflicting() {
+        let mut book = book();
+        assert_eq!(
+            book.insert(temporal_occupancy(1, 0, 1_000)),
+            Ok(InsertOutcome::AdmittedToSpatialIndex)
+        );
+        let adjacent = temporal_occupancy(2, 1_000, 2_000);
+        let counts = book.candidate_counts_for(&adjacent).unwrap();
+        assert_eq!(counts.space_time, 0);
+        assert!(book.conflicts_for(&adjacent).unwrap().is_empty());
+        assert_eq!(book.insert(adjacent), Ok(InsertOutcome::AdmittedToSpatialIndex));
+    }
+
+    #[test]
+    fn temporal_index_preserves_a_real_overlap_across_bucket_boundaries() {
+        let mut book = book();
+        assert_eq!(
+            book.insert(temporal_occupancy(1, 0, 1_000)),
+            Ok(InsertOutcome::AdmittedToSpatialIndex)
+        );
+        let overlap = temporal_occupancy(2, 999, 2_000);
+        let counts = book.candidate_counts_for(&overlap).unwrap();
+        assert!(counts.temporal >= 1);
+        assert!(counts.space_time >= 1);
+        assert_eq!(
+            book.conflicts_for(&overlap).unwrap().len(),
+            brute_force_conflicts(&book, &overlap).len()
+        );
+        assert!(matches!(
+            book.insert(overlap),
+            Err(SpatialError::PotentialConflict(_))
+        ));
+    }
+
+    #[test]
+    fn temporal_index_finds_records_stored_at_coarser_time_levels() {
+        let mut book = book();
+        // Five days exceeds the insertion budget at 1 s, 10 s and 60 s,
+        // but remains bounded at the 10 minute level.
+        let end_ms = 5 * 24 * 60 * 60 * 1_000;
+        assert_eq!(
+            book.insert(temporal_occupancy(1, 0, end_ms)),
+            Ok(InsertOutcome::AdmittedToSpatialIndex)
+        );
+        let query = temporal_occupancy(2, 3 * 24 * 60 * 60 * 1_000, 3 * 24 * 60 * 60 * 1_000 + 1_000);
+        let counts = book.candidate_counts_for(&query).unwrap();
+        assert!(counts.temporal >= 1);
+        assert!(counts.space_time >= 1);
+        assert_eq!(
+            book.conflicts_for(&query).unwrap(),
+            brute_force_conflicts(&book, &query)
+        );
+    }
+
+    #[test]
+    fn temporal_global_fallback_is_never_omitted() {
+        let mut book = book();
+        let very_long_end = 40 * 24 * 60 * 60 * 1_000;
+        assert_eq!(
+            book.insert(temporal_occupancy(1, 0, very_long_end)),
+            Ok(InsertOutcome::AdmittedToSpatialIndex)
+        );
+        let query = temporal_occupancy(2, very_long_end - 1_000, very_long_end + 1_000);
+        let counts = book.candidate_counts_for(&query).unwrap();
+        assert!(counts.temporal >= 1);
+        assert!(counts.space_time >= 1);
+        assert_eq!(
+            book.conflicts_for(&query).unwrap(),
+            brute_force_conflicts(&book, &query)
+        );
+    }
+
+    #[test]
+    fn a_wide_query_falls_back_to_all_records_at_each_unenumerable_level() {
+        let mut book = book();
+        for index in 0..20_u64 {
+            let start = index * 10_000;
+            book.insert(temporal_occupancy(index, start, start + 1_000))
+                .unwrap();
+        }
+        let wide = temporal_occupancy(100, 0, 40 * 24 * 60 * 60 * 1_000);
+        let counts = book.candidate_counts_for(&wide).unwrap();
+        assert_eq!(counts.spatial, 20);
+        assert_eq!(counts.space_time, 20);
+        assert_eq!(
+            book.conflicts_for(&wide).unwrap(),
+            brute_force_conflicts(&book, &wide)
+        );
+    }
+
+    #[test]
+    fn temporal_index_preserves_uncertainty_created_overlaps() {
+        let mut book = book();
+        let mut first = temporal_occupancy(1, 10_000, 11_000);
+        first.reservation.clock_uncertainty_ms = 5;
+        first.reservation.expires_at_ms = 11_105;
+        book.insert(first).unwrap();
+
+        let mut second = temporal_occupancy(2, 11_008, 12_000);
+        second.reservation.clock_uncertainty_ms = 5;
+        second.reservation.expires_at_ms = 12_105;
+        let counts = book.candidate_counts_for(&second).unwrap();
+        assert!(counts.space_time >= 1);
+        assert_eq!(
+            book.conflicts_for(&second).unwrap(),
+            brute_force_conflicts(&book, &second)
+        );
+    }
+
+    #[test]
+    fn generated_temporal_index_matches_full_scan_conflict_oracle() {
+        let mut book = book();
+        let mut seed = 0x9e37_79b9_u64;
+        let mut next = || {
+            seed = seed
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1);
+            seed >> 32
+        };
+
+        // Distinct spatial cells allow repeated time windows without inserting
+        // physical conflicts; query candidates then deliberately revisit cells.
+        for index in 0..512_u64 {
+            let x = i64::try_from(index % 32).unwrap() * 2_000;
+            let y = i64::try_from(index / 32).unwrap() * 2_000;
+            let mut item = temporal_occupancy(
+                index,
+                next() % 10_000_000,
+                (next() % 10_000_000) + 10_001_000,
+            );
+            let start = item.reservation.interval_start_ms;
+            item.reservation.interval_end_ms = start + 1_000 + (next() % 20_000);
+            item.reservation.expires_at_ms = item.reservation.interval_end_ms + 100;
+            item.bounds = bounds([x, y, 0], [x + 500, y + 500, 500]);
+            assert_eq!(
+                book.insert(item),
+                Ok(InsertOutcome::AdmittedToSpatialIndex)
+            );
+        }
+
+        for query_index in 0..1_024_u64 {
+            let source_index = next() % 512;
+            let x = i64::try_from(source_index % 32).unwrap() * 2_000;
+            let y = i64::try_from(source_index / 32).unwrap() * 2_000;
+            let existing = book
+                .occupancies
+                .get(&format!("temporal-{source_index:05}"))
+                .unwrap();
+            let mut query = temporal_occupancy(
+                10_000 + query_index,
+                existing.reservation.interval_start_ms.saturating_sub(next() % 20_000),
+                existing.reservation.interval_end_ms.saturating_add(next() % 20_000),
+            );
+            query.bounds = bounds([x, y, 0], [x + 500, y + 500, 500]);
+            assert_eq!(
+                book.conflicts_for(&query).unwrap(),
+                brute_force_conflicts(&book, &query),
+                "generated full-scan parity failed at query {query_index}"
+            );
+        }
+    }
+
+    #[test]
+    fn spatial_and_temporal_fallbacks_compose_without_false_negatives() {
+        let mut book = book();
+        let mut oversized = temporal_occupancy(1, 10_000, 20_000);
+        oversized.bounds = bounds([-10_000, -10_000, -10_000], [10_000, 10_000, 10_000]);
+        oversized.uncertainty_margin_mm = [1, 1, 1];
+        book.insert(oversized).unwrap();
+
+        let mut query = temporal_occupancy(2, 15_000, 16_000);
+        query.bounds = bounds([0, 0, 0], [100, 100, 100]);
+        let counts = book.candidate_counts_for(&query).unwrap();
+        assert!(counts.spatial >= 1);
+        assert!(counts.temporal >= 1);
+        assert!(counts.space_time >= 1);
+        assert_eq!(
+            book.conflicts_for(&query).unwrap(),
+            brute_force_conflicts(&book, &query)
+        );
+    }
+
 }
