@@ -1,0 +1,336 @@
+{
+  "suite_id": "reusable-launch-production",
+  "suite_version": "0.1.0",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic discrete-event contract only; not a physical model, commercial estimate, safety case, or flight qualification.",
+  "assets": [
+    {
+      "serial": "STAGE-001",
+      "configuration": "vehicle-family-a-rev-1",
+      "initial_state": "planned",
+      "events": [
+        {
+          "event_id": "evt-001",
+          "from_state": "planned",
+          "to_state": "in_production",
+          "tick": 0,
+          "evidence_ref": "synthetic:build-001"
+        },
+        {
+          "event_id": "evt-002",
+          "from_state": "in_production",
+          "to_state": "inspected",
+          "tick": 2,
+          "evidence_ref": "synthetic:inspection-build-001"
+        },
+        {
+          "event_id": "evt-003",
+          "from_state": "inspected",
+          "to_state": "acceptance_tested",
+          "tick": 3,
+          "evidence_ref": "synthetic:acceptance-test-001"
+        },
+        {
+          "event_id": "evt-004",
+          "from_state": "acceptance_tested",
+          "to_state": "ready",
+          "tick": 4,
+          "evidence_ref": "synthetic:release-to-service-001"
+        },
+        {
+          "event_id": "evt-005",
+          "from_state": "ready",
+          "to_state": "flown",
+          "tick": 10,
+          "flight_id": "FLIGHT-001",
+          "evidence_ref": "synthetic:flight-001"
+        },
+        {
+          "event_id": "evt-006",
+          "from_state": "flown",
+          "to_state": "recovered",
+          "tick": 11,
+          "flight_id": "FLIGHT-001",
+          "evidence_ref": "synthetic:recovery-001"
+        },
+        {
+          "event_id": "evt-007",
+          "from_state": "recovered",
+          "to_state": "inspection",
+          "tick": 12,
+          "evidence_ref": "synthetic:inspection-001"
+        },
+        {
+          "event_id": "evt-008",
+          "from_state": "inspection",
+          "to_state": "refurbishment",
+          "tick": 15,
+          "evidence_ref": "synthetic:work-order-001"
+        },
+        {
+          "event_id": "evt-009",
+          "from_state": "refurbishment",
+          "to_state": "requalified",
+          "tick": 19,
+          "evidence_ref": "synthetic:acceptance-001"
+        },
+        {
+          "event_id": "evt-010",
+          "from_state": "requalified",
+          "to_state": "ready",
+          "tick": 20,
+          "evidence_ref": "synthetic:release-001"
+        },
+        {
+          "event_id": "evt-025",
+          "from_state": "ready",
+          "to_state": "flown",
+          "tick": 25,
+          "flight_id": "FLIGHT-004",
+          "evidence_ref": "synthetic:flight-004"
+        },
+        {
+          "event_id": "evt-026",
+          "from_state": "flown",
+          "to_state": "recovered",
+          "tick": 26,
+          "flight_id": "FLIGHT-004",
+          "evidence_ref": "synthetic:recovery-004"
+        },
+        {
+          "event_id": "evt-027",
+          "from_state": "recovered",
+          "to_state": "inspection",
+          "tick": 27,
+          "evidence_ref": "synthetic:inspection-004"
+        },
+        {
+          "event_id": "evt-028",
+          "from_state": "inspection",
+          "to_state": "refurbishment",
+          "tick": 30,
+          "evidence_ref": "synthetic:work-order-004"
+        },
+        {
+          "event_id": "evt-029",
+          "from_state": "refurbishment",
+          "to_state": "requalified",
+          "tick": 34,
+          "evidence_ref": "synthetic:acceptance-004"
+        },
+        {
+          "event_id": "evt-030",
+          "from_state": "requalified",
+          "to_state": "ready",
+          "tick": 35,
+          "evidence_ref": "synthetic:release-004"
+        }
+      ]
+    },
+    {
+      "serial": "STAGE-002",
+      "configuration": "vehicle-family-a-rev-1",
+      "initial_state": "planned",
+      "events": [
+        {
+          "event_id": "evt-011",
+          "from_state": "planned",
+          "to_state": "in_production",
+          "tick": 1,
+          "evidence_ref": "synthetic:build-002"
+        },
+        {
+          "event_id": "evt-012",
+          "from_state": "in_production",
+          "to_state": "inspected",
+          "tick": 2,
+          "evidence_ref": "synthetic:inspection-build-002"
+        },
+        {
+          "event_id": "evt-013",
+          "from_state": "inspected",
+          "to_state": "acceptance_tested",
+          "tick": 3,
+          "evidence_ref": "synthetic:acceptance-test-002"
+        },
+        {
+          "event_id": "evt-014",
+          "from_state": "acceptance_tested",
+          "to_state": "ready",
+          "tick": 5,
+          "evidence_ref": "synthetic:release-to-service-002"
+        },
+        {
+          "event_id": "evt-015",
+          "from_state": "ready",
+          "to_state": "flown",
+          "tick": 12,
+          "flight_id": "FLIGHT-002",
+          "evidence_ref": "synthetic:flight-002"
+        },
+        {
+          "event_id": "evt-016",
+          "from_state": "flown",
+          "to_state": "recovered",
+          "tick": 13,
+          "flight_id": "FLIGHT-002",
+          "evidence_ref": "synthetic:recovery-002"
+        },
+        {
+          "event_id": "evt-017",
+          "from_state": "recovered",
+          "to_state": "inspection",
+          "tick": 14,
+          "evidence_ref": "synthetic:inspection-002"
+        },
+        {
+          "event_id": "evt-018",
+          "from_state": "inspection",
+          "to_state": "quarantined",
+          "tick": 18,
+          "evidence_ref": "synthetic:hold-002"
+        }
+      ]
+    },
+    {
+      "serial": "STAGE-003",
+      "configuration": "vehicle-family-a-rev-1",
+      "initial_state": "planned",
+      "events": [
+        {
+          "event_id": "evt-019",
+          "from_state": "planned",
+          "to_state": "in_production",
+          "tick": 0,
+          "evidence_ref": "synthetic:build-003"
+        },
+        {
+          "event_id": "evt-020",
+          "from_state": "in_production",
+          "to_state": "inspected",
+          "tick": 1,
+          "evidence_ref": "synthetic:inspection-build-003"
+        },
+        {
+          "event_id": "evt-021",
+          "from_state": "inspected",
+          "to_state": "acceptance_tested",
+          "tick": 2,
+          "evidence_ref": "synthetic:acceptance-test-003"
+        },
+        {
+          "event_id": "evt-022",
+          "from_state": "acceptance_tested",
+          "to_state": "ready",
+          "tick": 3,
+          "evidence_ref": "synthetic:release-to-service-003"
+        },
+        {
+          "event_id": "evt-023",
+          "from_state": "ready",
+          "to_state": "flown",
+          "tick": 30,
+          "flight_id": "FLIGHT-003",
+          "evidence_ref": "synthetic:flight-003"
+        },
+        {
+          "event_id": "evt-024",
+          "from_state": "flown",
+          "to_state": "lost",
+          "tick": 31,
+          "flight_id": "FLIGHT-003",
+          "evidence_ref": "synthetic:loss-003"
+        }
+      ]
+    }
+  ],
+  "flights": [
+    {
+      "flight_id": "FLIGHT-001",
+      "stage_serial": "STAGE-001",
+      "mission_success": true,
+      "recovered": true,
+      "payload_accepted": true,
+      "accepted_payload_kg": 10000
+    },
+    {
+      "flight_id": "FLIGHT-002",
+      "stage_serial": "STAGE-002",
+      "mission_success": true,
+      "recovered": true,
+      "payload_accepted": true,
+      "accepted_payload_kg": 8000
+    },
+    {
+      "flight_id": "FLIGHT-003",
+      "stage_serial": "STAGE-003",
+      "mission_success": false,
+      "recovered": false,
+      "payload_accepted": false,
+      "accepted_payload_kg": 0
+    },
+    {
+      "flight_id": "FLIGHT-004",
+      "stage_serial": "STAGE-001",
+      "mission_success": true,
+      "recovered": true,
+      "payload_accepted": true,
+      "accepted_payload_kg": 5000
+    }
+  ],
+  "station_capacities": [
+    {
+      "station": "inspection",
+      "parallel_slots": 1
+    },
+    {
+      "station": "refurbishment",
+      "parallel_slots": 1
+    }
+  ],
+  "maintenance_tasks": [
+    {
+      "task_id": "inspect-stage-001",
+      "asset_serial": "STAGE-001",
+      "station": "inspection",
+      "release_tick": 12,
+      "duration_ticks": 3
+    },
+    {
+      "task_id": "inspect-stage-002",
+      "asset_serial": "STAGE-002",
+      "station": "inspection",
+      "release_tick": 14,
+      "duration_ticks": 2
+    },
+    {
+      "task_id": "refurbish-stage-001",
+      "asset_serial": "STAGE-001",
+      "station": "refurbishment",
+      "release_tick": 15,
+      "duration_ticks": 4
+    },
+    {
+      "task_id": "inspect-stage-001-second",
+      "asset_serial": "STAGE-001",
+      "station": "inspection",
+      "release_tick": 27,
+      "duration_ticks": 3
+    },
+    {
+      "task_id": "refurbish-stage-001-second",
+      "asset_serial": "STAGE-001",
+      "station": "refurbishment",
+      "release_tick": 30,
+      "duration_ticks": 4
+    }
+  ],
+  "cost_model": {
+    "manufacture_scu_per_asset": 100,
+    "launch_operations_scu_per_attempt": 20,
+    "recovery_scu_per_recovered_asset": 10,
+    "inspection_scu_per_task": 3,
+    "refurbishment_scu_per_task": 8,
+    "loss_scu_per_lost_asset": 50
+  }
+}
