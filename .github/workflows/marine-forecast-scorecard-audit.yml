@@ -1,0 +1,46 @@
+name: Marine Forecast Skill and Mission Decision Scorecard
+
+on:
+  pull_request:
+    paths:
+      - "tools/marine-forecast-scorecard/**"
+      - ".github/workflows/marine-forecast-scorecard-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marine-forecast-scorecard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scorecard-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/marine-forecast-scorecard/Cargo.toml -- --check
+
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/marine-forecast-scorecard/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run scorecard semantic and negative-control tests
+        run: cargo test --manifest-path tools/marine-forecast-scorecard/Cargo.toml
+
+      - name: Check scorecard schema and synthetic fixture structure
+        run: |
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.record_status.enum == ["synthetic","shadow_replay","measured_campaign","published_reproduction"] and .properties.forecast_cases.minItems >= 1 and .properties.mission_pairs.minItems >= 1' tools/marine-forecast-scorecard/schema/marine-forecast-scorecard.schema.json
+          jq -e '.record_status == "synthetic" and .claim_ceiling == "descriptive_skill_and_paired_outcome_metrics_only" and .dataset.split_strategy == "forward_chaining_joint_grouped" and .dataset.grouping_unit == "joint_voyage_weather_event" and (.forecast_cases | length == 9) and (.mission_pairs | length == 9) and ([.forecast_cases[].fold] | sort | group_by(.) | map({(.[0]): length}) | add == {"development":3,"validation":3,"test":3}) and ([.forecast_cases[] | select(.fold == "test") | .environment_strata[]] | unique | length >= 3)' tools/marine-forecast-scorecard/fixtures/synthetic-scorecard-0001.json
+
+      - name: Scorecard audit must remain synthetic-only
+        run: |
+          cargo run --quiet --manifest-path tools/marine-forecast-scorecard/Cargo.toml -- audit-scorecard tools/marine-forecast-scorecard/fixtures/synthetic-scorecard-0001.json > /tmp/marine-scorecard.json
+          jq -e '.disposition == "SYNTHETIC_ONLY" and .forecast_case_count == 9 and .mission_pair_count == 9 and .decision_metrics.statistical_inference == "NOT_PERFORMED" and .claim_ceiling == "descriptive_metrics_only_no_statistical_superiority_or_operational_authorization"' /tmp/marine-scorecard.json
