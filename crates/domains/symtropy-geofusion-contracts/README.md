@@ -5,7 +5,7 @@ A small, dependency-free Rust library for validating energy-stream boundary reco
 ## Scope
 
 - Distinguishes electrical and thermal carriers (MW_e/MWh_e versus MW_th/MWh_th).
-- Classifies absorption-chiller drive heat, thermal desalination heat and reverse-osmosis electrical demand as distinct useful-service endpoints.
+- Classifies absorption-chiller drive heat, power-cycle thermal input, thermal desalination heat and reverse-osmosis electrical demand as distinct useful-service endpoints.
 - Validates declared power × duration = energy.
 - Requires temperature-grade data for thermal streams and checks minimum exchanger approach.
 - Requires an explicitly declared isolated intermediate loop for geothermal/fusion primary heat streams.
