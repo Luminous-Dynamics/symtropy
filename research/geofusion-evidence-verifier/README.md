@@ -28,7 +28,7 @@ This is a deliberately bounded Rust runtime slice. It is not a full Draft 2020-1
 
 ## Schema validation
 
-The CI workflow uses `check-jsonschema==0.39.0` **as a CI-only tool** to validate the four Draft 2020-12 schemas against their declared metaschemas, check positive source/evidence/allocation and batch-manifest fixtures, and assert that the null-asset negative control is rejected. The runtime library and CLI remain Rust-only; the external CLI is not a production dependency. Raw source-payload schemas now cover both heat and electricity with separate, carrier-specific power fields.
+The CI workflow uses `check-jsonschema==0.39.0` **as a CI-only tool** to validate the five Draft 2020-12 schemas against their declared metaschemas, check positive heat/electric source, evidence/allocation and batch-manifest fixtures, and assert that the null-asset negative control is rejected. The runtime library and CLI remain Rust-only; the external CLI is not a production dependency. Raw source-payload schemas now cover both heat and electricity with separate, carrier-specific power fields.
 
 ## Standards composition
 
@@ -58,7 +58,7 @@ Exit codes:
 
 ## Adversarial and positive test coverage
 
-The 43 current unit tests cover exact fixture success, byte tampering (including malformed tampered JSON), declared byte-length mismatch, interval-ID mismatch, boundary mismatch, synthetic-to-measured evidence-class promotion, duplicate allocation IDs, service/carrier mismatch, over-allocation and negative residual, forged reported balance, allocation digest mismatch, rejected integrity state, zero tolerance, stale/unknown validity, clock-quality refusal, mismatched and non-UTC time windows, unsupported digest algorithms, malformed digests, relative comparisons at tiny energy scales, electrical energy/power consistency and allocation, heat/electricity batch coexistence, duplicate source intervals across batches (including fractional-second spellings), overlapping intervals, invalid calendar dates, duplicate evidence/receipt IDs, source power-duration mismatch and zero-duration rejection.
+The 43 current unit tests cover exact fixture success, byte tampering (including malformed tampered JSON), declared byte-length mismatch, interval-ID mismatch, boundary mismatch, synthetic-to-measured evidence-class promotion, duplicate allocation IDs, service/carrier mismatch, over-allocation and negative residual, forged reported balance, allocation digest mismatch, rejected integrity state, zero tolerance, stale/unknown validity, clock-quality refusal, mismatched and non-UTC time windows, unsupported digest algorithms, malformed digests, relative comparisons at tiny energy scales, electrical source payload verification, electrical energy/power consistency and allocation, heat/electricity batch coexistence, duplicate source intervals across batches (including fractional-second spellings), overlapping intervals, invalid calendar dates, duplicate evidence/receipt IDs, source power-duration mismatch and zero-duration rejection.
 
 ## Batch uniqueness
 
