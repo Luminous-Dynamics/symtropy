@@ -1,0 +1,50 @@
+name: SIM-REL model proposal DSL v0.1
+
+on:
+  pull_request:
+    paths:
+      - "research/simrel-model-proposal-dsl/v0.1/**"
+      - ".github/workflows/simrel-model-proposal.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "research/simrel-model-proposal-dsl/v0.1/**"
+      - ".github/workflows/simrel-model-proposal.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    name: exact-head
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact checkout
+        shell: bash
+        run: |
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$expected"
+
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/simrel-model-proposal-dsl/v0.1/Cargo.toml --all -- --check
+
+      - name: Run locked tests
+        run: cargo test --manifest-path research/simrel-model-proposal-dsl/v0.1/Cargo.toml --locked
+
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/simrel-model-proposal-dsl/v0.1/Cargo.toml --all-targets --locked -- -D warnings
+
+      - name: Emit synthetic interpreter microbenchmark
+        run: cargo run --manifest-path research/simrel-model-proposal-dsl/v0.1/Cargo.toml --release --locked --bin model_proposal_benchmark

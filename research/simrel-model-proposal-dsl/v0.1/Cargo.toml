@@ -1,0 +1,13 @@
+[package]
+name = "simrel-model-proposal-dsl"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Closed typed model proposal AST and deterministic fuel-limited interpreter"
+
+[workspace]
+
+[lib]
+path = "src/lib.rs"
