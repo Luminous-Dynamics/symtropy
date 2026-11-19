@@ -69,6 +69,9 @@ jobs:
             .optimized_policy.expected_total_cost_units == 1511
             and .fixed_initial_region_baseline.expected_total_cost_units == 1576
             and .truck_only_baseline.expected_total_cost_units == 1980
+            and .best_static_region_id != null
+            and .optimized_policy.expected_total_cost_units <= .best_static_region_baseline.expected_total_cost_units
+            and .best_static_region_baseline.expected_total_cost_units <= .fixed_initial_region_baseline.expected_total_cost_units
             and .cvar90_optimal_policy.cvar90_total_cost_units <= .optimized_policy.cvar90_total_cost_units
             and .worst_case_optimal_policy.worst_case_total_cost_units <= .optimized_policy.worst_case_total_cost_units
             and .service_robust_optimal_policy.worst_case_unserved_units <= .optimized_policy.worst_case_unserved_units
