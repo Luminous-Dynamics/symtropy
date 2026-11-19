@@ -12,7 +12,7 @@ Bind every geothermal / fusion / storage energy stream to exact raw source bytes
 
 ## Files
 
-- `schemas/evidence-envelope-v0.1.schema.json`: common receipt for source intervals, solver results, derived streams and allocations. Source-interval envelopes require an explicit `subject.interval_id`, matching the source-allocation receipt rather than relying on time-window inference.
+- `schemas/evidence-envelope-v0.1.schema.json`: common receipt for source intervals, solver results, derived streams and allocations. Source-interval envelopes require explicit `subject.asset_id` and `subject.interval_id`, matching the raw payload and source-allocation receipt rather than relying on time-window inference.
 - `schemas/source-allocation-receipt-v0.1.schema.json`: evidence-bound, single-source/single-carrier/single-interval allocation report.
 - `fixtures/synthetic-geothermal-source-interval.v0.1.json`: raw synthetic meter-like payload used only for schema/digest tests.
 - `fixtures/synthetic-source-interval-evidence.v0.1.json`: source interval evidence envelope, including SHA-256 and exact byte count.
@@ -47,12 +47,12 @@ Those are runtime verifier / independent arithmetic duties. Do not treat `format
 
 ## Validation performed
 
-- Both schema files and all three fixtures were fetched back from the exact branch and parsed as JSON.
+- All four Draft 2020-12 schema documents, the batch manifest and all six source/evidence/allocation fixture files were fetched back from the exact branch and parsed as JSON.
 - The raw payload fixture is 523 bytes. SHA-256 was recomputed over the exact fetched payload bytes and matched the evidence envelope and allocation receipt: `0cdcab2b9625b3669918761b7a4da378e9d344321301f2dd0bb48feb67b788c8`.
 - Manually checked required time-window, artifact, uncertainty, lineage and claim-ceiling fields, plus source digest linkage and the 10 MWh allocation total.
-- The Rust runtime verifier implements exact-byte hashing, source asset/boundary/interval/carrier/time joins, source power-duration-energy consistency for the thermal profile, allocation identity checks, source-allocation arithmetic replay and batch-scoped duplicate-source prevention. It has 24 authored unit tests and a path-scoped Rust 1.96 CI workflow. A separate CI-only Draft 2020-12 validation stage now checks all three schema documents, positive raw/evidence/allocation fixtures and a null-asset negative control using pinned `check-jsonschema` 0.39.0. The raw-payload schema currently covers heat intervals only; an electrical payload profile remains future work. Neither the Rust workflow nor the schema-validation stage has passed yet; queued is not passing. The schemas remain v0.1 drafts and must receive validator-backed tests before production use.
+- The Rust runtime verifier implements exact-byte hashing before parsing, source asset/boundary/interval/carrier/time joins, thermal power-duration-energy consistency, allocation identity checks, first-law arithmetic replay and batch-scoped duplicate/overlap prevention. It now has 33 authored unit tests and single-record plus batch CLI modes (maximum 256 source intervals per batch). The batch key canonicalizes strict UTC timestamps to integer nanoseconds; it rejects both duplicate and overlapping intervals for the same source asset, boundary and carrier, while allowing adjacent intervals. CI checks all four Draft 2020-12 schemas, positive source/evidence/allocation fixtures, a two-interval batch manifest and a null-asset negative control using pinned `check-jsonschema` 0.39.0, then runs Rust 1.96 formatting, Clippy, tests, single CLI and batch CLI. These checks are queued and have not passed yet; no local Cargo run is claimed. The raw-payload schema currently covers heat intervals only; an electrical payload profile remains future work. The schemas remain v0.1 drafts and need validator-backed tests before production use.
 
 A PASS in this fixture means only that the synthetic artifact can be bound to the declared bytes and arithmetic. No source values represent a real geothermal site or fusion plant.
 
 
-Runtime verifier: [research/geofusion-evidence-verifier/README.md](../../../../research/geofusion-evidence-verifier/README.md). It is a bounded source-interval verifier, not a full schema engine or batch registry.
+Runtime verifier: [research/geofusion-evidence-verifier/README.md](../../../../research/geofusion-evidence-verifier/README.md). It is a bounded source-interval verifier and batch-local uniqueness check, not a full schema engine or persistent archive registry. Standards composition is documented in [STANDARDS_INTEROPERABILITY.md](STANDARDS_INTEROPERABILITY.md), with a pinned [machine-readable interoperability matrix](STANDARDS_INTEROPERABILITY_MATRIX.v0.1.json).
