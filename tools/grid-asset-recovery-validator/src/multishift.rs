@@ -1525,7 +1525,80 @@ mod tests {
     }
 
     #[test]
-    fn in_progress_commitment_remains_frozen() {
+    fn appended_progress_snapshot_requires_versioned_reconciliation() {
+        let mut case = fixture();
+        case.events.push(ExecutionEvent {
+            event_id: "repair-progress-old".to_string(),
+            idempotency_key: "repair-progress-old-key".to_string(),
+            event_type: ExecutionEventType::ProgressSnapshot,
+            event_id_ref: "storm-001".to_string(),
+            task_id: "repair-pump".to_string(),
+            segment_id: "repair-pump-active".to_string(),
+            sequence: 1,
+            start_hour: 4.0,
+            end_hour: 6.0,
+            productive_effort_hours: 2.0,
+            effective_hour: 6.0,
+            observed_hour: 6.1,
+            evidence_status: EvidenceStatus::Superseded,
+            evidence_class: EvidenceClass::SyntheticFixture,
+            evidence_ref: "synthetic://progress/repair-pump/old".to_string(),
+            interruption_cause: None,
+        });
+        case.events.push(ExecutionEvent {
+            event_id: "repair-progress-new".to_string(),
+            idempotency_key: "repair-progress-new-key".to_string(),
+            event_type: ExecutionEventType::ProgressSnapshot,
+            event_id_ref: "storm-001".to_string(),
+            task_id: "repair-pump".to_string(),
+            segment_id: "repair-pump-active".to_string(),
+            sequence: 1,
+            start_hour: 4.0,
+            end_hour: 8.0,
+            productive_effort_hours: 3.0,
+            effective_hour: 8.0,
+            observed_hour: 8.0,
+            evidence_status: EvidenceStatus::Current,
+            evidence_class: EvidenceClass::SyntheticFixture,
+            evidence_ref: "synthetic://progress/repair-pump/new".to_string(),
+            interruption_cause: None,
+        });
+
+        let baseline = &mut case.baseline_commitments[0];
+        baseline.state = CommitmentState::InProgress;
+        baseline.version = 1;
+        baseline.active_segment_id = Some("repair-pump-active".to_string());
+        baseline.frozen_event_ids.push("repair-progress-old".to_string());
+
+        let proposed = &mut case.proposed_commitments[0];
+        proposed.state = CommitmentState::InProgress;
+        proposed.version = 2;
+        proposed.active_segment_id = Some("repair-pump-active".to_string());
+        proposed.frozen_event_ids.push("repair-progress-old".to_string());
+        proposed.frozen_event_ids.push("repair-progress-new".to_string());
+
+        case.planned_segments.clear();
+        case.reconciliations.push(ReconciliationEvent {
+            event_id: "reconcile-progress-001".to_string(),
+            commitment_id: "commit-repair-pump".to_string(),
+            from_version: 1,
+            to_version: 2,
+            action: ReconciliationAction::ProgressRecorded,
+            observed_hour: 8.0,
+            evidence_status: EvidenceStatus::Current,
+            authority_ref: "synthetic://authority/shift-supervisor".to_string(),
+            evidence_ref: "synthetic://reconciliation/progress-001".to_string(),
+        });
+
+        let report = validate(&case).expect("versioned progress update is reconciled");
+        let repair = report.tasks.iter().find(|x| x.task_id == "repair-pump").unwrap();
+        assert_eq!(repair.observed_effort_hours, 7.0);
+        assert_eq!(repair.planned_effort_hours, 0.0);
+        assert_eq!(repair.remaining_effort_hours, 1.0);
+    }
+
+    #[test]
+    fn appended_progress_snapshot_without_reconciliation_is_rejected() {
         let mut case = fixture();
         case.events.push(ExecutionEvent {
             event_id: "repair-progress".to_string(),
@@ -1552,10 +1625,7 @@ mod tests {
         case.baseline_commitments[0].frozen_event_ids.push("repair-progress".to_string());
         case.proposed_commitments[0].frozen_event_ids.push("repair-progress".to_string());
         case.planned_segments.clear();
-        let report = validate(&case).expect("in-progress commitment remains frozen");
-        let repair = report.tasks.iter().find(|x| x.task_id == "repair-pump").unwrap();
-        assert_eq!(repair.observed_effort_hours, 7.0);
-        assert_eq!(repair.planned_effort_hours, 0.0);
+        assert!(validate(&case).is_err());
     }
 
     #[test]
