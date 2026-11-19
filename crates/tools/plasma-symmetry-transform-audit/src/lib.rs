@@ -742,6 +742,42 @@ mod tests {
             [0.0, 0.0, 1.0],
         ];
         let receipt = apply_so3_rotation(&request(rotation)).expect("rotation");
+        let expected_velocity = [-1.2320508075688772, 1.8660254037844386, 3.0];
+        let expected_magnetic = [
+            -0.12320508075688772,
+            0.18660254037844387,
+            0.3,
+        ];
+        let expected_pressure = [
+            [
+                2.0334936490538905,
+                -0.5580127018922193,
+                -0.4330127018922193,
+            ],
+            [
+                -0.5580127018922193,
+                2.9665063509461095,
+                0.25,
+            ],
+            [
+                -0.4330127018922193,
+                0.25,
+                1.0,
+            ],
+        ];
+        let actual_velocity = receipt.body.output.vectors[0].value;
+        let actual_magnetic = receipt.body.output.vectors[1].value;
+        let actual_pressure = receipt.body.output.tensors[0].value;
+        for index in 0..3 {
+            assert!((actual_velocity[index] - expected_velocity[index]).abs() < 1.0e-12);
+            assert!((actual_magnetic[index] - expected_magnetic[index]).abs() < 1.0e-12);
+            for column in 0..3 {
+                assert!(
+                    (actual_pressure[index][column] - expected_pressure[index][column]).abs()
+                        < 1.0e-12
+                );
+            }
+        }
         let metrics = &receipt.body.metrics;
         assert!(metrics.orthogonality_max_abs < OUTPUT_TOLERANCE);
         assert!(metrics.determinant_error < OUTPUT_TOLERANCE);
