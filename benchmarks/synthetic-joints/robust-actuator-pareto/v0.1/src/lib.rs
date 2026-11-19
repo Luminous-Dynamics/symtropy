@@ -213,6 +213,7 @@ fn validate_prediction_calibration(
     evidence_class: EvidenceClass,
     receipt: &Option<PredictionCalibrationReceipt>,
     candidate: &DesignCandidate,
+    unit: &str,
     label: &str,
 ) -> Result<(), String> {
     if evidence_class != EvidenceClass::CalibratedModelPrediction {
@@ -224,6 +225,9 @@ fn validate_prediction_calibration(
         return Ok(());
     }
 
+    if unit != "Nm" && unit != "N m" {
+        return Err(format!("{label} uses a torque calibration receipt for non-torque unit {unit:?}"));
+    }
     let receipt = receipt.as_ref().ok_or_else(|| {
         format!("{label} is CalibratedModelPrediction but has no calibration receipt")
     })?;
@@ -430,6 +434,7 @@ fn assess_candidate(
             observation.evidence_class,
             &observation.calibration_receipt,
             candidate,
+            &observation.unit,
             &format!("objective {:?}", definition.name),
         )?;
         if observation.value.is_some_and(|value| !value.is_finite()) {
@@ -482,6 +487,7 @@ fn assess_candidate(
             observation.evidence_class,
             &observation.calibration_receipt,
             candidate,
+            &observation.unit,
             &format!("constraint {:?}", definition.name),
         )?;
         if observation.minimum_robust_margin.is_some_and(|margin| !margin.is_finite()) {
@@ -807,16 +813,14 @@ mod tests {
             0.8,
             70.0,
             0.95,
-            EvidenceClass::CalibratedModelPrediction,
+            EvidenceClass::ModelDerived,
         );
         candidate.model_digest = Some("torque-surrogate-model-v1".to_owned());
         candidate.prediction_domain_digest = Some("torque-speed-domain-v1".to_owned());
-        for metric in &mut candidate.objectives {
-            metric.calibration_receipt = Some(calibration_receipt());
-        }
-        for constraint in &mut candidate.hard_constraints {
-            constraint.calibration_receipt = Some(calibration_receipt());
-        }
+        // The grouped conformal receipt calibrates output torque only. It
+        // must not be reused to imply calibrated mass, energy or temperature.
+        candidate.hard_constraints[1].evidence_class = EvidenceClass::CalibratedModelPrediction;
+        candidate.hard_constraints[1].calibration_receipt = Some(calibration_receipt());
         candidate
     }
 
@@ -1096,7 +1100,7 @@ mod tests {
     #[test]
     fn pareto_026_calibrated_model_prediction_requires_receipt_on_every_metric() {
         let mut candidate = calibrated_model_candidate("missing-receipt");
-        candidate.objectives[1].calibration_receipt = None;
+        candidate.hard_constraints[1].calibration_receipt = None;
         assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
 
         let mut candidate = calibrated_model_candidate("missing-constraint-receipt");
@@ -1113,12 +1117,28 @@ mod tests {
             0.9,
             EvidenceClass::IndependentPhysical,
         );
-        candidate.objectives[0].calibration_receipt = Some(calibration_receipt());
+        candidate.hard_constraints[1].calibration_receipt = Some(calibration_receipt());
         assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
     }
 
     #[test]
-    fn pareto_028_stale_model_domain_boundary_or_mission_receipt_rejects() {
+    fn pareto_028_torque_calibration_receipt_cannot_validate_energy_or_thermal_metrics() {
+        let mut candidate = candidate(
+            "wrong-unit-calibration",
+            1.0,
+            100.0,
+            0.9,
+            EvidenceClass::ModelDerived,
+        );
+        candidate.model_digest = Some("torque-surrogate-model-v1".to_owned());
+        candidate.prediction_domain_digest = Some("torque-speed-domain-v1".to_owned());
+        candidate.objectives[1].evidence_class = EvidenceClass::CalibratedModelPrediction;
+        candidate.objectives[1].calibration_receipt = Some(calibration_receipt());
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_032_stale_model_domain_boundary_or_mission_receipt_rejects() {
         let mut candidate = calibrated_model_candidate("stale-model");
         candidate.model_digest = Some("different-model".to_owned());
         assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
@@ -1134,7 +1154,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_029_insufficient_or_malformed_calibration_receipt_rejects() {
+    fn pareto_032_insufficient_or_malformed_calibration_receipt_rejects() {
         let mut insufficient = calibrated_model_candidate("insufficient-calibration");
         let receipt = insufficient.objectives[0].calibration_receipt.as_mut().unwrap();
         receipt.order_statistic_rank = 4;
@@ -1149,9 +1169,9 @@ mod tests {
     }
 
     #[test]
-    fn pareto_030_calibrated_model_violation_receipt_retains_calibration_provenance() {
+    fn pareto_032_calibrated_model_violation_receipt_retains_calibration_provenance() {
         let mut candidate = calibrated_model_candidate("calibrated-violation");
-        candidate.hard_constraints[0].minimum_robust_margin = Some(-0.25);
+        candidate.hard_constraints[1].minimum_robust_margin = Some(-0.25);
         let report = robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).unwrap();
         let violation = &assessment(&report, "calibrated-violation").known_constraint_violations[0];
         assert_eq!(violation.evidence_class, EvidenceClass::CalibratedModelPrediction);
@@ -1162,7 +1182,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_031_all_candidates_are_retained_as_assessments() {
+    fn pareto_032_all_candidates_are_retained_as_assessments() {
         let good = candidate("good", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
         let mut bad = candidate("bad", 0.5, 50.0, 1.0, EvidenceClass::IndependentPhysical);
         bad.hard_constraints[0].minimum_robust_margin = Some(-0.5);
