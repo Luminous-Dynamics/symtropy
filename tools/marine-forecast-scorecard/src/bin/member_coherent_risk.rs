@@ -125,7 +125,7 @@ fn validate(raw: &[u8], value: &Value) -> Value {
     }
     let expected_members = member_digests.keys().cloned().collect::<BTreeSet<_>>();
     let canonical_member_set = member_digests.iter()
-        .map(|(member_id, digest)| format!("{member_id}:{digest}\\n"))
+        .map(|(member_id, digest)| format!("{member_id}:{digest}\n"))
         .collect::<String>();
     let computed_member_set_digest = Sha256::digest(canonical_member_set.as_bytes())
         .iter().map(|byte| format!("{byte:02x}")).collect::<String>();
