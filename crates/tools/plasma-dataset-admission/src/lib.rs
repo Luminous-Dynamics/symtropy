@@ -117,12 +117,12 @@ fn hash_reader(mut reader: impl Read) -> io::Result<(u64, String)> {
         if count == 0 {
             break;
         }
-        let count = u64::try_from(count)
+        let count_u64 = u64::try_from(count)
             .map_err(|_| io::Error::other("read length does not fit in u64"))?;
         total_bytes = total_bytes
-            .checked_add(count)
+            .checked_add(count_u64)
             .ok_or_else(|| io::Error::other("artifact size overflow"))?;
-        hasher.update(&buffer[..count as usize]);
+        hasher.update(&buffer[..count]);
     }
 
     let digest = hasher.finalize();
@@ -162,10 +162,6 @@ fn finding(code: &str, ids: Vec<String>, detail: &str) -> AuditFinding {
 /// The caller must supply bytes keyed by artifact ID. Their size and SHA-256
 /// are recomputed here; no observed hash or size is trusted from the manifest.
 /// A source-published SHA-256 match is required for evaluation admission in v0.1.
-pub fn audit_manifest(
-    manifest: &SourceManifest,
-    local_artifacts: &BTreeMap<String, Vec<u8>>,
-) -> Result<AuditReport, String> {
 pub fn audit_manifest(
     manifest: &SourceManifest,
     local_artifacts: &BTreeMap<String, Vec<u8>>,
