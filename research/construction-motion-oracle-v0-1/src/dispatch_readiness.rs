@@ -1355,7 +1355,7 @@ mod tests {
         );
 
         let mut expired_clock = make_request(&ledger);
-        expired_clock.qualified_clock.current_tick = 130;
+        expired_clock.qualified_clock.current_tick = 131;
         expired_clock.qualified_clock.valid_until_tick = 130;
         assert_eq!(
             check_dispatch_readiness(&ledger, &expired_clock, &policy()),
