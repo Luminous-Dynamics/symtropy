@@ -198,3 +198,10 @@ The machine-readable graph/change contract is schema/construction-change-impact-
 The wire schema and typed validator enforce the same persistence rule: accepted construction records, as-built measurements and handover records are historical_immutable; derived artifacts such as trajectories, envelopes, occupancy assessments and dispatch readiness are recomputable. The typed Rust module is the authoritative validation path; the JSON Schema is the interoperable input shape.
 
 The schema and synthetic fixture also carry a dependency_contract_set. Every artifact kind must be covered, and the minimum required domains must be unique and non-empty. The typed contract audit remains authoritative because it also checks artifact IDs, parents, cycles, persistence class and the dependency edges used by the invalidation compiler.
+
+
+#### Executable model-to-site point transform
+
+IfcCoordinateContext::transform_model_point_to_site_mm exposes an executable point-transform contract. It applies the declared IFC unit ratio first, the uniform map-conversion scale second, the proper model-to-site rotation third, and the millimetre site translation last. The result carries the target frame digest in SiteFramePointMm so callers cannot silently discard which site frame the coordinates belong to.
+
+The function accepts a point already resolved into model coordinates. It does not parse IFC placements, representation maps, nested local placements, linked models or geometry; the upstream IFC reader must resolve those before calling it. It also does not quantize to integer millimetres. Any later quantization must use a documented, outward-conservative policy appropriate to the geometry role (point location vs extent/bound), and must not silently shrink a swept envelope. Tests cover an inch/foot conversion, uniform scale, quarter-turn rotation, translation order, rigid-distance preservation, non-finite inputs and overflow.
