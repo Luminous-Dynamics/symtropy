@@ -12,12 +12,12 @@
     {
       "component": "orbital_capture",
       "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-      "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9"
+      "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c"
     },
     {
       "component": "orbital_fluid",
       "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-      "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee"
+      "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df"
     }
   ],
   "cases": [
@@ -25,11 +25,11 @@
       "case_id": "NOMINAL_SYNTHETIC_COMPOSITION",
       "expected_status": "accepted_for_synthetic_composition",
       "profile": {
-        "subject_id": "client-001",
+        "subject_id": "serviced-client-001",
         "target_orbit_id": "leo-550-km",
-        "interface_id": "svc-port-a",
+        "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
-        "fluid_id": "synthetic-storable-fluid-a",
+        "fluid_id": "synthetic-hydrazine-analogue",
         "minimum_accepted_mass_g": 380000
       },
       "events": [
@@ -37,7 +37,7 @@
           "event_id": "evt-launch",
           "sequence": 10,
           "kind": "payload_delivery_accepted",
-          "subject_id": "client-001",
+          "subject_id": "serviced-client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
             "component": "earth_orbit_chain",
@@ -57,13 +57,13 @@
           "event_id": "evt-capture",
           "sequence": 20,
           "kind": "capture_handoff_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -78,15 +78,15 @@
           "event_id": "evt-fluid",
           "sequence": 30,
           "kind": "fluid_receiver_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
-          "fluid_id": "synthetic-storable-fluid-a",
+          "fluid_id": "synthetic-hydrazine-analogue",
           "accepted_mass_g": 390000,
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -95,7 +95,8 @@
             "authority_scope": "benchmark_fixture_only",
             "context_of_use": "orbital_service_composition_v0_1",
             "claim_ceiling": "synthetic_contract_only"
-          }
+          },
+          "receiver_id": "serviced-client-001"
         }
       ]
     },
@@ -103,11 +104,11 @@
       "case_id": "LAUNCH_ATTEMPT_ONLY",
       "expected_status": "indeterminate",
       "profile": {
-        "subject_id": "client-001",
+        "subject_id": "serviced-client-001",
         "target_orbit_id": "leo-550-km",
-        "interface_id": "svc-port-a",
+        "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
-        "fluid_id": "synthetic-storable-fluid-a",
+        "fluid_id": "synthetic-hydrazine-analogue",
         "minimum_accepted_mass_g": 380000
       },
       "events": [
@@ -122,11 +123,11 @@
       "case_id": "APPROACH_ONLY",
       "expected_status": "indeterminate",
       "profile": {
-        "subject_id": "client-001",
+        "subject_id": "serviced-client-001",
         "target_orbit_id": "leo-550-km",
-        "interface_id": "svc-port-a",
+        "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
-        "fluid_id": "synthetic-storable-fluid-a",
+        "fluid_id": "synthetic-hydrazine-analogue",
         "minimum_accepted_mass_g": 380000
       },
       "events": [
@@ -134,7 +135,7 @@
           "event_id": "evt-launch",
           "sequence": 10,
           "kind": "payload_delivery_accepted",
-          "subject_id": "client-001",
+          "subject_id": "serviced-client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
             "component": "earth_orbit_chain",
@@ -161,11 +162,11 @@
       "case_id": "CAPTURE_WRONG_SUBJECT",
       "expected_status": "rejected",
       "profile": {
-        "subject_id": "client-001",
+        "subject_id": "serviced-client-001",
         "target_orbit_id": "leo-550-km",
-        "interface_id": "svc-port-a",
+        "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
-        "fluid_id": "synthetic-storable-fluid-a",
+        "fluid_id": "synthetic-hydrazine-analogue",
         "minimum_accepted_mass_g": 380000
       },
       "events": [
@@ -173,7 +174,7 @@
           "event_id": "evt-launch",
           "sequence": 10,
           "kind": "payload_delivery_accepted",
-          "subject_id": "client-001",
+          "subject_id": "serviced-client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
             "component": "earth_orbit_chain",
@@ -194,12 +195,12 @@
           "sequence": 20,
           "kind": "capture_handoff_accepted",
           "subject_id": "client-foreign",
-          "interface_id": "svc-port-a",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -214,15 +215,15 @@
           "event_id": "evt-fluid",
           "sequence": 30,
           "kind": "fluid_receiver_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
-          "fluid_id": "synthetic-storable-fluid-a",
+          "fluid_id": "synthetic-hydrazine-analogue",
           "accepted_mass_g": 390000,
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -231,7 +232,8 @@
             "authority_scope": "benchmark_fixture_only",
             "context_of_use": "orbital_service_composition_v0_1",
             "claim_ceiling": "synthetic_contract_only"
-          }
+          },
+          "receiver_id": "serviced-client-001"
         }
       ]
     },
@@ -239,11 +241,11 @@
       "case_id": "INTERFACE_REVISION_MISMATCH",
       "expected_status": "rejected",
       "profile": {
-        "subject_id": "client-001",
+        "subject_id": "serviced-client-001",
         "target_orbit_id": "leo-550-km",
-        "interface_id": "svc-port-a",
+        "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
-        "fluid_id": "synthetic-storable-fluid-a",
+        "fluid_id": "synthetic-hydrazine-analogue",
         "minimum_accepted_mass_g": 380000
       },
       "events": [
@@ -251,7 +253,7 @@
           "event_id": "evt-launch",
           "sequence": 10,
           "kind": "payload_delivery_accepted",
-          "subject_id": "client-001",
+          "subject_id": "serviced-client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
             "component": "earth_orbit_chain",
@@ -271,13 +273,13 @@
           "event_id": "evt-capture",
           "sequence": 20,
           "kind": "capture_handoff_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -292,15 +294,15 @@
           "event_id": "evt-fluid",
           "sequence": 30,
           "kind": "fluid_receiver_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 4,
-          "fluid_id": "synthetic-storable-fluid-a",
+          "fluid_id": "synthetic-hydrazine-analogue",
           "accepted_mass_g": 390000,
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -309,7 +311,8 @@
             "authority_scope": "benchmark_fixture_only",
             "context_of_use": "orbital_service_composition_v0_1",
             "claim_ceiling": "synthetic_contract_only"
-          }
+          },
+          "receiver_id": "serviced-client-001"
         }
       ]
     },
@@ -317,11 +320,11 @@
       "case_id": "STORAGE_ONLY_NOT_TRANSFER_EVIDENCE",
       "expected_status": "indeterminate",
       "profile": {
-        "subject_id": "client-001",
+        "subject_id": "serviced-client-001",
         "target_orbit_id": "leo-550-km",
-        "interface_id": "svc-port-a",
+        "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
-        "fluid_id": "synthetic-storable-fluid-a",
+        "fluid_id": "synthetic-hydrazine-analogue",
         "minimum_accepted_mass_g": 380000
       },
       "events": [
@@ -329,7 +332,7 @@
           "event_id": "evt-launch",
           "sequence": 10,
           "kind": "payload_delivery_accepted",
-          "subject_id": "client-001",
+          "subject_id": "serviced-client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
             "component": "earth_orbit_chain",
@@ -349,13 +352,13 @@
           "event_id": "evt-capture",
           "sequence": 20,
           "kind": "capture_handoff_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -370,15 +373,15 @@
           "event_id": "evt-fluid",
           "sequence": 30,
           "kind": "fluid_receiver_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
-          "fluid_id": "synthetic-storable-fluid-a",
+          "fluid_id": "synthetic-hydrazine-analogue",
           "accepted_mass_g": 0,
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "storage_only_not_transfer_evidence",
             "evidence_class": "synthetic",
@@ -387,7 +390,8 @@
             "authority_scope": "benchmark_fixture_only",
             "context_of_use": "orbital_service_composition_v0_1",
             "claim_ceiling": "synthetic_contract_only"
-          }
+          },
+          "receiver_id": "serviced-client-001"
         }
       ]
     },
@@ -395,11 +399,11 @@
       "case_id": "RECEIVER_MASS_SHORTFALL",
       "expected_status": "rejected",
       "profile": {
-        "subject_id": "client-001",
+        "subject_id": "serviced-client-001",
         "target_orbit_id": "leo-550-km",
-        "interface_id": "svc-port-a",
+        "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
-        "fluid_id": "synthetic-storable-fluid-a",
+        "fluid_id": "synthetic-hydrazine-analogue",
         "minimum_accepted_mass_g": 380000
       },
       "events": [
@@ -407,7 +411,7 @@
           "event_id": "evt-launch",
           "sequence": 10,
           "kind": "payload_delivery_accepted",
-          "subject_id": "client-001",
+          "subject_id": "serviced-client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
             "component": "earth_orbit_chain",
@@ -427,13 +431,13 @@
           "event_id": "evt-capture",
           "sequence": 20,
           "kind": "capture_handoff_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -448,15 +452,15 @@
           "event_id": "evt-fluid",
           "sequence": 30,
           "kind": "fluid_receiver_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
-          "fluid_id": "synthetic-storable-fluid-a",
+          "fluid_id": "synthetic-hydrazine-analogue",
           "accepted_mass_g": 100000,
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -465,7 +469,8 @@
             "authority_scope": "benchmark_fixture_only",
             "context_of_use": "orbital_service_composition_v0_1",
             "claim_ceiling": "synthetic_contract_only"
-          }
+          },
+          "receiver_id": "serviced-client-001"
         }
       ]
     },
@@ -473,11 +478,11 @@
       "case_id": "STALE_SOURCE_COMMIT",
       "expected_status": "rejected",
       "profile": {
-        "subject_id": "client-001",
+        "subject_id": "serviced-client-001",
         "target_orbit_id": "leo-550-km",
-        "interface_id": "svc-port-a",
+        "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
-        "fluid_id": "synthetic-storable-fluid-a",
+        "fluid_id": "synthetic-hydrazine-analogue",
         "minimum_accepted_mass_g": 380000
       },
       "events": [
@@ -485,7 +490,7 @@
           "event_id": "evt-launch",
           "sequence": 10,
           "kind": "payload_delivery_accepted",
-          "subject_id": "client-001",
+          "subject_id": "serviced-client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
             "component": "earth_orbit_chain",
@@ -505,13 +510,13 @@
           "event_id": "evt-capture",
           "sequence": 20,
           "kind": "capture_handoff_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -526,15 +531,15 @@
           "event_id": "evt-fluid",
           "sequence": 30,
           "kind": "fluid_receiver_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
-          "fluid_id": "synthetic-storable-fluid-a",
+          "fluid_id": "synthetic-hydrazine-analogue",
           "accepted_mass_g": 390000,
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "0000000000000000000000000000000000000000",
+            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
             "reference": "synthetic://orbital_fluid/fluid-old",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -543,7 +548,8 @@
             "authority_scope": "benchmark_fixture_only",
             "context_of_use": "orbital_service_composition_v0_1",
             "claim_ceiling": "synthetic_contract_only"
-          }
+          },
+          "receiver_id": "serviced-client-001"
         }
       ]
     },
@@ -551,11 +557,11 @@
       "case_id": "DUPLICATE_EVENT_ID",
       "expected_status": "rejected",
       "profile": {
-        "subject_id": "client-001",
+        "subject_id": "serviced-client-001",
         "target_orbit_id": "leo-550-km",
-        "interface_id": "svc-port-a",
+        "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
-        "fluid_id": "synthetic-storable-fluid-a",
+        "fluid_id": "synthetic-hydrazine-analogue",
         "minimum_accepted_mass_g": 380000
       },
       "events": [
@@ -563,7 +569,7 @@
           "event_id": "evt-launch",
           "sequence": 10,
           "kind": "payload_delivery_accepted",
-          "subject_id": "client-001",
+          "subject_id": "serviced-client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
             "component": "earth_orbit_chain",
@@ -583,13 +589,13 @@
           "event_id": "evt-capture",
           "sequence": 20,
           "kind": "capture_handoff_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -604,15 +610,15 @@
           "event_id": "evt-capture",
           "sequence": 30,
           "kind": "fluid_receiver_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
-          "fluid_id": "synthetic-storable-fluid-a",
+          "fluid_id": "synthetic-hydrazine-analogue",
           "accepted_mass_g": 390000,
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -621,7 +627,8 @@
             "authority_scope": "benchmark_fixture_only",
             "context_of_use": "orbital_service_composition_v0_1",
             "claim_ceiling": "synthetic_contract_only"
-          }
+          },
+          "receiver_id": "serviced-client-001"
         }
       ]
     },
@@ -629,11 +636,11 @@
       "case_id": "CUSTOMER_ACK_ONLY",
       "expected_status": "indeterminate",
       "profile": {
-        "subject_id": "client-001",
+        "subject_id": "serviced-client-001",
         "target_orbit_id": "leo-550-km",
-        "interface_id": "svc-port-a",
+        "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
-        "fluid_id": "synthetic-storable-fluid-a",
+        "fluid_id": "synthetic-hydrazine-analogue",
         "minimum_accepted_mass_g": 380000
       },
       "events": [
@@ -648,11 +655,11 @@
       "case_id": "OUT_OF_ORDER",
       "expected_status": "rejected",
       "profile": {
-        "subject_id": "client-001",
+        "subject_id": "serviced-client-001",
         "target_orbit_id": "leo-550-km",
-        "interface_id": "svc-port-a",
+        "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
-        "fluid_id": "synthetic-storable-fluid-a",
+        "fluid_id": "synthetic-hydrazine-analogue",
         "minimum_accepted_mass_g": 380000
       },
       "events": [
@@ -660,7 +667,7 @@
           "event_id": "evt-launch",
           "sequence": 10,
           "kind": "payload_delivery_accepted",
-          "subject_id": "client-001",
+          "subject_id": "serviced-client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
             "component": "earth_orbit_chain",
@@ -680,15 +687,15 @@
           "event_id": "evt-fluid",
           "sequence": 20,
           "kind": "fluid_receiver_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
-          "fluid_id": "synthetic-storable-fluid-a",
+          "fluid_id": "synthetic-hydrazine-analogue",
           "accepted_mass_g": 390000,
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -697,19 +704,20 @@
             "authority_scope": "benchmark_fixture_only",
             "context_of_use": "orbital_service_composition_v0_1",
             "claim_ceiling": "synthetic_contract_only"
-          }
+          },
+          "receiver_id": "serviced-client-001"
         },
         {
           "event_id": "evt-capture",
           "sequence": 30,
           "kind": "capture_handoff_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -726,11 +734,11 @@
       "case_id": "MISSING_FLUID_EVIDENCE",
       "expected_status": "indeterminate",
       "profile": {
-        "subject_id": "client-001",
+        "subject_id": "serviced-client-001",
         "target_orbit_id": "leo-550-km",
-        "interface_id": "svc-port-a",
+        "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
-        "fluid_id": "synthetic-storable-fluid-a",
+        "fluid_id": "synthetic-hydrazine-analogue",
         "minimum_accepted_mass_g": 380000
       },
       "events": [
@@ -738,7 +746,7 @@
           "event_id": "evt-launch",
           "sequence": 10,
           "kind": "payload_delivery_accepted",
-          "subject_id": "client-001",
+          "subject_id": "serviced-client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
             "component": "earth_orbit_chain",
@@ -758,13 +766,13 @@
           "event_id": "evt-capture",
           "sequence": 20,
           "kind": "capture_handoff_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -779,11 +787,12 @@
           "event_id": "evt-fluid",
           "sequence": 30,
           "kind": "fluid_receiver_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
-          "fluid_id": "synthetic-storable-fluid-a",
-          "accepted_mass_g": 390000
+          "fluid_id": "synthetic-hydrazine-analogue",
+          "accepted_mass_g": 390000,
+          "receiver_id": "serviced-client-001"
         }
       ]
     },
@@ -791,11 +800,11 @@
       "case_id": "WRONG_TARGET_ORBIT",
       "expected_status": "rejected",
       "profile": {
-        "subject_id": "client-001",
+        "subject_id": "serviced-client-001",
         "target_orbit_id": "leo-550-km",
-        "interface_id": "svc-port-a",
+        "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
-        "fluid_id": "synthetic-storable-fluid-a",
+        "fluid_id": "synthetic-hydrazine-analogue",
         "minimum_accepted_mass_g": 380000
       },
       "events": [
@@ -803,7 +812,7 @@
           "event_id": "evt-launch",
           "sequence": 10,
           "kind": "payload_delivery_accepted",
-          "subject_id": "client-001",
+          "subject_id": "serviced-client-001",
           "target_orbit_id": "geo-transfer-orbit",
           "evidence": {
             "component": "earth_orbit_chain",
@@ -823,13 +832,13 @@
           "event_id": "evt-capture",
           "sequence": 20,
           "kind": "capture_handoff_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -844,15 +853,15 @@
           "event_id": "evt-fluid",
           "sequence": 30,
           "kind": "fluid_receiver_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
-          "fluid_id": "synthetic-storable-fluid-a",
+          "fluid_id": "synthetic-hydrazine-analogue",
           "accepted_mass_g": 390000,
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -861,7 +870,8 @@
             "authority_scope": "benchmark_fixture_only",
             "context_of_use": "orbital_service_composition_v0_1",
             "claim_ceiling": "synthetic_contract_only"
-          }
+          },
+          "receiver_id": "serviced-client-001"
         }
       ]
     },
@@ -869,11 +879,11 @@
       "case_id": "MISSING_PER_PAYLOAD_LAUNCH_LINK",
       "expected_status": "indeterminate",
       "profile": {
-        "subject_id": "client-001",
+        "subject_id": "serviced-client-001",
         "target_orbit_id": "leo-550-km",
-        "interface_id": "svc-port-a",
+        "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
-        "fluid_id": "synthetic-storable-fluid-a",
+        "fluid_id": "synthetic-hydrazine-analogue",
         "minimum_accepted_mass_g": 380000
       },
       "events": [
@@ -886,13 +896,13 @@
           "event_id": "evt-capture",
           "sequence": 20,
           "kind": "capture_handoff_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -907,15 +917,15 @@
           "event_id": "evt-fluid",
           "sequence": 30,
           "kind": "fluid_receiver_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
-          "fluid_id": "synthetic-storable-fluid-a",
+          "fluid_id": "synthetic-hydrazine-analogue",
           "accepted_mass_g": 390000,
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -924,7 +934,8 @@
             "authority_scope": "benchmark_fixture_only",
             "context_of_use": "orbital_service_composition_v0_1",
             "claim_ceiling": "synthetic_contract_only"
-          }
+          },
+          "receiver_id": "serviced-client-001"
         }
       ]
     },
@@ -932,11 +943,11 @@
       "case_id": "MISSING_ARTIFACT_DIGEST",
       "expected_status": "indeterminate",
       "profile": {
-        "subject_id": "client-001",
+        "subject_id": "serviced-client-001",
         "target_orbit_id": "leo-550-km",
-        "interface_id": "svc-port-a",
+        "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
-        "fluid_id": "synthetic-storable-fluid-a",
+        "fluid_id": "synthetic-hydrazine-analogue",
         "minimum_accepted_mass_g": 380000
       },
       "events": [
@@ -944,7 +955,7 @@
           "event_id": "evt-launch",
           "sequence": 10,
           "kind": "payload_delivery_accepted",
-          "subject_id": "client-001",
+          "subject_id": "serviced-client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
             "component": "earth_orbit_chain",
@@ -964,13 +975,13 @@
           "event_id": "evt-capture",
           "sequence": 20,
           "kind": "capture_handoff_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -985,15 +996,15 @@
           "event_id": "evt-fluid",
           "sequence": 30,
           "kind": "fluid_receiver_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
-          "fluid_id": "synthetic-storable-fluid-a",
+          "fluid_id": "synthetic-hydrazine-analogue",
           "accepted_mass_g": 390000,
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -1002,7 +1013,8 @@
             "authority_scope": "benchmark_fixture_only",
             "context_of_use": "orbital_service_composition_v0_1",
             "claim_ceiling": "synthetic_contract_only"
-          }
+          },
+          "receiver_id": "serviced-client-001"
         }
       ]
     },
@@ -1010,11 +1022,11 @@
       "case_id": "MISSING_PRODUCER_AUTHORITY_SCOPE",
       "expected_status": "indeterminate",
       "profile": {
-        "subject_id": "client-001",
+        "subject_id": "serviced-client-001",
         "target_orbit_id": "leo-550-km",
-        "interface_id": "svc-port-a",
+        "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
-        "fluid_id": "synthetic-storable-fluid-a",
+        "fluid_id": "synthetic-hydrazine-analogue",
         "minimum_accepted_mass_g": 380000
       },
       "events": [
@@ -1022,7 +1034,7 @@
           "event_id": "evt-launch",
           "sequence": 10,
           "kind": "payload_delivery_accepted",
-          "subject_id": "client-001",
+          "subject_id": "serviced-client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
             "component": "earth_orbit_chain",
@@ -1042,13 +1054,13 @@
           "event_id": "evt-capture",
           "sequence": 20,
           "kind": "capture_handoff_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -1063,15 +1075,15 @@
           "event_id": "evt-fluid",
           "sequence": 30,
           "kind": "fluid_receiver_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
-          "fluid_id": "synthetic-storable-fluid-a",
+          "fluid_id": "synthetic-hydrazine-analogue",
           "accepted_mass_g": 390000,
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -1080,7 +1092,8 @@
             "authority_scope": "benchmark_fixture_only",
             "context_of_use": "orbital_service_composition_v0_1",
             "claim_ceiling": "synthetic_contract_only"
-          }
+          },
+          "receiver_id": "serviced-client-001"
         }
       ]
     },
@@ -1088,11 +1101,11 @@
       "case_id": "MALFORMED_ARTIFACT_DIGEST",
       "expected_status": "rejected",
       "profile": {
-        "subject_id": "client-001",
+        "subject_id": "serviced-client-001",
         "target_orbit_id": "leo-550-km",
-        "interface_id": "svc-port-a",
+        "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
         "interface_revision": 3,
-        "fluid_id": "synthetic-storable-fluid-a",
+        "fluid_id": "synthetic-hydrazine-analogue",
         "minimum_accepted_mass_g": 380000
       },
       "events": [
@@ -1100,7 +1113,7 @@
           "event_id": "evt-launch",
           "sequence": 10,
           "kind": "payload_delivery_accepted",
-          "subject_id": "client-001",
+          "subject_id": "serviced-client-001",
           "target_orbit_id": "leo-550-km",
           "evidence": {
             "component": "earth_orbit_chain",
@@ -1120,13 +1133,13 @@
           "event_id": "evt-capture",
           "sequence": 20,
           "kind": "capture_handoff_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
           "evidence": {
             "component": "orbital_capture",
             "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
-            "source_commit": "5bb18b1c2c42c71e6384363925ef1504ff078ba9",
+            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
             "reference": "synthetic://orbital_capture/capture-001",
             "decision": "accepted_for_handoff",
             "evidence_class": "synthetic",
@@ -1141,15 +1154,15 @@
           "event_id": "evt-fluid",
           "sequence": 30,
           "kind": "fluid_receiver_accepted",
-          "subject_id": "client-001",
-          "interface_id": "svc-port-a",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
           "interface_revision": 3,
-          "fluid_id": "synthetic-storable-fluid-a",
+          "fluid_id": "synthetic-hydrazine-analogue",
           "accepted_mass_g": 390000,
           "evidence": {
             "component": "orbital_fluid",
             "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
-            "source_commit": "f4b28de06e503a457c2c919258b3534db63bc9ee",
+            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
             "reference": "synthetic://orbital_fluid/fluid-001",
             "decision": "transfer_accepted",
             "evidence_class": "synthetic",
@@ -1158,7 +1171,166 @@
             "authority_scope": "benchmark_fixture_only",
             "context_of_use": "orbital_service_composition_v0_1",
             "claim_ceiling": "synthetic_contract_only"
+          },
+          "receiver_id": "serviced-client-001"
+        }
+      ]
+    },
+    {
+      "case_id": "MISSING_RECEIVER_ID",
+      "expected_status": "indeterminate",
+      "profile": {
+        "subject_id": "serviced-client-001",
+        "target_orbit_id": "leo-550-km",
+        "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
+        "interface_revision": 3,
+        "fluid_id": "synthetic-hydrazine-analogue",
+        "minimum_accepted_mass_g": 380000
+      },
+      "events": [
+        {
+          "event_id": "evt-launch",
+          "sequence": 10,
+          "kind": "payload_delivery_accepted",
+          "subject_id": "serviced-client-001",
+          "target_orbit_id": "leo-550-km",
+          "evidence": {
+            "component": "earth_orbit_chain",
+            "receipt_schema": "symtropy.earth-orbit-chain.v1",
+            "source_commit": "af34a9c6633329e0faf440ea2147850e434db7d9",
+            "reference": "synthetic://reusable_launch/launch-001",
+            "decision": "ready",
+            "evidence_class": "synthetic",
+            "artifact_sha256": "a0c7c6fd0f31f9419a969618f7ca22ba31bcaedc9d789c0d10785e41921834a9",
+            "producer_id": "synthetic:earth_orbit_chain:fixture-producer",
+            "authority_scope": "benchmark_fixture_only",
+            "context_of_use": "orbital_service_composition_v0_1",
+            "claim_ceiling": "synthetic_contract_only"
           }
+        },
+        {
+          "event_id": "evt-capture",
+          "sequence": 20,
+          "kind": "capture_handoff_accepted",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
+          "interface_revision": 3,
+          "evidence": {
+            "component": "orbital_capture",
+            "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
+            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
+            "reference": "synthetic://orbital_capture/capture-001",
+            "decision": "accepted_for_handoff",
+            "evidence_class": "synthetic",
+            "artifact_sha256": "3e89b225ea905d4a04f6adb90e2ff8853ec51c52f372339268a24135882eb9bc",
+            "producer_id": "synthetic:orbital_capture:fixture-producer",
+            "authority_scope": "benchmark_fixture_only",
+            "context_of_use": "orbital_service_composition_v0_1",
+            "claim_ceiling": "synthetic_contract_only"
+          }
+        },
+        {
+          "event_id": "evt-fluid",
+          "sequence": 30,
+          "kind": "fluid_receiver_accepted",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
+          "interface_revision": 3,
+          "fluid_id": "synthetic-hydrazine-analogue",
+          "accepted_mass_g": 390000,
+          "evidence": {
+            "component": "orbital_fluid",
+            "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
+            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
+            "reference": "synthetic://orbital_fluid/fluid-001",
+            "decision": "transfer_accepted",
+            "evidence_class": "synthetic",
+            "artifact_sha256": "9b0b1788ebadc926c09e37cc0f681286e60162c3215d98b62b0f266bd26b5653",
+            "producer_id": "synthetic:orbital_fluid:fixture-producer",
+            "authority_scope": "benchmark_fixture_only",
+            "context_of_use": "orbital_service_composition_v0_1",
+            "claim_ceiling": "synthetic_contract_only"
+          },
+          "receiver_id": null
+        }
+      ]
+    },
+    {
+      "case_id": "WRONG_RECEIVER_ID",
+      "expected_status": "rejected",
+      "profile": {
+        "subject_id": "serviced-client-001",
+        "target_orbit_id": "leo-550-km",
+        "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
+        "interface_revision": 3,
+        "fluid_id": "synthetic-hydrazine-analogue",
+        "minimum_accepted_mass_g": 380000
+      },
+      "events": [
+        {
+          "event_id": "evt-launch",
+          "sequence": 10,
+          "kind": "payload_delivery_accepted",
+          "subject_id": "serviced-client-001",
+          "target_orbit_id": "leo-550-km",
+          "evidence": {
+            "component": "earth_orbit_chain",
+            "receipt_schema": "symtropy.earth-orbit-chain.v1",
+            "source_commit": "af34a9c6633329e0faf440ea2147850e434db7d9",
+            "reference": "synthetic://reusable_launch/launch-001",
+            "decision": "ready",
+            "evidence_class": "synthetic",
+            "artifact_sha256": "a0c7c6fd0f31f9419a969618f7ca22ba31bcaedc9d789c0d10785e41921834a9",
+            "producer_id": "synthetic:earth_orbit_chain:fixture-producer",
+            "authority_scope": "benchmark_fixture_only",
+            "context_of_use": "orbital_service_composition_v0_1",
+            "claim_ceiling": "synthetic_contract_only"
+          }
+        },
+        {
+          "event_id": "evt-capture",
+          "sequence": 20,
+          "kind": "capture_handoff_accepted",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
+          "interface_revision": 3,
+          "evidence": {
+            "component": "orbital_capture",
+            "receipt_schema": "luminous.orbital-capture-handoff.receipt.v0.1",
+            "source_commit": "28ae925c6a3f934b5036657603b5cfebb7b0074c",
+            "reference": "synthetic://orbital_capture/capture-001",
+            "decision": "accepted_for_handoff",
+            "evidence_class": "synthetic",
+            "artifact_sha256": "3e89b225ea905d4a04f6adb90e2ff8853ec51c52f372339268a24135882eb9bc",
+            "producer_id": "synthetic:orbital_capture:fixture-producer",
+            "authority_scope": "benchmark_fixture_only",
+            "context_of_use": "orbital_service_composition_v0_1",
+            "claim_ceiling": "synthetic_contract_only"
+          }
+        },
+        {
+          "event_id": "evt-fluid",
+          "sequence": 30,
+          "kind": "fluid_receiver_accepted",
+          "subject_id": "serviced-client-001",
+          "interface_id": "COOPERATIVE-CAPTURE-PORT-A",
+          "interface_revision": 3,
+          "fluid_id": "synthetic-hydrazine-analogue",
+          "accepted_mass_g": 390000,
+          "evidence": {
+            "component": "orbital_fluid",
+            "receipt_schema": "luminous.orbital-fluid-transfer.receipt.v0.1",
+            "source_commit": "a0cd3bb2120ecbd888ffec36d4a2d3cc3ea684df",
+            "reference": "synthetic://orbital_fluid/fluid-001",
+            "decision": "transfer_accepted",
+            "evidence_class": "synthetic",
+            "artifact_sha256": "9b0b1788ebadc926c09e37cc0f681286e60162c3215d98b62b0f266bd26b5653",
+            "producer_id": "synthetic:orbital_fluid:fixture-producer",
+            "authority_scope": "benchmark_fixture_only",
+            "context_of_use": "orbital_service_composition_v0_1",
+            "claim_ceiling": "synthetic_contract_only"
+          },
+          "receiver_id": "unrelated-receiver"
         }
       ]
     }
