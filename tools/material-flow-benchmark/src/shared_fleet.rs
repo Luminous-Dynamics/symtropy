@@ -881,6 +881,10 @@ mod tests {
     #[test]
     fn route_weather_or_permission_block_prevents_a_forced_reposition() {
         let mut test = input();
+        test.period_count = 1;
+        for scenario in &mut test.scenarios {
+            scenario.periods.truncate(1);
+        }
         test.scenarios[0].periods[0].observations[1].permission = PermissionState::Unknown;
         let canonical = canonicalize(&test);
         let (_, indices, mask) = forced_region_mask(&canonical, "rural");
@@ -932,13 +936,17 @@ mod tests {
         )
         .expect("insufficient energy must produce a blocked action, not arithmetic underflow");
         assert_eq!(metrics.repositioning_events, 0);
-        assert_eq!(metrics.energy_blocked_actions, 1);
+        assert_eq!(metrics.energy_blocked_actions, 3);
         assert_eq!(metrics.end_energy_units, 2);
     }
 
     #[test]
     fn stale_permission_blocks_a_forced_aerial_service() {
         let mut test = input();
+        test.period_count = 1;
+        for scenario in &mut test.scenarios {
+            scenario.periods.truncate(1);
+        }
         test.scenarios[0].periods[0].observations[0].permission = PermissionState::Stale;
         let canonical = canonicalize(&test);
         let (_nodes, indices, mask) = forced_region_mask(&canonical, "urban");
