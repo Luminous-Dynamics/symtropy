@@ -152,5 +152,6 @@
     "frame_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
     "transform_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
   },
-  "ids_engine_build_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  "ids_engine_build_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "coordinate_context_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
 }
