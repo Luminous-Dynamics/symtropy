@@ -1081,6 +1081,7 @@ mod tests {
             let seq = index as u64 + 1;
             let acquisition = 1000 + seq * 100;
             let mut input = event(seq, acquisition - 100, acquisition);
+            input.receive_time = Some(stamp(acquisition + 1));
             input.processing_start_time = Some(stamp(acquisition + 2));
             input.processing_end_time = Some(stamp(acquisition + delay - 1));
             input.decision_time = Some(stamp(acquisition + delay));
