@@ -1,0 +1,163 @@
+{
+  "schemaVersion": "0.1.0",
+  "caseId": "synthetic-multi-shift-recovery-001",
+  "timeOriginUtc": "2030-01-01T00:00:00Z",
+  "asOfHour": 8,
+  "horizonEndHour": 24,
+  "tasks": [
+    {
+      "eventId": "storm-001",
+      "taskId": "repair-pump",
+      "releaseHour": 0,
+      "requiredEffortHours": 8,
+      "minimumSegmentEffortHours": 2,
+      "preemptionMode": "checkpointed",
+      "maximumInterruptions": 2,
+      "checkpointEffortHours": [
+        4,
+        6
+      ],
+      "pausedResourcePolicy": "release",
+      "dependsOn": [],
+      "resourceRequirements": [
+        {
+          "resourceId": "crew-a",
+          "units": 1
+        }
+      ]
+    },
+    {
+      "eventId": "storm-001",
+      "taskId": "test-commission",
+      "releaseHour": 0,
+      "requiredEffortHours": 2,
+      "minimumSegmentEffortHours": 1,
+      "preemptionMode": "non_preemptible",
+      "maximumInterruptions": 0,
+      "checkpointEffortHours": [],
+      "pausedResourcePolicy": "release",
+      "dependsOn": [
+        "repair-pump"
+      ],
+      "resourceRequirements": [
+        {
+          "resourceId": "crew-a",
+          "units": 1
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "resourceId": "crew-a",
+      "capacityWindows": [
+        {
+          "startHour": 0,
+          "endHour": 24,
+          "capacityUnits": 1
+        }
+      ]
+    }
+  ],
+  "baselineCommitments": [
+    {
+      "commitmentId": "commit-repair-pump",
+      "eventId": "storm-001",
+      "taskId": "repair-pump",
+      "version": 1,
+      "state": "in_progress",
+      "frozenEventIds": [
+        "seg-1-complete",
+        "repair-progress-old"
+      ],
+      "activeSegmentId": "repair-pump-active",
+      "sourceEvidenceRef": "synthetic://commitment/repair-pump/v1"
+    }
+  ],
+  "proposedCommitments": [
+    {
+      "commitmentId": "commit-repair-pump",
+      "eventId": "storm-001",
+      "taskId": "repair-pump",
+      "version": 2,
+      "state": "in_progress",
+      "frozenEventIds": [
+        "seg-1-complete",
+        "repair-progress-old",
+        "repair-progress-new"
+      ],
+      "activeSegmentId": "repair-pump-active",
+      "sourceEvidenceRef": "synthetic://commitment/repair-pump/v1"
+    }
+  ],
+  "events": [
+    {
+      "eventId": "seg-1-complete",
+      "idempotencyKey": "storm-001-repair-pump-seg-0",
+      "eventType": "work_segment_completed",
+      "eventIdRef": "storm-001",
+      "taskId": "repair-pump",
+      "segmentId": "repair-pump-segment-0",
+      "sequence": 0,
+      "startHour": 0,
+      "endHour": 4,
+      "productiveEffortHours": 4,
+      "effectiveHour": 4,
+      "observedHour": 4.1,
+      "evidenceStatus": "current",
+      "evidenceClass": "synthetic_fixture",
+      "evidenceRef": "synthetic://segment/repair-pump/0",
+      "interruptionCause": "crew-shift-end"
+    },
+    {
+      "eventId": "repair-progress-old",
+      "idempotencyKey": "repair-progress-old-key",
+      "eventType": "progress_snapshot",
+      "eventIdRef": "storm-001",
+      "taskId": "repair-pump",
+      "segmentId": "repair-pump-active",
+      "sequence": 1,
+      "startHour": 4,
+      "endHour": 6,
+      "productiveEffortHours": 2,
+      "effectiveHour": 6,
+      "observedHour": 6.1,
+      "evidenceStatus": "superseded",
+      "evidenceClass": "synthetic_fixture",
+      "evidenceRef": "synthetic://progress/repair-pump/old",
+      "interruptionCause": null
+    },
+    {
+      "eventId": "repair-progress-new",
+      "idempotencyKey": "repair-progress-new-key",
+      "eventType": "progress_snapshot",
+      "eventIdRef": "storm-001",
+      "taskId": "repair-pump",
+      "segmentId": "repair-pump-active",
+      "sequence": 1,
+      "startHour": 4,
+      "endHour": 8,
+      "productiveEffortHours": 3,
+      "effectiveHour": 8,
+      "observedHour": 8,
+      "evidenceStatus": "current",
+      "evidenceClass": "synthetic_fixture",
+      "evidenceRef": "synthetic://progress/repair-pump/new",
+      "interruptionCause": null
+    }
+  ],
+  "plannedSegments": [],
+  "reconciliations": [
+    {
+      "eventId": "reconcile-progress-001",
+      "commitmentId": "commit-repair-pump",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "action": "progress_recorded",
+      "observedHour": 8,
+      "evidenceStatus": "current",
+      "authorityRef": "synthetic://authority/shift-supervisor",
+      "evidenceRef": "synthetic://reconciliation/progress-001"
+    }
+  ]
+}
