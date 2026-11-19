@@ -1,0 +1,56 @@
+{
+  "schema_version": "construction-motion-adapter-observation/0.2",
+  "run_id": "synthetic-moveit-fcl-continuous-not-run-001",
+  "case": {
+    "case_id": "line-thin-barrier-0001",
+    "case_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "backend": {
+    "backend_name": "MoveIt 2",
+    "backend_version": "Humble",
+    "backend_commit_sha": "0123456789abcdef0123456789abcdef01234567",
+    "build_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "runtime": "ROS 2 Humble",
+    "collision_plugin": "CollisionEnvFCL"
+  },
+  "scene": {
+    "robot_model_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "tool_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "payload_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "obstacle_set_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "geometry_profile_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "frame_id": "site-world",
+    "transform_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "trajectory_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "interpolation_profile_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "collision_matrix_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "margin_profile_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+  },
+  "query": {
+    "mode": "CONTINUOUS",
+    "scope": "robot_world",
+    "obstacle_motion": "static",
+    "geometry_representation": "mesh",
+    "contact_tolerance_mm": 0.1
+  },
+  "capability_probe": {
+    "probe_id": "moveit-fcl-continuous-robot-world-v1",
+    "status": "UNSUPPORTED",
+    "runtime_api": "CollisionEnvFCL::checkRobotCollision(state1,state2)",
+    "probe_log_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+  },
+  "execution": {
+    "disposition": "NOT_RUN",
+    "reason_code": "BACKEND_UNSUPPORTED",
+    "reason": "The pinned CollisionEnvFCL continuous robot-world overload reports that continuous collision is not implemented."
+  },
+  "environment": {
+    "operating_system": "Linux 6.x",
+    "architecture": "x86_64",
+    "cpu_model": "synthetic-reference-cpu",
+    "thread_count": 1,
+    "allocator": "system",
+    "build_profile": "release"
+  },
+  "raw_receipt_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+}

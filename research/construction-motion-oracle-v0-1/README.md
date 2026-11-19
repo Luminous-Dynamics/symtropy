@@ -52,3 +52,10 @@ See docs/differential-adapter-contract.md.
 ## Claim ceiling
 
 Passing tests establish only the implemented mathematics for the declared line and planar semicircle families and the adapter's tested structural behavior. They do not establish arbitrary continuous collision detection, physical robot model accuracy, localization/tracking/stopping truth, safe separation, construction productivity, standards conformity or vendor interoperability.
+
+
+### Observation-only MoveIt/Tesseract comparison scorer
+
+The v0.2 wire schemas are in \`schema/adapter-observation-v0.2.schema.json\` and \`schema/score-verdict-v0.2.schema.json\`. The typed Rust scorer is exported as \`collision_backend_scoring::score_backend_observation\`. It is evaluator-owned: adapters report only what ran and what they observed; the scorer matches exact case/scene/query fingerprints to an independent oracle truth record and emits TP/FP/FN/TN or an explicit abstention.
+
+The current negative controls enforce that a missing capability, unsupported query, unknown oracle, wrong frame, changed collision scope, different LVS segmentation, missing geometry, or invalid receipt cannot be reported as a true negative. Schema and sample JSON validation are not yet wired into the Rust crate, and no actual external backend adapter is qualified by this API-only increment.

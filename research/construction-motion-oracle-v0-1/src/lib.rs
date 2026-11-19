@@ -4,6 +4,16 @@
 //! upper-semicircle geometry families. This module does not call the envelope
 //! producer's geometric expansion helpers.
 
+pub mod collision_backend_scoring;
+pub use collision_backend_scoring::{
+    AdapterDisposition, AdapterMetrics, AdapterObservation, AdapterReasonCode, BackendIdentity,
+    CapabilityProbe, CapabilityProbeStatus, CaseIdentity, CollisionObservation,
+    CollisionScoreInputError, ConfusionCell, EnvironmentIdentity, GeometryRepresentation,
+    ObstacleMotion, OracleTruth, OracleTruthDisposition, QueryFingerprint, QueryMode, QueryScope,
+    SceneFingerprint, ScoreDisposition, ScoreReasonCode, ScoreVerdict, ScorerIdentity,
+    score_backend_observation,
+};
+
 use construction_motion_envelope::{
     AxisMm, Context, EvidenceRefs, MarginsMm, Point3Mm, Segment, build,
 };

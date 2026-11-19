@@ -1,0 +1,540 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-motion-score-verdict-v0.2.json",
+  "title": "Construction Motion Independent Score Verdict v0.2",
+  "description": "Scorer-owned classification joining one immutable adapter observation to one evaluator-owned truth record. Backends cannot author this document.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case",
+    "adapter_observation",
+    "oracle_truth",
+    "scorer",
+    "classification"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-motion-score-verdict/0.2"
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "case_sha256"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "case_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "adapter_observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raw_receipt_sha256",
+        "execution_disposition"
+      ],
+      "properties": {
+        "raw_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "execution_disposition": {
+          "enum": [
+            "OBSERVED",
+            "UNRESOLVED",
+            "NOT_RUN"
+          ]
+        },
+        "collision_found": {
+          "type": "boolean"
+        }
+      }
+    },
+    "oracle_truth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "oracle_name",
+        "oracle_version",
+        "oracle_build_sha256",
+        "truth_disposition",
+        "truth_receipt_sha256"
+      ],
+      "properties": {
+        "oracle_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "oracle_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "oracle_build_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "truth_disposition": {
+          "enum": [
+            "CONTACT",
+            "NO_CONTACT",
+            "UNSUPPORTED",
+            "UNKNOWN"
+          ]
+        },
+        "truth_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "scorer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scorer_name",
+        "scorer_version",
+        "scorer_build_sha256"
+      ],
+      "properties": {
+        "scorer_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scorer_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scorer_build_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "classification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disposition"
+      ],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "MATCHED",
+            "UNRESOLVED",
+            "NOT_RUN",
+            "NOT_COMPARABLE"
+          ]
+        },
+        "confusion_cell": {
+          "enum": [
+            "TP",
+            "FP",
+            "FN",
+            "TN"
+          ]
+        },
+        "reason_code": {
+          "enum": [
+            "ADAPTER_NOT_RUN",
+            "ADAPTER_UNRESOLVED",
+            "ORACLE_UNKNOWN",
+            "ORACLE_UNSUPPORTED",
+            "CASE_DIGEST_MISMATCH",
+            "SCENE_FINGERPRINT_MISMATCH",
+            "QUERY_SEMANTICS_MISMATCH",
+            "GEOMETRY_PROFILE_MISMATCH",
+            "RECEIPT_INVALID",
+            "OTHER"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "classification": {
+            "properties": {
+              "disposition": {
+                "const": "MATCHED"
+              }
+            },
+            "required": [
+              "disposition"
+            ]
+          }
+        },
+        "required": [
+          "classification"
+        ]
+      },
+      "then": {
+        "properties": {
+          "adapter_observation": {
+            "properties": {
+              "execution_disposition": {
+                "const": "OBSERVED"
+              },
+              "collision_found": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "collision_found"
+            ]
+          },
+          "oracle_truth": {
+            "properties": {
+              "truth_disposition": {
+                "enum": [
+                  "CONTACT",
+                  "NO_CONTACT"
+                ]
+              }
+            }
+          },
+          "classification": {
+            "required": [
+              "confusion_cell"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "oracle_truth": {
+            "properties": {
+              "truth_disposition": {
+                "const": "CONTACT"
+              }
+            },
+            "required": [
+              "truth_disposition"
+            ]
+          },
+          "adapter_observation": {
+            "properties": {
+              "collision_found": {
+                "const": true
+              }
+            },
+            "required": [
+              "collision_found"
+            ]
+          },
+          "classification": {
+            "properties": {
+              "disposition": {
+                "const": "MATCHED"
+              }
+            },
+            "required": [
+              "disposition"
+            ]
+          }
+        },
+        "required": [
+          "oracle_truth",
+          "adapter_observation",
+          "classification"
+        ]
+      },
+      "then": {
+        "properties": {
+          "classification": {
+            "properties": {
+              "confusion_cell": {
+                "const": "TP"
+              }
+            },
+            "required": [
+              "confusion_cell"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "oracle_truth": {
+            "properties": {
+              "truth_disposition": {
+                "const": "CONTACT"
+              }
+            },
+            "required": [
+              "truth_disposition"
+            ]
+          },
+          "adapter_observation": {
+            "properties": {
+              "collision_found": {
+                "const": false
+              }
+            },
+            "required": [
+              "collision_found"
+            ]
+          },
+          "classification": {
+            "properties": {
+              "disposition": {
+                "const": "MATCHED"
+              }
+            },
+            "required": [
+              "disposition"
+            ]
+          }
+        },
+        "required": [
+          "oracle_truth",
+          "adapter_observation",
+          "classification"
+        ]
+      },
+      "then": {
+        "properties": {
+          "classification": {
+            "properties": {
+              "confusion_cell": {
+                "const": "FN"
+              }
+            },
+            "required": [
+              "confusion_cell"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "oracle_truth": {
+            "properties": {
+              "truth_disposition": {
+                "const": "NO_CONTACT"
+              }
+            },
+            "required": [
+              "truth_disposition"
+            ]
+          },
+          "adapter_observation": {
+            "properties": {
+              "collision_found": {
+                "const": true
+              }
+            },
+            "required": [
+              "collision_found"
+            ]
+          },
+          "classification": {
+            "properties": {
+              "disposition": {
+                "const": "MATCHED"
+              }
+            },
+            "required": [
+              "disposition"
+            ]
+          }
+        },
+        "required": [
+          "oracle_truth",
+          "adapter_observation",
+          "classification"
+        ]
+      },
+      "then": {
+        "properties": {
+          "classification": {
+            "properties": {
+              "confusion_cell": {
+                "const": "FP"
+              }
+            },
+            "required": [
+              "confusion_cell"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "oracle_truth": {
+            "properties": {
+              "truth_disposition": {
+                "const": "NO_CONTACT"
+              }
+            },
+            "required": [
+              "truth_disposition"
+            ]
+          },
+          "adapter_observation": {
+            "properties": {
+              "collision_found": {
+                "const": false
+              }
+            },
+            "required": [
+              "collision_found"
+            ]
+          },
+          "classification": {
+            "properties": {
+              "disposition": {
+                "const": "MATCHED"
+              }
+            },
+            "required": [
+              "disposition"
+            ]
+          }
+        },
+        "required": [
+          "oracle_truth",
+          "adapter_observation",
+          "classification"
+        ]
+      },
+      "then": {
+        "properties": {
+          "classification": {
+            "properties": {
+              "confusion_cell": {
+                "const": "TN"
+              }
+            },
+            "required": [
+              "confusion_cell"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "classification": {
+            "properties": {
+              "disposition": {
+                "enum": [
+                  "UNRESOLVED",
+                  "NOT_RUN",
+                  "NOT_COMPARABLE"
+                ]
+              }
+            },
+            "required": [
+              "disposition"
+            ]
+          }
+        },
+        "required": [
+          "classification"
+        ]
+      },
+      "then": {
+        "properties": {
+          "classification": {
+            "required": [
+              "reason_code",
+              "reason"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "classification": {
+            "properties": {
+              "disposition": {
+                "enum": [
+                  "UNRESOLVED",
+                  "NOT_RUN",
+                  "NOT_COMPARABLE"
+                ]
+              }
+            },
+            "required": [
+              "disposition"
+            ]
+          }
+        },
+        "required": [
+          "classification"
+        ]
+      },
+      "then": {
+        "properties": {
+          "classification": {
+            "not": {
+              "required": [
+                "confusion_cell"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "adapter_observation": {
+            "properties": {
+              "execution_disposition": {
+                "enum": [
+                  "UNRESOLVED",
+                  "NOT_RUN"
+                ]
+              }
+            },
+            "required": [
+              "execution_disposition"
+            ]
+          }
+        },
+        "required": [
+          "adapter_observation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "adapter_observation": {
+            "not": {
+              "required": [
+                "collision_found"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

@@ -1,0 +1,601 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-motion-adapter-observation-v0.2.json",
+  "title": "Construction Motion Adapter Observation v0.2",
+  "description": "Backend observation only. This record deliberately contains no PASS/FAIL correctness verdict; an independent scorer owns classification against frozen oracle truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "case",
+    "backend",
+    "scene",
+    "query",
+    "capability_probe",
+    "execution",
+    "environment",
+    "raw_receipt_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-motion-adapter-observation/0.2"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "case_sha256"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "case_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "backend": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backend_name",
+        "backend_version",
+        "backend_commit_sha",
+        "build_sha256",
+        "runtime",
+        "collision_plugin"
+      ],
+      "properties": {
+        "backend_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "backend_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "backend_commit_sha": {
+          "$ref": "#/$defs/sha1"
+        },
+        "build_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "runtime": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ROS distribution, standalone runtime, or other exact runtime identity."
+        },
+        "collision_plugin": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "scene": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "robot_model_sha256",
+        "tool_sha256",
+        "payload_sha256",
+        "obstacle_set_sha256",
+        "geometry_profile_sha256",
+        "frame_id",
+        "transform_sha256",
+        "trajectory_sha256",
+        "interpolation_profile_sha256",
+        "collision_matrix_sha256",
+        "margin_profile_sha256"
+      ],
+      "properties": {
+        "robot_model_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "tool_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "payload_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "obstacle_set_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "geometry_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transform_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "trajectory_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "interpolation_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "collision_matrix_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "margin_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "query": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "scope",
+        "obstacle_motion",
+        "geometry_representation",
+        "contact_tolerance_mm"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "DISCRETE",
+            "LVS_DISCRETE",
+            "LVS_CONTINUOUS",
+            "CONTINUOUS",
+            "ANALYTIC"
+          ]
+        },
+        "scope": {
+          "enum": [
+            "robot_world",
+            "self_collision",
+            "analytic"
+          ]
+        },
+        "obstacle_motion": {
+          "enum": [
+            "static",
+            "moving",
+            "mixed"
+          ]
+        },
+        "geometry_representation": {
+          "enum": [
+            "native_primitive",
+            "mesh",
+            "convex_hull",
+            "sphere_approximation",
+            "capsule_approximation",
+            "mixed"
+          ]
+        },
+        "longest_valid_segment_mm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "contact_tolerance_mm": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "capability_probe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "probe_id",
+        "status"
+      ],
+      "properties": {
+        "probe_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "EXECUTED",
+            "UNSUPPORTED",
+            "ERROR",
+            "NOT_PROBED"
+          ]
+        },
+        "runtime_api": {
+          "type": "string",
+          "minLength": 1
+        },
+        "probe_log_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disposition"
+      ],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "OBSERVED",
+            "UNRESOLVED",
+            "NOT_RUN"
+          ]
+        },
+        "reason_code": {
+          "enum": [
+            "BACKEND_UNSUPPORTED",
+            "CAPABILITY_UNPROVEN",
+            "SEMANTIC_MISMATCH",
+            "TIMEOUT",
+            "PROCESS_ERROR",
+            "MALFORMED_OUTPUT",
+            "MISSING_OUTPUT",
+            "INVALID_INPUT",
+            "OTHER"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "collision_found"
+          ],
+          "properties": {
+            "collision_found": {
+              "type": "boolean"
+            },
+            "minimum_distance_mm": {
+              "type": "number"
+            },
+            "contact_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "backend_contact_time_parameter": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "latency_ns": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "peak_rss_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "allocated_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "broad_phase_candidates": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "narrow_phase_queries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "manager_clone_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "evaluator_count": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operating_system",
+        "architecture",
+        "cpu_model",
+        "thread_count",
+        "build_profile"
+      ],
+      "properties": {
+        "operating_system": {
+          "type": "string",
+          "minLength": 1
+        },
+        "architecture": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cpu_model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "thread_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "allocator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "build_profile": {
+          "enum": [
+            "debug",
+            "release",
+            "other"
+          ]
+        }
+      }
+    },
+    "raw_receipt_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "disposition": {
+                "const": "OBSERVED"
+              }
+            },
+            "required": [
+              "disposition"
+            ]
+          }
+        },
+        "required": [
+          "execution"
+        ]
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "required": [
+              "observation"
+            ]
+          },
+          "capability_probe": {
+            "properties": {
+              "status": {
+                "const": "EXECUTED"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "disposition": {
+                "enum": [
+                  "UNRESOLVED",
+                  "NOT_RUN"
+                ]
+              }
+            },
+            "required": [
+              "disposition"
+            ]
+          }
+        },
+        "required": [
+          "execution"
+        ]
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "required": [
+              "reason_code",
+              "reason"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "capability_probe": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "EXECUTED",
+                  "UNSUPPORTED",
+                  "ERROR"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        },
+        "required": [
+          "capability_probe"
+        ]
+      },
+      "then": {
+        "properties": {
+          "capability_probe": {
+            "required": [
+              "runtime_api",
+              "probe_log_sha256"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "disposition": {
+                "const": "NOT_RUN"
+              }
+            },
+            "required": [
+              "disposition"
+            ]
+          }
+        },
+        "required": [
+          "execution"
+        ]
+      },
+      "then": {
+        "properties": {
+          "capability_probe": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "UNSUPPORTED",
+                  "NOT_PROBED"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "query": {
+            "properties": {
+              "mode": {
+                "enum": [
+                  "LVS_DISCRETE",
+                  "LVS_CONTINUOUS"
+                ]
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "then": {
+        "properties": {
+          "query": {
+            "required": [
+              "longest_valid_segment_mm"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "disposition": {
+                "const": "OBSERVED"
+              }
+            },
+            "required": [
+              "disposition"
+            ]
+          }
+        },
+        "required": [
+          "execution"
+        ]
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "reason"
+                  ]
+                },
+                {
+                  "required": [
+                    "reason_code"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "disposition": {
+                "enum": [
+                  "UNRESOLVED",
+                  "NOT_RUN"
+                ]
+              }
+            },
+            "required": [
+              "disposition"
+            ]
+          }
+        },
+        "required": [
+          "execution"
+        ]
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "not": {
+              "required": [
+                "observation"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha1": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
