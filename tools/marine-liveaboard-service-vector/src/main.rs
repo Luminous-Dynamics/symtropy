@@ -183,6 +183,7 @@ fn policy_report(
                 || string_at(relaxation, "unit").is_none_or(str::is_empty)
                 || number_at(relaxation, "prior_limit").is_none()
                 || number_at(relaxation, "new_limit").is_none()
+                || number_at(relaxation, "prior_limit") == number_at(relaxation, "new_limit")
                 || string_at(relaxation, "authority_receipt_ref").is_none_or(str::is_empty)
                 || !digest_valid(string_at(relaxation, "authority_receipt_sha256"))
                 || !digest_valid(string_at(relaxation, "new_operating_envelope_sha256"))
@@ -233,7 +234,9 @@ fn policy_report(
                 let minimum_coverage = number_at(contract_item, "minimum_coverage_fraction").unwrap_or(1.0);
                 if coverage.unwrap() < minimum_coverage {
                     feasible = false;
-                    blockers.push(format!("policy '{policy_id}' axis '{metric}' coverage {:.3} is below required {:.3}", coverage.unwrap(), minimum_coverage));
+                    if role == "integrated_candidate" || role == "authorized_soft_relaxation" {
+                        blockers.push(format!("policy '{policy_id}' axis '{metric}' coverage {:.3} is below required {:.3}", coverage.unwrap(), minimum_coverage));
+                    }
                 }
                 let floor = number_at(contract_item, "floor_value").unwrap_or(f64::NAN);
                 let operator = string_at(contract_item, "operator").unwrap_or("");
@@ -244,7 +247,9 @@ fn policy_report(
                 };
                 if !passes {
                     feasible = false;
-                    blockers.push(format!("policy '{policy_id}' axis '{metric}' breaches its non-compensatory floor"));
+                    if role == "integrated_candidate" || role == "authorized_soft_relaxation" {
+                        blockers.push(format!("policy '{policy_id}' axis '{metric}' breaches its non-compensatory floor"));
+                    }
                 }
             }
         }
