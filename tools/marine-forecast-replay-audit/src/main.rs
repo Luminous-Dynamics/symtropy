@@ -597,6 +597,10 @@ fn validate_split_manifest(raw: &[u8], manifest: &Value) -> Value {
         add(&mut findings, "SPLIT_ALGORITHM_UNPINNED", "INCOMPLETE",
             "Split algorithm and seed must be pinned before evaluating model results.");
     }
+    if string_at(manifest, &["split_strategy"]) != Some("forward_chaining_joint_grouped") {
+        add(&mut findings, "SPLIT_STRATEGY_INVALID", "ERROR",
+            "split_strategy must be forward_chaining_joint_grouped.");
+    }
 
     if string_at(manifest, &["dataset_id"]).is_none_or(str::is_empty) {
         add(&mut findings, "SPLIT_DATASET_ID_MISSING", "INCOMPLETE",
@@ -634,6 +638,7 @@ fn validate_split_manifest(raw: &[u8], manifest: &Value) -> Value {
     let mut voyage_fold = BTreeMap::<String, String>::new();
     let mut bundle_fold = BTreeMap::<String, String>::new();
     let mut voyage_windows = BTreeMap::<String, Vec<(DateTime<FixedOffset>, DateTime<FixedOffset>, String)>>();
+    let mut fold_windows = BTreeMap::<String, (DateTime<FixedOffset>, DateTime<FixedOffset>)>();
     let mut test_strata = BTreeSet::new();
 
     for (index, episode) in episodes.iter().enumerate() {
@@ -702,9 +707,22 @@ fn validate_split_manifest(raw: &[u8], manifest: &Value) -> Value {
             if start >= end {
                 add(&mut findings, "SPLIT_EPISODE_WINDOW_INVALID", "ERROR",
                     &format!("episode '{episode_id}' start_time must precede end_time."));
-            } else if !voyage_id.is_empty() {
-                voyage_windows.entry(voyage_id.to_owned()).or_default()
-                    .push((start.clone(), end.clone(), episode_id.to_owned()));
+            } else {
+                if !voyage_id.is_empty() {
+                    voyage_windows.entry(voyage_id.to_owned()).or_default()
+                        .push((start.clone(), end.clone(), episode_id.to_owned()));
+                }
+                if expected_folds.contains(&fold) {
+                    match fold_windows.get_mut(fold) {
+                        Some((earliest, latest)) => {
+                            if start < earliest { *earliest = start.clone(); }
+                            if end > latest { *latest = end.clone(); }
+                        }
+                        None => {
+                            fold_windows.insert(fold.to_owned(), (start.clone(), end.clone()));
+                        }
+                    }
+                }
             }
         }
 
@@ -779,6 +797,15 @@ fn validate_split_manifest(raw: &[u8], manifest: &Value) -> Value {
                             pair[0].2, pair[1].2, voyage));
                 }
             }
+        }
+    }
+
+    for (earlier, later) in [("development", "validation"), ("validation", "test")] {
+        match (fold_windows.get(earlier), fold_windows.get(later)) {
+            (Some((_, earlier_end)), Some((later_start, _))) if later_start >= earlier_end => {}
+            (Some(_), Some(_)) => add(&mut findings, "FORWARD_FOLD_TEMPORAL_ORDER_INVALID", "BLOCKER",
+                &format!("forward-chaining split requires every '{earlier}' episode to end no later than the earliest '{later}' episode.")),
+            _ => {}
         }
     }
 
@@ -977,6 +1004,22 @@ mod tests {
         assert_eq!(report["disposition"], "INCOMPLETE");
         assert!(report["findings"].as_array().unwrap().iter()
             .any(|finding| finding["code"] == "TEST_STRATA_COVERAGE_INSUFFICIENT"));
+    }
+
+
+    #[test]
+    fn forward_chaining_folds_must_be_temporally_ordered() {
+        let mut value = split_fixture();
+        value["episodes"][0]["start_time"] = json!("2026-03-28T00:00:00Z");
+        value["episodes"][0]["end_time"] = json!("2026-03-29T00:00:00Z");
+        value["episodes"][0]["decision_samples"] = json!([
+            {"decision_id":"SYNTH-LATE-DEV-A","decision_cutoff":"2026-03-28T01:00:00Z","target_valid_time":"2026-03-28T02:00:00Z"},
+            {"decision_id":"SYNTH-LATE-DEV-B","decision_cutoff":"2026-03-28T03:00:00Z","target_valid_time":"2026-03-28T04:00:00Z"}
+        ]);
+        let report = audit_split(&value);
+        assert_eq!(report["disposition"], "BLOCKED");
+        assert!(report["findings"].as_array().unwrap().iter()
+            .any(|finding| finding["code"] == "FORWARD_FOLD_TEMPORAL_ORDER_INVALID"));
     }
 
     #[test]
