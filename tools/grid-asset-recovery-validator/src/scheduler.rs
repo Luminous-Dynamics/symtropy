@@ -29,6 +29,7 @@ pub struct TaskSpec {
     pub depends_on: Vec<String>,
     pub release_hour: f64,
     pub duration_hours: f64,
+    pub service_weight_mw: f64,
     pub resource_requirements: Vec<ResourceRequirement>,
 }
 
@@ -232,6 +233,8 @@ pub fn schedule(
             || task.release_hour < 0.0
             || !task.duration_hours.is_finite()
             || task.duration_hours <= 0.0
+            || !task.service_weight_mw.is_finite()
+            || task.service_weight_mw < 0.0
         {
             errors.push(format!(
                 "{} task {} has invalid release or duration",
@@ -550,6 +553,245 @@ pub fn exact_small_schedule(
         .ok_or_else(|| vec!["no feasible exact schedule found".to_string()])
 }
 
+/// Calculates total weighted unserved energy from a complete schedule.
+///
+/// Each event's service_weight_mw is its net firm shortfall while the event
+/// remains unrestored. The v0.x screening model assumes that shortfall is
+/// constant until the final event task completes.
+pub fn weighted_unserved_energy_mwh(
+    tasks: &[TaskSpec],
+    scheduled: &[ScheduledTask],
+) -> Result<f64, Vec<String>> {
+    let mut event_meta: BTreeMap<String, (f64, f64)> = BTreeMap::new();
+    for task in tasks {
+        match event_meta.get(&task.event_id) {
+            Some((release, weight))
+                if (*release - task.release_hour).abs() > 1e-9
+                    || (*weight - task.service_weight_mw).abs() > 1e-9 =>
+            {
+                return Err(vec![format!(
+                    "event {} has inconsistent release or service weight",
+                    task.event_id
+                )]);
+            }
+            Some(_) => {}
+            None => {
+                event_meta.insert(
+                    task.event_id.clone(),
+                    (task.release_hour, task.service_weight_mw),
+                );
+            }
+        }
+    }
+
+    let mut completion: BTreeMap<String, f64> = event_meta
+        .iter()
+        .map(|(event_id, (release, _))| (event_id.clone(), *release))
+        .collect();
+    let mut seen = BTreeSet::new();
+    let task_ids: BTreeSet<String> = tasks
+        .iter()
+        .map(|task| key(&task.event_id, &task.task_id))
+        .collect();
+
+    for scheduled_task in scheduled {
+        let task_key = key(&scheduled_task.event_id, &scheduled_task.task_id);
+        if !task_ids.contains(&task_key) || !seen.insert(task_key.clone()) {
+            return Err(vec![format!(
+                "schedule contains unknown or duplicate task {}",
+                task_key
+            )]);
+        }
+        let Some(end) = completion.get_mut(&scheduled_task.event_id) else {
+            return Err(vec![format!(
+                "schedule contains unknown event {}",
+                scheduled_task.event_id
+            )]);
+        };
+        if !scheduled_task.end_hour.is_finite()
+            || !scheduled_task.start_hour.is_finite()
+            || scheduled_task.end_hour < scheduled_task.start_hour
+        {
+            return Err(vec![format!("schedule task {} has invalid interval", task_key)]);
+        }
+        *end = end.max(scheduled_task.end_hour);
+    }
+
+    if seen.len() != task_ids.len() {
+        return Err(vec!["schedule is missing one or more tasks".to_string()]);
+    }
+
+    let mut total = 0.0;
+    for (event_id, (release, weight)) in event_meta {
+        let end = completion[&event_id];
+        total += weight * (end - release);
+    }
+    Ok(total)
+}
+
+fn exact_service_search(
+    task_by_key: &BTreeMap<String, &TaskSpec>,
+    unscheduled: &mut BTreeSet<String>,
+    scheduled: &mut BTreeMap<String, ScheduledTask>,
+    resource_allocations: &mut BTreeMap<String, Vec<ResourceInterval>>,
+    profiles: &BTreeMap<String, ResourceProfile>,
+    best: &mut Option<(f64, f64, Vec<ScheduledTask>)>,
+) {
+    if unscheduled.is_empty() {
+        let scheduled_tasks: Vec<_> = scheduled.values().cloned().collect();
+        let task_specs: Vec<_> = task_by_key.values().map(|task| (*task).clone()).collect();
+        let objective = weighted_unserved_energy_mwh(&task_specs, &scheduled_tasks)
+            .expect("complete exact-search schedule has valid service metadata");
+        let makespan = scheduled_tasks
+            .iter()
+            .map(|task| task.end_hour)
+            .fold(0.0, f64::max);
+        let replace = best.as_ref().is_none_or(|(best_objective, best_makespan, _)| {
+            objective < *best_objective - 1e-9
+                || ((objective - *best_objective).abs() <= 1e-9
+                    && makespan < *best_makespan - 1e-9)
+        });
+        if replace {
+            let mut ordered = scheduled_tasks;
+            ordered.sort_by(|left, right| {
+                left.start_hour
+                    .total_cmp(&right.start_hour)
+                    .then_with(|| left.event_id.cmp(&right.event_id))
+                    .then_with(|| left.task_id.cmp(&right.task_id))
+            });
+            *best = Some((objective, makespan, ordered));
+        }
+        return;
+    }
+
+    let mut candidates: Vec<(f64, String)> = Vec::new();
+    for task_key in unscheduled.iter() {
+        let task = task_by_key[task_key];
+        let mut ready_hour = task.release_hour;
+        let mut ready = true;
+        for dependency in &task.depends_on {
+            let dependency_key = key(&task.event_id, dependency);
+            if let Some(predecessor) = scheduled.get(&dependency_key) {
+                ready_hour = ready_hour.max(predecessor.end_hour);
+            } else {
+                ready = false;
+                break;
+            }
+        }
+        if !ready {
+            continue;
+        }
+
+        let start_hour = match earliest_resource_slot(
+            ready_hour,
+            task.duration_hours,
+            &task.resource_requirements,
+            profiles,
+            resource_allocations,
+        ) {
+            Ok(start) => start,
+            Err(_) => continue,
+        };
+        candidates.push((start_hour, task_key.clone()));
+    }
+
+    candidates.sort_by(|left, right| {
+        left.0
+            .total_cmp(&right.0)
+            .then_with(|| left.1.cmp(&right.1))
+    });
+
+    for (start_hour, selected_key) in candidates {
+        let task = task_by_key[&selected_key];
+        let end_hour = start_hour + task.duration_hours;
+        scheduled.insert(
+            selected_key.clone(),
+            ScheduledTask {
+                event_id: task.event_id.clone(),
+                task_id: task.task_id.clone(),
+                start_hour,
+                end_hour,
+            },
+        );
+        for requirement in &task.resource_requirements {
+            resource_allocations
+                .entry(requirement.resource_id.clone())
+                .or_default()
+                .push(ResourceInterval {
+                    start: start_hour,
+                    end: end_hour,
+                    units: requirement.units,
+                });
+        }
+        unscheduled.remove(&selected_key);
+
+        exact_service_search(
+            task_by_key,
+            unscheduled,
+            scheduled,
+            resource_allocations,
+            profiles,
+            best,
+        );
+
+        unscheduled.insert(selected_key.clone());
+        scheduled.remove(&selected_key);
+        for requirement in &task.resource_requirements {
+            let remove_resource =
+                if let Some(intervals) = resource_allocations.get_mut(&requirement.resource_id) {
+                    intervals.pop();
+                    intervals.is_empty()
+                } else {
+                    false
+                };
+            if remove_resource {
+                resource_allocations.remove(&requirement.resource_id);
+            }
+        }
+    }
+}
+
+/// Exhaustively minimises weighted unserved energy on tiny recovery cases.
+/// This is bounded to eight tasks and assumes fixed net shortfall per event.
+pub fn exact_small_service_schedule(
+    tasks: &[TaskSpec],
+    profiles: &BTreeMap<String, ResourceProfile>,
+) -> Result<Vec<ScheduledTask>, Vec<String>> {
+    const MAX_EXACT_SERVICE_TASKS: usize = 8;
+    if tasks.is_empty() || tasks.len() > MAX_EXACT_SERVICE_TASKS {
+        return Err(vec![format!(
+            "exact service scheduler requires 1..={MAX_EXACT_SERVICE_TASKS} tasks"
+        )]);
+    }
+
+    let greedy = schedule(tasks, profiles)?;
+    let greedy_objective = weighted_unserved_energy_mwh(tasks, &greedy)?;
+    let greedy_makespan = greedy
+        .iter()
+        .map(|task| task.end_hour)
+        .fold(0.0, f64::max);
+    let task_by_key: BTreeMap<String, &TaskSpec> = tasks
+        .iter()
+        .map(|task| (key(&task.event_id, &task.task_id), task))
+        .collect();
+    let mut unscheduled: BTreeSet<String> = task_by_key.keys().cloned().collect();
+    let mut scheduled = BTreeMap::new();
+    let mut resource_allocations = BTreeMap::new();
+    let mut best = Some((greedy_objective, greedy_makespan, greedy));
+
+    exact_service_search(
+        &task_by_key,
+        &mut unscheduled,
+        &mut scheduled,
+        &mut resource_allocations,
+        profiles,
+        &mut best,
+    );
+
+    best.map(|(_, _, tasks)| tasks)
+        .ok_or_else(|| vec!["no feasible exact service schedule found".to_string()])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -583,6 +825,7 @@ mod tests {
             depends_on: depends_on.iter().map(|x| x.to_string()).collect(),
             release_hour,
             duration_hours,
+            service_weight_mw: 1.0,
             resource_requirements: resource_id
                 .map(|resource_id| ResourceRequirement {
                     resource_id: resource_id.to_string(),
@@ -613,6 +856,44 @@ mod tests {
         assert_eq!(greedy_makespan, 120.0);
         assert_eq!(exact_makespan, 111.0);
         assert!(exact_makespan < greedy_makespan);
+    }
+
+    #[test]
+    fn weighted_service_objective_prioritizes_critical_outage() {
+        let mut low = spec("A-low", "repair", &[], 0.0, 5.0, Some("crew"), 1);
+        low.service_weight_mw = 10.0;
+        let mut critical = spec("Z-critical", "repair", &[], 0.0, 10.0, Some("crew"), 1);
+        critical.service_weight_mw = 100.0;
+        let tasks = vec![low, critical];
+        let profiles = BTreeMap::from([(
+            "crew".to_string(),
+            profile(1, 24.0, &[(0.0, 24.0)]),
+        )]);
+        let greedy = schedule(&tasks, &profiles).expect("greedy schedule");
+        let exact = exact_small_service_schedule(&tasks, &profiles).expect("exact service schedule");
+        let greedy_mwh = weighted_unserved_energy_mwh(&tasks, &greedy).expect("greedy objective");
+        let exact_mwh = weighted_unserved_energy_mwh(&tasks, &exact).expect("exact objective");
+        assert_eq!(greedy_mwh, 1550.0);
+        assert_eq!(exact_mwh, 1150.0);
+        assert!(exact_mwh < greedy_mwh);
+        assert_eq!(
+            exact.iter().find(|task| task.event_id == "Z-critical").unwrap().start_hour,
+            0.0
+        );
+    }
+
+    #[test]
+    fn weighted_service_objective_rejects_inconsistent_event_weights() {
+        let first = spec("E1", "a", &[], 0.0, 1.0, None, 0);
+        let mut second = spec("E1", "b", &[], 0.0, 1.0, None, 0);
+        second.service_weight_mw = 2.0;
+        assert!(weighted_unserved_energy_mwh(
+            &[first, second],
+            &[
+                ScheduledTask { event_id: "E1".to_string(), task_id: "a".to_string(), start_hour: 0.0, end_hour: 1.0 },
+                ScheduledTask { event_id: "E1".to_string(), task_id: "b".to_string(), start_hour: 1.0, end_hour: 2.0 },
+            ]
+        ).unwrap_err()[0].contains("inconsistent release or service weight"));
     }
 
     #[test]
