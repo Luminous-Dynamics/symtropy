@@ -1626,7 +1626,7 @@ mod tests {
     #[test]
     fn frozen_conformance_fixture_maps_all_vectors_to_rust_tests() {
         const FIXTURE: &str = include_str!("../fixtures/conformance-vectors-v0.1.json");
-        let test_functions: [fn(); 42] = [
+        let test_functions: [fn(); 43] = [
             bounded_valid_input_is_ready_for_human_review_only,
             exact_chart_cell_capacity_is_a_hard_gate,
             no_chart_interpolation_or_configuration_substitution_is_permitted,
@@ -1668,7 +1668,8 @@ mod tests {
             referenced_evidence_change_invalidates_receipt_but_unrelated_change_does_not,
             configuration_revision_and_operating_clock_changes_invalidate_receipt,
             receipt_constructor_rejects_invalid_hashes_and_mismatched_report,
-            receipt_canonical_json_contains_sorted_evidence_and_subject_dependencies
+            receipt_canonical_json_contains_sorted_evidence_and_subject_dependencies,
+            no_op_dependency_events_do_not_invalidate_receipts
         ];
         let test_names = [
             stringify!(bounded_valid_input_is_ready_for_human_review_only),
@@ -1712,7 +1713,8 @@ mod tests {
             stringify!(referenced_evidence_change_invalidates_receipt_but_unrelated_change_does_not),
             stringify!(configuration_revision_and_operating_clock_changes_invalidate_receipt),
             stringify!(receipt_constructor_rejects_invalid_hashes_and_mismatched_report),
-            stringify!(receipt_canonical_json_contains_sorted_evidence_and_subject_dependencies)
+            stringify!(receipt_canonical_json_contains_sorted_evidence_and_subject_dependencies),
+            stringify!(no_op_dependency_events_do_not_invalidate_receipts)
         ];
         let vector_ids = [
             "LEV-BASE-001",
@@ -1756,12 +1758,13 @@ mod tests {
             "LEV-REC-002",
             "LEV-REC-003",
             "LEV-REC-004",
-            "LEV-REC-005"
+            "LEV-REC-005",
+            "LEV-META-006"
         ];
 
-        assert_eq!(test_functions.len(), 42);
+        assert_eq!(test_functions.len(), 43);
         assert_eq!(test_names.len(), vector_ids.len());
-        assert_eq!(FIXTURE.matches(r#""id": "LEV-"#).count(), 42);
+        assert_eq!(FIXTURE.matches(r#""id": "LEV-"#).count(), 43);
         for (test_name, vector_id) in test_names.iter().zip(vector_ids.iter()) {
             assert!(
                 FIXTURE.contains(&format!(r#""id": "{vector_id}""#)),
