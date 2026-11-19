@@ -65,6 +65,8 @@ pub struct MetricEvidence {
     pub configuration_digest: String,
     pub system_boundary_digest: String,
     pub operating_condition_digest: String,
+    pub mission_set_digest: String,
+    pub stress_set_digest: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -79,6 +81,7 @@ pub struct ConstraintEvidence {
     pub configuration_digest: String,
     pub system_boundary_digest: String,
     pub operating_condition_digest: String,
+    pub mission_set_digest: String,
     pub stress_set_digest: String,
 }
 
@@ -287,6 +290,14 @@ fn assess_candidate(
                 candidate.candidate_id, definition.name
             ));
         }
+        if observation.mission_set_digest != candidate.mission_set_digest
+            || observation.stress_set_digest != candidate.stress_set_digest
+        {
+            return Err(format!(
+                "candidate {:?} objective {} was evaluated against a different mission/stress set",
+                candidate.candidate_id, definition.name
+            ));
+        }
         if observation.value.is_some_and(|value| !value.is_finite()) {
             return Err(format!("candidate {:?} objective {} is non-finite", candidate.candidate_id, definition.name));
         }
@@ -325,9 +336,11 @@ fn assess_candidate(
                 candidate.candidate_id, definition.name
             ));
         }
-        if observation.stress_set_digest != candidate.stress_set_digest {
+        if observation.mission_set_digest != candidate.mission_set_digest
+            || observation.stress_set_digest != candidate.stress_set_digest
+        {
             return Err(format!(
-                "candidate {:?} constraint {} was evaluated against a different stress set",
+                "candidate {:?} constraint {} was evaluated against a different mission/stress set",
                 candidate.candidate_id, definition.name
             ));
         }
@@ -569,6 +582,8 @@ mod tests {
             configuration_digest: CONFIG.to_owned(),
             system_boundary_digest: BOUNDARY.to_owned(),
             operating_condition_digest: CONDITION.to_owned(),
+            mission_set_digest: MISSIONS.to_owned(),
+            stress_set_digest: STRESS_SET.to_owned(),
         }
     }
 
@@ -583,6 +598,7 @@ mod tests {
             configuration_digest: CONFIG.to_owned(),
             system_boundary_digest: BOUNDARY.to_owned(),
             operating_condition_digest: CONDITION.to_owned(),
+            mission_set_digest: MISSIONS.to_owned(),
             stress_set_digest: STRESS_SET.to_owned(),
         }
     }
@@ -793,7 +809,14 @@ mod tests {
     }
 
     #[test]
-    fn pareto_020_system_boundaries_are_separate_comparison_cohorts() {
+    fn pareto_020_objective_mission_or_stress_digest_mismatch_rejects() {
+        let mut candidate = candidate("stale-objective", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
+        candidate.objectives[0].mission_set_digest = "old-mission".to_owned();
+        assert!(robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).is_err());
+    }
+
+    #[test]
+    fn pareto_024_system_boundaries_are_separate_comparison_cohorts() {
         let a = candidate("installed-boundary", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
         let mut b = candidate("component-boundary", 2.0, 110.0, 0.8, EvidenceClass::IndependentPhysical);
         b.system_boundary_digest = "motor-only-boundary".to_owned();
@@ -809,7 +832,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_021_stress_sets_are_separate_comparison_cohorts() {
+    fn pareto_024_stress_sets_are_separate_comparison_cohorts() {
         let a = candidate("stress-a", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
         let mut b = candidate("stress-b", 2.0, 110.0, 0.8, EvidenceClass::IndependentPhysical);
         b.stress_set_digest = "different-stress-envelope".to_owned();
@@ -822,7 +845,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_022_violation_receipt_preserves_source_and_margin() {
+    fn pareto_024_violation_receipt_preserves_source_and_margin() {
         let mut candidate = candidate("receipt", 1.0, 100.0, 0.9, EvidenceClass::SourceAuthorPhysical);
         candidate.hard_constraints[0].minimum_robust_margin = Some(-0.25);
         let report = robust_pareto_report(&[candidate], &objective_defs(), &constraint_defs()).unwrap();
@@ -838,7 +861,7 @@ mod tests {
     }
 
     #[test]
-    fn pareto_023_all_candidates_are_retained_as_assessments() {
+    fn pareto_024_all_candidates_are_retained_as_assessments() {
         let good = candidate("good", 1.0, 100.0, 0.9, EvidenceClass::IndependentPhysical);
         let mut bad = candidate("bad", 0.5, 50.0, 1.0, EvidenceClass::IndependentPhysical);
         bad.hard_constraints[0].minimum_robust_margin = Some(-0.5);
