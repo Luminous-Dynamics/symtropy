@@ -1,0 +1,264 @@
+{
+  "schema_version": "haps-fleet-continuity-case/v1",
+  "case_id": "synthetic.haps.fleet.continuity.30day.001",
+  "revision": 1,
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_event_replay",
+  "timebase": {
+    "horizon_hours": 720,
+    "epoch_utc": null,
+    "time_step_hours": 1,
+    "interval_convention": "half_open_start_inclusive_end_exclusive"
+  },
+  "service_contract": {
+    "service_id": "synthetic.disaster-connectivity.critical-and-full",
+    "critical_demand_capacity_units": 1,
+    "full_demand_capacity_units": 2,
+    "normal_terrestrial_capacity_units": 0.3,
+    "normal_satellite_capacity_units": 0,
+    "capacity_interpretation": "normalized_service_capacity_units_not_mbps"
+  },
+  "fleet": [
+    {
+      "platform_id": "haps-a",
+      "lift_class": "solar_fixed_wing",
+      "service_capacity_units": 1,
+      "initial_state": "on_station"
+    },
+    {
+      "platform_id": "haps-b",
+      "lift_class": "solar_fixed_wing",
+      "service_capacity_units": 1,
+      "initial_state": "on_station"
+    },
+    {
+      "platform_id": "haps-c",
+      "lift_class": "buoyant_airship",
+      "service_capacity_units": 1,
+      "initial_state": "on_station"
+    },
+    {
+      "platform_id": "haps-d",
+      "lift_class": "buoyant_airship",
+      "service_capacity_units": 1,
+      "initial_state": "standby_ready"
+    }
+  ],
+  "common_cause_events": [
+    {
+      "event_id": "regional-weather-01",
+      "event_class": "regional_weather_restriction",
+      "start_hour": 360,
+      "duration_hours": 24,
+      "scope": "all_haps_in_service_region",
+      "haps_capacity_factor": 0,
+      "terrestrial_capacity_override_units": 0.3,
+      "satellite_capacity_override_units": 0.8,
+      "parent_event_id": null
+    },
+    {
+      "event_id": "gateway-satellite-degradation-01",
+      "event_class": "ground_gateway_outage",
+      "start_hour": 370,
+      "duration_hours": 6,
+      "scope": "network_layer",
+      "haps_capacity_factor": 1,
+      "terrestrial_capacity_override_units": 0,
+      "satellite_capacity_override_units": 0.2,
+      "parent_event_id": "regional-weather-01"
+    }
+  ],
+  "policy_cases": [
+    {
+      "policy_id": "two-of-three-no-reserve",
+      "policy_class": "two_of_three_no_reserve",
+      "description": "Three active HAPS with a fourth airframe held in ready reserve but not dispatched; planned maintenance overlaps because work orders are not coordinated.",
+      "operating_platform_ids": [
+        "haps-a",
+        "haps-b",
+        "haps-c"
+      ],
+      "platform_unavailability_events": [
+        {
+          "event_id": "maint-a-01",
+          "platform_id": "haps-a",
+          "event_class": "planned_maintenance",
+          "start_hour": 120,
+          "duration_hours": 48
+        },
+        {
+          "event_id": "maint-b-01",
+          "platform_id": "haps-b",
+          "event_class": "planned_maintenance",
+          "start_hour": 144,
+          "duration_hours": 48
+        },
+        {
+          "event_id": "maint-c-01",
+          "platform_id": "haps-c",
+          "event_class": "planned_maintenance",
+          "start_hour": 168,
+          "duration_hours": 48
+        }
+      ],
+      "reserve_dispatch_events": []
+    },
+    {
+      "policy_id": "cold-spare-after-delay",
+      "policy_class": "cold_spare_after_delay",
+      "description": "Same three active HAPS and planned maintenance, but haps-d is dispatched when overlapping maintenance first reduces on-station capacity below the two-node requirement; 12-hour launch/reposition delay.",
+      "operating_platform_ids": [
+        "haps-a",
+        "haps-b",
+        "haps-c"
+      ],
+      "platform_unavailability_events": [
+        {
+          "event_id": "maint-a-01",
+          "platform_id": "haps-a",
+          "event_class": "planned_maintenance",
+          "start_hour": 120,
+          "duration_hours": 48
+        },
+        {
+          "event_id": "maint-b-01",
+          "platform_id": "haps-b",
+          "event_class": "planned_maintenance",
+          "start_hour": 144,
+          "duration_hours": 48
+        },
+        {
+          "event_id": "maint-c-01",
+          "platform_id": "haps-c",
+          "event_class": "planned_maintenance",
+          "start_hour": 168,
+          "duration_hours": 48
+        }
+      ],
+      "reserve_dispatch_events": [
+        {
+          "platform_id": "haps-d",
+          "requested_at_hour": 144,
+          "on_station_at_hour": 156,
+          "released_at_hour": 192,
+          "dispatch_delay_hours": 12
+        }
+      ]
+    },
+    {
+      "policy_id": "staggered-four-node-rotation",
+      "policy_class": "staggered_four_node_rotation",
+      "description": "All four HAPS participate in a staggered maintenance rotation; only one platform is in planned maintenance at any time.",
+      "operating_platform_ids": [
+        "haps-a",
+        "haps-b",
+        "haps-c",
+        "haps-d"
+      ],
+      "platform_unavailability_events": [
+        {
+          "event_id": "rotation-a-01",
+          "platform_id": "haps-a",
+          "event_class": "planned_maintenance",
+          "start_hour": 96,
+          "duration_hours": 48
+        },
+        {
+          "event_id": "rotation-b-01",
+          "platform_id": "haps-b",
+          "event_class": "planned_maintenance",
+          "start_hour": 264,
+          "duration_hours": 48
+        },
+        {
+          "event_id": "rotation-c-01",
+          "platform_id": "haps-c",
+          "event_class": "planned_maintenance",
+          "start_hour": 432,
+          "duration_hours": 48
+        },
+        {
+          "event_id": "rotation-d-01",
+          "platform_id": "haps-d",
+          "event_class": "planned_maintenance",
+          "start_hour": 600,
+          "duration_hours": 48
+        }
+      ],
+      "reserve_dispatch_events": []
+    }
+  ],
+  "expected_oracle": {
+    "oracle_status": "independently_calculated",
+    "policy_results": [
+      {
+        "policy_id": "two-of-three-no-reserve",
+        "haps_only_full_service_availability_fraction": 0.9,
+        "critical_service_availability_fraction": 0.9916666666666667,
+        "full_service_availability_fraction": 0.9,
+        "useful_service_capacity_fraction": 0.9579166666666667,
+        "full_service_degraded_hours": 72,
+        "critical_service_outage_hours": 6,
+        "full_service_degradation_episode_count": 2,
+        "max_full_service_degradation_hours": 48,
+        "max_critical_service_outage_hours": 6,
+        "planned_maintenance_hours": 144,
+        "reserve_dispatch_delay_hours": 0,
+        "minimum_on_station_haps_capacity_units": 0
+      },
+      {
+        "policy_id": "cold-spare-after-delay",
+        "haps_only_full_service_availability_fraction": 0.95,
+        "critical_service_availability_fraction": 0.9916666666666667,
+        "full_service_availability_fraction": 0.95,
+        "useful_service_capacity_fraction": 0.9754166666666666,
+        "full_service_degraded_hours": 36,
+        "critical_service_outage_hours": 6,
+        "full_service_degradation_episode_count": 2,
+        "max_full_service_degradation_hours": 24,
+        "max_critical_service_outage_hours": 6,
+        "planned_maintenance_hours": 144,
+        "reserve_dispatch_delay_hours": 12,
+        "minimum_on_station_haps_capacity_units": 0
+      },
+      {
+        "policy_id": "staggered-four-node-rotation",
+        "haps_only_full_service_availability_fraction": 0.9666666666666667,
+        "critical_service_availability_fraction": 0.9916666666666667,
+        "full_service_availability_fraction": 0.9666666666666667,
+        "useful_service_capacity_fraction": 0.98125,
+        "full_service_degraded_hours": 24,
+        "critical_service_outage_hours": 6,
+        "full_service_degradation_episode_count": 1,
+        "max_full_service_degradation_hours": 24,
+        "max_critical_service_outage_hours": 6,
+        "planned_maintenance_hours": 192,
+        "reserve_dispatch_delay_hours": 0,
+        "minimum_on_station_haps_capacity_units": 0
+      }
+    ]
+  },
+  "source_evidence_refs": [
+    "https://doi.org/10.1016/j.ress.2025.111450",
+    "https://doi.org/10.1016/j.vehcom.2026.101040",
+    "https://doi.org/10.1002/qre.70254",
+    "https://doi.org/10.1016/j.paerosci.2026.101243",
+    "https://www.softbank.jp/en/sbnews/entry/20261027_01",
+    "https://hira.hope.ac.uk/id/eprint/4881/1/HAPSAlliance_6G_WhitePaper_MAR26.pdf"
+  ],
+  "assumptions": [
+    "All assets, maintenance schedules, reserve delays, weather windows and service-capacity units are synthetic. No Sceye, Zephyr, ApusNeo, SoftBank or operator fleet telemetry is represented.",
+    "The 30-day/720-hour horizon is a deterministic stress fixture and cannot substantiate annual availability or reliability claims.",
+    "Each active on-station HAPS contributes one normalized service-capacity unit. This unit is not Mbps, area coverage, payload performance or a radio link budget.",
+    "Two capacity units are required for full service; one capacity unit is required for critical service. Delivered capacity is capped at two units for the useful_service_capacity_fraction.",
+    "Normal terrestrial fallback contributes 0.3 units and satellite fallback contributes zero. During the regional weather event, terrestrial contributes 0.3 and satellite contributes 0.8; the nested gateway/backhaul degradation event overrides those values to 0 and 0.2 respectively.",
+    "The common weather event makes all HAPS unavailable for the declared service region for 24 hours. This is a service-region restriction, not a claim that every aircraft is physically lost or damaged.",
+    "The nested gateway event overlaps the final 6 hours of the weather event, modelling correlated impairment of the HAPS and fallback layers.",
+    "Maintenance intervals are half-open [start_hour, start_hour + duration_hours); boundary hours must not be double-counted.",
+    "The cold spare is requested at hour 144 and is service-ready at hour 156; the 12-hour dispatch delay is synthetic. It is released at hour 192 after the overlapping maintenance interval ends.",
+    "The uncoordinated three-node case deliberately leaves a ready fourth airframe undispatched. It is a policy negative control, not a recommended operating plan.",
+    "The staggered policy uses the same four assets but plans one 48-hour maintenance interval per platform at a time; crew, launch-site and spare-part limits are not yet modelled.",
+    "Weather and gateway events are deterministic and correlated by an explicit parent event. No independence assumption or probability distribution is inferred.",
+    "No aircraft lift-class equivalence is implied; lift_class labels are used to ensure a future extension keeps platform-specific dynamics and maintenance owners separate."
+  ]
+}
