@@ -100,6 +100,49 @@ Official sources:
 - GPU comparisons must include driver/runtime, device, precision, kernels, memory and transfer behavior.
 - Stable and preview releases must never be combined in one headline ranking.
 
+## 4A. November 2026 comparator and FMI semantics update
+
+This is a release-sensitive snapshot, not a permanent ranking. Pin the exact version, feature flags, solver and model configuration for every measured result.
+
+### Rigid contact and deformable simulation
+
+- **MuJoCo 4.0.1 (11 November 2026)** is the checked stable release. Version 4.0.0 introduced opt-in speculative contacts for fast convex bodies and stateful elasto-plasticity in supported spring/flex paths. Version 4.0.1 fixed a sparse-Cholesky supernode bug introduced in 4.0.0 that could produce slow convergence, incorrect accelerations and divergence in sparse constraint cases, plus multicontact cylinder-edge fixes. This is a concrete reason to record patch version and solver factorization details rather than treating “MuJoCo 4” as one immutable backend.
+- **Newton 1.8.0 (11 November 2026)** adds the experimental Steel articulated rigid-body solver and expanded routed tendons/deformable workflows. Release notes report within-project performance changes against Newton 1.7.0 on pinned GPU/hardware configurations, including batched inverse-dynamics improvements; these are vendor/project release benchmarks, not cross-tool superiority evidence. Steel remains experimental and must be labeled as such in any comparison.
+- Do not collapse MuJoCo, Newton, Chrono, Rapier and Symtropy into one score. Match contact model, friction law, geometry representation, mass properties, solver path, statefulness/plasticity, timestep, precision, batch size and target observables. Publish single-world numerical fidelity separately from GPU multi-world throughput.
+
+Official change records: [MuJoCo 4.0.1 changelog](https://mujoco.readthedocs.io/en/4.0.1/changelog.html), [MuJoCo releases](https://github.com/google-deepmind/mujoco/releases), and [Newton v1.8.0 releases](https://github.com/newton-physics/newton/releases).
+
+### FMI 3.0.2 semantics the benchmark must preserve
+
+FMI is not just a call interface. Version 3.0.2 includes Model Exchange, Co-Simulation and Scheduled Execution, with optional Event Mode, Intermediate Update, clocks and early return. The importer/master algorithm remains part of the integrating tool's behavior and needs its own qualification.
+
+- A normal `fmi3DoStep` return with `earlyReturn=false` may report `lastSuccessfulTime` that deviates from the requested endpoint (for example, an internal fixed-step integrator that cannot land exactly on it). The importer must use the reported successful time; a benchmark may not silently replace it with the requested endpoint.
+- `earlyReturn=true` is only valid if the importer enabled early return at instantiation. The reported `lastSuccessfulTime` can equal the current communication point, including an event detected at that time. A benchmark must represent a same-time event round or report that it is unsupported; it must not mislabel it as malformed FMI.
+- If `eventHandlingNeeded=true`, Event Mode and the `fmi3UpdateDiscreteStates` loop must be represented. Iterate while `discreteStatesNeedUpdate=true`; terminate or return to Step Mode according to the recorded state machine.
+- `fmi3Discard` is not an early return. The FMU remains in the same state as before the call and its output arguments are undefined; the importer must not use those values as a committed time advance.
+- Repeating a successful communication step with new inputs requires restoring the saved FMU state to the prior communication point before replay. A trace must prove the rollback boundary, not merely point at a prior attempt ID.
+- Scheduled Execution is a distinct importer/scheduler problem over model partitions; it is not equivalent to ordinary co-simulation step sequencing.
+
+The v0.1 trace verifier in [PR #6198](https://github.com/Luminous-Dynamics/symtropy/pull/6198) now accepts a non-endpoint `lastSuccessfulTime` when it remains within the requested interval, and gates early return on importer permission. It explicitly refuses zero-progress event rounds, Event Mode transitions, termination membership changes and successful-step rollback/re-execution until those records exist. That is an intentionally narrow supported profile, not full FMI 3.0.2 conformance.
+
+Primary source: [FMI 3.0.2 specification, §4.1.3, §4.2 and §4.3](https://fmi-standard.org/docs/3.0.2/).
+
+### Risk-based uncertainty and metrology
+
+NIST AMS 100-85 (5 October 2026) provides a current synthesis of computational-model uncertainty with JCGM metrology practice and ASME VVUQ. Its central design implication for Symtropy is that evidence effort should scale with **model influence and decision consequence**, and uncertainty should not be reduced to a generic variance-propagation checkbox.
+
+Every engineering benchmark should separate at least:
+1. measurement uncertainty and calibration traceability;
+2. input/parameter uncertainty and parameter identifiability;
+3. numerical/discretization/solver uncertainty;
+4. model-form discrepancy and structural uncertainty;
+5. scenario/operational variability;
+6. surrogate/emulator approximation error, if present.
+
+Where supported, compare distribution propagation against first/second-moment propagation, and use adjoint-based sensitivities only with an explicit differentiability and numerical-conditioning audit. Report predictive coverage and sharpness, proper probabilistic scores, calibration drift, false confidence, OOD/abstention behavior, influence and consequence tiers. Keep calibration, validation and sealed prediction-challenge data independent by physical subject/configuration/material batch/campaign.
+
+Source: [NIST AMS 100-85 — On Methods of Uncertainty Quantification in Computational Modeling and Simulation: Harmonizing Modeling and Metrology Practices (5 October 2026)](https://doi.org/10.6028/NIST.AMS.100-85).
+
 ## 5. Fair-comparison protocol
 
 Before executing a comparison, freeze:
