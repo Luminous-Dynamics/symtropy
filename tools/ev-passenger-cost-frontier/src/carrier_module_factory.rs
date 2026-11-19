@@ -77,6 +77,7 @@ struct ModuleStation {
     equipment_capex_usd_per_cell: Option<f64>,
     footprint_sqm_per_cell: Option<f64>,
     operators_per_cell_per_shift: Option<u32>,
+    maximum_parallel_cells_available: Option<u32>,
     energy_kwh_per_attempt: Option<f64>,
     thermal_energy_kwh_per_attempt: Option<f64>,
 }
@@ -87,6 +88,8 @@ struct StationResult {
     process_label: String,
     cycle_minutes_per_attempt: Option<f64>,
     parallel_cells_required: Option<u64>,
+    maximum_parallel_cells_available: Option<u32>,
+    parallel_cells_sized: Option<u64>,
     planned_attempt_capacity_per_year: Option<u64>,
     good_module_capacity_per_year: Option<u64>,
     equipment_capex_usd: Option<f64>,
@@ -327,7 +330,7 @@ fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> Sc
     stations.sort_by(|left, right| left.process_id.cmp(&right.process_id));
     for station in stations {
         let mut missing = Vec::new();
-        let cells = match (station.cycle_minutes_per_attempt, attempts) {
+        let required = match (station.cycle_minutes_per_attempt, attempts) {
             (Some(cycle), Some(attempts)) => required_cells(
                 cycle,
                 attempts,
@@ -335,10 +338,15 @@ fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> Sc
             ),
             _ => None,
         };
+        let cells = match (required, station.maximum_parallel_cells_available) {
+            (Some(required), Some(available)) => Some(required.min(u64::from(available))),
+            _ => None,
+        };
         if station.cycle_minutes_per_attempt.is_none() { missing.push("cycle_minutes_per_attempt".into()); }
         if station.equipment_capex_usd_per_cell.is_none() { missing.push("equipment_capex_usd_per_cell".into()); }
         if station.footprint_sqm_per_cell.is_none() { missing.push("footprint_sqm_per_cell".into()); }
         if station.operators_per_cell_per_shift.is_none() { missing.push("operators_per_cell_per_shift".into()); }
+        if station.maximum_parallel_cells_available.is_none() { missing.push("maximum_parallel_cells_available".into()); }
         if station.energy_kwh_per_attempt.is_none() { missing.push("energy_kwh_per_attempt".into()); }
         if station.thermal_energy_kwh_per_attempt.is_none() { missing.push("thermal_energy_kwh_per_attempt".into()); }
 
@@ -378,7 +386,9 @@ fn evaluate_pair(base: &BaseFactoryScenario, config: &ModuleConfiguration) -> Sc
             process_id: station.process_id.clone(),
             process_label: station.process_label.clone(),
             cycle_minutes_per_attempt: station.cycle_minutes_per_attempt,
-            parallel_cells_required: cells,
+            parallel_cells_required: required,
+            maximum_parallel_cells_available: station.maximum_parallel_cells_available,
+            parallel_cells_sized: cells,
             planned_attempt_capacity_per_year: capacity,
             good_module_capacity_per_year: capacity.zip(config.good_module_yield_fraction)
                 .map(|(capacity, yield_fraction)| (capacity as f64 * yield_fraction).floor() as u64),
@@ -532,6 +542,7 @@ mod tests {
                     equipment_capex_usd_per_cell: Some(20_000.0),
                     footprint_sqm_per_cell: Some(24.0),
                     operators_per_cell_per_shift: Some(2),
+                    maximum_parallel_cells_available: Some(128),
                     energy_kwh_per_attempt: Some(4.0),
                     thermal_energy_kwh_per_attempt: Some(0.0),
                 },
@@ -542,6 +553,7 @@ mod tests {
                     equipment_capex_usd_per_cell: Some(35_000.0),
                     footprint_sqm_per_cell: Some(18.0),
                     operators_per_cell_per_shift: Some(1),
+                    maximum_parallel_cells_available: Some(128),
                     energy_kwh_per_attempt: Some(3.0),
                     thermal_energy_kwh_per_attempt: Some(0.0),
                 },
@@ -587,6 +599,7 @@ mod tests {
     fn known_module_capacity_shortfall_blocks() {
         let mut test = config();
         test.station_processes[0].cycle_minutes_per_attempt = Some(500.0);
+        test.station_processes[0].maximum_parallel_cells_available = Some(1);
         let result = evaluate_pair(&base(), &test);
         assert_eq!(result.status, Status::Blocked);
         assert!(result.good_vehicle_capacity_margin_per_year.unwrap() < 0);
