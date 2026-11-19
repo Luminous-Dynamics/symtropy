@@ -8,6 +8,7 @@
     "schemaVersion",
     "caseId",
     "timeOriginUtc",
+    "caseMaturity",
     "asOfHour",
     "horizonEndHour",
     "tasks",
@@ -500,6 +501,12 @@
           }
         }
       }
+    },
+    "caseMaturity": {
+      "enum": [
+        "synthetic_fixture",
+        "field_observed"
+      ]
     }
   }
 }
