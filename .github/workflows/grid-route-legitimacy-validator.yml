@@ -1,0 +1,58 @@
+name: Grid Route Legitimacy Validator
+
+on:
+  pull_request:
+    paths:
+      - "docs/research/grid-route-legitimacy/**"
+      - "tools/grid-route-legitimacy-validator/**"
+      - ".github/workflows/grid-route-legitimacy-validator.yml"
+  push:
+    paths:
+      - "docs/research/grid-route-legitimacy/**"
+      - "tools/grid-route-legitimacy-validator/**"
+      - ".github/workflows/grid-route-legitimacy-validator.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  route-legitimacy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Install pinned JSON Schema validator
+        run: python3 -m pip install 'jsonschema==4.26.0'
+      - name: Validate Draft 2020-12 schema and fixture
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+          root = Path("docs/research/grid-route-legitimacy/data")
+          schema = json.loads((root / "route-legitimacy-v0.1.schema.json").read_text())
+          fixture = json.loads((root / "synthetic-route-legitimacy-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(fixture),
+              key=lambda error: list(map(str, error.absolute_path)),
+          )
+          if errors:
+              for error in errors:
+                  where = ".".join(map(str, error.absolute_path)) or "$"
+                  print(f"{where}: {error.message}")
+              raise SystemExit(1)
+          print("JSON Schema PASS: synthetic route-legitimacy fixture conforms")
+          PY
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/grid-route-legitimacy-validator/Cargo.toml -- --check
+      - name: Run semantic tests
+        run: cargo test --manifest-path tools/grid-route-legitimacy-validator/Cargo.toml
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --manifest-path tools/grid-route-legitimacy-validator/Cargo.toml --all-targets -- -D warnings
+      - name: Validate synthetic fixture
+        run: cargo run --manifest-path tools/grid-route-legitimacy-validator/Cargo.toml -- docs/research/grid-route-legitimacy/data/synthetic-route-legitimacy-v0.1.json
