@@ -331,6 +331,7 @@ fn validate_inputs(base: &BaseReport, overlay: &CarrierCorpus) -> Result<(), Str
             ));
         }
         if configuration.energy_boundary_note.trim().is_empty()
+            || configuration.notes.is_empty()
             || configuration.notes.iter().any(|note| note.trim().is_empty())
         {
             return Err(format!(
@@ -660,7 +661,7 @@ mod tests {
         config.incremental_vehicle_battery_draw_kwh = Some(70.0);
         let result = evaluate_configuration(&config, &base_design("urban-distribution-truck"));
         assert_eq!(result.status, Status::Blocked);
-        assert_eq!(result.vehicle_battery_energy_margin_after_module_kwh, Some(-5.537999999999997));
+        assert!((result.vehicle_battery_energy_margin_after_module_kwh.unwrap() + 5.538).abs() < 1e-9);
         assert!(result.total_vehicle_replenishment_grid_energy_kwh.unwrap()
             > base_design("urban-distribution-truck").grid_energy_to_replenish_kwh);
     }
