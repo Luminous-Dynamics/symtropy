@@ -117,6 +117,9 @@ pub struct GroupTestAssessment {
 pub struct CalibrationReport {
     pub status: CalibrationStatus,
     pub model_digest: String,
+    pub training_split_digest: String,
+    pub calibration_split_digest: String,
+    pub test_split_digest: String,
     pub mission_set_digest: String,
     pub system_boundary_digest: String,
     pub operating_condition_digest: String,
