@@ -93,8 +93,12 @@ The file isotropic_gauge_reference.py generates isotropic_gauge_reference_v1.jso
 - the \(\lambda=0\) analytic map;
 - high-precision differentiation against \(d\xi/d\rho=\xi/(\rho\sqrt F)\);
 - inverse-map round trips;
+- positivity of the exterior lapse, isotropic radius, isotropic radial coefficient and coordinate Jacobian;
 - the radial line-element identity;
+- reconstruction of the isotropic angular-base and Hopf-fiber coefficients;
 - the mapped first-order rotational function.
+
+The script now fails closed if any tested absolute/relative defect exceeds \(10^{-80}\) at 90-digit working precision. The generated fixture records this threshold and the maximum isotropic reconstruction defect.
 
 Representative horizon radii:
 - \(\lambda=0:\ \xi_H=0.5\);
