@@ -644,8 +644,6 @@ mod tests {
             reference_instant_s: 1.0,
             joint_configuration_digest: "paired-knee-config-v1".to_owned(),
             operating_condition_digest: CONDITION.to_owned(),
-            reference_instant_s: 1.0,
-            joint_configuration_digest: "paired-knee-config-v1".to_owned(),
         }
     }
 
