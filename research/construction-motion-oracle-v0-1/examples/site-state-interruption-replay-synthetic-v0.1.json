@@ -1,0 +1,102 @@
+[
+  {
+    "event_id": "interrupted-package-v1",
+    "sequence": 1,
+    "previous_event_sha256": null,
+    "event_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "actor_id": "design-authority",
+    "actor_role": "design_authority",
+    "payload": {
+      "kind": "work_package_published",
+      "package": {
+        "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_schema_release": "IFC4X3_ADD2",
+        "ids_spec_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "ids_version": "1.0",
+        "design_revision_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "frame_id": "site-level-02",
+        "frame_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "transform_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "entity_manifest_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "acceptance_profile_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "entities": [
+          {
+            "design_entity_id": "ifc4x3:AAAAAAAAAAAAAAAAAAAAAA",
+            "entity_type": "line"
+          }
+        ],
+        "acceptance_profile": {
+          "max_abs_xy_residual_mm": 1,
+          "max_reference_u95_xy_mm": 0.25,
+          "max_abs_endpoint_residual_mm": 1
+        }
+      }
+    }
+  },
+  {
+    "event_id": "interrupted-station-v1",
+    "sequence": 2,
+    "previous_event_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "event_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "actor_id": "surveyor-17",
+    "actor_role": "surveyor",
+    "payload": {
+      "kind": "station_qualified",
+      "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "station_id": "tracker-A",
+      "frame_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "transform_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "calibration_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+    }
+  },
+  {
+    "event_id": "interrupted-attempt-v1",
+    "sequence": 3,
+    "previous_event_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "event_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "actor_id": "robot-01",
+    "actor_role": "robot",
+    "payload": {
+      "kind": "execution_started",
+      "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "entity_id": "ifc4x3:AAAAAAAAAAAAAAAAAAAAAA",
+      "attempt_id": "robot-01-attempt-0042",
+      "station_qualification_event_id": "interrupted-station-v1"
+    }
+  },
+  {
+    "event_id": "robot-interruption-v1",
+    "sequence": 4,
+    "previous_event_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "event_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "actor_id": "robot-01",
+    "actor_role": "robot",
+    "payload": {
+      "kind": "execution_interrupted",
+      "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "entity_id": "ifc4x3:AAAAAAAAAAAAAAAAAAAAAA",
+      "attempt_id": "robot-01-attempt-0042",
+      "reason": "power loss while printer head was moving",
+      "interruption_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+    }
+  },
+  {
+    "event_id": "referee-reconciliation-v1",
+    "sequence": 5,
+    "previous_event_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "event_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "actor_id": "referee-02",
+    "actor_role": "referee",
+    "payload": {
+      "kind": "referee_assessment_recorded",
+      "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "entity_id": "ifc4x3:AAAAAAAAAAAAAAAAAAAAAA",
+      "attempt_id": "robot-01-attempt-0042",
+      "assessment": {
+        "kind": "no_mark_found",
+        "receipt_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+      }
+    }
+  }
+]
