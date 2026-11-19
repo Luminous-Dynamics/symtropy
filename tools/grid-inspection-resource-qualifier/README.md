@@ -4,6 +4,7 @@
 **Parent:** #6273 — Grid Restoration Inspection  
 **Upstream diagnosis/policy tree:** Symthaea #12403 / #12436, PRs #12412 / #12441  
 **Snapshot:** 2026-11-19
+**Fixture maturity:** synthetic only
 
 ## Purpose
 
