@@ -16,6 +16,7 @@ pub enum EvidenceClass {
     LimiterVerification,
     PersonnelCredential,
     SafeWorkBriefing,
+    BriefingAcknowledgement,
     ExclusionZonePlan,
 }
 
@@ -108,6 +109,16 @@ pub struct RoleAssignment {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BriefingAcknowledgement {
+    pub role: PersonnelRole,
+    pub person_reference: String,
+    pub method_statement_id: String,
+    pub method_statement_revision: String,
+    pub acknowledged_at_tick: u64,
+    pub evidence_record_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LiftPreflightReceiptRef {
     pub receipt_id: String,
     pub input_sha256: String,
@@ -139,6 +150,7 @@ pub struct ReadinessPlan {
     pub end_tick: u64,
     pub method_statement_id: String,
     pub method_statement_revision: String,
+    pub exclusion_zone_plan_revision: String,
     pub lift_preflight: LiftPreflightReceiptRef,
     pub required_evidence: Vec<RequiredEvidence>,
     pub evidence_records: Vec<EvidenceRecord>,
@@ -146,7 +158,7 @@ pub struct ReadinessPlan {
     pub device_evidence: Vec<DeviceEvidence>,
     pub required_roles: Vec<PersonnelRole>,
     pub role_assignments: Vec<RoleAssignment>,
-    pub briefing_acknowledgements: Vec<PersonnelRole>,
+    pub briefing_acknowledgements: Vec<BriefingAcknowledgement>,
     pub exclusion_zone_state: ExclusionZoneState,
 }
 
@@ -486,18 +498,6 @@ fn validate_record(
     valid
 }
 
-fn find_required_record<'a>(
-    required: &RequiredEvidence,
-    records: &'a BTreeMap<&str, &EvidenceRecord>,
-) -> Option<&'a EvidenceRecord> {
-    records.values().copied().find(|record| {
-        record.evidence_class == required.evidence_class
-            && record.subject_id == required.subject_id
-            && record.subject_revision == required.subject_revision
-            && record.personnel_role == required.personnel_role
-    })
-}
-
 fn validate_required_evidence(
     plan: &ReadinessPlan,
     records: &BTreeMap<&str, &EvidenceRecord>,
@@ -521,19 +521,39 @@ fn validate_required_evidence(
             );
             continue;
         }
-        match find_required_record(required, records) {
-            Some(record) => {
+        let matches: Vec<&EvidenceRecord> = records
+            .values()
+            .copied()
+            .filter(|record| {
+                record.evidence_class == required.evidence_class
+                    && record.subject_id == required.subject_id
+                    && record.subject_revision == required.subject_revision
+                    && record.personnel_role == required.personnel_role
+            })
+            .collect();
+        match matches.as_slice() {
+            [record] => {
                 if validate_record(plan, record, diagnostics) {
                     verified += 1;
                 }
             }
-            None => push(
+            [] => push(
                 diagnostics,
                 "REQUIRED_EVIDENCE_MISSING",
                 DiagnosticSeverity::Indeterminate,
                 Some(&required.subject_id),
                 format!(
                     "missing {:?} evidence for exact subject/revision",
+                    required.evidence_class
+                ),
+            ),
+            _ => push(
+                diagnostics,
+                "REQUIRED_EVIDENCE_AMBIGUOUS",
+                DiagnosticSeverity::Indeterminate,
+                Some(&required.subject_id),
+                format!(
+                    "multiple {:?} evidence records match the same required subject/revision",
                     required.evidence_class
                 ),
             ),
@@ -717,54 +737,19 @@ fn validate_briefing(
     records: &BTreeMap<&str, &EvidenceRecord>,
     diagnostics: &mut Vec<Diagnostic>,
 ) -> bool {
-    let briefing = plan.required_evidence.iter().find(|required| {
-        required.evidence_class == EvidenceClass::SafeWorkBriefing
-            && required.subject_id == plan.method_statement_id
-            && required.subject_revision == plan.method_statement_revision
-    });
-    if briefing.is_none() {
-        push(
-            diagnostics,
-            "SAFE_WORK_BRIEFING_REQUIREMENT_MISSING",
-            DiagnosticSeverity::Indeterminate,
-            Some(&plan.method_statement_id),
-            "exact method-statement revision must be declared as required evidence",
-        );
-    }
-    let mut acknowledgements = BTreeSet::new();
-    for role in &plan.briefing_acknowledgements {
-        if !acknowledgements.insert(*role) {
-            push(
-                diagnostics,
-                "BRIEFING_ACK_DUPLICATE",
-                DiagnosticSeverity::Indeterminate,
-                Some(&plan.method_statement_id),
-                "briefing acknowledgement role is duplicated",
-            );
-        }
-    }
-    let mut complete = true;
-    for role in &plan.required_roles {
-        if !acknowledgements.contains(role) {
-            complete = false;
-            push(
-                diagnostics,
-                "BRIEFING_ACK_MISSING",
-                DiagnosticSeverity::Indeterminate,
-                Some(&plan.method_statement_id),
-                format!("required role {role:?} has not acknowledged the briefing"),
-            );
-        }
-    }
-    let record = records.values().copied().find(|record| {
-        record.evidence_class == EvidenceClass::SafeWorkBriefing
-            && record.subject_id == plan.method_statement_id
-            && record.subject_revision == plan.method_statement_revision
-    });
-    match record {
-        Some(record) if validate_record(plan, record, diagnostics) => complete,
-        Some(_) => false,
-        None => {
+    let briefing_records: Vec<&EvidenceRecord> = records
+        .values()
+        .copied()
+        .filter(|record| {
+            record.evidence_class == EvidenceClass::SafeWorkBriefing
+                && record.subject_id == plan.method_statement_id
+                && record.subject_revision == plan.method_statement_revision
+                && record.personnel_role.is_none()
+        })
+        .collect();
+    let briefing_valid = match briefing_records.as_slice() {
+        [record] => validate_record(plan, record, diagnostics),
+        [] => {
             push(
                 diagnostics,
                 "SAFE_WORK_BRIEFING_RECORD_MISSING",
@@ -774,7 +759,127 @@ fn validate_briefing(
             );
             false
         }
+        _ => {
+            push(
+                diagnostics,
+                "SAFE_WORK_BRIEFING_RECORD_AMBIGUOUS",
+                DiagnosticSeverity::Indeterminate,
+                Some(&plan.method_statement_id),
+                "multiple briefing records match the exact method statement revision",
+            );
+            false
+        }
+    };
+
+    let mut complete = briefing_valid;
+    let mut seen_acknowledgement_ids = BTreeSet::new();
+    for acknowledgement in &plan.briefing_acknowledgements {
+        if !seen_acknowledgement_ids.insert(acknowledgement.evidence_record_id.as_str()) {
+            push(
+                diagnostics,
+                "BRIEFING_ACK_RECORD_DUPLICATE",
+                DiagnosticSeverity::Indeterminate,
+                Some(&acknowledgement.evidence_record_id),
+                "one acknowledgement evidence record was reused more than once",
+            );
+            complete = false;
+        }
     }
+
+    for role in &plan.required_roles {
+        let assigned: Vec<&RoleAssignment> = plan
+            .role_assignments
+            .iter()
+            .filter(|assignment| assignment.role == *role)
+            .collect();
+        let person_reference = match assigned.as_slice() {
+            [assignment] => assignment.person_reference.as_str(),
+            _ => {
+                complete = false;
+                continue;
+            }
+        };
+        let acknowledgements: Vec<&BriefingAcknowledgement> = plan
+            .briefing_acknowledgements
+            .iter()
+            .filter(|item| item.role == *role)
+            .collect();
+        let acknowledgement = match acknowledgements.as_slice() {
+            [item] => *item,
+            [] => {
+                complete = false;
+                push(
+                    diagnostics,
+                    "BRIEFING_ACK_MISSING",
+                    DiagnosticSeverity::Indeterminate,
+                    Some(&plan.method_statement_id),
+                    format!("required role {role:?} has not acknowledged the briefing"),
+                );
+                continue;
+            }
+            _ => {
+                complete = false;
+                push(
+                    diagnostics,
+                    "BRIEFING_ACK_AMBIGUOUS",
+                    DiagnosticSeverity::Indeterminate,
+                    Some(&plan.method_statement_id),
+                    format!("multiple briefing acknowledgements exist for role {role:?}"),
+                );
+                continue;
+            }
+        };
+
+        if acknowledgement.person_reference != person_reference
+            || acknowledgement.method_statement_id != plan.method_statement_id
+            || acknowledgement.method_statement_revision != plan.method_statement_revision
+            || acknowledgement.acknowledged_at_tick > plan.start_tick
+        {
+            complete = false;
+            push(
+                diagnostics,
+                "BRIEFING_ACK_SUBJECT_OR_TIME_MISMATCH",
+                DiagnosticSeverity::Indeterminate,
+                Some(&acknowledgement.evidence_record_id),
+                "acknowledgement must bind the assigned person, exact method-statement revision and occur no later than operation start",
+            );
+            continue;
+        }
+
+        match records.get(acknowledgement.evidence_record_id.as_str()).copied() {
+            Some(record)
+                if record.evidence_class == EvidenceClass::BriefingAcknowledgement
+                    && record.subject_id == acknowledgement.person_reference
+                    && record.subject_revision == plan.method_statement_revision
+                    && record.personnel_role == Some(*role) =>
+            {
+                if !validate_record(plan, record, diagnostics) {
+                    complete = false;
+                }
+            }
+            Some(_) => {
+                complete = false;
+                push(
+                    diagnostics,
+                    "BRIEFING_ACK_EVIDENCE_MISMATCH",
+                    DiagnosticSeverity::Indeterminate,
+                    Some(&acknowledgement.evidence_record_id),
+                    "acknowledgement evidence must bind the exact person, role and method-statement revision",
+                );
+            }
+            None => {
+                complete = false;
+                push(
+                    diagnostics,
+                    "BRIEFING_ACK_EVIDENCE_MISSING",
+                    DiagnosticSeverity::Indeterminate,
+                    Some(&acknowledgement.evidence_record_id),
+                    "source evidence for this role acknowledgement is missing",
+                );
+            }
+        }
+    }
+    complete
 }
 
 fn validate_exclusion_zone(
@@ -785,6 +890,7 @@ fn validate_exclusion_zone(
     let record = records.values().copied().find(|record| {
         record.evidence_class == EvidenceClass::ExclusionZonePlan
             && record.subject_id == plan.site_epoch_id
+            && record.subject_revision == plan.exclusion_zone_plan_revision
     });
     let evidence_valid = match record {
         Some(record) => validate_record(plan, record, diagnostics),
