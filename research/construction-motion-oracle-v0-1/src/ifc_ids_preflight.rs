@@ -163,18 +163,51 @@ pub enum IfcIdsPreflightError {
     InvalidGlobalId(String),
     DuplicateGlobalId(String),
     InvalidGeometryDigest(String),
-    InvalidIdsApplicabilityReceipt { global_id: String },
-    DuplicateRequiredIdsProperty { global_id: String, property: String },
-    DuplicateDeliveredIdsProperty { global_id: String, property: String },
-    EmptyIdsPropertyIdentifier { global_id: String },
-    MissingRequiredIdsProperty { global_id: String, property: String },
-    EmptyIdsRequirementId { global_id: String },
-    DuplicateApplicableIdsRequirement { global_id: String, requirement_id: String },
-    DuplicateIdsRequirementEvaluation { global_id: String, requirement_id: String },
-    MissingIdsRequirementEvaluation { global_id: String, requirement_id: String },
-    FailedIdsRequirement { global_id: String, requirement_id: String },
-    UnexpectedIdsRequirementEvaluation { global_id: String, requirement_id: String },
-    InvalidIdsRequirementEvaluationReceipt { global_id: String, requirement_id: String },
+    InvalidIdsApplicabilityReceipt {
+        global_id: String,
+    },
+    DuplicateRequiredIdsProperty {
+        global_id: String,
+        property: String,
+    },
+    DuplicateDeliveredIdsProperty {
+        global_id: String,
+        property: String,
+    },
+    EmptyIdsPropertyIdentifier {
+        global_id: String,
+    },
+    MissingRequiredIdsProperty {
+        global_id: String,
+        property: String,
+    },
+    EmptyIdsRequirementId {
+        global_id: String,
+    },
+    DuplicateApplicableIdsRequirement {
+        global_id: String,
+        requirement_id: String,
+    },
+    DuplicateIdsRequirementEvaluation {
+        global_id: String,
+        requirement_id: String,
+    },
+    MissingIdsRequirementEvaluation {
+        global_id: String,
+        requirement_id: String,
+    },
+    FailedIdsRequirement {
+        global_id: String,
+        requirement_id: String,
+    },
+    UnexpectedIdsRequirementEvaluation {
+        global_id: String,
+        requirement_id: String,
+    },
+    InvalidIdsRequirementEvaluationReceipt {
+        global_id: String,
+        requirement_id: String,
+    },
     NoEntitiesInWorkScope,
     InvalidAcceptanceProfile,
 }
@@ -234,10 +267,20 @@ pub fn preflight_ifc_ids_work_package(
     {
         errors.push(IfcIdsPreflightError::CoordinateFrameDigestMismatch);
     }
-    if input.coordinate_context.project_crs_identifier.trim().is_empty() {
+    if input
+        .coordinate_context
+        .project_crs_identifier
+        .trim()
+        .is_empty()
+    {
         errors.push(IfcIdsPreflightError::MissingProjectCrsIdentifier);
     }
-    if input.coordinate_context.vertical_datum_identifier.trim().is_empty() {
+    if input
+        .coordinate_context
+        .vertical_datum_identifier
+        .trim()
+        .is_empty()
+    {
         errors.push(IfcIdsPreflightError::MissingVerticalDatumIdentifier);
     }
     let unit_ratio = input.coordinate_context.length_unit.to_millimetres_ratio();
@@ -373,10 +416,12 @@ pub fn preflight_ifc_ids_work_package(
                 });
             }
             if !is_sha256(&evaluation.evaluation_receipt_sha256) {
-                errors.push(IfcIdsPreflightError::InvalidIdsRequirementEvaluationReceipt {
-                    global_id: source_entity.global_id.clone(),
-                    requirement_id: evaluation.requirement_id.clone(),
-                });
+                errors.push(
+                    IfcIdsPreflightError::InvalidIdsRequirementEvaluationReceipt {
+                        global_id: source_entity.global_id.clone(),
+                        requirement_id: evaluation.requirement_id.clone(),
+                    },
+                );
             }
             if !evaluation.passed {
                 errors.push(IfcIdsPreflightError::FailedIdsRequirement {
@@ -408,9 +453,7 @@ pub fn preflight_ifc_ids_work_package(
             ids_applicability_receipt_sha256: source_entity
                 .ids_applicability_receipt_sha256
                 .clone(),
-            applicable_ids_requirement_ids: source_entity
-                .applicable_ids_requirement_ids
-                .clone(),
+            applicable_ids_requirement_ids: source_entity.applicable_ids_requirement_ids.clone(),
             ids_requirement_evaluations: source_entity.ids_requirement_evaluations.clone(),
         });
     }
@@ -473,10 +516,7 @@ pub fn preflight_ifc_ids_work_package(
     })
 }
 
-fn is_proper_rotation(
-    matrix: [[f64; 3]; 3],
-    tolerance: f64,
-) -> bool {
+fn is_proper_rotation(matrix: [[f64; 3]; 3], tolerance: f64) -> bool {
     if !matrix.into_iter().flatten().all(f64::is_finite) {
         return false;
     }
@@ -491,18 +531,18 @@ fn is_proper_rotation(
             }
         }
     }
-    let determinant = matrix[0][0]
-        * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1])
-        - matrix[0][1]
-            * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0])
-        + matrix[0][2]
-            * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0]);
+    let determinant = matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1])
+        - matrix[0][1] * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0])
+        + matrix[0][2] * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0]);
     (determinant - 1.0).abs() <= tolerance
 }
 
 fn is_ifc_global_id(value: &str) -> bool {
     value.len() == 22
-        && value.as_bytes().first().is_some_and(|byte| (b'0'..=b'3').contains(byte))
+        && value
+            .as_bytes()
+            .first()
+            .is_some_and(|byte| (b'0'..=b'3').contains(byte))
         && value
             .bytes()
             .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == 0x24)
@@ -544,11 +584,7 @@ mod tests {
                 project_crs_identifier: "EPSG:32735".into(),
                 vertical_datum_identifier: "local-project-benchmark-datum".into(),
                 length_unit: IfcLengthUnit::Millimetre,
-                model_to_site_rotation: [
-                    [1.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0],
-                    [0.0, 0.0, 1.0],
-                ],
+                model_to_site_rotation: [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
                 model_to_site_translation_mm: [10_000.0, 20_000.0, 0.0],
                 map_conversion_scale: 1.0,
                 frame_sha256: digest('5'),
@@ -624,25 +660,37 @@ mod tests {
             report.work_package.entities[0].design_entity_id,
             format!("ifc4x3:{}", global_id('0'))
         );
-        assert_eq!(report.work_package.source_schema_release, SUPPORTED_IFC_SCHEMA_RELEASE);
+        assert_eq!(
+            report.work_package.source_schema_release,
+            SUPPORTED_IFC_SCHEMA_RELEASE
+        );
         assert_eq!(report.work_package.ids_version, SUPPORTED_IDS_VERSION);
         assert_eq!(report.length_to_mm_numerator, 1);
         assert_eq!(report.length_to_mm_denominator, 1);
-        assert_eq!(report.coordinate_context.project_crs_identifier, "EPSG:32735");
-        assert_eq!(report.coordinate_context.vertical_datum_identifier, "local-project-benchmark-datum");
+        assert_eq!(
+            report.coordinate_context.project_crs_identifier,
+            "EPSG:32735"
+        );
+        assert_eq!(
+            report.coordinate_context.vertical_datum_identifier,
+            "local-project-benchmark-datum"
+        );
     }
 
     #[test]
     fn missing_ids_information_blocks_package_compilation() {
         let mut input = valid_input();
         input.entities[0].delivered_ids_properties = vec!["Pset_WallCommon.IsExternal".into()];
-        assert!(preflight_ifc_ids_work_package(input).unwrap_err().iter().any(
-            |error| matches!(
-                error,
-                IfcIdsPreflightError::MissingRequiredIdsProperty { global_id, property }
-                    if global_id == &global_id('0') && property == "Pset_Layout.MarkingClass"
-            )
-        ));
+        assert!(
+            preflight_ifc_ids_work_package(input)
+                .unwrap_err()
+                .iter()
+                .any(|error| matches!(
+                    error,
+                    IfcIdsPreflightError::MissingRequiredIdsProperty { global_id, property }
+                        if global_id == &global_id('0') && property == "Pset_Layout.MarkingClass"
+                ))
+        );
     }
 
     #[test]
@@ -732,8 +780,7 @@ mod tests {
     #[test]
     fn duplicate_and_unexpected_ids_evaluation_receipts_are_rejected() {
         let mut duplicate = valid_input();
-        let duplicate_evaluation =
-            duplicate.entities[0].ids_requirement_evaluations[0].clone();
+        let duplicate_evaluation = duplicate.entities[0].ids_requirement_evaluations[0].clone();
         duplicate.entities[0]
             .ids_requirement_evaluations
             .push(duplicate_evaluation);
@@ -759,7 +806,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn malformed_ids_evaluation_receipt_blocks_package_compilation() {
         let mut invalid = valid_input();
@@ -768,21 +814,34 @@ mod tests {
         assert!(
             preflight_ifc_ids_work_package(invalid)
                 .unwrap_err()
-                .contains(&IfcIdsPreflightError::InvalidIdsRequirementEvaluationReceipt {
-                    global_id: global_id('0'),
-                    requirement_id: "layout-marking-class".into(),
-                })
+                .contains(
+                    &IfcIdsPreflightError::InvalidIdsRequirementEvaluationReceipt {
+                        global_id: global_id('0'),
+                        requirement_id: "layout-marking-class".into(),
+                    }
+                )
         );
     }
 
-
     #[test]
     fn supported_length_units_have_exact_millimetre_ratios() {
-        assert_eq!(IfcLengthUnit::Millimetre.to_millimetres_ratio(), Some((1, 1)));
-        assert_eq!(IfcLengthUnit::Centimetre.to_millimetres_ratio(), Some((10, 1)));
-        assert_eq!(IfcLengthUnit::Metre.to_millimetres_ratio(), Some((1_000, 1)));
+        assert_eq!(
+            IfcLengthUnit::Millimetre.to_millimetres_ratio(),
+            Some((1, 1))
+        );
+        assert_eq!(
+            IfcLengthUnit::Centimetre.to_millimetres_ratio(),
+            Some((10, 1))
+        );
+        assert_eq!(
+            IfcLengthUnit::Metre.to_millimetres_ratio(),
+            Some((1_000, 1))
+        );
         assert_eq!(IfcLengthUnit::Inch.to_millimetres_ratio(), Some((254, 10)));
-        assert_eq!(IfcLengthUnit::Foot.to_millimetres_ratio(), Some((3_048, 10)));
+        assert_eq!(
+            IfcLengthUnit::Foot.to_millimetres_ratio(),
+            Some((3_048, 10))
+        );
         assert_eq!(
             IfcLengthUnit::Unsupported("yard".into()).to_millimetres_ratio(),
             None
@@ -855,11 +914,13 @@ mod tests {
         assert_eq!(report.length_to_mm_denominator, 10);
     }
 
-
     #[test]
     fn missing_crs_datum_and_unsupported_units_block_preflight() {
         let mut missing_crs = valid_input();
-        missing_crs.coordinate_context.project_crs_identifier.clear();
+        missing_crs
+            .coordinate_context
+            .project_crs_identifier
+            .clear();
         assert!(
             preflight_ifc_ids_work_package(missing_crs)
                 .unwrap_err()
@@ -867,7 +928,10 @@ mod tests {
         );
 
         let mut missing_datum = valid_input();
-        missing_datum.coordinate_context.vertical_datum_identifier.clear();
+        missing_datum
+            .coordinate_context
+            .vertical_datum_identifier
+            .clear();
         assert!(
             preflight_ifc_ids_work_package(missing_datum)
                 .unwrap_err()
@@ -882,7 +946,6 @@ mod tests {
                 .contains(&IfcIdsPreflightError::UnsupportedLengthUnit("yard".into()))
         );
     }
-
 }
 
 fn is_sha256(value: &str) -> bool {
@@ -920,11 +983,7 @@ mod tests {
                 project_crs_identifier: "EPSG:32735".into(),
                 vertical_datum_identifier: "local-project-benchmark-datum".into(),
                 length_unit: IfcLengthUnit::Millimetre,
-                model_to_site_rotation: [
-                    [1.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0],
-                    [0.0, 0.0, 1.0],
-                ],
+                model_to_site_rotation: [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
                 model_to_site_translation_mm: [10_000.0, 20_000.0, 0.0],
                 map_conversion_scale: 1.0,
                 frame_sha256: digest('5'),
@@ -998,25 +1057,37 @@ mod tests {
             report.work_package.entities[0].design_entity_id,
             format!("ifc4x3:{}", global_id('0'))
         );
-        assert_eq!(report.work_package.source_schema_release, SUPPORTED_IFC_SCHEMA_RELEASE);
+        assert_eq!(
+            report.work_package.source_schema_release,
+            SUPPORTED_IFC_SCHEMA_RELEASE
+        );
         assert_eq!(report.work_package.ids_version, SUPPORTED_IDS_VERSION);
         assert_eq!(report.length_to_mm_numerator, 1);
         assert_eq!(report.length_to_mm_denominator, 1);
-        assert_eq!(report.coordinate_context.project_crs_identifier, "EPSG:32735");
-        assert_eq!(report.coordinate_context.vertical_datum_identifier, "local-project-benchmark-datum");
+        assert_eq!(
+            report.coordinate_context.project_crs_identifier,
+            "EPSG:32735"
+        );
+        assert_eq!(
+            report.coordinate_context.vertical_datum_identifier,
+            "local-project-benchmark-datum"
+        );
     }
 
     #[test]
     fn missing_ids_information_blocks_package_compilation() {
         let mut input = valid_input();
         input.entities[0].delivered_ids_properties = vec!["Pset_WallCommon.IsExternal".into()];
-        assert!(preflight_ifc_ids_work_package(input).unwrap_err().iter().any(
-            |error| matches!(
-                error,
-                IfcIdsPreflightError::MissingRequiredIdsProperty { global_id, property }
-                    if global_id == &global_id('0') && property == "Pset_Layout.MarkingClass"
-            )
-        ));
+        assert!(
+            preflight_ifc_ids_work_package(input)
+                .unwrap_err()
+                .iter()
+                .any(|error| matches!(
+                    error,
+                    IfcIdsPreflightError::MissingRequiredIdsProperty { global_id, property }
+                        if global_id == &global_id('0') && property == "Pset_Layout.MarkingClass"
+                ))
+        );
     }
 
     #[test]
@@ -1097,8 +1168,7 @@ mod tests {
     #[test]
     fn duplicate_and_unexpected_ids_evaluation_receipts_are_rejected() {
         let mut duplicate = valid_input();
-        let duplicate_evaluation =
-            duplicate.entities[0].ids_requirement_evaluations[0].clone();
+        let duplicate_evaluation = duplicate.entities[0].ids_requirement_evaluations[0].clone();
         duplicate.entities[0]
             .ids_requirement_evaluations
             .push(duplicate_evaluation);
@@ -1124,7 +1194,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn malformed_ids_evaluation_receipt_blocks_package_compilation() {
         let mut invalid = valid_input();
@@ -1133,21 +1202,34 @@ mod tests {
         assert!(
             preflight_ifc_ids_work_package(invalid)
                 .unwrap_err()
-                .contains(&IfcIdsPreflightError::InvalidIdsRequirementEvaluationReceipt {
-                    global_id: global_id('0'),
-                    requirement_id: "layout-marking-class".into(),
-                })
+                .contains(
+                    &IfcIdsPreflightError::InvalidIdsRequirementEvaluationReceipt {
+                        global_id: global_id('0'),
+                        requirement_id: "layout-marking-class".into(),
+                    }
+                )
         );
     }
 
-
     #[test]
     fn supported_length_units_have_exact_millimetre_ratios() {
-        assert_eq!(IfcLengthUnit::Millimetre.to_millimetres_ratio(), Some((1, 1)));
-        assert_eq!(IfcLengthUnit::Centimetre.to_millimetres_ratio(), Some((10, 1)));
-        assert_eq!(IfcLengthUnit::Metre.to_millimetres_ratio(), Some((1_000, 1)));
+        assert_eq!(
+            IfcLengthUnit::Millimetre.to_millimetres_ratio(),
+            Some((1, 1))
+        );
+        assert_eq!(
+            IfcLengthUnit::Centimetre.to_millimetres_ratio(),
+            Some((10, 1))
+        );
+        assert_eq!(
+            IfcLengthUnit::Metre.to_millimetres_ratio(),
+            Some((1_000, 1))
+        );
         assert_eq!(IfcLengthUnit::Inch.to_millimetres_ratio(), Some((254, 10)));
-        assert_eq!(IfcLengthUnit::Foot.to_millimetres_ratio(), Some((3_048, 10)));
+        assert_eq!(
+            IfcLengthUnit::Foot.to_millimetres_ratio(),
+            Some((3_048, 10))
+        );
         assert_eq!(
             IfcLengthUnit::Unsupported("yard".into()).to_millimetres_ratio(),
             None
@@ -1220,11 +1302,13 @@ mod tests {
         assert_eq!(report.length_to_mm_denominator, 10);
     }
 
-
     #[test]
     fn missing_crs_datum_and_unsupported_units_block_preflight() {
         let mut missing_crs = valid_input();
-        missing_crs.coordinate_context.project_crs_identifier.clear();
+        missing_crs
+            .coordinate_context
+            .project_crs_identifier
+            .clear();
         assert!(
             preflight_ifc_ids_work_package(missing_crs)
                 .unwrap_err()
@@ -1232,7 +1316,10 @@ mod tests {
         );
 
         let mut missing_datum = valid_input();
-        missing_datum.coordinate_context.vertical_datum_identifier.clear();
+        missing_datum
+            .coordinate_context
+            .vertical_datum_identifier
+            .clear();
         assert!(
             preflight_ifc_ids_work_package(missing_datum)
                 .unwrap_err()
@@ -1248,20 +1335,17 @@ mod tests {
         );
     }
 
-
     #[test]
     fn ids_applicability_decision_requires_a_receipt_even_for_an_empty_rule_set() {
         let mut input = valid_input();
         input.entities[0].applicable_ids_requirement_ids.clear();
         input.entities[0].ids_requirement_evaluations.clear();
         input.entities[0].ids_applicability_receipt_sha256 = "missing".into();
-        assert!(
-            preflight_ifc_ids_work_package(input)
-                .unwrap_err()
-                .contains(&IfcIdsPreflightError::InvalidIdsApplicabilityReceipt {
-                    global_id: global_id('A'),
-                })
-        );
+        assert!(preflight_ifc_ids_work_package(input).unwrap_err().contains(
+            &IfcIdsPreflightError::InvalidIdsApplicabilityReceipt {
+                global_id: global_id('A'),
+            }
+        ));
     }
 
     #[test]
@@ -1274,5 +1358,4 @@ mod tests {
                 .contains(&IfcIdsPreflightError::InvalidIdsEngineBuildDigest)
         );
     }
-
 }
