@@ -1,0 +1,51 @@
+name: Marine Trajectory Viability Audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/marine-trajectory-viability/**"
+      - ".github/workflows/marine-trajectory-viability.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marine-trajectory-viability-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trajectory-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/marine-trajectory-viability/Cargo.toml -- --check
+
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/marine-trajectory-viability/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run semantic and negative-control tests
+        run: cargo test --manifest-path tools/marine-trajectory-viability/Cargo.toml
+
+      - name: Check strict schema and passing scenario roster
+        run: |
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .properties.scenarios.minItems == 5 and .properties.service_contract.minItems == 11 and .properties.time_grid.minItems >= 3' tools/marine-trajectory-viability/schema/marine-trajectory-viability.schema.json
+          jq -e '.record_status == "synthetic" and (.scenarios | length == 5) and ([.scenarios[].scenario_class] | sort) == (.scenario_roster | sort) and ([.scenarios[].states] | map(length) | unique) == [3] and ([.scenarios[].transitions] | map(length) | unique) == [2]' tools/marine-trajectory-viability/fixtures/synthetic-trajectory-pass-0001.json
+
+      - name: Passing case must remain synthetic-only
+        run: |
+          cargo run --quiet --manifest-path tools/marine-trajectory-viability/Cargo.toml -- audit-trajectory tools/marine-trajectory-viability/fixtures/synthetic-trajectory-pass-0001.json > /tmp/trajectory-pass.json
+          jq -e '.disposition == "SYNTHETIC_ONLY" and .candidate_disposition == "SAMPLED_TRAJECTORY_FEASIBLE" and .scenario_count == 5 and .time_step_count == 3 and .aggregate_scalar_score == "NOT_COMPUTED"' /tmp/trajectory-pass.json
+
+      - name: Arrival-safe intermediate breach must abstain
+        run: |
+          cargo run --quiet --manifest-path tools/marine-trajectory-viability/Cargo.toml -- audit-trajectory tools/marine-trajectory-viability/fixtures/synthetic-arrival-safe-midvoyage-breach-0001.json > /tmp/trajectory-breach.json
+          jq -e '.disposition == "BLOCKED" and .candidate_disposition == "INFEASIBLE/ABSTAIN" and ([.scenario_reports[] | select(.scenario_class == "adverse_forecast_error") | .first_breach.time_index] == [1])' /tmp/trajectory-breach.json
