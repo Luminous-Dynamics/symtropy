@@ -23,7 +23,7 @@ The input flux is oriented from the request's left cell toward its right cell. T
     left contribution  = -face_measure * F_mix
     right contribution = +face_measure * F_mix
 
-This makes internal-face contributions equal and opposite by construction. The primitive handles internal faces only; external boundary fluxes require a separately specified boundary contract.
+This makes internal-face contributions equal and opposite by construction. An 18-test authored suite includes a four-cell periodic ring with face-varying weights; it compares assembled cell updates against an independently written incoming-minus-outgoing reference stencil and checks component-wise global cancellation. The primitive handles internal faces only; external boundary fluxes require a separately specified boundary contract.
 
 ## Claim boundary
 
