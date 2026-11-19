@@ -34,7 +34,8 @@
       "travel_periods": 1,
       "energy_units": 4,
       "cost_units": 3,
-      "evidence_status": "fresh_in_domain"
+      "evidence_status": "fresh_in_domain",
+      "evidence_reference": "synthetic://reposition/urban-rural"
     },
     {
       "from_region_id": "rural",
@@ -42,7 +43,8 @@
       "travel_periods": 1,
       "energy_units": 4,
       "cost_units": 3,
-      "evidence_status": "fresh_in_domain"
+      "evidence_status": "fresh_in_domain",
+      "evidence_reference": "synthetic://reposition/rural-urban"
     }
   ],
   "scenarios": [
@@ -56,13 +58,17 @@
               "region_id": "urban",
               "demand_units": 4,
               "weather": "clear_fresh",
-              "permission": "approved_fresh"
+              "permission": "approved_fresh",
+              "weather_evidence_reference": "synthetic://weather/normal/urban",
+              "permission_evidence_reference": "synthetic://permission/normal/urban"
             },
             {
               "region_id": "rural",
               "demand_units": 2,
               "weather": "clear_fresh",
-              "permission": "approved_fresh"
+              "permission": "approved_fresh",
+              "weather_evidence_reference": "synthetic://weather/normal/rural",
+              "permission_evidence_reference": "synthetic://permission/normal/rural"
             }
           ]
         },
@@ -72,13 +78,17 @@
               "region_id": "urban",
               "demand_units": 4,
               "weather": "clear_fresh",
-              "permission": "approved_fresh"
+              "permission": "approved_fresh",
+              "weather_evidence_reference": "synthetic://weather/normal/urban",
+              "permission_evidence_reference": "synthetic://permission/normal/urban"
             },
             {
               "region_id": "rural",
               "demand_units": 6,
               "weather": "clear_fresh",
-              "permission": "approved_fresh"
+              "permission": "approved_fresh",
+              "weather_evidence_reference": "synthetic://weather/normal/rural",
+              "permission_evidence_reference": "synthetic://permission/normal/rural"
             }
           ]
         },
@@ -88,13 +98,17 @@
               "region_id": "urban",
               "demand_units": 4,
               "weather": "clear_fresh",
-              "permission": "approved_fresh"
+              "permission": "approved_fresh",
+              "weather_evidence_reference": "synthetic://weather/normal/urban",
+              "permission_evidence_reference": "synthetic://permission/normal/urban"
             },
             {
               "region_id": "rural",
               "demand_units": 6,
               "weather": "clear_fresh",
-              "permission": "approved_fresh"
+              "permission": "approved_fresh",
+              "weather_evidence_reference": "synthetic://weather/normal/rural",
+              "permission_evidence_reference": "synthetic://permission/normal/rural"
             }
           ]
         }
@@ -110,13 +124,17 @@
               "region_id": "urban",
               "demand_units": 4,
               "weather": "clear_fresh",
-              "permission": "approved_fresh"
+              "permission": "approved_fresh",
+              "weather_evidence_reference": "synthetic://weather/rural-weather-block/urban",
+              "permission_evidence_reference": "synthetic://permission/rural-weather-block/urban"
             },
             {
               "region_id": "rural",
               "demand_units": 2,
               "weather": "clear_fresh",
-              "permission": "approved_fresh"
+              "permission": "approved_fresh",
+              "weather_evidence_reference": "synthetic://weather/rural-weather-block/rural",
+              "permission_evidence_reference": "synthetic://permission/rural-weather-block/rural"
             }
           ]
         },
@@ -126,13 +144,17 @@
               "region_id": "urban",
               "demand_units": 4,
               "weather": "clear_fresh",
-              "permission": "approved_fresh"
+              "permission": "approved_fresh",
+              "weather_evidence_reference": "synthetic://weather/rural-weather-block/urban",
+              "permission_evidence_reference": "synthetic://permission/rural-weather-block/urban"
             },
             {
               "region_id": "rural",
               "demand_units": 6,
               "weather": "blocked_fresh",
-              "permission": "approved_fresh"
+              "permission": "approved_fresh",
+              "weather_evidence_reference": "synthetic://weather/rural-weather-block/rural",
+              "permission_evidence_reference": "synthetic://permission/rural-weather-block/rural"
             }
           ]
         },
@@ -142,13 +164,17 @@
               "region_id": "urban",
               "demand_units": 4,
               "weather": "clear_fresh",
-              "permission": "approved_fresh"
+              "permission": "approved_fresh",
+              "weather_evidence_reference": "synthetic://weather/rural-weather-block/urban",
+              "permission_evidence_reference": "synthetic://permission/rural-weather-block/urban"
             },
             {
               "region_id": "rural",
               "demand_units": 6,
               "weather": "clear_fresh",
-              "permission": "approved_fresh"
+              "permission": "approved_fresh",
+              "weather_evidence_reference": "synthetic://weather/rural-weather-block/rural",
+              "permission_evidence_reference": "synthetic://permission/rural-weather-block/rural"
             }
           ]
         }
