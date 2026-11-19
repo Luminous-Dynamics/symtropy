@@ -48,7 +48,8 @@
         "operating_domain_sha256",
         "shield_version_sha256",
         "max_state_age_ms",
-        "permit_ttl_ms"
+        "permit_ttl_ms",
+        "scenario_manifest_sha256"
       ],
       "properties": {
         "transition_model_sha256": {
@@ -70,6 +71,10 @@
         "permit_ttl_ms": {
           "type": "integer",
           "minimum": 1
+        },
+        "scenario_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
         }
       }
     },
@@ -343,7 +348,9 @@
               "required": [
                 "scenario_class",
                 "successor_state_sha256",
-                "resource_metrics"
+                "resource_metrics",
+                "scenario_sha256",
+                "disturbance_sha256"
               ],
               "properties": {
                 "scenario_class": {
@@ -418,6 +425,14 @@
                       }
                     }
                   }
+                },
+                "scenario_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-fA-F0-9]{64}$"
+                },
+                "disturbance_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-fA-F0-9]{64}$"
                 }
               }
             }
