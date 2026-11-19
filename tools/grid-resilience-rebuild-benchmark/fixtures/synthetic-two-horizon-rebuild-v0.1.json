@@ -14,7 +14,7 @@
   },
   "hazardScenarioManifest": {
     "manifestRef": "synthetic://hazard-manifest/municipal-feeder-17/v1",
-    "manifestSha256": "7c6b9d4f6e5a2b1c0d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c",
+    "manifestSha256": "fead9994def99a3dd27662f5837ea1e1dd7406248bc4980996333023c7694018",
     "scenarioRefs": [
       "synthetic://hazard/flood/medium-2030",
       "synthetic://hazard/flood/extreme-2030",
@@ -144,7 +144,7 @@
   "resourceState": {
     "portfolioRef": "synthetic://resource-portfolio/municipal-feeder-17",
     "asOfManifestRef": "synthetic://resource-manifest/municipal-feeder-17/v1",
-    "asOfManifestSha256": "acbd1234ab56cd78ef901234567890abcdef1234567890abcdef1234567890ab"
+    "asOfManifestSha256": "9d62ec77cc2318d40adf41f8845cc607363e7eacdf52e634d5c8dc3fa035b74e"
   },
   "references": {
     "executionLedgerRef": "symtropy://grid-asset-recovery/6213/execution-case/municipal-feeder-17",
