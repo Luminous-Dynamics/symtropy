@@ -349,7 +349,7 @@ fn audit_decision(
                         source, &["evaluator", "valid_time"], "evaluator valid_time",
                         &mut findings, "INCOMPLETE"
                     );
-                    if evaluator_time.is_none_or(|value| Some(value) != target) {
+                    if evaluator_time.as_ref().is_none_or(|value| Some(value) != target.as_ref()) {
                         add(&mut findings, "EVALUATOR_VALID_TIME_MISMATCH", "INCOMPLETE",
                             &format!("evaluator source '{id}' does not identify this decision's target valid time."));
                     }
@@ -451,6 +451,18 @@ fn audit_bundle(raw: &[u8], bundle: &Value) -> Value {
             {
                 add(&mut global_findings, "SYNTHETIC_RIGHTS_NOT_PROMOTABLE", "BLOCKER",
                     &format!("non-synthetic bundle source '{id}' carries synthetic-only rights status."));
+            }
+            let availability_evidence = string_at(source, &["forecast", "availability_evidence"]);
+            if record_status == "synthetic" && evidence_class == "synthetic"
+                && classes.get(id).map(String::as_str) == Some("deployable_forecast")
+                && availability_evidence != Some("synthetic_fixture")
+            {
+                add(&mut global_findings, "SYNTHETIC_AVAILABILITY_EVIDENCE_MISMATCH", "ERROR",
+                    &format!("synthetic forecast source '{id}' must use the synthetic_fixture availability marker."));
+            }
+            if record_status != "synthetic" && availability_evidence == Some("synthetic_fixture") {
+                add(&mut global_findings, "SYNTHETIC_AVAILABILITY_NOT_PROMOTABLE", "BLOCKER",
+                    &format!("non-synthetic forecast source '{id}' carries a synthetic-only availability marker."));
             }
 
             let class = classes.get(id).map(String::as_str).unwrap_or("unknown");
@@ -586,6 +598,9 @@ mod tests {
             source["rights"]["status"] = json!("reviewed_research_use");
             source["rights"]["research_use_allowed"] = json!(true);
             source["rights"]["review_ref"] = json!("TEST-RESEARCH-RIGHTS-REVIEW");
+            if source["information_class"] == "deployable_forecast" {
+                source["forecast"]["availability_evidence"] = json!("operational_distribution_log");
+            }
             source["evidence_class"] = match source["information_class"].as_str().unwrap() {
                 "deployable_forecast" => json!("published"),
                 "realized_evaluator_context" => json!("derived"),
@@ -719,6 +734,15 @@ mod tests {
         set_research_admissible(&mut value);
         value["sources"][0]["forecast"]["lead_hours"] = json!(6);
         assert_eq!(audit(&value)["disposition"], "INVALID");
+    }
+
+
+    #[test]
+    fn synthetic_availability_marker_cannot_be_promoted() {
+        let mut value = fixture();
+        set_research_admissible(&mut value);
+        value["sources"][0]["forecast"]["availability_evidence"] = json!("synthetic_fixture");
+        assert_eq!(audit(&value)["disposition"], "BLOCKED");
     }
 
     #[test]
