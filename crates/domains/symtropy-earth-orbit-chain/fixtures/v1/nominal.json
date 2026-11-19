@@ -126,5 +126,7 @@
         "rail-power"
       ]
     }
-  ]
+  ],
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic transport/orbit fixture only; no physical launch, orbital insertion, service, or operational authority claim."
 }
