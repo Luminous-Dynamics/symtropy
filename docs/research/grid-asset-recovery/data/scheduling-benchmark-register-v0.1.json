@@ -21,9 +21,9 @@
       "license": "CC BY 4.0",
       "importStatus": "metadata_registered_not_imported",
       "primarySource": "https://doi.org/10.1016/j.dib.2026.113256",
-      "secondarySource": "https://github.com/aftab-fr/carm-plus-dataset",
+      "secondarySource": "https://doi.org/10.5281/zenodo.20553817",
       "relevance": "Closest public generic analogue to our shift calendars and disruption overlays; use first for format/feature gap audit and matched solver comparison.",
-      "limitations": "Industrial manufacturing context, not transmission restoration. Its small set of 12 instances is a feature demonstration, not a large statistical test suite. The published solver baselines are described as descriptive."
+      "limitations": "Single-expert, single-facility manufacturing-informed synthetic scenarios, not grid repair data. The published CP-SAT and MIP baseline formulations relaxed non-contiguous calendar constraints and therefore are not fair calendar-exact performance comparators; the Max-Plus baseline embeds calendar compliance by construction. The authors explicitly warn not to infer solver rankings from the descriptive comparison. Use the dataset as a format/calendar/disruption transfer corpus and rebuild calendar-exact CP-SAT/MIP encodings before comparing solver quality."
     },
     {
       "recordId": "PSPLIB-RCPSP",
