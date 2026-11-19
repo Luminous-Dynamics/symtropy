@@ -57,4 +57,4 @@ jobs:
       - name: Scorecard audit must remain synthetic-only
         run: |
           cargo run --quiet --manifest-path tools/marine-forecast-scorecard/Cargo.toml -- audit-scorecard tools/marine-forecast-scorecard/fixtures/synthetic-scorecard-0001.json > /tmp/marine-scorecard.json
-          jq -e '.disposition == "SYNTHETIC_ONLY" and .forecast_case_count == 9 and .mission_pair_count == 9 and .decision_metrics.statistical_inference == "NOT_PERFORMED" and .claim_ceiling == "descriptive_metrics_only_no_statistical_superiority_or_operational_authorization"' /tmp/marine-scorecard.json
+          jq -e '.disposition == "SYNTHETIC_ONLY" and .forecast_case_count == 9 and .mission_pair_count == 9 and .decision_metrics.statistical_inference == "NOT_PERFORMED" and .decision_metrics.by_fold.test.paired_case_count == 3 and ([.forecast_metrics[] | select(.fold == "test") | .sample_count] | add == 3) and .claim_ceiling == "descriptive_metrics_only_no_statistical_superiority_or_operational_authorization"' /tmp/marine-scorecard.json
