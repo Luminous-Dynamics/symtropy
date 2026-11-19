@@ -750,8 +750,8 @@ mod tests {
         assert_eq!(report.region_count, 2);
         assert_eq!(report.period_count, 4);
         assert_eq!(report.scenario_count, 2);
-        assert_eq!(report.nonanticipative_policy_node_count, 11);
-        assert_eq!(report.exact_policy_count_evaluated, 2_048);
+        assert_eq!(report.nonanticipative_policy_node_count, 13);
+        assert_eq!(report.exact_policy_count_evaluated, 8_192);
         assert_eq!(report.optimized_policy.unauthorized_aerial_dispatches, 0);
         assert!(!report.physical_dispatch_authorized);
         assert!(!report.dispatch_commands_emitted);
