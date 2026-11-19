@@ -344,6 +344,75 @@ fn interval_conflict(
     })
 }
 
+fn find_first_available_launch(
+    reservations: &[ResourceReservation],
+    launch_pad_id: &str,
+    aircraft_id: &str,
+    recovery_pad_id: &str,
+    earliest_launch_ms: u64,
+    latest_launch_ms: u64,
+    launch_service_ms: u64,
+    launch_to_recovery_offset_ms: u64,
+    recovery_service_ms: u64,
+) -> Result<Option<(u64, u64)>, String> {
+    let mut candidate = earliest_launch_ms;
+
+    // Every conflict advances the candidate beyond at least one finite
+    // reservation. The loop is bounded because there are finitely many
+    // reservations and candidate time is strictly increasing.
+    for _ in 0..=reservations.len() {
+        if candidate > latest_launch_ms {
+            return Ok(None);
+        }
+        let launch_end = candidate
+            .checked_add(launch_service_ms)
+            .ok_or_else(|| "launch service interval overflows".to_string())?;
+        let recovery_start = candidate
+            .checked_add(launch_to_recovery_offset_ms)
+            .ok_or_else(|| "recovery start overflows".to_string())?;
+        let recovery_end = recovery_start
+            .checked_add(recovery_service_ms)
+            .ok_or_else(|| "recovery service interval overflows".to_string())?;
+
+        let mut next_candidate = candidate;
+        let mut blocked = false;
+        for reservation in reservations {
+            let overlaps_launch_pad = reservation.resource_id == launch_pad_id
+                && candidate < reservation.end_ms
+                && reservation.start_ms < launch_end;
+            let overlaps_aircraft = reservation.resource_id == aircraft_id
+                && candidate < reservation.end_ms
+                && reservation.start_ms < recovery_end;
+            let overlaps_recovery_pad = reservation.resource_id == recovery_pad_id
+                && recovery_start < reservation.end_ms
+                && reservation.start_ms < recovery_end;
+
+            if overlaps_launch_pad || overlaps_aircraft || overlaps_recovery_pad {
+                blocked = true;
+                let candidate_after_reservation = if overlaps_recovery_pad {
+                    reservation
+                        .end_ms
+                        .checked_sub(launch_to_recovery_offset_ms)
+                        .ok_or_else(|| "recovery reservation offset underflows".to_string())?
+                } else {
+                    reservation.end_ms
+                };
+                next_candidate = next_candidate.max(candidate_after_reservation);
+            }
+        }
+
+        if !blocked {
+            return Ok(Some((candidate, recovery_start)));
+        }
+        if next_candidate <= candidate {
+            return Err("resource conflict did not advance the launch candidate".into());
+        }
+        candidate = next_candidate;
+    }
+
+    Ok(None)
+}
+
 /// Evaluate whether one proposed sortie can fit the carrier's supported stop
 /// windows and the supplied capability / operating-domain envelopes.
 ///
@@ -532,18 +601,32 @@ pub fn evaluate_coavailability(
                             let feasible_launch_lo = launch_lo.max(recovery_launch_lo);
                             let feasible_launch_hi = launch_hi.min(recovery_launch_hi);
                             if feasible_launch_lo <= feasible_launch_hi {
-                                let launch_time = feasible_launch_lo;
-                                let recovery_time =
-                                    launch_time.checked_add(launch_to_recovery_offset);
-                                if let Some(recovery_time) = recovery_time {
-                                    selected_launch = Some(launch_time);
-                                    selected_recovery = Some(recovery_time);
-                                } else {
-                                    known_infeasible = true;
-                                    findings.push(
-                                        "INFEASIBLE: launch, service and flight time overflow"
-                                            .into(),
-                                    );
+                                match find_first_available_launch(
+                                    &input.existing_reservations,
+                                    &sortie.launch_pad_resource_id,
+                                    &aircraft.aircraft_id,
+                                    &sortie.recovery_pad_resource_id,
+                                    feasible_launch_lo,
+                                    feasible_launch_hi,
+                                    sortie.launch_service_ms,
+                                    launch_to_recovery_offset,
+                                    sortie.recovery_service_ms,
+                                ) {
+                                    Ok(Some((launch_time, recovery_time))) => {
+                                        selected_launch = Some(launch_time);
+                                        selected_recovery = Some(recovery_time);
+                                    }
+                                    Ok(None) => {
+                                        known_infeasible = true;
+                                        findings.push(
+                                            "INFEASIBLE: no conflict-free launch and recovery slot exists"
+                                                .into(),
+                                        );
+                                    }
+                                    Err(error) => {
+                                        known_infeasible = true;
+                                        findings.push(format!("INFEASIBLE: {error}"));
+                                    }
                                 }
                             } else {
                                 known_infeasible = true;
@@ -567,59 +650,6 @@ pub fn evaluate_coavailability(
                         );
                     }
                 }
-            }
-        }
-    }
-
-    if let (Some(launch_time), Some(recovery_time)) = (selected_launch, selected_recovery) {
-        let launch_end = launch_time.checked_add(sortie.launch_service_ms);
-        let recovery_end = recovery_time.checked_add(sortie.recovery_service_ms);
-        match (launch_end, recovery_end) {
-            (Some(launch_end), Some(recovery_end)) => {
-                if interval_conflict(
-                    &input.existing_reservations,
-                    &sortie.launch_pad_resource_id,
-                    launch_time,
-                    launch_end,
-                )
-                .is_some()
-                {
-                    known_infeasible = true;
-                    findings.push(
-                        "INFEASIBLE: launch pad is occupied during the required interval".into(),
-                    );
-                }
-                if interval_conflict(
-                    &input.existing_reservations,
-                    &sortie.recovery_pad_resource_id,
-                    recovery_time,
-                    recovery_end,
-                )
-                .is_some()
-                {
-                    known_infeasible = true;
-                    findings.push(
-                        "INFEASIBLE: recovery pad is occupied during the required interval".into(),
-                    );
-                }
-                if interval_conflict(
-                    &input.existing_reservations,
-                    &aircraft.aircraft_id,
-                    launch_time,
-                    recovery_end,
-                )
-                .is_some()
-                {
-                    known_infeasible = true;
-                    findings.push(
-                        "INFEASIBLE: aircraft is reserved by another operation during this sortie"
-                            .into(),
-                    );
-                }
-            }
-            _ => {
-                known_infeasible = true;
-                findings.push("INFEASIBLE: service interval end overflows".into());
             }
         }
     }
@@ -874,6 +904,22 @@ mod tests {
         let report = evaluate_coavailability(&test).expect("valid structure");
         assert_eq!(report.verdict, FeasibilityVerdict::Infeasible);
         assert!(report.findings.iter().any(|finding| finding.contains("not declared")));
+    }
+
+    #[test]
+    fn shifts_to_next_free_resource_slot_instead_of_rejecting_first_slot() {
+        let mut test = input();
+        test.sortie.launch_window_close_ms = 400_000;
+        test.existing_reservations.push(ResourceReservation {
+            reservation_id: "prior-uav-operation".into(),
+            resource_id: "uav-01".into(),
+            start_ms: 90_000,
+            end_ms: 180_000,
+        });
+        let report = evaluate_coavailability(&test).expect("valid input");
+        assert_eq!(report.verdict, FeasibilityVerdict::Feasible);
+        assert_eq!(report.selected_launch_time_ms, Some(180_000));
+        assert_eq!(report.selected_recovery_time_ms, Some(1_440_000));
     }
 
     #[test]
