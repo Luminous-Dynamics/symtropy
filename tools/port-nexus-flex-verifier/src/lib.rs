@@ -271,6 +271,16 @@ fn validate_contract_and_jobs(
         &contract.pcc_max_abs_ramp_kw,
         slot_count.saturating_sub(1),
     )?;
+    for (transition, limit) in contract.pcc_max_abs_ramp_kw.iter().enumerate() {
+        if let Some(value) = limit {
+            if *value < 0.0 {
+                return Err(VerificationError::InvalidQuantity {
+                    field: format!("PCC absolute ramp limit[{transition}]"),
+                    value: *value,
+                });
+            }
+        }
+    }
 
     if contract.feeders.is_empty() {
         return Err(VerificationError::InvalidContract(
