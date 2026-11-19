@@ -1,0 +1,89 @@
+{
+  "suite_id": "orbital-fluid-transfer",
+  "suite_version": "0.1.0",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic inventory/accounting/evidence contract only; not fluid physics, hardware performance or flight qualification.",
+  "scenarios": [
+    {
+      "scenario_id": "STORABLE_LIQUID_NOMINAL",
+      "transfer_event_id": "transfer-storable-001",
+      "fluid_class": "storable_liquid",
+      "fluid_id": "synthetic-hydrazine-analogue",
+      "evidence_state": "transfer_demonstration",
+      "source_initial_g": 1000000,
+      "source_remaining_g": 600000,
+      "receiver_accepted_g": 390000,
+      "receiver_rejected_g": 0,
+      "line_residual_g": 5000,
+      "vented_g": 3000,
+      "leaked_g": 2000,
+      "measurement_uncertainty_g": 1000,
+      "phase": "liquid",
+      "final_temperature_mk": 293150,
+      "final_pressure_pa": 250000,
+      "acceptance": {
+        "required_phase": "liquid",
+        "minimum_temperature_mk": 270000,
+        "maximum_temperature_mk": 320000,
+        "minimum_pressure_pa": 100000,
+        "maximum_pressure_pa": 500000,
+        "maximum_measurement_uncertainty_g": 2000
+      },
+      "evidence_refs": ["synthetic:source-scale", "synthetic:receiver-scale", "synthetic:composition-check"]
+    },
+    {
+      "scenario_id": "CRYOGENIC_STORAGE_ONLY",
+      "transfer_event_id": "cryo-storage-001",
+      "fluid_class": "cryogenic_liquid",
+      "fluid_id": "synthetic-liquid-oxygen-analogue",
+      "evidence_state": "storage_only",
+      "source_initial_g": 1000000,
+      "source_remaining_g": 1000000,
+      "receiver_accepted_g": 0,
+      "receiver_rejected_g": 0,
+      "line_residual_g": 0,
+      "vented_g": 0,
+      "leaked_g": 0,
+      "measurement_uncertainty_g": 1000,
+      "phase": "liquid",
+      "final_temperature_mk": 90000,
+      "final_pressure_pa": 150000,
+      "acceptance": {
+        "required_phase": "liquid",
+        "minimum_temperature_mk": 85000,
+        "maximum_temperature_mk": 100000,
+        "minimum_pressure_pa": 100000,
+        "maximum_pressure_pa": 300000,
+        "maximum_measurement_uncertainty_g": 3000
+      },
+      "evidence_refs": ["synthetic:storage-telemetry"]
+    },
+    {
+      "scenario_id": "HIGH_PRESSURE_GAS_NOMINAL",
+      "transfer_event_id": "transfer-high-pressure-001",
+      "fluid_class": "high_pressure_or_supercritical",
+      "fluid_id": "synthetic-high-pressure-nitrogen-analogue",
+      "evidence_state": "transfer_demonstration",
+      "source_initial_g": 500000,
+      "source_remaining_g": 300000,
+      "receiver_accepted_g": 190000,
+      "receiver_rejected_g": 0,
+      "line_residual_g": 5000,
+      "vented_g": 3000,
+      "leaked_g": 2000,
+      "measurement_uncertainty_g": 1000,
+      "phase": "gas",
+      "final_temperature_mk": 295000,
+      "final_pressure_pa": 12000000,
+      "acceptance": {
+        "required_phase": "gas",
+        "minimum_temperature_mk": 270000,
+        "maximum_temperature_mk": 330000,
+        "minimum_pressure_pa": 10000000,
+        "maximum_pressure_pa": 15000000,
+        "maximum_measurement_uncertainty_g": 2000
+      },
+      "evidence_refs": ["synthetic:source-meter", "synthetic:receiver-meter", "synthetic:pressure-log"]
+    }
+  ]
+}
