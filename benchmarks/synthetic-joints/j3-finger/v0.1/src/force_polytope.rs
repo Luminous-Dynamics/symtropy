@@ -831,14 +831,14 @@ fn force_poly_012_parallel_redundant_halfspaces_do_not_double_count_faces() {
 
 #[test]
 fn force_poly_013_oblique_lineality_cone_is_rejected_as_unbounded() {
-    // The feasible recession directions include both +z and -z, which are
-    // not coordinate axes of the original force frame after an oblique basis
-    // change in x-y. The intersection is therefore unbounded.
+    // The feasible recession directions include both signs of (1,1,1),
+    // which is not a coordinate axis. All four normals are orthogonal to
+    // that lineality direction, so the intersection is unbounded.
     let unbounded = vec![
-        Halfspace3 { normal: [0.6, 0.8, 0.0], bound: 1.0 },
-        Halfspace3 { normal: [-0.6, -0.8, 0.0], bound: 1.0 },
-        Halfspace3 { normal: [0.8, -0.6, 0.0], bound: 1.0 },
-        Halfspace3 { normal: [-0.8, 0.6, 0.0], bound: 1.0 },
+        Halfspace3 { normal: [1.0, -1.0, 0.0], bound: 1.0 },
+        Halfspace3 { normal: [-1.0, 1.0, 0.0], bound: 1.0 },
+        Halfspace3 { normal: [1.0, 1.0, -2.0], bound: 1.0 },
+        Halfspace3 { normal: [-1.0, -1.0, 2.0], bound: 1.0 },
     ];
     assert!(polytope_volume(&unbounded).is_none());
 }
