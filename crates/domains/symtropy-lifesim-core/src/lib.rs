@@ -5,10 +5,22 @@
 //!
 //! This crate is intentionally CPU-first. It gives domain crates a deterministic
 //! reference model before WGSL compute kernels or ECS visualization are added.
+//!
+//! Taxonomic identity is represented by version-scoped external concept
+//! references; nested living systems use containment plus overlapping
+//! relationship graphs. These contracts do not resolve taxonomy or replace
+//! domain-specific biological mechanism models.
 
 use arrow_array::{Float32Array, UInt32Array};
 use std::fmt;
 use std::ops::Range;
+
+mod identity;
+pub use identity::{
+    LifeStageConceptRef, LivingSystemEdge, LivingSystemGraph, LivingSystemIdentityError,
+    LivingSystemLevel, LivingSystemMember, LivingSystemNode, LivingSystemRelation,
+    RelationshipConceptRef, TaxonConceptKey, TaxonConceptRef,
+};
 
 #[cfg(feature = "wgpu")]
 pub mod wgpu_backend;
