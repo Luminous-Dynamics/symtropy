@@ -489,7 +489,7 @@ fn validate_path(
             let delta = end - start;
             let event_delta = parsed_events.iter()
                 .filter(|(event_time, metric, _, _)| {
-                    metric == inventory_metric
+                    metric.as_str() == inventory_metric
                         && *event_time > point_times[index]
                         && *event_time <= point_times[index + 1]
                 })
