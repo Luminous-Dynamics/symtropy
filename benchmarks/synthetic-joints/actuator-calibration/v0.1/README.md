@@ -90,7 +90,8 @@ The Rust report includes:
 - descriptive 95% Wilson interval for the observed test coverage;
 - mean raw and adjusted prediction interval width;
 - per-specimen coverage/abstention disposition, manufacturer/model/architecture, evidence source and measurement method;
-- calibration group scores and model/mission/boundary/condition/domain digests.
+- calibration group scores with manufacturer/model/architecture, source, method and calibration digest;
+- model and training/calibration/test split digests, plus mission/boundary/condition/domain digests.
 
 The Wilson interval summarizes sampling uncertainty in observed test coverage; it does not replace the split-conformal marginal statement and does not create subgroup guarantees.
 
@@ -117,7 +118,7 @@ cargo clippy --manifest-path benchmarks/synthetic-joints/actuator-calibration/v0
 
 Dedicated workflow: `.github/workflows/actuator-grouped-conformal-calibration.yml`. The authoring environment has no local Cargo/rustc/rustfmt; exact-head CI is the compilation/formatting gate.
 
-Twenty-one Rust tests cover exact grouped scores/ranks, group-level test coverage, insufficient n, all split/leakage checks, duplicate samples, OOD calibration rejection and whole-specimen abstention, evidence-lane matching, model/mission/domain/boundary/condition identity, invalid intervals/non-finite data, trajectory index/length identity, no fake zero coverage, Wilson bounds and empty data.
+Twenty-two Rust tests cover exact grouped scores/ranks, group-level test coverage, insufficient n, all split/leakage checks, duplicate samples, OOD calibration rejection and whole-specimen abstention, evidence-lane matching, model/mission/domain/boundary/condition identity, invalid intervals/non-finite data, trajectory index/length identity, no fake zero coverage, Wilson bounds and empty data.
 
 ## 8. M0–M5 promotion
 
