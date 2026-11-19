@@ -35,7 +35,7 @@ The synthetic adversarial fixture has a freshwater reserve of 2 days at hour 6, 
 
 ## Adversarial corpus and benchmark boundary
 
-Fifteen authored Rust tests cover: positive whole-trajectory admission; arrival-only acceptance trap with later replenishment; inter-sample segment breach; point-estimate pass with conservative-bound failure; cumulative outage memory; crew workload spike; stale/gapped sampling; missing or mismatched resource events; event-sign semantics; scenario-member source digest identity; weather-blind forecast isolation; hard-gate failure; exact segment/time-grid alignment.
+Sixteen authored Rust tests cover: positive whole-trajectory admission; arrival-only acceptance trap with later replenishment; inter-sample segment breach; point-estimate pass with conservative-bound failure; cumulative outage memory; crew workload spike; stale/gapped sampling; missing or mismatched resource events; event-sign semantics; scenario-member source digest identity; weather-blind forecast isolation; hard-gate failure; exact segment/time-grid alignment; segment envelopes must contain both adjacent endpoint uncertainty intervals.
 
 The first fixture contains three matched policy arms, two coherent scenario members per arm, 18 timepoints and 12 inter-sample segments. The adversarial fixture has the integrated candidate cross its freshwater reserve floor at hour 6, consume 3 reserve-days with a timed receipt, then replenish 3 reserve-days at hour 8 and arrive at hour 12 with 5 reserve-days. The trajectory is blocked even though the final arrival snapshot passes.
 
